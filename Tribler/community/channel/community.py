@@ -17,7 +17,7 @@ from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDes
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
-from traceback import print_stack
+from traceback import print_stack, print_exc
 import sys
 from Tribler.Core.dispersy.dispersy import Dispersy
 from time import time
@@ -268,8 +268,8 @@ class ChannelCommunity(Community):
 
     @forceDispersyThread
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
-        name = name[:255]
-        description = description[:1023]
+        name = unicode(name[:255])
+        description = unicode(description[:1023])
         
         meta = self.get_meta_message(u"channel")
         message = meta.impl(authentication=(self._my_member,),
@@ -402,8 +402,8 @@ class ChannelCommunity(Community):
 
     @forceDispersyThread
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
-        name = name[:255]
-        description = description[:1023]
+        name = unicode(name[:255])
+        description = unicode(description[:1023])
         
         meta = self.get_meta_message(u"playlist")
         message = meta.impl(authentication=(self._my_member,),
@@ -472,7 +472,7 @@ class ChannelCommunity(Community):
             reply_after_mid = message.authentication.member.mid
             reply_after_global_time = message.distribution.global_time
         
-        text = text[:1024]
+        text = unicode(text[:1023])
         
         meta = self.get_meta_message(u"comment")
         global_time = self.claim_global_time()
@@ -586,13 +586,12 @@ class ChannelCommunity(Community):
         
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
-            type = unicode(type)
-            value = value[:1024]
             timestamp = long(time())
             self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
         
     def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on, latest_modification, store=True, update=True, forward=True):
-        modifcation_value = modifcation_value[:1023]
+        modification_type = unicode(modification_type)
+        modifcation_value = unicode(modifcation_value[:1023])
         
         latest_modification_mid = None
         latest_modification_global_time = None
@@ -859,6 +858,8 @@ class ChannelCommunity(Community):
     def _disp_create_moderation(self, text, timestamp, severity, cause, store=True, update=True, forward=True):
         causemessage = self._get_message_from_dispersy_id(cause, 'modification')
         if causemessage:
+            text = unicode(text[:1023])
+            
             meta = self.get_meta_message(u"moderation")
             global_time = self.claim_global_time()
             current_policy,_ = self._timeline.get_resolution_policy(meta, global_time)
@@ -1004,7 +1005,7 @@ class ChannelCommunity(Community):
             assert message.name == u"channel", "Expecting a 'channel' message"
             message.packet_id = packet_id
         else:
-            raise RuntimeError("unable to convert packet")
+            raise RuntimeError("Unable to convert packet, could not find channel-message for channel %d"%channel_meta.database_id)
 
         return message
         
@@ -1083,12 +1084,15 @@ class ChannelCommunity(Community):
             conflicting_messages = []
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
-                    message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
-                    if message:
-                        message = message.load_message()
-                        conflicting_messages.append(message)
-                    
-                        max_global_time = prev_global_time
+                    try:
+                        message = self._get_message_from_dispersy_id(dispersy_id, 'modification')
+                        if message:
+                            message = message.load_message()
+                            conflicting_messages.append(message)
+                        
+                            max_global_time = prev_global_time
+                    except RuntimeError:
+                        pass
                 else:
                     break
             
@@ -1121,7 +1125,6 @@ class ChannelCommunity(Community):
 
         message = self._dispersy.convert_packet_to_message(str(packet))
         if message:
-            assert not messagename or message.name == messagename, [dispersy_id, messagename, message.name]
             message.packet_id = packet_id
         else:
             raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)

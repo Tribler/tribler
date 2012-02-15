@@ -176,7 +176,7 @@ class BT1Download:
         def make(f, forcedir = False):
             if not forcedir:
                 f = path.split(f)[0]
-            if f != '' and not path.exists(f):
+            if f and f != '' and not path.exists(f):
                 makedirs(f)
 
         if self.info.has_key('length'):
@@ -197,26 +197,28 @@ class BT1Download:
 
             # if this path exists, and no files from the info dict exist, we assume it's a new download and 
             # the user wants to create a new directory with the default name
-            existing = 0
-            if path.exists(file):
-                if not path.isdir(file):
-                    raise IOError(file + 'is not a dir')
-                if listdir(file):  # if it's not empty
-                    for x in self.info['files']:
-                        savepath1 = torrentfilerec2savefilename(x,1)
-                        if path.exists(path.join(file, savepath1)):
-                            existing = 1
-                    if not existing:
-                        try:
-                            file = path.join(file, self.info['name'])
-                        except UnicodeDecodeError:
-                            file = path.join(file, dunno2unicode(self.info['name']))
-                        if path.exists(file) and not path.isdir(file):
-                            if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
-                                (prefix,ext) = os.path.splitext(file)
-                                file = prefix
-                            if path.exists(file) and not path.isdir(file):
-                                raise IOError("Can't create dir - " + self.info['name'])
+
+#Niels 09-02-2012: this seems to be very legacy, turning it off            
+#            existing = 0
+#            if path.exists(file):
+#                if not path.isdir(file):
+#                    raise IOError(file + 'is not a dir')
+#                if listdir(file):  # if it's not empty
+#                    for x in self.info['files']:
+#                        savepath1 = torrentfilerec2savefilename(x,1)
+#                        if path.exists(path.join(file, savepath1)):
+#                            existing = 1
+#                    if not existing:
+#                        try:
+#                            file = path.join(file, self.info['name'])
+#                        except UnicodeDecodeError:
+#                            file = path.join(file, dunno2unicode(self.info['name']))
+#                        if path.exists(file) and not path.isdir(file):
+#                            if file.endswith('.torrent') or file.endswith(TRIBLER_TORRENT_EXT):
+#                                (prefix,ext) = os.path.splitext(file)
+#                                file = prefix
+#                            if path.exists(file) and not path.isdir(file):
+#                                raise IOError("Can't create dir - " + self.info['name'])
             make(file, True)
 
             # alert the UI to any possible change in path

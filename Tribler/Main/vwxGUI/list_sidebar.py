@@ -137,7 +137,7 @@ class SearchSideBar(wx.Panel):
         self._SetLabels()
     
     @forceWxThread
-    def SetMaxResults(self, max):
+    def SetMaxResults(self, max, remotekeywords):
         self.Freeze()
         
         self.searchGauge.SetRange(max)
@@ -145,7 +145,7 @@ class SearchSideBar(wx.Panel):
         self.searchGauge.Show()
         self.searchState.SetLabel(' in progress')
         
-        wx.CallLater(10000, self.SetFinished)
+        wx.CallLater(10000, self.SetFinished, remotekeywords)
         
         self.ag.Play()
         self.ag.Show()
@@ -157,20 +157,23 @@ class SearchSideBar(wx.Panel):
         maxValue = self.searchGauge.GetRange()
         newValue = min(self.searchGauge.GetValue() + 1, maxValue)
         if newValue == maxValue:
-            self.SetFinished()
+            self.SetFinished(None)
         else:
             self.searchGauge.SetValue(newValue)
         
-    def SetFinished(self):
-        self.Freeze()
-        
-        self.ag.Stop()
-        self.ag.Hide()
-        self.searchGauge.Hide()
-        self.searchState.SetLabel(' completed')
-        self.Layout()
-        
-        self.Thaw()
+    def SetFinished(self, keywords):
+        curkeywords, hits, filtered = self.guiutility.torrentsearch_manager.getSearchKeywords()
+        if not keywords or curkeywords == keywords:
+            self.Freeze()
+            
+            self.ag.Stop()
+            self.ag.Hide()
+            self.searchGauge.Hide()
+            self.searchState.SetLabel(' completed')
+            self.Layout()
+            
+            self.Thaw()
+            self.guiutility.frame.searchlist.SetFinished()
     
     @forceWxThread
     def SetAssociatedChannels(self, channels):
@@ -260,23 +263,22 @@ class SearchSideBar(wx.Panel):
         if newstate is None:
             auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
             
+            newstate = Bundler.ALG_OFF # default
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
-            try:
-                stored_state = self.bundle_db.getPreference(keywords)
-            except:
-                #if db interaction fails, ignore
-                stored_state = None
+            if keywords != '':
+                try:
+                    stored_state = self.bundle_db.getPreference(keywords)
+                except:
+                    #if db interaction fails, ignore
+                    stored_state = None
                 
-            local_override = stored_state is not None
-            
-            if local_override:
-                newstate = stored_state
+                local_override = stored_state is not None
                 
-            elif auto_guess:
-                newstate = Bundler.ALG_MAGIC
-            
-            else:
-                newstate = Bundler.ALG_OFF # default
+                if local_override:
+                    newstate = stored_state
+                    
+                elif auto_guess:
+                    newstate = Bundler.ALG_MAGIC
         
         self.bundlestate = newstate
         self.selected_bundle_mode = None

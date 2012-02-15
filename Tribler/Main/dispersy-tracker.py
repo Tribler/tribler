@@ -6,11 +6,13 @@ Run Dispersy in standalone tracker mode.  Tribler will not be started.
 
 from time import time
 import errno
+import itertools
+import optparse
+import random
 import socket
 import sys
-import traceback
 import threading
-import optparse
+import traceback
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.Statistics.Logger import OverlayLogger
@@ -107,6 +109,12 @@ class TrackerDispersy(Dispersy):
         assert 0 <= port
         super(TrackerDispersy, self).__init__(callback, statedir)
 
+        # non-autoload nodes
+        self._non_autoload = set()
+        self._non_autoload.update(host for host, _ in self._bootstrap_candidates.iterkeys())
+        # leaseweb machines, some are running boosters, they never unload a community
+        self._non_autoload.update(["95.211.105.65", "95.211.105.67", "95.211.105.69", "95.211.105.71", "95.211.105.73", "95.211.105.75", "95.211.105.77", "95.211.105.79", "95.211.105.81", "85.17.81.36"])
+
         # logger
         overlaylogpostfix = "dp" + str(port) + ".log"
         self._logger = OverlayLogger.getInstance(overlaylogpostfix, statedir)
@@ -126,6 +134,38 @@ class TrackerDispersy(Dispersy):
             self._communities[cid] = TrackerCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
             return self._communities[cid]
 
+    def _convert_packets_into_batch(self, packets):
+        """
+        Ensure that communities are loaded when the packet is received from a non-bootstrap node,
+        otherwise, load and auto-load are disabled.
+        """
+        def filter_non_bootstrap_nodes():
+            for candidate, packet in packets:
+                cid = packet[2:22]
+
+                if not cid in self._communities and candidate.address[0] in self._non_autoload:
+                    if __debug__: dprint("drop a ", len(packet), " byte packet (received from non-autoload node) from ", candidate, level="warning", force=1)
+                    self._statistics.drop("_convert_packets_into_batch:from bootstrap node for unloaded community", len(packet))
+                    continue
+
+                yield candidate, packet
+
+        packets = list(filter_non_bootstrap_nodes())
+        if packets:
+            return super(TrackerDispersy, self)._convert_packets_into_batch(packets)
+
+        else:
+            return []
+
+    def yield_random_candidates(self, community):
+        # the regular yield_random_candidates includes a security mechanism where we first choose
+        # the category (walk or stumble) and than a candidate.  this results in a problem with flash
+        # crowds, we solve this by removing the security mechanism.  this mechanism is not useful
+        # for trackers as they will always receive a steady supply of valid connections as well.
+        candidate = [candidate for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
+        for length in xrange(len(candidate), 0, -1):
+            yield candidate.pop(int(random() * length))
+
     def _unload_communities(self):
         def is_active(community, now):
             # check 1: does the community have any active candidates
@@ -144,7 +184,7 @@ class TrackerDispersy(Dispersy):
             yield 180.0
             now = time()
             inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
-            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")# [", ", ".join(community.cid.encode("HEX") for community in inactive), "]")
+            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")
             for community in inactive:
                 community.unload_community()
 

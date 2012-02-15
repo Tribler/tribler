@@ -89,10 +89,12 @@ class GUIUtility:
             xrcResource = os.path.join(self.vwxGUI_path, 'settingsDialog.xrc')
             res = xrc.XmlResource(xrcResource)
             dialog = res.LoadDialog(None, 'settingsDialog')
+            if not dialog: #failed to load dialog
+                return
+
             dialog.Centre()
             dialog.ShowModal()
             dialog.Destroy()
-            
             self.frame.top_bg.selectTab(page)
         
         elif page != self.guiPage:
@@ -157,8 +159,10 @@ class GUIUtility:
             
             if page == 'playlist':
                 self.frame.playlist.Show()
+                
             elif self.guiPage == 'playlist':
                 self.frame.playlist.Show(False)
+                self.frame.playlist.Reset()
                 
             if page == 'my_files':
                 #Open infohash
@@ -295,7 +299,7 @@ class GUIUtility:
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 
-                self.torrentsearch_manager.refreshGrid()
+                wx.CallAfter(self.torrentsearch_manager.refreshGrid)
                 
                 if len(remotekeywords) > 0:
                     #Start remote search
@@ -308,7 +312,7 @@ class GUIUtility:
                     nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
                     
                     #Indicate expected nr replies in gui, use local result as first
-                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1)
+                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1, remotekeywords)
                     self.frame.searchlist.NewResult()
                     
                     if len(input) > 1: #do not perform remote channel search for single character inputs
@@ -316,31 +320,22 @@ class GUIUtility:
                         for kw in remotekeywords:
                             q += kw+' '
                         self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
-                    wx.CallLater(10000, self.CheckSearch, remotekeywords)
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):
-        if show:
-            self.frame.channellist.Freeze()
-        
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category, True)
         
         if show:
             self.ShowPage('channels')
-            self.frame.channellist.Thaw()
             
     @forceWxThread
     def showLibrary(self, show = True):
-        if show:
-            self.frame.channellist.Freeze()
-        
         manager = self.frame.librarylist.GetManager()
         manager.refresh()
         
         if show:
-            self.ShowPage('channels')
-            self.frame.channellist.Thaw()
+            self.ShowPage('my_files')
     
     def showChannelFromId(self, channel_id):
         def db_callback():
@@ -422,12 +417,6 @@ class GUIUtility:
         lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
-    
-    def CheckSearch(self, wantkeywords):
-        curkeywords, hits, filtered = self.torrentsearch_manager.getSearchKeywords()
-        if curkeywords == wantkeywords and (hits + filtered) == 0:
-            uelog = UserEventLogDBHandler.getInstance()
-            uelog.addEvent(message="Search: nothing found for query: "+" ".join(wantkeywords), type = 2)
             
     def Notify(self, msg, icon= -1):
         self.frame.top_bg.Notify(msg, icon)

@@ -16,7 +16,7 @@ Logger format:
 - Sync time high (0 when sync disabled)
 - Sync modulo (1 when sync disabled)
 - Sync offset (0 when sync disabled)
-- Bytes transfered in response
+- Bytes transferred in response
 """
 
 from traceback import print_exc

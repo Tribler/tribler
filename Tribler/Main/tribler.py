@@ -33,6 +33,8 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
+import traceback
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -98,7 +100,7 @@ from time import time, sleep
 
 I2I_LISTENPORT = 57891
 VIDEOHTTP_LISTENPORT = 6875
-SESSION_CHECKPOINT_INTERVAL = 1800.0 # seconds
+SESSION_CHECKPOINT_INTERVAL = 900.0 # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
 DEBUG = False
@@ -144,9 +146,7 @@ class ABCApp():
             self.PostInit()
                 
         except Exception,e:
-            print_exc()
-            self.error = e
-            self.onError()
+            self.onError(e)
             return False
 
     def PostInit(self):
@@ -263,9 +263,7 @@ class ABCApp():
             # _ProxyService 90s Test
 
         except Exception,e:
-            print_exc()
-            self.error = e
-            self.onError()
+            self.onError(e)
             return False
 
         return True
@@ -273,7 +271,6 @@ class ABCApp():
     def PostInit2(self):
         self.frame.Raise()
         self.startWithRightView()
-        self.loadSessionCheckpoint()
         self.set_reputation()
         
         s = self.utility.session
@@ -302,8 +299,10 @@ class ABCApp():
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                
         startWorker(None, db_thread)
+        
+        # initialize torrents using guiserverthread
+        self.guiserver.add_task(self.loadSessionCheckpoint)
 
     # ProxyService 90s Test_
 #    def start_90s_dl(self, subject, changeType, objectID, *args):
@@ -392,10 +391,12 @@ class ABCApp():
             print >>sys.stderr,"main: Session config",cfgfilename
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
+            
         except:
             print_exc()
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
+            
             # Set default Session params here
             destdir = get_default_dest_dir()
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
@@ -441,23 +442,26 @@ class ABCApp():
         
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
-        def we_are_frozen():
-            """Returns whether we are frozen via py2exe.
-            This will affect how we find out where we are located."""
-            return hasattr(sys, "frozen")
-
-        def module_path():
-            """ This will get us the program's directory,
-            even if we are frozen using py2exe"""
-            if we_are_frozen():
-                return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
-            return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
-
-        install_dir = module_path()
-        if install_dir.find('library.zip') >= 0:
-            install_dir = install_dir[:install_dir.find('library.zip') - 1]
-            self.sconfig.set_install_dir(install_dir)
+        # Niels, 2012-01-31: py2exe should only apply to windows
+        if sys.platform == 'win32':
+            def we_are_frozen():
+                """Returns whether we are frozen via py2exe.
+                This will affect how we find out where we are located."""
+                return hasattr(sys, "frozen")
+    
+            def module_path():
+                """ This will get us the program's directory,
+                even if we are frozen using py2exe"""
+                if we_are_frozen():
+                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
+                
+                filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+                return os.path.abspath(os.path.join(filedir, '..', '..'))
             
+            self.sconfig.set_install_dir(module_path())
+            
+        print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
+        
         progress('Creating session')
         s = Session(self.sconfig)
         self.utility.session = s
@@ -558,38 +562,17 @@ class ABCApp():
             manager = self.frame.selectedchannellist.GetManager()
             manager.downloadStarted(objectID)
 
-    def get_reputation(self):
-        """ get the current reputation score"""
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        reputation = bc_db.getMyReputation()
-        #self.utility.session.close_dbhandler(bc_db)
-        return reputation
-
-    def get_total_down(self):
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        return bc_db.total_down
-
-    def get_total_up(self):
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-        return bc_db.total_up
-
     def set_reputation(self):
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
-            self.frame.SRstatusbar.set_reputation(self.get_reputation(), self.get_total_down(), self.get_total_up())
+            bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+            self.frame.SRstatusbar.set_reputation(bc_db.getMyReputation(), bc_db.total_down, bc_db.total_up)
             
         wx.CallLater(10000, self.set_reputation)
     
     def sesscb_states_callback(self, dslist):
-        def guiCall():
-            wx.CallAfter(self._gui_sesscb_states_callback, dslist)
-        
-        self.guiserver.add_task(guiCall, id="DownloadStateCallback")
-        return(1.0, True)
-    
-    def _gui_sesscb_states_callback(self, dslist):
         if not self.ready:
-            return
+            return (5.0, True)
         
         """ Called by GUITHREAD  """
         if DEBUG: 
@@ -639,41 +622,44 @@ class ABCApp():
             
             # Apply status displaying from SwarmPlayer
             if playds:
-                videoplayer_mediastate = self.videoplayer.get_state()
-
-                totalhelping = 0
-                totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
-                for ds in dslist:
-                    totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
-                    totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
-                    totalhelping += ds.get_num_peers()
-
-                [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
-                # Update status msg and progress bar
-                if topmsg != '':
-                    
-                    if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
-                        # In SwarmPlayer we would display "Decoding: N secs" 
-                        # when VLC was playing but the video was not yet
-                        # being displayed (because VLC was looking for an
-                        # I-frame). We would display it in the area where
-                        # VLC would paint if it was ready to display.
-                        # Hence, our text would be overwritten when the
-                        # video was ready. We write the status text to
-                        # its own area here, so trick doesn't work.
-                        # For now: just hide.
-                        text = msg
+                def do_video():
+                    videoplayer_mediastate = self.videoplayer.get_state()
+    
+                    totalhelping = 0
+                    totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
+                    for ds in dslist:
+                        totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
+                        totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
+                        totalhelping += ds.get_num_peers()
+    
+                    [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
+                    # Update status msg and progress bar
+                    if topmsg != '':
+                        
+                        if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
+                            # In SwarmPlayer we would display "Decoding: N secs" 
+                            # when VLC was playing but the video was not yet
+                            # being displayed (because VLC was looking for an
+                            # I-frame). We would display it in the area where
+                            # VLC would paint if it was ready to display.
+                            # Hence, our text would be overwritten when the
+                            # video was ready. We write the status text to
+                            # its own area here, so trick doesn't work.
+                            # For now: just hide.
+                            text = msg
+                        else:
+                            text = topmsg
                     else:
-                        text = topmsg
-                else:
-                    text = msg
-                    
-                #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
-                playds.vod_status_msg = text
-                self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+                        text = msg
+                        
+                    #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
+                    playds.vod_status_msg = text
+                    self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
+                wx.CallAfter(do_video)
             
             # Check to see if a download has finished
             newActiveDownloads = []
+            doCheckpoint = False
             for ds in dslist:
                 state = ds.get_status() 
                 safename = ds.get_download().get_def().get_name()
@@ -688,7 +674,11 @@ class ABCApp():
                         notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash)
                         
+                        doCheckpoint = True
+            
             self.prevActiveDownloads = newActiveDownloads
+            if doCheckpoint:
+                self.utility.session.checkpoint()
             
 # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance
@@ -699,16 +689,11 @@ class ABCApp():
             # self.seedingcount += 1
             # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(dslist)
-# _SelectiveSeeding            
+# _SelectiveSeeding
             
             # Pass DownloadStates to libaryView
             try:
-                self.guiUtility.library_manager.download_state_gui_callback(dslist)
-            except KeyError:
-                # Apparently libraryMode only has has a 'grid' key when visible
-                print_exc()
-            except AttributeError:
-                print_exc()
+                self.guiUtility.library_manager.download_state_callback(dslist)
             except:
                 print_exc()
             
@@ -735,19 +720,17 @@ class ABCApp():
                 self.seeding_snapshot_count += 1
                 
                 if snapshot_seeding_stats:
-                    def updateSeedingStats():
-                        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                        reputation = bc_db.getMyReputation()
-                    
-                        seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                        seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
-                    
-                    #Niels: using guiserver to do db-stuff
-                    self.guiserver.add_task(updateSeedingStats)
+                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+                    reputation = bc_db.getMyReputation()
+                
+                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
+                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
 # _Crawling Seeding Stats
 
         except:
             print_exc()
+        
+        return (1.0, True)
 
     def loadSessionCheckpoint(self):
         self.utility.session.load_checkpoint()
@@ -762,6 +745,9 @@ class ABCApp():
         try:
             print >>sys.stderr,"main: Checkpointing Session"
             self.utility.session.checkpoint()
+
+            # write all persistent data to disk
+            self.seedingmanager.write_all_storage()
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
@@ -807,6 +793,9 @@ class ABCApp():
             manager.torrentUpdated(objectID)
             
             manager = self.frame.playlist.GetManager()
+            manager.torrentUpdated(objectID)
+            
+            manager = self.frame.librarylist.GetManager()
             manager.torrentUpdated(objectID)
             
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
@@ -865,20 +854,19 @@ class ABCApp():
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
         disp = Dispersy.get_instance()
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
-                    
-    def onError(self,source=None):
-        # Don't use language independence stuff, self.utility may not be
-        # valid.
-        msg = "Unfortunately, Tribler ran into an internal error:\n\n"
-        if source is not None:
-            msg += source
-        msg += str(self.error.__class__)+':'+str(self.error)
-        msg += '\n'
-        msg += 'Please see the FAQ on www.tribler.org on how to act.'
-        dlg = wx.MessageDialog(None, msg, "Tribler Fatal Error", wx.OK|wx.ICON_ERROR)
-        result = dlg.ShowModal()
+               
+    @forceWxThread     
+    def onError(self, e):
         print_exc()
-        dlg.Destroy()
+        type, value, stack = sys.exc_info()
+        backtrace = traceback.format_exception(type, value, stack)
+        
+        win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
+        win.CreateOutputWindow('')
+        for line in backtrace:
+            win.write(line)
+            
+        win.ShowModal()
         
     def MacOpenFile(self, filename): 
         print >> sys.stderr, filename
@@ -896,17 +884,22 @@ class ABCApp():
         
         self.torrentfeed.shutdown()
         
-        
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()
         
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
-        self.utility.session.shutdown(hacksessconfcheckpoint=False) 
+        self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
-        while not self.utility.session.has_shutdown() or (time() - session_shutdown_start) > 300:
-            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown"
-            sleep(1)
+        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
+            diff = time() - session_shutdown_start
+            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
+            sleep(3)
+            
+#        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"
+#        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+#        peerdb._db.execute_read('VACUUM')
+#        print >> sys.stderr, long(time()), "main: Finished running SQLite vacuum" 
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -924,9 +917,8 @@ class ABCApp():
             print >> sys.stderr, "main: db_exception_handler error", e, type(e)
             print_exc()
             #print_stack()
-        self.error = e
-        onerror_lambda = lambda:self.onError(source="The database layer reported:  ") 
-        wx.CallAfter(onerror_lambda)
+            
+        self.onError(e) 
     
     def getConfigPath(self):
         return self.utility.getConfigPath()
@@ -942,7 +934,7 @@ class ABCApp():
         ic.close()
         
         if cmd.startswith('START '):
-            param = cmd[len('START '):]
+            param = cmd[len('START '):].strip()
             torrentfilename = None
             if param.startswith('http:'):
                 # Retrieve from web 

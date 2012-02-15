@@ -51,8 +51,6 @@ class DownloadImpl:
 
             torrentdef = self.get_def()
             metainfo = torrentdef.get_metainfo()
-            # H4xor this so the 'name' field is safe
-            self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
 
             if DEBUG:
                 print >>sys.stderr,"Download: setup: piece size",metainfo['info']['piece length']
@@ -96,6 +94,12 @@ class DownloadImpl:
                 cdcfg.updateToCurrentVersion()
             self.dlconfig = copy.copy(cdcfg.dlconfig)
             
+            # H4xor this so the 'name' field is safe
+            self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
+            
+            # Allow correctinfoname to be overwritten for multifile torrents only
+            if 'files' in metainfo['info'] and dcfg.get_corrected_filename() and dcfg.get_corrected_filename() != '':
+                self.correctedinfoname = dcfg.get_corrected_filename()
 
             # Copy sessconfig into dlconfig, such that BitTornado.BT1.Connecter, etc.
             # knows whether overlay is on, etc.
@@ -387,8 +391,9 @@ class DownloadImpl:
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
-                contentdest = self.get_content_dest() 
-                self.session.uch.perform_removestate_callback(infohash,contentdest,removecontent)
+                dest_files = self.get_dest_files()
+                contentdests = [filename for _,filename in dest_files]
+                self.session.uch.perform_removestate_callback(infohash,contentdests,removecontent)
             
             return (infohash,pstate)
         finally:

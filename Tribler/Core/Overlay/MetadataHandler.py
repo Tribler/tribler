@@ -475,6 +475,11 @@ class MetadataHandler:
             if not os.access(dir,os.F_OK):
                 os.mkdir(dir)
             save_path = os.path.join(dir, name)
+            
+            #remove file if exists
+            if os.path.isfile(save_path):
+                os.remove(save_path)
+            
             file = open(save_path, 'wb')
             file.write(metadata)
             file.close()

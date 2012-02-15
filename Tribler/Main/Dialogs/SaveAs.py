@@ -5,9 +5,8 @@ import wx
 import os
 
 class SaveAs(wx.Dialog):
-    def __init__(self, parent, torrentdef, defaultdir, configfile):
+    def __init__(self, parent, torrentdef, defaultdir, defaultname, configfile):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600,450))
-        
         self.filehistory = wx.FileHistory(10)
         self.config = wx.FileConfig(appName = "Tribler", localFilename = configfile)
         self.filehistory.Load(self.config)
@@ -35,6 +34,9 @@ class SaveAs(wx.Dialog):
             vSizer.Add(torrentName, 0, wx.LEFT|wx.EXPAND, 10)
         
         self.dirCtrl = wx.GenericDirCtrl(self, -1, style = wx.DIRCTRL_DIR_ONLY|wx.SUNKEN_BORDER)
+        self.dirCtrl.SetDefaultPath(defaultdir)
+        self.dirCtrl.SetPath(lastUsed)
+        
         self.dirCtrl.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnDirChange)
         
         vSizer.Add(self.dirCtrl, 1, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
@@ -42,7 +44,10 @@ class SaveAs(wx.Dialog):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(wx.StaticText(self, -1, 'Save to:'), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
-        self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, style = wx.CB_DROPDOWN)
+        if defaultname:
+            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(lastUsed, defaultname), style = wx.CB_DROPDOWN)
+        else:
+            self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, style = wx.CB_DROPDOWN)
         self.dirTextCtrl.Bind(wx.EVT_COMBOBOX, self.OnComboChange)
         self.dirTextCtrl.Bind(wx.EVT_TEXT, self.OnComboChange)
         for i in range(self.filehistory.GetCount()):
@@ -50,9 +55,6 @@ class SaveAs(wx.Dialog):
         
         if self.dirTextCtrl.FindString(defaultdir) == wx.NOT_FOUND:
             self.dirTextCtrl.Append(defaultdir)
-        
-        self.dirCtrl.SetDefaultPath(defaultdir)
-        self.dirCtrl.SetPath(lastUsed)
         
         hSizer.Add(self.dirTextCtrl, 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
@@ -77,17 +79,29 @@ class SaveAs(wx.Dialog):
         return self.dirTextCtrl.GetValue().strip()
 
     def OnDirChange(self, event):
-        samefile = os.path.abspath(self.dirTextCtrl.GetValue()) == os.path.abspath(self.dirCtrl.GetPath())
-        if not os.path.isdir(self.dirTextCtrl.GetValue()) or not samefile:
-            self.dirTextCtrl.SetValue(self.dirCtrl.GetPath())
+        #dirCtrl changed, strip dir from dirTextCtrl is not existing
+        newDir = self.dirCtrl.GetPath()
+            
+        curDir = self.dirTextCtrl.GetValue()
+        samefile = os.path.abspath(curDir) == os.path.abspath(newDir)
+        if not samefile:
+            self.dirTextCtrl.SetValue(newDir)
         
     def OnComboChange(self, event):
         path = self.dirTextCtrl.GetValue()
         if os.path.isdir(path):
             self.dirCtrl.SetPath(path)
+        else:
+            path,_ = os.path.split(path)
+            if os.path.isdir(path):
+                self.dirCtrl.SetPath(path)
         
     def OnOk(self, event = None):
-        self.filehistory.AddFileToHistory(self.GetPath())
+        path = self.GetPath()
+        if not os.path.exists(path):
+            path, _ = os.path.split(path)
+        self.filehistory.AddFileToHistory(path)
+        
         self.filehistory.Save(self.config)
         self.config.Flush()
         

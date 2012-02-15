@@ -42,6 +42,11 @@ class DownloadConfigInterface:
     def __init__(self,dlconfig=None):
         
         if dlconfig is not None: # copy constructor
+            
+            #modify/fix incorrectly saved dlconfigs
+            if isinstance(dlconfig['saveas'], tuple):
+                dlconfig['saveas'] = dlconfig['saveas'][-1]
+            
             self.dlconfig = dlconfig
             return
         
@@ -76,6 +81,7 @@ class DownloadConfigInterface:
         """ Sets the directory where to save this Download.
         @param path A path of a directory.
         """
+        assert isinstance(path, basestring), path 
         self.dlconfig['saveas'] = path
 
     def get_dest_dir(self):
@@ -93,6 +99,17 @@ class DownloadConfigInterface:
         @param show Boolean to show a dialog
         """
         self.dlconfig['showsaveas'] = show
+        
+    def get_corrected_filename(self):
+        """ Gets the directory name where to save this torrent
+        """
+        return self.dlconfig['correctedfilename']
+    
+    def set_corrected_filename(self, correctedfilename):
+        """ Sets the directory name where to save this torrent
+        @param correctedfilename name for multifile directory
+        """
+        self.dlconfig['correctedfilename'] = correctedfilename
 
     def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Download the torrent in Video-On-Demand mode or as live stream.

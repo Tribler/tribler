@@ -1,4 +1,5 @@
 from struct import pack, unpack_from
+from random import choice, sample
 
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket
@@ -16,7 +17,22 @@ class AllChannelConversion(BinaryConversion):
         self._address = ("", -1)
 
     def _encode_channelcast(self, message):
-        packet = encode(message.payload.torrents)
+        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        
+        def create_msg():
+            return encode(message.payload.torrents) 
+        
+        packet = create_msg()
+        while len(packet) > max_len:
+            community = choice(message.payload.torrents.keys())
+            nrTorrents = len(message.payload.torrents[community])
+            if nrTorrents == 1:
+                del message.payload.torrents[community]
+            else:
+                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents-1))
+            
+            packet = create_msg()
+                
         return packet,
 
     def _decode_channelcast(self, placeholder, offset, data):

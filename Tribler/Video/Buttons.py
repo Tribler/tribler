@@ -26,7 +26,7 @@ class PlayerButton(wx.Panel):
         self.selected = False
         self.tooltip = None
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         
         self.searchBitmaps()
         self.createBackgroundImage()

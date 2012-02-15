@@ -34,10 +34,11 @@ from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent, getValidArgs, NotCollectedTorrent, LibraryTorrent,\
     Comment, Modification, Channel, RemoteChannel, Playlist, Moderation,\
-    RemoteChannelTorrent
+    RemoteChannelTorrent, Marking
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from wx.lib import delayedresult
 
 DEBUG = False
 
@@ -310,8 +311,8 @@ class TorrentManager:
         self.library_manager = library_manager
         self.channel_manager = channel_manager
         
-    def getSearchSuggestion(self, keywords):
-        return self.torrent_db.getSearchSuggestion(keywords)
+    def getSearchSuggestion(self, keywords, limit = 1):
+        return self.torrent_db.getSearchSuggestion(keywords, limit)
     
     def getHitsInCategory(self, categorykey = 'all', sort = 'fulltextmetric'):
         if DEBUG: begintime = time()
@@ -394,7 +395,7 @@ class TorrentManager:
                 
         finally:
             self.hitsLock.release()
-
+        
         # Niels: important, we should not change self.hits otherwise prefetching will not work 
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
@@ -444,8 +445,7 @@ class TorrentManager:
                     prefetch_counter += 1
             else:
                 #schedule health check
-                #TorrentChecking.getInstance().addTorrentToQueue(hit)
-                pass
+                TorrentChecking.getInstance().addTorrentToQueue(hit)
 
             hit_counter += 1
             if prefetch_counter >= 10 or hit_counter >= 25:
@@ -585,7 +585,7 @@ class TorrentManager:
         avoid blocking the GUI because of the database queries.
         """
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True)
 
     def _gotRemoteHits(self, permid, kws, answers):
         refreshGrid = False
@@ -784,6 +784,7 @@ class LibraryManager:
             raise RuntimeError, "LibraryManager is singleton"
         LibraryManager.__single = self
         self.guiUtility = guiUtility
+        self.guiserver = GUITaskQueue.getInstance()
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
@@ -791,6 +792,7 @@ class LibraryManager:
         
         #current progress of download states
         self.cache_progress = {}
+        self.last_progress_update = time()
         self.rerankingStrategy = DefaultTorrentReranker()
         
         # For asking for a refresh when remote results came in
@@ -823,25 +825,31 @@ class LibraryManager:
         self.guiUtility.ShowPlayer(True)
         return videoplayer
         
-    def download_state_gui_callback(self, dslist):
+    def download_state_callback(self, dslist):
         """
-        Called by GUIThread
+        Called by any thread
         """
         self.dslist = dslist
+        self.guiserver.add_task(self._do_gui_callback, id = "LibraryManager_refresh_callbacks")
+        
+        if time() - self.last_progress_update > 10:
+            self.last_progress_update = time()
+            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
+    
+    @forceWxThread
+    def _do_gui_callback(self):
+        dslist = self.dslist[:]
+        
         for callback in self.gui_callback:
             try:
                 callback(dslist)
             except:
                 print_exc()
-                self.remove_download_state_callback(callback)
-            
-        #TODO: This seems like the wrong place to do this?
-        self.updateProgressInDB(dslist)
     
-    @forceDBThread
-    def updateProgressInDB(self, dslist):
+    def updateProgressInDB(self):
         updates = False
-        for ds in dslist:
+        
+        for ds in self.dslist[:]:
             infohash = ds.get_download().get_def().get_infohash()
             
             progress = (ds.get_progress() or 0.0) * 100.0
@@ -913,6 +921,33 @@ class LibraryManager:
         else:
             videoplayer.play(ds, selectedinfilename)
     
+    def resumeTorrent(self, torrent):
+        download = None
+        if torrent.ds:
+            download = torrent.ds.get_download()
+        
+        if not download:
+            session = self.guiUtility.utility.session
+            for curdownload in session.get_downloads():
+                if curdownload.get_def().get_infohash() == torrent.infohash:
+                    download = curdownload
+                    break
+        
+        if download:
+            download.restart()
+            
+        else:
+            filename = self.torrentsearch_manager.getCollectedFilename(torrent)
+            if filename:
+                tdef = TorrentDef.load(filename)
+                
+                destdirs = self.mypref_db.getMyPrefStats(torrent.torrent_id)
+                destdir = destdirs.get(torrent.torrent_id, None)
+                self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
+            else:
+                callback = lambda infohash, metadata, filename: self.resumeTorrent(torrent)
+                self.torrentsearch_manager.getTorrent(torrent, callback)
+    
     def deleteTorrent(self, torrent, removecontent = False):
         self.deleteTorrentDS(torrent.ds, torrent.infohash, removecontent)
     
@@ -924,10 +959,15 @@ class LibraryManager:
             if playd == ds.download:
                 self._get_videoplayer(ds).stop_playback()
             
-        self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+            self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
+        else:
+            self.deleteTorrentDownload(None, infohash, removecontent)
         
     def deleteTorrentDownload(self, download, infohash, removecontent = False, removestate = True):
-        self.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        if download:
+            self.session.remove_download(download, removecontent = removecontent, removestate = removestate)
+        else:
+            self.session.remove_download_by_infohash(infohash, removecontent, removestate)
         
         if infohash:
             # Johan, 2009-03-05: we need long download histories for good 
@@ -971,6 +1011,24 @@ class LibraryManager:
             
         self.hits = self.addDownloadStates(results)
         return [len(self.hits), 0 , self.hits]
+       
+    def getTorrentFromInfohash(self, infohash):
+        dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        if dict and dict['myDownloadHistory']:
+            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t.torrent_db = self.torrent_db
+            t.channelcast_db = self.channelcast_db
+            
+            #touch channel to force load
+            t.channel
+            return t
+    
+    def exists(self, infohashes):
+        prefrerences = self.mypref_db.getMyPrefListInfohash(returnDeleted = False)
+        for infohash in infohashes:
+            if infohash not in prefrerences:
+                return False
+        return True
 
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
@@ -1022,7 +1080,7 @@ class ChannelManager:
         if Dispersy.has_instance():
             self.dispersy = Dispersy.get_instance()
             self.dispersy.database.attach_commit_callback(self.channelcast_db.commit)
-            
+
         else:
             def dispersy_started(subject,changeType,objectID):
                 self.dispersy = Dispersy.get_instance()
@@ -1088,34 +1146,37 @@ class ChannelManager:
         two_months = time() - 5259487
         
         newchannels = self.channelcast_db.getNewChannels(two_months)
-        return len(newchannels), self._createChannels(newchannels)
+        return self._createChannels(newchannels)
 
     def getAllChannels(self):
         allchannels = self.channelcast_db.getAllChannels()
-        return len(allchannels), self._createChannels(allchannels)
+        return self._createChannels(allchannels)
  
     def getMySubscriptions(self):
         subscriptions = self.channelcast_db.getMySubscribedChannels(includeDispsersy=True)
-        return len(subscriptions), self._createChannels(subscriptions)
+        return self._createChannels(subscriptions)
 
     def getPopularChannels(self):
         pchannels = self.channelcast_db.getMostPopularChannels()
-        return len(pchannels), self._createChannels(pchannels)
+        return self._createChannels(pchannels)
     
     def getUpdatedChannels(self):
         lchannels = self.channelcast_db.getLatestUpdated()
-        return len(lchannels), self._createChannels(lchannels)
+        return self._createChannels(lchannels)
     
     def _createChannel(self, hit):
         return Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
     
-    def _createChannels(self, hits):
+    def _createChannels(self, hits, filterTorrents = True):
         channels = []
         for hit in hits:
             channel = Channel(*hit+(hit[0] == self.channelcast_db._channel_id,))
             channels.append(channel)
-            
-        return channels
+        
+        self.filteredResults = 0
+        if filterTorrents:
+            channels = self._applyChannelFF(channels)
+        return len(channels), self.filteredResults, channels
     
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
@@ -1186,7 +1247,8 @@ class ChannelManager:
     def _createTorrents(self, hits, filterTorrents, channel_dict = {}, playlist = None):
         fetch_channels = set(hit[0] for hit in hits if hit[0] not in channel_dict)
         if len(fetch_channels) > 0:
-            for channel in self.getChannels(fetch_channels):
+            _,_,channels = self.getChannels(fetch_channels)
+            for channel in channels:
                 channel_dict[channel.id] = channel
         
         torrents = []
@@ -1262,6 +1324,27 @@ class ChannelManager:
             
         return returnList
     
+    def getRecentMarkingsFromChannel(self, channel, limit = None):
+        data = self.channelcast_db.getRecentMarkingsFromChannel(channel.id, MARKING_REQ_COLUMNS, limit)
+        return self._createMarkings(data)
+
+    def getRecentMarkingsFromPlaylist(self, playlist, limit = None):
+        data = self.channelcast_db.getRecentMarkingsFromPlaylist(playlist.id, MARKING_REQ_COLUMNS, limit)
+        return self._createMarkings(data)
+    
+    def _createMarkings(self, hits):
+        returnList = []
+        for hit in hits:
+            mar = Marking(*hit[:5])
+            mar.get_nickname = self.session.get_nickname
+            
+            #touch torrent property to load torrent
+            mar.torrent
+            
+            returnList.append(mar)
+            
+        return returnList
+    
     def getCommentsFromChannel(self, channel, limit = None, resolve_names = True):
         hits = self.channelcast_db.getCommentsFromChannelId(channel.id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits, channel = channel)
@@ -1327,7 +1410,7 @@ class ChannelManager:
         return self.channelcast_db.getSubscribersCount(channel.id)
     
     def _applyFF(self, hits):
-        enabled_category_keys = [key.lower() for key in self.category.getCategoryKeys()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         enabled_category_ids = set()
         for key, id in self.torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
@@ -1349,8 +1432,20 @@ class ChannelManager:
             
             okGood = torrent.status_id != deadstatus_id
             return okCategory and okGood
-        #return filter(torrentFilter, hits)
-        return hits
+        
+        return filter(torrentFilter, hits)
+    
+    def _applyChannelFF(self, channels):
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
+        
+        #only check XXX category
+        if 'xxx' in enabled_category_keys:
+            return channels
+        
+        def channelFilter(channel):
+            isXXX = self.category.xxx_filter.isXXX(channel.name, False)
+            return not isXXX
+        return filter(channelFilter, channels) 
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_channel_id(self, channel_id):
@@ -1363,6 +1458,8 @@ class ChannelManager:
             dispersy_cid = str(dispersy_cid)
 
             return self._disp_get_community_from_cid(dispersy_cid)
+        
+        print >> sys.stderr, "Could not find channel",channel_id
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_cid(self, dispersy_cid):
@@ -1424,6 +1521,9 @@ class ChannelManager:
         
         if not channel:
             channel_id = self.channelcast_db.getMyChannelId()
+            if not channel_id:
+                self.createChannel(self.session.get_nickname(), '')
+                channel_id = self.channelcast_db.getMyChannelId()
         else:
             channel_id = channel.id
             
@@ -1642,11 +1742,12 @@ class ChannelManager:
     @forceDispersyThread 
     def searchDispersy(self):
         sendSearch = False
-        for community in self.dispersy.get_communities():
-            if isinstance(community, AllChannelCommunity):
-                community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
-                sendSearch = True
-                break
+        if self.dispersy:
+            for community in self.dispersy.get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    sendSearch = True
+                    break
             
         if not sendSearch:
             print >> sys.stderr, "Could not send search, AllChannelCommunity not found?"
@@ -1668,7 +1769,7 @@ class ChannelManager:
 
         self.hits = {}
         hits = self.channelcast_db.searchChannels(self.searchkeywords)
-        channels = self._createChannels(hits)
+        _,_,channels = self._createChannels(hits)
         
         for channel in channels:
             self.hits[channel.id] = channel
@@ -1677,7 +1778,7 @@ class ChannelManager:
     def gotDispersyRemoteHits(self, kws, answers):
         if self.searchkeywords == kws:
             channel_cids = answers.keys()
-            dispersyChannels = self.getChannelsByCID(channel_cids)
+            _,_,dispersyChannels = self.getChannelsByCID(channel_cids)
             try:
                 self.remoteLock.acquire()
                 
@@ -1701,7 +1802,7 @@ class ChannelManager:
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers))
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True)
 
     def _gotRemoteHits(self, permid, kws, answers):
         # @param permid: the peer who returned the answer to the query

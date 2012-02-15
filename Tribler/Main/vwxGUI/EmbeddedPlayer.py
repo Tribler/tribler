@@ -26,7 +26,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import tribler_topButton, SwitchButto
 
 from list_header import PlayerHeader
 from list_footer import ListFooter
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread
 
 DEBUG = False
 
@@ -528,6 +528,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     #
     # Control on-screen information
     #
+    @forceWxThread
     def UpdateStatus(self,playerstatus,pieces_complete):
         self.SetPlayerStatus(playerstatus)
         if self.vlcwrap is not None:
@@ -636,7 +637,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             
     def __check_thread(self):
         if __debug__ and currentThread().getName() != "MainThread":
-            print  >> sys.stderr,"List: __check_thread thread",currentThread().getName(),"is NOT MainThread"
+            print  >> sys.stderr,"EmbeddedPlayer: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
 
 class VLCLogoWindow(wx.Panel):

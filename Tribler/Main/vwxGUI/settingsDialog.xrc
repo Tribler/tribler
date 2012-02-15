@@ -663,19 +663,24 @@
                                 </object>
 								<object class="sizeritem">
 									<object class="wxBoxSizer">
-										<orient>wxHORIZONTAL</orient>
+										<orient>wxVERTICAL</orient>
 										<object class="sizeritem">
-	                                        <object class="wxButton" name="batchstop">
-	                                            <label>Stop Multiple Downloads</label>
-	                                        </object>
-										</object>
-										<object class="spacer">
-											<option>1</option>
-										</object>
-										<object class="sizeritem">
-	                                        <object class="wxButton" name="batchstart">
+											<object class="wxButton" name="batchstart">
 	                                            <label>Start Multiple Downloads</label>
 	                                        </object>
+	                                        <flag>wxEXPAND</flag>
+										</object>
+										<object class="sizeritem">
+											<object class="wxButton" name="batchstop">
+	                                            <label>Stop Multiple Downloads</label>
+	                                        </object>
+	                                        <flag>wxEXPAND</flag>                                       
+										</object>
+										<object class="sizeritem">
+	                                        <object class="wxButton" name="batchmove">
+	                                            <label>Move Multiple Downloads</label>
+	                                        </object>
+	                                        <flag>wxEXPAND</flag>
 										</object>
 	                                </object>
 	                                <border>3</border>

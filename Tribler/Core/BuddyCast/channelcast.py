@@ -31,7 +31,6 @@ from Tribler.Core.Subtitles.RichMetadataInterceptor import RichMetadataIntercept
 from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
 from Tribler.Core.Subtitles.PeerHaveManager import PeersHaveManager
 from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 DEBUG = False
 
@@ -63,6 +62,8 @@ class ChannelCastCore:
         self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         
         self.session = session
+        self.database_thread = session.lm.database_thread
+        
         self.my_permid = session.get_permid()
         
         self.network_delay = 30
@@ -165,9 +166,9 @@ class ChannelCastCore:
         @param query_permid: the peer who returned the results
         @param query: the query string (None if this is not the results of a query) 
         @param hits: details of all matching results related to the query
-        @param callback: callback function which will receive delayedResult, query_permid and query
+        @param callback: callback function which will receive dictOfAdditions, query_permid and query
         """
-        startWorker(callback, self._updateChannelInternal, wargs = (query_permid, query, hits), cargs = (query_permid, query))
+        self.database_thread.register(self._updateChannelInternal, args = (query_permid, query, hits), callback_args = (query_permid, query))
         
     def _updateChannelInternal(self, query_permid, query, hits):
         dictOfAdditions = dict()
@@ -274,7 +275,8 @@ class ChannelCastCore:
             if len(channel_ids) > 0:
                 perm_ids = self.channelcastdb.getPermidForChannels(channel_ids)
                 update(channel_ids, perm_ids)
-        startWorker(None, db_call)
+                
+        self.database_thread.register(db_call)
     
     def updateAChannel(self, channel_id, publisher_id, peers = None, timeframe = None):
         if peers == None:
@@ -319,8 +321,7 @@ class ChannelCastCore:
                 if timeframe or not channel_id:
                     record = timeframe
                 else:
-                    record = startWorker(None, self.channelcastdb.getTimeframeForChannel, wargs = (channel_id, ))
-                    record = record.get()
+                    record = self.channelcastdb.getTimeframeForChannel(channel_id)
                 
                 if record:
                     q+= " "+" ".join(map(str,record))

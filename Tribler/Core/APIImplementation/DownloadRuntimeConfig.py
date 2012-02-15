@@ -46,6 +46,19 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
         finally:
             self.dllock.release()
 
+    def get_max_speed(self,direct):
+        self.dllock.acquire()
+        try:
+            return DownloadConfigInterface.get_max_speed(self,direct)
+        finally:
+            self.dllock.release()
+
+    def set_dest_dir(self,path):
+        raise OperationNotPossibleAtRuntimeException()
+    
+    def set_corrected_filename(self,path):
+        raise OperationNotPossibleAtRuntimeException()
+
     def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
         """ Note: this currently works only when the download is stopped. """
         self.dllock.acquire()

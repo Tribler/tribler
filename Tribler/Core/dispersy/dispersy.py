@@ -37,9 +37,10 @@ supply.  Aside from the four policies, each meta-message also defines the commun
 of, the name it uses as an internal identifier, and the class that will contain the payload.
 """
 
+import os
+
 from hashlib import sha1
 from itertools import groupby, islice, count
-from os.path import abspath
 from random import random, shuffle
 from socket import inet_aton, error as socket_error
 from time import time
@@ -82,11 +83,13 @@ CANDIDATE_WALKER_PRIORITY = -1
 CANDIDATE_CLEANUP_PRIORITY = -1
 TRIGGER_CHECK_PRIORITY = -1
 TRIGGER_TIMEOUT_PRIORITY = -2
+MEMBER_CLEANUP_PRIORITY = -3
 assert isinstance(WATCHDOG_PRIORITY, int)
 assert isinstance(CANDIDATE_WALKER_PRIORITY, int)
 assert isinstance(CANDIDATE_CLEANUP_PRIORITY, int)
 assert isinstance(TRIGGER_CHECK_PRIORITY, int)
 assert isinstance(TRIGGER_TIMEOUT_PRIORITY, int)
+assert isinstance(MEMBER_CLEANUP_PRIORITY, int)
 assert TRIGGER_TIMEOUT_PRIORITY < TRIGGER_CHECK_PRIORITY, "an existing trigger should not timeout before being checked"
 
 # the callback identifier for the task that periodically takes a step
@@ -265,10 +268,13 @@ class Dispersy(Singleton):
         self._batch_cache = {}
 
         # where we store all data
-        self._working_directory = abspath(working_directory)
+        self._working_directory = os.path.abspath(working_directory)
 
         # our data storage
-        self._database = DispersyDatabase.get_instance(working_directory)
+        sqlite_directory = os.path.join(self._working_directory, u"sqlite")
+        if not os.path.isdir(sqlite_directory):
+            os.makedirs(sqlite_directory)
+        self._database = DispersyDatabase.get_instance(sqlite_directory)
 
         # peer selection candidates.  address:Candidate pairs (where
         # address is obtained from socket.recv_from)
@@ -311,7 +317,7 @@ class Dispersy(Singleton):
             dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
 
         # bootstrap peers
-        bootstrap_addresses = get_bootstrap_addresses()
+        bootstrap_addresses = get_bootstrap_addresses(self._working_directory)
         self._bootstrap_candidates = dict((address, BootstrapCandidate(address)) for address in bootstrap_addresses if address)
         assert isinstance(self._bootstrap_candidates, dict)
         if not all(bootstrap_addresses):
@@ -337,6 +343,9 @@ class Dispersy(Singleton):
 
         # commit changes to the database periodically
         self._callback.register(self._watchdog, priority=WATCHDOG_PRIORITY)
+
+        # periodically try to cleanup Member instances
+        self._callback.register(Member.periodically_cleanup_member_instances, priority=MEMBER_CLEANUP_PRIORITY)
 
         # statistics...
         self._statistics = Statistics()
@@ -1430,7 +1439,7 @@ class Dispersy(Singleton):
         if __debug__:
             dprint("processing  ", len(batch), "x ", meta.name, " batched messages")
 
-        if id(self._batch_cache[meta][2]) == id(batch):
+        if meta in self._batch_cache and id(self._batch_cache[meta][2]) == id(batch):
             self._batch_cache.pop(meta)
 
         if not self._communities.get(meta.community.cid, None) == meta.community:
@@ -1829,23 +1838,6 @@ class Dispersy(Singleton):
     def candidates(self):
         return self._candidates.itervalues()
 
-    # def yield_all_candidates(self, community, blacklist=(), now=None):
-    #     """
-    #     Yields all candidates that are part of COMMUNITY and not in BLACKLIST.
-
-    #     BLACKLIST is a list with Candidate instances.
-    #     """
-    #     if __debug__:
-    #         from community import Community
-    #     assert isinstance(community, Community)
-    #     assert isinstance(blacklist, (tuple, list))
-    #     assert now is None or isinstance(now, float)
-
-    #     if now is None:
-    #         now = time()
-
-    #     return (candidate for candidate in self._candidates.itervalues() if candidate.in_community(community) and not candidate in blacklist)
-
     def yield_subjective_candidates(self, community, cluster):
         """
         Yields unique active random candidates that are part of COMMUNITY and who have us in their
@@ -1902,14 +1894,14 @@ class Dispersy(Singleton):
                 else:
                     assert False, "currently we can only handle WalkCandidate instances"
 
-            while W and S:
-                yield W.pop(int(random() * len(W))) if random() <= .5 else S.pop(int(random() * len(S)))
+        while W and S:
+            yield W.pop(int(random() * len(W))) if random() <= .5 else S.pop(int(random() * len(S)))
 
-            while W:
-                yield W.pop(int(random() * len(W)))
+        while W:
+            yield W.pop(int(random() * len(W)))
 
-            while S:
-                yield S.pop(int(random() * len(S)))
+        while S:
+            yield S.pop(int(random() * len(S)))
 
     def yield_walk_candidates(self, community):
         """
@@ -1922,6 +1914,10 @@ class Dispersy(Singleton):
 
         # TODO we can optimize by not doing all the sorting until we select where we want to pick a
         # node.  since we always just need one candidate the other sorts would be useless
+
+        # 13/02/12 Boudewijn: normal peers can not be visited multiple times within 30 seconds,
+        # bootstrap peers can not be visited multiple times within 55 seconds.  this is handled by
+        # the Candidate.is_eligible_for_walk(...) method
 
         # TODO we can further optimize by not collecting the bootstrap_candidates until we need one
         # of those
@@ -1947,12 +1943,13 @@ class Dispersy(Singleton):
         while walks or stumbles or intros or sandis:
             r = random()
 
-            if r <= .499: # 50%
+            # 13/02/12 Boudewijn: we decrease the 1% chance to contact a bootstrap peer to .5%
+            if r <= .4975: # 50%
                 if walks:
                     if __debug__: dprint("yield [%2d:%2d:%2d:%2d:%2d walk   ] " % (len(walks), len(stumbles), len(intros), len(sandis), len(bootstrap_candidates)), walks[0])
                     yield walks.pop(0)
 
-            elif r <= .99: # 50%
+            elif r <= .995: # 50%
                 if stumbles or intros or sandis:
                     while True:
                         r = random()
@@ -4349,7 +4346,7 @@ class Dispersy(Singleton):
         strings, integers, etc.  Just no objects, methods, and the like.
 
         Depending on __debug__ more or less information may be available.  Note that Release
-        versions do NOT run __debug__ mode and will hence return less information.
+        versions do NOT run __debug__ mode and hence may return less information.
         """
         # when something is removed or changed, the major version number is incremented.  when
         # somethind is added, the minor version number is incremented.
@@ -4372,7 +4369,7 @@ class Dispersy(Singleton):
         #      "dispersy_enable_candidate_walker" attribute
         # 2.2: community["candidates"] is again always a list, new
         #      "dispersy_enable_candidate_walker_responses" attribute
-        # 2.3: added info["timestamp"]
+        # 2.3: added info["timestamp"], community["candidates"] is no longer sorted
 
         now = time()
         info = {"version":2.3, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "timestamp":now}

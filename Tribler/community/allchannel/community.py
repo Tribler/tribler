@@ -92,7 +92,13 @@ class AllChannelCommunity(Community):
             self._peer_db = PeerDBStub(self._dispersy)
         
         self._register_task = self.dispersy.callback.register
+        # TODO: rewrite create_channelcast to use a generator and add the callback id to
+        # _pending_callbacks for memory cleanup (otherwise the community will still exist in memory
+        # once unloaded)
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
+        # 15/02/12 Boudewijn: add the callback id to _pending_callbacks to allow the task to be
+        # unregistered when the community is unloaded
+        self._pending_callbacks.append(self._register_task(self.unload_preview, priority=-128))
         
         self._blocklist = {}
         self._searchCallbacks = {}
@@ -324,6 +330,19 @@ class AllChannelCommunity(Community):
                     
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no callback found"
+                
+    def unload_preview(self):
+        while True:
+            desync = (yield 300.0)
+            if desync > 0.1:
+                yield desync
+                
+            inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity)]
+            if __debug__:
+                print("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
+                
+            for community in inactive:
+                community.unload_community()
 
     def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community

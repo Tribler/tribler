@@ -54,6 +54,9 @@ class TimedTaskQueue:
         self.cond.notify()
         self.cond.release()
         
+    def does_task_exist(self, id):
+        return any(item[3]==id for item in self.queue)
+        
     def run(self):
         """ Run by server thread """
         while True:

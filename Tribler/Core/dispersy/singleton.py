@@ -6,6 +6,7 @@ Helper class to easily and cleanly use singleton objects
 """
 
 from gc import get_referrers
+from random import sample
 from threading import RLock
 
 class Singleton(object):
@@ -54,7 +55,7 @@ class Singleton(object):
             singleton_placeholder = cls
 
         with singleton_placeholder._singleton_lock:
-            if not hasattr(singleton_placeholder, "_singleton_instance") or getattr(singleton_placeholder, "_singleton_instance") is None:
+            if not hasattr(singleton_placeholder, "_singleton_instance"):
                 setattr(singleton_placeholder, "_singleton_instance", cls(*args, **kargs))
             return getattr(singleton_placeholder, "_singleton_instance")
 
@@ -66,16 +67,17 @@ class Singleton(object):
         if singleton_placeholder is None:
             singleton_placeholder = cls
 
-        assert not singleton_placeholder.referenced_instance(singleton_placeholder), "You are deleting a singleton instance while this instance is referenced.  This may cause multiple singleton instance to exist and is therefore refused.  Ensure that your code does not reference this instance before deleting."
-
         with singleton_placeholder._singleton_lock:
             if hasattr(singleton_placeholder, "_singleton_instance"):
-                setattr(singleton_placeholder, "_singleton_instance", None)
+                delattr(singleton_placeholder, "_singleton_instance")
 
     @classmethod
     def referenced_instance(cls, singleton_placeholder=None):
         """
         Returns True if this singleton instance is referenced.
+
+        Warning: this method uses the GC.get_referrers to determine the number of references.  This
+        method is very expensive to use!
         """
         if singleton_placeholder is None:
             singleton_placeholder = cls
@@ -124,9 +126,8 @@ class Parameterized1Singleton(object):
         """
         assert len(args) > 0
         assert hasattr(args[0], "__hash__")
-
         with cls._singleton_lock:
-            if not hasattr(cls, "_singleton_instances") or getattr(cls, "_singleton_instances") is None:
+            if not hasattr(cls, "_singleton_instances"):
                 setattr(cls, "_singleton_instances", {})
             if not args[0] in getattr(cls, "_singleton_instances"):
                 getattr(cls, "_singleton_instances")[args[0]] = cls(*args, **kargs)
@@ -138,13 +139,11 @@ class Parameterized1Singleton(object):
         Removes the existing singleton instance
         """
         assert hasattr(arg, "__hash__")
-        assert not cls.referenced_instance(arg), "You are deleting a singleton instance while this instance is referenced.  This may cause multiple singleton instance to exist and is therefore refused.  Ensure that your code does not reference this instance before deleting."
-
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instances") and arg in getattr(cls, "_singleton_instances"):
                 del getattr(cls, "_singleton_instances")[arg]
                 if not getattr(cls, "_singleton_instances"):
-                    setattr(cls, "_singleton_instances", None)
+                    delattr(cls, "_singleton_instances")
 
     @classmethod
     def get_instances(cls):
@@ -161,6 +160,9 @@ class Parameterized1Singleton(object):
     def referenced_instance(cls, arg):
         """
         Returns True if this singleton instance is referenced.
+
+        Warning: this method uses the GC.get_referrers to determine the number of references.  This
+        method is very expensive to use!
         """
         assert hasattr(arg, "__hash__")
         with cls._singleton_lock:
@@ -169,71 +171,103 @@ class Parameterized1Singleton(object):
         return False
 
     @classmethod
-    def unreferenced_instances(cls):
+    def reference_instances(cls):
         """
-        Returns a list with singleton instances that are not referenced.
+        Returns a list with (reference-count, instance) tuples.
+
+        Warning: this method uses the GC.get_referrers to determine the number of references.  This
+        method is very expensive to use!
         """
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instances"):
-                return [instance for instance in getattr(cls, "_singleton_instances").itervalues() if len(get_referrers(instance)) <= 2]
+                return [(len(get_referrers(instance)) - 2, instance) for instance in getattr(cls, "_singleton_instances").itervalues()]
         return []
 
-if __debug__:
-    if __name__ == "__main__":
+    @classmethod
+    def sample_reference_instances(cls, size):
+        """
+        Returns a list with at most SIZE randomly chosen (reference-count, instance) tuples.
 
-        class Foo(Singleton):
-            def __init__(self, message):
-                self.message = message
+        Warning: this method uses the GC.get_referrers to determine the number of references.  This
+        method is very expensive to use!
+        """
+        assert isinstance(size, int)
+        assert 0 < size
+        with cls._singleton_lock:
+            if hasattr(cls, "_singleton_instances"):
+                instances = getattr(cls, "_singleton_instances")
+                if len(instances) < size:
+                    # sample larger than population
+                    return [(len(get_referrers(instance)) - 2, instance) for instance in instances.itervalues()]
 
-        assert not Foo.referenced_instance()
+                else:
+                    return [(len(get_referrers(instance)) - 2, instance) for instance in (instances[arg] for arg in sample(instances, size))]
 
-        foo = Foo.get_instance("foo")
-        assert foo.message == "foo"
-        assert foo.referenced_instance()
+        return []
 
-        del foo
-        foo = Foo.get_instance("bar")
-        assert foo.message == "foo"
-        assert foo.referenced_instance()
+if __name__ == "__main__":
+    from dprint import dprint
 
-        del foo
-        assert not Foo.referenced_instance()
+    def assert_(value, *args):
+        if not value:
+            raise AssertionError(*args)
 
-        Foo.del_instance()
-        assert not Foo.referenced_instance()
+    class Foo(Singleton):
+        def __init__(self, message):
+            self.message = message
 
-        #
-        #
-        #
+    assert_(not Foo.referenced_instance())
 
-        class Foo(Parameterized1Singleton):
-            def __init__(self, key, message):
-                self.message = message
+    foo = Foo.get_instance("foo")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance())
 
-        assert not Foo.referenced_instance(1)
-        assert Foo.unreferenced_instances() == []
+    del foo
+    foo = Foo.get_instance("bar")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance())
 
-        Foo.get_instance(1, "foo")
-        assert [i.message for i in Foo.unreferenced_instances()] == ["foo"]
-        del i
+    del foo
+    assert_(not Foo.referenced_instance())
 
-        foo = Foo.get_instance(1, "foo")
-        assert foo.message == "foo"
-        assert foo.referenced_instance(1)
-        assert [i.message for i in Foo.unreferenced_instances()] == []
+    Foo.del_instance()
+    assert_(not Foo.referenced_instance())
 
-        del foo
-        foo = Foo.get_instance(1, "bar")
-        assert foo.message == "foo"
-        assert foo.referenced_instance(1)
-        assert [i.message for i in Foo.unreferenced_instances()] == []
+    #
+    #
+    #
 
-        del foo
-        assert not Foo.referenced_instance(1)
-        assert not Foo.referenced_instance(1)
-        assert [i.message for i in Foo.unreferenced_instances()] == ["foo"]
-        del i
+    class Foo(Parameterized1Singleton):
+        def __init__(self, key, message):
+            self.message = message
 
-        Foo.del_instance(1)
-        assert not Foo.referenced_instance(1)
-        assert [i.message for i in Foo.unreferenced_instances()] == []
+        def __eq__(self, other):
+            return id(self) == id(other) if isinstance(other, Foo) else self.message == other
+
+    assert_(not Foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [])
+    assert_(Foo.sample_reference_instances(10) == [])
+
+    Foo.get_instance(1, "foo")
+    assert_(Foo.reference_instances() == [(0, "foo")])
+    assert_(Foo.sample_reference_instances(10) == [(0, "foo")])
+
+    foo = Foo.get_instance(1, "foo")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [(1, "foo")])
+    assert_(Foo.sample_reference_instances(10) == [(1, "foo")])
+
+    foo = Foo.get_instance(1, "bar")
+    assert_(foo.message == "foo")
+    assert_(foo.referenced_instance(1))
+    del foo
+
+    assert_(not Foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [(0, "foo")])
+    assert_(Foo.sample_reference_instances(10) == [(0, "foo")])
+
+    Foo.del_instance(1)
+    assert_(not Foo.referenced_instance(1))
+    assert_(Foo.reference_instances() == [])
+    assert_(Foo.sample_reference_instances(10) == [])

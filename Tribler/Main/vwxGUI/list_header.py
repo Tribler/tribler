@@ -385,18 +385,6 @@ class SubTitleHeader(TitleHeader):
             self.subtitle.Refresh()
             
             self.Thaw()
-            
-class SubTitleSeachHeader(SearchHeaderHelper, SubTitleHeader):
-    
-    def SetSubTitle(self, subtitle):
-        SubTitleHeader.SetSubTitle(self, subtitle)
-        self.curSubtitle = subtitle
-    
-    def SetNrResults(self, nr = None):
-        if nr is not None:
-            SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
-        else:
-            SubTitleHeader.SetSubTitle(self, self.curSubtitle)
        
 class ManageChannelHeader(SubTitleHeader):
     def __init__(self, parent, parent_list):
@@ -502,6 +490,27 @@ class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
         FamilyFilterHeader.Reset(self)
         SearchHeaderHelper.Reset(self)
         
+class SubTitleSeachHeader(SubTitleHeader, SearchHeader):
+    
+    def GetSubTitlePanel(self, parent):
+        sizer = FamilyFilterHeader.GetSubTitlePanel(self, parent)
+        subtitle = SubTitleHeader.GetSubTitlePanel(self, parent)
+        sizer.Insert(0, subtitle, 0, wx.RIGHT, 3)
+        sizer.Layout()
+        
+        return sizer
+    
+    def SetSubTitle(self, subtitle):
+        SubTitleHeader.SetSubTitle(self, subtitle)
+        self.Layout()
+        self.curSubtitle = subtitle
+    
+    def SetNrResults(self, nr = None):
+        if nr is not None:
+            SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
+        else:
+            SubTitleHeader.SetSubTitle(self, self.curSubtitle)      
+        
 class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeaderHelper.GetRightTitlePanel(self, parent)
@@ -544,8 +553,11 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         Finally if you are in the Library you can filter items by state, i.e.
         <ul>
             <li>'state=completed' will show only items which are completed</li>
-            <li>'state=active' will show items which currently are being downloaded</li>
-            <li>'state=stopped' will show items which are stopped/paused and not completed</li> 
+            <li>'state=active' will show items which currently are being downloaded or seeded</li>
+            <li>'state=seeding' will show items which are seeding</li>
+            <li>'state=downloading' will show items which are downloading</li>
+            <li>'state=stopped' will show items which are stopped/paused and not completed</li>
+            <li>'state=checking' will show items which are currently checking or scheduled to be checked</li> 
         </ul>
         </p>"""
         

@@ -53,7 +53,7 @@ class UserCallbackHandler:
         self.perform_usercallback(session_getstate_usercallback_target)
 
 
-    def perform_removestate_callback(self,infohash,contentdest,removecontent):
+    def perform_removestate_callback(self,infohash,contentdests,removecontent):
         """ Called by network thread """
         if DEBUG:
             print >>sys.stderr,"Session: perform_removestate_callback()"
@@ -61,7 +61,7 @@ class UserCallbackHandler:
             if DEBUG:
                 print >>sys.stderr,"Session: session_removestate_callback_target called",currentThread().getName()
             try:
-                self.sesscb_removestate(infohash,contentdest,removecontent)
+                self.sesscb_removestate(infohash,contentdests,removecontent)
             except:
                 print_exc()
         self.perform_usercallback(session_removestate_callback_target)
@@ -75,11 +75,11 @@ class UserCallbackHandler:
         finally:
             self.sesslock.release()
 
-    def sesscb_removestate(self,infohash,contentdest,removecontent):
+    def sesscb_removestate(self,infohash,contentdests,removecontent):
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
         if DEBUG:
-            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,`contentdest`,removecontent
+            print >>sys.stderr,"Session: sesscb_removestate called",`infohash`,contentdests,removecontent
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
@@ -113,14 +113,34 @@ class UserCallbackHandler:
         # Remove downloaded content from disk
         if removecontent:
             if DEBUG:
-                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdest
-            if not os.path.isdir(contentdest):
-                # single-file torrent
-                os.remove(contentdest)
-            else:
-                # multi-file torrent
-                shutil.rmtree(contentdest,True) # ignore errors
-
+                print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdests
+            
+            contentdirs = set()
+            for filename in contentdests:
+                if os.path.isfile(filename):
+                    os.remove(filename)
+                contentdirs.add(os.path.dirname(filename))
+            
+            #multifile, see if we need to remove any empty dirs
+            if len(contentdests) > 1:
+                def remove_if_empty(basedir):
+                    #first try to remove sub-dirs
+                    files = os.listdir(basedir)
+                    for filename in files:
+                        absfilename = os.path.join(basedir, filename)
+                        if os.path.isdir(absfilename) and absfilename in contentdirs:
+                            remove_if_empty(absfilename)
+                    
+                    #see if we are empty
+                    files = os.listdir(basedir)
+                    #ignore thumbs.db files
+                    files = [file for file in files if not file.lower().endswith('thumbs.db')]
+                    
+                    if len(files) == 0:
+                        os.rmdir(basedir)
+                
+                basedir = os.path.commonprefix(contentdests)
+                remove_if_empty(basedir)
 
     def notify(self, subject, changeType, obj_id, *args):
         """

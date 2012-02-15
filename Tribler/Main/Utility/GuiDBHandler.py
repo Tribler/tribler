@@ -46,7 +46,7 @@ class GUIDBProducer():
     def onSameThread(self):
         return get_ident() == self.database_thread._thread_ident
     
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread.
         """
@@ -55,12 +55,16 @@ class GUIDBProducer():
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
                     if DEBUG:
-                        print >> sys.stderr, "Task(%s) already scheduled in queue, ignoring uId = %s"%(name, uId)
+                        print >> sys.stderr, "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s"%(name, uId)
                     return
                 else:
                     self.uIds.add(uId)
             finally:    
                 self.uIdsLock.release()
+                
+            callbackId = uId
+        else:
+            callbackId = name
         
         t1 = time()
         def wrapper():
@@ -72,35 +76,54 @@ class GUIDBProducer():
                 pass
             
             except Exception, exc:
-                originalTb = format_exc() 
-                sender.sendException(exc, originalTb)
+                if str(exc).startswith("BusyError") and retryOnBusy:
+                    print >> sys.stderr, "GUIDBHandler: BusyError, retrying Task(%s) in 0.5s"%name
+                    self.database_thread.register(wrapper, delay=0.5, id_=name)
+                    
+                    return
                 
+                originalTb = format_exc()
+                sender.sendException(exc, originalTb)
             else:
                 try:
                     sender.sendResult(result)
                 except:
+                    
                     print_exc()
-                    print >> sys.stderr, "Could not send result of Task(%s)"%name
+                    print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)"%name
             t3 = time()
             
             if DEBUG:
-                print >> sys.stderr, "Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
+                print >> sys.stderr, "GUIDBHandler: Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
                 
             if uId:
                 try:
                     self.uIdsLock.acquire()
-                    self.uIds.remove(uId)
+                    self.uIds.discard(uId)
                 finally:
                     self.uIdsLock.release()
                 
         wrapper.__name__ = name
         
         if not self.onSameThread() or delay:
-            self.database_thread.register(wrapper, delay=delay, id_=name)
+            self.database_thread.register(wrapper, delay=delay, id_=callbackId)
         else:
             if __debug__:
-                print >> sys.stderr, "Task(%s) scheduled for thread on same thread, executing immediately"%name
+                print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately"%name
             wrapper()
+            
+    def Remove(self, uId):
+        if uId in self.uIds:
+            if DEBUG:
+                print >> sys.stderr, "GUIDBHandler: removing Task(%s)"%uId
+            
+            try:
+                self.uIdsLock.acquire()
+                self.uIds.discard(uId)
+            finally:
+                self.uIdsLock.release()
+                
+            self.database_thread.unregister(uId)
         
 #Wrapping Senders for new delayedResult impl  
 class MySender():
@@ -180,15 +203,16 @@ def startWorker(
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
-    uId=None):
+    uId=None, retryOnBusy=False):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
     the main thread. This function merely creates a SenderCallAfter (or a
     SenderWxEvent, if consumer derives from wx.EvtHandler), and a Producer,
     and returns immediately after starting the Producer thread. The jobID
-    is used for the Sender and as name for the Producer thread. Returns the 
-    delayedResult created, in case caller needs join/etc.
+    is used for the Sender and as name for the Producer thread. The uId is
+    used to check if such a task is already scheduled, ignores it if it is.
+    Returns the delayedResult created, in case caller needs join/etc.
     """
     if not consumer:
         consumer = exceptionConsumer
@@ -213,9 +237,13 @@ def startWorker(
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-                name=jobID, delay=delay, uId=uId)
+                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy)
 
     return result
+
+def cancelWorker(uId):
+    thread = GUIDBProducer.getInstance()
+    thread.Remove(uId)
 
 def onWorkerThread():
     dbProducer = GUIDBProducer.getInstance()

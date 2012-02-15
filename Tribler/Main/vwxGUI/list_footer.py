@@ -135,9 +135,11 @@ class TotalFooter(TitleFooter):
         self.scrollBar = hSizer.AddSpacer((3,0))
         self.scrollBar.sizer = hSizer
     
-    def SetTotal(self, column, total):
+    def SetTotal(self, column, total, tooltip=None):
         str_data = self.columns[column].get('fmt', str)(total)
         self.totals[column].SetLabel(str_data)
+        if tooltip:
+            self.totals[column].SetToolTipString(tooltip)
                 
 class ChannelResultFooter(ListFooter):
     def GetMidPanel(self, hSizer):
@@ -390,6 +392,11 @@ class ManageChannelPlaylistFooter(ListFooter):
         hSizer.Add(self.addnew, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.removesel, 0, wx.TOP|wx.BOTTOM, 3)
         hSizer.Add(self.removeall, 0, wx.TOP|wx.BOTTOM, 3)
+        
+    def SetState(self, canDelete, canAdd):
+        self.addnew.Show(canDelete)
+        self.removesel.Show(canDelete)
+        self.removeall.Show(canDelete)
         
 class CommentFooter(ListFooter, AbstractDetails):
     def __init__(self, parent, createnew, quickPost):

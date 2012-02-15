@@ -15,6 +15,7 @@ from traceback import print_exc
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern
 from Tribler.Core.BitTornado.BT1.convert import toint
 from Tribler.Core.Statistics.Status.Status import get_status_holder
+from threading import Lock
 
 try:
     True
@@ -83,6 +84,7 @@ if sys.platform == 'win32':
         MAX_INCOMPLETE = 64
 else:
     MAX_INCOMPLETE = 32
+MAX_HISTORY_INCOMPLETE = MAX_INCOMPLETE*10 # allow X connections to be initiated every 60s
 
 AUTOCLOSE_TIMEOUT = 15 # secs. Setting this to e.g. 7 causes Video HTTP timeouts
 
@@ -97,20 +99,64 @@ def show(s):
     return b2a_hex(s)
 
 class IncompleteCounter:
+    __single = None
+    
     def __init__(self):
+        if IncompleteCounter.__single:
+            raise RuntimeError, "IncompleteCounter is singleton"
+        IncompleteCounter.__single = self
+        
+        self.lock = Lock()
+        
         self.c = 0
+        self.historyc = 0
+        self.taskQueue = None
+        
+    def getInstance(*args, **kw):
+        if IncompleteCounter.__single is None:
+            IncompleteCounter(*args, **kw)
+        return IncompleteCounter.__single
+    getInstance = staticmethod(getInstance)
+        
     def increment(self):
-        self.c += 1
+        try:
+            self.lock.acquire()
+        
+            self.c += 1
+            self.historyc += 1
+            
+        finally:
+            self.lock.release()
+        
     def decrement(self):
-        #print_stack()
-        self.c -= 1
-    def toomany(self):
+        try:
+            self.lock.acquire()
+            self.c -= 1
+        
+            if self.taskQueue:
+                self.taskQueue.add_task(self.__decrementHistory, 60)
+            else:
+                self.historyc -= 1
+        finally:
+            self.lock.release()
+    
+    def __decrementHistory(self):
+        try:
+            self.lock.acquire()
+            self.historyc -= 1
+            
+        finally:
+            self.lock.release()
+        
+    def toomany(self, history = True):
         #print >>sys.stderr,"IncompleteCounter: c",self.c
-        return self.c >= MAX_INCOMPLETE
+        return self.c >= MAX_INCOMPLETE or (history and self.historyc >= MAX_HISTORY_INCOMPLETE)
+    
+    def getstats(self):
+        return self.c, MAX_INCOMPLETE, self.historyc, MAX_HISTORY_INCOMPLETE
 
 # Arno: This is a global counter!!!!
-incompletecounter = IncompleteCounter()
-
+incompletecounter = IncompleteCounter.getInstance()
 
 # header, reserved, download id, my id, [length, message]
 
@@ -138,6 +184,9 @@ class Connection:
         self.support_merklehash= False
         self.na_want_internal_conn_from = None
         self.na_address_distance = None
+        
+        if self.connecter.overlay_bridge and not incompletecounter.taskQueue:
+            incompletecounter.taskQueue = self.connecter.overlay_bridge  
         
         if self.locally_initiated:
             incompletecounter.increment()
@@ -352,8 +401,8 @@ class Connection:
             
         if self.complete:
             self.connecter.connection_lost(self)
-        elif self.locally_initiated:
             
+        elif self.locally_initiated:
             hittingLimit = incompletecounter.toomany()
             incompletecounter.decrement()
             
@@ -575,13 +624,20 @@ class Encoder:
                 max_initiate = int(self.config['max_initiate']*1.5)
             cons = len(self.connections)
             
+            #Niels: if we're seeding then call incompletecounter with history = True, else skip history limit  
+            seeding = False
+            try:
+                seeding = self.connecter.downloader.storage.amount_left == 0
+            except:
+                pass
+            
             if DEBUG:
                 print >>sys.stderr,"encoder: conns",cons,"max conns",self.max_connections,"max init",max_initiate
             
             if cons >= self.max_connections or cons >= max_initiate:
                 delay = 60.0
                 
-            elif self.paused or incompletecounter.toomany():
+            elif self.paused or incompletecounter.toomany(seeding):
                 delay = 1.0
                 
             else:
@@ -768,8 +824,12 @@ class Encoder:
         if remaining_connections == 0 and self.trackertime and not self.scheduled_request_new_peers:
             self.scheduled_request_new_peers = True
             
-            #no more peers to connect to :(, schedule a refresh
-            schedule_refresh_in = max(60, int(300 - (now - self.trackertime)))
+            seeding = self.connecter.downloader.storage.amount_left == 0
+            if seeding:
+                schedule_refresh_in = 300
+            else:
+                #no more peers to connect to :(, schedule a refresh
+                schedule_refresh_in = max(60, int(300 - (now - self.trackertime)))
             
             if DEBUG:
                 print >>sys.stderr,"encoder: admin_close: want new peers in", schedule_refresh_in, "s"

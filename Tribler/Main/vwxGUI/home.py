@@ -28,6 +28,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.dispersy.dispersy import Dispersy
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
+from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -131,13 +132,13 @@ class Stats(XRCPanel):
         try:
             disp = DispersyPanel(self)
         except:
-            self.SetBackgroundColour(wx.RED)
+            #Dispersy not ready, try again in 1s
+            wx.CallLater(1000, self._DoInit)
             print_exc()
             return
 
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.AddStretchSpacer()
         
         self.dowserStatus = StaticText(self, -1, 'Dowser is not running')
         dowserButton = wx.Button(self, -1, 'Start dowser')
@@ -147,7 +148,7 @@ class Stats(XRCPanel):
         hSizer.Add(dowserButton)
         vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, 10)
         
-        vSizer.Add(disp, 0, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 10)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
@@ -302,6 +303,7 @@ class NetworkPanel(HomePanel):
         self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
         self.remotequerymsghandler = RemoteQueryMsgHandler.getInstance()
+        self.incompleteCounter = IncompleteCounter.getInstance()
 
         self.timer = None
 
@@ -320,6 +322,7 @@ class NetworkPanel(HomePanel):
         self.queueSize = StaticText(panel)
         self.nrChannels = StaticText(panel)
         self.nrConnected = StaticText(panel)
+        self.incomplete = StaticText(panel)
 
         self.freeMem = None
         try:
@@ -343,6 +346,8 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Connected peers'))
         gridSizer.Add(self.nrConnected, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Incomplete limit (cur, max, history, maxhistory)'))
+        gridSizer.Add(self.incomplete, 0, wx.EXPAND)
         if self.freeMem:
             gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'))
             gridSizer.Add(self.freeMem, 0, wx.EXPAND)
@@ -377,6 +382,8 @@ class NetworkPanel(HomePanel):
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
         self.nrChannels.SetLabel(str(nr_channels))
         self.nrConnected.SetLabel('%d peers'%len(self.remotequerymsghandler.get_connected_peers()))
+        self.incomplete.SetLabel(", ".join(map(str, self.incompleteCounter.getstats())))
+        
         if self.freeMem:
             self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
 
@@ -395,7 +402,7 @@ class DispersyPanel(HomePanel):
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
-        self.timer.Start(1000, False)
+        self.timer.Start(5000, False)
         self.UpdateStats()
 
     def CreatePanel(self):
@@ -457,7 +464,8 @@ class DispersyPanel(HomePanel):
                             addColumn("avg_down")
                 else:
                     addColumn(key)
-
+                    
+        addColumn('in_debugmode')
         self.buildColumns = True
 
     def OnMouseEvent(self, event):
@@ -515,17 +523,19 @@ class DispersyPanel(HomePanel):
             self.summary_tree.DeleteAllItems()
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
-                for community in sorted(info["communities"], key=lambda community: community["hex_cid"]):
+                for community in sorted(info["communities"], key=lambda community: (community["classification"], community["hex_cid"])):
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         candidates = str(len(community["candidates"]))
                     else:
                         candidates = "-"
-                    parent = self.summary_tree.AppendItem(root, u"%s %5d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
+                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
-                        for lan_address, wan_address in community["candidates"]:
-                            self.summary_tree.AppendItem(sub_parent, "%s:%d" % lan_address if lan_address == wan_address else "%s:%d, %s:%d" % (lan_address + wan_address))
+                        for address in sorted(("%s:%d" % wan_address if lan_address == wan_address else "%s:%d, %s:%d" % (wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
+                                        for lan_address, wan_address
+                                        in community["candidates"]):
+                            self.summary_tree.AppendItem(sub_parent, address)
                     sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
                     for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
                         self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
@@ -549,6 +559,7 @@ class DispersyPanel(HomePanel):
                         updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
                         updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")
                         updateColumn("avg_up", self.utility.size_format(int(value["total_up"][1] / value["runtime"])) + "/s")
+                        updateColumn("in_debugmode", str(__debug__))
 
                     parentNode = self.tree.AppendItem(fakeRoot, key)
                     addValue(parentNode, value)

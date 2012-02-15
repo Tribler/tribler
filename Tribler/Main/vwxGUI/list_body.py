@@ -267,6 +267,11 @@ class ListItem(wx.Panel):
             self.BackgroundColor(self.list_selected)
         else:
             self.BackgroundColor(self.list_deselected)
+            
+    def SetDeselectedColour(self, deselected):
+        if deselected.Get() != self.list_deselected.Get():
+            self.list_deselected = deselected
+            self.ShowSelected()
     
     @warnWxThread
     def BackgroundColor(self, color):
@@ -414,6 +419,8 @@ class AbstractListBody():
         if not list_item_max:
             list_item_max = LIST_ITEM_MAX_SIZE
         self.list_item_max = list_item_max
+        self.list_cur_max = self.list_item_max
+        
         self.hasFilter = hasFilter
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -442,6 +449,8 @@ class AbstractListBody():
         messageVSizer.Add(self.headerText, 0, wx.EXPAND)
         messageVSizer.Add(self.messageText, 0, wx.EXPAND)
         messageVSizer.Add(self.loadNext, 0, wx.ALIGN_CENTER)
+        self.messageText.sizer = messageVSizer
+        self.messageText.altControl = None
         
         messageSizer = wx.BoxSizer(wx.HORIZONTAL)
         messageSizer.AddStretchSpacer()
@@ -500,19 +509,7 @@ class AbstractListBody():
         self.sortcolumn = column
         self.sortreverse = reverse
         
-        if self.data:
-            if self.sortcolumn >= 0:
-                self.Freeze()
-                
-                self.DoSort()
-                
-                self.vSizer.ShowItems(False)
-                self.vSizer.Clear()
-                self.CreateItems()
-            
-                self.Thaw()
-            else:
-                self.SetData()
+        self.SetData(highlight = False, force = True)
                         
     def DoSort(self):
         def sortby(b, a):
@@ -626,6 +623,8 @@ class AbstractListBody():
         for key in self.items.keys():
             self.items[key].Destroy()
             
+        self.list_cur_max = self.list_item_max
+            
         self.items = {}
         self.data = None
         self.lastData = 0
@@ -637,8 +636,13 @@ class AbstractListBody():
     def IsEmpty(self):
         return len(self.items) == 0
     
-    def InList(self, key):
-        return key in self.items
+    def InList(self, key, onlyCreated = True):
+        if onlyCreated or not self.data:
+            return key in self.items
+        
+        if key in self.items:
+            return True
+        return any(curdata[0] == key for curdata in self.data)
     
     @warnWxThread
     def ScrollToEnd(self, scroll_to_end):
@@ -654,7 +658,7 @@ class AbstractListBody():
             self.Scroll(-1, sy)
     
     @warnWxThread
-    def ShowMessage(self, message, header = None):
+    def ShowMessage(self, message, header = None, altControl = None):
         if DEBUG:
             print >> sys.stderr, "ListBody: ShowMessage", message
 
@@ -665,8 +669,19 @@ class AbstractListBody():
             self.headerText.Show()
         else:
             self.headerText.Hide()
-            
+        
         self.messageText.SetLabel(message)
+        
+        if self.messageText.altControl:
+            self.messageText.sizer.Detach(self.messageText.altControl)
+            self.messageText.altControl.ShowItems(False)
+            self.messageText.altControl.Clear(True)
+            self.messageText.altControl = None
+
+        if altControl:
+            self.messageText.altControl = altControl
+            self.messageText.sizer.Insert(2, altControl)
+            
         self.loadNext.Hide()
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
@@ -684,6 +699,7 @@ class AbstractListBody():
         header = message = None
         if self.headerText.IsShown():
             header = self.headerText.GetLabel()
+            
         if self.messageText.IsShown():
             message = self.messageText.GetLabel()
             
@@ -709,7 +725,7 @@ class AbstractListBody():
                 panel.RefreshData(data)
     
     @warnWxThread
-    def SetData(self, data = None, highlight = True):
+    def SetData(self, data = None, highlight = None, force = False):
         if DEBUG:
             nr_items = 0
             if data:
@@ -720,6 +736,9 @@ class AbstractListBody():
             data = self.raw_data
         else:
             self.raw_data = data
+            
+        if highlight is None:
+            highlight = not self.IsEmpty()
         
         def doSetData():
             self.lastData = time()
@@ -727,15 +746,20 @@ class AbstractListBody():
             
             self.__SetData(highlight)
         
-        diff = time() - (self.listRateLimit + self.lastData)
-        call_in = -diff * 1000
-        if call_in <= 0:
+        if force:
+            if self.dataTimer:
+                self.dataTimer.Stop()
             doSetData()
         else:
-            if self.dataTimer == None:
-                self.dataTimer = wx.CallLater(call_in, doSetData) 
+            diff = time() - (self.listRateLimit + self.lastData)
+            call_in = -diff * 1000
+            if call_in <= 0:
+                doSetData()
             else:
-                self.dataTimer.Restart(call_in)
+                if self.dataTimer == None:
+                    self.dataTimer = wx.CallLater(call_in, doSetData) 
+                else:
+                    self.dataTimer.Restart(call_in)
         
     def __SetData(self, highlight = True):
         if DEBUG:
@@ -762,9 +786,20 @@ class AbstractListBody():
             data = []
         
         self.highlightSet = set()
-        if len(self.items) != 0 and highlight:
-            cur_keys = set([curdata[0] for curdata in self.data[:self.list_item_max]])
-            self.highlightSet = set([curdata[0] for curdata in data[:self.list_item_max] if curdata[0] not in cur_keys])
+        cur_keys = set(self.items.keys())
+        for curdata in data[:self.list_cur_max]:
+            key = curdata[0]
+            if key not in cur_keys:
+                if highlight:
+                    self.highlightSet.add(key)
+            else:
+                cur_keys.discard(key)
+        
+        #cur_keys now contains all removed items
+        for key in cur_keys:
+            self.items[key].Show(False)
+            self.items[key].Destroy()
+            del self.items[key]
 
         self.data = data
         self.DoSort()
@@ -806,16 +841,22 @@ class AbstractListBody():
 
     def OnLoadMore(self, event):
         self.loadNext.Disable()
-        wx.CallAfter(self.CreateItems, LIST_ITEM_MAX_SIZE, sys.maxint)
+        self.list_cur_max += LIST_ITEM_MAX_SIZE
+        
+        wx.CallAfter(self.CreateItems)
+        self.Bind(wx.EVT_IDLE, self.OnIdle)
         
     def OnLoadAll(self):
         self.loadNext.Disable()
-        wx.CallAfter(self.CreateItems, sys.maxint, sys.maxint)
-
+        self.list_cur_max = sys.maxint
+        
+        wx.CallAfter(self.CreateItems)
+        self.Bind(wx.EVT_IDLE, self.OnIdle)
+        
     @warnWxThread
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = None):
         if not nr_items_to_add:
-            nr_items_to_add = self.list_item_max
+            nr_items_to_add = self.list_cur_max
         
         if DEBUG:
             print >> sys.stderr, "ListBody: Creating items", time()
@@ -975,7 +1016,7 @@ class AbstractListBody():
 class ListBody(AbstractListBody, scrolled.ScrolledPanel):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE, listRateLimit = LIST_RATE_LIMIT):
         scrolled.ScrolledPanel.__init__(self, parent)
-        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit)
+        AbstractListBody.__init__(self, parent_list, columns, leftSpacer, rightSpacer, singleExpanded, showChange, listRateLimit=listRateLimit, list_item_max = list_item_max)
         
         homeId = wx.NewId()
         endId = wx.NewId()

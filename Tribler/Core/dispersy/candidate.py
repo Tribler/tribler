@@ -27,6 +27,7 @@ assert CANDIDATE_ACTIVE < CANDIDATE_INACTIVE < CANDIDATE_OBSOLETE
 # values without conflicting with the next 5.0 walk cycle.  Hence, we pick 2.5 seconds below the
 # actual cutoff point.
 CANDIDATE_ELIGIBLE_DELAY = 27.5
+CANDIDATE_ELIGIBLE_BOOTSTRAP_DELAY = 57.5
 CANDIDATE_WALK_LIFETIME = 57.5
 CANDIDATE_STUMBLE_LIFETIME = 57.5
 CANDIDATE_INTRO_LIFETIME = 27.5
@@ -426,7 +427,7 @@ class BootstrapCandidate(WalkCandidate):
         """
         assert community.cid in self._timestamps
         timestamps = self._timestamps[community.cid]
-        return now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY
+        return now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_BOOTSTRAP_DELAY
 
 class LoopbackCandidate(Candidate):
     def __init__(self):

@@ -6,6 +6,7 @@ import os
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.tribler_topButton import settingsButton
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 

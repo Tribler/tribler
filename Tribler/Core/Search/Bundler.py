@@ -905,7 +905,7 @@ class Bundler:
     GROUP_TOP_N = 2000 # None = all
     MAX_BUNDLES = LIST_ITEM_MAX_SIZE # None = all
     
-    GC_ROUNDS = 20 # Number of rounds after which a garbage collection phase starts
+    GC_ROUNDS = 2 # Number of rounds after which a garbage collection phase starts
     
     # DO NOT CHANGE THE ORDER, STORED IN DB
     ALG_NUMBERS, ALG_NAME, ALG_SIZE, ALG_OFF, ALG_MAGIC, ALG_CATEGORY = range(6)
@@ -1040,7 +1040,7 @@ class Bundler:
             
             
             self.number_of_calls += 1
-            if self.number_of_calls == Bundler.GC_ROUNDS:
+            if self.number_of_calls >= Bundler.GC_ROUNDS:
                 self.__gc()
                 self.number_of_calls = 0
             

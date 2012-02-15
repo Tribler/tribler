@@ -374,7 +374,6 @@ class MainFrame(wx.Frame):
 
     def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
-            print >> sys.stderr, "_" * 80
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
             self.startDownload(tdef=tdef, destdir = destdir)
                 
@@ -382,6 +381,8 @@ class MainFrame(wx.Frame):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
             self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
             return False
+        
+        print >> sys.stderr, "Trying to retrieve metadata for:", url
         return True
     
     def startDownloadFromUrl(self, url, destdir = None):
@@ -396,7 +397,7 @@ class MainFrame(wx.Frame):
         return False
 
     @forceWxThread
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None):
+    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
         
@@ -411,10 +412,18 @@ class MainFrame(wx.Frame):
             cancelDownload = False
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
-                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
+                defaultname = correctedFilename
+                if not correctedFilename and tdef.is_multifile_torrent():
+                    defaultname = tdef.get_name_as_unicode()
+                    
+                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 dlg.CenterOnParent()
                 if dlg.ShowModal() == wx.ID_OK:
-                    destdir = dlg.GetPath()
+                    #for multifile we enabled correctedFilenames, use split to remove the filename from the path
+                    if tdef.is_multifile_torrent():
+                        destdir, correctedFilename = os.path.split(dlg.GetPath())
+                    else:
+                        destdir = dlg.GetPath()
                 else:
                     cancelDownload = True
                 dlg.Destroy()
@@ -422,6 +431,9 @@ class MainFrame(wx.Frame):
             if not cancelDownload:
                 if destdir is not None:
                     dscfg.set_dest_dir(destdir)
+                    
+                if correctedFilename:
+                    dscfg.set_corrected_filename(correctedFilename)
             
                 # ProxyService 90s Test_
 #                if doemode is not None:
@@ -775,14 +787,15 @@ class MainFrame(wx.Frame):
     # minimize to tray bar control
     #######################################
     def onTaskBarActivate(self, event = None):
-        self.Iconize(False)
-        self.Show(True)
-        self.Raise()
-        
-        if self.tbicon is not None:
-            self.tbicon.updateIcon(False)
+        if not self.GUIupdate:
+            self.Iconize(False)
+            self.Show(True)
+            self.Raise()
             
-        self.GUIupdate = True
+            if self.tbicon is not None:
+                self.tbicon.updateIcon(False)
+                
+            self.GUIupdate = True
 
     def onIconify(self, event = None):
         # This event handler is called both when being minimalized
@@ -915,6 +928,8 @@ class MainFrame(wx.Frame):
                     dialog.Destroy()
                     if result != wx.ID_OK:
                         event.Veto()
+                        
+                        print >>sys.stderr, "mainframe: Not closing messagebox did not return OK"
                         return
             except:
                 print_exc()
@@ -922,8 +937,9 @@ class MainFrame(wx.Frame):
         self.utility.abcquitting = True
         self.GUIupdate = False
         
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.stop_playback()
+        if VideoPlayer.hasInstance():
+            videoplayer = VideoPlayer.getInstance()
+            videoplayer.stop_playback()
 
         try:
             # Restore the window before saving size and position
@@ -934,15 +950,13 @@ class MainFrame(wx.Frame):
             print_exc()
 
         try:
-            if self.videoframe is not None:
-                self.videoframe.Destroy()
-        except:
-            print_exc()
-        
-        try:
             if self.tbicon is not None:
                 self.tbicon.RemoveIcon()
                 self.tbicon.Destroy()
+        except:
+            print_exc()
+            
+        try:
             self.Destroy()
         except:
             print_exc()
