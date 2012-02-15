@@ -129,7 +129,7 @@ class TrackerDispersy(Dispersy):
     def _unload_communities(self):
         def is_active(community, now):
             # check 1: does the community have any active candidates
-            if community.update_strikes(now) < 3:
+            if community.update_strikes(now) < 2:
                 return True
 
             # check 2: does the community have any cached messages waiting to be processed
@@ -141,7 +141,7 @@ class TrackerDispersy(Dispersy):
             return False
 
         while True:
-            yield 180.0
+            yield 120.0
             now = time()
             inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
             dprint("cleaning ", len(inactive), "/", len(self._communities), " communities [", ", ".join(community.cid.encode("HEX") for community in inactive), "]")
