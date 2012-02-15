@@ -205,16 +205,28 @@ class TrackerDispersy(Dispersy):
 
             for key, candidate in iter_candidates():
                 if isinstance(candidate, WalkCandidate):
-                    current_status = candidate_status.get(key, "new")
-                    new_status = "active" if candidate.is_any_active(now) else "inactive"
+                    current_status = candidate_status.get(key, "unknown")
+                    if candidate.is_any_active(now):
+                        new_status = "active"
+                    elif candidate.is_all_obsolete(now):
+                        new_status = "obsolete"
+                    else:
+                        new_status = "inactive"
 
-                    if not current_status == new_status:
-                        if current_status == "new":
+                    if current_status == "unknown" and new_status == "obsolete":
+                        # already logged CONN_DEL
+                        pass
+
+                    elif not current_status == new_status:
+                        if new_status == "active":
                             logger("CONN_ADD", cid_hex, key[0], key[1])
                             candidate_status[key] = "active"
 
                         elif new_status == "inactive":
                             logger("CONN_DEL", cid_hex, key[0], key[1])
+                            candidate_status[key] = "inactive"
+
+                        elif new_status == "obsolete":
                             del candidate_status[key]
 
 class DispersySocket(object):
