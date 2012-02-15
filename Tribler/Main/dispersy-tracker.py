@@ -113,7 +113,7 @@ class TrackerDispersy(Dispersy):
         def is_active(community, now):
             # check 1: does the community have any active candidates
             for candidate in self._candidates.itervalues():
-                if candidate.is_active(community, now):
+                if candidate.is_obsolete(community, now):
                     return True
 
             # check 2: does the community have any cached messages waiting to be processed

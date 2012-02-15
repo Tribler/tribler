@@ -135,6 +135,22 @@ class Candidate(object):
         """
         return set(member for cid, member in self._associations if community.cid == cid)
 
+    def is_active(self, community, now):
+        """
+        Returns True if COMMUNITY is still active.
+        """
+        if community.cid in self._timestamps:
+            return now <= self._timestamps[community.cid].last_active + CANDIDATE_INACTIVE
+        return False
+
+    def is_obsolete(self, community, now):
+        """
+        Returns True if COMMUNITY is obsolete.
+        """
+        if community.cid in self._timestamps:
+            return self._timestamps[community.cid].last_active + CANDIDATE_OBSOLETE < now
+        return True
+
     def is_any_active(self, now):
         """
         Returns True if any of the associated communities are still active.
@@ -146,14 +162,6 @@ class Candidate(object):
         """
         if self._timestamps:
             return now <= max(timestamps.last_active for timestamps in self._timestamps.itervalues()) + CANDIDATE_INACTIVE
-        return False
-
-    def is_active(self, community, now):
-        """
-        Returns True if COMMUNITY is still active.
-        """
-        if community.cid in self._timestamps:
-            return now <= self._timestamps[community.cid].last_active + CANDIDATE_INACTIVE
         return False
 
     def is_all_obsolete(self, now):
