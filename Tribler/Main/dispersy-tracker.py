@@ -5,10 +5,9 @@ Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
 
 from time import time
+from random import random
 import errno
-import itertools
 import optparse
-import random
 import socket
 import sys
 import threading
@@ -143,7 +142,7 @@ class TrackerDispersy(Dispersy):
             for candidate, packet in packets:
                 cid = packet[2:22]
 
-                if not cid in self._communities and candidate.address[0] in self._non_autoload:
+                if not cid in self._communities and candidate.sock_addr[0] in self._non_autoload:
                     if __debug__: dprint("drop a ", len(packet), " byte packet (received from non-autoload node) from ", candidate, level="warning", force=1)
                     self._statistics.drop("_convert_packets_into_batch:from bootstrap node for unloaded community", len(packet))
                     continue
@@ -162,6 +161,7 @@ class TrackerDispersy(Dispersy):
         # the category (walk or stumble) and than a candidate.  this results in a problem with flash
         # crowds, we solve this by removing the security mechanism.  this mechanism is not useful
         # for trackers as they will always receive a steady supply of valid connections as well.
+        now = time()
         candidate = [candidate for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
         for length in xrange(len(candidate), 0, -1):
             yield candidate.pop(int(random() * length))
