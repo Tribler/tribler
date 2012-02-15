@@ -1370,6 +1370,9 @@ class LibraryList(SizeList):
             return False
         if peers1 != peers2:
             return False
+        
+        if ds1.get_progress() != ds2.get_progress():
+            return False
 
         #Compare upload/download        
         def get_up_down(ds):
@@ -1394,8 +1397,6 @@ class LibraryList(SizeList):
         #Compare size
         if ds1.get_length() != ds2.get_length():
             return False 
-        if ds1.get_progress() != ds2.get_progress():
-            return False
     
         return True
             
