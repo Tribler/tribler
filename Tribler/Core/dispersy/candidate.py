@@ -137,19 +137,11 @@ class Candidate(object):
 
     def is_active(self, community, now):
         """
-        Returns True if COMMUNITY is still active.
+        Returns True if SELF is active in COMMUNITY.
         """
         if community.cid in self._timestamps:
             return now <= self._timestamps[community.cid].last_active + CANDIDATE_INACTIVE
         return False
-
-    def is_obsolete(self, community, now):
-        """
-        Returns True if COMMUNITY is obsolete.
-        """
-        if community.cid in self._timestamps:
-            return self._timestamps[community.cid].last_active + CANDIDATE_OBSOLETE < now
-        return True
 
     def is_any_active(self, now):
         """

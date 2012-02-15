@@ -35,6 +35,13 @@ class TrackerCommunity(Community):
     """
     This community will only use dispersy-candidate-request and dispersy-candidate-response messages.
     """
+    def __init__(self, *args, **kargs):
+        super(TrackerCommunity, self).__init__(*args, **kargs)
+        # communities are cleaned based on a 'strike' rule.  periodically, we will check is there
+        # are active candidates, when there are 'strike' is set to zero, otherwise it is incremented
+        # by one.  once 'strike' reaches a predefined value the community is cleaned
+        self._strikes = 0
+
     def _initialize_meta_messages(self):
         super(TrackerCommunity, self)._initialize_meta_messages()
 
@@ -48,6 +55,16 @@ class TrackerCommunity(Community):
                      u"dispersy-identity",
                      u"dispersy-missing-identity"]:
             self._meta_messages[name] = meta_messages[name]
+
+    def update_strikes(self, now):
+        # does the community have any active candidates
+        for candidate in self._dispersy.candidates.itervalues():
+            if candidate.is_active(self, now):
+                self._strikes = 0
+                break
+        else:
+            self._strikes += 1
+        return self._strikes
 
     def initiate_meta_messages(self):
         return []
@@ -112,9 +129,8 @@ class TrackerDispersy(Dispersy):
     def _unload_communities(self):
         def is_active(community, now):
             # check 1: does the community have any active candidates
-            for candidate in self._candidates.itervalues():
-                if candidate.is_obsolete(community, now):
-                    return True
+            if community.update_strikes(now) < 3:
+                return True
 
             # check 2: does the community have any cached messages waiting to be processed
             for meta in self._batch_cache.iterkeys():
