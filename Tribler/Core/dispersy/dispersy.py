@@ -829,14 +829,30 @@ class Dispersy(Singleton):
 
             if __debug__: dprint("got invalid external vote from ", voter_address[0],":",voter_address[1], " received ", address[0], ":", address[1])
 
-    def _check_identical_payload_with_different_signature(self, message):
+    def _is_duplicate_sync_message(self, message):
         """
-        There is a possibility that a message is created that contains exactly the same payload
-        but has a different signature.
+        Returns True when this message is a duplicate, otherwise the message must be processed.
 
-        This can occur when a message is created, forwarded, and for some reason the database is
-        reset.  The next time that the client starts the exact same message may be generated.
-        However, because EC sigantures contain a random element the signature will be different.
+        === Problem: duplicate message ===
+
+        The simplest reason to reject an incoming message is when we already have it.  No further
+        action is performed.
+
+
+        === Problem: duplicate message, but that message is undone ===
+
+        When a message is undone it should no longer be synced.  Hence, someone who syncs an undone
+        message must not be aware of the undo message yet.  We will drop this message, but we will
+        also send the appropriate undo message as a response.
+
+
+        === Problem: same payload, different signature ===
+
+        There is a possibility that a message is created that contains exactly the same payload but
+        has a different signature.  This can occur when a message is created, forwarded, and for
+        some reason the database is reset.  The next time that the client starts the exact same
+        message may be generated.  However, because EC signatures contain a random element the
+        signature will be different.
 
         This results in continues transfers because the bloom filters identify the two messages
         as different while the community/member/global_time triplet is the same.
@@ -845,28 +861,42 @@ class Dispersy(Singleton):
         the message with the highest binary value while destroying the one with the lower binary
         value.
 
+
+        === Optimization: temporarily modify the bloom filter ===
+
+        Note: currently we generate bloom filters on the fly, therefore, we can not use this
+        optimization.
+
         To further optimize, we will add both messages to our bloom filter whenever we detect
         this problem.  This will ensure that we do not needlessly receive the 'invalid' message
         until the bloom filter is synced with the database again.
-
-        Returns False when the message is not a duplicate with anything in the database.
-        Otherwise returns True when the message is a duplicate and must be dropped.
         """
+        community = message.community
         # fetch the duplicate binary packet from the database
         try:
-            packet, = self._database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                                             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+            packet, undone = self._database.execute(u"SELECT packet, undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
+                                                    (community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
         except StopIteration:
-            # we are checking two messages just received in the same batch
-            # process the message
+            # this message is not a duplicate
             return False
 
         else:
             packet = str(packet)
             if packet == message.packet:
-                # exact duplicates, do NOT process the message
+                # exact binary duplicates, do NOT process the message
                 if __debug__: dprint("received identical message [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
-                pass
+
+                if undone:
+                    # provide the undo message to the sender, since he probably doesn't have it yet
+                    undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+                    undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+                    for packet_id, message_id, undo_packet in self._database.execute(u"SELECT id, meta_message, packet FROM sync WHERE community = ? AND member = ? AND global_time > ? AND meta_message IN (?, ?)",
+                                                                                     (community.database_id, message.authentication.member.database_id, message.distribution.global_time, undo_own_meta.database_id, undo_other_meta.database_id)):
+                        undo_packet = str(undo_packet)
+                        msg = Packet(undo_own_meta if undo_own_meta.database_id == message_id else undo_other_meta, undo_packet, packet_id).load_message()
+                        if message.distribution.global_time == msg.payload.global_time:
+                            self._send([message.candidate], [undo_packet], "-duplicate-undo-")
+                            break
 
             else:
                 signature_length = message.authentication.member.signature_length
@@ -877,15 +907,15 @@ class Dispersy(Singleton):
                     if packet < message.packet:
                         # replace our current message with the other one
                         self._database.execute(u"UPDATE sync SET packet = ? WHERE community = ? AND member = ? AND global_time = ?",
-                                               (buffer(message.packet), message.community.database_id, message.authentication.member.database_id, message.distribution.global_time))
+                                               (buffer(message.packet), community.database_id, message.authentication.member.database_id, message.distribution.global_time))
 
                         # notify that global times have changed
-                        # message.community.update_sync_range(message.meta, [message.distribution.global_time])
+                        # community.update_sync_range(message.meta, [message.distribution.global_time])
 
                 else:
                     if __debug__: dprint("received message with duplicate community/member/global-time triplet.  possibly malicious behavior", level="warning")
 
-            # do NOT process the message
+            # this message is a duplicate
             return True
 
     def _check_full_sync_distribution_batch(self, messages):
@@ -939,13 +969,13 @@ class Dispersy(Singleton):
 
                     if seq >= message.distribution.sequence_number:
                         # we already have this message (drop)
-                        # TODO: something similar to _check_identical_payload_with_different_signature can occur...
+                        # TODO: something similar to _is_duplicate_sync_message can occur...
                         yield DropMessage(message, "duplicate message by sequence_number (we have %d, message has %d)"%(seq, message.distribution.sequence_number))
 
                     elif seq + 1 == message.distribution.sequence_number:
                         # we have the previous message, check for duplicates based on community,
                         # member, and global_time
-                        if self._check_identical_payload_with_different_signature(message):
+                        if self._is_duplicate_sync_message(message):
                             # we have the previous message (drop)
                             yield DropMessage(message, "duplicate message by global_time (1)")
                         else:
@@ -964,7 +994,7 @@ class Dispersy(Singleton):
 
                         # else:
                         #     # we have the previous message (drop)
-                        #     if self._check_identical_payload_with_different_signature(message):
+                        #     if self._is_duplicate_sync_message(message):
                         #         yield DropMessage(message, "duplicate message by global_time (1)")
 
                     else:
@@ -981,7 +1011,7 @@ class Dispersy(Singleton):
                     unique.add(key)
 
                     # check for duplicates based on community, member, and global_time
-                    if self._check_identical_payload_with_different_signature(message):
+                    if self._is_duplicate_sync_message(message):
                         # we have the previous message (drop)
                         yield DropMessage(message, "duplicate message by global_time (2)")
                     else:
@@ -999,7 +1029,7 @@ class Dispersy(Singleton):
 
                     # else:
                     #     # we have the previous message (drop)
-                    #     if self._check_identical_payload_with_different_signature(message):
+                    #     if self._is_duplicate_sync_message(message):
                     #         yield DropMessage(message, "duplicate message by global_time (2)")
 
     def _check_last_sync_distribution_batch(self, messages):
@@ -1060,7 +1090,7 @@ class Dispersy(Singleton):
                     assert len(times[message.authentication.member]) <= message.distribution.history_size, [message.packet_id, message.distribution.history_size, times[message.authentication.member]]
                 tim = times[message.authentication.member]
 
-                if message.distribution.global_time in tim and self._check_identical_payload_with_different_signature(message):
+                if message.distribution.global_time in tim and self._is_duplicate_sync_message(message):
                     return DropMessage(message, "duplicate message by member^global_time (3)")
 
                 elif len(tim) >= message.distribution.history_size and min(tim) > message.distribution.global_time:
@@ -1112,7 +1142,7 @@ class Dispersy(Singleton):
                 else:
                     unique.add(key)
 
-                    if self._check_identical_payload_with_different_signature(message):
+                    if self._is_duplicate_sync_message(message):
                         # we have the previous message (drop)
                         return DropMessage(message, "duplicate message by member^global_time (4)")
 
@@ -1124,7 +1154,7 @@ class Dispersy(Singleton):
                     #     pass
                     # else:
                     #     # we have the previous message (drop)
-                    #     if self._check_identical_payload_with_different_signature(message):
+                    #     if self._is_duplicate_sync_message(message):
                     #         return DropMessage(message, "duplicate message by member^global_time (4)")
 
                     if not members in times:
@@ -1146,7 +1176,7 @@ class Dispersy(Singleton):
                         assert len(times[members]) <= message.distribution.history_size
                     tim = times[members]
 
-                    if message.distribution.global_time in tim and self._check_identical_payload_with_different_signature(message):
+                    if message.distribution.global_time in tim and self._is_duplicate_sync_message(message):
                         # we have the previous message (drop)
                         return DropMessage(message, "duplicate message by members^global_time")
 
