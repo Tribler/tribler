@@ -144,7 +144,7 @@ class TrackerDispersy(Dispersy):
             yield 180.0
             now = time()
             inactive = [community for community in self._communities.itervalues() if not is_active(community, now)]
-            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities [", ", ".join(community.cid.encode("HEX") for community in inactive), "]")
+            dprint("cleaning ", len(inactive), "/", len(self._communities), " communities")# [", ", ".join(community.cid.encode("HEX") for community in inactive), "]")
             for community in inactive:
                 community.unload_community()
 
