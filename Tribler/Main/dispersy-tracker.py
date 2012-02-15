@@ -162,9 +162,14 @@ class TrackerDispersy(Dispersy):
         # crowds, we solve this by removing the security mechanism.  this mechanism is not useful
         # for trackers as they will always receive a steady supply of valid connections as well.
         now = time()
-        candidates = [candidate for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
+        candidates = self._candidates.values()
         for length in xrange(len(candidates), 0, -1):
-            yield candidates.pop(int(random() * length))
+            candidate = candidates.pop(int(random() * length))
+            if candidate.in_community(community, now) and candidate.is_any_active(now):
+                yield candidate
+        # candidates = [candidate for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
+        # for length in xrange(len(candidates), 0, -1):
+        #     yield candidates.pop(int(random() * length))
 
     def _unload_communities(self):
         def is_active(community, now):
