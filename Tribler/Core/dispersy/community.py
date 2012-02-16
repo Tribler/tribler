@@ -709,6 +709,9 @@ class Community(object):
                         bloomfilter_range = left
                     else:
                         bloomfilter_range = right
+                        
+                    if __debug__:
+                        dprint(self.cid.encode("HEX"), " bloomfilterrange left", left, "right", right)
                 else:
                     bloomfilter_range = right
                 
@@ -787,9 +790,10 @@ class Community(object):
         else:
             bloomfilter_range = [1, self._global_time, 0]
 
+        #if we selected less than to_select
         if bloomfilter_range[2] < to_select:
+            #calculate how many still remain
             to_select = to_select - bloomfilter_range[2]
-            
             if higher:
                 bloomfilter_range[1] = self._global_time
                 
@@ -806,6 +810,16 @@ class Community(object):
                 if len(higher) > 0:
                     bloomfilter_range[2]+= len(higher)            
                     bloomfilter_range[1] = max(higher)[0]
+        
+        #we can use the global_time as a min or max value for lower and upper bound
+        if higher:
+            #we selected items higher than global_time, make sure bloomfilter_range[0] is at least as low a global_time + 1
+            #we select all items higher than global_time, thus all items global_time + 1 are included
+            bloomfilter_range[0] = min(bloomfilter_range[0], global_time + 1)
+        else:
+            #we selected items lower than global_time, make sure bloomfilter_range[1] is at least as high as global_time -1
+            #we select all items lower than global_time, thus all items global_time - 1 are included
+            bloomfilter_range[1] = max(bloomfilter_range[1], global_time - 1)
 
         return bloomfilter_range
 

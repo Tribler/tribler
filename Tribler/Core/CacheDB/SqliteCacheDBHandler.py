@@ -3320,14 +3320,14 @@ class ChannelCastDBHandler(object):
         
         def updateNrTorrents():
             while True:
-                rows = self.getChannelNrTorrents()
+                rows = self.getChannelNrTorrents(50)
                 update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
-                self._db.executemany(update, rows, commit = False)
+                self._db.executemany(update, rows, commit = self.shouldCommit)
                 
                 #schedule a call for in 5 minutes
                 yield 300.0
                 
-                rows = self.getChannelNrTorrentsLatestUpdate()
+                rows = self.getChannelNrTorrentsLatestUpdate(50)
                 update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
                 self._db.executemany(update, rows, commit = self.shouldCommit)
                 
@@ -3810,11 +3810,19 @@ class ChannelCastDBHandler(object):
             sql = "select max(ChannelTorrents.time_stamp), count(ChannelTorrents.torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
         return self._db.fetchone(sql, (channel_id,))
     
-    def getChannelNrTorrents(self):
+    def getChannelNrTorrents(self, limit = None):
+        if limit:
+            sql = "select count(torrent_id), channel_id from Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <>  -1 GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"
+            return self._db.fetchall(sql, (limit, ))
+        
         sql = "select count(torrent_id), channel_id from Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <>  -1 GROUP BY channel_id"
         return self._db.fetchall(sql)
     
-    def getChannelNrTorrentsLatestUpdate(self):
+    def getChannelNrTorrentsLatestUpdate(self, limit = None):
+        if limit:
+            sql = "select count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id from Channels, ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1 GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"
+            return self._db.fetchall(sql, (limit, ))
+    
         sql = "select count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id from Channels, ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1 GROUP BY channel_id"
         return self._db.fetchall(sql)
     

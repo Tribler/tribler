@@ -895,7 +895,9 @@ class ABCApp():
             diff = time() - session_shutdown_start
             print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
             sleep(3)
-            
+        print >>sys.stderr,"main ONEXIT: Session is shutdown"
+
+        
 #        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"
 #        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
 #        peerdb._db.execute_read('VACUUM')

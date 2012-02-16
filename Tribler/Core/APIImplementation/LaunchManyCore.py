@@ -771,8 +771,8 @@ class TriblerLaunchMany(Thread):
         # in list of states returned via callback.
         #
         dllist = self.downloads.values()
-        if DEBUG:
-            print >>sys.stderr,"tlm: checkpointing",len(dllist)
+        if DEBUG or stop:
+            print >>sys.stderr,"tlm: checkpointing",len(dllist),"stopping",stop
 
         network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint,gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
@@ -788,7 +788,7 @@ class TriblerLaunchMany(Thread):
                     # in a infohash -> pstate dict which is then passed to the user
                     # for storage.
                     #
-                    if DEBUG:
+                    if DEBUG or stop:
                         print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
                     if stop:
                         (infohash,pstate) = d.network_stop(False,False)
@@ -828,6 +828,8 @@ class TriblerLaunchMany(Thread):
 
     def network_shutdown(self):
         try:
+            print >>sys.stderr,"tlm: network_shutdown"
+            
             # Detect if megacache is enabled
             if self.peer_db is not None:
                 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
