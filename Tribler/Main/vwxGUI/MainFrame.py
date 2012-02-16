@@ -590,7 +590,10 @@ class MainFrame(wx.Frame):
 
                 # Boudewijn: start some background downloads to
                 # upgrade on this seperate thread
-                self._upgradeVersion(my_version, self.curr_version, info)
+                if len(info) > 0:
+                    self._upgradeVersion(my_version, self.curr_version, info)
+                else:
+                    self._manualUpgrade(my_version, self.curr_version, self.update_url)
             
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()
@@ -715,6 +718,11 @@ class MainFrame(wx.Frame):
                     return (1.0, False)
 
                 download.set_state_callback(state_callback)
+    
+    @forceWxThread
+    def _manualUpgrade(self, my_version, latest_version, url):
+        dialog = wx.MessageDialog(self, 'There is a new version of Tribler.\nYour version:\t\t\t\t%s\nLatest version:\t\t\t%s\n\nPlease visit %s to upgrade.'%(my_version, latest_version, url), 'New version of Tribler is available', wx.OK|wx.ICON_INFORMATION)
+        dialog.ShowModal()
             
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
