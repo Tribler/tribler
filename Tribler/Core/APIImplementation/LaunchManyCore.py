@@ -72,6 +72,7 @@ class TriblerLaunchMany(Thread):
         self.dialback_ext_ip = None
         self.yourip_ext_ip = None
         self.udppuncture_handler = None
+        self.internaltracker = None
 
         # Orig
         self.sessdoneflag = Event()
@@ -272,7 +273,6 @@ class TriblerLaunchMany(Thread):
             Category.getInstance(config['install_dir'])
 
         # Internal tracker
-        self.internaltracker = None
         if config['internaltracker']:
             self.internaltracker = Tracker(config, self.rawserver)
             self.httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
