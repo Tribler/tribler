@@ -889,14 +889,24 @@ class Dispersy(Singleton):
                 if undone:
                     # provide the undo message to the sender, since he probably doesn't have it yet
                     undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
-                    undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
-                    for packet_id, message_id, undo_packet in self._database.execute(u"SELECT id, meta_message, packet FROM sync WHERE community = ? AND member = ? AND global_time > ? AND meta_message IN (?, ?)",
-                                                                                     (community.database_id, message.authentication.member.database_id, message.distribution.global_time, undo_own_meta.database_id, undo_other_meta.database_id)):
+                    for packet_id, undo_packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND global_time > ? AND meta_message = ? ORDER BY global_time",
+                                                                         (community.database_id, message.authentication.member.database_id, message.distribution.global_time, undo_own_meta.database_id)):
                         undo_packet = str(undo_packet)
-                        msg = Packet(undo_own_meta if undo_own_meta.database_id == message_id else undo_other_meta, undo_packet, packet_id).load_message()
+                        msg = Packet(undo_own_meta, undo_packet, packet_id).load_message()
                         if message.distribution.global_time == msg.payload.global_time:
-                            self._send([message.candidate], [undo_packet], "-duplicate-undo-")
+                            self._send([message.candidate], [undo_packet], u"-duplicate-undo-own-")
                             break
+
+                    else:
+                        # provide the undo message to the sender, since he probably doesn't have it yet
+                        undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+                        for packet_id, undo_packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND global_time > ? AND meta_message = ? ORDER BY global_time",
+                                                                             (community.database_id, message.distribution.global_time, undo_other_meta.database_id)):
+                            undo_packet = str(undo_packet)
+                            msg = Packet(undo_other_meta, undo_packet, packet_id).load_message()
+                            if message.distribution.global_time == msg.payload.global_time and message.authentication.member == msg.payload.member:
+                                self._send([message.candidate], [undo_packet], u"-duplicate-undo-other-")
+                                break
 
             else:
                 signature_length = message.authentication.member.signature_length
