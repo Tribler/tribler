@@ -434,7 +434,8 @@ class AllChannelCommunity(Community):
                 try:
                     # 2. get the message
                     message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
-                    messages.append(message)
+                    if message:
+                        messages.append(message)
                     
                 except RuntimeError:
                     pass
