@@ -67,6 +67,7 @@ if __name__ == "__main__":
     sscfg.set_megacache(False)
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
+    sscfg.set_dispersy(False)
     
     s = Session(sscfg)
 
