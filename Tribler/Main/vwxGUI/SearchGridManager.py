@@ -544,23 +544,27 @@ class TorrentManager:
                                 item.query_permids = set()
                             item.query_permids.update(remoteItem['query_permids'])
                             
-                            if isinstance(item, RemoteTorrent):
-                                #Maybe update channel?
-                                if remoteItem['channel']:
-                                    if item.hasChannel():
-                                        this_rating = remoteItem['channel'].nr_favorites - remoteItem['channel'].nr_spam
-                                        current_rating = item.channel.nr_favorites - item.channel.nr_spam
-                                        if this_rating > current_rating:
-                                            item.updateChannel(remoteItem['channel'])
-                                    else:
+                            if remoteItem['channel']:
+                                if isinstance(item, RemoteTorrent):
+                                    self.hits.remove(item) #Replace this item with a new result with a channel
+                                    break
+                                
+                                #Maybe update channel?    
+                                if isinstance(item, RemoteChannelTorrent):
+                                    this_rating = remoteItem['channel'].nr_favorites - remoteItem['channel'].nr_spam
+                                    current_rating = item.channel.nr_favorites - item.channel.nr_spam
+                                    if this_rating > current_rating:
                                         item.updateChannel(remoteItem['channel'])
                                 
-                                hitsUpdated = True
+                                    hitsUpdated = True
                             known = True
                             break
                     
                     if not known:
-                        remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
+                        if remoteItem.get('channel', False):
+                            remoteHit = RemoteChannelTorrent(**getValidArgs(RemoteChannelTorrent.__init__, remoteItem))
+                        else:
+                            remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
                         remoteHit.torrent_db = self.torrent_db
                         remoteHit.channelcast_db = self.channelcast_db
                         remoteHit.assignRelevance(remoteItem['matches'])

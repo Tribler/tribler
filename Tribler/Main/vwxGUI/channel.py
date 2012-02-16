@@ -2219,6 +2219,7 @@ class CommentManager:
             changed = True
             
         elif channeltorrent != self.channeltorrent:
+            assert isinstance(channeltorrent, ChannelTorrent), type(channeltorrent)
             self.channeltorrent = channeltorrent
             self.list.header.SetTitle('Comments for this torrent')
             

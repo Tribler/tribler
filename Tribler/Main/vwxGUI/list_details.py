@@ -158,23 +158,12 @@ class TorrentDetails(AbstractDetails):
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
         if filename:
             self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
-
         else:
-            #Load/collect torrent using guitaskqueue
-            startWorker(None, self.loadTorrent, jobID = "TorrentDetails_loadTorrent")
-            wx.CallLater(10000, self._timeout)
-        
-    def loadTorrent(self):
-        try:
-            if DEBUG:
-                print >> sys.stderr, "TorrentDetails: loading (ON GuiDBHandler)", self.torrent['name']
-            
             requesttype = self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
             if requesttype:
                 self.showRequestType(requesttype)
-                
-        except wx.PyDeadObjectError:
-            pass
+            
+            wx.CallLater(10000, self._timeout)
     
     @forceWxThread
     def showRequestType(self, requesttype):
