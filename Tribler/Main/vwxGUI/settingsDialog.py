@@ -329,21 +329,24 @@ class SettingsDialog(wx.Dialog):
             if showSave != self.defaultDLConfig.get_show_saveas():
                 self.defaultDLConfig.set_show_saveas(showSave)
                 self.saveDefaultDownloadConfig()
-                
+            
+            state_dir = self.utility.session.get_state_dir()
+            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
-                self.saveDefaultDownloadConfig()
+                scfg.set_proxyservice_dir(os.path.join(valdir, PROXYSERVICE_DESTDIR))
+                scfg.set_subtitles_collecting_dir(os.path.join(valdir, 'collected_subtitles_files'))
                 
+                self.saveDefaultDownloadConfig()
                 self.moveCollectedTorrents(self.currentDestDir, valdir)
                 restart = True
                 
             useBundleMagic = self.elements['use_bundle_magic'].IsChecked()
             if useBundleMagic != self.utility.config.Read('use_bundle_magic', "boolean"):
                 self.utility.config.Write('use_bundle_magic', useBundleMagic, "boolean")
-
-            state_dir = self.utility.session.get_state_dir()
-            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
-            scfg = SessionStartupConfig.load(cfgfilename)
+            
             for target in [scfg,self.utility.session]:
                 try:
                     target.set_nickname(self.elements['myNameField'].GetValue())
@@ -593,8 +596,8 @@ class SettingsDialog(wx.Dialog):
             self.rename_or_merge(old_dirsf, new_dirsf)
         
             # ProxyService_
-            old_dirdh = os.path.join(old_dir, 'proxyservice')
-            new_dirdh = os.path.join(new_dir, 'proxyservice')
+            old_dirdh = os.path.join(old_dir, PROXYSERVICE_DESTDIR)
+            new_dirdh = os.path.join(new_dir, PROXYSERVICE_DESTDIR)
             self.rename_or_merge(old_dirdh, new_dirdh)
             
         atexit.register(move, old_dir, new_dir)

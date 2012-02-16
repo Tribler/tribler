@@ -2219,7 +2219,7 @@ class CommentManager:
             changed = True
             
         elif channeltorrent != self.channeltorrent:
-            assert isinstance(channeltorrent, ChannelTorrent), type(channeltorrent)
+            assert isinstance(channeltorrent, ChannelTorrent) or (isinstance(channeltorrent, CollectedTorrent) and isinstance(channeltorrent.torrent, ChannelTorrent)), type(channeltorrent)
             self.channeltorrent = channeltorrent
             self.list.header.SetTitle('Comments for this torrent')
             
@@ -2644,7 +2644,7 @@ class ModerationList(List):
         if len(data) > 0:
             self.list.SetData(data)
         else:
-            self.list.ShowMessage('No moderations are found.')
+            self.list.ShowMessage('No moderations are found.\nModerations are modifications which are reverted by another peer.')
         self.SetNrResults(len(data))
         
     def OnShowTorrent(self, torrent):

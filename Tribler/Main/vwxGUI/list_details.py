@@ -124,7 +124,7 @@ class TorrentDetails(AbstractDetails):
         self.vod_log = None
 
         self.compact = compact
-        self.saveSpace = compact or parent.GetSize()[0] < self.SAVESPACE_THRESHOLD 
+        self.saveSpace = compact or parent.GetSize()[0] < self.SAVESPACE_THRESHOLD
         
         self.isReady = False
         self.noChannel = noChannel
