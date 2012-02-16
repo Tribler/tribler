@@ -449,16 +449,7 @@ class MainFrame(wx.Frame):
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
                     videoplayer = VideoPlayer.getInstance()
                     result = videoplayer.start_and_play(tdef,dscfg)
-    
-                    # 02/03/09 boudewijn: feedback to the user when there
-                    # are no playable files in the torrent
-                    if not result:
-                        dlg = wx.MessageDialog(self,
-                                   self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
-                                   self.utility.lang.get("invalid_torrent_no_playable_files_title"),
-                                   wx.OK|wx.ICON_ERROR)
-                        dlg.ShowModal()
-                        dlg.Destroy()
+                    
                 else:
                     if selectedFiles:
                         dscfg.set_selected_files(selectedFiles)
