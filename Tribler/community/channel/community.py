@@ -972,17 +972,6 @@ class ChannelCommunity(Community):
             dispersy_id = packet.packet_id
             self._channelcast_db.on_remove_mark_torrent(self._channel_id, dispersy_id)
     
-    #AllChannel functions
-    def selectTorrentsToCollect(self, infohashes):
-        infohashes = list(infohashes)
-        
-        collect = []
-        haveTorrents = self._channelcast_db.hasTorrents(self._channel_id, infohashes)
-        for i in range(len(infohashes)):
-            if not haveTorrents[i]:
-                collect.append(infohashes[i])
-        return collect
-    
     def dispersy_on_dynamic_settings(self, *args, **kwargs):
         Community.dispersy_on_dynamic_settings(self, *args, **kwargs)
         if self._channel_id:
