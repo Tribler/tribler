@@ -200,7 +200,7 @@ class TrackerDispersy(Dispersy):
         cid_hex = "0" * 40
 
         while True:
-            yield 1.0
+            yield 30.0
             now = time()
 
             for key, candidate in iter_candidates():
