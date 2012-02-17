@@ -123,6 +123,7 @@ class ABCApp():
         self.error = None
         self.last_update = 0
         self.ready = False
+        self.frame = None
 
         self.guiserver = GUITaskQueue.getInstance()
         self.said_start_playback = False
@@ -1129,10 +1130,11 @@ def run(params = None):
             # Launch first abc single instance
             app = wx.PySimpleApp(redirect = False)
             abc = ABCApp(params, single_instance_checker, installdir)
-            app.SetTopWindow(abc.frame)
-            abc.frame.set_wxapp(app)
+            if abc.frame:
+                app.SetTopWindow(abc.frame)
+                abc.frame.set_wxapp(app)
             
-            app.MainLoop()
+                app.MainLoop()
 
             # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
             abc.OnExit()

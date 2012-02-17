@@ -1668,6 +1668,9 @@ class TorrentDBHandler(BasicDBHandler):
         
         sql += ' Where '+where
         
+        if 'infohash' in value_name:
+            sql += " GROUP BY infohash"
+        
         if range:
             offset= range[0]
             limit = range[1] - range[0]
