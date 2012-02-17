@@ -757,6 +757,7 @@ class GenericSearchList(SizeList):
         self.infohash2key = {} # bundled infohashes
         self.nr_filtered = 0
     
+    @warnWxThread
     def CreateDownloadButton(self, parent, item):
         button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
         button.item = item
@@ -768,6 +769,7 @@ class GenericSearchList(SizeList):
             button.Enable(False)
         return button
 
+    @warnWxThread
     def CreateRatio(self, parent, item):
         seeders = int(item.original_data.num_seeders)
         leechers = int(item.original_data.num_leechers)
@@ -779,6 +781,7 @@ class GenericSearchList(SizeList):
         control.SetRatio(seeders, leechers)
         return control
         
+    @warnWxThread
     def OnDownload(self, event):
         item = event.GetEventObject().item
         self.Select(item.original_data.infohash)
@@ -787,6 +790,7 @@ class GenericSearchList(SizeList):
         button = event.GetEventObject()
         button.Enable(False)
     
+    @warnWxThread
     def toggleFamilyFilter(self):
         self.guiutility.toggleFamilyFilter()
         self.SetFF(self.guiutility.getFamilyFilter(),0)
@@ -794,11 +798,13 @@ class GenericSearchList(SizeList):
         def db_callback():
             self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
         startWorker(None, db_callback, retryOnBusy=True)
-        
+    
+    @warnWxThread
     def SetFF(self, family_filter, nr_filtered):
         self.header.SetFF(family_filter, nr_filtered)
         self.nr_filtered = nr_filtered
         
+    @warnWxThread
     def SetData(self, data):
         from Tribler.Main.vwxGUI.list_bundle import BundleListItem # solving circular dependency for now
         
@@ -855,6 +861,7 @@ class GenericSearchList(SizeList):
             else:
                 self.list.ShowMessage(message, header)
 
+    @warnWxThread
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
@@ -880,15 +887,18 @@ class GenericSearchList(SizeList):
         
         self.infohash2key = {}
         self.nr_filtered = 0
-            
+        
+    @warnWxThread  
     def SetFilteredResults(self, nr):
         self.header.SetFiltered(nr)
 
+    @warnWxThread
     def OnExpand(self, item):
         item.button.Hide()
         item.button.Refresh()
         return TorrentDetails(item, item.original_data)
     
+    @warnWxThread
     def OnCollapseInternal(self, item):
         item.button.Show()
     
@@ -1036,15 +1046,17 @@ class SearchList(GenericSearchList):
         torrent = item.original_data
         if torrent.hasChannel() and torrent.channel.isFavorite():
             return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
-    
+        
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = RemoteSearchManager(self) 
         return self.manager
     
+    @warnWxThread
     def CreateHeader(self, parent):
         return SearchHelpHeader(parent, self, [])
 
+    @warnWxThread
     def CreateFooter(self, parent):
         footer = ChannelResultFooter(parent)
         footer.SetEvents(self.OnChannelResults)
@@ -1053,6 +1065,7 @@ class SearchList(GenericSearchList):
     def SetSelectedBundleMode(self, selected_bundle_mode):
         self.sidebar.SetSelectedBundleMode(selected_bundle_mode)
     
+    @warnWxThread
     def SetData(self, data):
         GenericSearchList.SetData(self, data)
         
@@ -1087,13 +1100,15 @@ class SearchList(GenericSearchList):
         
         self.keywords = keywords
         self._SetTitles()
-        
+    
+    @warnWxThread
     def ShowSuggestions(self, suggestions):
         if len(suggestions) > 0:
             header, message = self.list.GetMessage()
             message += '\n\nAlternatively your could search for %s'%suggestions[0][0]
             self.list.ShowMessage(message, header = header)
-            
+        
+    @warnWxThread
     def _SetTitles(self):
         title = ''
         if self.total_results != None:
@@ -1122,7 +1137,7 @@ class SearchList(GenericSearchList):
         if self.keywords != None:
             title += ' for "%s"'%self.keywords
         self.footer.SetLabel(title, self.total_channels)
-            
+        
     def SetMaxResults(self, max, keywords):
         self.sidebar.SetMaxResults(max, keywords)
         
@@ -1137,6 +1152,7 @@ class SearchList(GenericSearchList):
         if self.total_results == 0 and self.nr_filtered == 0:
             startWorker(None, db_callback, wargs = (self.keywords,), retryOnBusy=True)
     
+    @warnWxThread
     def _ShowSuggestions(self, delayedResult):
         suggestions = delayedResult.get()
         
@@ -1210,6 +1226,7 @@ class LibraryList(SizeList):
             self.manager = LocalSearchManager(self) 
         return self.manager
     
+    @warnWxThread
     def CreateHeader(self, parent):
         if parent.top_bg:
             header = LibraryHeader(parent, self, self.columns, spacers=[3,3])
@@ -1228,11 +1245,13 @@ class LibraryList(SizeList):
         
         return header
     
+    @warnWxThread
     def CreateFooter(self, parent):
         footer = TotalFooter(parent, self.columns)
         footer.SetTotal(0, 'Totals:')
         return footer
     
+    @warnWxThread
     def CreateUp(self, parent, item):
         up = wx.StaticText(parent, style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE, size=(70,-1))
         item.up = up
@@ -1242,7 +1261,8 @@ class LibraryList(SizeList):
         else:
             up.SetLabel(self.utility.speed_format_new(0))
         return up
-        
+    
+    @warnWxThread
     def CreateDown(self, parent, item):
         down = wx.StaticText(parent, style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE, size=(70,-1))
         item.down = down
@@ -1253,6 +1273,7 @@ class LibraryList(SizeList):
             down.SetLabel(self.utility.speed_format_new(0))
         return down
     
+    @warnWxThread
     def CreateProgress(self, parent, item):
         progressPanel = ProgressPanel(parent, item)
         progressPanel.SetMinSize((self.columns[1]['width'],-1))
@@ -1261,6 +1282,7 @@ class LibraryList(SizeList):
         item.progressPanel = progressPanel
         return progressPanel
     
+    @warnWxThread
     def CreateConnections(self, parent, item):
         connections = wx.StaticText(parent, style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE, size=(self.columns[2]['width'],-1))
         item.connections = connections
@@ -1272,6 +1294,7 @@ class LibraryList(SizeList):
     def OnExpand(self, item):
         return LibraryDetails(item, item.original_data, self.OnStop, self.OnResume, self.OnDelete)
 
+    @warnWxThread
     def OnAdd(self, event):
         dlg = AddTorrent(None, self.guiutility.frame)
         dlg.CenterOnParent()
@@ -1295,6 +1318,7 @@ class LibraryList(SizeList):
             
         self.user_download_choice.set_download_state(item.original_data.infohash, "stop")
 
+    @warnWxThread
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()
         
@@ -1399,7 +1423,8 @@ class LibraryList(SizeList):
             return False 
     
         return True
-            
+    
+    @warnWxThread
     def RefreshItems(self, dslist):
         if self.isReady and self.ShouldGuiUpdate():
             totals = {2:0, 3:0, 4:0}
@@ -1555,7 +1580,8 @@ class LibraryList(SizeList):
                 self.footer.SetTotal(key, totals[key])
             
             self.newfilter = False
-        
+    
+    @warnWxThread
     def SetData(self, data):
         List.SetData(self, data)
         
@@ -1567,7 +1593,8 @@ class LibraryList(SizeList):
             message = "Torrents can be found using our integrated search or using channels.\n"
             message += "Additionally you could add any torrent file downloaded from an external source by using the '+ Add' button or dropping it here."
             self.list.ShowMessage(message, header = header)
-        
+    
+    @warnWxThread
     def OnFilter(self, keyword):
         self.statefilter = None
         if keyword:
@@ -1648,9 +1675,11 @@ class ChannelList(List):
             return "New"
         return str(val)
     
+    @warnWxThread
     def CreateHeader(self, parent):
         return SubTitleSeachHeader(parent, self, self.columns, spacers=[3,3])
     
+    @warnWxThread
     def CreatePopularity(self, parent, item):
         pop = int(item.data[2])
         if pop <= 0:
@@ -1669,6 +1698,7 @@ class ChannelList(List):
         control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
         return control
     
+    @warnWxThread
     def CreateTorrents(self, parent, item):
         torrents = str(item.data[3])
         torrents = wx.StaticText(parent, -1, torrents)

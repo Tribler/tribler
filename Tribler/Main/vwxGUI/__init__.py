@@ -84,10 +84,9 @@ def forceWxThread(func):
 def warnWxThread(func):
     def invoke_func(*args,**kwargs):
         if not wx.Thread_IsMain():
-            if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            caller = inspect.stack()[1]
+            callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+            print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
         
         return func(*args, **kwargs)
     
