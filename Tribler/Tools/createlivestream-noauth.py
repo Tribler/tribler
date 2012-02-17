@@ -130,8 +130,9 @@ if __name__ == "__main__":
         # File source
         source = open(config['source'],"rb")
         dscfg.set_video_ratelimit(tdef.get_bitrate())
-        
-    dscfg.set_video_source(source)
+    
+    restartstatefilename = config['name']+'.restart' 
+    dscfg.set_video_source(source, restartstatefilename=restartstatefilename)
 
     dscfg.set_max_uploads(config['nuploads'])
 
