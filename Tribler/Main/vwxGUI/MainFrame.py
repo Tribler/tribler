@@ -589,7 +589,7 @@ class MainFrame(wx.Frame):
                 self.upgradeCallback()
 
                 # Boudewijn: start some background downloads to
-                # upgrade on this seperate thread
+                # upgrade on this separate thread
                 if len(info) > 0:
                     self._upgradeVersion(my_version, self.curr_version, info)
                 else:

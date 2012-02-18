@@ -303,7 +303,7 @@ class ABCApp():
         startWorker(None, db_thread)
         
         # initialize torrents using guiserverthread
-        self.guiserver.add_task(self.loadSessionCheckpoint)
+        self.guiserver.add_task(self.loadSessionCheckpoint, 5.0)
 
     # ProxyService 90s Test_
 #    def start_90s_dl(self, subject, changeType, objectID, *args):
