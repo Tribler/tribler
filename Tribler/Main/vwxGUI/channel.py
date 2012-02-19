@@ -1783,17 +1783,19 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         sizer.Add(dlg.selectedList, 1, wx.EXPAND)
         
-        remove = wx.Button(dlg, -1, ">>", style = wx.BU_EXACTFIT)
-        remove.SetToolTipString("Remove selected torrents from playlist")
-        remove.Bind(wx.EVT_BUTTON, self.OnRemove)
-        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+
         add = wx.Button(dlg, -1, "<<", style = wx.BU_EXACTFIT)
         add.SetToolTipString("Add selected torrents to playlist")
         add.Bind(wx.EVT_BUTTON, self.OnAdd)
-        
-        vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(add)
-        vSizer.Add(remove)
+        
+        if self.canDelete:
+            remove = wx.Button(dlg, -1, ">>", style = wx.BU_EXACTFIT)
+            remove.SetToolTipString("Remove selected torrents from playlist")
+            remove.Bind(wx.EVT_BUTTON, self.OnRemove)
+            vSizer.Add(remove)
+            
         sizer.Add(vSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         
         sizer.Add(dlg.availableList, 1, wx.EXPAND)
