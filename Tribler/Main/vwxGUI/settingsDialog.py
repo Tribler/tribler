@@ -328,6 +328,9 @@ class SettingsDialog(wx.Dialog):
             if valport != self.currentPortValue:
                 self.currentPortValue = self.elements['firewallValue'].GetValue()
                 self.utility.config.Write('minport', valport)
+                self.utility.config.Write('minport', valport + 10)
+                self.utility.config.Write('dispersy_port', valport - 1)
+                
                 self.guiUtility.set_port_number(valport) 
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
