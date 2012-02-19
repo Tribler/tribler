@@ -2271,7 +2271,7 @@ class CommentManager:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
             else:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
-        startWorker(workerFn=db_callback, retryOnBusy=True)
+        startWorker(None, workerFn=db_callback, retryOnBusy=True)
             
     def removeComment(self, comment):
         self.channelsearch_manager.removeComment(comment, self.channel)

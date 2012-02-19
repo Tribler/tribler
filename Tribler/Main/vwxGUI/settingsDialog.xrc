@@ -201,6 +201,28 @@
 												<checked>0</checked>
 											</object>
 										</object>
+										<object class="sizeritem">
+                                            <object class="wxStaticLine">
+                                                <size>-1, 1</size>
+                                                <style>wxLI_HORIZONTAL</style>
+                                            </object>
+                                            <flag>wxEXPAND|wxTOP|wxBOTTOM</flag>
+                                            <border>7</border>
+                                        </object>
+										<object class="sizeritem">
+                                            <object class="wxStaticText">
+                                                <label>Minimize</label>
+                                                <font>
+                                                    <weight>bold</weight>
+                                                </font>
+                                            </object>
+                                        </object>
+										<object class="sizeritem">
+		                                    <object class="wxCheckBox" name="minimize_to_tray">
+												<label>Minimize to tray</label>
+												<checked>0</checked>
+											</object>
+										</object>
 									</object>
 									<flag>wxEXPAND</flag>
                                 </object>

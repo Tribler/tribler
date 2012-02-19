@@ -811,13 +811,10 @@ class MainFrame(wx.Frame):
             #Niels, 2011-06-17: why pause the video? This does not make any sense                                                                                                               
             #videoplayer = VideoPlayer.getInstance()
             #videoplayer.pause_playback() # when minimzed pause playback
-
-            if (self.utility.config.Read('mintray', "int") > 0
-                and self.tbicon is not None):
+            
+            if self.utility.config.Read('mintray', "int") == 1:
                 self.tbicon.updateIcon(True)
-                
-                #Niels, 2011-02-21: on Win7 hiding window is not consistent with default behaviour 
-                #self.Show(False)
+                self.Show(False)
                 
             self.GUIupdate = False
         else:
