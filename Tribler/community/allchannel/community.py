@@ -414,13 +414,24 @@ class AllChannelCommunity(Community):
     
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
-        infohashes = list(infohashes)
-
+        
+        sql = u"SELECT COUNT(*), MAX(inserted) FROM ChannelTorrents WHERE channel_id = ? LIMIT 1"
+        row = self._channelcast_db._db.fetchone(sql, (channel_id,))
+        if row:
+            nrTorrrents, latestUpdate = row
+        else:
+            nrTorrrents = 0
+            latestUpdate = 0
+        
         collect = []
-        haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
-        for i in range(len(infohashes)):
-            if not haveTorrents[i]:
-                collect.append(infohashes[i])
+        
+        #only request updates if nrT < 25 or we have not received an update in the last hour
+        if nrTorrrents < 25 or latestUpdate < (time() - 3600): 
+            infohashes = list(infohashes)
+            haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
+            for i in range(len(infohashes)):
+                if not haveTorrents[i]:
+                    collect.append(infohashes[i])
         return collect
     
     def _get_messages_from_infohashes(self, cid, infohashes):
