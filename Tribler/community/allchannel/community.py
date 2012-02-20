@@ -429,8 +429,8 @@ class AllChannelCommunity(Community):
         
         collect = []
         
-        #only request updates if nrT < 25 or we have not received an update in the last hour
-        if nrTorrrents < 25 or latestUpdate < (time() - 3600): 
+        #only request updates if nrT < 100 or we have not received an update in the last half hour
+        if nrTorrrents < 100 or latestUpdate < (time() - 1800): 
             infohashes = list(infohashes)
             haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
             for i in range(len(infohashes)):
