@@ -4089,6 +4089,10 @@ class ChannelCastDBHandler(object):
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
     
+    def getPlaylistForTorrent(self, channeltorrent_id, keys):
+        sql = "SELECT " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists, PlaylistTorrents WHERE Playlists.id = PlaylistTorrents.playlist_id AND channeltorrent_id = ?"
+        return self._db.fetchone(sql, (channeltorrent_id, ))
+    
     def getPlaylistsForTorrents(self, torrent_ids, keys):
         torrent_ids = " ,".join(map(str, torrent_ids))
         

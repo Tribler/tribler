@@ -680,9 +680,9 @@ class SelectedChannelList(GenericSearchList):
             torrent = key
             key = torrent.infohash
             
-            if torrent.playlist:
-                self.guiutility.showPlaylist(torrent.playlist)
-                wx.CallLater(1000, self.guiutility.frame.playlist.Select, key)
+            if torrent.getPlaylist:
+                self.guiutility.showPlaylist(torrent.getPlaylist)
+                wx.CallLater(500, self.guiutility.frame.playlist.Select, key)
                 return
 
         GenericSearchList.Select(self, key, raise_event)

@@ -4,7 +4,7 @@ import os.path
 from datetime import date
 from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES
+from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
     DLSTATUS_SEEDING, DLSTATUS_REPEXING, DLSTATUS_HASHCHECKING,\
     DLSTATUS_WAITING4HASHCHECK
@@ -334,6 +334,7 @@ class ChannelTorrent(Torrent):
         self.inserted = inserted
         self.playlist = playlist
         
+        
     # @property
     def __get_name(self):
         return self.chant_name or self.colt_name
@@ -342,6 +343,12 @@ class ChannelTorrent(Torrent):
         pass
     # .setter was introduced in Python 2.6
     name = property(__get_name, __set_name)
+    
+    @cacheProperty
+    def getPlaylist(self):
+        playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
+        if playlist:
+            return Playlist(*playlist+(self.channel,))
     
     #Required for drag and drop
     def __getstate__(self):
