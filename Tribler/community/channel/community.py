@@ -648,6 +648,8 @@ class ChannelCommunity(Community):
             #load local ids from database
             if message_name ==  u"torrent":
                 channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
+                if not channeltorrent_id:
+                    print >> sys.stderr, "CANNOT FIND channeltorrent_id", modifying_dispersy_id
                 channeltorrentDict[modifying_dispersy_id] = channeltorrent_id
                 
             elif message_name == u"playlist":
