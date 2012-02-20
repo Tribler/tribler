@@ -87,10 +87,10 @@ class ChannelManager():
             
             if self.list.channel.isDispersy():
                 nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
-                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
+                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel, self.guiutility.getFamilyFilter())
             else:
                 playlists = []
-                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel)
+                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, self.guiutility.getFamilyFilter())
                 
             return total_items, nrfiltered, torrentList, playlists, state, iamModerator
         
@@ -789,7 +789,7 @@ class PlaylistManager():
     def _refresh_list(self):
         def db_call():
             self.list.dirty = False
-            return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist)
+            return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
             
         startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
         
