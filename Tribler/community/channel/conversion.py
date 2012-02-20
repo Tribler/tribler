@@ -344,8 +344,12 @@ class ChannelConversion(BinaryConversion):
         if not isinstance(modification_on_global_time, (int, long)):
             raise DropPacket("Invalid 'modification-on-global-time' type")
         
-        packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
-        modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        try:
+            packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
+            modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
+        except DropPacket:
+            member = Member.get_instance(modification_on_mid, public_key_available=False)
+            raise DelayPacketByMissingMessage(self._community, member, [modification_on_global_time])
         
         prev_modification_mid = dic.get("prev-modification-mid", None)
         if prev_modification_mid and not (isinstance(prev_modification_mid, str) and len(prev_modification_mid) == 20):
@@ -396,7 +400,7 @@ class ChannelConversion(BinaryConversion):
                     WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
                                                           (self._community.database_id, global_time, buffer(mid))).next()
             except StopIteration:
-                raise DropPacket("Missing previous message")
+                raise DropPacket("Missing message")
             
             return packet_id, str(packet), message_name
 
