@@ -1639,16 +1639,11 @@ class ChannelManager:
         self.do_vote(channel_id, 0)
         
     def do_vote(self, channel_id, vote, timestamp = None):
-        if not timestamp:
-            timestamp = int(time())
-        
         dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
         dispersy_cid = str(dispersy_cid)
+        
         if len(dispersy_cid) == 20:
-            for community in self.dispersy.get_communities():
-                if isinstance(community, AllChannelCommunity):
-                    community._disp_create_votecast(dispersy_cid, vote, timestamp)
-                    break
+            self.do_vote_cid(dispersy_cid, vote, timestamp)
             
         elif vote == 2:
             self.votecastdb.subscribe(channel_id)
@@ -1657,6 +1652,17 @@ class ChannelManager:
         else:
             self.votecastdb.unsubscribe(channel_id)
     
+    @forceDispersyThread
+    def do_vote_cid(self, dispersy_cid, vote, timestamp = None):
+        if not timestamp:
+            timestamp = int(time())
+        
+        if len(dispersy_cid) == 20:
+            for community in self.dispersy.get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    community._disp_create_votecast(dispersy_cid, vote, timestamp)
+                    break
+                
     @forceDispersyThread
     def markTorrent(self, channel_id, infohash, type):
         community = self._disp_get_community_from_channel_id(channel_id)
