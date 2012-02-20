@@ -382,10 +382,10 @@ class ChannelCommunity(Community):
             for permid in permids:
                 self._rtorrent_handler.download_torrent(permid, infohash, None , 3)
                 
-    def _disp_undo_torrent(self, descriptors):
+    def _disp_undo_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
-            self._channelcast_db.on_remove_torrent_from_dispersy(self._channel_id, dispersy_id)
+            self._channelcast_db.on_remove_torrent_from_dispersy(self._channel_id, dispersy_id, redo)
             
     def remove_torrents(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
@@ -436,10 +436,10 @@ class ChannelCommunity(Community):
             
             self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, peer_id, message.payload.name, message.payload.description)
             
-    def _disp_undo_playlist(self, descriptors):
+    def _disp_undo_playlist(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
-            self._channelcast_db.on_remove_playlist_from_dispersy(self._channel_id, dispersy_id)
+            self._channelcast_db.on_remove_playlist_from_dispersy(self._channel_id, dispersy_id, redo)
 
     #create, check or receive comments
     @forceDispersyThread
@@ -530,13 +530,13 @@ class ChannelCommunity(Community):
             
             self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
 
-    def _disp_undo_comment(self, descriptors):
+    def _disp_undo_comment(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
             
             message = packet.load_message()
             infohash = message.payload.infohash
-            self._channelcast_db.on_remove_comment_from_dispersy(self._channel_id, dispersy_id, infohash)
+            self._channelcast_db.on_remove_comment_from_dispersy(self._channel_id, dispersy_id, infohash, redo)
             
     def remove_comment(self, dispersy_id):
         message = self._get_message_from_dispersy_id(dispersy_id, "comment")
@@ -698,7 +698,7 @@ class ChannelCommunity(Community):
         
         self._channelcast_db.commit()
 
-    def _disp_undo_modification(self, descriptors):
+    def _disp_undo_modification(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
             
@@ -715,7 +715,7 @@ class ChannelCommunity(Community):
                 
             elif message_name == u"playlist":
                 playlist_id = self._get_playlist_id_from_message(modifying_dispersy_id)
-            self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id)
+            self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id, redo)
             
             if message_name ==  u"torrent":
                 latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
@@ -790,13 +790,13 @@ class ChannelCommunity(Community):
             
             self._channelcast_db.on_playlist_torrent(dispersy_id, playlist_dispersy_id, peer_id, message.payload.infohash)
             
-    def _disp_undo_playlist_torrent(self, descriptors):
+    def _disp_undo_playlist_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             message = packet.load_message()
             infohash = message.payload.infohash
             playlist_dispersy_id = message.payload.playlist.packet_id
             
-            self._channelcast_db.on_remove_playlist_torrent(self._channel_id, playlist_dispersy_id, infohash)
+            self._channelcast_db.on_remove_playlist_torrent(self._channel_id, playlist_dispersy_id, infohash, redo)
             
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
@@ -925,10 +925,10 @@ class ChannelCommunity(Community):
                 modification_value = latest.payload.modification_value if latest else ''
                 self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
     
-    def _disp_undo_moderation(self, descriptors):
+    def _disp_undo_moderation(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
-            self._channelcast_db.on_remove_moderation(self._channel_id, dispersy_id)
+            self._channelcast_db.on_remove_moderation(self._channel_id, dispersy_id, redo)
             
     #check or receive torrent_mark messages
     @forceDispersyThread
@@ -967,10 +967,10 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             self._channelcast_db.on_mark_torrent(self._channel_id, dispersy_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp)
             
-    def _disp_undo_mark_torrent(self, descriptors):
+    def _disp_undo_mark_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
-            self._channelcast_db.on_remove_mark_torrent(self._channel_id, dispersy_id)
+            self._channelcast_db.on_remove_mark_torrent(self._channel_id, dispersy_id, redo)
     
     def dispersy_on_dynamic_settings(self, *args, **kwargs):
         Community.dispersy_on_dynamic_settings(self, *args, **kwargs)
