@@ -179,6 +179,23 @@ class ChannelResultFooter(ListFooter):
         self.EnableResults(False)
         self.message.SetLabel('')
         
+class ChannelListFooter(ListFooter):
+    def GetMidPanel(self, hSizer):
+        self.manualAdd = wx.Button(self, -1, "Add Favorite channel")
+        
+        hSizer.AddStretchSpacer()
+        hSizer.Add(self.manualAdd, 0, wx.TOP|wx.BOTTOM, 3)
+        return hSizer
+    
+    def SetEvents(self, onAdd):
+        self.manualAdd.Bind(wx.EVT_BUTTON, onAdd)
+        
+    def EnableAdd(self, state):
+        self.manualAdd.Show(state)
+    
+    def Reset(self):
+        self.EnableAdd(False)
+        
 class ChannelFooter(ListFooter):
     def GetMidPanel(self, hSizer):
         self.hSizer = hSizer

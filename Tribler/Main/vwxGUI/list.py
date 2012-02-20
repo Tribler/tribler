@@ -31,6 +31,7 @@ from list_sidebar import *
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
+from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -263,7 +264,8 @@ class ChannelSearchManager:
         if category == self.category:
             if category != 'searchresults': #if we filter empty channels from search we will never see them
                 data = [channel for channel in data if not channel.isEmpty()]
-                
+            
+            self.list.SetCategory(category)
             self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
             self.list.SetData(data)
             if DEBUG:
@@ -330,6 +332,9 @@ class ChannelSearchManager:
                 
                 if update: 
                     self.do_or_schedule_refresh()
+                    
+    def joinChannel(self, cid):
+        self.channelsearch_manager.do_vote_cid(cid, 2)
 
 class XRCPanel(wx.Panel):
     def __init__(self, parent = None):
@@ -1677,7 +1682,17 @@ class ChannelList(List):
     
     @warnWxThread
     def CreateHeader(self, parent):
-        return SubTitleSeachHeader(parent, self, self.columns, spacers=[3,3])
+        return SearchHeader(parent, self, self.columns, spacers=[3,3])
+    
+    @warnWxThread
+    def CreateFooter(self, parent):
+        footer = ChannelListFooter(parent)
+        footer.SetEvents(self.OnAdd)
+        return footer
+    
+    def SetCategory(self, category):
+        self.footer.EnableAdd(category == "Favorites")
+        self.Layout()
     
     @warnWxThread
     def CreatePopularity(self, parent, item):
@@ -1709,6 +1724,16 @@ class ChannelList(List):
         self.guiutility.showChannel(item.original_data)
         return False
     
+    def OnAdd(self, event):
+        dlg = wx.TextEntryDialog(None, 'Please specify the channel-identifier.\nThis should be a 40 character string which can be found in the overview tab of the channel management interface.\n\nJoining a channel can take up to 1 minute and should appear in the all channellist.', 'Enter channel-identifier')
+        if dlg.ShowModal() == wx.ID_OK:
+            cid = dlg.GetValue()
+            cid = cid.decode("hex")
+            
+            self.GetManager().joinChannel(cid)
+            
+        dlg.Destroy()
+    
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = ChannelSearchManager(self) 
@@ -1726,6 +1751,10 @@ class ChannelList(List):
         def db_callback():
             self.uelog.addEvent(message="Channellist: user toggled family filter", type = 2)
         startWorker(None, db_callback, retryOnBusy=True)
+    
+    @warnWxThread  
+    def SetFilteredResults(self, nr):
+        self.header.SetFiltered(nr)
 
     def SetData(self, data):
         List.SetData(self, data)
@@ -1760,25 +1789,25 @@ class ChannelList(List):
         
         if self.total_results:
             if self.title == 'Popular Channels':
-                self.header.SetSubTitle("Showing the %d most popular channels." % self.total_results)
+                self.header.SetSubTitle("Showing the %d most popular channels" % self.total_results)
                 
             elif self.title == 'Your Favorites':
-                self.header.SetSubTitle("You marked %d channels as a favorite." % self.total_results)
+                self.header.SetSubTitle("You marked %d channels as a favorite" % self.total_results)
                 
             elif self.title == 'Updated Channels':
-                self.header.SetSubTitle("Showing the %d latest updated channels." % self.total_results)
+                self.header.SetSubTitle("Showing the %d latest updated channels" % self.total_results)
                 
             elif self.title == 'New Channels':
-                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)."% self.total_results)
+                self.header.SetSubTitle("Discovered %d new channels (not marked yet and updated within the last 2 months)"% self.total_results)
                 
             else:
                 if self.total_results == 1:
-                    self.header.SetSubTitle("Discovered %d channel." % self.total_results)
+                    self.header.SetSubTitle("Discovered %d channel" % self.total_results)
                 else:
-                    self.header.SetSubTitle("Discovered %d channels." % self.total_results)
+                    self.header.SetSubTitle("Discovered %d channels" % self.total_results)
         else:
             if self.title == 'New Channels':
-                self.header.SetSubTitle('No new channels discovered (not marked as a favorite by anyone and updated within the last 2 months).')
+                self.header.SetSubTitle('No new channels discovered (not marked as a favorite by anyone and updated within the last 2 months)')
             else:
                 self.header.SetSubTitle('')
         

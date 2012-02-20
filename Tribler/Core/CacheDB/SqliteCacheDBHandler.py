@@ -3401,9 +3401,18 @@ class ChannelCastDBHandler(object):
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
             
-        else: #insert channel
-            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
-            channel_id = self._db.fetchone(insert_channel, (_dispersy_cid, peer_id, name, description))
+        else:
+            get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
+            channel_id = self._db.fetchone(get_channel, (_dispersy_cid,))
+            
+            if channel_id:
+                update_channel = "UPDATE _Channels SET name = ?, description = ?, peer_id = ? WHERE dispersy_cid = ?"
+                self._db.execute_write(update_channel, (name, description, peer_id, _dispersy_cid), commit = self.shouldCommit)
+                
+            else:
+                #insert channel
+                insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
+                channel_id = self._db.fetchone(insert_channel, (_dispersy_cid, peer_id, name, description))
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
             

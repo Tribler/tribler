@@ -1171,8 +1171,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddSpacer((-1, 10))
-        header =  "Welcome to the management interface for this channel. You can access this because you have the rights to modify it."
-        self._add_header(self.overviewpage, vSizer, header, spacer = 10)
+        header =  ""
+        self.overviewheader = self._add_header(self.overviewpage, vSizer, header, spacer = 10)
         
         text  = "Channels can be used to spread torrents to other Tribler users. "
         text += "If a channel provides other Tribler users with original or popular content, then they might mark your channel as one of their favorites. "
@@ -1201,8 +1201,18 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.description.SetMaxLength(2000)
         self.description.SetMinSize((-1, 50))
         
+        identSizer = wx.BoxSizer(wx.VERTICAL)
+        self.identifier = EditText(self.overviewpage, '')
+        self.identifier.SetMaxLength(40)
+        self.identifier.SetEditable(False)
+        self.identifierText = StaticText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
+        
+        identSizer.Add(self.identifier, 0, wx.EXPAND)
+        identSizer.Add(self.identifierText, 0, wx.EXPAND)
+        
         self._add_row(self.overviewpage, gridSizer, "Name", self.name)
         self._add_row(self.overviewpage, gridSizer, 'Description', self.description)
+        self._add_row(self.overviewpage, gridSizer, 'Identifier', identSizer)
         vSizer.Add(gridSizer, 0, wx.EXPAND|wx.RIGHT, 10)
         
         self.saveButton = wx.Button(self.overviewpage, -1, 'Save Changes')
@@ -1358,23 +1368,24 @@ class ManageChannel(XRCPanel, AbstractDetails):
             
             if channel.isMyChannel():
                 self.torrentfeed.register(self.guiutility.utility.session, channel.id)
+                self.overviewheader.SetLabel('Welcome to the management interface for your channel.')
                 
-                name = channel.name
-                self.name.SetValue(name)
-                self.name.originalValue = name
+            self.name.SetValue(channel.name)
+            self.name.originalValue = channel.name
+            self.name.Enable(channel.isMyChannel())
 
-                description = channel.description
-                self.description.SetValue(description)
-                self.description.originalValue = description
+            self.description.SetValue(channel.description)
+            self.description.originalValue = channel.description
+            self.description.Enable(channel.isMyChannel())
                 
-                self.createText.Hide()
-                self.saveButton.SetLabel('Save Changes')
+            self.identifier.SetValue(channel.dispersy_cid.encode('HEX'))
+            self.identifier.Show(True)
+            self.identifierText.Show(True)
                 
-                self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
-            else:
-                #Best to removepage, will be added if we're moderator
-                self.RemovePage(self.notebook, "Overview")
+            self.createText.Hide()
+            self.saveButton.SetLabel('Save Changes')
 
+            self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             
             def db_call():
                 channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
@@ -1384,8 +1395,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 channel_state, iamModerator = delayedResult.get() 
                 
                 if iamModerator:
-                    #If this is not mychannel, but I am moderator add overview panel
-                    self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+                    if iamModerator and not channel.isMyChannel():
+                        self.overviewheader.SetLabel('Welcome to the management interface for this channel. You can modified these setting due to having the permissions for them.')
+                    
+                    self.name.Enable(True)
+                    self.description.Enable(True)
                     
                     selection = channel_state
                     if selection == 0:
@@ -1396,7 +1410,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                     self.statebox.SetSelection(selection)
                     self.AddPage(self.notebook, self.settingspage, "Settings", 1)
                 else:
-                    self.RemovePage(self.notebook, "Overview")
+                    self.overviewheader.SetLabel('Welcome to the management interface for this channel. You cannot modify any of these settings as you do not have the permissions to do so.')
                     self.RemovePage(self.notebook, "Settings")
                     
                 if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
@@ -1421,11 +1435,18 @@ class ManageChannel(XRCPanel, AbstractDetails):
             startWorker(update_panel, db_call, retryOnBusy=True)
             
         else:
+            self.overviewheader.SetLabel('Welcome to the management interface for your channel. You currently do not yet have a channel, create one now.')
+            
             self.name.SetValue('')
             self.name.originalValue = ''
             
             self.description.SetValue('')
             self.description.originalValue = ''
+            
+            self.name.Enable(True)
+            self.description.Enable(True)
+            self.identifier.Show(False)
+            self.identifierText.Show(False)
             
             self.header.SetName('Create your own channel')
             self.header.SetNrTorrents(0, 0)

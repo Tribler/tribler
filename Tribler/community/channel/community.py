@@ -110,7 +110,7 @@ class ChannelCommunity(Community):
             self._notifier = Notifier.getInstance().notify
     
             # tribler channel_id
-            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(self._master_member.mid),))
+            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ? and peer_id != -1", (buffer(self._master_member.mid),))
 
             #modification_types
             self._modification_types = self._channelcast_db.modification_types

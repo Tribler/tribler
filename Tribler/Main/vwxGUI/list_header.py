@@ -8,7 +8,7 @@ from __init__ import LIST_RADIUS
 import sys
 import wx
 import os
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 
 DEBUG = False
 
@@ -26,6 +26,7 @@ class ListHeaderIcon:
         return ListHeaderIcon.__single
     getInstance = staticmethod(getInstance)
     
+    @warnWxThread
     def getBitmaps(self, parent, background):
         assert isinstance(background, wx.Colour), "we require a wx.colour object here"
         if not isinstance(background, wx.Colour):
@@ -36,6 +37,7 @@ class ListHeaderIcon:
             self.icons[key] = self.__createBitmap(parent, background, 'arrow')
         return self.icons[key]
     
+    @warnWxThread
     def __createBitmap(self, parent, background, type, flag=0):
         if DEBUG:
             print >> sys.stderr, "Creating new sorting bitmaps", parent, background, type
@@ -74,6 +76,7 @@ class ListHeader(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnResize)
 
+    @warnWxThread
     def AddComponents(self, columns, spacers):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -86,7 +89,8 @@ class ListHeader(wx.Panel):
             hSizer.AddSpacer((self.radius+spacers[1],10))
         
         self.SetSizer(hSizer)
-        
+    
+    @warnWxThread
     def AddColumns(self, sizer, parent, columns):
         selectedfont = self.GetFont()
         selectedfont.SetUnderlined(True)
@@ -147,6 +151,7 @@ class ListHeader(wx.Panel):
         self.scrollBar = sizer.AddSpacer((0,0))
         self.scrollBar.sizer = sizer
     
+    @warnWxThread
     def ResizeColumn(self, column, width):
         changed = False
         item = self.columnHeaders[column]
@@ -159,6 +164,7 @@ class ListHeader(wx.Panel):
         elif item.GetSpacer()[0] != width:
                 item.SetSpacer((width, -1))
 
+    @warnWxThread
     def SetSpacerRight(self, right):
         if self.scrollBar:
             right = max(0, right)
@@ -167,6 +173,7 @@ class ListHeader(wx.Panel):
                 self.scrollBar.SetSpacer((right, 0))
                 self.scrollBar.sizer.Layout()
     
+    @warnWxThread
     def OnClick(self, event):
         newColumn = event.GetEventObject().column
         
@@ -185,6 +192,7 @@ class ListHeader(wx.Panel):
         direction = self.columns[column].get('sortAsc', False)
         self._SetSortedIcon(column, direction)
     
+    @warnWxThread
     def _SetSortedIcon(self, newColumn, newDirection):
         down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
         
@@ -215,6 +223,7 @@ class ListHeader(wx.Panel):
             defaultDirection = False
         self._SetSortedIcon(self.defaultSort, defaultDirection)
     
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         self.backgroundBrush = wx.Brush(colour)
         colour = self.backgroundBrush.GetColour()
@@ -237,6 +246,7 @@ class ListHeader(wx.Panel):
                 self.columnHeaders[i].SetBackgroundColour(colour)
         return wx.Panel.SetBackgroundColour(self, colour)
     
+    @warnWxThread
     def OnPaint(self, event):
         obj = event.GetEventObject()
         dc = wx.BufferedPaintDC(obj)
@@ -250,6 +260,7 @@ class ListHeader(wx.Panel):
             dc.DrawRoundedRectangle(0, 0, w, 2*self.radius, self.radius)
         dc.DrawRectangle(0, self.radius, w, h-self.radius)
     
+    @warnWxThread
     def OnResize(self, event):
         self.Refresh()
         event.Skip()
@@ -261,6 +272,7 @@ class TitleHeader(ListHeader):
 
         ListHeader.__init__(self, parent, parent_list, columns, radius = radius, spacers = spacers)
     
+    @warnWxThread
     def AddComponents(self, columns, spacers):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddSpacer((-1, 3))
@@ -316,6 +328,7 @@ class TitleHeader(ListHeader):
     def GetBelowPanel(self, parent):
         pass
     
+    @warnWxThread    
     def SetTitle(self, title):
         if title != self.title.GetLabel():
             self.Freeze()
@@ -324,12 +337,14 @@ class TitleHeader(ListHeader):
             self.title.Refresh()
             self.Layout()
             self.Thaw()
-            
+        
+    @warnWxThread   
     def SetToolTip(self, tooltip):
         self.title.SetToolTipString(tooltip)
 
 class SearchHeaderHelper():
     
+    @warnWxThread
     def GetTitlePanel(self, parent):
         self.afterFilter = wx.StaticText(parent)
         
@@ -337,6 +352,7 @@ class SearchHeaderHelper():
         hSizer.Add(self.afterFilter)
         return hSizer
     
+    @warnWxThread
     def SetSubTitle(self, label):
         if label != '':
             label = '( %s )'%label
@@ -345,6 +361,7 @@ class SearchHeaderHelper():
             self.afterFilter.SetLabel(label)
             self.subtitle = label
     
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
         self.filter.SetDescriptiveText('Search within results')
@@ -359,24 +376,30 @@ class SearchHeaderHelper():
     def FilterCorrect(self, regex_correct):
         pass
 
+    @warnWxThread
     def OnKey(self, event):
         self.parent_list.GotFilter(self.filter.GetValue().strip())
     
+    @warnWxThread
     def SetFiltered(self, nr):
         if nr:
             self.afterFilter.SetLabel('( Discovered %d after filter )'%nr)
         else:
             self.afterFilter.SetLabel(getattr(self, 'subtitle',''))
     
+    @warnWxThread
     def Reset(self):
         self.SetSubTitle('')
         self.filter.Clear()
 
 class SubTitleHeader(TitleHeader):
+    
+    @warnWxThread
     def GetSubTitlePanel(self, parent):
         self.subtitle = StaticText(parent)
         return self.subtitle
 
+    @warnWxThread
     def SetSubTitle(self, subtitle):
         if subtitle != self.subtitle.GetLabel():
             self.Freeze()
@@ -390,10 +413,12 @@ class ManageChannelHeader(SubTitleHeader):
     def __init__(self, parent, parent_list):
         TitleHeader.__init__(self, parent, parent_list, [])
         self.nr_favorites = None
-        
+    
+    @warnWxThread
     def SetName(self, name):
         self.SetTitle(name)
         
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddStretchSpacer()
@@ -401,9 +426,11 @@ class ManageChannelHeader(SubTitleHeader):
         hSizer.Add(self.back, 0, wx.LEFT, 5)
         return hSizer
 
+    @warnWxThread
     def SetEvents(self, back):
         self.back.Bind(wx.EVT_BUTTON, back)
-        
+    
+    @warnWxThread
     def SetNrTorrents(self, nr, nr_favorites = None):
         subtitle = ''
         if nr == 1:
@@ -439,6 +466,7 @@ class FamilyFilterHeader(TitleHeader):
         
         TitleHeader.__init__(self, *args, **kwargs)
     
+    @warnWxThread
     def GetSubTitlePanel(self, parent):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
@@ -461,14 +489,16 @@ class FamilyFilterHeader(TitleHeader):
         self.nrfiltered = nr
         self._SetLabels()
     
+    @warnWxThread
     def SetBackgroundColour(self, colour):
         TitleHeader.SetBackgroundColour(self, colour)
         if getattr(self, 'ffbutton', False):
             self.ffbutton.SetBackgroundColour(colour)
-        
+    
     def toggleFamilyFilter(self, event):
         self.parent_list.toggleFamilyFilter()
     
+    @warnWxThread
     def _SetLabels(self):
         self.Freeze()
         if self.family_filter:
@@ -489,29 +519,10 @@ class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
     def Reset(self):
         FamilyFilterHeader.Reset(self)
         SearchHeaderHelper.Reset(self)
-        
-class SubTitleSeachHeader(SubTitleHeader, SearchHeader):
-    
-    def GetSubTitlePanel(self, parent):
-        sizer = FamilyFilterHeader.GetSubTitlePanel(self, parent)
-        subtitle = SubTitleHeader.GetSubTitlePanel(self, parent)
-        sizer.Insert(0, subtitle, 0, wx.RIGHT, 3)
-        sizer.Layout()
-        
-        return sizer
-    
-    def SetSubTitle(self, subtitle):
-        SubTitleHeader.SetSubTitle(self, subtitle)
-        self.Layout()
-        self.curSubtitle = subtitle
-    
-    def SetNrResults(self, nr = None):
-        if nr is not None:
-            SubTitleHeader.SetSubTitle(self, 'Discovered %d after filter'%nr)
-        else:
-            SubTitleHeader.SetSubTitle(self, self.curSubtitle)      
-        
+
 class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
+    
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeaderHelper.GetRightTitlePanel(self, parent)
 
@@ -529,6 +540,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
     def GetSubTitlePanel(self, parent):
         pass
 
+    @warnWxThread
     def helpClick(self,event=None):
         title = 'Search within results'
         html = """<p>
@@ -585,7 +597,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         dlg.SetSizerAndFit(border)
         dlg.ShowModal()
         dlg.Destroy()
-        
+    
     def Reset(self):
         SearchHeaderHelper.Reset(self)
         self.filter.Clear()
@@ -593,12 +605,14 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
 class ChannelHeader(SearchHeader):
     DESCRIPTION_MAX_HEIGTH = 100
     
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeader.GetRightTitlePanel(self, parent)
         self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
         hSizer.Add(self.back, 0, wx.LEFT, 5)
         return hSizer
 
+    @warnWxThread
     def GetBelowPanel(self, parent):
         self.descriptionPanel = ImageScrollablePanel(parent)
         self.descriptionPanel.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -621,6 +635,7 @@ class ChannelHeader(SearchHeader):
         SearchHeader.Reset(self)
         self.SetStyle(None)
     
+    @warnWxThread
     def SetHeight(self, event):
         if self.descriptionPanel.IsShown():
             dirty = False
@@ -635,10 +650,12 @@ class ChannelHeader(SearchHeader):
 
             if dirty:
                 self.Layout()
-        
+    
+    @warnWxThread
     def SetEvents(self, back):
         self.back.Bind(wx.EVT_BUTTON, back)
     
+    @warnWxThread
     def SetStyle(self, description, font = None, foreground = None, bgImage = None):
         if description:
             self.description.SetLabel(description)
@@ -654,6 +671,7 @@ class ChannelHeader(SearchHeader):
             
 class ChannelOnlyHeader(ChannelHeader):
     
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         hSizer = SearchHeader.GetRightTitlePanel(self, parent)
 
@@ -664,11 +682,14 @@ class ChannelOnlyHeader(ChannelHeader):
         hSizer.Add(self.library, 0, wx.LEFT, 5)
         return hSizer
     
+    @warnWxThread
     def SetEvents(self, settings, library):
         self.library.Bind(wx.EVT_BUTTON, library)
         self.settings.Bind(wx.EVT_BUTTON, settings)
             
 class LibraryHeader(SearchHelpHeader):
+    
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
         
@@ -676,12 +697,14 @@ class LibraryHeader(SearchHelpHeader):
         self.add.SetToolTipString('Add a .torrent from an external source.')
         sizer.Insert(1, self.add, 0, wx.RIGHT, 3)
         return sizer
-        
+    
+    @warnWxThread
     def SetEvents(self, add):
         self.add.Bind(wx.EVT_BUTTON, add)
         
 class LibraryOnlyHeader(LibraryHeader):
     
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         hSizer = LibraryHeader.GetRightTitlePanel(self, parent)
         
@@ -692,6 +715,7 @@ class LibraryOnlyHeader(LibraryHeader):
         hSizer.Add(self.channel, 0, wx.LEFT, 5)
         return hSizer
     
+    @warnWxThread
     def SetEvents(self, add, settings, channel):
         LibraryHeader.SetEvents(self, add)
         
@@ -708,6 +732,7 @@ class PlayerHeader(TitleHeader):
         
         self.ShowMinimized(False)
     
+    @warnWxThread
     def GetRightTitlePanel(self, parent):
         self.minimize = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(self.minimize, wx.BITMAP_TYPE_ANY)))
         self.maximize = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(self.maximize, wx.BITMAP_TYPE_ANY)))
@@ -721,12 +746,14 @@ class PlayerHeader(TitleHeader):
         hSizer.Add(self.maximize)
         return hSizer
     
+    @warnWxThread
     def OnClick(self, event):
         if self.minimize.IsShown():
             self.parent_list.OnMinimize()
         else:
             self.parent_list.OnMaximize()
-        
+    
+    @warnWxThread
     def ShowMinimized(self, minimized):
         self.Freeze()
         self.minimize.Show(minimized)
