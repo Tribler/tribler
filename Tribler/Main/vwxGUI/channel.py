@@ -330,7 +330,7 @@ class SelectedChannelList(GenericSearchList):
             self.SetTitle(channel.name, channel.description)
         
             if __debug__:
-                self.header.SetToolTip(str(channel))
+                self.header.SetToolTip(channel.encode('utf8'))
         
             nr_torrents = channel.nr_torrents
             if not channel.isFavorite() and not channel.isMyChannel():
