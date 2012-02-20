@@ -1011,7 +1011,7 @@ class ChannelCommunity(Community):
     
     def _get_playlist_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long))
-        return self._channelcast_db._db.fetchone(u"SELECT id FROM Playlists WHERE dispersy_id = ?", (dispersy_id,))
+        return self._channelcast_db._db.fetchone(u"SELECT id FROM _Playlists WHERE dispersy_id = ?", (dispersy_id,))
         
     def _get_message_from_torrent_id(self, torrent_id):
         assert isinstance(torrent_id, (int, long))
@@ -1039,7 +1039,7 @@ class ChannelCommunity(Community):
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long)), "dispersy_id type is '%s'"%type(dispersy_id)
         
-        return self._channelcast_db._db.fetchone(u"SELECT id FROM ChannelTorrents WHERE dispersy_id = ?", (dispersy_id,))
+        return self._channelcast_db._db.fetchone(u"SELECT id FROM _ChannelTorrents WHERE dispersy_id = ?", (dispersy_id,))
     
     def _get_latest_modification_from_channel_id(self, type_id):
         assert isinstance(type_id, (int, long)), "type_id type is '%s'"%type(type_id)
