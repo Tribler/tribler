@@ -3726,7 +3726,7 @@ class ChannelCastDBHandler(object):
             self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
     
     def on_playlist_torrent(self, dispersy_id, playlist_dispersy_id, peer_id, infohash):
-        get_playlist = "SELECT id, channel_id FROM Playlists WHERE dispersy_id = ?"
+        get_playlist = "SELECT id, channel_id FROM _Playlists WHERE dispersy_id = ?"
         playlist_id, channel_id = self._db.fetchone(get_playlist, (playlist_dispersy_id, ))
         
         channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
