@@ -38,6 +38,7 @@ of, the name it uses as an internal identifier, and the class that will contain 
 """
 
 import os
+import sys
 
 from hashlib import sha1
 from itertools import groupby, islice, count
@@ -578,6 +579,7 @@ class Dispersy(Singleton):
         assert not community.cid in self._communities
         assert not community in self._walker_commmunities
         self._communities[community.cid] = community
+        community.dispersy_check_database()
 
         if community.dispersy_enable_candidate_walker:
             self._walker_commmunities.insert(0, community)
@@ -587,14 +589,15 @@ class Dispersy(Singleton):
         # schedule the sanity check... it also checks that the dispersy-identity is available and
         # when this is a create or join this message is created only after the attach_community
         if __debug__:
-            def sanity_check_callback(result):
-                assert result == True, [community.database_id, str(result)]
-                try:
-                    community._pending_callbacks.remove(callback_id)
-                except ValueError:
-                    pass
-            callback_id = self._callback.register(self.sanity_check_generator, (community,), priority=-128, callback=sanity_check_callback)
-            community._pending_callbacks.append(callback_id)
+            if "--sanity-check" in sys.argv:
+                def sanity_check_callback(result):
+                    assert result == True, [community.database_id, str(result)]
+                    try:
+                        community._pending_callbacks.remove(callback_id)
+                    except ValueError:
+                        pass
+                callback_id = self._callback.register(self.sanity_check_generator, (community,), priority=-128, callback=sanity_check_callback)
+                community._pending_callbacks.append(callback_id)
 
     def detach_community(self, community):
         """
@@ -884,29 +887,15 @@ class Dispersy(Singleton):
             packet = str(packet)
             if packet == message.packet:
                 # exact binary duplicates, do NOT process the message
-                if __debug__: dprint("received identical message [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
+                if __debug__: dprint(message.candidate, " received identical message [", message.name, " ", message.authentication.member.database_id, "@", message.distribution.global_time, " undone" if undone else "", "]")
 
                 if undone:
-                    # provide the undo message to the sender, since he probably doesn't have it yet
-                    undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
-                    for packet_id, undo_packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND member = ? AND global_time > ? AND meta_message = ? ORDER BY global_time",
-                                                                         (community.database_id, message.authentication.member.database_id, message.distribution.global_time, undo_own_meta.database_id)):
-                        undo_packet = str(undo_packet)
-                        msg = Packet(undo_own_meta, undo_packet, packet_id).load_message()
-                        if message.distribution.global_time == msg.payload.global_time:
-                            self._send([message.candidate], [undo_packet], u"-duplicate-undo-own-")
-                            break
-
+                    try:
+                        proof, = self._database.execute(u"SELECT packet FROM sync WHERE id = ?", (undone,)).next()
+                    except StopIteration:
+                        pass
                     else:
-                        # provide the undo message to the sender, since he probably doesn't have it yet
-                        undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
-                        for packet_id, undo_packet in self._database.execute(u"SELECT id, packet FROM sync WHERE community = ? AND global_time > ? AND meta_message = ? ORDER BY global_time",
-                                                                             (community.database_id, message.distribution.global_time, undo_other_meta.database_id)):
-                            undo_packet = str(undo_packet)
-                            msg = Packet(undo_other_meta, undo_packet, packet_id).load_message()
-                            if message.distribution.global_time == msg.payload.global_time and message.authentication.member == msg.payload.member:
-                                self._send([message.candidate], [undo_packet], u"-duplicate-undo-other-")
-                                break
+                        self._send([message.candidate], [str(proof)], u"-duplicate-undo-")
 
             else:
                 signature_length = message.authentication.member.signature_length
@@ -1309,6 +1298,7 @@ class Dispersy(Singleton):
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (unknown conversion)", level="warning")
             return None
 
+        # attempt conversion
         try:
             message = conversion.decode_message(LocalhostCandidate(self), packet)
 
@@ -3350,11 +3340,11 @@ class Dispersy(Singleton):
                 msg = community.get_conversion(packet[:22]).decode_message(LocalhostCandidate(self), packet)
                 allowed, proofs = community._timeline.check(msg)
                 if allowed and proofs:
-                    if __debug__: dprint("found the proof someone was missing (", len(proofs), " packets)")
+                    if __debug__: dprint(message.candidate, " found ", len(proofs), " [",", ".join("%s %d@%d" % (proof.name, proof.authentication.member.database_id, proof.distribution.global_time) for proof in proofs), "] for message ", msg.name, " ", message.payload.member.database_id, "@", message.payload.global_time)
                     self._send([message.candidate], [proof.packet for proof in proofs], u"-proof-")
 
                 else:
-                    if __debug__: dprint("unable to give missing proof.  allowed:", allowed, ".  proofs:", len(proofs), " packets")
+                    if __debug__: dprint("unable to give ", message.candidate, " missing proof.  allowed:", allowed, ".  proofs:", len(proofs), " packets")
 
     @runtime_duration_warning(0.1)
     def check_sync(self, messages):
@@ -3706,7 +3696,10 @@ class Dispersy(Singleton):
                                 distribution=(community.claim_global_time(), self._claim_master_member_sequence_number(community, meta) if sign_with_master else meta.distribution.claim_sequence_number()),
                                 payload=(message.authentication.member, message.distribution.global_time, message))
 
-                assert msg.distribution.global_time > message.distribution.global_time
+                if __debug__:
+                    assert msg.distribution.global_time > message.distribution.global_time
+                    allowed, _ = community._timeline.check(msg)
+                    assert allowed, "create_undo was called without having the permission to undo"
 
                 self.store_update_forward([msg], store, update, forward)
                 return msg
@@ -4008,6 +4001,47 @@ class Dispersy(Singleton):
 
             yield Idle()
 
+        try:
+            meta_undo_other = community.get_meta_message(u"dispersy-undo-other")
+        except KeyError:
+            # undo-other is not enabled
+            pass
+        else:
+
+            #
+            # ensure that we have proof for every dispersy-undo-other message
+            #
+            # TODO we are not taking into account that undo messages can be undone
+            for undo_packet_id, undo_packet_global_time, undo_packet in select(u"SELECT id, global_time, packet FROM sync WHERE community = ? AND meta_message = ? ORDER BY id LIMIT ? OFFSET ?", (community.database_id, meta_undo_other.database_id)):
+                undo_packet = str(undo_packet)
+                undo_message = self.convert_packet_to_message(undo_packet, community)
+
+                # get the message that undo_message refers to
+                try:
+                    packet, undone = self._database.execute(u"SELECT packet, undone FROM sync WHERE community = ? AND member = ? AND global_time = ?", (community.database_id, undo_message.payload.member.database_id, undo_message.payload.global_time)).next()
+                except StopIteration:
+                    raise ValueError("found dispersy-undo-other but not the message that it refers to")
+                packet = str(packet)
+                message = self.convert_packet_to_message(packet, community)
+
+                if not undone:
+                    raise ValueError("found dispersy-undo-other but the message that it refers to is not undone")
+
+                if message.undo_callback is None:
+                    raise ValueError("found dispersy-undo-other but the message that it refers to does not have an undo_callback")
+
+                # get the proof that undo_message is valid
+                allowed, proofs = community._timeline.check(undo_message)
+
+                if not allowed:
+                    raise ValueError("found dispersy-undo-other that, according to the timeline, is not allowed")
+
+                if not proofs:
+                    raise ValueError("found dispersy-undo-other that, according to the timeline, has no proof")
+
+                if __debug__: dprint("dispersy-undo-other packet ", undo_packet_id, "@", undo_packet_global_time, " referring ", undo_message.payload.packet.name, " ", undo_message.payload.member.database_id, "@", undo_message.payload.global_time, " is OK")
+                yield Idle()
+
         #
         # ensure all packets in the database are valid and that the binary packets are consistent
         # with the information stored in the database
@@ -4263,15 +4297,16 @@ class Dispersy(Singleton):
         # 2.2: community["candidates"] is again always a list, new
         #      "dispersy_enable_candidate_walker_responses" attribute
         # 2.3: community["candidates"] is no longer sorted
+        # 2.4: added database_version
 
-        info = {"version":2.3, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address}
+        info = {"version":2.4, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
 
         if statistics:
             info["statistics"] = self._statistics.info()
 
         info["communities"] = []
         for community in self._communities.itervalues():
-            community_info = {"classification":community.get_classification(), "hex_cid":community.cid.encode("HEX"), "global_time":community.global_time}
+            community_info = {"classification":community.get_classification(), "hex_cid":community.cid.encode("HEX"), "global_time":community.global_time, "database_version":community.database_version}
             info["communities"].append(community_info)
 
             if attributes:

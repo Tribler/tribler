@@ -13,6 +13,11 @@ from os import path
 
 from database import Database
 
+if __debug__:
+    from dprint import dprint
+
+LATEST_VERSION = 8
+
 schema = u"""
 CREATE TABLE member(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +37,7 @@ CREATE TABLE community(
  member INTEGER REFERENCES member(id),          -- my member (used to sign messages)
  classification TEXT,                           -- community type, typically the class name
  auto_load BOOL DEFAULT 1,                      -- when 1 this community is loaded whenever a packet for it is received
+ database_version INTEGER DEFAULT """ + str(LATEST_VERSION) + """,
  UNIQUE(master));
 
 CREATE TABLE meta_message(
@@ -54,7 +60,7 @@ CREATE TABLE sync(
  member INTEGER REFERENCES member(id),                  -- the creator of the message
  global_time INTEGER,
  meta_message INTEGER REFERENCES meta_message(id),
- undone BOOL DEFAULT 0,
+ undone INTEGER DEFAULT 0,
  packet BLOB,
  UNIQUE(community, member, global_time));
 CREATE INDEX sync_meta_message_global_time_index ON sync(meta_message, global_time);
@@ -66,7 +72,7 @@ CREATE TABLE malicious_proof(
  packet BLOB);
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '7');
+INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_VERSION) + """');
 """
 
 class DispersyDatabase(Database):
@@ -255,6 +261,77 @@ UPDATE option SET value = '7' WHERE key = 'database_version';
 
             # upgrade from version 7 to version 8
             if database_version < 8:
-                # there is no version 8 yet...
-                # self.executescript(u"""UPDATE option SET value = '8' WHERE key = 'database_version';""")
+                self.executescript(u"""
+ALTER TABLE community ADD COLUMN database_version INTEGER DEFAULT 0;
+UPDATE option SET value = '8' WHERE key = 'database_version';
+""")
+
+            # upgrade from version 8 to version 9
+            if database_version < 9:
+                # there is no version 9 yet...
+                # self.executescript(u"""UPDATE option SET value = '9' WHERE key = 'database_version';""")
                 pass
+
+        return LATEST_VERSION
+
+    def check_community_database(self, community, database_version):
+        assert isinstance(database_version, int)
+        assert database_version >= 0
+
+        if database_version < 8:
+            if __debug__: dprint("upgrade community ", database_version, " -> ", 8)
+
+            # patch notes:
+            #
+            # - the undone column in the sync table is not a boolean anymore.  instead it points to
+            #   the row id of one of the associated dispersy-undo-own or dispersy-undo-other
+            #   messages
+            #
+            # - we know that Dispersy.create_undo has been called while the member did not have
+            #   permission to do so.  hence, invalid dispersy-undo-other messages have been stored
+            #   in the local database, causing problems with the sync.  these need to be removed
+            #
+            updates = []
+            deletes = []
+            redoes = []
+
+            convert_packet_to_message = community.dispersy.convert_packet_to_message
+            undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+            for packet_id, packet in list(self.execute(u"SELECT id, packet FROM sync WHERE meta_message = ?", (undo_own_meta.database_id,))):
+                message = convert_packet_to_message(str(packet), community)
+                if message:
+                    updates.append((packet_id, message.payload.packet.packet_id))
+
+            undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+            for packet_id, packet in list(self.execute(u"SELECT id, packet FROM sync WHERE meta_message = ?", (undo_other_meta.database_id,))):
+                message = convert_packet_to_message(str(packet), community)
+                if message:
+                    allowed, _ = community._timeline.check(message)
+                    if allowed:
+                        updates.append((packet_id, message.payload.packet.packet_id))
+
+                    else:
+                        deletes.append((packet_id,))
+                        msg = message.payload.packet.load_message()
+                        redoes.append((msg.packet_id,))
+                        if msg.undo_callback:
+                            try:
+                                # try to redo the message... this may not always be possible now...
+                                msg.undo_callback([(msg.authentication.member, msg.distribution.global_time, msg)], redo=True)
+                            except:
+                                if __debug__: dprint(exception=True, level="warning")
+
+            # if len(redoes) > 20:
+            #     dprint(community.cid.encode("HEX"), " ", community.database_id, force=1)
+            #     assert False
+
+            # note: UPDATE first, REDOES second, since UPDATES contains undo items that may have
+            # been invalid
+            self.executemany(u"UPDATE sync SET undone = ? WHERE id = ?", updates)
+            self.executemany(u"UPDATE sync SET undone = 0 WHERE id = ?", redoes)
+            self.executemany(u"DELETE FROM sync WHERE id = ?", deletes)
+
+            self.execute(u"UPDATE community SET database_version = 8 WHERE id = ?", (community.database_id,))
+            self.commit()
+
+        return LATEST_VERSION

@@ -464,7 +464,8 @@ class DispersyPanel(HomePanel):
                             addColumn("avg_down")
                 else:
                     addColumn(key)
-                    
+
+        addColumn('database_version')
         addColumn('in_debugmode')
         self.buildColumns = True
 

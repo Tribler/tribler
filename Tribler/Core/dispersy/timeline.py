@@ -94,8 +94,10 @@ class Timeline(object):
             elif message.name == u"dispersy-undo-other":
                 assert isinstance(message.resolution, LinearResolution.Implementation), message
                 if __debug__:
-                    dprint("collecting proof for container message ", message.name)
+                    dprint("collecting proof for container message dispersy-undo-other")
                     dprint("master-member: ", message.community.master_member.database_id, "; my-member: ", message.community.my_member.database_id)
+                    dprint("dispersy-undo-other created by ", message.authentication.member.database_id, "@", message.distribution.global_time)
+                    dprint("            undoing message by ", message.payload.member.database_id, "@", message.payload.global_time, " (", message.payload.packet.name, ", ", message.payload.packet.resolution, ")")
                     self.printer()
 
                 return self._check(message.authentication.member, message.distribution.global_time, message.resolution, [(message.payload.packet.meta, u"undo")])

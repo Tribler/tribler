@@ -237,7 +237,7 @@ class Community(object):
         self._pending_callbacks = []
 
         try:
-            self._database_id, member_public_key = self._dispersy_database.execute(u"SELECT community.id, member.public_key FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
+            self._database_id, member_public_key, self._database_version = self._dispersy_database.execute(u"SELECT community.id, member.public_key, database_version FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
         if __debug__: dprint("database id:   ", self._database_id)
@@ -975,6 +975,10 @@ class Community(object):
         return self._database_id
 
     @property
+    def database_version(self):
+        return self._database_version
+
+    @property
     def master_member(self):
         """
         The community Member instance.
@@ -1043,6 +1047,12 @@ class Community(object):
             level = "warning" if new - previous >= 100 else "normal"
             dprint(previous, " -> ", new, level=level)
         self._global_time = max(self._global_time, global_time)
+
+    def dispersy_check_database(self):
+        """
+        Called each time after the community is loaded and attached to Dispersy.
+        """
+        self._database_version = self._dispersy.database.check_community_database(self, self._database_version)
 
     def clear_subjective_set_cache(self, member, cluster, packet="", subjective_set=None):
         """

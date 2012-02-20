@@ -41,7 +41,11 @@ class Candidate(object):
         self._timestamp_last_step = {(member, community.cid):time() - 30.0} if community else {}
 
     def __str__(self):
-        return "Candidate " + ("%s:%d" % self._address if self._address else "" + "" if self._address == self._lan_address else " LAN %s:%d" % self._lan_address + "" if self._address == self._wan_address else " WAN %s:%d" % self._wan_address).strip()
+        return "".join(("[",
+                        "%s:%d" % self._address if self._address else "",
+                        "" if self._address == self._lan_address else " LAN %s:%d" % self._lan_address,
+                        "" if self._address == self._wan_address else " WAN %s:%d" % self._wan_address,
+                        "]"))
         
     @property
     def address(self):
@@ -145,7 +149,7 @@ class Candidate(object):
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._timestamp_incoming = time()
-
+        
 class LocalhostCandidate(Candidate):
     def __init__(self, dispersy):
         super(LocalhostCandidate, self).__init__(dispersy.lan_address, dispersy.lan_address, dispersy.wan_address)
