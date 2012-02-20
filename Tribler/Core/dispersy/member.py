@@ -38,18 +38,18 @@ class Member(Parameterized1Singleton):
         """
         while True:
             # this is very expensive.  only count references every 10 minutes
-            yield 10 * 60.0
+            yield 3 * 60.0
 
-            for references, member in cls.sample_reference_instances(10):
+            for references, member in cls.sample_reference_instances(15):
                 if references:
                     member._unreferenced = 0
                 else:
                     member._unreferenced += 1
 
-                    # when a member has been seen unreferenced 3 times we will remove it.  since we
-                    # perform the check once every 10 minutes, an unused member can be removed after
-                    # 30 minutes IF it is selected in the sample every time.
-                    if member._unreferenced > 3:
+                    # when a member has been seen unreferenced 1 times we will remove it.  since we
+                    # perform the check once every 3 minutes, an unused member can be removed after
+                    # 6 minutes IF it is selected in the sample every time.
+                    if member._unreferenced > 1:
                         cls.del_instance(member._public_key)
                         cls.del_instance(member._mid)
                         if __debug__: dprint("cleanup for member ", member.database_id, " (", member.mid.encode("HEX"), ")")
