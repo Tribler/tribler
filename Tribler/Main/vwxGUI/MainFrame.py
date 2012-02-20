@@ -1090,6 +1090,7 @@ class MainFrame(wx.Frame):
     def quit(self):
         if self.wxapp is not None:
             self.wxapp.ExitMainLoop()
+            self.wxapp.Exit()
 
      
      
