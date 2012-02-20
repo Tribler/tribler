@@ -3113,10 +3113,14 @@ class VoteCastDBHandler(BasicDBHandler):
         self._updateVotes(channel_id)
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
         
-    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id):
+    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
-        self._db.execute_write(remove_vote, (long(time()), channel_id, dispersy_id))
         
+        if redo:
+            deleted_at = None
+        else:
+            deleted_at = long(time())
+        self._db.execute_write(remove_vote, (deleted_at, channel_id, dispersy_id))
         self._updateVotes(channel_id)
     
     def get_latest_vote_dispersy_id(self, channel_id, voter_id):

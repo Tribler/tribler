@@ -374,14 +374,14 @@ class AllChannelCommunity(Community):
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
     
-    def undo_votecast(self, descriptors):
+    def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
             for _, _, packet in descriptors:
                 message = packet.load_message()
                 dispersy_id = message.packet_id
                 
                 channel_id = self._get_channel_id(message.payload.cid)
-                self._votecast_db.on_remove_vote_from_dispersy(channel_id, dispersy_id)
+                self._votecast_db.on_remove_vote_from_dispersy(channel_id, dispersy_id, redo)
 
     def _get_channel_community(self, cid):
         assert isinstance(cid, str)
