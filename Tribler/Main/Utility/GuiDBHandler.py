@@ -73,7 +73,7 @@ class GUIDBProducer():
                 result = workerFn(*args, **kwargs)
                 
             except (AbortedException, wx.PyDeadObjectError):
-                pass
+                return
             
             except Exception, exc:
                 if str(exc).startswith("BusyError") and retryOnBusy:
@@ -84,24 +84,30 @@ class GUIDBProducer():
                 
                 originalTb = format_exc()
                 sender.sendException(exc, originalTb)
-            else:
-                try:
-                    sender.sendResult(result)
-                except:
-                    
-                    print_exc()
-                    print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)"%name
+                return
+                
             t3 = time()
-            
             if DEBUG:
                 print >> sys.stderr, "GUIDBHandler: Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
                 
             if uId:
                 try:
                     self.uIdsLock.acquire()
-                    self.uIds.discard(uId)
+                    if uId in self.uIds:
+                        self.uIds.discard(uId)
+                    
+                    #this callback has been removed during wrapper, cancel now 
+                    else:
+                        return
                 finally:
                     self.uIdsLock.release()
+            
+            #if we get to this step, send result to callback
+            try:
+                sender.sendResult(result)
+            except:
+                print_exc()
+                print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)"%name
                 
         wrapper.__name__ = name
         
