@@ -234,9 +234,12 @@ class CreateTorrent(wx.Dialog):
             params['createmerkletorrent'] = False
             params['torrentsigkeypairfilename'] = False
             params['thumb'] = False
-            
+
             piece_length_list = [0, 2**22 ,2**21, 2**20, 2**19, 2**18, 2**17, 2**16, 2**15]
-            params['piece length'] = piece_length_list[self.pieceChoice.GetSelection()]
+            if self.pieceChoice.GetSelection() != wx.NOT_FOUND:
+                params['piece length'] = piece_length_list[self.pieceChoice.GetSelection()]
+            else:
+                params['piece length'] = 0
             
             def do_gui():
                 if self.cancelEvent.isSet():
