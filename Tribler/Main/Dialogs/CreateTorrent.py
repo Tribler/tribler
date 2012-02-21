@@ -97,6 +97,7 @@ class CreateTorrent(wx.Dialog):
                          '64' + abbrev_kb, 
                          '32' + abbrev_kb]
         self.pieceChoice = wx.Choice(self, -1, choices = piece_choices)
+        self.pieceChoice.SetSelection(0)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, 'Piecesize'), 1)
         hSizer.Add(self.pieceChoice)
