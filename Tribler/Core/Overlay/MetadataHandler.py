@@ -321,7 +321,9 @@ class MetadataHandler:
         else:
             file_name = get_collected_torrent_filename(infohash)
             torrent_path2 = os.path.join(self.torrent_dir, file_name)
-            if os.path.exists(torrent_path2) and not os.path.samefile(torrent_path, torrent_path2):
+            
+            samefile = os.path.abspath(torrent_path) == os.path.abspath(torrent_path2)
+            if os.path.exists(torrent_path2) and not samefile:
                 return self.read_and_send_metadata(permid, infohash, torrent_path2, selversion)
             
             # deleted before sending it
