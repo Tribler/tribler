@@ -200,7 +200,7 @@ def makeinfo(input,userabortflag,userprogresscallback):
             
             while totalsize / piece_length > 2000:
                 #too many piece, double piece_size
-                piece_length *= 2
+                piece_length *= 2L
     else:
         piece_length = input['piece length']
 
