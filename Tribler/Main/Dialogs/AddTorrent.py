@@ -40,7 +40,7 @@ class AddTorrent(wx.Dialog):
         hSizer.Add(browseButton, 0, wx.RIGHT, 3)
         hSizer.Add(browseDirectory)
         vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 10)
         
         header = wx.StaticText(self, -1, 'Url')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
@@ -55,7 +55,7 @@ class AddTorrent(wx.Dialog):
         hSizer.Add(linkButton, 0, wx.LEFT, 3)
         vSizer.Add(hSizer, 0 , wx.EXPAND|wx.BOTTOM, 3)
         
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 10)
         if libraryTorrents != None:
             if len(libraryTorrents) > 0:
                 header = wx.StaticText(self, -1, 'Choose one from you library')
@@ -75,7 +75,7 @@ class AddTorrent(wx.Dialog):
                 hSizer.Add(linkButton, 0, wx.LEFT, 3)
                 vSizer.Add(hSizer, 0 , wx.EXPAND|wx.BOTTOM, 3)
             
-            vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
+            vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 10)
             header = wx.StaticText(self, -1, 'Create your own .torrents')
             _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
             vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)

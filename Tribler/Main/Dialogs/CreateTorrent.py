@@ -45,13 +45,17 @@ class CreateTorrent(wx.Dialog):
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        self.foundFilesText = StaticText(self, -1, 'No files selected yet')
+        self.foundFilesText = StaticText(self, -1, 'Please select a file or files first')
         vSizer.Add(self.foundFilesText, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         self.combineRadio = wx.RadioButton(self, -1, 'Combine files into a single .torrent', style = wx.RB_GROUP)
         self.combineRadio.Bind(wx.EVT_RADIOBUTTON, self.OnCombine)
+        self.combineRadio.Enable(False)
+        
         self.sepRadio = wx.RadioButton(self, -1, 'Create separate .torrent for every file')
         self.sepRadio.Bind(wx.EVT_RADIOBUTTON, self.OnCombine)
+        self.sepRadio.Enable(False)
+        
         vSizer.Add(self.combineRadio, 0, wx.EXPAND|wx.BOTTOM, 3)
         vSizer.Add(self.sepRadio, 0, wx.EXPAND|wx.BOTTOM, 3)
         
