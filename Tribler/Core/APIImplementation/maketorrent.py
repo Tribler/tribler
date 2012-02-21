@@ -190,23 +190,17 @@ def makeinfo(input,userabortflag,userprogresscallback):
     if input['piece length'] == 0:
         if input['createmerkletorrent']:
             # used to be 15=32K, but this works better with slow python
-            piece_len_exp = 18 
+            piece_length = 2 ** 18
         else:
-            if totalsize > 8L*1024*1024*1024:    # > 8 gig =
-                piece_len_exp = 21          #   2 meg pieces
-            elif totalsize > 2*1024*1024*1024:   # > 2 gig =
-                piece_len_exp = 20          #   1 meg pieces
-            elif totalsize > 512*1024*1024:      # > 512M =
-                piece_len_exp = 19          #   512K pieces
-            elif totalsize > 64*1024*1024:       # > 64M =
-                piece_len_exp = 18          #   256K pieces
-            elif totalsize > 16*1024*1024:       # > 16M =
-                piece_len_exp = 17          #   128K pieces
-            elif totalsize > 4*1024*1024:        # > 4M =
-                piece_len_exp = 16          #   64K pieces
-            else:                           # < 4M =
-                piece_len_exp = 15          #   32K pieces
-        piece_length = 2 ** piece_len_exp
+            #Niels we want roughly between 1000-2000 pieces
+            #This results in the following logic:
+            
+            #We start with 32K pieces
+            piece_length = 2 ** 15
+            
+            while totalsize / piece_length > 2000:
+                #too many piece, double piece_size
+                piece_length *= 2
     else:
         piece_length = input['piece length']
 
