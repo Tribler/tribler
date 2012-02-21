@@ -788,7 +788,7 @@ class TriblerLaunchMany(Thread):
                     # in a infohash -> pstate dict which is then passed to the user
                     # for storage.
                     #
-                    if DEBUG or stop:
+                    if DEBUG:
                         print >>sys.stderr,"tlm: network checkpointing:",`d.get_def().get_name()`
                     if stop:
                         (infohash,pstate) = d.network_stop(False,False)
