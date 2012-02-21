@@ -194,9 +194,10 @@ class AddTorrent(wx.Dialog):
     
     def OnCreate(self, event):
         configfile = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_trackers')
+        configfile2 = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_created')
         trackers = self.guiutility.channelsearch_manager.torrent_db.getPopularTrackers()
         
-        dlg = CreateTorrent(self, configfile, trackers, self.toChannel)
+        dlg = CreateTorrent(self, configfile, configfile2, trackers, self.toChannel)
         if dlg.ShowModal() == wx.ID_OK:
             for destdir, correctedfilename, torrentfilename in dlg.createdTorrents:
                 #Niels: important do not pass fixtorrent to startDownload, used to differentiate between created and imported torrents

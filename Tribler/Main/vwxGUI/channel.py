@@ -21,7 +21,6 @@ from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 from Tribler.Main.vwxGUI.list_header import ChannelOnlyHeader
-from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from shutil import copyfile
 
 DEBUG = False

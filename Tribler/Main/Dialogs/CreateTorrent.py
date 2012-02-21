@@ -14,7 +14,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import forceWxThread
 
 class CreateTorrent(wx.Dialog):
-    def __init__(self, parent, configfile, suggestedTrackers, toChannel = False):
+    def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel = False):
         wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(500,200))
         self.guiutility = GUIUtility.getInstance()
         self.toChannel = toChannel
@@ -128,8 +128,17 @@ class CreateTorrent(wx.Dialog):
         self.createdTorrents = []
         self.cancelEvent = Event()
         
+        self.filehistory = wx.FileHistory(1)
+        self.fileconfig = wx.FileConfig(appName = "Tribler", localFilename = fileconfigfile)
+        self.filehistory.Load(self.fileconfig)
+        
+        if self.filehistory.GetCount() > 0:
+            self.latestFile = self.filehistory.GetHistoryFile(0)
+        else:
+            self.latestFile = ''
+        
     def OnBrowse(self, event):
-        dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE)
+        dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE, defaultDir = self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             dlg.Destroy()
@@ -139,7 +148,7 @@ class CreateTorrent(wx.Dialog):
             dlg.Destroy()
             
     def OnBrowseDir(self, event):
-        dlg = wx.DirDialog(self, "Please a directory.", style = wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(self, "Please a directory.", style = wx.DD_DIR_MUST_EXIST, defaultPath = self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = [dlg.GetPath()]
             dlg.Destroy()
@@ -225,6 +234,14 @@ class CreateTorrent(wx.Dialog):
                 self.trackerHistory.AddFileToHistory(tracker)
             self.trackerHistory.Save(self.config)
             self.config.Flush()
+            
+            if len(self.selectedPaths) > 1:
+                basedir = os.path.commonprefix(self.selectedPaths)
+            else:
+                basedir = os.path.dirname(self.selectedPaths[0])
+            self.filehistory.Save(self.fileconfig)
+            self.fileconfig.Flush() 
+            
             
             params['announce'] = trackers[0]
             params['announce-list'] = [trackers]
