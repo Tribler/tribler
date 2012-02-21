@@ -271,7 +271,10 @@ class ChannelSearchManager:
             if DEBUG:
                 print >> sys.stderr, "ChannelManager complete refresh done"
             
-    def refresh_partial(self):
+    def refresh_partial(self, ids = None):
+        if ids:
+            self.dirtyset.update(ids)
+        
         def do_db():
             ids = self.dirtyset
             self.dirtyset.clear()

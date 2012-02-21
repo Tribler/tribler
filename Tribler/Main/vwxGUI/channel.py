@@ -1381,6 +1381,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.identifier.SetValue(channel.dispersy_cid.encode('HEX'))
             self.identifier.Show(True)
             self.identifierText.Show(True)
+            
+            self.overviewpage.Layout()
                 
             self.createText.Hide()
             self.saveButton.SetLabel('Save Changes')
@@ -1447,6 +1449,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.description.Enable(True)
             self.identifier.Show(False)
             self.identifierText.Show(False)
+            
+            self.overviewpage.Layout()
             
             self.header.SetName('Create your own channel')
             self.header.SetNrTorrents(0, 0)
