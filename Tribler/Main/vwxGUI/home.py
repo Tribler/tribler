@@ -555,7 +555,8 @@ class DispersyPanel(HomePanel):
                     if key == 'statistics':
                         updateColumn('total_down', self.utility.size_format(value['total_down'][1]))
                         updateColumn('total_up', self.utility.size_format(value['total_up'][1]))
-                        updateColumn("total_dropped", self.utility.size_format(int(sum(byte_count for _, byte_count in value["drop"].itervalues()))))
+                        if "drop" in value:
+                            updateColumn("total_dropped", self.utility.size_format(int(sum(byte_count for _, byte_count in value["drop"].itervalues()))))
                         updateColumn('runtime', self.utility.eta_value(value['runtime']))
                         updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
                         updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")

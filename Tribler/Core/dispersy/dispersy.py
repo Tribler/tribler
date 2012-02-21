@@ -112,14 +112,15 @@ class DummySocket(object):
 class Statistics(object):
     def __init__(self):
         self._start = time()
-        self._drop = {}
-        self._delay = {}
-        self._success = {}
-        self._outgoing = {}
         self._sequence_number = 0
         self._total_up = 0, 0
         self._total_down = 0, 0
         self._busy_time = 0.0
+        if __debug__:
+            self._drop = {}
+            self._delay = {}
+            self._success = {}
+            self._outgoing = {}
 
     @property
     def total_up(self):
@@ -133,31 +134,42 @@ class Statistics(object):
         """
         Returns all statistics.
         """
-        return {"drop":self._drop,
-                "delay":self._delay,
-                "success":self._success,
-                "outgoing":self._outgoing,
-                "sequence_number":self._sequence_number,
-                "total_up":self._total_up,
-                "total_down":self._total_down,
-                "busy_time":self._busy_time,
-                "start":self._start,
-                "runtime":time() - self._start}
+        if __debug__:
+            return {"drop":self._drop,
+                    "delay":self._delay,
+                    "success":self._success,
+                    "outgoing":self._outgoing,
+                    "sequence_number":self._sequence_number,
+                    "total_up":self._total_up,
+                    "total_down":self._total_down,
+                    "busy_time":self._busy_time,
+                    "start":self._start,
+                    "runtime":time() - self._start}
+        else:
+            return {"sequence_number":self._sequence_number,
+                    "total_up":self._total_up,
+                    "total_down":self._total_down,
+                    "busy_time":self._busy_time,
+                    "start":self._start,
+                    "runtime":time() - self._start}
 
-    def summary(self):
-        """
-        Returns a summary of the statistics.
+    if __debug__:
+        def summary(self):
+            """
+            Returns a summary of the statistics.
 
-        Essentially it removes all address specific information.
-        """
-        info = self.info()
-        outgoing = {}
-        for subdict in info["outgoing"].itervalues():
-            for key, (amount, byte_count) in subdict.iteritems():
-                a, b = outgoing.get(key, (0, 0))
-                outgoing[key] = (a+amount, b+byte_count)
-        info["outgoing"] = outgoing
-        return info
+            Essentially it removes all address specific information.
+            """
+            info = self.info()
+            outgoing = {}
+            for subdict in info["outgoing"].itervalues():
+                for key, (amount, byte_count) in subdict.iteritems():
+                    a, b = outgoing.get(key, (0, 0))
+                    outgoing[key] = (a+amount, b+byte_count)
+            info["outgoing"] = outgoing
+            return info
+    else:
+        summary = info
 
     def reset(self):
         """
@@ -167,58 +179,60 @@ class Statistics(object):
             return self.info()
 
         finally:
-            self._drop = {}
-            self._delay = {}
-            self._success = {}
-            self._outgoing = {}
             self._sequence_number += 1
             self._total_up = 0, 0
             self._total_down = 0, 0
+            if __debug__:
+                self._drop = {}
+                self._delay = {}
+                self._success = {}
+                self._outgoing = {}
 
-    def drop(self, key, byte_count, amount=1):
-        """
-        Called when an incoming packet or message failed a check and was dropped.
-        """
-        assert isinstance(key, (str, unicode))
-        assert isinstance(byte_count, (int, long))
-        assert isinstance(amount, (int, long))
-        a, b = self._drop.get(key, (0, 0))
-        self._drop[key] = (a+amount, b+byte_count)
+    if __debug__:
+        def drop(self, key, byte_count, amount=1):
+            """
+            Called when an incoming packet or message failed a check and was dropped.
+            """
+            assert isinstance(key, (str, unicode))
+            assert isinstance(byte_count, (int, long))
+            assert isinstance(amount, (int, long))
+            a, b = self._drop.get(key, (0, 0))
+            self._drop[key] = (a+amount, b+byte_count)
 
-    def delay(self, key, byte_count, amount=1):
-        """
-        Called when an incoming packet or message was delayed.
-        """
-        assert isinstance(key, (str, unicode))
-        assert isinstance(byte_count, (int, long))
-        assert isinstance(amount, (int, long))
-        a, b = self._delay.get(key, (0, 0))
-        self._delay[key] = (a+amount, b+byte_count)
+        def delay(self, key, byte_count, amount=1):
+            """
+            Called when an incoming packet or message was delayed.
+            """
+            assert isinstance(key, (str, unicode))
+            assert isinstance(byte_count, (int, long))
+            assert isinstance(amount, (int, long))
+            a, b = self._delay.get(key, (0, 0))
+            self._delay[key] = (a+amount, b+byte_count)
 
-    def success(self, key, byte_count, amount=1):
-        """
-        Called when an incoming message was accepted.
-        """
-        assert isinstance(key, (str, unicode))
-        assert isinstance(byte_count, (int, long))
-        assert isinstance(amount, (int, long))
-        a, b = self._success.get(key, (0, 0))
-        self._success[key] = (a+amount, b+byte_count)
+        def success(self, key, byte_count, amount=1):
+            """
+            Called when an incoming message was accepted.
+            """
+            assert isinstance(key, (str, unicode))
+            assert isinstance(byte_count, (int, long))
+            assert isinstance(amount, (int, long))
+            a, b = self._success.get(key, (0, 0))
+            self._success[key] = (a+amount, b+byte_count)
 
-    def outgoing(self, address, key, byte_count, amount=1):
-        """
-        Called when a message send using the _send(...) method
-        """
-        assert isinstance(address, tuple)
-        assert len(address) == 2
-        assert isinstance(address[0], str)
-        assert isinstance(address[1], int)
-        assert isinstance(key, (str, unicode))
-        assert isinstance(byte_count, (int, long))
-        assert isinstance(amount, (int, long))
-        subdict = self._outgoing.setdefault(address, {})
-        a, b = subdict.get(key, (0, 0))
-        subdict[key] = (a+amount, b+byte_count)
+        def outgoing(self, address, key, byte_count, amount=1):
+            """
+            Called when a message send using the _send(...) method
+            """
+            assert isinstance(address, tuple)
+            assert len(address) == 2
+            assert isinstance(address[0], str)
+            assert isinstance(address[1], int)
+            assert isinstance(key, (str, unicode))
+            assert isinstance(byte_count, (int, long))
+            assert isinstance(amount, (int, long))
+            subdict = self._outgoing.setdefault(address, {})
+            a, b = subdict.get(key, (0, 0))
+            subdict[key] = (a+amount, b+byte_count)
 
     def increment_total_up(self, byte_count, amount):
         assert isinstance(byte_count, (int, long))
@@ -590,14 +604,20 @@ class Dispersy(Singleton):
         # when this is a create or join this message is created only after the attach_community
         if __debug__:
             if "--sanity-check" in sys.argv:
-                def sanity_check_callback(result):
-                    assert result == True, [community.database_id, str(result)]
-                    try:
-                        community._pending_callbacks.remove(callback_id)
-                    except ValueError:
+                # def sanity_check_callback(result):
+                #     assert result == True, [community.database_id, str(result)]
+                #     try:
+                #         community._pending_callbacks.remove(callback_id)
+                #     except ValueError:
+                #         pass
+                # callback_id = self._callback.register(self.sanity_check_generator, (community,), priority=-128, callback=sanity_check_callback)
+                # community._pending_callbacks.append(callback_id)
+                try:
+                    for _ in self.sanity_check_generator(community):
                         pass
-                callback_id = self._callback.register(self.sanity_check_generator, (community,), priority=-128, callback=sanity_check_callback)
-                community._pending_callbacks.append(callback_id)
+                except ValueError:
+                    dprint(exception=True, level="error")
+                    assert False
 
     def detach_community(self, community):
         """
@@ -1467,8 +1487,9 @@ class Dispersy(Singleton):
             for candidate, packet, conversion in batch:
                 assert isinstance(packet, str)
                 if packet in unique:
-                    if __debug__: dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", candidate, level="warning")
-                    self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
+                    if __debug__:
+                        dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", candidate, level="warning")
+                        self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
                 else:
                     unique.add(packet)
                     yield candidate, packet, conversion
@@ -1531,8 +1552,9 @@ class Dispersy(Singleton):
 
         def _filter_fail(message):
             if isinstance(message, DelayMessage):
-                self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
-                if __debug__: dprint("delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ") from ", message.delayed.candidate)
+                if __debug__:
+                    dprint("delay a ", len(message.delayed.packet), " byte ", message.delayed.name, " (", message, ") from ", message.delayed.candidate)
+                    self._statistics.delay("on_message_batch:%s" % message, len(message.delayed.packet))
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerMessage) and trigger.extend(message.pattern, [message.delayed]):
@@ -1548,8 +1570,9 @@ class Dispersy(Singleton):
                 return False
 
             elif isinstance(message, DropMessage):
-                if __debug__: dprint("drop: ", message.dropped.name, " (", message, ")", level="warning")
-                self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
+                if __debug__:
+                    dprint("drop: ", message.dropped.name, " (", message, ")", level="warning")
+                    self._statistics.drop("on_message_batch:%s" % message, len(message.dropped.packet))
                 return False
 
             else:
@@ -1588,8 +1611,9 @@ class Dispersy(Singleton):
             return 0
 
         # store to disk and update locally
-        if __debug__: dprint("in... ", len(messages), " ", meta.name, " messages from ", ", ".join(str(candidate) for candidate in set(message.candidate for message in messages)))
-        self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
+        if __debug__:
+            dprint("in... ", len(messages), " ", meta.name, " messages from ", ", ".join(str(candidate) for candidate in set(message.candidate for message in messages)))
+            self._statistics.success(meta.name, sum(len(message.packet) for message in messages), len(messages))
         self.store_update_forward(messages, True, True, False)
 
         # check if there are triggers
@@ -1638,24 +1662,27 @@ class Dispersy(Singleton):
         for candidate, packet in packets:
             # is it from a remote source
             if not self.is_valid_remote_address(candidate.address):
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", candidate, level="warning")
-                self._statistics.drop("_convert_packets_into_batch:invalid source", len(packet))
+                if __debug__:
+                    dprint("drop a ", len(packet), " byte packet (received from an invalid source) from ", candidate, level="warning")
+                    self._statistics.drop("_convert_packets_into_batch:invalid source", len(packet))
                 continue
 
             # find associated community
             try:
                 community = self.get_community(packet[2:22])
             except KeyError:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", candidate, level="warning")
-                self._statistics.drop("_convert_packets_into_batch:unknown community", len(packet))
+                if __debug__:
+                    dprint("drop a ", len(packet), " byte packet (received packet for unknown community) from ", candidate, level="warning")
+                    self._statistics.drop("_convert_packets_into_batch:unknown community", len(packet))
                 continue
 
             # find associated conversion
             try:
                 conversion = community.get_conversion(packet[:22])
             except KeyError:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (received packet for unknown conversion) from ", candidate, level="warning")
-                self._statistics.drop("_convert_packets_into_batch:unknown conversion", len(packet))
+                if __debug__:
+                    dprint("drop a ", len(packet), " byte packet (received packet for unknown conversion) from ", candidate, level="warning")
+                    self._statistics.drop("_convert_packets_into_batch:unknown conversion", len(packet))
                 continue
 
             try:
@@ -1663,8 +1690,9 @@ class Dispersy(Singleton):
                 yield conversion.decode_meta_message(packet), candidate, packet, conversion
 
             except DropPacket, exception:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (", exception,") from ", candidate, exception=True, level="warning")
-                self._statistics.drop("_convert_packets_into_batch:decode_meta_message:%s" % exception, len(packet))
+                if __debug__:
+                    dprint("drop a ", len(packet), " byte packet (", exception,") from ", candidate, exception=True, level="warning")
+                    self._statistics.drop("_convert_packets_into_batch:decode_meta_message:%s" % exception, len(packet))
 
     def _convert_batch_into_messages(self, batch):
         if __debug__:
@@ -1689,12 +1717,14 @@ class Dispersy(Singleton):
                 yield conversion.decode_message(candidate, packet)
 
             except DropPacket, exception:
-                if __debug__: dprint("drop a ", len(packet), " byte packet (", exception, ") from ", candidate, exception=True, level="warning")
-                self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
+                if __debug__:
+                    dprint("drop a ", len(packet), " byte packet (", exception, ") from ", candidate, exception=True, level="warning")
+                    self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
 
             except DelayPacket, delay:
-                if __debug__: dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate)
-                self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
+                if __debug__:
+                    dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate)
+                    self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerPacket) and trigger.extend(delay.pattern, [(candidate, packet)]):
@@ -2521,8 +2551,9 @@ class Dispersy(Singleton):
 
             for packet in packets:
                 self._socket.send(candidate.address, packet)
-            self._statistics.outgoing(candidate.address, key, sum(len(packet) for packet in packets), len(packets))
-            if __debug__: dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
+            if __debug__:
+                dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
+                self._statistics.outgoing(candidate.address, key, sum(len(packet) for packet in packets), len(packets))
 
     def _check_triggers(self):
         assert self._untriggered_messages, "should not check if there are no messages"
@@ -3959,7 +3990,7 @@ class Dispersy(Singleton):
                 else:
                     break
 
-        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check")
+        if __debug__: dprint(community.cid.encode("HEX"), " start sanity check [db-id:", community.database_id, "]")
         enabled_messages = set(meta.database_id for meta in community.get_meta_messages())
 
         try:
@@ -3975,6 +4006,9 @@ class Dispersy(Singleton):
                 member_id, = self._database.execute(u"SELECT id FROM member WHERE mid = ?", (buffer(community.my_member.mid),)).next()
             except StopIteration:
                 raise ValueError("unable to find the public key for my member")
+
+            if not member_id == community.my_member.database_id:
+                raise ValueError("my member's database id is invalid", member_id, community.my_member.database_id)
 
             try:
                 self._database.execute(u"SELECT 1 FROM private_key WHERE member = ?", (member_id,)).next()
@@ -4104,6 +4138,7 @@ class Dispersy(Singleton):
                 if isinstance(meta.authentication, MemberAuthentication):
                     counter = 0
                     counter_member_id = 0
+                    counter_meta_message_id = 0
                     for packet_id, member_id, packet in select(u"SELECT id, member, packet FROM sync WHERE meta_message = ? ORDER BY member ASC, global_time DESC LIMIT ? OFFSET ?", (meta.database_id,)):
                         message = self.convert_packet_to_message(str(packet), community)
                         assert message
@@ -4298,8 +4333,9 @@ class Dispersy(Singleton):
         #      "dispersy_enable_candidate_walker_responses" attribute
         # 2.3: community["candidates"] is no longer sorted
         # 2.4: added database_version
+        # 2.5: removed delay, drop, outgoing, and success statistics (memory usage)
 
-        info = {"version":2.4, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
+        info = {"version":2.5, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
 
         if statistics:
             info["statistics"] = self._statistics.info()

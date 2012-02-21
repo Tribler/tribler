@@ -106,9 +106,7 @@ class TriggerCallback(Trigger):
 
     def on_timeout(self):
         if self._responses_remaining > 0:
-            if __debug__:
-                dprint("timeout on trigger with callback ", self._response_func, level="warning")
-                dprint("pattern: ", self._debug_pattern, level="warning")
+            if __debug__: dprint("timeout \\", self._debug_pattern, "\\", level="warning")
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
             self._response_func(None, *self._response_args)
@@ -198,9 +196,7 @@ class TriggerPacket(Trigger):
 
     def on_timeout(self):
         if self._search:
-            if __debug__:
-                dprint("timeout on trigger with ", len(self._packets), " packets", level="warning")
-                dprint("pattern: ", self._pattern, level="warning")
+            if __debug__: dprint("timeout ", len(self._packets), "p \\", self._pattern, "\\", level="warning")
             self._search = None
 
 class TriggerMessage(Trigger):
@@ -282,7 +278,5 @@ class TriggerMessage(Trigger):
 
     def on_timeout(self):
         if self._search:
-            if __debug__:
-                dprint("timeout on trigger with ", len(self._messages), " messages", level="warning")
-                dprint("pattern: ", self._pattern, level="warning")
+            if __debug__: dprint("timeout ", len(self._messages), "m \\", self._pattern, "\\", level="warning")
             self._search = None
