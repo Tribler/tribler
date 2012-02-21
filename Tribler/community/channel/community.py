@@ -391,7 +391,11 @@ class ChannelCommunity(Community):
         for dispersy_id in dispersy_ids:
             message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
             if message:
-                self._dispersy.create_undo(self, message)
+                if not message.undone:
+                    self._dispersy.create_undo(self, message)
+                    
+                else: #hmm signal gui that this message has been removed already
+                    self._disp_undo_torrent([(None,None,message)])
 
     #create, check or receive playlists
     @forceDispersyThread
@@ -1110,13 +1114,14 @@ class ChannelCommunity(Community):
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            packet, packet_id = self._dispersy.database.execute(u"SELECT packet, id FROM sync WHERE id = ?", (dispersy_id,)).next()
+            packet, packet_id, undone = self._dispersy.database.execute(u"SELECT packet, id, undone FROM sync WHERE id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id %d" % dispersy_id)
 
         message = self._dispersy.convert_packet_to_message(str(packet))
         if message:
             message.packet_id = packet_id
+            message.undone = undone
         else:
             raise RuntimeError("unable to convert packet with dispersy_id %d" % dispersy_id)
         
