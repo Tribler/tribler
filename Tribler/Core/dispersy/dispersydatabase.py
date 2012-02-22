@@ -294,15 +294,27 @@ UPDATE option SET value = '8' WHERE key = 'database_version';
             updates = []
             deletes = []
             redoes = []
-
             convert_packet_to_message = community.dispersy.convert_packet_to_message
             undo_own_meta = community.get_meta_message(u"dispersy-undo-own")
+            undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+
+            progress = 0
+            count, = self.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ? OR meta_message = ?", (undo_own_meta.database_id, undo_other_meta.database_id)).next()
+            if __debug__: dprint("upgrading ", count, " undo messages", force=1)
+            if count > 50:
+                progress_handlers = [handler("Upgrading database", "Please wait while we upgrade the database", count) for handler in community.dispersy.get_progress_handlers()]
+            else:
+                progress_handlers = []
+
             for packet_id, packet in list(self.execute(u"SELECT id, packet FROM sync WHERE meta_message = ?", (undo_own_meta.database_id,))):
                 message = convert_packet_to_message(str(packet), community)
                 if message:
                     updates.append((packet_id, message.payload.packet.packet_id))
 
-            undo_other_meta = community.get_meta_message(u"dispersy-undo-other")
+                progress += 1
+                for handler in progress_handlers:
+                    handler.Update(progress)
+
             for packet_id, packet in list(self.execute(u"SELECT id, packet FROM sync WHERE meta_message = ?", (undo_other_meta.database_id,))):
                 message = convert_packet_to_message(str(packet), community)
                 if message:
@@ -321,9 +333,16 @@ UPDATE option SET value = '8' WHERE key = 'database_version';
                             except:
                                 if __debug__: dprint(exception=True, level="warning")
 
+                progress += 1
+                for handler in progress_handlers:
+                    handler.Update(progress)
+
             # if len(redoes) > 20:
             #     dprint(community.cid.encode("HEX"), " ", community.database_id, force=1)
             #     assert False
+
+            for handler in progress_handlers:
+                handler.Update(progress, "Saving the results...")
 
             # note: UPDATE first, REDOES second, since UPDATES contains undo items that may have
             # been invalid
@@ -333,5 +352,8 @@ UPDATE option SET value = '8' WHERE key = 'database_version';
 
             self.execute(u"UPDATE community SET database_version = 8 WHERE id = ?", (community.database_id,))
             self.commit()
+
+            for handler in progress_handlers:
+                handler.Destroy()
 
         return LATEST_VERSION

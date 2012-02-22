@@ -7,15 +7,16 @@ class ThreadSafeProgressDialog():
         
     def wx_init(self, title, message, maximum, parent, style):
         self.dlg = wx.ProgressDialog(title = title, message = message, maximum = maximum, parent=parent, style=style)
+        self.dlg.Raise()
     
     def Update(self, value, newmsg = ''):
-        wx.CallAfter(self.dlg.Update, value, newmsg)
+        wx.CallAfter(lambda: self.dlg.Update(value, newmsg))
     
     def UpdatePulse(self, newmsg = ''):
-        wx.CallAfter(self.dlg.UpdatePulse, newmsg)
+        wx.CallAfter(lambda: self.dlg.UpdatePulse(newmsg))
     
     def Pulse(self, newmsg = ''):
-        wx.CallAfter(self.dlg.Pulse, newmsg)
+        wx.CallAfter(lambda: self.dlg.Pulse(newmsg))
     
     def Destroy(self):
-        wx.CallAfter(self.dlg.Destroy)
+        wx.CallLater(1000, lambda: self.dlg.Destroy())

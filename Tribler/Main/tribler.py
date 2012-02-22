@@ -854,6 +854,7 @@ class ABCApp():
     @forceWxThread
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
         disp = Dispersy.get_instance()
+        disp.attach_progress_handler(self.frame.progressHandler)
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
                
     @forceWxThread     

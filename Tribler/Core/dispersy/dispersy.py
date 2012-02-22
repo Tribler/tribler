@@ -348,6 +348,9 @@ class Dispersy(Singleton):
                                               FullSyncDistribution:self._check_full_sync_distribution_batch,
                                               LastSyncDistribution:self._check_last_sync_distribution_batch}
 
+        # progress handlers (used to notify the user when something will take a long time)
+        self._progress_handlers = []
+
         # commit changes to the database periodically
         self._callback.register(self._watchdog, priority=WATCHDOG_PRIORITY)
 
@@ -572,6 +575,18 @@ class Dispersy(Singleton):
         assert issubclass(community, Community)
         assert community.get_classification() in self._auto_load_communities
         del self._auto_load_communities[community.get_classification()]
+
+    def attach_progress_handler(self, func):
+        assert callable(func), "handler must be callable"
+        self._progress_handlers.append(func)
+
+    def detach_progress_handler(self, func):
+        assert callable(func), "handler must be callable"
+        assert func in self._progress_handlers, "handler is not attached"
+        self._progress_handlers.remove(func)
+
+    def get_progress_handlers(self):
+        return self._progress_handlers
 
     def attach_community(self, community):
         """
