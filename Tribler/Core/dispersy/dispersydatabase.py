@@ -16,7 +16,7 @@ from database import Database
 if __debug__:
     from dprint import dprint
 
-LATEST_VERSION = 8
+LATEST_VERSION = 9
 
 schema = u"""
 CREATE TABLE member(
@@ -261,15 +261,27 @@ UPDATE option SET value = '7' WHERE key = 'database_version';
 
             # upgrade from version 7 to version 8
             if database_version < 8:
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 8)
                 self.executescript(u"""
 ALTER TABLE community ADD COLUMN database_version INTEGER DEFAULT 0;
 UPDATE option SET value = '8' WHERE key = 'database_version';
 """)
+            if __debug__: dprint("upgrade database ", database_version, " -> ", 8, " (done)")
 
             # upgrade from version 8 to version 9
             if database_version < 9:
-                # there is no version 9 yet...
-                # self.executescript(u"""UPDATE option SET value = '9' WHERE key = 'database_version';""")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 9)
+                self.executescript(u"""
+DROP INDEX sync_meta_message_global_time_index;
+CREATE INDEX sync_global_time_undone_meta_message_index ON sync(global_time, undone, meta_message);
+UPDATE option SET value = '9' WHERE key = 'database_version';
+""")
+            if __debug__: dprint("upgrade database ", database_version, " -> ", 8, " (done)")
+
+            # upgrade from version 9 to version 10
+            if database_version < 10:
+                # there is no version 10 yet...
+                # self.executescript(u"""UPDATE option SET value = '10' WHERE key = 'database_version';""")
                 pass
 
         return LATEST_VERSION
@@ -300,7 +312,7 @@ UPDATE option SET value = '8' WHERE key = 'database_version';
 
             progress = 0
             count, = self.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ? OR meta_message = ?", (undo_own_meta.database_id, undo_other_meta.database_id)).next()
-            if __debug__: dprint("upgrading ", count, " undo messages", force=1)
+            if __debug__: dprint("upgrading ", count, " undo messages")
             if count > 50:
                 progress_handlers = [handler("Upgrading database", "Please wait while we upgrade the database", count) for handler in community.dispersy.get_progress_handlers()]
             else:
@@ -336,10 +348,6 @@ UPDATE option SET value = '8' WHERE key = 'database_version';
                 progress += 1
                 for handler in progress_handlers:
                     handler.Update(progress)
-
-            # if len(redoes) > 20:
-            #     dprint(community.cid.encode("HEX"), " ", community.database_id, force=1)
-            #     assert False
 
             for handler in progress_handlers:
                 handler.Update(progress, "Saving the results...")
