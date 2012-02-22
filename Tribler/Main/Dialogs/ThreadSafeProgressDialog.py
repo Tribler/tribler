@@ -19,4 +19,4 @@ class ThreadSafeProgressDialog():
         wx.CallAfter(lambda: self.dlg.Pulse(newmsg))
     
     def Destroy(self):
-        wx.CallLater(1000, lambda: self.dlg.Destroy())
+        wx.CallAfter(lambda: wx.CallLater(10000, lambda: self.dlg.Destroy()))
