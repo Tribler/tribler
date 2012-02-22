@@ -779,20 +779,23 @@ class BuzzPanel(HomePanel):
     def ForceUpdate(self):
         self.GetBuzzFromDB(doRefresh=True)
 
-    @forceDBThread
+    
     def GetBuzzFromDB(self, doRefresh=False):
-        # needs fine-tuning:
-        # (especially for cold-start/fresh Tribler install?)
-        samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
-
-        self.buzz_cache = [[],[],[]]
-        buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
-        for i in range(len(buzz)):
-            random.shuffle(buzz[i])
-            self.buzz_cache[i] = buzz[i]
-
-        if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
-            self.OnRefreshTimer(force = True, fromDBThread = True)
+        def do_db():
+        
+            # needs fine-tuning:
+            # (especially for cold-start/fresh Tribler install?)
+            samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
+    
+            self.buzz_cache = [[],[],[]]
+            buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
+            for i in range(len(buzz)):
+                random.shuffle(buzz[i])
+                self.buzz_cache[i] = buzz[i]
+    
+            if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
+                self.OnRefreshTimer(force = True, fromDBThread = True)
+        startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB")
 
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
