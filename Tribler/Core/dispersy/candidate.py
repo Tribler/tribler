@@ -59,8 +59,8 @@ class Candidate(object):
                                   / --> inactive() --> \  / <--- inactive() <---- \
     (initial)                    /                      \/                         \
     OBSOLETE -> active() -> ACTIVE -> time-passes -> INACTIVE -> time-passes -> OBSOLETE
-                 \             /                        /                          /
-                   <------------------------- active() ----------------------------
+                                \                       /                          /
+                                  <---------- active() ----------------------------
     """
     class Timestamps(object):
         def __init__(self):
