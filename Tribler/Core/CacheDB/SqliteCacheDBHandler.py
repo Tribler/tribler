@@ -1668,6 +1668,9 @@ class TorrentDBHandler(BasicDBHandler):
         
         sql += ' Where '+where
         
+        if 'infohash' in value_name:
+            sql += " GROUP BY infohash"
+        
         if range:
             offset= range[0]
             limit = range[1] - range[0]
@@ -3110,10 +3113,14 @@ class VoteCastDBHandler(BasicDBHandler):
         self._updateVotes(channel_id)
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
         
-    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id):
+    def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
-        self._db.execute_write(remove_vote, (long(time()), channel_id, dispersy_id))
         
+        if redo:
+            deleted_at = None
+        else:
+            deleted_at = long(time())
+        self._db.execute_write(remove_vote, (deleted_at, channel_id, dispersy_id))
         self._updateVotes(channel_id)
     
     def get_latest_vote_dispersy_id(self, channel_id, voter_id):
@@ -3322,14 +3329,14 @@ class ChannelCastDBHandler(object):
         
         def updateNrTorrents():
             while True:
-                rows = self.getChannelNrTorrents()
+                rows = self.getChannelNrTorrents(50)
                 update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
-                self._db.executemany(update, rows, commit = False)
+                self._db.executemany(update, rows, commit = self.shouldCommit)
                 
                 #schedule a call for in 5 minutes
                 yield 300.0
                 
-                rows = self.getChannelNrTorrentsLatestUpdate()
+                rows = self.getChannelNrTorrentsLatestUpdate(50)
                 update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
                 self._db.executemany(update, rows, commit = self.shouldCommit)
                 
@@ -3400,9 +3407,18 @@ class ChannelCastDBHandler(object):
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
             
-        else: #insert channel
-            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
-            channel_id = self._db.fetchone(insert_channel, (_dispersy_cid, peer_id, name, description))
+        else:
+            get_channel = "SELECT id FROM Channels Where dispersy_cid = ?"
+            channel_id = self._db.fetchone(get_channel, (_dispersy_cid,))
+            
+            if channel_id:
+                update_channel = "UPDATE _Channels SET name = ?, description = ?, peer_id = ? WHERE dispersy_cid = ?"
+                self._db.execute_write(update_channel, (name, description, peer_id, _dispersy_cid), commit = self.shouldCommit)
+                
+            else:
+                #insert channel
+                insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name, description) VALUES (?, ?, ?, ?); SELECT last_insert_rowid();"
+                channel_id = self._db.fetchone(insert_channel, (_dispersy_cid, peer_id, name, description))
             
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_INSERT, channel_id)
             
@@ -3505,9 +3521,14 @@ class ChannelCastDBHandler(object):
         for channel_id in updated_channels.keys():         
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
             
-    def on_remove_torrent_from_dispersy(self, channel_id, dispersy_id):
+    def on_remove_torrent_from_dispersy(self, channel_id, dispersy_id, redo):
         sql = "UPDATE _ChannelTorrents SET deleted_at = ? WHERE channel_id = ? and dispersy_id = ?"
-        self._db.execute_write(sql, (long(time()), channel_id, dispersy_id), commit = self.shouldCommit)
+        
+        if redo:
+            deleted_at = None
+        else:
+            deleted_at = long(time())
+        self._db.execute_write(sql, (deleted_at, channel_id, dispersy_id), commit = self.shouldCommit)
         
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
@@ -3658,13 +3679,23 @@ class ChannelCastDBHandler(object):
             self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, infohash)
             
     #dispersy removing comments
-    def on_remove_comment_from_dispersy(self, channel_id, dispersy_id, infohash = None):
+    def on_remove_comment_from_dispersy(self, channel_id, dispersy_id, infohash = None, redo = False):
         sql = "UPDATE _Comments SET deleted_at = ? WHERE dispersy_id = ?"
-        self._db.execute_write(sql, (long(time()), dispersy_id), commit = self.shouldCommit)
         
-        self.notifier.notify(NTFY_COMMENTS, NTFY_DELETE, channel_id)
-        if infohash:
-            self.notifier.notify(NTFY_COMMENTS, NTFY_DELETE, infohash)
+        if redo:
+            deleted_at = None
+            self._db.execute_write(sql, (deleted_at, dispersy_id), commit = self.shouldCommit)
+            
+            self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, channel_id)
+            if infohash:
+                self.notifier.notify(NTFY_COMMENTS, NTFY_INSERT, infohash)
+        else:
+            deleted_at = long(time())
+            self._db.execute_write(sql, (deleted_at, dispersy_id), commit = self.shouldCommit)
+            
+            self.notifier.notify(NTFY_COMMENTS, NTFY_DELETE, channel_id)
+            if infohash:
+                self.notifier.notify(NTFY_COMMENTS, NTFY_DELETE, infohash)
         
     #dispersy receiving, modifying playlists
     def on_playlist_from_dispersy(self, channel_id, dispersy_id, peer_id, name, description):
@@ -3673,11 +3704,18 @@ class ChannelCastDBHandler(object):
 
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_INSERT, channel_id)
         
-    def on_remove_playlist_from_dispersy(self, channel_id, dispersy_id):
+    def on_remove_playlist_from_dispersy(self, channel_id, dispersy_id, redo):
         sql = "UPDATE _Playlists SET deleted_at = ? WHERE channel_id = ? and dipsersy_id = ?"
-        self._db.execute_write(sql, (long(time()), channel_id, dispersy_id), commit = self.shouldCommit)
         
-        self.notifier.notify(NTFY_PLAYLISTS, NTFY_DELETE, channel_id)
+        if redo:
+            deleted_at = None
+            self._db.execute_write(sql, (deleted_at, channel_id, dispersy_id), commit = self.shouldCommit)
+            self.notifier.notify(NTFY_PLAYLISTS, NTFY_INSERT, channel_id)
+            
+        else:
+            deleted_at = long(time())
+            self._db.execute_write(sql, (deleted_at, channel_id, dispersy_id), commit = self.shouldCommit)
+            self.notifier.notify(NTFY_PLAYLISTS, NTFY_DELETE, channel_id)
         
     def on_playlist_modification_from_dispersy(self, playlist_id, modification_type, modification_value, commit = None):
         if commit is None:
@@ -3690,7 +3728,7 @@ class ChannelCastDBHandler(object):
             self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
     
     def on_playlist_torrent(self, dispersy_id, playlist_dispersy_id, peer_id, infohash):
-        get_playlist = "SELECT id, channel_id FROM Playlists WHERE dispersy_id = ?"
+        get_playlist = "SELECT id, channel_id FROM _Playlists WHERE dispersy_id = ?"
         playlist_id, channel_id = self._db.fetchone(get_playlist, (playlist_dispersy_id, ))
         
         channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
@@ -3699,7 +3737,7 @@ class ChannelCastDBHandler(object):
         
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id, infohash)
         
-    def on_remove_playlist_torrent(self, channel_id, playlist_dispersy_id, infohash):
+    def on_remove_playlist_torrent(self, channel_id, playlist_dispersy_id, infohash, redo):
         get_playlist = "SELECT id FROM _Playlists WHERE dispersy_id = ? AND channel_id = ?"
         playlist_id = self._db.fetchone(get_playlist, (playlist_dispersy_id, channel_id))
                 
@@ -3709,7 +3747,12 @@ class ChannelCastDBHandler(object):
             
             if channeltorrent_id:
                 sql = "UPDATE _PlaylistTorrents SET deleted_at = ? WHERE playlist_id = ? AND channeltorrent_id = ?"
-                self._db.execute_write(sql, (long(time()), playlist_id, channeltorrent_id), commit = self.shouldCommit)
+                
+                if redo:
+                    deleted_at = None
+                else:
+                    deleted_at = long(time())
+                self._db.execute_write(sql, (deleted_at, playlist_id, channeltorrent_id), commit = self.shouldCommit)
             
             self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
         
@@ -3740,9 +3783,14 @@ class ChannelCastDBHandler(object):
         sql =  "UPDATE _ChannelMetaData SET prev_modification = ? WHERE prev_modification = ?;"
         self._db.execute_write(sql, (dispersy_id, buffer(mid_global_time)), commit = commit)
         
-    def on_remove_metadata_from_dispersy(self,channel_id, dispersy_id):
+    def on_remove_metadata_from_dispersy(self,channel_id, dispersy_id, redo):
         sql = "UPDATE _ChannelMetaData SET deleted_at = ? WHERE dispersy_id = ? AND channel_id = ?"
-        self._db.execute_write(sql, (long(time()), dispersy_id, channel_id))
+        
+        if redo:
+            deleted_at = None
+        else:
+            deleted_at = long(time())
+        self._db.execute_write(sql, (deleted_at, dispersy_id, channel_id))
         
     def on_moderation(self, channel_id, dispersy_id, peer_id, by_peer_id, cause, message, timestamp, severity):
         sql = "INSERT OR REPLACE INTO _Moderations (dispersy_id, channel_id, peer_id, by_peer_id, message, cause, time_stamp, severity) VALUES (?,?,?,?,?,?,?,?)"
@@ -3750,9 +3798,13 @@ class ChannelCastDBHandler(object):
         
         self.notifier.notify(NTFY_MODERATIONS, NTFY_INSERT, channel_id)
         
-    def on_remove_moderation(self, channel_id, dispersy_id):
+    def on_remove_moderation(self, channel_id, dispersy_id, redo):
         sql = "UPDATE _Moderations SET deleted_at = ? WHERE dispersy_id = ? AND channel_id = ?"
-        self._db.execute_write(sql, (long(time()), dispersy_id, channel_id))
+        if redo:
+            deleted_at = None
+        else:
+            deleted_at = long(time())
+        self._db.execute_write(sql, (deleted_at, dispersy_id, channel_id))
         
     def on_mark_torrent(self, channel_id, dispersy_id, global_time, peer_id, infohash, type, timestamp):
         channeltorrent_id = self.addOrGetChannelTorrentID(channel_id, infohash)
@@ -3777,9 +3829,14 @@ class ChannelCastDBHandler(object):
         self._db.execute_write(sql, (dispersy_id, global_time, channeltorrent_id, peer_id, type, timestamp), commit = self.shouldCommit)
         self.notifier.notify(NTFY_MARKINGS, NTFY_INSERT, channeltorrent_id)
 
-    def on_remove_mark_torrent(self, channel_id, dispersy_id):
+    def on_remove_mark_torrent(self, channel_id, dispersy_id, redo):
         sql = "UPDATE _TorrentMarkings SET deleted_at = ? WHERE dispersy_id = ?"
-        self._db.execute_write(sql, (long(time()), dispersy_id))
+        
+        if redo:
+            deleted_at = None
+        else:
+            deleted_at = long(time())
+        self._db.execute_write(sql, (deleted_at, dispersy_id))
         
     def on_dynamic_settings(self, channel_id):
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_STATE, channel_id)
@@ -3812,11 +3869,19 @@ class ChannelCastDBHandler(object):
             sql = "select max(ChannelTorrents.time_stamp), count(ChannelTorrents.torrent_id) from ChannelTorrents where channel_id==? LIMIT 1"
         return self._db.fetchone(sql, (channel_id,))
     
-    def getChannelNrTorrents(self):
+    def getChannelNrTorrents(self, limit = None):
+        if limit:
+            sql = "select count(torrent_id), channel_id from Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <>  -1 GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"
+            return self._db.fetchall(sql, (limit, ))
+        
         sql = "select count(torrent_id), channel_id from Channels, ChannelTorrents WHERE Channels.id = ChannelTorrents.channel_id AND dispersy_cid <>  -1 GROUP BY channel_id"
         return self._db.fetchall(sql)
     
-    def getChannelNrTorrentsLatestUpdate(self):
+    def getChannelNrTorrentsLatestUpdate(self, limit = None):
+        if limit:
+            sql = "select count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id from Channels, ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1 GROUP BY channel_id ORDER BY RANDOM() LIMIT ?"
+            return self._db.fetchall(sql, (limit, ))
+    
         sql = "select count(CollectedTorrent.torrent_id), max(ChannelTorrents.time_stamp), channel_id from Channels, ChannelTorrents, CollectedTorrent WHERE ChannelTorrents.torrent_id = CollectedTorrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND dispersy_cid == -1 GROUP BY channel_id"
         return self._db.fetchall(sql)
     
@@ -4070,6 +4135,10 @@ class ChannelCastDBHandler(object):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent, ChannelTorrents WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND channel_id = ? And ChannelTorrents.id NOT IN (Select channeltorrent_id From PlaylistTorrents) ORDER BY time_stamp DESC"
         results = self._db.fetchall(sql, (channel_id,))
         return self.__fixTorrents(keys, results)
+    
+    def getPlaylistForTorrent(self, channeltorrent_id, keys):
+        sql = "SELECT " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists, PlaylistTorrents WHERE Playlists.id = PlaylistTorrents.playlist_id AND channeltorrent_id = ?"
+        return self._db.fetchone(sql, (channeltorrent_id, ))
     
     def getPlaylistsForTorrents(self, torrent_ids, keys):
         torrent_ids = " ,".join(map(str, torrent_ids))

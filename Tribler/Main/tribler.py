@@ -123,6 +123,7 @@ class ABCApp():
         self.error = None
         self.last_update = 0
         self.ready = False
+        self.frame = None
 
         self.guiserver = GUITaskQueue.getInstance()
         self.said_start_playback = False
@@ -302,7 +303,7 @@ class ABCApp():
         startWorker(None, db_thread)
         
         # initialize torrents using guiserverthread
-        self.guiserver.add_task(self.loadSessionCheckpoint)
+        self.guiserver.add_task(self.loadSessionCheckpoint, 5.0)
 
     # ProxyService 90s Test_
 #    def start_90s_dl(self, subject, changeType, objectID, *args):
@@ -853,6 +854,7 @@ class ABCApp():
     @forceWxThread
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
         disp = Dispersy.get_instance()
+        disp.attach_progress_handler(self.frame.progressHandler)
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
                
     @forceWxThread     
@@ -895,7 +897,9 @@ class ABCApp():
             diff = time() - session_shutdown_start
             print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
             sleep(3)
-            
+        print >>sys.stderr,"main ONEXIT: Session is shutdown"
+
+        
 #        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"
 #        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
 #        peerdb._db.execute_read('VACUUM')
@@ -1127,10 +1131,11 @@ def run(params = None):
             # Launch first abc single instance
             app = wx.PySimpleApp(redirect = False)
             abc = ABCApp(params, single_instance_checker, installdir)
-            app.SetTopWindow(abc.frame)
-            abc.frame.set_wxapp(app)
+            if abc.frame:
+                app.SetTopWindow(abc.frame)
+                abc.frame.set_wxapp(app)
             
-            app.MainLoop()
+                app.MainLoop()
 
             # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
             abc.OnExit()

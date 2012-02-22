@@ -141,7 +141,8 @@ class ThreadedReactor(threading.Thread):
     
     """
     def __init__(self, task_interval=0.1, floodbarrier_active=True):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name = "ThreadedReactor")
+        
         self.setDaemon(True)
         
         self.stop_flag = False

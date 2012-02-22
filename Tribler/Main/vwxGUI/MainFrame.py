@@ -58,6 +58,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
+from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -449,16 +450,7 @@ class MainFrame(wx.Frame):
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
                     videoplayer = VideoPlayer.getInstance()
                     result = videoplayer.start_and_play(tdef,dscfg)
-    
-                    # 02/03/09 boudewijn: feedback to the user when there
-                    # are no playable files in the torrent
-                    if not result:
-                        dlg = wx.MessageDialog(self,
-                                   self.utility.lang.get("invalid_torrent_no_playable_files_msg"),
-                                   self.utility.lang.get("invalid_torrent_no_playable_files_title"),
-                                   wx.OK|wx.ICON_ERROR)
-                        dlg.ShowModal()
-                        dlg.Destroy()
+                    
                 else:
                     if selectedFiles:
                         dscfg.set_selected_files(selectedFiles)
@@ -598,8 +590,11 @@ class MainFrame(wx.Frame):
                 self.upgradeCallback()
 
                 # Boudewijn: start some background downloads to
-                # upgrade on this seperate thread
-                self._upgradeVersion(my_version, self.curr_version, info)
+                # upgrade on this separate thread
+                if len(info) > 0:
+                    self._upgradeVersion(my_version, self.curr_version, info)
+                else:
+                    self._manualUpgrade(my_version, self.curr_version, self.update_url)
             
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()
@@ -724,6 +719,11 @@ class MainFrame(wx.Frame):
                     return (1.0, False)
 
                 download.set_state_callback(state_callback)
+    
+    @forceWxThread
+    def _manualUpgrade(self, my_version, latest_version, url):
+        dialog = wx.MessageDialog(self, 'There is a new version of Tribler.\nYour version:\t\t\t\t%s\nLatest version:\t\t\t%s\n\nPlease visit %s to upgrade.'%(my_version, latest_version, url), 'New version of Tribler is available', wx.OK|wx.ICON_INFORMATION)
+        dialog.ShowModal()
             
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
@@ -812,13 +812,10 @@ class MainFrame(wx.Frame):
             #Niels, 2011-06-17: why pause the video? This does not make any sense                                                                                                               
             #videoplayer = VideoPlayer.getInstance()
             #videoplayer.pause_playback() # when minimzed pause playback
-
-            if (self.utility.config.Read('mintray', "int") > 0
-                and self.tbicon is not None):
+            
+            if self.utility.config.Read('mintray', "int") == 1:
                 self.tbicon.updateIcon(True)
-                
-                #Niels, 2011-02-21: on Win7 hiding window is not consistent with default behaviour 
-                #self.Show(False)
+                self.Show(False)
                 
             self.GUIupdate = False
         else:
@@ -998,6 +995,9 @@ class MainFrame(wx.Frame):
             
         wx.CallAfter(do_gui)
 
+    def progressHandler(self, title, message, maximum):
+        return ThreadSafeProgressDialog(title, message, maximum, self, wx.PD_APP_MODAL|wx.PD_ELAPSED_TIME|wx.PD_ESTIMATED_TIME|wx.PD_REMAINING_TIME|wx.PD_AUTO_HIDE)
+
     def onUPnPError(self,upnp_type,listenport,error_type,exc=None,listenproto='TCP'):
 
         if error_type == 0:
@@ -1094,6 +1094,7 @@ class MainFrame(wx.Frame):
     def quit(self):
         if self.wxapp is not None:
             self.wxapp.ExitMainLoop()
+            self.wxapp.Exit()
 
      
      

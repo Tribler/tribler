@@ -79,7 +79,12 @@ class Database(Singleton):
             # the 'option' table probably hasn't been created yet
             version = u"0"
 
-        self.check_database(version)
+        self._database_version = self.check_database(version)
+        assert isinstance(self._database_version, (int, long))
+
+    @property
+    def database_version(self):
+        return self._database_version
 
     def file_path(self):
         """

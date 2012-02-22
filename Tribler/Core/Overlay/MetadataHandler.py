@@ -317,7 +317,16 @@ class MetadataHandler:
 
 
             return self.do_send_metadata(permid, torrent, selversion)
-        else:    # deleted before sending it
+        
+        else:
+            file_name = get_collected_torrent_filename(infohash)
+            torrent_path2 = os.path.join(self.torrent_dir, file_name)
+            
+            samefile = os.path.abspath(torrent_path) == os.path.abspath(torrent_path2)
+            if os.path.exists(torrent_path2) and not samefile:
+                return self.read_and_send_metadata(permid, infohash, torrent_path2, selversion)
+            
+            # deleted before sending it
             self.torrent_db.deleteTorrent(infohash, delete_file=True, commit=True)
             if DEBUG:
                 print >> sys.stderr,"metadata: GET_METADATA: no torrent data to send"

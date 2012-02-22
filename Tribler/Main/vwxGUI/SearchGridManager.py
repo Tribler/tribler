@@ -544,23 +544,27 @@ class TorrentManager:
                                 item.query_permids = set()
                             item.query_permids.update(remoteItem['query_permids'])
                             
-                            if isinstance(item, RemoteTorrent):
-                                #Maybe update channel?
-                                if remoteItem['channel']:
-                                    if item.hasChannel():
-                                        this_rating = remoteItem['channel'].nr_favorites - remoteItem['channel'].nr_spam
-                                        current_rating = item.channel.nr_favorites - item.channel.nr_spam
-                                        if this_rating > current_rating:
-                                            item.updateChannel(remoteItem['channel'])
-                                    else:
+                            if remoteItem['channel']:
+                                if isinstance(item, RemoteTorrent):
+                                    self.hits.remove(item) #Replace this item with a new result with a channel
+                                    break
+                                
+                                #Maybe update channel?    
+                                if isinstance(item, RemoteChannelTorrent):
+                                    this_rating = remoteItem['channel'].nr_favorites - remoteItem['channel'].nr_spam
+                                    current_rating = item.channel.nr_favorites - item.channel.nr_spam
+                                    if this_rating > current_rating:
                                         item.updateChannel(remoteItem['channel'])
                                 
-                                hitsUpdated = True
+                                    hitsUpdated = True
                             known = True
                             break
                     
                     if not known:
-                        remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
+                        if remoteItem.get('channel', False):
+                            remoteHit = RemoteChannelTorrent(**getValidArgs(RemoteChannelTorrent.__init__, remoteItem))
+                        else:
+                            remoteHit = RemoteTorrent(**getValidArgs(RemoteTorrent.__init__, remoteItem))
                         remoteHit.torrent_db = self.torrent_db
                         remoteHit.channelcast_db = self.channelcast_db
                         remoteHit.assignRelevance(remoteItem['matches'])
@@ -1635,16 +1639,11 @@ class ChannelManager:
         self.do_vote(channel_id, 0)
         
     def do_vote(self, channel_id, vote, timestamp = None):
-        if not timestamp:
-            timestamp = int(time())
-        
         dispersy_cid = self.channelcast_db.getDispersyCIDFromChannelId(channel_id)
         dispersy_cid = str(dispersy_cid)
+        
         if len(dispersy_cid) == 20:
-            for community in self.dispersy.get_communities():
-                if isinstance(community, AllChannelCommunity):
-                    community._disp_create_votecast(dispersy_cid, vote, timestamp)
-                    break
+            self.do_vote_cid(dispersy_cid, vote, timestamp)
             
         elif vote == 2:
             self.votecastdb.subscribe(channel_id)
@@ -1653,6 +1652,17 @@ class ChannelManager:
         else:
             self.votecastdb.unsubscribe(channel_id)
     
+    @forceDispersyThread
+    def do_vote_cid(self, dispersy_cid, vote, timestamp = None):
+        if not timestamp:
+            timestamp = int(time())
+        
+        if len(dispersy_cid) == 20:
+            for community in self.dispersy.get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    community._disp_create_votecast(dispersy_cid, vote, timestamp)
+                    break
+                
     @forceDispersyThread
     def markTorrent(self, channel_id, infohash, type):
         community = self._disp_get_community_from_channel_id(channel_id)

@@ -125,19 +125,20 @@ class UserCallbackHandler:
             if len(contentdests) > 1:
                 def remove_if_empty(basedir):
                     #first try to remove sub-dirs
-                    files = os.listdir(basedir)
-                    for filename in files:
-                        absfilename = os.path.join(basedir, filename)
-                        if os.path.isdir(absfilename) and absfilename in contentdirs:
-                            remove_if_empty(absfilename)
-                    
-                    #see if we are empty
-                    files = os.listdir(basedir)
-                    #ignore thumbs.db files
-                    files = [file for file in files if not file.lower().endswith('thumbs.db')]
-                    
-                    if len(files) == 0:
-                        os.rmdir(basedir)
+                    if os.path.isdir(basedir):
+                        files = os.listdir(basedir)
+                        for filename in files:
+                            absfilename = os.path.join(basedir, filename)
+                            if os.path.isdir(absfilename) and absfilename in contentdirs:
+                                remove_if_empty(absfilename)
+                        
+                        #see if we are empty
+                        files = os.listdir(basedir)
+                        #ignore thumbs.db files
+                        files = [file for file in files if not file.lower().endswith('thumbs.db')]
+                        
+                        if len(files) == 0:
+                            os.rmdir(basedir)
                 
                 basedir = os.path.commonprefix(contentdests)
                 remove_if_empty(basedir)

@@ -548,6 +548,11 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """ Returns the piece size.
         @return A number of bytes. """
         return self.input['piece length']
+    
+    def get_nr_pieces(self):
+        """ Returns the number of pieces.
+        @return A number of pieces. """
+        return len(self.metainfo['info']['pieces']) / 20
 
     #
     # ClosedSwarm fields

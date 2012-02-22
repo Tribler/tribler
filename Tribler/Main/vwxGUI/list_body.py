@@ -852,7 +852,29 @@ class AbstractListBody():
         
         wx.CallAfter(self.CreateItems)
         self.Bind(wx.EVT_IDLE, self.OnIdle)
-        
+    
+    @warnWxThread
+    def CreateItem(self, key):
+        if not key in self.items:
+            for curdata in self.data:
+                if len(curdata) > 3:
+                    thiskey, item_data, original_data, create_method = curdata
+                else:
+                    thiskey, item_data, original_data = curdata
+                    create_method = ListItem
+                
+                if key == thiskey:
+                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
+                    
+                    if self.messagePanel.IsShown():
+                        before = len(self.vSizer.GetChildren()) - 1
+                        self.vSizer.Insert(before, self.items[key], 0, wx.EXPAND|wx.BOTTOM, 1)
+                    else:
+                        self.vSizer.Add(self.items[key], 0, wx.EXPAND|wx.BOTTOM, 1)
+                    
+                    self.OnChange()
+                    break
+    
     @warnWxThread
     def CreateItems(self, nr_items_to_create = LIST_ITEM_BATCH_SIZE, nr_items_to_add = None):
         if not nr_items_to_add:
@@ -976,13 +998,17 @@ class AbstractListBody():
     def Select(self, key, raise_event = True):
         self.DeselectAll()
         
+        #check if we need to create this item on the spot
+        if not key in self.items:
+            self.CreateItem(key)
+            
         if key in self.items:
             if raise_event:
                 self.items[key].OnClick(None)
             else:
                 self.items[key].expanded = True
                 self.cur_expanded = self.items[key]
-                
+            
             self.items[key].ShowSelected()
     
     @warnWxThread

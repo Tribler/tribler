@@ -20,6 +20,7 @@ from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
 from Tribler.Main.vwxGUI import forceDBThread
 from Tribler.Main.Dialogs.MoveTorrents import MoveTorrents
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 
 class SettingsDialog(wx.Dialog):
     def __init__(self):
@@ -49,6 +50,7 @@ class SettingsDialog(wx.Dialog):
                              'batchstop',\
                              'batchmove',\
                              'use_bundle_magic',\
+                             'minimize_to_tray',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
                              'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3']
 
@@ -105,8 +107,8 @@ class SettingsDialog(wx.Dialog):
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
         
-        self.elements['batchstart'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(True))
-        self.elements['batchstop'].Bind(wx.EVT_BUTTON, lambda event: self.OnMultiple(False))
+        self.elements['batchstart'].Bind(wx.EVT_BUTTON, self.OnMultiple)
+        self.elements['batchstop'].Bind(wx.EVT_BUTTON, self.OnMultiple)
         self.elements['batchmove'].Bind(wx.EVT_BUTTON, self.OnMultipleMove)
         
         self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
@@ -162,6 +164,12 @@ class SettingsDialog(wx.Dialog):
         
         self.elements['use_bundle_magic'].SetValue(self.utility.config.Read('use_bundle_magic', "boolean"))
         
+        if sys.platform != "darwin":
+            min_to_tray =  self.utility.config.Read('mintray', "int") == 1
+            self.elements['minimize_to_tray'].SetValue(min_to_tray)
+        else:
+            self.elements['minimize_to_tray'].Enabled(False)
+        
         self.elements['t4t0'].SetLabel(self.utility.lang.get('no_leeching'))
         self.elements['t4t1'].SetLabel(self.utility.lang.get('unlimited_seeding'))
         self.elements['t4t2'].SetLabel(self.utility.lang.get('seed_sometime'))
@@ -171,7 +179,6 @@ class SettingsDialog(wx.Dialog):
         self.elements['g2g1'].SetLabel(self.utility.lang.get('boost__reputation'))
         self.elements['g2g2'].SetLabel(self.utility.lang.get('seed_sometime'))
         self.elements['g2g3'].SetLabel(self.utility.lang.get('no_seeding'))
-        
         
         t4t_option = self.utility.config.Read('t4t_option', 'int')
         self.elements['t4t%d'%t4t_option].SetValue(True)
@@ -321,6 +328,9 @@ class SettingsDialog(wx.Dialog):
             if valport != self.currentPortValue:
                 self.currentPortValue = self.elements['firewallValue'].GetValue()
                 self.utility.config.Write('minport', valport)
+                self.utility.config.Write('minport', valport + 10)
+                self.utility.config.Write('dispersy_port', valport - 1)
+                
                 self.guiUtility.set_port_number(valport) 
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
@@ -329,21 +339,29 @@ class SettingsDialog(wx.Dialog):
             if showSave != self.defaultDLConfig.get_show_saveas():
                 self.defaultDLConfig.set_show_saveas(showSave)
                 self.saveDefaultDownloadConfig()
-                
+            
+            state_dir = self.utility.session.get_state_dir()
+            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
-                self.saveDefaultDownloadConfig()
+                scfg.set_proxyservice_dir(os.path.join(valdir, PROXYSERVICE_DESTDIR))
+                scfg.set_subtitles_collecting_dir(os.path.join(valdir, 'collected_subtitles_files'))
                 
+                self.saveDefaultDownloadConfig()
                 self.moveCollectedTorrents(self.currentDestDir, valdir)
                 restart = True
                 
             useBundleMagic = self.elements['use_bundle_magic'].IsChecked()
             if useBundleMagic != self.utility.config.Read('use_bundle_magic', "boolean"):
                 self.utility.config.Write('use_bundle_magic', useBundleMagic, "boolean")
-
-            state_dir = self.utility.session.get_state_dir()
-            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
-            scfg = SessionStartupConfig.load(cfgfilename)
+                
+            curMintray =  self.utility.config.Read('mintray', "int")
+            minimizeToTray = 1 if self.elements['minimize_to_tray'].IsChecked() else 0 
+            if minimizeToTray != curMintray:
+                self.utility.config.Write('mintray', minimizeToTray, "int")
+            
             for target in [scfg,self.utility.session]:
                 try:
                     target.set_nickname(self.elements['myNameField'].GetValue())
@@ -436,25 +454,34 @@ class SettingsDialog(wx.Dialog):
         else:
             pass
     
-    @forceDBThread
-    def OnMultiple(self, start):
-        choices = []
-        dstates = []
-        infohashes = []
-        _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
+    def OnMultiple(self, event):
+        button = event.GetEventObject()
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
         
-        def sort_by_name(a, b):
-            return cmp(a.name, b.name)
+        start = button == self.elements['batchstart']
         
-        downloads.sort(cmp = sort_by_name)
-        for item in downloads:
-            started = 'active' in item.state
-            if start != started:
-                choices.append(item.name)
-                dstates.append(item.ds)
-                infohashes.append(item.infohash)
+        def do_db():
+            choices = []
+            dstates = []
+            infohashes = []
+            _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
+        
+            def sort_by_name(a, b):
+                return cmp(a.name, b.name)
+        
+            downloads.sort(cmp = sort_by_name)
+            for item in downloads:
+                started = 'active' in item.state
+                if start != started:
+                    choices.append(item.name)
+                    dstates.append(item.ds)
+                    infohashes.append(item.infohash)
+            
+            return choices, dstates, infohashes
                 
-        def do_gui(choices, dstates, infohashes):
+        def do_gui(delayedResult):
+            choices, dstates, infohashes = delayedResult.get()
             user_download_choice = UserDownloadChoice.get_singleton()
             
             if len(choices) > 0:
@@ -500,33 +527,44 @@ class SettingsDialog(wx.Dialog):
                 dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
                 dlg.ShowModal()
             dlg.Destroy()
+        
+        cancelWorker("OnMultiple")
+        startWorker(do_gui, do_db, uId = "OnMultiple")
+        
+    def OnMultipleMove(self, event):
+        button = event.GetEventObject()
+        button.Enable(False)
+        wx.CallLater(5000, button.Enable, True)
+        
+        start = button == self.elements['batchstart']
+        
+        def do_db():
+            choices = []
+            dstates = []
+            _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
             
-        wx.CallAfter(do_gui, choices, dstates, infohashes)
+            def sort_by_name(a, b):
+                return cmp(a.name, b.name)
+            
+            downloads.sort(cmp = sort_by_name)
+            for item in downloads:
+                if item.ds:
+                    choices.append(item.name)
+                    dstates.append(item.ds.get_download())
+            
+            return choices, dstates
         
-    @forceDBThread
-    def OnMultipleMove(self, event = None):
-        choices = []
-        dstates = []
-        _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
-        
-        def sort_by_name(a, b):
-            return cmp(a.name, b.name)
-        
-        downloads.sort(cmp = sort_by_name)
-        for item in downloads:
-            if item.ds:
-                choices.append(item.name)
-                dstates.append(item.ds.get_download())
-        
-        def do_gui(choices, dstates):
+        def do_gui(delayedResult):
+            choices, dstates = delayedResult.get()
+            
             dlg = MoveTorrents(self, choices, dstates)
             if dlg.ShowModal() == wx.ID_OK:
                 selectedDownloads, new_dir, moveFiles, ignoreIfExists = dlg.GetSettings()
                 for download in selectedDownloads:
                     self.moveDownload(download, new_dir, moveFiles, ignoreIfExists)
             dlg.Destroy()
-            
-        wx.CallAfter(do_gui, choices, dstates)
+        
+        startWorker(do_gui, do_db, uId="OnMultipleMove")
         
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():
@@ -593,8 +631,8 @@ class SettingsDialog(wx.Dialog):
             self.rename_or_merge(old_dirsf, new_dirsf)
         
             # ProxyService_
-            old_dirdh = os.path.join(old_dir, 'proxyservice')
-            new_dirdh = os.path.join(new_dir, 'proxyservice')
+            old_dirdh = os.path.join(old_dir, PROXYSERVICE_DESTDIR)
+            new_dirdh = os.path.join(new_dir, PROXYSERVICE_DESTDIR)
             self.rename_or_merge(old_dirdh, new_dirdh)
             
         atexit.register(move, old_dir, new_dir)

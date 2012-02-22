@@ -14,7 +14,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import forceWxThread
 
 class CreateTorrent(wx.Dialog):
-    def __init__(self, parent, configfile, suggestedTrackers, toChannel = False):
+    def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel = False):
         wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(500,200))
         self.guiutility = GUIUtility.getInstance()
         self.toChannel = toChannel
@@ -45,13 +45,17 @@ class CreateTorrent(wx.Dialog):
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        self.foundFilesText = StaticText(self, -1, 'No files selected yet')
+        self.foundFilesText = StaticText(self, -1, 'Please select a file or files first')
         vSizer.Add(self.foundFilesText, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         self.combineRadio = wx.RadioButton(self, -1, 'Combine files into a single .torrent', style = wx.RB_GROUP)
         self.combineRadio.Bind(wx.EVT_RADIOBUTTON, self.OnCombine)
+        self.combineRadio.Enable(False)
+        
         self.sepRadio = wx.RadioButton(self, -1, 'Create separate .torrent for every file')
         self.sepRadio.Bind(wx.EVT_RADIOBUTTON, self.OnCombine)
+        self.sepRadio.Enable(False)
+        
         vSizer.Add(self.combineRadio, 0, wx.EXPAND|wx.BOTTOM, 3)
         vSizer.Add(self.sepRadio, 0, wx.EXPAND|wx.BOTTOM, 3)
         
@@ -88,7 +92,8 @@ class CreateTorrent(wx.Dialog):
         
         abbrev_mb = " " + self.guiutility.utility.lang.get('MB')
         abbrev_kb = " " + self.guiutility.utility.lang.get('KB')
-        piece_choices = [self.guiutility.utility.lang.get('automatic'), 
+        piece_choices = [self.guiutility.utility.lang.get('automatic'),
+                         '4' + abbrev_mb,  
                          '2' + abbrev_mb, 
                          '1' + abbrev_mb, 
                          '512' + abbrev_kb, 
@@ -97,6 +102,7 @@ class CreateTorrent(wx.Dialog):
                          '64' + abbrev_kb, 
                          '32' + abbrev_kb]
         self.pieceChoice = wx.Choice(self, -1, choices = piece_choices)
+        self.pieceChoice.SetSelection(0)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, 'Piecesize'), 1)
         hSizer.Add(self.pieceChoice)
@@ -122,8 +128,17 @@ class CreateTorrent(wx.Dialog):
         self.createdTorrents = []
         self.cancelEvent = Event()
         
+        self.filehistory = wx.FileHistory(1)
+        self.fileconfig = wx.FileConfig(appName = "Tribler", localFilename = fileconfigfile)
+        self.filehistory.Load(self.fileconfig)
+        
+        if self.filehistory.GetCount() > 0:
+            self.latestFile = self.filehistory.GetHistoryFile(0)
+        else:
+            self.latestFile = ''
+        
     def OnBrowse(self, event):
-        dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE)
+        dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE, defaultDir = self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             dlg.Destroy()
@@ -133,7 +148,7 @@ class CreateTorrent(wx.Dialog):
             dlg.Destroy()
             
     def OnBrowseDir(self, event):
-        dlg = wx.DirDialog(self, "Please a directory.", style = wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(self, "Please a directory.", style = wx.DD_DIR_MUST_EXIST, defaultPath = self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = [dlg.GetPath()]
             dlg.Destroy()
@@ -208,9 +223,6 @@ class CreateTorrent(wx.Dialog):
         if dlg.ShowModal() == wx.ID_YES:
             dlg.Destroy()
             
-            self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
-            self.progressDlg.cur = 0
-            
             params = {}
             params['comment'] = self.commentList.GetValue()
             params['created by'] = '%s version: %s'%(self.guiutility.utility.lang.get('title'), self.guiutility.utility.lang.get('version'))
@@ -222,6 +234,14 @@ class CreateTorrent(wx.Dialog):
                 self.trackerHistory.AddFileToHistory(tracker)
             self.trackerHistory.Save(self.config)
             self.config.Flush()
+            
+            if len(self.selectedPaths) > 1:
+                basedir = os.path.commonprefix(self.selectedPaths)
+            else:
+                basedir = os.path.dirname(self.selectedPaths[0])
+            self.filehistory.Save(self.fileconfig)
+            self.fileconfig.Flush() 
+            
             
             params['announce'] = trackers[0]
             params['announce-list'] = [trackers]
@@ -235,9 +255,12 @@ class CreateTorrent(wx.Dialog):
             params['createmerkletorrent'] = False
             params['torrentsigkeypairfilename'] = False
             params['thumb'] = False
-            
-            piece_length_list = [0, 2**21, 2**20, 2**19, 2**18, 2**17, 2**16, 2**15]
-            params['piece length'] = piece_length_list[self.pieceChoice.GetSelection()]
+
+            piece_length_list = [0, 2**22 ,2**21, 2**20, 2**19, 2**18, 2**17, 2**16, 2**15]
+            if self.pieceChoice.GetSelection() != wx.NOT_FOUND:
+                params['piece length'] = piece_length_list[self.pieceChoice.GetSelection()]
+            else:
+                params['piece length'] = 0
             
             def do_gui():
                 if self.cancelEvent.isSet():
@@ -254,10 +277,34 @@ class CreateTorrent(wx.Dialog):
                         make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
                         
                 wx.CallAfter(do_gui)
+                
+            def start():
+                self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                self.progressDlg.cur = 0
+                
+                self.guiserver = GUITaskQueue.getInstance()
+                self.guiserver.add_task(create_torrents)
+                
+            if params['piece length']:
+                total_size = 0
+                if self.combineRadio.GetValue():
+                    for path in self.selectedPaths:
+                        total_size += os.path.getsize(path)
+                else:
+                    for path in self.selectedPaths:
+                        total_size = max(total_size, os.path.getsize(path))
                         
-            self.guiserver = GUITaskQueue.getInstance()
-            self.guiserver.add_task(create_torrents)
-            
+                nrPieces = total_size / params['piece length']
+                if nrPieces > 2500:
+                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\nThis is more than the recommended max 2500 pieces.\nDo you want to continue?"%nrPieces, "Are you sure?", style = wx.YES_NO|wx.ICON_QUESTION)
+                    if dlg2.ShowModal() == wx.ID_YES:
+                        start()
+                    dlg2.Destroy()
+                    
+                else:
+                    start()
+            else:
+                start()
         else:
             dlg.Destroy()
     

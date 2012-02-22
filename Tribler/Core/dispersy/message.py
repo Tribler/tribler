@@ -376,7 +376,23 @@ class Packet(MetaObject.Implementation):
     packet_id = property(__get_packet_id, __set_packet_id)
 
     def load_message(self):
-        return self._meta.community.get_conversion(self._packet[:22]).decode_message(LoopbackCandidate(), self._packet)
+        # find associated conversion
+        try:
+            conversion = self._meta.community.get_conversion(self._packet[:22])
+        except KeyError:
+            if __debug__: dprint("unable to convert a ", len(self._packet), " byte packet (unknown conversion)", level="warning")
+            return None
+
+        # attempt conversion
+        try:
+            message = conversion.decode_message(LoopbackCandidate(), self._packet)
+
+        except (DropPacket, DelayPacket), exception:
+            if __debug__: dprint("unable to convert a ", len(self._packet), " byte packet (", exception, ")", exception=True, level="warning")
+            return None
+
+        message.packet_id = self._packet_id
+        return message
 
     def __str__(self):
         return "<%s.%s %s %dbytes>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))

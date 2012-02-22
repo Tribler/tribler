@@ -67,6 +67,7 @@ if __name__ == "__main__":
     sscfg.set_megacache(False)
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
+    sscfg.set_dispersy(False)
     
     s = Session(sscfg)
 
@@ -129,8 +130,9 @@ if __name__ == "__main__":
         # File source
         source = open(config['source'],"rb")
         dscfg.set_video_ratelimit(tdef.get_bitrate())
-        
-    dscfg.set_video_source(source)
+    
+    restartstatefilename = config['name']+'.restart' 
+    dscfg.set_video_source(source, restartstatefilename=restartstatefilename)
 
     dscfg.set_max_uploads(config['nuploads'])
 

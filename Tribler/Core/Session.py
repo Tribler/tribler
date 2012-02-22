@@ -878,7 +878,7 @@ class Session(SessionRuntimeConfig):
                     self.lm.rawserver_nonfatalerrorfunc(e)
 
             # Checkpoint all Downloads and stop NetworkThread
-            if DEBUG:
+            if DEBUG or stop:
                 print >>sys.stderr,"Session: checkpoint_shutdown"
             self.lm.checkpoint(stop=stop,checkpoint=checkpoint,gracetime=gracetime)
         finally:

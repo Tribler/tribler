@@ -370,6 +370,9 @@ class DownloadImpl:
             infohash = self.tdef.get_infohash() 
             pstate = self.network_get_persistent_state()
             if self.sd is not None:
+                if DEBUG:
+                    print >> sys.stderr, "DownloadImpl: network_stop: engineresumedata from sd"
+                
                 pstate['engineresumedata'] = self.sd.shutdown()
                 self.sd = None
                 self.pstate_for_restart = pstate
@@ -387,7 +390,9 @@ class DownloadImpl:
                     # now, at shutdown. In other words, it was never active
                     # in this session and the pstate_for_restart still says 
                     # HASHCHECK.
-                    pstate['engineresumedata'] = self.pstate_for_restart['engineresumedata'] 
+                    pstate['engineresumedata'] = self.pstate_for_restart['engineresumedata']
+                elif DEBUG:
+                    print >> sys.stderr, "DownloadImpl: network_stop: Could not reuse engineresumedata as pstart_for_restart is None"
             
             # Offload the removal of the content and other disk cleanup to another thread
             if removestate:
@@ -533,7 +538,12 @@ class DownloadImpl:
         try:
             pstate = self.network_get_persistent_state() 
             if self.sd is None:
-                resdata = None
+                #Niels: if sd is None, then use pstart_for_restart if present
+                #similar behavior to network_stop
+                if self.pstate_for_restart is not None:
+                    resdata = self.pstate_for_restart['engineresumedata']
+                else:
+                    resdata = None
             else:
                 resdata = self.sd.checkpoint()
             pstate['engineresumedata'] = resdata

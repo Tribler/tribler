@@ -21,7 +21,6 @@ from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 from Tribler.Main.vwxGUI.list_header import ChannelOnlyHeader
-from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from shutil import copyfile
 
 DEBUG = False
@@ -87,10 +86,10 @@ class ChannelManager():
             
             if self.list.channel.isDispersy():
                 nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(self.list.channel)
-                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel)
+                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(self.list.channel, self.guiutility.getFamilyFilter())
             else:
                 playlists = []
-                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel)
+                total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.list.channel, self.guiutility.getFamilyFilter())
                 
             return total_items, nrfiltered, torrentList, playlists, state, iamModerator
         
@@ -680,9 +679,9 @@ class SelectedChannelList(GenericSearchList):
             torrent = key
             key = torrent.infohash
             
-            if torrent.playlist:
-                self.guiutility.showPlaylist(torrent.playlist)
-                wx.CallLater(1000, self.guiutility.frame.playlist.Select, key)
+            if torrent.getPlaylist:
+                self.guiutility.showPlaylist(torrent.getPlaylist)
+                wx.CallLater(500, self.guiutility.frame.playlist.Select, key)
                 return
 
         GenericSearchList.Select(self, key, raise_event)
@@ -789,7 +788,7 @@ class PlaylistManager():
     def _refresh_list(self):
         def db_call():
             self.list.dirty = False
-            return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist)
+            return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
             
         startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
         
@@ -1171,8 +1170,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddSpacer((-1, 10))
-        header =  "Welcome to the management interface for this channel. You can access this because you have the rights to modify it."
-        self._add_header(self.overviewpage, vSizer, header, spacer = 10)
+        header =  ""
+        self.overviewheader = self._add_header(self.overviewpage, vSizer, header, spacer = 10)
         
         text  = "Channels can be used to spread torrents to other Tribler users. "
         text += "If a channel provides other Tribler users with original or popular content, then they might mark your channel as one of their favorites. "
@@ -1201,8 +1200,18 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.description.SetMaxLength(2000)
         self.description.SetMinSize((-1, 50))
         
+        identSizer = wx.BoxSizer(wx.VERTICAL)
+        self.identifier = EditText(self.overviewpage, '')
+        self.identifier.SetMaxLength(40)
+        self.identifier.SetEditable(False)
+        self.identifierText = StaticText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
+        
+        identSizer.Add(self.identifier, 0, wx.EXPAND)
+        identSizer.Add(self.identifierText, 0, wx.EXPAND)
+        
         self._add_row(self.overviewpage, gridSizer, "Name", self.name)
         self._add_row(self.overviewpage, gridSizer, 'Description', self.description)
+        self._add_row(self.overviewpage, gridSizer, 'Identifier', identSizer)
         vSizer.Add(gridSizer, 0, wx.EXPAND|wx.RIGHT, 10)
         
         self.saveButton = wx.Button(self.overviewpage, -1, 'Save Changes')
@@ -1358,23 +1367,26 @@ class ManageChannel(XRCPanel, AbstractDetails):
             
             if channel.isMyChannel():
                 self.torrentfeed.register(self.guiutility.utility.session, channel.id)
+                self.overviewheader.SetLabel('Welcome to the management interface for your channel.')
                 
-                name = channel.name
-                self.name.SetValue(name)
-                self.name.originalValue = name
+            self.name.SetValue(channel.name)
+            self.name.originalValue = channel.name
+            self.name.Enable(channel.isMyChannel())
 
-                description = channel.description
-                self.description.SetValue(description)
-                self.description.originalValue = description
+            self.description.SetValue(channel.description)
+            self.description.originalValue = channel.description
+            self.description.Enable(channel.isMyChannel())
                 
-                self.createText.Hide()
-                self.saveButton.SetLabel('Save Changes')
+            self.identifier.SetValue(channel.dispersy_cid.encode('HEX'))
+            self.identifier.Show(True)
+            self.identifierText.Show(True)
+            
+            self.overviewpage.Layout()
                 
-                self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
-            else:
-                #Best to removepage, will be added if we're moderator
-                self.RemovePage(self.notebook, "Overview")
+            self.createText.Hide()
+            self.saveButton.SetLabel('Save Changes')
 
+            self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
             
             def db_call():
                 channel_state, iamModerator = self.channelsearch_manager.getChannelState(channel.id)
@@ -1384,8 +1396,11 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 channel_state, iamModerator = delayedResult.get() 
                 
                 if iamModerator:
-                    #If this is not mychannel, but I am moderator add overview panel
-                    self.AddPage(self.notebook, self.overviewpage, "Overview", 0)
+                    if iamModerator and not channel.isMyChannel():
+                        self.overviewheader.SetLabel('Welcome to the management interface for this channel. You can modified these setting due to having the permissions for them.')
+                    
+                    self.name.Enable(True)
+                    self.description.Enable(True)
                     
                     selection = channel_state
                     if selection == 0:
@@ -1396,7 +1411,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                     self.statebox.SetSelection(selection)
                     self.AddPage(self.notebook, self.settingspage, "Settings", 1)
                 else:
-                    self.RemovePage(self.notebook, "Overview")
+                    self.overviewheader.SetLabel('Welcome to the management interface for this channel. You cannot modify any of these settings as you do not have the permissions to do so.')
                     self.RemovePage(self.notebook, "Settings")
                     
                 if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
@@ -1421,11 +1436,20 @@ class ManageChannel(XRCPanel, AbstractDetails):
             startWorker(update_panel, db_call, retryOnBusy=True)
             
         else:
+            self.overviewheader.SetLabel('Welcome to the management interface for your channel. You currently do not yet have a channel, create one now.')
+            
             self.name.SetValue('')
             self.name.originalValue = ''
             
             self.description.SetValue('')
             self.description.originalValue = ''
+            
+            self.name.Enable(True)
+            self.description.Enable(True)
+            self.identifier.Show(False)
+            self.identifierText.Show(False)
+            
+            self.overviewpage.Layout()
             
             self.header.SetName('Create your own channel')
             self.header.SetNrTorrents(0, 0)
@@ -1783,17 +1807,19 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         sizer.Add(dlg.selectedList, 1, wx.EXPAND)
         
-        remove = wx.Button(dlg, -1, ">>", style = wx.BU_EXACTFIT)
-        remove.SetToolTipString("Remove selected torrents from playlist")
-        remove.Bind(wx.EVT_BUTTON, self.OnRemove)
-        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+
         add = wx.Button(dlg, -1, "<<", style = wx.BU_EXACTFIT)
         add.SetToolTipString("Add selected torrents to playlist")
         add.Bind(wx.EVT_BUTTON, self.OnAdd)
-        
-        vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(add)
-        vSizer.Add(remove)
+        
+        if self.canDelete:
+            remove = wx.Button(dlg, -1, ">>", style = wx.BU_EXACTFIT)
+            remove.SetToolTipString("Remove selected torrents from playlist")
+            remove.Bind(wx.EVT_BUTTON, self.OnRemove)
+            vSizer.Add(remove)
+            
         sizer.Add(vSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         
         sizer.Add(dlg.availableList, 1, wx.EXPAND)
@@ -2219,6 +2245,7 @@ class CommentManager:
             changed = True
             
         elif channeltorrent != self.channeltorrent:
+            assert isinstance(channeltorrent, ChannelTorrent) or (isinstance(channeltorrent, CollectedTorrent) and isinstance(channeltorrent.torrent, ChannelTorrent)), type(channeltorrent)
             self.channeltorrent = channeltorrent
             self.list.header.SetTitle('Comments for this torrent')
             
@@ -2270,7 +2297,7 @@ class CommentManager:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
             else:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
-        startWorker(workerFn=db_callback, retryOnBusy=True)
+        startWorker(None, workerFn=db_callback, retryOnBusy=True)
             
     def removeComment(self, comment):
         self.channelsearch_manager.removeComment(comment, self.channel)
@@ -2643,7 +2670,7 @@ class ModerationList(List):
         if len(data) > 0:
             self.list.SetData(data)
         else:
-            self.list.ShowMessage('No moderations are found.')
+            self.list.ShowMessage('No moderations are found.\nModerations are modifications which are reverted by another peer.')
         self.SetNrResults(len(data))
         
     def OnShowTorrent(self, torrent):

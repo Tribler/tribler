@@ -76,6 +76,7 @@ class TriblerLaunchMany(Thread):
         self.dialback_ext_ip = None
         self.yourip_ext_ip = None
         self.udppuncture_handler = None
+        self.internaltracker = None
 
         # Orig
         self.sessdoneflag = Event()
@@ -276,7 +277,6 @@ class TriblerLaunchMany(Thread):
             Category.getInstance(config['install_dir'])
 
         # Internal tracker
-        self.internaltracker = None
         if config['internaltracker']:
             self.internaltracker = Tracker(config, self.rawserver)
             self.httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
@@ -782,8 +782,8 @@ class TriblerLaunchMany(Thread):
         # in list of states returned via callback.
         #
         dllist = self.downloads.values()
-        if DEBUG:
-            print >>sys.stderr,"tlm: checkpointing",len(dllist)
+        if DEBUG or stop:
+            print >>sys.stderr,"tlm: checkpointing",len(dllist),"stopping",stop
 
         network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist,stop,checkpoint,gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda,0.0)
@@ -843,6 +843,8 @@ class TriblerLaunchMany(Thread):
 
     def network_shutdown(self):
         try:
+            print >>sys.stderr,"tlm: network_shutdown"
+            
             # Detect if megacache is enabled
             if self.peer_db is not None:
                 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
