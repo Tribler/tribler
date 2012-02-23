@@ -12,7 +12,7 @@ class EffortConversion(BinaryConversion):
 
     def _encode_effort_record(self, message):
         payload = message.payload
-        return pack("!LL", payload.first_timestamp, payload.second_timestamp), payload.history.bytes
+        return pack("!LL", int(payload.first_timestamp), int(payload.second_timestamp)), payload.history.bytes
 
     def _decode_effort_record(self, placeholder, offset, data):
         if len(data) < offset + 72:

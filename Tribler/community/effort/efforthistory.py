@@ -1,6 +1,6 @@
 from Tribler.Core.dispersy.decorator import Constructor, constructor
 
-# a cycle is defined as a 60.0 second period
+# a cycle is defined as a N second period
 CYCLE_SIZE = 5.0
 
 class EffortHistory(Constructor):
