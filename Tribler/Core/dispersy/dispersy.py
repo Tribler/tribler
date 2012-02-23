@@ -1928,7 +1928,6 @@ class Dispersy(Singleton):
         if __debug__:
             from community import Community
         assert isinstance(community, Community)
-        assert isinstance(limit, (int, long))
         assert isinstance(cluster, int)
 
         def in_subjective_set(candidate):
