@@ -80,7 +80,7 @@ class Database(Singleton):
             version = u"0"
 
         self._database_version = self.check_database(version)
-        assert isinstance(self._database_version, (int, long))
+        assert isinstance(self._database_version, (int, long)), type(self._database_version)
 
     @property
     def database_version(self):

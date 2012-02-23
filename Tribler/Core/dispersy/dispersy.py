@@ -46,19 +46,19 @@ from random import random, shuffle
 from socket import inet_aton, error as socket_error
 from time import time
 
-from decorator import runtime_duration_warning
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
 from callback import Callback, Idle, Return
 from candidate import BootstrapCandidate, LoopbackCandidate, WalkCandidate
+from decorator import runtime_duration_warning
 from destination import CommunityDestination, CandidateDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
 from member import Member
+from message import BatchConfiguration, Packet, Message
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
 from message import DropPacket, DelayPacket
-from message import BatchConfiguration, Packet, Message
 from payload import AuthorizePayload, RevokePayload, UndoPayload
 from payload import DestroyCommunityPayload
 from payload import DynamicSettingsPayload
@@ -68,6 +68,7 @@ from payload import MissingMessagePayload
 from payload import MissingSequencePayload, MissingProofPayload
 from payload import SignatureRequestPayload, SignatureResponsePayload
 from payload import SubjectiveSetPayload, MissingSubjectiveSetPayload
+from requestcache import Cache, RequestCache
 from resolution import PublicResolution, LinearResolution
 from singleton import Singleton
 from trigger import TriggerCallback, TriggerPacket, TriggerMessage
@@ -111,6 +112,10 @@ class DummySocket(object):
 
     def send(self, address, data):
         if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data to ", address[0], ":", address[1], level="warning")
+
+class SignatureRequestCache(Cache):
+    def __init__(self, identifier):
+        super(SignatureRequestCache, self).__init__(identifier)
 
 class Statistics(object):
     def __init__(self):
@@ -305,6 +310,9 @@ class Dispersy(Singleton):
         # malicious behavior can prevent this.  Finally, helper-candidate is the node where we send
         # the introduction-request too.
         self._walk_identifiers = {}
+
+        # assigns temporary cache objects to unique identifiers
+        self._request_cache = RequestCache(self._callback)
 
         # indicates what our connection type is.  currently it can be u"unknown", u"public", or
         # u"symmetric-NAT"
@@ -3209,11 +3217,15 @@ class Dispersy(Singleton):
         Typically, each member that should add a signature will receive the
         dispersy-signature-request message.  If they choose to add their signature, a
         dispersy-signature-response message is send back.  This in turn will result in a call to
-        response_func with the message that now has one additional signature.
+        RESPONSE_FUNC.
 
-        Each dispersy-signed-response message will result in one call to response_func.  The first
-        parameter for this call is the sub-message.  When all signatures are available the property
-        sub-message.authentication.is_signed will be True.
+        Each dispersy-signed-response message will result in one call to RESPONSE_FUNC.  The first
+        parameter for this call is MESSAGE, the second parameter is the proposed message that was
+        send back, the third parameter is a boolean indicating that MESSAGE was modified.
+
+        RESPONSE_FUNC must return three boolean values, each indicates weather the proposed message
+        (the second parameter) must be stored, updated, or forwarded, respectively.  If any of these
+        boolean values is True we will sign the proposed message with our own signature.
 
         If not all members sent a reply withing timeout seconds, one final call to response_func is
         made with the first parameter set to None.
@@ -3259,16 +3271,18 @@ class Dispersy(Singleton):
         # the members that need to sign
         members = [member for signature, member in message.authentication.signed_members if not (signature or member.private_key)]
 
+        # temporary cache object
+        cache = self._request_cache.claim(timeout + 10.0, SignatureRequestCache)
+
         # the dispersy-signature-request message that will hold the
         # message that should obtain more signatures
         meta = community.get_meta_message(u"dispersy-signature-request")
         request = meta.impl(distribution=(community.global_time,),
                             destination=tuple(members),
-                            payload=(message,))
+                            payload=(cache.identifier, message))
 
         # set callback and timeout
-        identifier = sha1(request.packet).digest()
-        footprint = community.get_meta_message(u"dispersy-signature-response").generate_footprint(payload=(identifier,))
+        footprint = community.get_meta_message(u"dispersy-signature-response").generate_footprint(payload=(cache.identifier,))
         self.await_message(footprint, self._on_signature_response, (request, response_func, response_args), timeout, len(members))
 
         self.store_update_forward([request], store, False, forward)
@@ -3307,11 +3321,6 @@ class Dispersy(Singleton):
             # # if not message.community._timeline.check(submsg):
             # #     raise DropMessage("Does not fit timeline")
 
-            # the community must allow this signature
-            if not submsg.authentication.allow_signature_func(submsg):
-                yield DropMessage(message, "We choose not to add our signature")
-                continue
-
             # allow message
             yield message
 
@@ -3319,50 +3328,42 @@ class Dispersy(Singleton):
         """
         We received a dispersy-signature-request message.
 
-        This message contains a sub-message (message.payload) that the message creator would like to
-        have us sign.  The message may, or may not, have already been signed by some of the other
-        members.  Furthermore, we can choose for ourselves if we want to add our signature to the
-        sub-message or not.
+        This message contains a sub-message (message.payload.message) that the message creator would
+        like to have us sign.  The message may, or may not, have already been signed by some of the
+        other members.  Furthermore, we can choose for ourselves if we want to add our signature to
+        the sub-message or not.
 
         Once we have determined that we could provide a signature and that the sub-message is valid,
         from a timeline perspective, we will ask the community to say yes or no to adding our
         signature.  This question is done by calling the
         sub-message.authentication.allow_signature_func method.
 
-        Only when the allow_signature_func method returns True will we add our signature.  In this
-        case a dispersy-signature-response message is send to the creator of the message, the first
-        one in the authentication list.
+        We will only add our signature if the allow_signature_func method returns the same, or a
+        modified sub-message.  If so, a dispersy-signature-response message is send to the creator
+        of the message, the first one in the authentication list.
 
-        Note that if for whatever reason we can add multiple signatures, i.e. we have the private
-        key for more that one member signing the sub-message, we will send one
-        dispersy-signature-response message for each signature that we can supply.
+        If we can add multiple signatures, i.e. we have the private keys for more that one member
+        signing the sub-message, the allow_signature_func is called only once but multiple
+        signatures will be appended.
 
         @see: create_signature_request
 
         @param messages: The dispersy-signature-request messages.
         @type messages: [Message.Implementation]
         """
+        meta = messages[0].community.get_meta_message(u"dispersy-signature-response")
         responses = []
         for message in messages:
             assert isinstance(message, Message.Implementation), type(message)
             assert isinstance(message.payload.message, Message.Implementation), type(message.payload.message)
             assert isinstance(message.payload.message.authentication, MultiMemberAuthentication.Implementation), type(message.payload.message.authentication)
 
-            # submsg contains the message that should receive multiple signatures
-            submsg = message.payload.message
-
-            # create signature(s) and reply
-            identifier = sha1(message.packet).digest()
-            first_signature_offset = len(submsg.packet) - sum([member.signature_length for member in submsg.authentication.members])
-            for member in submsg.authentication.members:
-                if member.private_key:
-                    signature = member.sign(submsg.packet, 0, first_signature_offset)
-
-                    # send response
-                    meta = message.community.get_meta_message(u"dispersy-signature-response")
-                    responses.append(meta.impl(distribution=(message.community.global_time,),
-                                               destination=(message.candidate,),
-                                               payload=(identifier, signature)))
+            # the community must allow this signature
+            submsg = message.payload.message.authentication.allow_signature_func(message.payload.message)
+            if submsg:
+                responses.append(meta.impl(distribution=(message.community.global_time,),
+                                           destination=(message.candidate,),
+                                           payload=(message.payload.identifier, submsg)))
 
         self.store_update_forward(responses, False, False, True)
 
@@ -3408,23 +3409,23 @@ class Dispersy(Singleton):
         # check for timeout
         if response is None:
             if __debug__: dprint("timeout")
-            response_func(response, *response_args)
+            response_func(request.payload.message, None, True, *response_args)
 
         else:
             if __debug__: dprint("response")
-            # the multi signed message
-            submsg = request.payload.message
+            old_submsg = request.payload.message
+            new_submsg = response.payload.message
 
-            first_signature_offset = len(submsg.packet) - sum([member.signature_length for member in submsg.authentication.members])
-            body = submsg.packet[:first_signature_offset]
+            old_body = old_submsg.packet[:len(old_submsg.packet) - sum([member.signature_length for member in old_submsg.authentication.members])]
+            new_body = new_submsg.packet[:len(new_submsg.packet) - sum([member.signature_length for member in new_submsg.authentication.members])]
 
-            for signature, member in submsg.authentication.signed_members:
-                if not signature and member.verify(body, response.payload.signature):
-                    submsg.authentication.set_signature(member, response.payload.signature)
-                    response_func(submsg, *response_args)
+            store, update, forward = response_func(old_submsg, new_submsg, old_body == new_body, *response_args)
+            if store or update or forward:
+                for signature, member in new_submsg.authentication.signed_members:
+                    if not signature and member.private_key:
+                        new_submsg.authentication.set_signature(member, member.sign(new_body))
 
-                    # assuming this signature only matches one member, we can break
-                    break
+                self.store_update_forward([new_submsg], store, update, forward)
 
     def on_missing_sequence(self, messages):
         """

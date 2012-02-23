@@ -108,7 +108,7 @@ class Candidate(object):
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(member, Member)
-        self._associations.add((community, member))
+        self._associations.add((community.cid, member))
 
     def is_associated(self, community, member):
         """
@@ -118,7 +118,7 @@ class Candidate(object):
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(member, Member)
-        return (community, member) in self._associations
+        return (community.cid, member) in self._associations
 
     def disassociate(self, community, member):
         """
@@ -128,7 +128,7 @@ class Candidate(object):
             from community import Community
         assert isinstance(community, Community)
         assert isinstance(member, Member)
-        self._associations.remove((community, member))
+        self._associations.remove((community.cid, member))
 
     def get_members(self, community):
         """
@@ -428,6 +428,9 @@ class BootstrapCandidate(WalkCandidate):
         assert community.cid in self._timestamps
         timestamps = self._timestamps[community.cid]
         return now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_BOOTSTRAP_DELAY
+
+    def __str__(self):
+        return "B!" + super(BootstrapCandidate, self).__str__()
 
 class LoopbackCandidate(Candidate):
     def __init__(self):

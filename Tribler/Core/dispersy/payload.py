@@ -444,41 +444,42 @@ class MissingSequencePayload(Payload):
         def missing_high(self):
             return self._missing_high
 
-class SignatureRequestPayload(Payload):
+class SignaturePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, message):
-            super(SignatureRequestPayload.Implementation, self).__init__(meta)
-            self._message = message
-
-        @property
-        def message(self):
-            return self._message
-
-class SignatureResponsePayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, signature):
-            assert isinstance(identifier, str)
-            assert len(identifier) == 20
-            super(SignatureResponsePayload.Implementation, self).__init__(meta)
+        def __init__(self, meta, identifier, message):
+            if __debug__:
+                from message import Message
+            assert isinstance(identifier, int), identifier
+            assert 0 <= identifier < 2**16, identifier
+            assert isinstance(message, Message.Implementation)
+            super(SignaturePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
-            self._signature = signature
+            self._message = message
 
         @property
         def identifier(self):
             return self._identifier
 
         @property
-        def signature(self):
-            return self._signature
+        def message(self):
+            return self._message
 
         @property
         def footprint(self):
-            return "SignatureResponsePayload:" + self._identifier.encode("HEX")
+            return "SignaturePayload:%d" % self._identifier
 
     def generate_footprint(self, identifier):
-        assert isinstance(identifier, str)
-        assert len(identifier) == 20
-        return "SignatureResponsePayload:" + identifier.encode("HEX")
+        assert isinstance(identifier, int), identifier
+        assert 0 <= identifier < 2**16, identifier
+        return "SignaturePayload:%d" % identifier
+
+class SignatureRequestPayload(SignaturePayload):
+    class Implementation(SignaturePayload.Implementation):
+        pass
+
+class SignatureResponsePayload(SignaturePayload):
+    class Implementation(SignaturePayload.Implementation):
+        pass
 
 class IdentityPayload(Payload):
     class Implementation(Payload.Implementation):

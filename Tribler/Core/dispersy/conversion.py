@@ -296,16 +296,36 @@ class BinaryConversion(Conversion):
         return offset, placeholder.meta.payload.implement(member, global_times)
 
     def _encode_signature_request(self, message):
-        return self.encode_message(message.payload.message),
+        return pack("!H", message.payload.identifier), self.encode_message(message.payload.message),
 
     def _decode_signature_request(self, placeholder, offset, data):
-        return len(data), placeholder.meta.payload.implement(self._decode_message(placeholder.candidate, data[offset:], False))
+        if len(data) < offset + 2:
+            raise DropPacket("Insufficient packet size (_decode_signature_request)")
+
+        identifier, = unpack_from("!H", data, offset)
+        offset += 2
+
+        message = self._decode_message(placeholder.candidate, data[offset:], False)
+        offset = len(data)
+
+        return offset, placeholder.meta.payload.implement(identifier, message)
 
     def _encode_signature_response(self, message):
-        return message.payload.identifier, message.payload.signature
+        return pack("!H", message.payload.identifier), self.encode_message(message.payload.message),
+        # return message.payload.identifier, message.payload.signature
 
     def _decode_signature_response(self, placeholder, offset, data):
-        return len(data), placeholder.meta.payload.implement(data[offset:offset+20], data[offset+20:])
+        if len(data) < offset + 2:
+            raise DropPacket("Insufficient packet size (_decode_signature_request)")
+
+        identifier, = unpack_from("!H", data, offset)
+        offset += 2
+
+        message = self._decode_message(placeholder.candidate, data[offset:], False)
+        offset = len(data)
+
+        return offset, placeholder.meta.payload.implement(identifier, message)
+        # return len(data), placeholder.meta.payload.implement(data[offset:offset+20], data[offset+20:])
 
     def _encode_identity(self, message):
         return ()
@@ -1213,11 +1233,10 @@ class BinaryConversion(Conversion):
         Decode a binary string into a Message structure, with some
         Dispersy specific parameters.
 
-        When VERIFY_ALL_SIGNATURES is True, all signatures must be
-        valid.  When VERIFY_ALL_SIGNATURES is False, signatures may be
-        \x00 bytes.  Message.authentication.signed_members returns
-        information on which members had a signature present.
-        Signatures that are set and fail will NOT be accepted.
+        When VERIFY_ALL_SIGNATURES is True, all signatures must be valid.  When
+        VERIFY_ALL_SIGNATURES is False, signatures must be either valid or \x00 bytes.
+        Message.authentication.signed_members returns information on which members had a signature
+        present.
         """
         assert isinstance(data, str)
         assert isinstance(verify_all_signatures, bool)
