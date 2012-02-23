@@ -2659,7 +2659,7 @@ class Dispersy(Singleton):
                 self._socket.send(candidate.sock_addr, packet)
             if __debug__:
                 dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
-                self._statistics.outgoing(candidate.address, key, sum(len(packet) for packet in packets), len(packets))
+                self._statistics.outgoing(candidate.sock_addr, key, sum(len(packet) for packet in packets), len(packets))
 
         return True
 
