@@ -37,8 +37,8 @@ class Member(Parameterized1Singleton):
         eventual member cleanup.
         """
         while True:
-            # this is very expensive.  only count references every 10 minutes
-            yield 3 * 60.0
+            # this is very expensive.  only count references every minute
+            yield 60.0
 
             for references, member in cls.sample_reference_instances(15):
                 if references:
