@@ -266,7 +266,7 @@ UPDATE option SET value = '7' WHERE key = 'database_version';
 ALTER TABLE community ADD COLUMN database_version INTEGER DEFAULT 0;
 UPDATE option SET value = '8' WHERE key = 'database_version';
 """)
-            if __debug__: dprint("upgrade database ", database_version, " -> ", 8, " (done)")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 8, " (done)")
 
             # upgrade from version 8 to version 9
             if database_version < 9:
@@ -276,11 +276,12 @@ DROP INDEX sync_meta_message_global_time_index;
 CREATE INDEX sync_global_time_undone_meta_message_index ON sync(global_time, undone, meta_message);
 UPDATE option SET value = '9' WHERE key = 'database_version';
 """)
-            if __debug__: dprint("upgrade database ", database_version, " -> ", 9, " (done)")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 9, " (done)")
 
             # upgrade from version 9 to version 10
             if database_version < 10:
                 # there is no version 10 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 10)
                 # self.executescript(u"""UPDATE option SET value = '10' WHERE key = 'database_version';""")
                 pass
 
