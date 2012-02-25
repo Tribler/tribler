@@ -518,7 +518,7 @@ class Dispersy(Singleton):
                     Message(community, u"dispersy-missing-identity", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingIdentityPayload(), self._generic_timeline_check, self.on_missing_identity),
 
                     # when we are missing one or more SyncDistribution messages in a certain sequence
-                    Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence),
+                    Message(community, u"dispersy-missing-sequence", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MissingSequencePayload(), self._generic_timeline_check, self.on_missing_sequence, batch=BatchConfiguration(max_window=0.1)),
 
                     # when we have a reference to a message that we do not have.  a reference consists
                     # of the community identifier, the member identifier, and the global time
@@ -3350,26 +3350,41 @@ class Dispersy(Singleton):
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
+        unique = set()
+
         for message in messages:
             # we limit the response by byte_limit bytes per incoming message
             byte_limit = message.community.dispersy_missing_sequence_response_limit
-
             packets = []
             payload = message.payload
-            for packet, in self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? LIMIT ? OFFSET ?",
-                                                  (payload.member.database_id, payload.message.database_id, payload.missing_low, payload.missing_high - payload.missing_low)):
-                packet = str(packet)
+            if __debug__:
+                number, = self._database.execute(u"SELECT COUNT(1) FROM sync WHERE member = ? AND meta_message = ?", (payload.member.database_id, payload.message.database_id)).next()
+                dprint("Request for seq [", payload.missing_low, ":", payload.missing_high, "] community:", message.community.database_id, ", member:", payload.member.database_id, " to " , message.candidate, " (max ", byte_limit, " bytes, we have ", number, " messages)")
 
-                if __debug__: dprint("Syncing ", len(packet), " bytes from sync_full to " , message.candidate)
+            for packet, in self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? ORDER BY global_time LIMIT ? OFFSET ?",
+                                                  (payload.member.database_id, payload.message.database_id, payload.missing_high - payload.missing_low + 1, payload.missing_low - 1)):
+                packet = str(packet)
                 packets.append(packet)
 
                 byte_limit -= len(packet)
-                if byte_limit > 0:
+                if byte_limit <= 0:
                     if __debug__: dprint("Bandwidth throttle")
                     break
 
             if packets:
-                self._send([message.candidate], packets, u"-sequence-")
+                if __debug__:
+                    # ensure we are sending the correct sequence numbers back
+                    for packet in packets:
+                        msg = self.convert_packet_to_message(packet, message.community)
+                        assert msg
+                        assert payload.missing_low <= msg.distribution.sequence_number <= payload.missing_high, [payload.missing_low, msg.distribution.sequence_number, payload.missing_high]
+                        dprint("Syncing ", len(packet), " bytes seq:", msg.distribution.sequence_number, " in [", payload.missing_low, ":", payload.missing_high, "] community:", message.community.database_id, ", member:", payload.member.database_id, " to " , message.candidate, " (ABORT:DUPLICATE)" if (message.candidate, packet) in unique else "")
+
+                # sometimes clients will send requests covering the same range
+                filtered_packets = [packet for packet in packets if not (message.candidate, packet) in unique]
+                unique.update((message.candidate, packet) for packet in packets)
+
+                self._send([message.candidate], filtered_packets, u"-sequence-")
 
     def on_missing_proof(self, messages):
         community = messages[0].community
