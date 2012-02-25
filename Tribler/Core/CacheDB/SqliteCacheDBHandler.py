@@ -3703,7 +3703,7 @@ class ChannelCastDBHandler(object):
         self.notifier.notify(NTFY_PLAYLISTS, NTFY_INSERT, channel_id)
         
     def on_remove_playlist_from_dispersy(self, channel_id, dispersy_id, redo):
-        sql = "UPDATE _Playlists SET deleted_at = ? WHERE channel_id = ? and dipsersy_id = ?"
+        sql = "UPDATE _Playlists SET deleted_at = ? WHERE channel_id = ? and dispersy_id = ?"
         
         if redo:
             deleted_at = None

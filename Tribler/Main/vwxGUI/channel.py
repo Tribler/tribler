@@ -423,7 +423,7 @@ class SelectedChannelList(GenericSearchList):
         List.SetData(self, torrents)
         
         if len(playlists) > 0 or len(torrents) > 0:
-            data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents], playlist, PlaylistItem) for playlist in playlists]
+            data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents, 0, 0], playlist, PlaylistItem) for playlist in playlists]
             
             shouldDrag = len(playlists) > 0 and (self.iamModerator or self.state == ChannelCommunity.CHANNEL_OPEN)
             if shouldDrag:
@@ -1114,6 +1114,13 @@ class ManageChannelPlaylistsManager():
         if channel != self.channel:
             self.channel = channel
             self.list.dirty = True
+            
+    def RemoveItems(self, ids):
+        for id in ids:
+            self.channelsearch_manager.removePlaylist(self.channel, id)
+                
+    def RemoveAllItems(self):
+        self.channelsearch_manager.removeAllPlaylists(self.channel)
     
     def GetTorrentsFromChannel(self):
         delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
@@ -1694,7 +1701,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
     
     def CreateFooter(self, parent):
-        return ManageChannelPlaylistFooter(parent, self.OnNew)
+        return ManageChannelPlaylistFooter(parent, self.OnNew,  self.OnRemoveAll, self.OnRemoveSelected)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1738,7 +1745,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         dlg = wx.Dialog(None, -1, 'Create a new playlist', size = (500, 300), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
-        playlistdetails = MyChannelPlaylist(dlg, self.OnManage)
+        playlistdetails = MyChannelPlaylist(dlg, self.OnManage, can_edit=True)
         
         vSizer.Add(playlistdetails, 1, wx.EXPAND|wx.ALL, 3)
         vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK|wx.CANCEL), 0, wx.EXPAND|wx.ALL, 3)
@@ -1749,6 +1756,19 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             
             manager = self.GetManager()
             manager.createPlaylist(name, description, infohashes)
+        dlg.Destroy()
+    
+    def OnRemoveAll(self, event):
+        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all playlists from your channel?', 'Remove playlists', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        if dlg.ShowModal() == wx.ID_YES:
+            self.GetManager().RemoveAllItems()
+        dlg.Destroy()
+    
+    def OnRemoveSelected(self, event):
+        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all selected playlists from your channel?', 'Remove playlists', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        if dlg.ShowModal() == wx.ID_YES:
+            ids = [key for key,_ in self.list.GetExpandedItems()]
+            self.GetManager().RemoveItems(ids)
         dlg.Destroy()
     
     def OnEdit(self, playlist):

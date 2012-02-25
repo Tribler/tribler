@@ -737,7 +737,7 @@ class TriblerLaunchMany(Thread):
             
             #normal torrentfile is not present, see if readable torrent is there
             if not os.path.isfile(torrentfile):
-                torrent = self.torrent_db.getTorrent(infohash, keys = ['name'])
+                torrent = self.torrent_db.getTorrent(infohash, keys = ['name'], include_mypref = False)
                 if torrent:
                     save_name = get_readable_torrent_name(infohash, torrent['name'])
                     torrentfile = os.path.join(torrent_dir, save_name)

@@ -396,6 +396,16 @@ class ChannelCommunity(Community):
                     
                 else: #hmm signal gui that this message has been removed already
                     self._disp_undo_torrent([(None,None,message)])
+                    
+    def remove_playlists(self, dispersy_ids):
+        for dispersy_id in dispersy_ids:
+            message = self._get_message_from_dispersy_id(dispersy_id, "playlist")
+            if message:
+                if not message.undone:
+                    self._dispersy.create_undo(self, message)
+                    
+                else: #hmm signal gui that this message has been removed already
+                    self._disp_undo_playlist([(None,None,message)])
 
     #create, check or receive playlists
     @forceDispersyThread

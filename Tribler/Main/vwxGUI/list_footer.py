@@ -395,9 +395,11 @@ class ManageChannelFilesFooter(ListFooter):
         self.export.Show(canDelete)
         
 class ManageChannelPlaylistFooter(ListFooter):
-    def __init__(self, parent, createnew):
+    def __init__(self, parent, createnew, removeall, removesel):
         ListFooter.__init__(self, parent, 0)
         self.addnew.Bind(wx.EVT_BUTTON, createnew)
+        self.removesel.Bind(wx.EVT_BUTTON, removesel)
+        self.removeall.Bind(wx.EVT_BUTTON, removeall)
     
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()

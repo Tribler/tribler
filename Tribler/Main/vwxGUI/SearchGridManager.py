@@ -1594,6 +1594,33 @@ class ChannelManager:
         
         community = self._disp_get_community_from_channel_id(channel.id)
         community.remove_torrents(dispersy_ids)
+        
+    @forceDispersyThread
+    def removePlaylist(self, channel, playlist_id):
+        playlist = self.getPlaylist(channel, playlist_id)
+        if playlist:
+            community = self._disp_get_community_from_channel_id(channel.id)
+            community.remove_playlists([playlist.dispersy_id])
+            
+            self.removeAllPlaylistTorrents(community, playlist)
+    
+    @forceDispersyThread
+    def removeAllPlaylists(self, channel):
+        _,playlists = self.dispersy_id(channel)
+        dispersy_ids = [playlist.dispersy_id for playlist in playlists if playlist]
+        
+        community = self._disp_get_community_from_channel_id(channel.id)
+        community.remove_playlists(dispersy_ids)
+        for playlist in playlists:
+            self.removeAllPlaylistTorrents(community, playlist)
+    
+    @forceDispersyThread
+    def removeAllPlaylistTorrents(self, community, playlist):
+        sql = "SELECT dispersy_id FROM PlaylistTorrents WHERE playlist_id = ?"
+        records = self.channelcast_db._db.fetchall(sql,(playlist.id,))
+        to_be_removed = [dispersy_id for dispersy_id, in records]
+        
+        community.remove_playlist_torrents(playlist.dispersy_id, to_be_removed)
     
     @forceDispersyThread
     def createComment(self, comment, channel, reply_to = None, reply_after = None, playlist = None, infohash = None):
