@@ -815,17 +815,17 @@ class ABCApp():
                 manager.playlistCreated(objectID)
                 
             else:
-                self.frame.managechannel.playlistUpdated(objectID)
+                self.frame.managechannel.playlistUpdated(objectID, modified = changeType == NTFY_MODIFIED)
 
                 if len(args) > 0:
                     infohash = args[0]
                 else:
                     infohash = False
                 manager = self.frame.selectedchannellist.GetManager()
-                manager.playlistUpdated(objectID, infohash)
+                manager.playlistUpdated(objectID, infohash, modified = changeType == NTFY_MODIFIED)
                 
                 manager = self.frame.playlist.GetManager()
-                manager.playlistUpdated(objectID)
+                manager.playlistUpdated(objectID, modified = changeType == NTFY_MODIFIED)
                 
     @forceWxThread     
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
