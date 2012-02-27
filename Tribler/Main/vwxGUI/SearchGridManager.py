@@ -904,9 +904,11 @@ class LibraryManager:
                     torrent.ds = infohash_ds[torrent.infohash]
         return torrentlist
     
+    @forceWxThread
     def playTorrent(self, torrent, selectedinfilename = None):
         ds = torrent.get('ds')
         
+        #videoplayer calls should be on gui thread, hence forceWxThread
         videoplayer = self._get_videoplayer(ds)
         videoplayer.stop_playback()
         videoplayer.show_loading()
