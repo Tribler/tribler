@@ -503,9 +503,10 @@ class Comment(Helper):
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
 class Playlist(Helper):
-    __slots__ = ('id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')
-    def __init__(self, id, channel_id, name, description, nr_torrents, channel):
+    __slots__ = ('id', 'dispersy_id', 'channel_id', 'name', 'description', 'nr_torrents', 'channel')
+    def __init__(self, id, dispersy_id, channel_id, name, description, nr_torrents, channel):
         self.id = id
+        self.dispersy_id = dispersy_id
         self.channel_id = channel_id
         self.name = name
         self.description = description

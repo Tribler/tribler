@@ -771,9 +771,9 @@ class MainFrame(wx.Frame):
                 print_exc()
 
         atexit.register(start_tribler)
-        #self.OnCloseWindow()
-        #self.Close(force = True)
-        sys.exit(0)
+        
+        self.Close(force = True)
+        self.quit()
     
     def OnFind(self, event):
         self.top_bg.SearchFocus()
@@ -1092,9 +1092,15 @@ class MainFrame(wx.Frame):
         self.wxapp = wxapp
         
     def quit(self):
+        print >> sys.stderr, "mainframe: in quit"
         if self.wxapp is not None:
-            self.wxapp.ExitMainLoop()
-            self.wxapp.Exit()
+            app = self.wxapp
+        else:
+            app = wx.GetApp()
+            
+        app.ExitMainLoop()
+        app.Exit()
+
 
      
      

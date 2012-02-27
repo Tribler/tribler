@@ -243,6 +243,8 @@ class BinaryConversion(Conversion):
         offset += 1
 
         missing_low, missing_high = unpack_from("!LL", data, offset)
+        if not (0 < missing_low <= missing_high):
+            raise DropPacket("Invalid missing_low and missing_high combination")
         offset += 8
 
         return offset, placeholder.meta.payload.implement(member, missing_meta_message, missing_low, missing_high)

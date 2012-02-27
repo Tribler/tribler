@@ -1824,7 +1824,10 @@ class BuddyCastCore:
                 
             if conn_time >= oldest_peer[0]:     # add it
                 out_peer = oldest_peer[1].split(separator)[1]
-                conn_list.pop(out_peer)            
+                
+                if out_peer in conn_list: #by magic Johan reported a bug that out_peer is sometimes not present in conn_list?
+                    conn_list.pop(out_peer)
+                                
                 conn_list[peer_permid] = conn_time
                 return out_peer
             return peer_permid

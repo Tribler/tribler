@@ -2115,38 +2115,50 @@ class MyChannelDetails(wx.Panel):
         dlg.Destroy()
         
 class MyChannelPlaylist(AbstractDetails):
-    def __init__(self, parent, on_manage, can_edit = False, on_save = None, playlist = {}):
+    def __init__(self, parent, on_manage, can_edit = False, on_save = None, on_remove = None, playlist = {}):
+        self.can_edit = can_edit
         self.on_manage = on_manage
         self.on_save = on_save
+        self.on_remove = on_remove
         self.playlist = playlist
         self.torrent_ids = []
         
         wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(wx.WHITE)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
         gridSizer.AddGrowableCol(1)
         gridSizer.AddGrowableRow(1)
         
-        self.name = wx.TextCtrl(self, value = playlist.get('name', ''))
-        self.name.SetMaxLength(40)
-        self.description = wx.TextCtrl(self, value = playlist.get('description',''), style = wx.TE_MULTILINE)
-        self.description.SetMaxLength(2000)
+        
+        if can_edit:
+            self.name = wx.TextCtrl(self, value = playlist.get('name', ''))
+            self.name.SetMaxLength(40)
+            
+            self.description = wx.TextCtrl(self, value = playlist.get('description',''), style = wx.TE_MULTILINE)
+            self.description.SetMaxLength(2000)
+        else:
+            self.name = StaticText(self, -1, playlist.get('name', ''))
+            self.description = StaticText(self, -1, playlist.get('description',''))
         
         self._add_row(self, gridSizer, 'Name', self.name)
         self._add_row(self, gridSizer, 'Description', self.description)
         vSizer.Add(gridSizer, 1, wx.EXPAND|wx.ALL, 3)
         
-        self.name.Enable(can_edit)
-        self.description.Enable(can_edit)
-        
         manage = wx.Button(self, -1, 'Manage Torrents')
         manage.Bind(wx.EVT_BUTTON, self.OnManage)
+        
         if can_edit and playlist.get('id', False):
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             save = wx.Button(self, -1, 'Save Playlist')
             save.Bind(wx.EVT_BUTTON, self.OnSave)
+            
+            delete = wx.Button(self, -1, 'Remove Playlist')
+            delete.Bind(wx.EVT_BUTTON, self.OnRemove)
+            
             hSizer.Add(save, wx.RIGHT, 3)
+            hSizer.Add(delete, wx.RIGHT, 3)
             hSizer.Add(manage)
             
             vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
@@ -2160,6 +2172,9 @@ class MyChannelPlaylist(AbstractDetails):
         
     def OnSave(self, event):
         self.on_save(self.playlist.get('id'), self)
+    
+    def OnRemove(self, event):
+        self.on_remove(self.playlist.get('id'), self)
         
     def GetInfo(self):
         name = self.name.GetValue()
@@ -2167,10 +2182,12 @@ class MyChannelPlaylist(AbstractDetails):
         return name, description, self.torrent_ids 
 
     def IsChanged(self):
-        name = self.name.GetValue()
-        description = self.description.GetValue()
-        
-        return name != self.playlist.get('name', '') or description != self.playlist.get('description','')
+        if self.can_edit:
+            name = self.name.GetValue()
+            description = self.description.GetValue()
+            
+            return name != self.playlist.get('name', '') or description != self.playlist.get('description','')
+        return False
     
 class SwarmHealth(wx.Panel):
     def __init__(self, parent, bordersize = 0, size = wx.DefaultSize, align = wx.ALIGN_LEFT):

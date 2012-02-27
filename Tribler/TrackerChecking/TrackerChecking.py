@@ -4,12 +4,16 @@
 # single torrent checking without Thread
 import sys
 from Tribler.Core.BitTornado.bencode import bdecode
-from random import shuffle
+from urlparse import urlparse
+from random import shuffle, randint
+from struct import *
+
 import urllib
 import socket
 import Tribler.Core.Utilities.timeouturlopen as timeouturlopen
 from time import time
 from traceback import print_exc
+from binascii import unhexlify
 
 HTTP_TIMEOUT = 30 # seconds
 
@@ -46,7 +50,7 @@ def single_no_thread(torrent, multiscrapeCallback = None):
                 trackers.extend(announces[:10])
     
 
-    trackers = [tracker for tracker in trackers if tracker.startswith('http')]
+    trackers = [tracker for tracker in trackers if tracker.startswith('http') or tracker.startswith('udp')]
     for announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
         
@@ -106,9 +110,13 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
     url = getUrl(announce, info_hashes)            # whether scrape support
     if url:
         try:
-            #print 'Checking url: %s' % url
-            dict = getStatus(url, torrent["infohash"], info_hashes)
-            
+            dict = None
+            if announce.startswith('http'):
+                #print 'Checking url: %s' % url
+                dict = getStatus(url, torrent["infohash"], info_hashes)
+            elif announce.startswith('udp'):
+                dict = getStatusUDP(url, torrent["infohash"], info_hashes)
+                
             if dict:    
                 if DEBUG:
                     print >>sys.stderr,"TrackerChecking: Result", dict
@@ -119,18 +127,30 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
 
 # generate the query URL
 def getUrl(announce, info_hashes):
-    if (announce == -1) or not announce.startswith('http'):     # tracker url error
-        return None                                             # return None
-    announce_index = announce.rfind("announce")
-    last_index = announce.rfind("/")    
+    if announce.startswith('http'):
+        announce_index = announce.rfind("announce")
+        last_index = announce.rfind("/")    
+        
+        url = announce    
+        if (last_index +1 == announce_index):        # srape support
+            url = url.replace("announce","scrape")
+        url +="?"
+        for info_hash in info_hashes:
+            url += "info_hash=" + urllib.quote(info_hash) + "&"
+        return url[:-1]
     
-    url = announce    
-    if (last_index +1 == announce_index):        # srape supprot
-        url = url.replace("announce","scrape")
-    url +="?"
-    for info_hash in info_hashes:
-        url += "info_hash=" + urllib.quote(info_hash) + "&"
-    return url[:-1]
+    elif announce.startswith('udp'):
+        url = urlparse(announce)
+        host = url.netloc
+        port = url.port or 80
+        
+        if host.find(':') > 0:
+            port = host[host.find(':')+1:]
+            host = host[:host.find(':')]
+        
+        return (host, int(port))
+
+    return None                                             # return None
             
 def getStatus(url, info_hash, info_hashes):
     returndict = {}
@@ -159,5 +179,61 @@ def getStatus(url, info_hash, info_hashes):
             pass
     except:
         pass
-    
     return None
+
+def getStatusUDP(url, info_hash, info_hashes):
+    #restrict to 74 max
+    info_hashes = [info_hash] + info_hashes[:73]
+    assert all(len(infohash) == 20 for infohash in info_hashes)
+    
+    udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+    # step 1: Get a connection-id
+    connection_id = 0x41727101980
+    action = 0
+    transaction_id = randint(0, sys.maxint)
+    msg = pack('!qii', connection_id, action, transaction_id)
+    udpSocket.sendto(msg, url)
+    
+    result = udpSocket.recv(1024)
+    if len(result) >= 16:
+        raction, rtransaction_id, rconnection_id  = unpack('!iiq', result)
+        if raction == action and rtransaction_id == transaction_id:
+            # step 2: Send scrape
+            action = 2
+            transaction_id = randint(0, sys.maxint)
+            
+            format = "!qii" + "20s"*len(info_hashes)
+            data = [rconnection_id, action, transaction_id]
+            data.extend(info_hashes)
+            msg = pack(format, *data)
+            udpSocket.sendto(msg, url)
+            
+            # 74 infohashes are roughly 7400 bits 
+            result = udpSocket.recv(8000)
+            if len(result) >= 8:
+                header = result[:8]
+                body = result[8:]
+                
+                raction, rtransaction_id = unpack('!ii', header)
+                if raction == action and rtransaction_id == transaction_id:
+                    returndict = {}
+                    for infohash in info_hashes:
+                        cur = body[:12]
+                        body = body[12:]
+                        
+                        seeders, completed, leechers = unpack('!iii', cur)
+                        returndict[infohash] = (seeders, leechers)
+                    
+                    return returndict
+    return None
+
+
+
+if __name__ == '__main__':
+    infohash = unhexlify('174E3CDD9610E79849304FCB9A835CDC6851B6F0')
+    
+    print >> sys.stderr, len(infohash)
+    tracker = 'udp://tracker.openbittorrent.com:80/announce'
+    url = getUrl(tracker, [])
+    print >> sys.stderr, getStatusUDP(url, infohash, [])

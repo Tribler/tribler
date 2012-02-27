@@ -737,6 +737,8 @@ class AbstractListBody():
         else:
             self.raw_data = data
             
+        assert len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d'%(len(data[0][1]), len(self.columns)) 
+            
         if highlight is None:
             highlight = not self.IsEmpty()
         
@@ -987,6 +989,17 @@ class AbstractListBody():
                 
                 self.OnChange()
                 break
+            
+    @warnWxThread          
+    def RemoveKey(self, key):
+        item = self.items.get(key, None)
+        if item:
+            self.items.pop(key)
+            
+            self.vSizer.Detach(item)
+            item.Destroy()
+                
+            self.OnChange()
             
     def GetExpandedItem(self):
         return self.cur_expanded

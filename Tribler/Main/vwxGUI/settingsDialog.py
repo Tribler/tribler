@@ -597,43 +597,41 @@ class SettingsDialog(wx.Dialog):
                 print_exc()
         scfg.save(cfgfilename)
     
-    #use os.renames as much as possible
-    #use single file/dir copy if target exists
-    def rename_or_merge(self, old, new, ignore = True):
-        if os.path.exists(old):
-            if os.path.exists(new):
-                files = os.listdir(old)
-                for file in files:
-                    oldfile = os.path.join(old, file)
-                    newfile = os.path.join(new, file)
-                    
-                    if os.path.isdir(oldfile):
-                        self.rename_or_merge(oldfile, newfile)
-                        
-                    elif os.path.exists(newfile):
-                        if not ignore:
-                            os.remove(newfile)
-                            os.rename(oldfile, newfile)
-                    else:
-                        os.rename(oldfile, newfile)
-            else:
-                os.renames(old, new)
-    
     def moveCollectedTorrents(self, old_dir, new_dir):
+        def rename_or_merge(old, new, ignore = True):
+            if os.path.exists(old):
+                if os.path.exists(new):
+                    files = os.listdir(old)
+                    for file in files:
+                        oldfile = os.path.join(old, file)
+                        newfile = os.path.join(new, file)
+                        
+                        if os.path.isdir(oldfile):
+                            self.rename_or_merge(oldfile, newfile)
+                            
+                        elif os.path.exists(newfile):
+                            if not ignore:
+                                os.remove(newfile)
+                                os.rename(oldfile, newfile)
+                        else:
+                            os.rename(oldfile, newfile)
+                else:
+                    os.renames(old, new)
+        
         def move(old_dir, new_dir):
             #physical move
             old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
             new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
-            self.rename_or_merge(old_dirtf, new_dirtf)
+            rename_or_merge(old_dirtf, new_dirtf, False)
             
             old_dirsf = os.path.join(old_dir, 'collected_subtitles_files')
             new_dirsf = os.path.join(new_dir, 'collected_subtitles_files')
-            self.rename_or_merge(old_dirsf, new_dirsf)
+            rename_or_merge(old_dirsf, new_dirsf, False)
         
             # ProxyService_
             old_dirdh = os.path.join(old_dir, PROXYSERVICE_DESTDIR)
             new_dirdh = os.path.join(new_dir, PROXYSERVICE_DESTDIR)
-            self.rename_or_merge(old_dirdh, new_dirdh)
+            rename_or_merge(old_dirdh, new_dirdh, False)
             
         atexit.register(move, old_dir, new_dir)
         
@@ -668,10 +666,30 @@ class SettingsDialog(wx.Dialog):
         
         self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
         
+        def rename_or_merge(old, new, ignore = True):
+            if os.path.exists(old):
+                if os.path.exists(new):
+                    files = os.listdir(old)
+                    for file in files:
+                        oldfile = os.path.join(old, file)
+                        newfile = os.path.join(new, file)
+                        
+                        if os.path.isdir(oldfile):
+                            self.rename_or_merge(oldfile, newfile)
+                            
+                        elif os.path.exists(newfile):
+                            if not ignore:
+                                os.remove(newfile)
+                                os.rename(oldfile, newfile)
+                        else:
+                            os.rename(oldfile, newfile)
+                else:
+                    os.renames(old, new)
+        
         def after_stop():
             print >> sys.stderr, "Moving from",old,"to",new,"newdir",new_dir
             if movefiles:
-                self.rename_or_merge(old, new, ignore)
+                rename_or_merge(old, new, ignore)
         
             self.utility.session.start_download(tdef, dscfg)
         

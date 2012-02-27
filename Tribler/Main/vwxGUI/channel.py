@@ -100,7 +100,8 @@ class ChannelManager():
                 
             self._on_data(total_items, nrfiltered, torrentList, playlists)
         
-        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True)
+        if self.list.channel:
+            startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True)
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -135,17 +136,23 @@ class ChannelManager():
         
     @forceDBThread
     def _refresh_partial(self, ids):
-        id_data = {}
-        for id in ids:
-            if isinstance(id, str) and len(id) == 20:
-                id_data[id] = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
-            else:
-                id_data[id] = self.channelsearch_manager.getPlaylist(self.list.channel, id)
+        if self.list.channel:
         
-        def do_gui(): 
-            for id, data in id_data.iteritems():
-                self.list.RefreshData(id, data)
-        wx.CallAfter(do_gui)
+            id_data = {}
+            for id in ids:
+                if isinstance(id, str) and len(id) == 20:
+                    id_data[id] = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
+                else:
+                    id_data[id] = self.channelsearch_manager.getPlaylist(self.list.channel, id)
+        
+            def do_gui(): 
+                for id, data in id_data.iteritems():
+                    if data:
+                        self.list.RefreshData(id, data)
+                    else:
+                        self.list.RemoveItem(id)
+        
+            wx.CallAfter(do_gui)
     
     @forceWxThread  
     def downloadStarted(self, infohash):
@@ -185,7 +192,7 @@ class ChannelManager():
                 self.dirtyset.add('COMPLETE_REFRESH')
                 self.list.dirty = True
     
-    def playlistUpdated(self, playlist_id, infohash = False):
+    def playlistUpdated(self, playlist_id, infohash = False, modified = False):
         if self.list.InList(playlist_id):
             if self.list.InList(infohash): #if infohash is shown, complete refresh is necessary
                 if self.list.ShouldGuiUpdate():
@@ -423,7 +430,7 @@ class SelectedChannelList(GenericSearchList):
         List.SetData(self, torrents)
         
         if len(playlists) > 0 or len(torrents) > 0:
-            data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents], playlist, PlaylistItem) for playlist in playlists]
+            data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents, 0, 0], playlist, PlaylistItem) for playlist in playlists]
             
             shouldDrag = len(playlists) > 0 and (self.iamModerator or self.state == ChannelCommunity.CHANNEL_OPEN)
             if shouldDrag:
@@ -790,19 +797,21 @@ class PlaylistManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
             
-        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
+        if self.list.playlist:            
+            startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
         
     @forceDBThread
     def _refresh_partial(self, ids):
-        id_data = {}
-        for id in ids:
-            if isinstance(id, str) and len(id) == 20:
-                id_data[id] = self.channelsearch_manager.getTorrentFromPlaylist(self.list.playlist, id)
+        if self.list.playlist:
+            id_data = {}
+            for id in ids:
+                if isinstance(id, str) and len(id) == 20:
+                    id_data[id] = self.channelsearch_manager.getTorrentFromPlaylist(self.list.playlist, id)
         
-        def do_gui(): 
-            for id, data in id_data.iteritems():
-                self.list.RefreshData(id, data)
-        wx.CallAfter(do_gui)
+            def do_gui(): 
+                for id, data in id_data.iteritems():
+                    self.list.RefreshData(id, data)
+            wx.CallAfter(do_gui)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrents = delayedResult.get()
@@ -819,12 +828,15 @@ class PlaylistManager():
                 self.dirtyset.add(infohash)
                 self.list.dirty = True
         
-    def playlistUpdated(self, playlist_id):
+    def playlistUpdated(self, playlist_id, modified = False):
         if self.list.playlist == playlist_id:
-            if self.list.ShouldGuiUpdate():
-                self._refresh_list()
+            if modified:
+                if self.list.ShouldGuiUpdate():
+                    self._refresh_list()
+                else:
+                    self.list.dirty = True
             else:
-                self.list.dirty = True
+                self.guiutility.GoBack()
 
 class Playlist(SelectedChannelList):
     def __init__(self, *args, **kwargs):
@@ -883,7 +895,8 @@ class PlaylistItem(ListItem):
     def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
         ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
         
-        self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
+        if getattr(parent_list.parent_list, 'AddTorrent', False):
+            self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
         self.should_update = True
         
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -1114,6 +1127,13 @@ class ManageChannelPlaylistsManager():
         if channel != self.channel:
             self.channel = channel
             self.list.dirty = True
+            
+    def RemoveItems(self, ids):
+        for id in ids:
+            self.channelsearch_manager.removePlaylist(self.channel, id)
+                
+    def RemoveAllItems(self):
+        self.channelsearch_manager.removeAllPlaylists(self.channel)
     
     def GetTorrentsFromChannel(self):
         delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True)
@@ -1139,9 +1159,12 @@ class ManageChannelPlaylistsManager():
     def savePlaylistTorrents(self, playlist_id, infohashes):
         startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.channel.id, playlist_id, infohashes), retryOnBusy=True)
     
-    def playlistUpdated(self, playlist_id):
+    def playlistUpdated(self, playlist_id, modified = False):
         if self.list.InList(playlist_id):
-            self._refresh_partial(playlist_id)
+            if modified:
+                self._refresh_partial(playlist_id)
+            else:
+                self.refresh_list()
 
 class ManageChannel(XRCPanel, AbstractDetails):
 
@@ -1608,9 +1631,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
             manager = self.playlistlist.GetManager()
             manager.refresh_list()
         
-    def playlistUpdated(self, playlist_id):
+    def playlistUpdated(self, playlist_id, modified = False):
         manager = self.playlistlist.GetManager()
-        manager.playlistUpdated(playlist_id)
+        manager.playlistUpdated(playlist_id, modified)
         
     def channelUpdated(self, channel_id, created = False, modified = False):
         if self.channel == channel_id:
@@ -1631,7 +1654,7 @@ class ManageChannelFilesList(List):
         List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
     
     def CreateHeader(self, parent):
-        return ListHeader(parent, self, self.columns, 0)
+        return TitleHeader(parent, self, self.columns, 0, wx.FONTWEIGHT_BOLD, 0)
     
     def CreateFooter(self, parent):
         return ManageChannelFilesFooter(parent, self.OnRemoveAll, self.OnRemoveSelected, self.OnAdd, self.OnExport)
@@ -1656,6 +1679,13 @@ class ManageChannelFilesList(List):
         self.canAdd = (state == ChannelCommunity.CHANNEL_OPEN) or iamModerator
         
         self.footer.SetState(self.canDelete, self.canAdd)
+        
+        if self.canDelete:
+            self.header.SetTitle('Use this view to add or remove torrents')
+        elif self.canAdd:
+            self.header.SetTitle('Use this view to add torrents')
+        else:
+            self.header.SetTitle('')
         
     def OnExpand(self, item):
         return True
@@ -1691,7 +1721,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def __init__(self, parent):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}]
         
-        List.__init__(self, columns, LIST_BLUE, [0,0], parent = parent, borders = False)
+        List.__init__(self, columns, LIST_BLUE, [0,0], True, parent = parent, borders = False)
     
     def CreateFooter(self, parent):
         return ManageChannelPlaylistFooter(parent, self.OnNew)
@@ -1710,15 +1740,28 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def SetData(self, data):
         List.SetData(self, data)
         
-        data = [(playlist.id,(playlist.name, ), playlist) for playlist in data]
+        data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents, 0, 0], playlist, PlaylistItem) for playlist in data]
         if len(data) > 0:
             self.list.SetData(data)
         else:
             self.list.ShowMessage('You currently do not have any playlists in your channel.')
         self.SetNrResults(len(data))
+        
+    def SetFooter(self, state, iamModerator):
+        self.canDelete = iamModerator
+        self.canAdd = (state == ChannelCommunity.CHANNEL_OPEN) or iamModerator
+        
+        self.footer.SetState(self.canDelete, self.canAdd)
+        
+        if self.canDelete:
+            self.header.SetTitle('Use this view to create, modify and delete playlists')
+        elif self.canAdd:
+            self.header.SetTitle('Use this view to add torrents to existing playlists')
+        else:
+            self.header.SetTitle('')
     
     def OnExpand(self, item):
-        return MyChannelPlaylist(item, self.OnEdit, self.canDelete, self.OnSave, item.original_data)
+        return MyChannelPlaylist(item, self.OnEdit, self.canDelete, self.OnSave, self.OnRemoveSelected, item.original_data)
 
     def OnCollapse(self, item, panel):
         playlist_id = item.original_data.get('id', False)
@@ -1738,7 +1781,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         dlg = wx.Dialog(None, -1, 'Create a new playlist', size = (500, 300), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
-        playlistdetails = MyChannelPlaylist(dlg, self.OnManage)
+        playlistdetails = MyChannelPlaylist(dlg, self.OnManage, can_edit=True)
         
         vSizer.Add(playlistdetails, 1, wx.EXPAND|wx.ALL, 3)
         vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK|wx.CANCEL), 0, wx.EXPAND|wx.ALL, 3)
@@ -1749,6 +1792,18 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             
             manager = self.GetManager()
             manager.createPlaylist(name, description, infohashes)
+        dlg.Destroy()
+    
+#    def OnRemoveAll(self, event):
+#        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all playlists from your channel?', 'Remove playlists', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+#        if dlg.ShowModal() == wx.ID_YES:
+#            self.GetManager().RemoveAllItems()
+#        dlg.Destroy()
+    
+    def OnRemoveSelected(self, playlist_id, panel):
+        dlg = wx.MessageDialog(None, 'Are you sure you want to remove this playlist from your channel?', 'Remove playlist', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        if dlg.ShowModal() == wx.ID_YES:
+            self.GetManager().RemoveItems([playlist_id])
         dlg.Destroy()
     
     def OnEdit(self, playlist):
@@ -1829,7 +1884,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         self.all = wx.RadioButton(dlg, -1, "Show all available torrents", style = wx.RB_GROUP )
         self.all.Bind(wx.EVT_RADIOBUTTON, self.OnRadio)
         self.all.dlg = dlg
-        self.playlist = wx.RadioButton(dlg, -1, "Show only torrent not yet in a playlist" )
+        self.playlist = wx.RadioButton(dlg, -1, "Show torrents not yet present in a playlist" )
         self.playlist.Bind(wx.EVT_RADIOBUTTON, self.OnRadio)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(self.all)

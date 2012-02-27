@@ -529,11 +529,17 @@ class List(wx.BoxSizer):
     @warnWxThread
     def RefreshDelayedData(self, delayedResult, key):
         assert self.isReady, "List not ready"
-        self.RefreshData(key, delayedResult.get())
+        data = delayedResult.get()
+        if data:
+            self.RefreshData(key, data)
     
     @warnWxThread
     def RefreshData(self, key, data):
         assert self.isReady, "List not ready"
+    
+    def RemoveItem(self, key):
+        assert self.isReady, "List not ready"
+        self.list.RemoveKey(key)
 
     @warnWxThread        
     def SetNrResults(self, nr):
@@ -1435,6 +1441,8 @@ class LibraryList(SizeList):
     @warnWxThread
     def RefreshItems(self, dslist):
         if self.isReady and self.ShouldGuiUpdate():
+            newFilter = self.newfilter
+            
             totals = {2:0, 3:0, 4:0}
             
             nr_seeding = 0
@@ -1498,7 +1506,7 @@ class LibraryList(SizeList):
                 totals[3] = totals[3] + item.data[3]
                 totals[4] = totals[4] + item.data[4]
                 
-                if self.newfilter or not self.__ds__eq__(ds, old_dsdict.get(infohash, None)):
+                if newFilter or not self.__ds__eq__(ds, old_dsdict.get(infohash, None)):
                     nr_connections = str(item.data[2][0] + item.data[2][1])
                     item.connections.SetLabel(nr_connections)
                     
@@ -1586,8 +1594,9 @@ class LibraryList(SizeList):
             
             for key in totals.keys():
                 self.footer.SetTotal(key, totals[key])
-            
-            self.newfilter = False
+                
+            if newFilter:
+                self.newfilter = False
     
     @warnWxThread
     def SetData(self, data):

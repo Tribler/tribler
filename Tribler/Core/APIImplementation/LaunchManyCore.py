@@ -685,15 +685,31 @@ class TriblerLaunchMany(Thread):
         try:
             dir = self.session.get_downloads_pstate_dir()
             filelist = os.listdir(dir)
-            for i, basename in enumerate(filelist):
-                if basename.endswith('.pickle'):
-                    # Make this go on when a torrent fails to start
-                    filename = os.path.join(dir,basename)
-                    commit = i+1 == len(filelist)
-                    self.resume_download(filename,initialdlstatus,commit=commit)
+            filelist = [filename for filename in filelist if filename.endswith('.pickle')]
+            
+            batchsize = 2
+            batches = zip(*[filelist[i::batchsize] for i in range(batchsize)])
+            for i, batch in enumerate(batches):
+                shouldCommit = i+1 == len(batches)
+                
+                network_load_checkpoint_lambda = lambda batch=batch:self.network_load_checkpoint(batch, initialdlstatus, shouldCommit)
+                self.rawserver.add_task(network_load_checkpoint_lambda, i)
         finally:
             self.sesslock.release()
-
+            
+    def network_load_checkpoint(self, filenames, initialdlstatus=None, commit=True):
+        """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            for i, filename in enumerate(filenames):
+                if commit:
+                    shouldCommit = i+1 == len(filenames)
+                else:
+                    shouldCommit = False
+                
+                self.resume_download(filename,initialdlstatus,commit=shouldCommit)
+        finally:
+            self.sesslock.release()
 
     def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
@@ -732,7 +748,7 @@ class TriblerLaunchMany(Thread):
             
             #normal torrentfile is not present, see if readable torrent is there
             if not os.path.isfile(torrentfile):
-                torrent = self.torrent_db.getTorrent(infohash, keys = ['name'])
+                torrent = self.torrent_db.getTorrent(infohash, keys = ['name'], include_mypref = False)
                 if torrent:
                     save_name = get_readable_torrent_name(infohash, torrent['name'])
                     torrentfile = os.path.join(torrent_dir, save_name)

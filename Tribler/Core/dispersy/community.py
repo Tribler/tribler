@@ -765,7 +765,7 @@ class Community(object):
             #if last 2 packets are equal, then we need to drop those
             global_time = data[-1][0]
             del data[-1]
-            while data[-1][0] == global_time:
+            while data and data[-1][0] == global_time:
                 del data[-1]
 
         if not higher:

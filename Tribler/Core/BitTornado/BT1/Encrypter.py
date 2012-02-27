@@ -84,7 +84,7 @@ if sys.platform == 'win32':
         MAX_INCOMPLETE = 64
 else:
     MAX_INCOMPLETE = 32
-MAX_HISTORY_INCOMPLETE = MAX_INCOMPLETE*10 # allow X connections to be initiated every 60s
+MAX_HISTORY_INCOMPLETE = max(MAX_INCOMPLETE*10, 320)  # allow X connections to be initiated every 60s
 
 AUTOCLOSE_TIMEOUT = 15 # secs. Setting this to e.g. 7 causes Video HTTP timeouts
 
