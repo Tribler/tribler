@@ -529,11 +529,17 @@ class List(wx.BoxSizer):
     @warnWxThread
     def RefreshDelayedData(self, delayedResult, key):
         assert self.isReady, "List not ready"
-        self.RefreshData(key, delayedResult.get())
+        data = delayedResult.get()
+        if data:
+            self.RefreshData(key, data)
     
     @warnWxThread
     def RefreshData(self, key, data):
         assert self.isReady, "List not ready"
+    
+    def RemoveItem(self, key):
+        assert self.isReady, "List not ready"
+        self.list.RemoveKey(key)
 
     @warnWxThread        
     def SetNrResults(self, nr):

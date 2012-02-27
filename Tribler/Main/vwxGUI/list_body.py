@@ -990,6 +990,17 @@ class AbstractListBody():
                 self.OnChange()
                 break
             
+    @warnWxThread          
+    def RemoveKey(self, key):
+        item = self.items.get(key, None)
+        if item:
+            self.items.pop(key)
+            
+            self.vSizer.Detach(item)
+            item.Destroy()
+                
+            self.OnChange()
+            
     def GetExpandedItem(self):
         return self.cur_expanded
     

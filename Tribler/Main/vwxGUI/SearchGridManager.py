@@ -1395,11 +1395,12 @@ class ChannelManager:
         return len(hits), self._createPlaylists(hits, channel=channel)
     
     def _createPlaylist(self, hit, channel = None):
-        pl = Playlist(*(hit+(channel, )))
-        
-        #touch extended_description property to possibly load torrents
-        pl.extended_description
-        return pl 
+        if hit:
+            pl = Playlist(*(hit+(channel, )))
+            
+            #touch extended_description property to possibly load torrents
+            pl.extended_description
+            return pl 
     
     def _createPlaylists(self, hits, channel = None):
         returnList = []
