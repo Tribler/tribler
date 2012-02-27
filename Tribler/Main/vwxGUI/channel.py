@@ -100,7 +100,8 @@ class ChannelManager():
                 
             self._on_data(total_items, nrfiltered, torrentList, playlists)
         
-        startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True)
+        if self.list.channel:
+            startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True)
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -135,21 +136,23 @@ class ChannelManager():
         
     @forceDBThread
     def _refresh_partial(self, ids):
-        id_data = {}
-        for id in ids:
-            if isinstance(id, str) and len(id) == 20:
-                id_data[id] = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
-            else:
-                id_data[id] = self.channelsearch_manager.getPlaylist(self.list.channel, id)
+        if self.list.channel:
         
-        def do_gui(): 
-            for id, data in id_data.iteritems():
-                if data:
-                    self.list.RefreshData(id, data)
+            id_data = {}
+            for id in ids:
+                if isinstance(id, str) and len(id) == 20:
+                    id_data[id] = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
                 else:
-                    self.list.RemoveItem(id)
-            
-        wx.CallAfter(do_gui)
+                    id_data[id] = self.channelsearch_manager.getPlaylist(self.list.channel, id)
+        
+            def do_gui(): 
+                for id, data in id_data.iteritems():
+                    if data:
+                        self.list.RefreshData(id, data)
+                    else:
+                        self.list.RemoveItem(id)
+        
+            wx.CallAfter(do_gui)
     
     @forceWxThread  
     def downloadStarted(self, infohash):
@@ -794,19 +797,21 @@ class PlaylistManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
             
-        startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
+        if self.list.playlist:            
+            startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True)
         
     @forceDBThread
     def _refresh_partial(self, ids):
-        id_data = {}
-        for id in ids:
-            if isinstance(id, str) and len(id) == 20:
-                id_data[id] = self.channelsearch_manager.getTorrentFromPlaylist(self.list.playlist, id)
+        if self.list.playlist:
+            id_data = {}
+            for id in ids:
+                if isinstance(id, str) and len(id) == 20:
+                    id_data[id] = self.channelsearch_manager.getTorrentFromPlaylist(self.list.playlist, id)
         
-        def do_gui(): 
-            for id, data in id_data.iteritems():
-                self.list.RefreshData(id, data)
-        wx.CallAfter(do_gui)
+            def do_gui(): 
+                for id, data in id_data.iteritems():
+                    self.list.RefreshData(id, data)
+            wx.CallAfter(do_gui)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrents = delayedResult.get()
