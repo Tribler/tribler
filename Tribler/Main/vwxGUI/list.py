@@ -1402,6 +1402,12 @@ class LibraryList(SizeList):
         if ds1.get_num_con_candidates() != ds2.get_num_con_candidates():
             return False
         
+        #Compare current speed
+        if ds1.get_current_speed('down') != ds2.get_current_speed('down'):
+            return False
+        if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
+            return False
+        
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
@@ -1410,26 +1416,6 @@ class LibraryList(SizeList):
             return False
         
         if ds1.get_progress() != ds2.get_progress():
-            return False
-
-        #Compare upload/download        
-        def get_up_down(ds):
-            if ds.get_seeding_statistics():
-                stats = ds.get_seeding_statistics()
-                dl = stats['total_down']
-                ul = stats['total_up']
-            else:                
-                dl = ds.get_total_transferred(DOWNLOAD)
-                ul = ds.get_total_transferred(UPLOAD)
-            
-            return dl, ul
-        
-        dl1, ul1 = get_up_down(ds1)
-        dl2, ul2 = get_up_down(ds2)
-        
-        if dl1 != dl2:
-            return False
-        if ul1 != ul2:
             return False
         
         #Compare size
@@ -1492,6 +1478,8 @@ class LibraryList(SizeList):
             
             if didStateChange and self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again
+                
+            print >> sys.stderr, "Refresh"
             
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds
