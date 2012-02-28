@@ -500,7 +500,7 @@ class Encoder:
         
         self.paused = False
         if self.config['max_connections'] == 0:
-            self.max_connections = 2 ** 30
+            self.max_connections = 100
         else:
             self.max_connections = self.config['max_connections']
         """
@@ -826,7 +826,7 @@ class Encoder:
             
             seeding = self.connecter.downloader.storage.amount_left == 0
             if seeding:
-                schedule_refresh_in = 300
+                schedule_refresh_in = 120
             else:
                 #no more peers to connect to :(, schedule a refresh
                 schedule_refresh_in = max(60, int(300 - (now - self.trackertime)))
