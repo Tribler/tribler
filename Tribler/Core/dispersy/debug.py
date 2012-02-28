@@ -9,11 +9,7 @@ from message import Message
 from time import time
 
 class DebugOnlyMember(Member):
-    _singleton_instances = {}
-
-    @property
-    def database_id(self):
-        return Member.get_instance(self.public_key).database_id
+    pass
 
 class Node(object):
     _socket_range = (8000, 8999)
@@ -77,7 +73,7 @@ class Node(object):
         assert sync_with_database is None, "The parameter sync_with_database is deprecated and must be None"
 
         ec = ec_generate_key(u"low")
-        self._my_member = DebugOnlyMember.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=False)
+        self._my_member = DebugOnlyMember(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         if identity:
             # update identity information

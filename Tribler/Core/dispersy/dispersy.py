@@ -55,7 +55,7 @@ from decorator import runtime_duration_warning
 from destination import CommunityDestination, CandidateDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
-from member import Member
+from member import DummyMember, Member
 from message import BatchConfiguration, Packet, Message
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
 from message import DropPacket, DelayPacket
@@ -85,13 +85,11 @@ CANDIDATE_WALKER_PRIORITY = -1
 CANDIDATE_CLEANUP_PRIORITY = -1
 TRIGGER_CHECK_PRIORITY = -1
 TRIGGER_TIMEOUT_PRIORITY = -2
-MEMBER_CLEANUP_PRIORITY = -3
 assert isinstance(WATCHDOG_PRIORITY, int)
 assert isinstance(CANDIDATE_WALKER_PRIORITY, int)
 assert isinstance(CANDIDATE_CLEANUP_PRIORITY, int)
 assert isinstance(TRIGGER_CHECK_PRIORITY, int)
 assert isinstance(TRIGGER_TIMEOUT_PRIORITY, int)
-assert isinstance(MEMBER_CLEANUP_PRIORITY, int)
 assert TRIGGER_TIMEOUT_PRIORITY < TRIGGER_CHECK_PRIORITY, "an existing trigger should not timeout before being checked"
 
 # the callback identifier for the task that periodically takes a step
@@ -370,9 +368,6 @@ class Dispersy(Singleton):
         # commit changes to the database periodically
         self._callback.register(self._watchdog, priority=WATCHDOG_PRIORITY)
 
-        # periodically try to cleanup Member instances
-        self._callback.register(Member.periodically_cleanup_member_instances, priority=MEMBER_CLEANUP_PRIORITY)
-
         # statistics...
         self._statistics = Statistics()
 
@@ -619,6 +614,64 @@ class Dispersy(Singleton):
     def get_progress_handlers(self):
         return self._progress_handlers
 
+    def get_member(self, public_key, private_key=""):
+        """
+        Returns a Member instance associated with public_key.
+
+        since we have the public_key, we can create this user when it didn't already exist.  Hence,
+        this method always succeeds.
+
+        @param public_key: The public key of the member we want to obtain.
+        @type public_key: string
+
+        @return: The Member instance associated with public_key.
+        @rtype: Member
+
+        @note: This returns -any- Member, it may not be a member that is part of this community.
+
+        @todo: Since this method returns Members that are not specifically bound to any community,
+         this method should be moved to Dispersy
+        """
+        assert isinstance(public_key, str)
+        assert isinstance(private_key, str)
+        return Member(public_key, private_key)
+
+    def get_members_from_id(self, mid):
+        """
+        Returns zero or more Member instances associated with mid, where mid is the sha1 digest of a
+        member public key.
+
+        As we are using only 20 bytes to represent the actual member public key, this method may
+        return multiple possible Member instances.  In this case, other ways must be used to figure
+        out the correct Member instance.  For instance: if a signature or encryption is available,
+        all Member instances could be used, but only one can succeed in verifying or decrypting.
+
+        Since we may not have the public key associated to MID, this method may return an empty
+        list.  In such a case it is sometimes possible to DelayPacketByMissingMember to obtain the
+        public key.
+
+        @param mid: The 20 byte sha1 digest indicating a member.
+        @type mid: string
+
+        @return: A list containing zero or more Member instances.
+        @rtype: [Member]
+
+        @note: This returns -any- Member, it may not be a member that is part of this community.
+
+        @todo: Since this method returns Members that are not specifically bound to any community,
+         this method should be moved to Dispersy
+        """
+        assert isinstance(mid, str)
+        assert len(mid) == 20
+        # note that this allows a security attack where someone might obtain a crypographic key that
+        # has the same sha1 as the master member, however unlikely.  the only way to prevent this,
+        # as far as we know, is to increase the size of the community identifier, for instance by
+        # using sha256 instead of sha1.
+        return [Member(str(public_key))
+                for public_key,
+                in list(self._database.execute(u"SELECT public_key FROM member WHERE mid = ?", (buffer(mid),)))
+                if public_key]
+
     def attach_community(self, community):
         """
         Add a community to the Dispersy instance.
@@ -781,7 +834,7 @@ class Dispersy(Singleton):
 
         if not cid in self._communities:
             try:
-                # did we load this community at one point and set it to auto-load?
+                # have we joined this community
                 classification, auto_load_flag, master_public_key = self._database.execute(u"SELECT community.classification, community.auto_load, member.public_key FROM community JOIN member ON member.id = community.master WHERE mid = ?",
                                                                                            (buffer(cid),)).next()
 
@@ -792,13 +845,7 @@ class Dispersy(Singleton):
                 if load or (auto_load and auto_load_flag):
 
                     if classification in self._auto_load_communities:
-                        # master_public_key may be None
-                        if master_public_key:
-                            master_public_key = str(master_public_key)
-                            master = Member.get_instance(str(master_public_key))
-                        else:
-                            master = Member.get_instance(cid, public_key_available=False)
-
+                        master = Member(str(master_public_key)) if master_public_key else DummyMember(cid)
                         cls, args, kargs = self._auto_load_communities[classification]
                         cls.load_community(master, *args, **kargs)
                         assert master.mid in self._communities
@@ -947,7 +994,7 @@ class Dispersy(Singleton):
             packet = str(packet)
             if packet == message.packet:
                 # exact binary duplicates, do NOT process the message
-                if __debug__: dprint(message.candidate, " received identical message [", message.name, " ", message.authentication.member.database_id, "@", message.distribution.global_time, " undone" if undone else "", "]")
+                if __debug__: dprint(message.candidate, " received identical message [", message.name, " ", message.authentication.member.database_id, "@", message.distribution.global_time, " undone" if undone else "", "]", level="warning")
 
                 if undone:
                     try:
@@ -2720,7 +2767,7 @@ class Dispersy(Singleton):
 
         trigger = TriggerCallback(footprint, response_func, response_args, max_responses)
         self._triggers.append(trigger)
-        self._callback.register(trigger.on_timeout, delay=timeout, priority=TRIGGER_TIMEOUT_PRIORITY)
+        return self._callback.register(trigger.on_timeout, delay=timeout, priority=TRIGGER_TIMEOUT_PRIORITY)
 
     def declare_malicious_member(self, member, packets):
         """
@@ -3044,53 +3091,38 @@ class Dispersy(Singleton):
         """
         We received a dispersy-identity message.
         """
-        for message in messages:
-            assert message.name == u"dispersy-identity"
-            if __debug__: dprint(message)
-            # update the in-memory member instance
-            message.authentication.member.update()
-            assert self._database.execute(u"SELECT COUNT(1) FROM sync WHERE packet = ?", (buffer(message.packet),)).next()[0] == 1
-            assert message.authentication.member.has_identity(message.community)
+        pass
 
-    # def create_identity_request(self, community, mid, addresses, forward=True):
-    #     """
-    #     Create a dispersy-identity-request message.
+    def create_missing_identity(self, community, candidate, dummy_member, response_func=None, response_args=(), timeout=10.0, forward=True):
+        """
+        Create a dispersy-missing-identity message.
 
-    #     To verify a message signature we need the corresponding public key from the member who made
-    #     the signature.  When we are missing a public key, we can request a dispersy-identity message
-    #     which contains this public key.
+        To verify a message signature we need the corresponding public key from the member who made
+        the signature.  When we are missing a public key, we can request a dispersy-identity message
+        which contains this public key.
+        """
+        if __debug__:
+            # pylint: disable-msg=W0404
+            from community import Community
+            assert isinstance(community, Community)
+            assert isinstance(candidate, Candidate)
+            assert isinstance(dummy_member, DummyMember)
+            assert not dummy_member.public_key
+            assert callable(response_func)
+            assert isinstance(response_args, tuple)
+            assert isinstance(timeout, float)
+            assert timeout > 0.0
+            assert isinstance(forward, bool)
 
-    #     The missing member is identified by the sha1 digest over the member key.  This mid can
-    #     indicate multiple members, hence the dispersy-identity-response will contain one or more
-    #     public keys.
+        meta = community.get_meta_message(u"dispersy-missing-identity")
+        request = meta.impl(distribution=(community.global_time,), destination=(candidate,), payload=(dummy_member.mid,))
 
-    #     Most often we will need to request a dispersy-identity when we receive a message containing
-    #     an, to us, unknown mid.  Hence, sending the request to the address where we got that message
-    #     from is usually most effective.
+        if response_func:
+            footprint = community.get_meta_message(u"dispersy-identity").generate_footprint(authentication=([dummy_member.mid],))
+            self.await_message(footprint, response_func, response_args, timeout, 1)
 
-    #     @see: create_identity
-
-    #     @param community: The community for wich the dispersy-identity message will be created.
-    #     @type community: Community
-
-    #     @param mid: The 20 byte identifier for the member.
-    #     @type mid: string
-
-    #     @param address: The address to send the request to.
-    #     @type address: (string, int)
-
-    #     @param forward: When True the messages are forwarded (as defined by their message
-    #      destination policy) to other nodes in the community.  This parameter should (almost always)
-    #      be True, its inclusion is mostly to allow certain debugging scenarios.
-    #     @type forward: bool
-    #     """
-    #     meta = community.get_meta_message(u"dispersy-identity-request")
-    #     message = meta.implement(meta.authentication.implement(),
-    #                              meta.distribution.implement(community.global_time),
-    #                              meta.destination.implement(*addresses),
-    #                              meta.payload.implement(mid))
-    #     self.store_update_forward([message], False, False, forward)
-    #     return message
+        self.store_update_forward([request], False, False, forward)
+        return request
 
     def on_missing_identity(self, messages):
         """
@@ -3633,7 +3665,7 @@ class Dispersy(Singleton):
 
         >>> # Authorize Bob to use Permit payload for 'some-message'
         >>> from Payload import Permit
-        >>> bob = Member.get_instance(bob_public_key)
+        >>> bob = Member(bob_public_key)
         >>> msg = self.get_meta_message(u"some-message")
         >>> self.create_authorize(community, [(bob, msg, u'permit')])
 
@@ -3731,7 +3763,7 @@ class Dispersy(Singleton):
 
         >>> # Revoke the right of Bob to use Permit payload for 'some-message'
         >>> from Payload import Permit
-        >>> bob = Member.get_instance(bob_public_key)
+        >>> bob = Member(bob_public_key)
         >>> msg = self.get_meta_message(u"some-message")
         >>> self.create_revoke(community, [(bob, msg, u'permit')])
 

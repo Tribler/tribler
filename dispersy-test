@@ -9,8 +9,8 @@ echo "==========================================================================
 echo "Testcases in __debug__ mode"
 echo "================================================================================"
 
-rm -f dispersy.db
-rm -f dispersy.db-journal
+rm -f sqlite/dispersy.db
+rm -f sqlite/dispersy.db-journal
 rm -f dispersy.log
 
 python "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-batch || exit 1
@@ -31,8 +31,8 @@ echo "==========================================================================
 echo "Testcases in optimized mode"
 echo "================================================================================"
 
-rm -f dispersy.db
-rm -f dispersy.db-journal
+rm -f sqlite/dispersy.db
+rm -f sqlite/dispersy.db-journal
 rm -f dispersy.log
 
 python -O "$BRANCH/Tribler/Main/dispersy.py" --script dispersy-batch || exit 1

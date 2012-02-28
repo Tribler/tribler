@@ -15,14 +15,14 @@ import traceback
 
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.Statistics.Logger import OverlayLogger
-from Tribler.Core.dispersy.callback import Callback, Idle
+from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.candidate import WalkCandidate
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import BinaryConversion
 from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.dispersy.dprint import dprint
-from Tribler.Core.dispersy.member import Member
+from Tribler.Core.dispersy.member import DummyMember, Member
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -122,7 +122,7 @@ class TrackerDispersy(Dispersy):
 
         # generate a new my-member
         ec = ec_generate_key(u"very-low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         callback.register(self._unload_communities, priority=-128)
 
@@ -130,7 +130,7 @@ class TrackerDispersy(Dispersy):
         try:
             return super(TrackerDispersy, self).get_community(cid, True, True)
         except KeyError:
-            self._communities[cid] = TrackerCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member)
+            self._communities[cid] = TrackerCommunity.join_community(DummyMember(cid), self._my_member)
             return self._communities[cid]
 
     def _convert_packets_into_batch(self, packets):

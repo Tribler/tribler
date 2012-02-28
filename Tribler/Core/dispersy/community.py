@@ -9,10 +9,8 @@ Community instance.
 """
 
 from hashlib import sha1
-# from itertools import count
-# from math import sqrt
-# from random import gauss, choice
-from random import expovariate, random, Random
+from itertools import islice
+from random import random, Random
 
 from bloomfilter import BloomFilter
 from cache import CacheDict
@@ -24,7 +22,7 @@ from destination import SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution
-from member import Member
+from member import DummyMember, Member
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 from timeline import Timeline
 
@@ -77,7 +75,7 @@ class Community(object):
         assert my_member.public_key, my_member.database_id
         assert my_member.private_key, my_member.database_id
         ec = ec_generate_key(u"high")
-        master = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
+        master = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         database = DispersyDatabase.get_instance()
         database.execute(u"INSERT INTO community (master, member, classification) VALUES(?, ?, ?)", (master.database_id, my_member.database_id, cls.get_classification()))
@@ -141,7 +139,7 @@ class Community(object):
         receive, send, and disseminate messages that do not require any permission to use.
 
         @param master: The master member that identified the community that we want to join.
-        @type master: Member
+        @type master: DummyMember or Member
 
         @param my_member: The member that will be granted Permit, Authorize, and Revoke for all
          messages.
@@ -156,7 +154,7 @@ class Community(object):
         @return: The created community instance.
         @rtype: Community
         """
-        assert isinstance(master, Member)
+        assert isinstance(master, DummyMember)
         assert isinstance(my_member, Member)
         assert my_member.public_key, my_member.database_id
         assert my_member.private_key, my_member.database_id
@@ -176,19 +174,12 @@ class Community(object):
 
     @classmethod
     def get_master_members(cls):
-        def loader(mid, master_public_key):
-            assert isinstance(mid, buffer)
-            assert master_public_key is None or isinstance(master_public_key, buffer)
-            if master_public_key:
-                return Member.get_instance(str(master_public_key))
-            else:
-                return Member.get_instance(str(mid), public_key_available=False)
-
         if __debug__: dprint("retrieving all master members owning ", cls.get_classification(), " communities")
         execute = DispersyDatabase.get_instance().execute
-        return [loader(mid, master_public_key)
-                for mid, master_public_key
-                in list(execute(u"SELECT m.mid, m.public_key FROM community AS c JOIN member AS m ON m.id = c.master WHERE c.classification = ?", (cls.get_classification(),)))]
+        return [Member(str(public_key)) if public_key else DummyMember(str(mid))
+                for mid, public_key,
+                in list(execute(u"SELECT m.mid, m.public_key FROM community AS c JOIN member AS m ON m.id = c.master WHERE c.classification = ?",
+                                (cls.get_classification(),)))]
 
     @classmethod
     def load_community(cls, master, *args, **kargs):
@@ -198,12 +189,12 @@ class Community(object):
         Will raise a ValueError exception when cid is unavailable.
 
         @param master: The master member that identifies the community.
-        @type master: Member
+        @type master: DummyMember or Member
 
         @return: The community identified by master.
         @rtype: Community
         """
-        assert isinstance(master, Member)
+        assert isinstance(master, DummyMember)
         if __debug__: dprint("loading ", cls.get_classification(), " ", master.mid.encode("HEX"))
         community = cls(master, *args, **kargs)
 
@@ -220,13 +211,13 @@ class Community(object):
         loaded using load_community.  These two methods prepare and call this __init__ method.
 
         @param master: The master member that identifies the community.
-        @type master: Member
+        @type master: DummyMember or Member
         """
-        assert isinstance(master, Member)
+        assert isinstance(master, DummyMember)
         if __debug__:
             dprint("initializing:  ", self.get_classification())
             dprint("identifier:    ", master.mid.encode("HEX"))
-            dprint("master member: ", master.public_key.encode("HEX") if master.public_key else "unavailable")
+            dprint("master member: ", master.mid.encode("HEX"), "" if isinstance(master, Member) else " (using DummyMember)")
 
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
@@ -244,9 +235,11 @@ class Community(object):
 
         self._cid = master.mid
         self._master_member = master
-        self._my_member = Member.get_instance(str(member_public_key))
-        assert self._my_member.public_key, self._my_member.database_id
-        assert self._my_member.private_key, self._my_member.database_id
+        self._my_member = Member(str(member_public_key))
+        assert self._my_member.public_key, [self._database_id, self._my_member.database_id, self._my_member.public_key]
+        assert self._my_member.private_key, [self._database_id, self._my_member.database_id, self._my_member.private_key]
+        if not self._master_member.public_key and self.dispersy_enable_candidate_walker:
+            self._pending_callbacks.append(self._dispersy.callback.register(self._download_master_member_identity))
 
         # define all available messages
         self._meta_messages = {}
@@ -288,6 +281,38 @@ class Community(object):
         # random seed, used for sync range
         self._random = Random(self._cid)
         self._nrsyncpackets = 0
+
+    def _download_master_member_identity(self):
+        assert not self._master_member.public_key
+        if __debug__: dprint("using dummy master member")
+
+        def on_dispersy_identity(message):
+            if message and not self._master_member:
+                if __debug__: dprint(self._cid.encode("HEX"), " received master member")
+                assert message.authentication.member.mid == self._master_member.mid
+                self._master_member = message.authentication.member
+                assert self._master_member.public_key
+
+        delay = 2.0
+        while not self._master_member.public_key:
+            try:
+                public_key, = self._dispersy_database.execute(u"SELECT public_key FROM member WHERE id = ?", (self._master_member.database_id,)).next()
+            except StopIteration:
+                pass
+            else:
+                if public_key:
+                    if __debug__: dprint(self._cid.encode("HEX"), " found master member")
+                    self._master_member = Member(str(public_key))
+                    assert self._master_member.public_key
+                    break
+
+            for candidate in islice(self._dispersy.yield_random_candidates(self), 1):
+                if __debug__: dprint(self._cid.encode("HEX"), " asking for master member from ", candidate)
+                self._dispersy.create_missing_identity(self, candidate, self._master_member, on_dispersy_identity)
+                break
+
+            yield delay
+            delay = min(300.0, delay * 1.1)
 
     def _initialize_meta_messages(self):
         assert isinstance(self._meta_messages, dict)
@@ -350,7 +375,7 @@ class Community(object):
             #         # create this missing subjective set
             #         message = self.create_dispersy_subjective_set(cluster, [self._my_member])
             #         self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
-            
+
             # if self._subjective_sets:
             #     # apparently we have one or more subjective sets
             self._pending_callbacks.append(self._dispersy.callback.register(self._periodically_cleanup_subjective_sets))
@@ -379,15 +404,16 @@ class Community(object):
         else:
             mapping = {authorize.database_id:authorize.handle_callback, revoke.database_id:revoke.handle_callback, dynamic_settings.database_id:dynamic_settings.handle_callback}
 
-            # the messages must come from somewhere
-            candidate = LoopbackCandidate()
-
-            for meta_message_id, packet in list(self._dispersy.database.execute(u"SELECT meta_message, packet FROM sync WHERE meta_message IN (?, ?, ?) ORDER BY global_time, packet", (authorize.database_id, revoke.database_id, dynamic_settings.database_id))):
-                packet = str(packet)
-                # TODO: when a packet conversion fails we must drop something, and preferably check
-                # all messages in the database again...
-                message = self.get_conversion(packet[:22]).decode_message(candidate, packet)
-                mapping[meta_message_id]([message], initializing=True)
+            for packet, in list(self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message IN (?, ?, ?) ORDER BY global_time, packet",
+                                                                (authorize.database_id, revoke.database_id, dynamic_settings.database_id))):
+                message = self._dispersy.convert_packet_to_message(str(packet), self)
+                if message:
+                    if __debug__: dprint("processing ", message.name)
+                    mapping[message.database_id]([message], initializing=True)
+                else:
+                    # TODO: when a packet conversion fails we must drop something, and preferably check
+                    # all messages in the database again...
+                    if __debug__: dprint("invalid message in database", level="error")
 
     # @property
     def __get_dispersy_auto_load(self):
@@ -1185,8 +1211,8 @@ class Community(object):
         @todo: Since this method returns Members that are not specifically bound to any community,
          this method should be moved to Dispersy
         """
-        assert isinstance(public_key, str)
-        return Member.get_instance(public_key)
+        if __debug__: dprint("deprecated.  please use Dispersy.get_member", level="warning")
+        return self._dispersy.get_member(public_key)
 
     def get_members_from_id(self, mid):
         """
@@ -1213,16 +1239,8 @@ class Community(object):
         @todo: Since this method returns Members that are not specifically bound to any community,
          this method should be moved to Dispersy
         """
-        assert isinstance(mid, str)
-        assert len(mid) == 20
-        # note that this allows a security attack where someone might obtain a crypographic key that
-        # has the same sha1 as the master member, however unlikely.  the only way to prevent this,
-        # as far as we know, is to increase the size of the community identifier, for instance by
-        # using sha256 instead of sha1.
-        return [Member.get_instance(str(public_key))
-                for public_key,
-                in list(self._dispersy_database.execute(u"SELECT public_key FROM member WHERE mid = ?", (buffer(mid),)))
-                if public_key]
+        if __debug__: dprint("deprecated.  please use Dispersy.get_members_from_id", level="warning")
+        return self._dispersy.get_members_from_id(mid)
 
     def get_conversion(self, prefix=None):
         """

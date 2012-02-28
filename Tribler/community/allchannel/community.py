@@ -10,7 +10,7 @@ from Tribler.Core.dispersy.conversion import DefaultConversion
 from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDestination
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
-from Tribler.Core.dispersy.member import Member
+from Tribler.Core.dispersy.member import DummyMember, Member
 from Tribler.Core.dispersy.message import Message, DropMessage
 from Tribler.Core.dispersy.resolution import PublicResolution
 
@@ -59,7 +59,7 @@ class AllChannelCommunity(Community):
 # 9f+uxEEpaIo46jX4eSBf2+EXMj5zB2Vh8RI=
 # -----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405548a13626683d4788ab19393fa15c9e9d6f5ce0ff47737747fa511af6c4e956f523dc3d1ae8d7b83b850f21ab157dd4320331e2f136aa01e70d8c96df665acd653725e767da9b5079f25cebea808832cd16015815797906e90753d135ed2d796b9dfbafaf1eae2ebea3b8846716c15814e96b93ae0f5ffaec44129688a38ea35f879205fdbe117323e73076561f112".decode("HEX")
-        master = Member.get_instance(master_key)
+        master = Member(master_key)
         return [master]
 
     @classmethod
@@ -398,10 +398,10 @@ class AllChannelCommunity(Community):
         except KeyError:
             if self.auto_join_channel:
                 if __debug__: dprint("join channel community ", cid.encode("HEX"))
-                return ChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member, self.integrate_with_tribler)
+                return ChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
             else:
                 if __debug__: dprint("join preview community ", cid.encode("HEX"))
-                return PreviewChannelCommunity.join_community(Member.get_instance(cid, public_key_available=False), self._my_member, self.integrate_with_tribler)
+                return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
             
     def unload_preview(self):
         while True:

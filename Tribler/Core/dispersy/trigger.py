@@ -96,7 +96,7 @@ class TriggerCallback(Trigger):
                     dprint("Expression: ", self._debug_pattern)
                     dprint(" Footprint: ", message.footprint)
             if self._responses_remaining > 0 and self._search(message.footprint):
-                if __debug__: dprint("match footprint for one callback")
+                if __debug__: dprint("match 1c \\", self._debug_pattern, "\\")
                 self._responses_remaining -= 1
                 # note: this callback may raise DelayMessage, etc
                 self._response_func(message, *self._response_args)
@@ -106,7 +106,7 @@ class TriggerCallback(Trigger):
 
     def on_timeout(self):
         if self._responses_remaining > 0:
-            if __debug__: dprint("timeout \\", self._debug_pattern, "\\", level="warning")
+            if __debug__: dprint("1c \\", self._debug_pattern, "\\", level="warning")
             self._responses_remaining = 0
             # note: this callback may raise DelayMessage, etc
             self._response_func(None, *self._response_args)
@@ -183,7 +183,7 @@ class TriggerPacket(Trigger):
                     # set self._search to None to avoid this regular expression again
                     self._search = None
 
-                    if __debug__: dprint("match footprint for ", len(self._packets), " waiting packets")
+                    if __debug__: dprint("match ", len(self._packets), "p \\", self._pattern, "\\")
                     self._callback(self._packets)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
@@ -196,7 +196,7 @@ class TriggerPacket(Trigger):
 
     def on_timeout(self):
         if self._search:
-            if __debug__: dprint("timeout ", len(self._packets), "p \\", self._pattern, "\\", level="warning")
+            if __debug__: dprint(len(self._packets), "p \\", self._pattern, "\\", level="warning")
             self._search = None
 
 class TriggerMessage(Trigger):
@@ -265,7 +265,7 @@ class TriggerMessage(Trigger):
                     # set self._search to None to avoid this regular expression again
                     self._search = None
 
-                    if __debug__: dprint("match footprint for ", len(self._messages), " waiting messages")
+                    if __debug__: dprint("match ", len(self._messages), "m \\", self._pattern, "\\")
                     self._callback(self._messages)
                     # False to remove the Trigger, because we handled the Trigger
                     return False
@@ -278,5 +278,5 @@ class TriggerMessage(Trigger):
 
     def on_timeout(self):
         if self._search:
-            if __debug__: dprint("timeout ", len(self._messages), "m \\", self._pattern, "\\", level="warning")
+            if __debug__: dprint(len(self._messages), "m \\", self._pattern, "\\", level="warning")
             self._search = None

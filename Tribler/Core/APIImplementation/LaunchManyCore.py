@@ -425,8 +425,7 @@ class TriblerLaunchMany(Thread):
         keypair = read_keypair(self.session.get_permid_keypair_filename())
 
         from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
-        from Tribler.Core.dispersy.member import Member
-        self.session.dispersy_member = Member.get_instance(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        self.session.dispersy_member = self.dispersy.get_member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # define auto loads
         self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})

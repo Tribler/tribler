@@ -47,8 +47,8 @@ def assert_message_stored(community, member, global_time, undone="done"):
         self.assert_(False, "Message must be stored in the database (", community.database_id, ", ", member.database_id, ", ", global_time, ")")
 
     assert_(isinstance(actual_undone, int), type(actual_undone))
-    assert_(actual_undone in (0, 1), actual_undone)
-    assert_((undone == "done" and actual_undone == 0) or undone == "undone" and actual_undone == 1, [undone, actual_undone])
+    assert_(0 <= actual_undone, actual_undone)
+    assert_((undone == "done" and actual_undone == 0) or undone == "undone" and 0 < actual_undone, [undone, actual_undone])
 
 class Script(Singleton):
     def __init__(self, callback):
@@ -229,7 +229,7 @@ class ScenarioScriptBase(ScriptBase):
 
         # create my member
         ec = ec_generate_key(u"low")
-        my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         dprint("-my member- ", my_member.database_id, " ", id(my_member), " ", my_member.mid.encode("HEX"), force=1)
 
         self.original_on_socket_endpoint = self._dispersy.on_socket_endpoint
@@ -339,7 +339,7 @@ class ScenarioScriptBase(ScriptBase):
 class DispersyClassificationScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.load_no_communities)
         self.caller(self.load_one_communities)
@@ -368,7 +368,7 @@ class DispersyClassificationScript(ScriptBase):
 
         # create master member
         ec = ec_generate_key(u"high")
-        master = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
+        master = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         # create community
         self._dispersy_database.execute(u"INSERT INTO community (master, member, classification) VALUES (?, ?, ?)",
@@ -439,10 +439,9 @@ class DispersyClassificationScript(ScriptBase):
 
         # create master member
         ec = ec_generate_key(u"high")
-        master = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec))
+        master = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         # create one community
-        cid = ClassificationLoadOneCommunities.get_classification()[:20]
         self._dispersy_database.execute(u"INSERT INTO community (master, member, classification) VALUES (?, ?, ?)",
                                         (master.database_id, self._my_member.database_id, ClassificationLoadOneCommunities.get_classification()))
 
@@ -719,7 +718,7 @@ class DispersyClassificationScript(ScriptBase):
 class DispersyTimelineScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.succeed_check)
         self.caller(self.fail_check)
@@ -995,7 +994,7 @@ class DispersyTimelineScript(ScriptBase):
 class DispersyDestroyCommunityScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         # todo: test that after a hard-kill, all new incoming messages are dropped.
         # todo: test that after a hard-kill, nothing is added to the candidate table anymore
@@ -1042,7 +1041,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
 class DispersyMemberTagScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.ignore_test)
         self.caller(self.blacklist_test)
@@ -1077,7 +1076,7 @@ class DispersyMemberTagScript(ScriptBase):
         assert_(times == [10], times)
 
         # we now tag the member as ignore
-        Member.get_instance(node.my_member.public_key).must_ignore = True
+        Member(node.my_member.public_key).must_ignore = True
 
         tags, = self._dispersy_database.execute(u"SELECT tags FROM member WHERE id = ?", (node.my_member.database_id,)).next()
         assert_(u"ignore" in tags.split(","))
@@ -1091,7 +1090,7 @@ class DispersyMemberTagScript(ScriptBase):
         assert_(sorted(times) == [10, 20], times)
 
         # we now tag the member not to ignore
-        Member.get_instance(node.my_member.public_key).must_ignore = False
+        Member(node.my_member.public_key).must_ignore = False
 
         # send a message
         global_time = 30
@@ -1135,7 +1134,7 @@ class DispersyMemberTagScript(ScriptBase):
         assert_(global_time in times)
 
         # we now tag the member as blacklist
-        Member.get_instance(node.my_member.public_key).must_blacklist = True
+        Member(node.my_member.public_key).must_blacklist = True
 
         tags, = self._dispersy_database.execute(u"SELECT tags FROM member WHERE id = ?", (node.my_member.database_id,)).next()
         assert_(u"blacklist" in tags.split(","))
@@ -1149,7 +1148,7 @@ class DispersyMemberTagScript(ScriptBase):
         assert_(global_time not in times)
 
         # we now tag the member not to blacklist
-        Member.get_instance(node.my_member.public_key).must_blacklist = False
+        Member(node.my_member.public_key).must_blacklist = False
 
         # send a message
         global_time = 30
@@ -1166,7 +1165,7 @@ class DispersyMemberTagScript(ScriptBase):
 class DispersyBatchScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"very-low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         # duplicate messages are removed
         self.caller(self.one_batch_binary_duplicate)
@@ -1423,7 +1422,7 @@ class DispersyBatchScript(ScriptBase):
 class DispersySyncScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         # modulo sync handling
         self.caller(self.modulo_test)
@@ -1926,7 +1925,7 @@ class DispersySyncScript(ScriptBase):
 class DispersyIdenticalPayloadScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.incoming__drop_first)
         self.caller(self.incoming__drop_second)
@@ -2044,7 +2043,7 @@ class DispersyIdenticalPayloadScript(ScriptBase):
 class DispersySignatureScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.double_signed_timeout)
         self.caller(self.double_signed_response)
@@ -2071,7 +2070,7 @@ class DispersySignatureScript(ScriptBase):
         def on_response(response):
             assert_(response is None)
             container["timeout"] += 1
-        request = community.create_double_signed_text("Accept=<does not reach this point>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
+        request = community.create_double_signed_text("Accept=<does not reach this point>", Member(node.my_member.public_key), on_response, (), 3.0)
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message")
@@ -2097,7 +2096,7 @@ class DispersySignatureScript(ScriptBase):
         double signed message.
         """
         ec = ec_generate_key(u"low")
-        my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         container = {"response":0}
@@ -2113,7 +2112,7 @@ class DispersySignatureScript(ScriptBase):
             assert_(container["response"] == 0, container["response"])
             assert_(request.authentication.is_signed)
             container["response"] += 1
-        request = community.create_double_signed_text("Accept=<does not matter>", Member.get_instance(node.my_member.public_key), on_response, (), 3.0)
+        request = community.create_double_signed_text("Accept=<does not matter>", Member(node.my_member.public_key), on_response, (), 3.0)
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message from SELF")
@@ -2141,7 +2140,7 @@ class DispersySignatureScript(ScriptBase):
         request and SELF should get a timeout on the signature request after a few seconds.
         """
         ec = ec_generate_key(u"low")
-        my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         container = {"timeout":0}
@@ -2163,7 +2162,7 @@ class DispersySignatureScript(ScriptBase):
         def on_response(response):
             assert_(response is None)
             container["timeout"] += 1
-        request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
+        request = community.create_triple_signed_text("Hello World!", Member(node1.my_member.public_key), Member(node2.my_member.public_key), on_response, (), 3.0)
         yield 0.11
 
         # receive dispersy-signature-request message
@@ -2188,7 +2187,7 @@ class DispersySignatureScript(ScriptBase):
         and produce a triple signed message.
         """
         ec = ec_generate_key(u"low")
-        my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         container = {"response":0}
@@ -2209,7 +2208,7 @@ class DispersySignatureScript(ScriptBase):
         def on_response(response):
             assert_(container["response"] == 0 or request.authentication.is_signed)
             container["response"] += 1
-        request = community.create_triple_signed_text("Hello World!", Member.get_instance(node1.my_member.public_key), Member.get_instance(node2.my_member.public_key), on_response, (), 3.0)
+        request = community.create_triple_signed_text("Hello World!", Member(node1.my_member.public_key), Member(node2.my_member.public_key), on_response, (), 3.0)
         yield 0.11
 
         # receive dispersy-signature-request message
@@ -2249,7 +2248,7 @@ class DispersySignatureScript(ScriptBase):
 class DispersySubjectiveSetScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.storage)
         self.caller(self.full_sync)
@@ -2719,7 +2718,7 @@ class DispersySubjectiveSetScript(ScriptBase):
 class DispersyMissingMessageScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.single_request)
         self.caller(self.single_request_out_of_order)
@@ -2838,14 +2837,14 @@ class DispersyMissingMessageScript(ScriptBase):
 class DispersyUndoScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
-        self.caller(self.self_undo_own)
-        self.caller(self.self_undo_other)
-        self.caller(self.node_undo_own)
-        self.caller(self.node_undo_other)
-        self.caller(self.self_malicious_undo)
-        self.caller(self.node_malicious_undo)
+        # self.caller(self.self_undo_own)
+        # self.caller(self.self_undo_other)
+        # self.caller(self.node_undo_own)
+        # self.caller(self.node_undo_other)
+        # self.caller(self.self_malicious_undo)
+        # self.caller(self.node_malicious_undo)
         self.caller(self.node_non_malicious_undo)
         self.caller(self.missing_message)
         self.caller(self.revoke_simple)
@@ -2873,10 +2872,10 @@ class DispersyUndoScript(ScriptBase):
         undoes = [community.create_dispersy_undo(message, forward=False) for message in messages]
 
         # check that they are in the database and ARE undone
-        for message in messages:
+        for undo, message in zip(undoes, messages):
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, community.my_member.database_id, message.distribution.global_time)))
-            assert_(undone == [(1,)], undone)
+            assert_(undone == [(undo.packet_id,)], [undone, "-", undo.packet_id])
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
@@ -2916,10 +2915,10 @@ class DispersyUndoScript(ScriptBase):
         undoes = [community.create_dispersy_undo(message, forward=False) for message in messages]
 
         # check that they are in the database and ARE undone
-        for message in messages:
+        for undo, message in zip(undoes, messages):
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert_(undone == [(1,)], undone)
+            assert_(undone == [(undo.packet_id,)], [undone, "-", undo.packet_id])
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
@@ -2961,10 +2960,13 @@ class DispersyUndoScript(ScriptBase):
         node.give_messages(undoes)
 
         # check that they are in the database and ARE undone
-        for message in messages:
+        for undo, message in zip(undoes, messages):
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert_(undone == [(1,)], undone)
+            assert_(len(undone) == 1)
+            undone_packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE id = ?", (undone[0][0],)).next()
+            undone_packet = str(undone_packet)
+            assert_(undo.packet == undone_packet, undone)
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
@@ -3012,10 +3014,13 @@ class DispersyUndoScript(ScriptBase):
         node1.give_messages(undoes)
 
         # check that they are in the database and ARE undone
-        for message in messages:
+        for undo, message in zip(undoes, messages):
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node2.my_member.database_id, message.distribution.global_time)))
-            assert_(undone == [(1,)], undone)
+            assert_(len(undone) == 1)
+            undone_packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE id = ?", (undone[0][0],)).next()
+            undone_packet = str(undone_packet)
+            assert_(undo.packet == undone_packet)
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
@@ -3090,7 +3095,7 @@ class DispersyUndoScript(ScriptBase):
         node.give_message(undo2)
 
         # check that the member is declared malicious
-        assert_(Member.get_instance(node.my_member.public_key).must_blacklist)
+        assert_(Member(node.my_member.public_key).must_blacklist)
 
         # all messages for the malicious member must be removed
         packets = list(self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ?",
@@ -3107,15 +3112,17 @@ class DispersyUndoScript(ScriptBase):
         node2.drop_packets()
 
         # propagate a message from the malicious member
+        dprint("giving faulty message ", message)
         node2.give_message(message)
 
         # we should receive proof that NODE is malicious
         malicious_packets = []
-        _, response = node2.receive_packet(addresses=[address])
-        malicious_packets.append(response)
-        _, response = node2.receive_packet(addresses=[address])
-        malicious_packets.append(response)
-        assert_(sorted(malicious_packets) == sorted([undo1.packet, undo2.packet]))
+        try:
+            while True:
+                _, response = node2.receive_packet(addresses=[address])
+                malicious_packets.append(response)
+        finally:
+            assert_(sorted(malicious_packets) == sorted([undo1.packet, undo2.packet]), [len(malicious_packets), [packet.encode("HEX") for packet in malicious_packets], undo1.packet.encode("HEX"), undo2.packet.encode("HEX")])
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3148,16 +3155,19 @@ class DispersyUndoScript(ScriptBase):
         # NODE undoes
         global_time = 30
         sequence_number = 1
-        undo1 = node.create_dispersy_undo_own_message(message, global_time, sequence_number)
-        node.give_message(undo1)
+        undo = node.create_dispersy_undo_own_message(message, global_time, sequence_number)
+        node.give_message(undo)
 
         # check that they are in the database and ARE undone
         undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                       (community.database_id, message.authentication.member.database_id, message.distribution.global_time)))
-        assert_(undone == [(1,)], undone)
+        assert_(len(undone) == 1)
+        undone_packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE id = ?", (undone[0][0],)).next()
+        undone_packet = str(undone_packet)
+        assert_(undo.packet == undone_packet)
 
         # check that the member is not declared malicious
-        assert_(not Member.get_instance(node.my_member.public_key).must_blacklist)
+        assert_(not Member(node.my_member.public_key).must_blacklist)
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")
@@ -3206,10 +3216,13 @@ class DispersyUndoScript(ScriptBase):
         yield 2.0
 
         # check that they are in the database and ARE undone
-        for message in messages:
+        for undo, message in zip(undoes, messages):
             undone = list(self._dispersy_database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?",
                                                           (community.database_id, node.my_member.database_id, message.distribution.global_time)))
-            assert_(undone == [(1,)], undone)
+            assert_(len(undone) == 1)
+            undone_packet, = self._dispersy_database.execute(u"SELECT packet FROM sync WHERE id = ?", (undone[0][0],)).next()
+            undone_packet = str(undone_packet)
+            assert_(undo.packet == undone_packet)
 
         # check that all the undo messages are in the database and are NOT undone
         for message in undoes:
@@ -3277,7 +3290,7 @@ class DispersyUndoScript(ScriptBase):
 class DispersyCryptoScript(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.invalid_public_key)
 
@@ -3318,7 +3331,7 @@ class DispersyCryptoScript(ScriptBase):
 class DispersyDynamicSettings(ScriptBase):
     def run(self):
         ec = ec_generate_key(u"low")
-        self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
         self.caller(self.default_resolution)
         self.caller(self.change_resolution)
@@ -3545,7 +3558,7 @@ class DispersyDynamicSettings(ScriptBase):
         policy_linear = community.create_dispersy_dynamic_settings([(meta, linear)])
 
         # give permission to node
-        community.create_dispersy_authorize([(Member.get_instance(node.my_member.public_key), meta, u"permit")])
+        community.create_dispersy_authorize([(Member(node.my_member.public_key), meta, u"permit")])
 
         # NODE creates a message (should allow, linear resolution and we have permission)
         global_time = community.global_time + 1
