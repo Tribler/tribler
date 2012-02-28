@@ -1021,7 +1021,7 @@ class Connecter:
 
         # The set of messages we support. Note that the msg ID is an int not a byte in 
         # this dict.
-        self.EXTEND_HANDSHAKE_M_DICT = {}
+        self.EXTEND_HANDSHAKE_M_DICT = {'reqq':2500}
         
         # Say in the EXTEND handshake that we support Closed swarms
         if DEBUG:
@@ -1478,8 +1478,9 @@ class Connecter:
                     print >>sys.stderr,"Close on bad CANCEL: index out of range"
                 connection.close()
                 return
-            c.upload.got_cancel(i, toint(message[5:9]), 
-                toint(message[9:]))
+            if DEBUG_NORMAL_MSGS:
+                print >>sys.stderr,"connecter: Got CANCEL(",i,") from",connection.get_ip()
+            c.upload.got_cancel(i, toint(message[5:9]), toint(message[9:]))
         elif t == PIECE:
             if len(message) <= 9:
                 if DEBUG:
