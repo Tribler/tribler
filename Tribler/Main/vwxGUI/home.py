@@ -529,7 +529,7 @@ class DispersyPanel(HomePanel):
                         candidates = str(len(community["candidates"]))
                     else:
                         candidates = "-"
-                    parent = self.summary_tree.AppendItem(root, u"%s %5d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
+                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
                     self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
