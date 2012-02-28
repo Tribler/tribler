@@ -1479,8 +1479,6 @@ class LibraryList(SizeList):
             if didStateChange and self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again
                 
-            print >> sys.stderr, "Refresh"
-            
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds
                 status = item.progressPanel.Update(ds)
