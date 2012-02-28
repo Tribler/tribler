@@ -4124,7 +4124,7 @@ class ChannelCastDBHandler(object):
         return self._db.fetchall(sql, (playlist_id,))
     
     def getRecentMarkingsFromPlaylist(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM TorrentMarkings, PlaylistTorrents WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND PlaylistTorrents.playlist_id = ? ORDER BY TorrentMarkings.time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM TorrentMarkings, PlaylistTorrents, ChannelTorrents WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND PlaylistTorrents.playlist_id = ? AND ChannelTorrents.dispersy_id <> -1 ORDER BY TorrentMarkings.time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (playlist_id,))
