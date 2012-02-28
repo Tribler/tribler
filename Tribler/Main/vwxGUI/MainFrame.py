@@ -898,16 +898,16 @@ class MainFrame(wx.Frame):
                 nr = lookup[nr]
                 found = True
                 
-            print "mainframe: Closing due to event ",nr,`event`
-            print >>sys.stderr,"mainframe: Closing due to event ",nr,`event`
+            print >>sys.stderr, "mainframe: Closing due to event ",nr,`event`
         else:
-            print "mainframe: Closing untriggered by event"
+            print >>sys.stderr, "mainframe: Closing untriggered by event"
         
         
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
+            print 
             return
-
+        
         # Check to see if we can veto the shutdown
         # (might not be able to in case of shutting down windows)
         if event is not None:
@@ -935,10 +935,14 @@ class MainFrame(wx.Frame):
         self.GUIupdate = False
         
         if VideoPlayer.hasInstance():
+            print >>sys.stderr, "mainframe: Closing videoplayer"
+
             videoplayer = VideoPlayer.getInstance()
             videoplayer.stop_playback()
 
         try:
+            print >>sys.stderr, "mainframe: Restoring from taskbar"
+            
             # Restore the window before saving size and position
             # (Otherwise we'll get the size of the taskbar button and a negative position)
             self.onTaskBarActivate()
@@ -946,31 +950,33 @@ class MainFrame(wx.Frame):
         except:
             print_exc()
 
-        try:
-            if self.tbicon is not None:
+        if self.tbicon is not None:
+            try:
+                print >>sys.stderr, "mainframe: Removing tbicon"
+                    
                 self.tbicon.RemoveIcon()
                 self.tbicon.Destroy()
-        except:
-            print_exc()
+            except:
+                print_exc()
+            
+            
+        print >>sys.stderr, "mainframe: Calling quit"
+        # On Linux with wx 2.8.7.1 this method gets sometimes called with
+        # a CommandEvent instead of EVT_CLOSE, wx.EVT_QUERY_END_SESSION or
+        # wx.EVT_END_SESSION
+        self.quit()
             
         try:
+            print >>sys.stderr, "mainframe: Calling Destroy"
             self.Destroy()
         except:
             print_exc()
 
-        if DEBUG:    
-            print >>sys.stderr,"mainframe: OnCloseWindow END"
-
         if DEBUG:
+            print >>sys.stderr,"mainframe: OnCloseWindow END"
             ts = enumerate()
             for t in ts:
                 print >>sys.stderr,"mainframe: Thread still running",t.getName(),"daemon",t.isDaemon()
-
-        if not found or sys.platform =="darwin":
-            # On Linux with wx 2.8.7.1 this method gets sometimes called with
-            # a CommandEvent instead of EVT_CLOSE, wx.EVT_QUERY_END_SESSION or
-            # wx.EVT_END_SESSION
-            self.quit()
         
     def onWarning(self,exc):
         msg = self.utility.lang.get('tribler_startup_nonfatalerror')
@@ -1098,8 +1104,9 @@ class MainFrame(wx.Frame):
         else:
             app = wx.GetApp()
             
-        app.ExitMainLoop()
-        app.Exit()
+        if app:
+            app.ExitMainLoop()
+            app.Exit()
 
 
      

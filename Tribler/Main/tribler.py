@@ -895,9 +895,9 @@ class ABCApp():
 
         while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
             diff = time() - session_shutdown_start
-            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
+            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
             sleep(3)
-        print >>sys.stderr,"main ONEXIT: Session is shutdown"
+        print >>sys.stderr,"main: ONEXIT Session is shutdown"
 
         
 #        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"

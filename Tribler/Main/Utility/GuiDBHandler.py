@@ -16,6 +16,7 @@ from traceback import format_stack, extract_stack, format_exc, print_exc,\
     print_stack
 import os
 
+
 DEBUG = False
 
 class GUIDBProducer():
@@ -27,15 +28,18 @@ class GUIDBProducer():
             raise RuntimeError, "GuiDBProducer is singleton"
         GUIDBProducer.__single = self
         
-        #Let get the reference to the shared database_thread
+        #Lets get the reference to the shared database_thread
         from Tribler.Core.Session import Session
-
-        session = Session.get_instance()
-        triblerlaunchmany = session.lm
-        self.database_thread = triblerlaunchmany.database_thread
+        self.database_thread = Session.get_instance().lm.database_thread
+        
+        #Lets get a reference to utility
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+        self.utility = GUIUtility.getInstance().utility
         
         self.uIds = set()
         self.uIdsLock = Lock()
+        
+        self.nrCallbacks = {}
         
     def getInstance(*args, **kw):
         if GUIDBProducer.__single is None:
@@ -50,6 +54,9 @@ class GUIDBProducer():
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread.
         """
+        if self.utility.abcquitting:
+            return
+        
         if uId:
             try:
                 self.uIdsLock.acquire()
@@ -65,9 +72,22 @@ class GUIDBProducer():
             callbackId = uId
         else:
             callbackId = name
+    
+        if __debug__:
+            self.uIdsLock.acquire()
+            self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
+            if self.nrCallbacks[callbackId] > 10:
+                print >> sys.stderr, "GUIDBHandler: Scheduled Task(%s) %d times"%(callbackId, self.nrCallbacks[callbackId])
+            
+            self.uIdsLock.release()
         
         t1 = time()
         def wrapper():
+            if __debug__:
+                self.uIdsLock.acquire()
+                self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) - 1
+                self.uIdsLock.release()
+            
             try:
                 t2 = time()
                 result = workerFn(*args, **kwargs)
@@ -126,6 +146,10 @@ class GUIDBProducer():
             try:
                 self.uIdsLock.acquire()
                 self.uIds.discard(uId)
+                
+                if __debug__:
+                    self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
+
             finally:
                 self.uIdsLock.release()
                 

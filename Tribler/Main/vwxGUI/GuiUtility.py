@@ -54,7 +54,6 @@ class GUIUtility:
 
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
-     
 
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
         self.max_remote_queries = 20    # max number of remote peers to query
