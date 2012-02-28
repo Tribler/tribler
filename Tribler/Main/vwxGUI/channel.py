@@ -432,7 +432,7 @@ class SelectedChannelList(GenericSearchList):
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents, 0, 0], playlist, PlaylistItem) for playlist in playlists]
             
-            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.state == ChannelCommunity.CHANNEL_OPEN)
+            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.isOpen())
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent, DragItem) for torrent in torrents]
             else:
@@ -443,7 +443,7 @@ class SelectedChannelList(GenericSearchList):
         else:
             header =  'No torrents or playlists found.'
             
-            if self.state == ChannelCommunity.CHANNEL_OPEN:
+            if self.channel.isOpen():
                 message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
                 self.list.ShowMessage(message, header = header)
             else:

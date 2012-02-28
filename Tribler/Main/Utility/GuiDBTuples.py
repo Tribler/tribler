@@ -397,7 +397,11 @@ class Channel(Helper):
     
     def isOpen(self):
         state, myChannel = self.getState()
-        return state == ChannelCommunity.CHANNEL_OPEN
+        return state >= ChannelCommunity.CHANNEL_OPEN
+    
+    def isSemiOpen(self):
+        state, myChannel = self.getState()
+        return state >= ChannelCommunity.CHANNEL_SEMI_OPEN
     
     @cache
     def getState(self):
@@ -527,8 +531,11 @@ class Playlist(Helper):
         names = [torrent.name for torrent in torrents]
         if len(names) > 0:
             return "Contents: '"+"'    '".join(names)+"'"
-        else:
+        elif self.channel.isOpen():
             return 'This playlist is currently empty, drag and drop any .torrent to add it to this playlist.'
+        elif self.channel.isMyChannel():
+            return 'This playlist is currently empty, you are the only one who can add torrents to it.'            
+        return 'This playlist is currently empty, the channel owner has restricted anyone but himself to add torrents to it.'
     
     def __eq__(self, other):
         if other:
