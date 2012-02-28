@@ -1361,7 +1361,7 @@ class TorrentDBHandler(BasicDBHandler):
         if len(values) > 0:
             self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
         
-    def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
+    def updateTorrent(self, infohash, commit=True, notify=True, **kw):    # watch the schema of database
         if 'category' in kw:
             cat_id = self._getCategoryID(kw.pop('category'))
             kw['category_id'] = cat_id
@@ -1389,6 +1389,8 @@ class TorrentDBHandler(BasicDBHandler):
             
         if commit:
             self.commit()
+        
+        if notify:
             self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):

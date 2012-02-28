@@ -1184,7 +1184,7 @@ class TorrentDetails(AbstractDetails):
 
     def RefreshData(self, data):
         if self.isReady:
-            if isinstance(data[2], Torrent):
+            if isinstance(self.torrent, Torrent):
                 #replace current torrent
                 self.torrent.name = data[2].name
                 self.torrent.length = data[2].length
@@ -1192,6 +1192,9 @@ class TorrentDetails(AbstractDetails):
                 self.torrent.status_id = data[2].status_id
                 self.torrent.num_seeders = data[2].num_seeders
                 self.torrent.num_leechers = data[2].num_leechers
+                
+            elif isinstance(data[2], Torrent):
+                self.torrent.torrent = data[2]
             else:
                 self.torrent.torrent = data[2]['bundle'][0] 
             

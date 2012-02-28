@@ -272,14 +272,13 @@ class TorrentChecking(Thread):
                                 print >> sys.stderr, "Torrent Checking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
                             
                             for key, values in multidict.iteritems():
-                                
                                 if key != torrent['infohash']:
                                     seeder, leecher = values
                                     
                                     if seeder > 0 or leecher > 0:
                                         #store result
                                         curkw = {'seeder':seeder, 'leecher':leecher, 'ignored_times': 0, 'last_check_time': long(time()), 'status':'good'}
-                                        self.torrentdb.updateTorrent(key, commit = False, **curkw)
+                                        self.torrentdb.updateTorrent(key, commit = False, notify = False, **curkw)
                                         notify.append(key)
                                         
                                         if DEBUG:
@@ -314,7 +313,7 @@ class TorrentChecking(Thread):
                     if DEBUG:
                         print >> sys.stderr, "Torrent Checking: new status:", kw
                 
-                    self.torrentdb.updateTorrent(torrent['infohash'], **kw)
+                    self.torrentdb.updateTorrent(torrent['infohash'], notify = didTrackerCheck, **kw)
                     
                     #notify after commit
                     for infohash in notify:
