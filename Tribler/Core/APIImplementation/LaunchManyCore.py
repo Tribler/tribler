@@ -681,7 +681,7 @@ class TriblerLaunchMany(Thread):
         try:
             dir = self.session.get_downloads_pstate_dir()
             filelist = os.listdir(dir)
-            filelist = [filename for filename in filelist if filename.endswith('.pickle')]
+            filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
             
             batchsize = 2
             batches = zip(*[filelist[i::batchsize] for i in range(batchsize)])
@@ -729,6 +729,7 @@ class TriblerLaunchMany(Thread):
             dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
             
         except:
+            print_exc()
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
             infohash = binascii.unhexlify(file[:-7])
