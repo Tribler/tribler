@@ -48,6 +48,7 @@ if __name__ == "__main__":
     sscfg.set_torrent_collecting(False)
     sscfg.set_dialback(False)
     sscfg.set_internal_tracker(False)
+    sscfg.set_dispersy(False)
 
     s = Session(sscfg)
 
