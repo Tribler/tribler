@@ -851,7 +851,7 @@ class Dispersy(Singleton):
                         assert master.mid in self._communities
 
                     else:
-                        if __debug__: dprint("unable to auto load, '", classification, "' is an undefined classification", level="error")
+                        if __debug__: dprint("unable to auto load, '", classification, "' is an undefined classification [", cid.encode("HEX"), "]", level="error")
 
                 else:
                     if __debug__: dprint("not allowed to load '", classification, "'")

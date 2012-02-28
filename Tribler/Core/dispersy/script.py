@@ -19,7 +19,7 @@ import inspect
 import socket
 
 from bloomfilter import BloomFilter
-from candidate import LoopbackCandidate
+from candidate import BootstrapCandidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from debug import Node
 from dispersy import Dispersy
@@ -3610,6 +3610,88 @@ class DispersyDynamicSettings(ScriptBase):
             pass
         else:
             assert_(False, "must NOT accept the message")
+
+        # cleanup
+        community.create_dispersy_destroy_community(u"hard-kill")
+        self._dispersy.get_community(community.cid).unload_community()
+
+class DispersyBootstrapServers(ScriptBase):
+    def run(self):
+        ec = ec_generate_key(u"low")
+        self._my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
+
+        self.caller(self.ping)
+
+    def ping(self):
+        """
+        Sends a dispersy-introduction-request to the trackers and counts how long it takes until the
+        dispersy-introduction-response is received.
+        """
+        class PingCommunity(DebugCommunity):
+            def __init__(self, *args, **kargs):
+                # original walker callbacks (will be set during super(...).__init__)
+                self._original_on_introduction_response = None
+
+                super(PingCommunity, self).__init__(*args, **kargs)
+
+                self._request = {}
+                self._summary = {}
+                self._candidates = self._dispersy._bootstrap_candidates.values()
+                # self._candidates = [BootstrapCandidate(("130.161.211.198", 6431))]
+
+                for candidate in self._candidates:
+                    self._request[candidate.sock_addr] = {}
+                    self._summary[candidate.sock_addr] = []
+
+            def _initialize_meta_messages(self):
+                super(PingCommunity, self)._initialize_meta_messages()
+
+                # replace the callbacks for the dispersy-introduction-response message
+                meta = self._meta_messages[u"dispersy-introduction-response"]
+                self._original_on_introduction_response = meta.handle_callback
+                self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
+                assert self._original_on_introduction_response
+
+            @property
+            def dispersy_enable_candidate_walker(self):
+                return False
+
+            @property
+            def dispersy_enable_candidate_walker_responses(self):
+                return True
+
+            def dispersy_take_step(self):
+                assert_(False, "we disabled the walker")
+
+            def on_introduction_response(self, messages):
+                now = time()
+                dprint("PONG")
+                for message in messages:
+                    candidate = message.candidate
+                    if candidate.sock_addr in self._request:
+                        request_stamp = self._request[candidate.sock_addr].pop(message.payload.identifier, 0.0)
+                        self._summary[candidate.sock_addr].append(now - request_stamp)
+                return self._original_on_introduction_response(messages)
+
+            def ping(self, now):
+                dprint("PING", line=1)
+                for candidate in self._candidates:
+                    request = self._dispersy.create_introduction_request(self, candidate)
+                    self._request[candidate.sock_addr][request.payload.identifier] = now
+
+            def summary(self):
+                for sock_addr, rtts in sorted(self._summary.iteritems()):
+                    if rtts:
+                        dprint(len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts), "] from ", sock_addr[0], ":", sock_addr[1])
+                    else:
+                        dprint(sock_addr[0], ":", sock_addr[1], "  missing")
+
+        community = PingCommunity.create_community(self._my_member)
+
+        for _ in xrange(10):
+            community.ping(time())
+            yield 5.0
+            community.summary()
 
         # cleanup
         community.create_dispersy_destroy_community(u"hard-kill")

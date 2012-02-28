@@ -105,7 +105,7 @@ def main():
                     script_kargs[key] = value
 
             if not opt.disable_dispersy_script:
-                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript, DispersyUndoScript, DispersyCryptoScript, DispersyDynamicSettings
+                from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript, DispersyUndoScript, DispersyCryptoScript, DispersyDynamicSettings, DispersyBootstrapServers
                 script.add("dispersy-batch", DispersyBatchScript)
                 script.add("dispersy-classification", DispersyClassificationScript)
                 script.add("dispersy-crypto", DispersyCryptoScript)
@@ -119,6 +119,7 @@ def main():
                 script.add("dispersy-sync", DispersySyncScript)
                 script.add("dispersy-timeline", DispersyTimelineScript)
                 script.add("dispersy-undo", DispersyUndoScript)
+                script.add("dispersy-bootstrap-servers", DispersyBootstrapServers)
 
             if not opt.disable_allchannel_script:
                 # from Tribler.Community.allchannel.script import AllChannelScript

@@ -3,7 +3,7 @@ from struct import pack, unpack_from
 from authentication import MultiMemberAuthentication, MemberAuthentication
 from candidate import WalkCandidate
 from community import Community
-from conversion import BinaryConversion
+from conversion import BinaryConversion, DefaultConversion
 from debug import Node
 from destination import MemberDestination, CommunityDestination, SubjectiveDestination
 from distribution import DirectDistribution, FullSyncDistribution, LastSyncDistribution
@@ -157,7 +157,7 @@ class DebugCommunity(Community):
         return 0.0
 
     def initiate_conversions(self):
-        return [DebugCommunityConversion(self)]
+        return [DefaultConversion(self), DebugCommunityConversion(self)]
 
     def initiate_meta_messages(self):
         return [Message(self, u"last-1-test", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=128, history_size=1), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text),
