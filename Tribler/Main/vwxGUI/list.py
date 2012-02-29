@@ -1463,6 +1463,10 @@ class LibraryList(SizeList):
                     
                     if infohash in dsdict:
                         original_data.ds = dsdict[infohash]
+                        
+                        if infohash in self.list.items: #torrents in raw_data and items are not equal
+                            self.list.items[infohash].original_data.ds = dsdict[infohash]
+                        
                         del dsdict[infohash]
                     else:
                         original_data.ds = None
@@ -1478,7 +1482,7 @@ class LibraryList(SizeList):
             
             if didStateChange and self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again
-                
+            
             for infohash, item in self.list.items.iteritems():
                 ds = item.original_data.ds
                 status = item.progressPanel.Update(ds)
