@@ -15,7 +15,7 @@ from Tribler.Main.vwxGUI import forceWxThread
 
 class CreateTorrent(wx.Dialog):
     def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel = False):
-        wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(500,200))
+        wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600,200))
         self.guiutility = GUIUtility.getInstance()
         self.toChannel = toChannel
         
@@ -38,6 +38,10 @@ class CreateTorrent(wx.Dialog):
         hSizer.Add(browseButton)
         hSizer.Add(browseDirButton)
         vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
+        
+        self.recursive = wx.CheckBox(self, -1, 'Include all subdirectories')
+        self.recursive.Bind(wx.EVT_CHECKBOX, self.OnRecursive)
+        vSizer.Add(self.recursive, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
         
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
         
@@ -136,6 +140,7 @@ class CreateTorrent(wx.Dialog):
             self.latestFile = self.filehistory.GetHistoryFile(0)
         else:
             self.latestFile = ''
+        self.paths = None
         
     def OnBrowse(self, event):
         dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE, defaultDir = self.latestFile)
@@ -156,6 +161,9 @@ class CreateTorrent(wx.Dialog):
             self._browsePaths(filenames)
         else:
             dlg.Destroy()
+            
+    def OnRecursive(self, event):
+        self._browsePaths()
             
     def OnCombine(self, event = None):
         combine = self.combineRadio.GetValue()
@@ -311,25 +319,46 @@ class CreateTorrent(wx.Dialog):
     def OnCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
         
-    def _browsePaths(self, paths):
-        label = ";".join(paths)
-        self.locationText.SetLabel(label)
-        
-        if os.path.isdir(paths[0]):
-            paths = [os.path.join(paths[0], file) for file in os.listdir(paths[0]) if (not file.endswith('.torrent') and not file.lower().endswith('thumbs.db') and os.path.isfile(os.path.join(paths[0], file)))]
-        
-        self.selectedPaths = paths
-        self.foundFilesText.SetLabel('Selected %d files'%len(paths))
-        
-        self.combineRadio.Enable(len(paths) > 0)
-        self.sepRadio.Enable(len(paths) > 1)
-        
-        self.combineRadio.SetValue(len(paths) == 1)
-        self.sepRadio.SetValue(len(paths) > 1)
-        
-        self.OnCombine()
-        
-        self.Layout()
+    def _browsePaths(self, paths = None):
+        if paths:
+            self.paths = paths
+        else:
+            paths = self.paths
+            
+        if paths:
+            label = ";".join(paths)
+            self.locationText.SetLabel(label)
+            
+            if os.path.isdir(paths[0]):
+                def addDir(path, recursive = False):
+                    paths = []
+                    
+                    for file in os.listdir(path):
+                        absfile = os.path.join(path, file)
+                        
+                        if os.path.isfile(absfile):
+                            if file.lower().endswith('.torrent') or file.lower().endswith('thumbs.db'):
+                                continue
+                            paths.append(absfile)
+                            
+                        elif os.path.isdir(absfile) and recursive:
+                            paths.extend(addDir(absfile))
+                    
+                    return paths
+                paths = addDir(paths[0], self.recursive.GetValue())
+            
+            self.selectedPaths = paths
+            self.foundFilesText.SetLabel('Selected %d files'%len(paths))
+            
+            self.combineRadio.Enable(len(paths) > 0)
+            self.sepRadio.Enable(len(paths) > 1)
+            
+            self.combineRadio.SetValue(len(paths) == 1)
+            self.sepRadio.SetValue(len(paths) > 1)
+            
+            self.OnCombine()
+            
+            self.Layout()
     
     @forceWxThread
     def _torrentCreated(self, path, correctedfilename, torrentfilename):
