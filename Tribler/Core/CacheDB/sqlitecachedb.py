@@ -658,7 +658,7 @@ class SQLiteCacheDBBase:
     
     # -------- Read Operations --------
     def size(self, table_name):
-        num_rec_sql = u"SELECT count(*) FROM %s;"%table_name
+        num_rec_sql = u"SELECT count(*) FROM %s LIMIT 1"%table_name
         result = self.fetchone(num_rec_sql)
         return result
 

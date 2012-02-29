@@ -1643,10 +1643,10 @@ class LibraryDetails(TorrentDetails):
                     self.progress = StringProgressPanel(self.overviewPanel, self.torrent)
                     
                     self.overviewSizer.Add(self.progress, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
-                    self.overviewSizer.AddStretchSpacer()
-                                        
+                    
                     #Optional stream button
                     if self.torrent.isPlayable():
+                        self.overviewSizer.AddStretchSpacer()
                         self._AddVodAd(self.overviewPanel, self.overviewSizer)
                     
                 elif self.state == TorrentDetails.VOD:

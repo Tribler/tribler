@@ -5342,14 +5342,19 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         triple. If with_freq=True, each sample is a list of (term,freq) tuples, 
         otherwise it is a list of terms. 
         """
-        num_torrents = self._db.getOne('CollectedTorrent', 'COUNT(torrent_id)')
+        num_torrents = self._db.size('CollectedTorrent')
         if num_torrents is None or num_torrents < self.NUM_TORRENTS_THRESHOLD:
             max_freq = None
         else:
             max_freq = int(round(num_torrents * self.STOPWORD_THRESHOLD))
         
         terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq, max_freq = max_freq)
-        phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
+        #Niels: 29-02-2012 at startup we only request 10 terms
+        if not flat or size > 10:
+            phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
+        else:
+            phrases_triple = []
+        
         if not flat:
             return terms_triple, phrases_triple
         else:
@@ -5405,6 +5410,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.TABLES[table]['table'], self.MIN_FREQ)
         if max_freq is not None:
             sql += ' AND freq < %s' % max_freq
+        sql += ' LIMIT 1'
+        
         return self._db.fetchone(sql)
     
     def _sample(self, table, range, samplesize, with_freq=True):

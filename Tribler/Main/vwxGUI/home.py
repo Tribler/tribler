@@ -748,7 +748,7 @@ class BuzzPanel(HomePanel):
         self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
 
         self.refresh = 5
-        self.GetBuzzFromDB(doRefresh=True)
+        self.GetBuzzFromDB(doRefresh=True,samplesize=10)
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
@@ -778,15 +778,9 @@ class BuzzPanel(HomePanel):
 
     def ForceUpdate(self):
         self.GetBuzzFromDB(doRefresh=True)
-
     
-    def GetBuzzFromDB(self, doRefresh=False):
+    def GetBuzzFromDB(self, doRefresh=False, samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
         def do_db():
-        
-            # needs fine-tuning:
-            # (especially for cold-start/fresh Tribler install?)
-            samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
-    
             self.buzz_cache = [[],[],[]]
             buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
             for i in range(len(buzz)):
