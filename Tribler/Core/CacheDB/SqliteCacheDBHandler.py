@@ -4138,7 +4138,10 @@ class ChannelCastDBHandler(object):
     
     def getPlaylistForTorrent(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists, PlaylistTorrents WHERE Playlists.id = PlaylistTorrents.playlist_id AND channeltorrent_id = ?"
-        return self._db.fetchone(sql, (channeltorrent_id, ))
+        result = self._db.fetchone(sql, (channeltorrent_id, ))
+        #Niels: 29-02-2012 due to the count this always returns one row, check count to return None if playlist was actually not found.
+        if result[-1]:
+            return result 
     
     def getPlaylistsForTorrents(self, torrent_ids, keys):
         torrent_ids = " ,".join(map(str, torrent_ids))
