@@ -532,6 +532,7 @@ class LinkText(GenStaticText):
         
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.Bind(wx.EVT_MOTION, self.OnMouseEvent)
+        self.enter = False
     
     def SetFonts(self, fonts):
         self.fonts = []
@@ -570,10 +571,13 @@ class LinkText(GenStaticText):
     def OnMouseEvent(self, event):
         if event.Moving():
             self.SetFontColour(self.fonts[1], self.colours[1])
+            self.enter = True
+            
         elif event.LeftUp() or event.LeftDown():            
             pass
         else:
             self.SetFontColour(self.fonts[0], self.colours[0])
+            self.enter = False
             
         event.Skip()
         
