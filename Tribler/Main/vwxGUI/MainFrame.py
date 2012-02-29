@@ -959,18 +959,14 @@ class MainFrame(wx.Frame):
             except:
                 print_exc()
             
-            
-        print >>sys.stderr, "mainframe: Calling quit"
-        # On Linux with wx 2.8.7.1 this method gets sometimes called with
-        # a CommandEvent instead of EVT_CLOSE, wx.EVT_QUERY_END_SESSION or
-        # wx.EVT_END_SESSION
-        self.quit()
-            
         try:
             print >>sys.stderr, "mainframe: Calling Destroy"
             self.Destroy()
         except:
             print_exc()
+            
+        print >>sys.stderr, "mainframe: Calling quit"
+        self.quit()
 
         if DEBUG:
             print >>sys.stderr,"mainframe: OnCloseWindow END"
@@ -1105,9 +1101,5 @@ class MainFrame(wx.Frame):
             app = wx.GetApp()
             
         if app:
-            app.ExitMainLoop()
-            app.Exit()
-
-
-     
-     
+            wx.CallLater(1000, app.ExitMainLoop)
+            wx.CallLater(1000, app.Exit)
