@@ -700,8 +700,8 @@ class Community(object):
                 #skip left
                 if right[2] == capacity:
                     left, leftdata = self._select_bloomfilter_range(syncable_messages, from_gbtime + 1, capacity, False)
-                    left_range = left[1] - left[0]
-                    right_range = right[1] - right[0]
+                    left_range = (left[1] or self.global_time) - left[0]
+                    right_range = (right[1] or self.global_time) - right[0]
 
                     if left_range > right_range:
                         bloomfilter_range = left
@@ -711,7 +711,7 @@ class Community(object):
                         data = rightdata
                         
                     if __debug__:
-                        dprint(self.cid.encode("HEX"), " bloomfilterrange left", left, " right", right)
+                        dprint(self.cid.encode("HEX"), " bloomfilterrange left", left, " right", right, "left" if left_range > right_range else "right")
                 else:
                     bloomfilter_range = right
                     data = rightdata
@@ -785,11 +785,11 @@ class Community(object):
             to_select = to_select - len(data)
             if to_select > 25:
                 if higher:
-                    lower, lowerfixed = self._select_and_fix(syncable_messages, global_time + 1, to_select, False)
-                    data = lower + data
+                    lowerdata, lowerfixed = self._select_and_fix(syncable_messages, global_time + 1, to_select, False)
+                    data = lowerdata + data
                 else:
-                    higher, higherfixed = self._select_and_fix(syncable_messages, global_time - 1, to_select, True)
-                    data = data + higher
+                    higherdata, higherfixed = self._select_and_fix(syncable_messages, global_time - 1, to_select, True)
+                    data = data + higherdata
         
         bloomfilter_range = [data[0][0], data[-1][0], len(data)]
         #we can use the global_time as a min or max value for lower and upper bound
@@ -812,7 +812,7 @@ class Community(object):
                 bloomfilter_range[0] = 1
             if not higherfixed:
                 bloomfilter_range[1] = 0
-            
+        
         return bloomfilter_range, data
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
