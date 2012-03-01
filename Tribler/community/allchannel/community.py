@@ -10,7 +10,8 @@ from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDes
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.member import Member
-from Tribler.Core.dispersy.message import Message, DropMessage
+from Tribler.Core.dispersy.message import Message, DropMessage,\
+    BatchConfiguration
 from Tribler.Core.dispersy.resolution import PublicResolution
 
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
@@ -98,11 +99,13 @@ class AllChannelCommunity(Community):
         self._searchCallbacks = {}
 
     def initiate_meta_messages(self):
+        batch_delay = 3.0
+        
         return [Message(self, u"channelcast", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
                 Message(self, u"channelcast-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
                 Message(self, u"channelsearch", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchPayload(), self.check_channelsearch, self.on_channelsearch),
                 Message(self, u"channelsearch-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelSearchResponsePayload(), self.check_channelsearch_response, self.on_channelsearch_response),
-                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast, self.undo_votecast)
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast, self.undo_votecast, batch=BatchConfiguration(max_window=batch_delay))
                 ]
 
     def initiate_conversions(self):
