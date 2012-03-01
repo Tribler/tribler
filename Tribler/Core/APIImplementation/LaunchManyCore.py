@@ -493,6 +493,7 @@ class TriblerLaunchMany(Thread):
 
                 self.torrent_db.addExternalTorrent(tdef, source='',extra_info=extra_info,commit=commit)
                 dest_path = d.get_dest_dir()
+                
                 # TODO: if user renamed the dest_path for single-file-torrent
                 data = {'destination_path':dest_path}
                 self.mypref_db.addMyPreference(infohash, data,commit=commit)
@@ -726,7 +727,11 @@ class TriblerLaunchMany(Thread):
             pstate = self.load_download_pstate(filename)
             
             tdef = TorrentDef.load_from_dict(pstate['metainfo'])
-            dscfg = DownloadStartupConfig(dlconfig=pstate['dlconfig'])
+            
+            dlconfig = pstate['dlconfig']
+            if isinstance(dlconfig['saveas'], tuple):
+                dlconfig['saveas'] = dlconfig['saveas'][-1]
+            dscfg = DownloadStartupConfig(dlconfig)
             
         except:
             print_exc()

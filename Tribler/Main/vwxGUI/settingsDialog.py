@@ -302,34 +302,39 @@ class SettingsDialog(wx.Dialog):
         if len(errors) == 0: #No errors found, continue saving
             restart = False
             
+            state_dir = self.utility.session.get_state_dir()
+            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            
             if valdown == 'unlimited':
                 self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
-                self.guiUtility.utility.config.Write('maxdownloadrate', '0')
+                self.utility.config.Write('maxdownloadrate', '0')
             else:
                 self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, int(valdown))
-                self.guiUtility.utility.config.Write('maxdownloadrate', valdown)
+                self.utility.config.Write('maxdownloadrate', valdown)
 
             if valup == 'unlimited':
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
                 self.utility.ratelimiter.set_global_max_seedupload_speed(0)
-                self.guiUtility.utility.config.Write('maxuploadrate', '0')
-                self.guiUtility.utility.config.Write('maxseeduploadrate', '0')
+                self.utility.config.Write('maxuploadrate', '0')
+                self.utility.config.Write('maxseeduploadrate', '0')
             elif valup == '0':
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
                 self.utility.ratelimiter.set_global_max_seedupload_speed(0.0001)
-                self.guiUtility.utility.config.Write('maxuploadrate', '-1')
-                self.guiUtility.utility.config.Write('maxseeduploadrate', '-1')
+                self.utility.config.Write('maxuploadrate', '-1')
+                self.utility.config.Write('maxseeduploadrate', '-1')
             else: 
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
                 self.utility.ratelimiter.set_global_max_seedupload_speed(int(valup))
-                self.guiUtility.utility.config.Write('maxuploadrate', valup)
-                self.guiUtility.utility.config.Write('maxseeduploadrate', valup)
+                self.utility.config.Write('maxuploadrate', valup)
+                self.utility.config.Write('maxseeduploadrate', valup)
 
             if valport != self.currentPortValue:
-                self.currentPortValue = self.elements['firewallValue'].GetValue()
                 self.utility.config.Write('minport', valport)
                 self.utility.config.Write('maxport', int(valport) + 10)
-                self.utility.config.Write('dispersy_port', int(valport) - 1)
+                
+                scfg.set_dispersy_port(int(valport) - 1)
+                self.saveDefaultDownloadConfig()
                 
                 self.guiUtility.set_port_number(valport) 
                 self.guiUtility.set_firewall_restart(True)
@@ -339,10 +344,6 @@ class SettingsDialog(wx.Dialog):
             if showSave != self.defaultDLConfig.get_show_saveas():
                 self.defaultDLConfig.set_show_saveas(showSave)
                 self.saveDefaultDownloadConfig()
-            
-            state_dir = self.utility.session.get_state_dir()
-            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
-            scfg = SessionStartupConfig.load(cfgfilename)
             
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)

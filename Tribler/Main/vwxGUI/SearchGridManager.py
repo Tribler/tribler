@@ -949,6 +949,8 @@ class LibraryManager:
                 
                 destdirs = self.mypref_db.getMyPrefStats(torrent.torrent_id)
                 destdir = destdirs.get(torrent.torrent_id, None)
+                if destdir:
+                    destdir = destdir[-1]
                 self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
             else:
                 callback = lambda infohash, metadata, filename: self.resumeTorrent(torrent)

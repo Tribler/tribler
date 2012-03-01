@@ -12,6 +12,7 @@ from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from threading import Event
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import forceWxThread
+from traceback import print_exc
 
 class CreateTorrent(wx.Dialog):
     def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel = False):
@@ -277,17 +278,24 @@ class CreateTorrent(wx.Dialog):
                     self.EndModal(wx.ID_OK)
             
             def create_torrents():
-                if self.combineRadio.GetValue():
-                    params['name'] = self.specifiedName.GetValue()
-                    make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
-                else:
-                    for i, path in enumerate(self.selectedPaths):
-                        make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                try:
+                    if self.combineRadio.GetValue():
+                        params['name'] = self.specifiedName.GetValue()
+                        make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
+                    else:
+                        for i, path in enumerate(self.selectedPaths):
+                            make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                except:
+                    print_exc()
                         
                 wx.CallAfter(do_gui)
                 
             def start():
-                self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                if self.combineRadio.GetValue():
+                    self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+                else:
+                    self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                self.progressDlg.Pulse()
                 self.progressDlg.cur = 0
                 
                 self.guiserver = GUITaskQueue.getInstance()
@@ -342,7 +350,7 @@ class CreateTorrent(wx.Dialog):
                             paths.append(absfile)
                             
                         elif os.path.isdir(absfile) and recursive:
-                            paths.extend(addDir(absfile))
+                            paths.extend(addDir(absfile, recursive))
                     
                     return paths
                 paths = addDir(paths[0], self.recursive.GetValue())
@@ -374,12 +382,11 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     
     basedir = None
     if len(srcpaths) > 1:
-        basepath = []
-        for srcpath in srcpaths:
-            path, filename = os.path.split(srcpath)
-            basepath.append(path)
-        
-        basepath, basedir = os.path.split(os.path.commonprefix(basepath))
+        #outpaths should start with a common prefix, this prefix is the swarmname of the torrent
+        #if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
+        #if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
+        basepath = os.path.abspath(os.path.commonprefix(srcpaths))
+        basepath, basedir = os.path.split(basepath)
         for srcpath in srcpaths:
             outpath = os.path.relpath(srcpath, basepath)
             
