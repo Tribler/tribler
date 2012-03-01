@@ -142,13 +142,16 @@ def getUrl(announce, info_hashes):
     elif announce.startswith('udp'):
         url = urlparse(announce)
         host = url.netloc
-        port = url.port or 80
+        try:
+            port = int(url.port)
+        except:
+            port = 80
         
         if host.find(':') > 0:
             port = host[host.find(':')+1:]
             host = host[:host.find(':')]
         
-        return (host, int(port))
+        return (host, port)
 
     return None                                             # return None
             
@@ -226,9 +229,7 @@ def getStatusUDP(url, info_hash, info_hashes):
                         returndict[infohash] = (seeders, leechers)
                     
                     return returndict
-    return None
-
-
+    return {info_hash: (-1, -1)}
 
 if __name__ == '__main__':
     infohash = unhexlify('174E3CDD9610E79849304FCB9A835CDC6851B6F0')
