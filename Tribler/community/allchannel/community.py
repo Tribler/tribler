@@ -110,6 +110,10 @@ class AllChannelCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
+    
+    @property
+    def dispersy_sync_response_limit(self):
+        return 50 * 1024
 
     def create_channelcast(self):
         try:
