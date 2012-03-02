@@ -531,7 +531,7 @@ class Community(object):
 
         elif time_high > global_time - capacity:
             time_low = max(1, global_time - capacity)
-            time_high = 0
+            time_high = self.acceptable_global_time
             db_high = global_time
 
         else:
@@ -585,14 +585,14 @@ class Community(object):
                 time_low = min(from_gbtime, data[0][0])
 
                 if mostRecent:
-                    time_high = 0
+                    time_high = self.acceptable_global_time
                 else:
                     time_high = max(from_gbtime, data[-1][0])
 
             #we did not fill complete bloomfilter, assume we selected all items
             else:
                 time_low = 1
-                time_high = 0
+                time_high = self.acceptable_global_time
 
             for _, packet in data:
                 bloom.add(str(packet))
@@ -600,7 +600,7 @@ class Community(object):
             #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
 
             return (time_low, time_high, 1, 0, bloom)
-        return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, divide capacity to have 50/50 divivion around pivot
     @runtime_duration_warning(0.5)
@@ -655,14 +655,14 @@ class Community(object):
                     time_low = min(from_gbtime, data[0][0])
 
                 if mostRecent:
-                    time_high = 0
+                    time_high = self.acceptable_global_time
                 else:
                     time_high = max(from_gbtime, data[-1][0])
 
             #we did not fill complete bloomfilter, assume we selected all items
             else:
                 time_low = 1
-                time_high = 0
+                time_high = self.acceptable_global_time
 
             for _, packet in data:
                 bloom.add(str(packet))
@@ -670,7 +670,7 @@ class Community(object):
             #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
 
             return (time_low, time_high, 1, 0, bloom)
-        return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
     @runtime_duration_warning(0.1)
@@ -1027,12 +1027,12 @@ class Community(object):
         if options:
             # note: officially when the number of options is even, the median is the average between the
             # two 'middle' options.  in our case we simply round down the 'middle' option
-            mean_global_time = options[len(options) / 2]
+            median_global_time = options[len(options) / 2]
 
         else:
-            mean_global_time = 0
+            median_global_time = 0
 
-        return max(self._global_time, mean_global_time) + self.dispersy_acceptable_global_time_range
+        return max(self._global_time, median_global_time) + self.dispersy_acceptable_global_time_range
 
     def unload_community(self):
         """

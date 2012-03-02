@@ -2940,6 +2940,7 @@ class Dispersy(Singleton):
         assert isinstance(store, bool)
         meta = community.get_meta_message(u"dispersy-identity")
         message = meta.impl(authentication=(community.my_member,), distribution=(community.claim_global_time(),))
+        assert message.distribution.global_time == 1, [message.distribution.global_time, community.global_time, community.database_id]
         self.store_update_forward([message], store, update, False)
         return message
 
@@ -4368,6 +4369,7 @@ class Dispersy(Singleton):
         # 2.5: removed delay, drop, outgoing, and success statistics (memory usage)
         # 2.6: added community["acceptable_global_time"],
         #      community["dispersy_acceptable_global_time_range"]
+        # 2.7: added community["database_id"]
 
         info = {"version":2.6, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
 
@@ -4377,6 +4379,7 @@ class Dispersy(Singleton):
         info["communities"] = []
         for community in self._communities.itervalues():
             community_info = {"classification":community.get_classification(),
+                              "database_id":community.database_id,
                               "hex_cid":community.cid.encode("HEX"),
                               "global_time":community.global_time,
                               "acceptable_global_time":community.acceptable_global_time,

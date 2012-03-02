@@ -531,6 +531,7 @@ class DispersyPanel(HomePanel):
                         candidates = "-"
                     parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d (%d)" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
                     self.summary_tree.AppendItem(parent, u"classification:   %s" % community["classification"])
+                    self.summary_tree.AppendItem(parent, u"database id:      %d" % community["database_id"])
                     self.summary_tree.AppendItem(parent, u"global time:      %d" % community["global_time"])
                     self.summary_tree.AppendItem(parent, u"mean global time: %d (%d difference)" % (community["acceptable_global_time"] - community["dispersy_acceptable_global_time_range"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
                     self.summary_tree.AppendItem(parent, u"acceptable range: %d" % community["dispersy_acceptable_global_time_range"])
