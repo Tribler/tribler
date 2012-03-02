@@ -997,7 +997,7 @@ class Dispersy(Singleton):
             # all messages must follow the sequence_number order
             for message in messages:
                 if message.distribution.global_time > acceptable_global_time:
-                    yield DropMessage(message, "global time is not within acceptable range")
+                    yield DropMessage(message, "global time is not within acceptable range (%d, we accept %d)" % (message.distribution.global_time, acceptable_global_time))
                     continue
 
                 key = (message.authentication.member, message.distribution.global_time)
@@ -2939,7 +2939,16 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         assert isinstance(store, bool)
         meta = community.get_meta_message(u"dispersy-identity")
-        message = meta.impl(authentication=(community.my_member,), distribution=(community.claim_global_time(),))
+
+        # boudewijn 02/03/12: current each community will only make one dispersy-identity.  for an
+        # unknown reason there are dispersy-identity messages that have global_time > 1, this should
+        # not occur.  this fix will ensure that this doesn't happen until we find the actual cause.
+        if community.global_time > 1:
+            global_time = 1
+        else:
+            global_time = community.claim_global_time()
+
+        message = meta.impl(authentication=(community.my_member,), distribution=(global_time,))
         assert message.distribution.global_time == 1, [message.distribution.global_time, community.global_time, community.database_id]
         self.store_update_forward([message], store, update, False)
         return message
