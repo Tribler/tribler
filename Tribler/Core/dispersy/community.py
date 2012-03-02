@@ -722,7 +722,7 @@ class Community(object):
                 if __debug__:
                     t3 = time()
                     
-                bloomfilter_range = [1, 0]
+                bloomfilter_range = [1, self.acceptable_global_time]
                 
                 data, fixed = self._select_and_fix(syncable_messages, 0, capacity, True)
                 if len(data) > 0 and fixed:
@@ -747,7 +747,7 @@ class Community(object):
                 
         elif __debug__:
             dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
-        return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
         assert isinstance(syncable_messages, unicode)
@@ -800,7 +800,7 @@ class Community(object):
             
             #if not fixed and higher, then we have selected up to all know packets
             if not fixed:
-                bloomfilter_range[1] = 0
+                bloomfilter_range[1] = self.acceptable_global_time
             if not lowerfixed:
                 bloomfilter_range[0] = 1
         else:
@@ -811,7 +811,7 @@ class Community(object):
             if not fixed:
                 bloomfilter_range[0] = 1
             if not higherfixed:
-                bloomfilter_range[1] = 0
+                bloomfilter_range[1] = self.acceptable_global_time
         
         return bloomfilter_range, data
 
@@ -951,6 +951,10 @@ class Community(object):
         return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 1 - 3) * 8
 
     @property
+    def dispersy_acceptable_global_time_range(self):
+        return 10000
+
+    @property
     def cid(self):
         """
         The 20 byte sha1 digest of the public master key, in other words: the community identifier.
@@ -1005,10 +1009,30 @@ class Community(object):
     @property
     def global_time(self):
         """
-        The most recent global time.
+        The most highest global time that we have stored in the database.
         @rtype: int or long
         """
         return max(1, self._global_time)
+
+    @property
+    def acceptable_global_time(self):
+        """
+        The highest global time that we will accept for incoming messages that need to be stored in
+        the database.
+        @rtype: int or long
+        """
+        # get opinions from all active candidates
+        options = sorted(candidate.get_global_time(self) for candidate in self._dispersy.yield_all_candidates(self))
+
+        if options:
+            # note: officially when the number of options is even, the median is the average between the
+            # two 'middle' options.  in our case we simply round down the 'middle' option
+            mean_global_time = options[len(options) / 2]
+
+        else:
+            mean_global_time = 0
+
+        return max(self._global_time, mean_global_time) + self.dispersy_acceptable_global_time_range
 
     def unload_community(self):
         """

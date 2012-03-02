@@ -982,6 +982,9 @@ class Dispersy(Singleton):
         # sort the messages by their (1) global_time and (2) binary packet
         messages = sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
 
+        # refuse messages where the global time is unreasonably high
+        acceptable_global_time = messages[0].community.acceptable_global_time
+
         if enable_sequence_number:
             # obtain the highest sequence_number from the database
             highest = {}
@@ -993,78 +996,61 @@ class Dispersy(Singleton):
 
             # all messages must follow the sequence_number order
             for message in messages:
+                if message.distribution.global_time > acceptable_global_time:
+                    yield DropMessage(message, "global time is not within acceptable range")
+                    continue
+
                 key = (message.authentication.member, message.distribution.global_time)
                 if key in unique:
                     yield DropMessage(message, "duplicate message by member^global_time (1)")
+                    continue
 
-                else:
-                    unique.add(key)
-                    seq = highest[message.authentication.member]
+                unique.add(key)
+                seq = highest[message.authentication.member]
 
-                    if seq >= message.distribution.sequence_number:
-                        # we already have this message (drop)
-                        # TODO: something similar to _is_duplicate_sync_message can occur...
-                        yield DropMessage(message, "duplicate message by sequence_number (we have %d, message has %d)"%(seq, message.distribution.sequence_number))
+                if seq >= message.distribution.sequence_number:
+                    # we already have this message (drop)
+                    # TODO: something similar to _is_duplicate_sync_message can occur...
+                    yield DropMessage(message, "duplicate message by sequence_number (we have %d, message has %d)"%(seq, message.distribution.sequence_number))
+                    continue
 
-                    elif seq + 1 == message.distribution.sequence_number:
-                        # we have the previous message, check for duplicates based on community,
-                        # member, and global_time
-                        if self._is_duplicate_sync_message(message):
-                            # we have the previous message (drop)
-                            yield DropMessage(message, "duplicate message by global_time (1)")
-                        else:
-                            # we accept this message
-                            highest[message.authentication.member] += 1
-                            yield message
+                if seq + 1 != message.distribution.sequence_number:
+                    # we do not have the previous message (delay and request)
+                    yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
+                    continue
 
-                        # try:
-                        #     execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                        #             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
+                # we have the previous message, check for duplicates based on community,
+                # member, and global_time
+                if self._is_duplicate_sync_message(message):
+                    # we have the previous message (drop)
+                    yield DropMessage(message, "duplicate message by global_time (1)")
+                    continue
 
-                        # except StopIteration:
-                        #     # we accept this message
-                        #     highest[message.authentication.member] += 1
-                        #     yield message
-
-                        # else:
-                        #     # we have the previous message (drop)
-                        #     if self._is_duplicate_sync_message(message):
-                        #         yield DropMessage(message, "duplicate message by global_time (1)")
-
-                    else:
-                        # we do not have the previous message (delay and request)
-                        yield DelayMessageBySequence(message, seq+1, message.distribution.sequence_number-1)
+                # we accept this message
+                highest[message.authentication.member] += 1
+                yield message
 
         else:
             for message in messages:
+                if message.distribution.global_time > acceptable_global_time:
+                    yield DropMessage(message, "global time is not within acceptable range")
+                    continue
+
                 key = (message.authentication.member, message.distribution.global_time)
                 if key in unique:
                     yield DropMessage(message, "duplicate message by member^global_time (2)")
+                    continue
 
-                else:
-                    unique.add(key)
+                unique.add(key)
 
-                    # check for duplicates based on community, member, and global_time
-                    if self._is_duplicate_sync_message(message):
-                        # we have the previous message (drop)
-                        yield DropMessage(message, "duplicate message by global_time (2)")
-                    else:
-                        # we accept this message
-                        yield message
+                # check for duplicates based on community, member, and global_time
+                if self._is_duplicate_sync_message(message):
+                    # we have the previous message (drop)
+                    yield DropMessage(message, "duplicate message by global_time (2)")
+                    continue
 
-                    # # check for duplicates based on community, member, and global_time
-                    # try:
-                    #     execute(u"SELECT 1 FROM sync WHERE community = ? AND member = ? AND global_time = ?",
-                    #             (message.community.database_id, message.authentication.member.database_id, message.distribution.global_time)).next()
-
-                    # except StopIteration:
-                    #     # we accept this message
-                    #     yield message
-
-                    # else:
-                    #     # we have the previous message (drop)
-                    #     if self._is_duplicate_sync_message(message):
-                    #         yield DropMessage(message, "duplicate message by global_time (2)")
+                # we accept this message
+                yield message
 
     def _check_last_sync_distribution_batch(self, messages):
         """
@@ -1255,13 +1241,17 @@ class Dispersy(Singleton):
         # sort the messages by their (1) global_time and (2) binary packet
         messages = sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
 
+        # refuse messages where the global time is unreasonably high
+        acceptable_global_time = meta.community.acceptable_global_time
+        messages = [message if message.distribution.global_time <= acceptable_global_time else DropMessage(message, "global time is not within acceptable range") for message in messages]
+
         if isinstance(meta.authentication, MemberAuthentication):
             # a message is considered unique when (creator, global-time), i.r. (authentication.member,
             # distribution.global_time), is unique.  UNIQUE is used in the check_member_and_global_time
             # function
             unique = set()
             times = {}
-            messages = [check_member_and_global_time(unique, times, message) for message in messages]
+            messages = [message if isinstance(message, DropMessage) else check_member_and_global_time(unique, times, message) for message in messages]
 
         # instead of storing HISTORY_SIZE messages for each authentication.member, we will store
         # HISTORY_SIZE messages for each combination of authentication.members.
@@ -1269,7 +1259,7 @@ class Dispersy(Singleton):
             assert isinstance(meta.authentication, MultiMemberAuthentication)
             unique = set()
             times = {}
-            messages = [check_multi_member_and_global_time(unique, times, message) for message in messages]
+            messages = [message if isinstance(message, DropMessage) else check_multi_member_and_global_time(unique, times, message) for message in messages]
 
         return messages
 
@@ -1291,7 +1281,14 @@ class Dispersy(Singleton):
         @rtype: [Message.Implementation]
         """
         # sort the messages by their (1) global_time and (2) binary packet
-        return sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
+        messages = sorted(messages, lambda a, b: cmp(a.distribution.global_time, b.distribution.global_time) or cmp(a.packet, b.packet))
+
+        # direct messages tell us what other people believe is the current global_time
+        community = messages[0].community
+        for message in messages:
+            message.candidate.set_global_time(community, message.distribution.global_time)
+
+        return messages
 
     def data_came_in(self, packets):
         """
@@ -1790,6 +1787,7 @@ class Dispersy(Singleton):
         if __debug__: dprint("attempting to store ", len(messages), " ", meta.name, " messages")
         is_subjective_destination = isinstance(meta.destination, SubjectiveDestination)
         is_multi_member_authentication = isinstance(meta.authentication, MultiMemberAuthentication)
+        highest_global_time = 0
 
         # update_sync_range = set()
         for message in messages:
@@ -1826,6 +1824,9 @@ class Dispersy(Singleton):
                 self._database.executemany(u"INSERT INTO reference_member_sync (member, sync) VALUES (?, ?)",
                                            [(member.database_id, message.packet_id) for member in message.authentication.members])
                 assert self._database.changes == message.authentication.count
+
+            # update global time
+            highest_global_time = max(highest_global_time, message.distribution.global_time)
 
         if isinstance(meta.distribution, LastSyncDistribution):
             # delete packets that have become obsolete
@@ -1877,6 +1878,9 @@ class Dispersy(Singleton):
                     for message in messages:
                         history_size, = self._database.execute(u"SELECT COUNT(1) FROM sync WHERE meta_message = ? AND member = ?", (message.database_id, message.authentication.member.database_id)).next()
                         assert history_size <= message.distribution.history_size, [count, message.distribution.history_size, message.authentication.member.database_id]
+
+        # update the global time
+        meta.community.update_global_time(highest_global_time)
 
         # if update_sync_range:
         #     # notify that global times have changed
@@ -2114,11 +2118,11 @@ class Dispersy(Singleton):
                     assert isinstance(sync, tuple), sync
                     assert len(sync) == 5, sync
                     time_low, time_high, modulo, offset, bloom_filter = sync
-                    assert isinstance(time_low, (int, long))
-                    assert isinstance(time_high, (int, long))
-                    assert isinstance(modulo, int)
-                    assert isinstance(offset, int)
-                    assert isinstance(bloom_filter, BloomFilter)
+                    assert isinstance(time_low, (int, long)), time_low
+                    assert isinstance(time_high, (int, long)), time_high
+                    assert isinstance(modulo, int), modulo
+                    assert isinstance(offset, int), offset
+                    assert isinstance(bloom_filter, BloomFilter), bloom_filter
 
                     # verify that the bloom filter is correct
                     binary = bloom_filter.bytes
@@ -2449,8 +2453,6 @@ class Dispersy(Singleton):
             self._store(messages)
 
         if update:
-            # TODO in theory we do not need to update_global_time when we store...
-            messages[0].community.update_global_time(max(message.distribution.global_time for message in messages))
             if __debug__:
                 begin = time()
             messages[0].handle_callback(messages)
@@ -4364,15 +4366,22 @@ class Dispersy(Singleton):
         # 2.3: community["candidates"] is no longer sorted
         # 2.4: added database_version
         # 2.5: removed delay, drop, outgoing, and success statistics (memory usage)
+        # 2.6: added community["acceptable_global_time"],
+        #      community["dispersy_acceptable_global_time_range"]
 
-        info = {"version":2.5, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
+        info = {"version":2.6, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
 
         if statistics:
             info["statistics"] = self._statistics.info()
 
         info["communities"] = []
         for community in self._communities.itervalues():
-            community_info = {"classification":community.get_classification(), "hex_cid":community.cid.encode("HEX"), "global_time":community.global_time, "database_version":community.database_version}
+            community_info = {"classification":community.get_classification(),
+                              "hex_cid":community.cid.encode("HEX"),
+                              "global_time":community.global_time,
+                              "acceptable_global_time":community.acceptable_global_time,
+                              "dispersy_acceptable_global_time_range":community.dispersy_acceptable_global_time_range,
+                              "database_version":community.database_version}
             info["communities"].append(community_info)
 
             if attributes:

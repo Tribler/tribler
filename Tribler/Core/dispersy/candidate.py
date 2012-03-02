@@ -39,6 +39,7 @@ class Candidate(object):
         self._connection_type = connection_type
         self._timestamp_incoming = time()
         self._timestamp_last_step = {(member, community.cid):time() - 30.0} if community else {}
+        self._global_times = {}
 
     def __str__(self):
         return "".join(("[",
@@ -79,6 +80,12 @@ class Candidate(object):
     def timestamp_incoming(self):
         return self._timestamp_incoming
 
+    def set_global_time(self, community, global_time):
+        self._global_times[community.cid] = max(self._global_times.get(community.cid, 0), global_time)
+
+    def get_global_time(self, community):
+        return self._global_times.get(community.cid, 0)
+    
     def members_in_community(self, community):
         return (member for member, cid in self._timestamp_last_step.iterkeys() if member and cid == community.cid)
     
@@ -100,6 +107,8 @@ class Candidate(object):
         self._timestamp_last_step = dict((((member, cid), timestamp))
                                          for (member, cid), timestamp
                                          in self._timestamp_last_step.iteritems() if not cid == community.cid)
+        if community.cid in self._global_times:
+            del self._global_times[community.cid]
         return bool(self._timestamp_last_step)
 
     def out_introduction_request(self, community):

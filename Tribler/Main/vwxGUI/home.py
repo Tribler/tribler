@@ -529,8 +529,11 @@ class DispersyPanel(HomePanel):
                         candidates = str(len(community["candidates"]))
                     else:
                         candidates = "-"
-                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
-                    self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
+                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d (%d)" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"classification:   %s" % community["classification"])
+                    self.summary_tree.AppendItem(parent, u"global time:      %d" % community["global_time"])
+                    self.summary_tree.AppendItem(parent, u"mean global time: %d (%d difference)" % (community["acceptable_global_time"] - community["dispersy_acceptable_global_time_range"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"acceptable range: %d" % community["dispersy_acceptable_global_time_range"])
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
                         for address in sorted(("%s:%d" % wan_address if lan_address == wan_address else "%s:%d, %s:%d" % (wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
