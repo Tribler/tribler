@@ -1019,12 +1019,21 @@ class Community(object):
         """
         The highest global time that we will accept for incoming messages that need to be stored in
         the database.
+
+        We follow one of two strategies:
+
+        When we have more than 5 candidates (i.e. we have more than 5 opinions about what the
+        global_time should be) we will use its median + dispersy_acceptable_global_time_range.
+
+        Otherwise we will not trust the candidate's opinions and use our own global time (obtained
+        from the highest global time in the database) + dispersy_acceptable_global_time_range.
+
         @rtype: int or long
         """
         # get opinions from all active candidates
-        options = sorted(candidate.get_global_time(self) for candidate in self._dispersy.yield_all_candidates(self))
+        options = sorted(global_time for global_time in (candidate.get_global_time(self) for candidate in self._dispersy.yield_all_candidates(self)) if global_time > 0)
 
-        if options:
+        if len(options) > 5:
             # note: officially when the number of options is even, the median is the average between the
             # two 'middle' options.  in our case we simply round down the 'middle' option
             median_global_time = options[len(options) / 2]

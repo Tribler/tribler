@@ -2111,6 +2111,14 @@ class Dispersy(Singleton):
             # do not request a sync when we connecting to a bootstrap candidate
             sync = None
         else:
+            # flush any sync-able items left in the cache before we create a sync
+            flush_list = [(meta, tup) for meta, tup in self._batch_cache.iteritems() if meta.community == community and isinstance(meta.distribution, SyncDistribution)]
+            flush_list.sort(key=lambda tup: tup[0].batch.priority, reverse=True)
+            for meta, (task_identifier, timestamp, batch) in flush_list:
+                if __debug__: dprint("flush cached ", len(batch), "x ", meta.name, " messages (id: ", task_identifier, ")")
+                self._callback.unregister(task_identifier)
+                self._on_batch_cache_timeout(meta, timestamp, batch)
+
             sync = community.dispersy_claim_sync_bloom_filter(identifier)
             if __debug__:
                 # 06/01/12 Boudewijn: dispersy_claim_sync_bloom_filter is allowed to return None
@@ -4379,8 +4387,9 @@ class Dispersy(Singleton):
         # 2.6: added community["acceptable_global_time"],
         #      community["dispersy_acceptable_global_time_range"]
         # 2.7: added community["database_id"]
+        # 2.8: added global_time to candidates
 
-        info = {"version":2.6, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
+        info = {"version":2.8, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
 
         if statistics:
             info["statistics"] = self._statistics.info()
@@ -4415,7 +4424,7 @@ class Dispersy(Singleton):
                 community_info["database_sync"] = dict(self._database.execute(u"SELECT meta_message.name, COUNT(sync.id) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? GROUP BY sync.meta_message", (community.database_id,)))
 
             if candidate:
-                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
+                community_info["candidates"] = [(candidate.lan_address, candidate.wan_address, candidate.get_global_time(community)) for candidate in self._candidates.itervalues() if candidate.in_community(community)]
                 if __debug__: dprint(community_info["classification"], " has ", len(community_info["candidates"]), " candidates")
 
         if __debug__: dprint(info, pprint=True)

@@ -529,18 +529,18 @@ class DispersyPanel(HomePanel):
                         candidates = str(len(community["candidates"]))
                     else:
                         candidates = "-"
-                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d (%d)" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
-                    self.summary_tree.AppendItem(parent, u"classification:   %s" % community["classification"])
-                    self.summary_tree.AppendItem(parent, u"database id:      %d" % community["database_id"])
-                    self.summary_tree.AppendItem(parent, u"global time:      %d" % community["global_time"])
-                    self.summary_tree.AppendItem(parent, u"mean global time: %d (%d difference)" % (community["acceptable_global_time"] - community["dispersy_acceptable_global_time_range"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
-                    self.summary_tree.AppendItem(parent, u"acceptable range: %d" % community["dispersy_acceptable_global_time_range"])
+                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d ~%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"classification:     %s" % community["classification"])
+                    self.summary_tree.AppendItem(parent, u"database id:        %d" % community["database_id"])
+                    self.summary_tree.AppendItem(parent, u"global time:        %d" % community["global_time"])
+                    self.summary_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community["acceptable_global_time"] - community["dispersy_acceptable_global_time_range"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community["dispersy_acceptable_global_time_range"])
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
-                        for address in sorted(("%s:%d" % wan_address if lan_address == wan_address else "%s:%d, %s:%d" % (wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
-                                        for lan_address, wan_address
-                                        in community["candidates"]):
-                            self.summary_tree.AppendItem(sub_parent, address)
+                        for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
+                                                for lan_address, wan_address, global_time
+                                                in community["candidates"]):
+                            self.summary_tree.AppendItem(sub_parent, candidate)
                     sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
                     for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
                         self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
