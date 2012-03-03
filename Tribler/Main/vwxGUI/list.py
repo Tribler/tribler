@@ -32,6 +32,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
+from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -1220,8 +1221,11 @@ class LibraryList(SizeList):
         self.user_download_choice = UserDownloadChoice.get_singleton()
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
+        
         self.library_manager = self.guiutility.library_manager
         self.library_manager.add_download_state_callback(self.RefreshItems)
+        
+        self.channelsearch_manager = self.guiutility.channelsearch_manager
         
         self.statefilter = None
         self.newfilter = False
@@ -1335,52 +1339,28 @@ class LibraryList(SizeList):
     @warnWxThread
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()
-        
-        dlg = wx.Dialog(None, -1, 'Are you sure you want to remove this torrent?', style=wx.DEFAULT_DIALOG_STYLE, size = (600, 125))
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)), 0, wx.RIGHT, 10)
-        
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        firstLine = wx.StaticText(dlg, -1, "Delete '%s' from disk, or just remove them from your downloads?"%item.data[0])
-        font = firstLine.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        firstLine.SetFont(font)
-        firstLine.SetMinSize((1, -1))
-        
-        vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 7)
-        vSizer.AddStretchSpacer()
-        vSizer.Add(wx.StaticText(dlg, -1, "Removing from disk will move the selected item to your trash."), 0, wx.EXPAND)
-        
-        bSizer = wx.BoxSizer(wx.HORIZONTAL)
-        bSizer.AddStretchSpacer()
-        bSizer.Add(wx.Button(dlg, wx.ID_CANCEL), 0, wx.RIGHT, 3)
-        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from downloads'), 0, wx.RIGHT, 3)
-        bSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from disk'))
-        
-        vSizer.Add(bSizer, 0, wx.ALIGN_RIGHT|wx.TOP, 7)
-        hSizer.Add(vSizer, 1, wx.EXPAND)
-        
-        border = wx.BoxSizer()
-        border.Add(hSizer, 1, wx.ALL|wx.EXPAND, 10)
-        
-        dlg.Bind(wx.EVT_BUTTON, lambda event: dlg.EndModal(event.GetId()))
-        dlg.SetSizer(border)
-        dlg.CenterOnParent()
-        
+        torrent = item.original_data
+        dlg = RemoveTorrent(None, torrent)
         buttonId = dlg.ShowModal()
         if buttonId == wx.ID_DEFAULT:
-            self.library_manager.deleteTorrent(item.original_data)
+            self.library_manager.deleteTorrent(torrent)
             self.list.RemoveItem(item)
             
         elif buttonId == wx.ID_DELETE:
-            self.library_manager.deleteTorrent(item.original_data, True)
+            self.library_manager.deleteTorrent(torrent, True)
             self.list.RemoveItem(item)
         
         if self.list.IsEmpty():
             self.SetData([])
         
+        if dlg.newName:
+            if dlg.newName.IsChanged():
+                dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                if dlg2.ShowModal() == wx.ID_YES:
+                    self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':self.newName.GetValue()})
+                dlg2.Destroy()
         dlg.Destroy()
-        
+                
     def __ds__eq__(self, ds1, ds2):
         #Exact same objects or both None
         if ds1 == ds2:

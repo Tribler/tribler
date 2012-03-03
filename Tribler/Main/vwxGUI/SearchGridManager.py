@@ -38,7 +38,6 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from wx.lib import delayedresult
 
 DEBUG = False
 
@@ -985,14 +984,16 @@ class LibraryManager:
             self.mypref_db.updateDestDir(infohash,"")
             self.user_download_choice.remove_download_state(infohash)
     
-    def connect(self, session, torrentsearch_manager):
+    def connect(self, session, torrentsearch_manager, channelsearch_manager):
         self.session = session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
+        
         self.torrentsearch_manager = torrentsearch_manager
+        self.channelsearch_manager = channelsearch_manager
     
     def getHitsInCategory(self):
         if DEBUG: begintime = time()
@@ -1004,11 +1005,13 @@ class LibraryManager:
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 
-                #touch channel to force load
-                t.channel
+                #touch channel to force load, if it has a channel -> load channeltorrent
+                if t.channel:
+                    ct = self.channelsearch_manager.getTorrentFromChannelTorrentId(t.channel, t.channeltorrents_id)
+                    ct.progress = t.progress
+                    return ct 
                 
                 return t
-            
             results = map(create_torrent, results)
         
         #Niels: maybe create a clever reranking for library results, for now disable
@@ -1708,7 +1711,7 @@ class ChannelManager:
         community._disp_create_moderation(text, long(time()), severity, cause)
         
     def getChannelForTorrent(self, infohash):
-        return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
+        return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)[:-1]
     
     def getNrTorrentsDownloaded(self, publisher_id):
         return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
