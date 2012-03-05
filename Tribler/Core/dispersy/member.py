@@ -146,7 +146,7 @@ class Member(DummyMember):
                 return member
 
         # create new Member and store in cache
-        member = object.__new__(cls, public_key, private_key)
+        member = object.__new__(cls)
         if len(cls.__cache) >= cls.__cache_length:
             del cls.__cache[-1]
         cls.__cache.insert(cls.__cache_length / 3, member)
