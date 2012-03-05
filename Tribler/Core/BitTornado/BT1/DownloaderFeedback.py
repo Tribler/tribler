@@ -66,6 +66,7 @@ class DownloaderFeedback:
                 a['direction'] = 'R'
             
             a['uflushed'] = not c.backlogged()
+            a['ueligable'] = self.choker.is_conn_eligible(c)
             
             ##a['unauth_permid'] = c.get_unauth_permid()
             u = c.get_upload()
