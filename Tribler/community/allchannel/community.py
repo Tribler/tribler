@@ -473,13 +473,14 @@ class AllChannelCommunity(Community):
         # 2. convert packet into a Message instance
         message = self._dispersy.convert_packet_to_message(str(packet))        
         if message:
-            assert message.name == messagename, "Expecting a '%s' message"%messagename
             message.packet_id = packet_id
         else:
-            raise RuntimeError("unable to convert packet")
+            raise RuntimeError("Unable to convert packet")
         
         if message.name == messagename:
             return message
+        
+        raise RuntimeError("Message is of an incorrect type, expecting a '%s' message got a '%s'"%(messagename, message.name))
         
     def _drop_all_newer(self, dispersy_id):
         self._channelcast_db.drop_all_newer(dispersy_id)
