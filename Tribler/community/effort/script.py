@@ -2,9 +2,9 @@ from random import random
 from community import EffortCommunity
 
 from Tribler.Core.dispersy.dprint import dprint
-from Tribler.Core.dispersy.tool.scenarioscript import ScenarioScript as ScenarioScriptBase, ScenarioExpon
+from Tribler.Core.dispersy.tool.scenarioscript import ScenarioScript, ScenarioExpon
 
-class ScenarioScript(ScenarioScriptBase, ScenarioExpon):
+class ScenarioScript(ScenarioScript, ScenarioExpon):
     @property
     def master_member_public_key(self):
         return "3081a7301006072a8648ce3d020106052b81040027038192000404668ed626c6d6bf4a280cf4824c8cd31fe4c7c46767afb127129abfccdf8be3c38d4b1cb8792f66ccb603bfed395e908786049cb64bacab198ef07d49358da490fbc41f43ade33e05c9991a1bb7ef122cda5359d908514b3c935fe17a3679b6626161ca8d8d934d372dec23cc30ff576bfcd9c292f188af4142594ccc5f6376e2986e1521dc874819f7bcb7ae3ce400".decode("HEX")

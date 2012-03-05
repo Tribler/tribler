@@ -1,6 +1,6 @@
 
-DAS2SCENARIO = True
-DAS4SCENARIO = False
+DAS2SCENARIO = False
+DAS4SCENARIO = True
 
 from time import time
 
@@ -54,7 +54,7 @@ class WalktestCommunity(Community):
                     connection_type=self._dispersy.connection_type)
 
     @staticmethod
-    def scenario_end():
+    def flush_log():
         log("walktest.log", "scenario-end")
         close("walktest.log")
 

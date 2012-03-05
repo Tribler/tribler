@@ -130,8 +130,8 @@ if poisson:
                 yield float(delay)
 
         def scenario_poisson_churn(self, online_mu, offline_mu):
-            self.__poisson_online_mu = online_mu
-            self.__poisson_offline_mu = offline_mu
+            self.__poisson_online_mu = float(online_mu)
+            self.__poisson_offline_mu = float(offline_mu)
             self._dispersy.callback.persistent_register("scenario-poisson-identifier", self.__poisson_churn)
 
 if expon:
@@ -160,8 +160,8 @@ if expon:
                     yield float(delay)
 
         def scenario_expon_churn(self, online_beta, offline_beta):
-            self.__expon_online_beta = online_beta
-            self.__expon_offline_beta = offline_beta
+            self.__expon_online_beta = float(online_beta)
+            self.__expon_offline_beta = float(offline_beta)
             self._dispersy.callback.persistent_register("scenario-expon-identifier", self.__expon_churn)
 
 class ScenarioChurn(object):
