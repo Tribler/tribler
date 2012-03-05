@@ -1502,7 +1502,7 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
-        self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
+        self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nUBL\tsending data\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
         vSizer.Add(self.peerList, 1, wx.EXPAND)
         
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -1754,6 +1754,8 @@ class LibraryDetails(TorrentDetails):
                     state += "UC,"
                 if peer_dict['uhasqueries']:
                     state += "UQ,"
+                if not peer_dict['uflushed']:
+                    state += "UBL,"
                 if peer_dict['dinterested']:
                     state += "DI,"
                 if peer_dict['dchoked']:

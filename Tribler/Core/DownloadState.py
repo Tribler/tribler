@@ -471,6 +471,7 @@ class DownloadState(Serializable):
         'uinterested' = Upload Interested: True/False
         'uchoked' = Upload Choked: True/False
         'uhasqueries' = Upload has requests in buffer and not choked
+        'uflushed' = Upload is not flushed
         'downrate' = Download rate in KB/s
         'dinterested' = Download interested: True/Flase
         'dchoked' = Download choked: True/False

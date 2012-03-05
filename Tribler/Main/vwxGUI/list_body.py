@@ -737,7 +737,7 @@ class AbstractListBody():
         else:
             self.raw_data = data
             
-        assert len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d'%(len(data[0][1]), len(self.columns)) 
+        assert len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list)) 
             
         if highlight is None:
             highlight = not self.IsEmpty()
