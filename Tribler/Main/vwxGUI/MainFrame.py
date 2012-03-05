@@ -524,7 +524,13 @@ class MainFrame(wx.Frame):
     def modifySelection(self, download, selectedFiles):
         tdef = download.get_def()
         dscfg = DownloadStartupConfig(download.dlconfig)
-        dscfg.set_selected_files(selectedFiles)
+        try:
+            dscfg.set_selected_files(selectedFiles)
+            
+        except ValueError:
+            #upon valueerror, change downloadmode to normal, retry
+            dscfg.set_mode(DLMODE_NORMAL)
+            dscfg.set_selected_files(selectedFiles)
         
         self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
         self.utility.session.start_download(tdef, dscfg)
