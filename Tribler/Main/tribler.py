@@ -141,7 +141,7 @@ class ABCApp():
             self.utility.app = self
 
             sys.stderr.write('Client Starting Up.\n')
-            sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
+            sys.stderr.write('Tribler Version: '+self.utility.lang.get('version') + ' Build: ' + self.utility.lang.get('build') + '\n')
             
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()
