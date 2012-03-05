@@ -334,7 +334,7 @@ class SettingsDialog(wx.Dialog):
                 self.utility.config.Write('maxport', int(valport) + 10)
                 
                 scfg.set_dispersy_port(int(valport) - 1)
-                self.saveDefaultDownloadConfig()
+                self.saveDefaultDownloadConfig(scfg)
                 
                 self.guiUtility.set_port_number(valport) 
                 self.guiUtility.set_firewall_restart(True)
@@ -343,14 +343,12 @@ class SettingsDialog(wx.Dialog):
             showSave = self.elements['diskLocationChoice'].IsChecked()
             if showSave != self.defaultDLConfig.get_show_saveas():
                 self.defaultDLConfig.set_show_saveas(showSave)
-                self.saveDefaultDownloadConfig()
+                self.saveDefaultDownloadConfig(scfg)
             
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
-                scfg.set_proxyservice_dir(os.path.join(valdir, PROXYSERVICE_DESTDIR))
-                scfg.set_subtitles_collecting_dir(os.path.join(valdir, 'collected_subtitles_files'))
                 
-                self.saveDefaultDownloadConfig()
+                self.saveDefaultDownloadConfig(scfg)
                 self.moveCollectedTorrents(self.currentDestDir, valdir)
                 restart = True
                 
@@ -577,7 +575,7 @@ class SettingsDialog(wx.Dialog):
                     dlg.SetSelections(select)
                 dlg.allselected = not dlg.allselected
 
-    def saveDefaultDownloadConfig(self):
+    def saveDefaultDownloadConfig(self, scfg):
         # Save DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(self.utility.session)
         self.defaultDLConfig.save(dlcfgfilename)
@@ -585,17 +583,23 @@ class SettingsDialog(wx.Dialog):
         # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
         # Save SessionStartupConfig
         # Also change torrent collecting dir, which is by default in the default destdir
+        
         state_dir = self.utility.session.get_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
-        scfg = SessionStartupConfig.load(cfgfilename)
-
         defaultdestdir = self.defaultDLConfig.get_dest_dir()
-        dirname = os.path.join(defaultdestdir,STATEDIR_TORRENTCOLL_DIR)
         for target in [scfg,self.utility.session]:
             try:
-                target.set_torrent_collecting_dir(dirname)
+                target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
             except:
                 print_exc()
+            try:
+                target.set_proxyservice_dir(os.path.join(defaultdestdir, PROXYSERVICE_DESTDIR))
+            except:
+                print_exc()
+            try:    
+                target.set_subtitles_collecting_dir(os.path.join(defaultdestdir, STATEDIR_SUBSCOLL_DIR))
+            except:
+                print_exc()    
         scfg.save(cfgfilename)
     
     def moveCollectedTorrents(self, old_dir, new_dir):

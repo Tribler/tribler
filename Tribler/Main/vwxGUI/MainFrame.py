@@ -777,9 +777,7 @@ class MainFrame(wx.Frame):
                 print_exc()
 
         atexit.register(start_tribler)
-        
         self.Close(force = True)
-        self.quit()
     
     def OnFind(self, event):
         self.top_bg.SearchFocus()
@@ -972,7 +970,7 @@ class MainFrame(wx.Frame):
             print_exc()
             
         print >>sys.stderr, "mainframe: Calling quit"
-        self.quit()
+        self.quit(event != None)
 
         if DEBUG:
             print >>sys.stderr,"mainframe: OnCloseWindow END"
@@ -1099,7 +1097,7 @@ class MainFrame(wx.Frame):
     def set_wxapp(self,wxapp):
         self.wxapp = wxapp
         
-    def quit(self):
+    def quit(self, force = True):
         print >> sys.stderr, "mainframe: in quit"
         if self.wxapp is not None:
             app = self.wxapp
@@ -1108,4 +1106,5 @@ class MainFrame(wx.Frame):
             
         if app:
             wx.CallLater(1000, app.ExitMainLoop)
-            wx.CallLater(1000, app.Exit)
+            if force:
+                wx.CallLater(1000, app.Exit)
