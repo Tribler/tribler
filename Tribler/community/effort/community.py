@@ -1,7 +1,7 @@
 from conversion import EffortConversion
 from database import EffortDatabase
 from payload import EffortRecordPayload
-from efforthistory import EffortHistory
+from efforthistory import CYCLE_SIZE, EffortHistory
 
 from Tribler.Core.dispersy.candidate import BootstrapCandidate
 from Tribler.Core.dispersy.community import Community
@@ -15,15 +15,15 @@ from Tribler.Core.dispersy.destination import CommunityDestination
 from time import time
 
 from Tribler.Core.dispersy.dprint import dprint
-from lencoder import log
+from lencoder import bz2log, close
 
 class EffortCommunity(Community):
-    def __init__(self, *args, **kargs):
+    def __init__(self, master, class_):
         # original walker callbacks (will be set during super(...).__init__)
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
 
-        super(EffortCommunity, self).__init__(*args, **kargs)
+        super(EffortCommunity, self).__init__(master)
 
         # storage
         self._database = EffortDatabase.get_instance(self._dispersy.working_directory)
@@ -35,7 +35,7 @@ class EffortCommunity(Community):
         self._pending_callbacks.append(self._dispersy.callback.register(self._watchdog))
 
         # log
-        log("effort.log", "load", my_member=self._my_member.mid)
+        bz2log("effort.log", "load", my_member=self._my_member.mid, class_=class_, cycle_size=CYCLE_SIZE)
 
     def initiate_meta_messages(self):
         return [Message(self, u"effort-record", MultiMemberAuthentication(count=2, allow_signature_func=self.allow_signature_request), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1), CommunityDestination(node_count=10), EffortRecordPayload(), self.check_effort_record, self.on_effort_record, batch=BatchConfiguration(max_window=4.5)),
@@ -59,6 +59,10 @@ class EffortCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), EffortConversion(self)]
 
+    @staticmethod
+    def flush_log():
+        close("effort.log")
+
     def _watchdog(self):
         while True:
             try:
@@ -67,11 +71,17 @@ class EffortCommunity(Community):
                 # flush changes to disk every 1 minutes
                 self._database.commit()
             except GeneratorExit:
+                bz2log("effort.log", "unload")
                 if __debug__: dprint("shutdown")
                 self._database.commit()
                 break
 
     def _get_or_create_history(self, member, now):
+        if __debug__:
+            if member in self._histories:
+                dprint("member in histories (", member.mid.encode("HEX"), ", ", bin(self._histories[member].long), ")")
+            else:
+                dprint("member NOT in histories")
         try:
             return self._histories[member]
         except KeyError:
@@ -93,10 +103,12 @@ class EffortCommunity(Community):
                 if not isinstance(message.candidate, BootstrapCandidate):
                     for member in message.candidate.get_members(self):
                         history = self._get_or_create_history(member, now)
+                        changed = history.set(now)
                         if __debug__: dprint("introduction-request from ", message.candidate, " - ", bin(history.long))
-                        if history.set(now):
-                            pass
-                            # self.create_effort_record(member, history)
+
+                        # if changed:
+                        #     if __debug__: dprint("changed! (", member.mid.encode("HEX"), ", ", bin(self._histories[member].long), ")")
+                        #     self.create_effort_record(member, history)
 
     def on_introduction_response(self, messages):
         try:
@@ -107,11 +119,12 @@ class EffortCommunity(Community):
                 if not isinstance(message.candidate, BootstrapCandidate):
                     for member in message.candidate.get_members(self):
                         history = self._get_or_create_history(member, now)
+                        changed = history.set(now)
                         if __debug__: dprint("introduction-response from ", message.candidate, " - ", bin(history.long))
-                        if history.set(now):
+
+                        if changed:
+                            if __debug__: dprint("changed! (", member.mid.encode("HEX"), ", ", bin(self._histories[member].long), ")")
                             self.create_effort_record(member, history)
-                        else:
-                            log("effort.log", "no-change")
 
     def create_effort_record(self, second_member, history, forward=True):
         """
@@ -155,6 +168,8 @@ class EffortCommunity(Community):
         # TODO shift history and origin for a match
         history = EffortHistory(local_history.long & message.payload.history.long, local_history.size, local_history.origin)
 
+        bz2log("effort.log", "diff", local=bin(history.long), remote=bin(message.payload.history.long), propose=bin(history.long), time_diff=int(abs(first_timestamp - second_timestamp)))
+
         # return the modified effort-record we propose
         meta = self.get_meta_message(u"effort-record")
         return meta.impl(authentication=([first_member, second_member],),
@@ -182,6 +197,6 @@ class EffortCommunity(Community):
     def on_effort_record(self, messages):
         if __debug__: dprint("storing ", len(messages), " effort records")
         for message in messages:
-            log("effort.log", "effort-record", global_time=message.distribution.global_time, first_member=message.authentication.members[0].mid, second_member=message.authentication.members[1].mid, bits=bin(message.payload.history.long))
+            bz2log("effort.log", "effort-record", global_time=message.distribution.global_time, first_member=message.authentication.members[0].mid, second_member=message.authentication.members[1].mid, first_timestamp=int(message.payload.first_timestamp), second_timestamp=int(message.payload.second_timestamp), bits=message.payload.history.long)
         self._database.executemany(u"INSERT OR REPLACE INTO record (community, global_time, first_member, second_member, first_timestamp, second_timestamp, effort) VALUES (?, ?, ?, ?, ?, ?, ?)",
                                    ((self._database_id, message.distribution.global_time, message.authentication.members[0].database_id, message.authentication.members[1].database_id, int(message.payload.first_timestamp), int(message.payload.second_timestamp), buffer(message.payload.history.bytes)) for message in messages))

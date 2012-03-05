@@ -68,6 +68,13 @@ def _decode_int(offset, stream):
         if not stream[split] in "1234567890-":
             return split, int(stream[offset:split])
 
+def _decode_long(offset, stream):
+    assert isinstance(offset, (int, long))
+    assert isinstance(stream, str)
+    for split in _counter(offset):
+        if not stream[split] in "1234567890-":
+            return split, long(stream[offset:split])
+
 def _decode_float(offset, stream):
     assert isinstance(offset, (int, long))
     assert isinstance(stream, str)
@@ -375,6 +382,7 @@ _decode_mapping = {"s":_decode_str,
                    "u":_decode_unicode,
                    "H":_decode_Hex,
                    "i":_decode_int,
+                   "j":_decode_long,
                    "f":_decode_float,
                    "b":_decode_boolean,
                    "n":_decode_none,

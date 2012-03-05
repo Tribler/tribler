@@ -1,7 +1,10 @@
 from Tribler.Core.dispersy.decorator import Constructor, constructor
 
+if __debug__:
+    from Tribler.Core.dispersy.dprint import dprint
+
 # a cycle is defined as a N second period
-CYCLE_SIZE = 5.0
+CYCLE_SIZE = 1800.0
 
 class EffortHistory(Constructor):
     @constructor(int, float)
@@ -32,7 +35,7 @@ class EffortHistory(Constructor):
         assert isinstance(bits, long)
         assert isinstance(size, int)
         assert size % 8 == 0
-        assert not bits & 2**(size - 1)
+        assert not bits >> size
         assert isinstance(origin, float)
         self._bits = bits
         self._size = size
@@ -82,6 +85,7 @@ class EffortHistory(Constructor):
         assert isinstance(origin, float)
         assert self._origin <= origin
         difference = int((origin - self._origin) / CYCLE_SIZE)
+        if __debug__: dprint("difference ", difference, " (", origin - self._origin, "s)")
         if difference:
             self._origin = origin
 
@@ -89,7 +93,7 @@ class EffortHistory(Constructor):
             self._bits <<= difference
 
             # remove now obsolete bits
-            self._bits &= 2**(self._size - 1)
+            self._bits &= (2**self._size - 1)
 
             # set last bit ACTIVE
             self._bits |= 1

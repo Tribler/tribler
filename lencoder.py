@@ -2,7 +2,9 @@
 
 from bz2 import BZ2File
 from string import digits, letters, punctuation
+from sys import stderr
 from time import strftime
+from traceback import print_stack
 import re
 
 def _encode_str(l, value):
@@ -28,6 +30,9 @@ def _encode_unicode(l, value):
 
 def _encode_int(l, value):
     l.extend(("i", str(value)))
+
+def _encode_long(l, value):
+    l.extend(("j", str(value)))
 
 def _encode_float(l, value):
     l.extend(("f", str(value)))
@@ -106,7 +111,11 @@ def bz2log(filename, _message, **kargs):
 
     global _cache
     handle = _cache.get(filename)
-    if handle:
+    if handle == "LOCKED":
+        print >> stderr, "Trying to log to closed", filename
+        print_stack(file=stderr)
+        return None
+    elif handle:
         l = [strftime("%Y%m%d%H%M%S"), _seperator]
     else:
         l = ["################################################################################", "\n",
@@ -129,9 +138,10 @@ def bz2log(filename, _message, **kargs):
     return handle
 
 def close(filename):
+    bz2log(filename, "logger", event="stop")
     global _cache
     _cache[filename].close()
-    del _cache[filename]
+    _cache[filename] = "LOCKED"
 
 def to_string(datetime, _message, **kargs):
     assert isinstance(_message, str)
@@ -145,7 +155,7 @@ def to_string(datetime, _message, **kargs):
     return "".join(l)
 
 def make_valid_key(key):
-    return re.sub('[^a-zA-Z0-9_]', '_', key)           
+    return re.sub('[^a-zA-Z0-9_]', '_', key)
 
 _printable = "".join((digits, letters, punctuation, " "))
 _seperator = "   "
@@ -155,6 +165,7 @@ _encode_initiated = False
 _encode_mapping = {str:_encode_str,
                    unicode:_encode_unicode,
                    int:_encode_int,
+                   long:_encode_long,
                    float:_encode_float,
                    bool:_encode_boolean,
                    type(None):_encode_none,
