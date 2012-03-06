@@ -36,7 +36,6 @@ from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Tools.cmdlinedl import dscfg
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
