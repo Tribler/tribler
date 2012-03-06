@@ -58,7 +58,7 @@ def check_info(info):
         for i in xrange(len(files)):
             for j in xrange(i):
                 if files[i]['path'] == files[j]['path']:
-                    raise ValueError, 'bad metainfo - duplicate path'
+                    raise ValueError, 'bad metainfo - duplicate path %s'%files[j]['path']
 
 def check_message(message):
     if type(message) != DictType:
