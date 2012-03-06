@@ -321,9 +321,8 @@ class TorrentChecking(Thread):
             except:
                 print_exc()
                     
-            # schedule sleep time, only if a tracker was consulted and 
-            # we do not have any infohashes scheduled
-            if didTrackerCheck and len(self.queue) == 0:
+            # schedule sleep time, only if we do not have any infohashes scheduled
+            if len(self.queue) == 0:
                 diff = time() - start
                 remaining = int(self.interval - diff)
                 if remaining > 0:
