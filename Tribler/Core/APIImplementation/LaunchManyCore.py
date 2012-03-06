@@ -36,6 +36,7 @@ from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Tools.cmdlinedl import dscfg
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
@@ -732,7 +733,7 @@ class TriblerLaunchMany(Thread):
             if isinstance(dlconfig['saveas'], tuple):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
             dscfg = DownloadStartupConfig(dlconfig)
-            
+
         except:
             print_exc()
             # pstate is invalid or non-existing
@@ -783,7 +784,10 @@ class TriblerLaunchMany(Thread):
                 except Exception,e:
                     self.rawserver_nonfatalerrorfunc(e)
             else:
+                print >> sys.stderr, "tlm: removing checkpoint",filename,"destdir is",dscfg.get_dest_dir()
                 os.remove(filename)
+        else:
+            print >> sys.stderr, "tlm: could not resume checkpoint", filename, tdef, dscfg
 
     def checkpoint(self,stop=False,checkpoint=True,gracetime=2.0):
         """ Called by any thread, assume sesslock already held """
