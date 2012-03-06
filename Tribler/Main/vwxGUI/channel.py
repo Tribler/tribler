@@ -1420,7 +1420,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                     channel_state, iamModerator = delayedResult.get()
                     
                 except:
-                    startWorker(update_panel, db_call, delay=0.5, retryOnBusy=True)
+                    startWorker(update_panel, db_call, delay=1.0, retryOnBusy=True)
                     return
                 
                 if iamModerator:

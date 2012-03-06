@@ -523,6 +523,11 @@ class AbstractListBody():
             else:
                 b = b[1][self.sortcolumn] 
             
+            if isinstance(a, basestring):
+                a = a.lower()
+            if isinstance(b, basestring):
+                b = b.lower()
+            
             return cmp(a, b)
         
         if self.sortcolumn != None:
@@ -982,12 +987,7 @@ class AbstractListBody():
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
             if item == remove:
-                self.items.pop(key)
-                
-                self.vSizer.Detach(item)
-                item.Destroy()
-                
-                self.OnChange()
+                self.RemoveKey(key)
                 break
             
     @warnWxThread          
@@ -1000,6 +1000,11 @@ class AbstractListBody():
             item.Destroy()
                 
             self.OnChange()
+            
+            for i, curdata in enumerate(self.raw_data):
+                if curdata[0] == key:
+                    self.raw_data.pop(i)
+                    break
             
     def GetExpandedItem(self):
         return self.cur_expanded

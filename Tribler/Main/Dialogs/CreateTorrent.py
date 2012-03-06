@@ -168,13 +168,15 @@ class CreateTorrent(wx.Dialog):
             
     def OnCombine(self, event = None):
         combine = self.combineRadio.GetValue()
-        self.specifiedName.Enable(combine)
-        
+        self.specifiedName.Enable(False)
         if combine:
             path = ''
-            if len(self.selectedPaths) > 1:
+            
+            nrFiles = len([file for file in self.selectedPaths if os.path.isfile(file)])
+            if nrFiles > 1:
+                self.specifiedName.Enable(True)
                 path = os.path.abspath(os.path.commonprefix(self.selectedPaths))
-            elif len(self.selectedPaths) > 0:
+            elif nrFiles > 0:
                 path = self.selectedPaths[0]
             
             _, name = os.path.split(path)
@@ -281,8 +283,9 @@ class CreateTorrent(wx.Dialog):
                         params['name'] = self.specifiedName.GetValue()
                         make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
                     else:
-                        for i, path in enumerate(self.selectedPaths):
-                            make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                        for path in self.selectedPaths:
+                            if os.path.isfile(path):
+                                make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
                 except:
                     print_exc()
                         
@@ -357,11 +360,11 @@ class CreateTorrent(wx.Dialog):
             nrFiles = len([file for file in paths if os.path.isfile(file)])
             self.foundFilesText.SetLabel('Selected %d files'%nrFiles)
             
-            self.combineRadio.Enable(len(paths) > 0)
-            self.sepRadio.Enable(len(paths) > 1)
+            self.combineRadio.Enable(nrFiles > 0)
+            self.sepRadio.Enable(nrFiles > 1)
             
-            self.combineRadio.SetValue(len(paths) == 1)
-            self.sepRadio.SetValue(len(paths) > 1)
+            self.combineRadio.SetValue(nrFiles == 1)
+            self.sepRadio.SetValue(nrFiles > 1)
             
             self.OnCombine()
             
@@ -380,7 +383,9 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     tdef = TorrentDef()
     
     basedir = None
-    if len(srcpaths) > 1:
+    
+    nrFiles = len([file for file in srcpaths if os.path.isfile(file)])
+    if len(srcpaths) > 1 and nrFiles > 1:
         #outpaths should start with a common prefix, this prefix is the swarmname of the torrent
         #if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
         #if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
@@ -396,6 +401,8 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
                 else:
                     tdef.add_content(srcpath, outpath)
     else:
+        srcpaths = [file for file in srcpaths if os.path.isfile(file)]
+        
         srcpath = srcpaths[0]
         basepath, _ = os.path.split(srcpath)
         if 'playtime' in params:
