@@ -1416,7 +1416,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 return channel_state, iamModerator
             
             def update_panel(delayedResult):
-                channel_state, iamModerator = delayedResult.get() 
+                try:
+                    channel_state, iamModerator = delayedResult.get()
+                    
+                except:
+                    startWorker(update_panel, db_call, delay=0.5, retryOnBusy=True)
+                    return
                 
                 if iamModerator:
                     if iamModerator and not channel.isMyChannel():

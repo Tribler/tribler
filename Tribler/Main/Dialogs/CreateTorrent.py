@@ -173,9 +173,7 @@ class CreateTorrent(wx.Dialog):
         if combine:
             path = ''
             if len(self.selectedPaths) > 1:
-                path = os.path.commonprefix(self.selectedPaths)
-                if path:
-                    path = path[:-1]
+                path = os.path.abspath(os.path.commonprefix(self.selectedPaths))
             elif len(self.selectedPaths) > 0:
                 path = self.selectedPaths[0]
             
@@ -339,7 +337,7 @@ class CreateTorrent(wx.Dialog):
             
             if os.path.isdir(paths[0]):
                 def addDir(path, recursive = False):
-                    paths = []
+                    paths = [path]
                     
                     for file in os.listdir(path):
                         absfile = os.path.join(path, file)
@@ -356,7 +354,8 @@ class CreateTorrent(wx.Dialog):
                 paths = addDir(paths[0], self.recursive.GetValue())
             
             self.selectedPaths = paths
-            self.foundFilesText.SetLabel('Selected %d files'%len(paths))
+            nrFiles = len([file for file in paths if os.path.isfile(file)])
+            self.foundFilesText.SetLabel('Selected %d files'%nrFiles)
             
             self.combineRadio.Enable(len(paths) > 0)
             self.sepRadio.Enable(len(paths) > 1)
@@ -388,13 +387,14 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         basepath = os.path.abspath(os.path.commonprefix(srcpaths))
         basepath, basedir = os.path.split(basepath)
         for srcpath in srcpaths:
-            outpath = os.path.relpath(srcpath, basepath)
-            
-            # h4x0r playtime
-            if 'playtime' in params:
-                tdef.add_content(srcpath, outpath, playtime=params['playtime'])
-            else:
-                tdef.add_content(srcpath, outpath)
+            if os.path.isfile(srcpath):
+                outpath = os.path.relpath(srcpath, basepath)
+                
+                # h4x0r playtime
+                if 'playtime' in params:
+                    tdef.add_content(srcpath, outpath, playtime=params['playtime'])
+                else:
+                    tdef.add_content(srcpath, outpath)
     else:
         srcpath = srcpaths[0]
         basepath, _ = os.path.split(srcpath)
