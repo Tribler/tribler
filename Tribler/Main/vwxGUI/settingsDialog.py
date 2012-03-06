@@ -377,10 +377,15 @@ class SettingsDialog(wx.Dialog):
                 self.utility.config.Write('popup_player', selectedPopup, "boolean")
                 restart = True
             
-            # tit-4-tat 
+            # tit-4-tat
+            t4t_option = self.utility.config.Read('t4t_option', 'int')
             for i in range (4):
                 if self.elements['t4t%d'%i].GetValue():
                     self.utility.config.Write('t4t_option', i)
+                    
+                    if i != t4t_option:
+                        restart = True
+                    
                     break
             t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection())*100)
             self.utility.config.Write("t4t_ratio", t4t_ratio)
@@ -396,9 +401,13 @@ class SettingsDialog(wx.Dialog):
                     self.utility.config.Write("t4t_mins", 0)
             
             # give-2-get
+            g2g_option = self.utility.config.Read('g2g_option', 'int')
             for i in range (4):
                 if self.elements['g2g%d'%i].GetValue():
                     self.utility.config.Write("g2g_option", i)
+                    
+                    if i != g2g_option:
+                        restart = True
                     break
             g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection())*100)
             self.utility.config.Write("g2g_ratio", g2g_ratio)
