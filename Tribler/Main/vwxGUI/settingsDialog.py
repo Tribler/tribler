@@ -1,5 +1,4 @@
-# Written by Richard Gwin
-# Modified by Niels Zeilemaker
+# Written by Niels Zeilemaker
 
 # see LICENSE.txt for license information
 import wx
@@ -60,10 +59,17 @@ class SettingsDialog(wx.Dialog):
         
         pre = wx.PreDialog() 
         self.PostCreate(pre) 
-        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
+        if sys.platform == 'linux2': 
+            self.Bind(wx.EVT_SIZE, self.OnCreate)
+        else:
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         
     def OnCreate(self, event):
-        self.Unbind(wx.EVT_WINDOW_CREATE)
+        if sys.platform == 'linux2': 
+            self.Unbind(wx.EVT_SIZE)
+        else:
+            self.Unbind(wx.EVT_WINDOW_CREATE)
+        
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True
