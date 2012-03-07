@@ -1107,4 +1107,4 @@ class MainFrame(wx.Frame):
         if app:
             wx.CallLater(1000, app.ExitMainLoop)
             if force:
-                wx.CallLater(1000, app.Exit)
+                wx.CallLater(2500, app.Exit)
