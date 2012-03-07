@@ -377,7 +377,7 @@ class Dispersy(Singleton):
         for counter in count(1):
             yield 1.0 if counter < 30 else 30.0
             if __debug__: dprint("attempt #", counter, level="warning")
-            addresses = get_bootstrap_addresses()
+            addresses = get_bootstrap_addresses(self._working_directory)
             for address in addresses:
                 if address is None:
                     break
