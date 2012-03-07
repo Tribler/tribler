@@ -206,7 +206,11 @@ class TriblerLaunchMany(Thread):
         config = self.session.sessconfig # Should be safe at startup
 
         if config['megacache'] and self.superpeer_db:
-            self.superpeer_db.loadSuperPeers(config)
+            try:
+                self.superpeer_db.loadSuperPeers(config)
+            except:
+                #Niels: if seen busylock error causing LMC to fail loading Tribler.
+                print_exc()
 
         if config['overlay']:
             from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
