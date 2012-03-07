@@ -552,8 +552,9 @@ class MainFrame(wx.Frame):
                 f.write(bdata)
                 f.close()
             except:
-                pass
-
+                return False
+        
+        return True
 
     @forceWxThread
     def show_saved(self):

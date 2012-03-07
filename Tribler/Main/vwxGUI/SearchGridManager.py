@@ -274,7 +274,17 @@ class TorrentManager:
                     if torrent_filename[0]:
                         return torrent_filename[1]
             else:
-                tdef = TorrentDef.load(torrent_filename)
+                try:
+                    tdef = TorrentDef.load(torrent_filename)
+                except ValueError:
+                    #we should move fixTorrent to this object
+                    if self.guiUtility.frame.fixTorrent(torrent_filename):
+                        tdef = TorrentDef.load(torrent_filename)
+                    else:
+                        #cannot repair torrent, removing
+                        os.remove(torrent_filename)
+                        self.loadTorrent(torrent, callback)
+                        
                 torrent = CollectedTorrent(torrent, tdef)
             
         if not callback is None:
