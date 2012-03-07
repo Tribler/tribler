@@ -418,6 +418,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                         for child in func():
                             bindEvents(child)
                 bindEvents(self.parent)
+                self.parent.SetFocus()
                 self.Layout()
             else:
                 self.parent.ShowFullScreen(False)
@@ -448,8 +449,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 eventPanel.SetBackgroundColour(wx.BLACK)
                 eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
                 self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
-                
                 self.fullscreenwindow.ShowFullScreen(True)
+                self.fullscreenwindow.SetFocus()
                 self.vlcwrap.set_window(self.fullscreenwindow)
             else:
                 self.TellLVCWrapWindow4Playback()

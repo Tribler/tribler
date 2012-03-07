@@ -358,6 +358,7 @@ class AllChannelCommunity(Community):
                 
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
+            votelist = []
             for message in messages:
                 if __debug__: dprint(message)
                 dispersy_id = message.packet_id
@@ -375,11 +376,13 @@ class AllChannelCommunity(Community):
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
                     channel_id = self._get_channel_id(message.payload.cid)
-                    
-                self._votecast_db.on_vote_from_dispersy(channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
+                
+                votelist.append((channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp))
                 
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
+                    
+            self._votecast_db.on_votes_from_dispersy(votelist)
     
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:

@@ -3114,6 +3114,21 @@ class VoteCastDBHandler(BasicDBHandler):
         
         self._updateVotes(channel_id)
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+    
+    def on_votes_from_dispersy(self, votes):
+        removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
+        self.removeVotes(removeVotes, updateVotes = False)
+
+        insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+        self._db.executemany(insert_vote, votes)
+        
+        channel_ids = set(channel_id for channel_id, voter_id, _, _, _ in votes)
+        for channel_id in channel_ids:
+            self._updateVotes(channel_id, commit = False)
+        self._db.commit()
+        
+        for channel_id in channel_ids:  
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
         
     def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
@@ -3173,21 +3188,33 @@ class VoteCastDBHandler(BasicDBHandler):
         for channel in channels:
             self._updateVotes(channel)
         
-    def removeVote(self, channel_id, voter_id):
+    def removeVote(self, channel_id, voter_id, commit = True):
         if voter_id:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
-            self._db.execute_write(sql, (long(time()), channel_id, voter_id))
+            self._db.execute_write(sql, (long(time()), channel_id, voter_id), commit=commit)
         else:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id ISNULL"
-            self._db.execute_write(sql, (long(time()), channel_id))
+            self._db.execute_write(sql, (long(time()), channel_id), commit=commit)
             self.my_votes = None
         
-        self._updateVotes(channel_id)
+        if commit:
+            self._updateVotes(channel_id)
+        
+    def removeVotes(self, votes, updateVotes = True):
+        for channel_id, voter_id in votes:
+            self.removeVote(channel_id, voter_id, commit=False)
+        self._db.commit()
+        
+        if updateVotes:
+            channel_ids = set([channel_id for channel_id, _ in votes])        
+            for channel_id in channel_ids:
+                self._updateVotes(channel_id)
+            self._db.commit()
             
-    def _updateVotes(self, channel_id):
+    def _updateVotes(self, channel_id, commit = True):
         nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id, ))
         nr_spam = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == -1 AND channel_id = ?", (channel_id, ))
-        self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id))
+        self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id), commit=commit)
 
     #ONLY CALLED FOR NON-DISPERSY CHANNELS
     def subscribe(self, channel_id):
