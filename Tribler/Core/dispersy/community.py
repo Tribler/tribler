@@ -160,17 +160,28 @@ class Community(object):
         assert my_member.private_key, my_member.database_id
         if __debug__: dprint("joining ", cls.get_classification(), " ", master.mid.encode("HEX"))
 
-        execute = DispersyDatabase.get_instance().execute
-        execute(u"INSERT INTO community(master, member, classification) VALUES(?, ?, ?)",
-                (master.database_id, my_member.database_id, cls.get_classification()))
+        database = DispersyDatabase.get_instance()
+        database.execute(u"INSERT INTO community(master, member, classification) VALUES(?, ?, ?)",
+                         (master.database_id, my_member.database_id, cls.get_classification()))
+        community_database_id = database.last_insert_rowid
 
-        # new community instance
-        community = cls.load_community(master, *args, **kargs)
+        try:
+            # new community instance
+            community = cls.load_community(master, *args, **kargs)
 
-        # create my dispersy-identity
-        community.create_dispersy_identity()
+            # create my dispersy-identity
+            community.create_dispersy_identity()
 
-        return community
+        except:
+            # undo the insert info the database
+            # TODO it might still leave unused database entries referring to the community id
+            database.execute(u"DELETE FROM community WHERE id = ?", (community_database_id,))
+
+            # raise the exception because this shouldn't happen
+            raise
+
+        else:
+            return community
 
     @classmethod
     def get_master_members(cls):
