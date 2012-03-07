@@ -877,7 +877,16 @@ class Dispersy(Singleton):
         except StopIteration:
             return None
         else:
-            return community.get_conversion(packet[:22]).decode_message(LoopbackCandidate(), packet)
+            return self.convert_packet_to_message(str(packet), community)
+
+    def get_last_message(self, community, member, meta):
+        try:
+            packet, = self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? ORDER BY global_time DESC LIMIT 1",
+                                             (member.database_id, meta.database_id)).next()
+        except StopIteration:
+            return None
+        else:
+            return self.convert_packet_to_message(str(packet), community)
 
     def wan_address_vote(self, address, voter):
         """
@@ -2870,14 +2879,14 @@ class Dispersy(Singleton):
             assert isinstance(candidate, Candidate)
             assert isinstance(member, Member)
             assert isinstance(global_time, (int, long))
-            assert callable(response_func)
+            assert response_func is None or callable(response_func)
             assert isinstance(response_args, tuple)
             assert isinstance(timeout, float)
             assert timeout > 0.0
             assert isinstance(forward, bool)
 
         meta = community.get_meta_message(u"dispersy-missing-message")
-        request = meta.impl(distribution=(meta.community.global_time,), destination=(candidate,), payload=(member, global_time))
+        request = meta.impl(distribution=(meta.community.global_time,), destination=(candidate,), payload=(member, [global_time]))
 
         if response_func:
             # generate footprint
@@ -3108,7 +3117,7 @@ class Dispersy(Singleton):
             assert isinstance(candidate, Candidate)
             assert isinstance(dummy_member, DummyMember)
             assert not dummy_member.public_key
-            assert callable(response_func)
+            assert response_func is None or callable(response_func)
             assert isinstance(response_args, tuple)
             assert isinstance(timeout, float)
             assert timeout > 0.0
