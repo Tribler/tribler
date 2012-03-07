@@ -79,52 +79,64 @@ class Community(object):
 
         database = DispersyDatabase.get_instance()
         database.execute(u"INSERT INTO community (master, member, classification) VALUES(?, ?, ?)", (master.database_id, my_member.database_id, cls.get_classification()))
+        community_database_id = database.last_insert_rowid
 
-        # new community instance
-        community = cls.load_community(master, *args, **kargs)
+        try:
+            # new community instance
+            community = cls.load_community(master, *args, **kargs)
+            assert community.database_id == community_database_id
 
-        # create the dispersy-identity for the master member
-        meta = community.get_meta_message(u"dispersy-identity")
-        message = meta.impl(authentication=(master,), distribution=(community.claim_global_time(),))
-        community.dispersy.store_update_forward([message], True, True, False)
+            # create the dispersy-identity for the master member
+            meta = community.get_meta_message(u"dispersy-identity")
+            message = meta.impl(authentication=(master,), distribution=(community.claim_global_time(),))
+            community.dispersy.store_update_forward([message], True, True, False)
 
-        # create my dispersy-identity
-        community.create_dispersy_identity()
+            # create my dispersy-identity
+            community.create_dispersy_identity()
 
-        # authorize MY_MEMBER
-        permission_triplets = []
-        for message in community.get_meta_messages():
-            # grant all permissions for messages that use LinearResolution or DynamicResolution
-            if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
-                for allowed in (u"authorize", u"revoke", u"permit"):
-                    permission_triplets.append((my_member, message, allowed))
+            # authorize MY_MEMBER
+            permission_triplets = []
+            for message in community.get_meta_messages():
+                # grant all permissions for messages that use LinearResolution or DynamicResolution
+                if isinstance(message.resolution, (LinearResolution, DynamicResolution)):
+                    for allowed in (u"authorize", u"revoke", u"permit"):
+                        permission_triplets.append((my_member, message, allowed))
 
-                # ensure that undo_callback is available
-                if message.undo_callback:
-                    # we do not support undo permissions for authorize, revoke, undo-own, and
-                    # undo-other (yet)
-                    if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
-                        permission_triplets.append((my_member, message, u"undo"))
+                    # ensure that undo_callback is available
+                    if message.undo_callback:
+                        # we do not support undo permissions for authorize, revoke, undo-own, and
+                        # undo-other (yet)
+                        if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
+                            permission_triplets.append((my_member, message, u"undo"))
 
-            # grant authorize, revoke, and undo permission for messages that use PublicResolution
-            # and SyncDistribution.  Why?  The undo permission allows nodes to revoke a specific
-            # message that was gossiped around.  The authorize permission is required to grant other
-            # nodes the undo permission.  The revoke permission is required to remove the undo
-            # permission.  The permit permission is not required as the message uses
-            # PublicResolution and is hence permitted regardless.
-            elif isinstance(message.distribution, SyncDistribution) and isinstance(message.resolution, PublicResolution):
-                # ensure that undo_callback is available
-                if message.undo_callback:
-                    # we do not support undo permissions for authorize, revoke, undo-own, and
-                    # undo-other (yet)
-                    if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
-                        for allowed in (u"authorize", u"revoke", u"undo"):
-                            permission_triplets.append((my_member, message, allowed))
+                # grant authorize, revoke, and undo permission for messages that use PublicResolution
+                # and SyncDistribution.  Why?  The undo permission allows nodes to revoke a specific
+                # message that was gossiped around.  The authorize permission is required to grant other
+                # nodes the undo permission.  The revoke permission is required to remove the undo
+                # permission.  The permit permission is not required as the message uses
+                # PublicResolution and is hence permitted regardless.
+                elif isinstance(message.distribution, SyncDistribution) and isinstance(message.resolution, PublicResolution):
+                    # ensure that undo_callback is available
+                    if message.undo_callback:
+                        # we do not support undo permissions for authorize, revoke, undo-own, and
+                        # undo-other (yet)
+                        if not message.name in (u"dispersy-authorize", u"dispersy-revoke", u"dispersy-undo-own", u"dispersy-undo-other"):
+                            for allowed in (u"authorize", u"revoke", u"undo"):
+                                permission_triplets.append((my_member, message, allowed))
 
-        if permission_triplets:
-            community.create_dispersy_authorize(permission_triplets, sign_with_master=True, forward=False)
+            if permission_triplets:
+                community.create_dispersy_authorize(permission_triplets, sign_with_master=True, forward=False)
 
-        return community
+        except:
+            # undo the insert info the database
+            # TODO it might still leave unused database entries referring to the community id
+            database.execute(u"DELETE FROM community WHERE id = ?", (community_database_id,))
+
+            # raise the exception because this shouldn't happen
+            raise
+
+        else:
+            return community
 
     @classmethod
     def join_community(cls, master, my_member, *args, **kargs):
@@ -168,6 +180,7 @@ class Community(object):
         try:
             # new community instance
             community = cls.load_community(master, *args, **kargs)
+            assert community.database_id == community_database_id
 
             # create my dispersy-identity
             community.create_dispersy_identity()
