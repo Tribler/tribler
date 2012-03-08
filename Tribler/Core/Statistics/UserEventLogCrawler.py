@@ -12,7 +12,9 @@ from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_USEREVENTLOG_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from Tribler.Core.Statistics.Crawler import Crawler
-from Tribler.Core.dispersy.encoding import encode
+from Tribler.Core.dispersy.encoding import encode, decode
+import cPickle
+from traceback import print_exc
 
 DEBUG = False
 
@@ -102,13 +104,14 @@ class UserEventLogCrawler:
         else:
             if DEBUG:
                 print >> sys.stderr, "usereventlogcrawler: handle_crawler_reply", show_permid_short(permid), len(message), "bytes"
+            
+            try:
+                loaded_message = decode(message)
+            except:
+                print_exc()
+                loaded_message = cPickle.loads(message)
                 
-            # 24/06/11 boudewijn: we are storing the received message in HEX format.  unfortunately
-            # this will make it unreadable in the text file, however, it will protect against pickle
-            # security issues while still being compatible with both the secure (encode) and the
-            # unsecure (pickle) crawlers on the client side.  when parsing the logs care needs to be
-            # taken when parsing the pickled data!
-            msg = "; ".join(['REPLY', show_permid(permid), str(error), message.encode("HEX")])
+            msg = "; ".join(['REPLY', show_permid(permid), str(error), str(loaded_message)])
             self.__log(msg)
             
     def __log(self, message):
