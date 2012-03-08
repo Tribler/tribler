@@ -93,7 +93,13 @@ class CreateTorrent(wx.Dialog):
         
         vSizer.Add(StaticText(self, -1, 'Comment'))
         self.commentList = wx.TextCtrl(self, -1, '', style = wx.TE_MULTILINE)
-        vSizer.Add(self.commentList, 0, wx.EXPAND|wx.BOTTOM, 3)
+        vSizer.Add(self.commentList, 0, wx.EXPAND, 3)
+        
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 10)
+        
+        header = wx.StaticText(self, -1, 'Advanced options')
+        _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
         
         abbrev_mb = " " + self.guiutility.utility.lang.get('MB')
         abbrev_kb = " " + self.guiutility.utility.lang.get('KB')
@@ -111,7 +117,12 @@ class CreateTorrent(wx.Dialog):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, 'Piecesize'), 1)
         hSizer.Add(self.pieceChoice)
-        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
+        
+        vSizer.Add(StaticText(self, -1, 'Webseed'))
+        self.webSeed = wx.TextCtrl(self, -1, '')
+        self.webSeed.Enable(False)
+        vSizer.Add(self.webSeed, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
@@ -169,6 +180,7 @@ class CreateTorrent(wx.Dialog):
     def OnCombine(self, event = None):
         combine = self.combineRadio.GetValue()
         self.specifiedName.Enable(False)
+        self.webSeed.Enable(False)
         if combine:
             path = ''
             
@@ -176,8 +188,10 @@ class CreateTorrent(wx.Dialog):
             if nrFiles > 1:
                 self.specifiedName.Enable(True)
                 path = os.path.abspath(os.path.commonprefix(self.selectedPaths))
+                
             elif nrFiles > 0:
                 path = self.selectedPaths[0]
+                self.webSeed.Enable(True)
             
             _, name = os.path.split(path)
             self.specifiedName.SetValue(name)
@@ -251,9 +265,11 @@ class CreateTorrent(wx.Dialog):
             self.filehistory.Save(self.fileconfig)
             self.fileconfig.Flush() 
             
-            
             params['announce'] = trackers[0]
             params['announce-list'] = [trackers]
+            
+            if self.webSeed.GetValue():
+                params['urllist'] = [self.webSeed.GetValue()]
             
             params['nodes'] = False
             params['httpseeds'] = False
@@ -385,7 +401,7 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     basedir = None
     
     nrFiles = len([file for file in srcpaths if os.path.isfile(file)])
-    if len(srcpaths) > 1 and nrFiles > 1:
+    if nrFiles > 1:
         #outpaths should start with a common prefix, this prefix is the swarmname of the torrent
         #if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
         #if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
@@ -409,6 +425,9 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
             tdef.add_content(srcpath,playtime=params['playtime'])
         else:
             tdef.add_content(srcpath)
+        
+        if params['urllist']:
+            tdef.set_urllist(params['urllist'])
     
     if params['name']:
         tdef.set_name(params['name'])

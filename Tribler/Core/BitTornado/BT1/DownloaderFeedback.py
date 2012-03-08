@@ -102,12 +102,17 @@ class DownloaderFeedback:
             if dl.goodseed:
                 a = {}
                 a['id'] = 'url list'
+                a['extended_version'] = 'url list'
                 a['ip'] = dl.baseurl
+                a['port'] = 80
                 a['optimistic'] = False
                 a['direction'] = 'L'
+                a['uflushed'] = True
+                a['ueligable'] = False
                 a['uprate'] = 0
                 a['uinterested'] = False
                 a['uchoked'] = False
+                a['uhasqueries'] = False
                 a['downrate'] = int(dl.measure.get_rate())
                 a['dinterested'] = True
                 a['dchoked'] = not dl.active
@@ -122,12 +127,17 @@ class DownloaderFeedback:
             if dl.goodseed:
                 a = {}
                 a['id'] = 'http seed'
+                a['extended_version'] = 'http seed'
                 a['ip'] = dl.baseurl
+                a['port'] = 80
                 a['optimistic'] = False
                 a['direction'] = 'L'
+                a['uflushed'] = True
+                a['ueligable'] = False
                 a['uprate'] = 0
                 a['uinterested'] = False
                 a['uchoked'] = False
+                a['uhasqueries'] = False
                 a['downrate'] = int(dl.measure.get_rate())
                 a['dinterested'] = True
                 a['dchoked'] = not dl.active
