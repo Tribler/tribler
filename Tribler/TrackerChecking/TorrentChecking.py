@@ -41,7 +41,6 @@ from traceback import print_exc
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Core.CacheDB.Notifier import Notifier
 from bisect import insort
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 
 QUEUE_SIZE_LIMIT = 250
 DEBUG = False
@@ -194,8 +193,9 @@ class TorrentChecking(Thread):
                    'status':'good',
                    'last_check':0}
         
-            if isinstance(torrent, CollectedTorrent):
+            if 'last_check' in torrent:
                 res['last_check'] = torrent.last_check
+            if 'trackers' in torrent:
                 res['trackers'] = torrent.trackers
         
             self.queueLock.acquire()
