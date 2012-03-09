@@ -855,7 +855,7 @@ class ChannelCommunity(Community):
 
                         # get the first existing dispersy-dynamic-settings.  this most likely
                         # contains useful permission information
-                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (dynamic_settings_meta.database,)).next()
+                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (dynamic_settings_meta.database_id,)).next()
                         packets.append(str(packet))
 
                     except StopIteration:
