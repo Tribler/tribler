@@ -3636,12 +3636,14 @@ class DispersyBootstrapServers(ScriptBase):
 
                 self._request = {}
                 self._summary = {}
+                self._hostname = {}
                 self._candidates = self._dispersy._bootstrap_candidates.values()
                 # self._candidates = [BootstrapCandidate(("130.161.211.198", 6431))]
 
                 for candidate in self._candidates:
                     self._request[candidate.sock_addr] = {}
                     self._summary[candidate.sock_addr] = []
+                    self._hostname[candidate.sock_addr] = socket.getfqdn(candidate.sock_addr[0])
 
             def _initialize_meta_messages(self):
                 super(PingCommunity, self)._initialize_meta_messages()
@@ -3682,9 +3684,9 @@ class DispersyBootstrapServers(ScriptBase):
             def summary(self):
                 for sock_addr, rtts in sorted(self._summary.iteritems()):
                     if rtts:
-                        dprint(len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts), "] from ", sock_addr[0], ":", sock_addr[1])
+                        dprint(len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts), "] from ", sock_addr[0], ":", sock_addr[1], " aka ", self._hostname[sock_addr], force=True)
                     else:
-                        dprint(sock_addr[0], ":", sock_addr[1], "  missing")
+                        dprint(sock_addr[0], ":", sock_addr[1], "  missing", force=True)
 
         community = PingCommunity.create_community(self._my_member)
 

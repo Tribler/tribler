@@ -211,6 +211,7 @@ class Member(DummyMember):
             self._ec = ec_from_private_bin(private_key) if private_key else ec_from_public_bin(public_key)
             self._signature_length = ec_signature_length(self._ec)
             self._tags = [tag for tag in tags.split(",") if tag]
+            self._has_identity = set()
 
             if __debug__:
                 assert len(set(self._tags)) == len(self._tags), ("there are duplicate tags", self._tags)
@@ -254,12 +255,19 @@ class Member(DummyMember):
         if __debug__:
             from community import Community
             assert isinstance(community, Community)
-        try:
-            self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?",
-                                   (self._database_id, community.get_meta_message(u"dispersy-identity").database_id)).next()
-        except StopIteration:
-            return False
-        return True
+
+        if community.cid in self._has_identity:
+            return True
+
+        else:
+            try:
+                self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?",
+                                       (self._database_id, community.get_meta_message(u"dispersy-identity").database_id)).next()
+            except StopIteration:
+                return False
+            else:
+                self._has_identity.add(community.cid)
+                return True
 
     def _set_tag(self, tag, value):
         assert isinstance(tag, unicode)
