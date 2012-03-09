@@ -120,7 +120,7 @@ class CreateTorrent(wx.Dialog):
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         vSizer.Add(StaticText(self, -1, 'Webseed'))
-        self.webSeed = wx.TextCtrl(self, -1, '')
+        self.webSeed = wx.TextCtrl(self, -1, 'Please select a file or files first')
         self.webSeed.Enable(False)
         vSizer.Add(self.webSeed, 0, wx.EXPAND|wx.BOTTOM, 3)
         
@@ -180,7 +180,6 @@ class CreateTorrent(wx.Dialog):
     def OnCombine(self, event = None):
         combine = self.combineRadio.GetValue()
         self.specifiedName.Enable(False)
-        self.webSeed.Enable(False)
         if combine:
             path = ''
             
@@ -191,8 +190,7 @@ class CreateTorrent(wx.Dialog):
                 
             elif nrFiles > 0:
                 path = self.selectedPaths[0]
-                self.webSeed.Enable(True)
-            
+                
             _, name = os.path.split(path)
             self.specifiedName.SetValue(name)
             
@@ -375,6 +373,13 @@ class CreateTorrent(wx.Dialog):
             self.selectedPaths = paths
             nrFiles = len([file for file in paths if os.path.isfile(file)])
             self.foundFilesText.SetLabel('Selected %d files'%nrFiles)
+            
+            if nrFiles == 1:
+                self.webSeed.SetLabel('')
+                self.webSeed.Enable(True)
+            else:
+                self.webSeed.SetLabel('Webseed will only work for a single file.')
+                self.webSeed.Enable(False)
             
             self.combineRadio.Enable(nrFiles > 0)
             self.sepRadio.Enable(nrFiles > 1)
