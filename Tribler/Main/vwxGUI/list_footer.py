@@ -460,3 +460,9 @@ class CommentFooter(ListFooter, AbstractDetails):
         else:
             self.addnew.SetLabel('Post')
         self.Layout()
+
+    def EnableCommeting(self, enable):
+        self.commentbox.Enable(enable)
+        self.addnew.Enable(enable)
+        if self.quickAdd:
+            self.quickAdd.Enable(enable)

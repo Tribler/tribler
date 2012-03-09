@@ -14,6 +14,3 @@ class PreviewChannelCommunity(ChannelCommunity):
     @property
     def dispersy_enable_candidate_walker(self):
         return False
-
-    def get_channel_mode(self):
-        return ChannelCommunity.CHANNEL_CLOSED, False

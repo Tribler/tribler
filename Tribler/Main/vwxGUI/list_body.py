@@ -679,13 +679,14 @@ class AbstractListBody():
         
         if self.messageText.altControl:
             self.messageText.sizer.Detach(self.messageText.altControl)
-            self.messageText.altControl.ShowItems(False)
-            self.messageText.altControl.Clear(True)
+            if getattr(self.messageText.altControl, 'ShowItems', False):
+                self.messageText.altControl.ShowItems(False)
+                self.messageText.altControl.Clear(True)
             self.messageText.altControl = None
 
         if altControl:
             self.messageText.altControl = altControl
-            self.messageText.sizer.Insert(2, altControl)
+            self.messageText.sizer.Insert(2, altControl, 0, wx.EXPAND)
             
         self.loadNext.Hide()
         self.vSizer.ShowItems(False)

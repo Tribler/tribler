@@ -635,6 +635,10 @@ class List(wx.BoxSizer):
         if self.isReady:
             self.list.ShowLoading()
             
+    def ShowMessage(self, message, header = None, altControl = None):
+        if self.isReady:
+            self.list.ShowMessage(message, header, altControl)
+            
     def OnLoadAll(self):
         if self.isReady:
             self.list.OnLoadAll()
