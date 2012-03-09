@@ -4433,9 +4433,9 @@ class Dispersy(Singleton):
             assert community.dispersy_enable_candidate_walker_responses
             community.dispersy_take_step()
 
-            # delay will never be less than 0.05, hence we can accommodate 100 communities
-            # before the interval between each step becomes larger than 5.0 seconds
-            delay = max(0.05, 5.0 / len(walker_communities))
+            # delay will never be less than 0.1, hence we can accommodate 50 communities before the
+            # interval between each step becomes larger than 5.0 seconds
+            delay = max(0.1, 5.0 / len(walker_communities))
             if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
             desync = (yield delay)
