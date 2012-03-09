@@ -197,7 +197,7 @@ class ChannelConversion(BinaryConversion):
                 packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
                 playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
             except DropPacket:
-                members = self._community.get_members_from_id(playlist_mid)
+                members = self._community.dispersy.get_members_from_id(playlist_mid)
                 if not members:
                     raise DelayPacketByMissingMember(self._community, playlist_mid)
 
@@ -257,7 +257,7 @@ class ChannelConversion(BinaryConversion):
             cause_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
             
         except DropPacket:
-            members = self._community.get_members_from_id(cause_mid)
+            members = self._community.dispersy.get_members_from_id(cause_mid)
             if not members:
                 raise DelayPacketByMissingMember(self._community, cause_mid)
 
@@ -355,7 +355,7 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(modification_on_global_time, modification_on_mid)
             modification_on = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         except DropPacket:
-            members = self._community.get_members_from_id(modification_on_mid)
+            members = self._community.dispersy.get_members_from_id(modification_on_mid)
             if not members:
                 raise DelayPacketByMissingMember(self._community, modification_on_mid)
 
@@ -391,7 +391,7 @@ class ChannelConversion(BinaryConversion):
             packet_id, packet, message_name = self._get_message(playlist_global_time, playlist_mid)
             
         except DropPacket:
-            members = self._community.get_members_from_id(playlist_mid)
+            members = self._community.dispersy.get_members_from_id(playlist_mid)
             if not members:
                 raise DelayPacketByMissingMember(self._community, playlist_mid)
 

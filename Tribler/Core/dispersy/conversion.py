@@ -228,7 +228,7 @@ class BinaryConversion(Conversion):
 
         member_id = data[offset:offset+20]
         offset += 20
-        members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
+        members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
         if not members:
             raise DelayPacketByMissingMember(self._community, member_id)
         elif len(members) > 1:
@@ -280,7 +280,7 @@ class BinaryConversion(Conversion):
         key = data[offset:offset+key_length]
         if not ec_check_public_bin(key):
             raise DropPacket("Invalid cryptographic key (_decode_missing_message)")
-        member = self._community.get_member(key)
+        member = self._community.dispersy.get_member(key)
         if not member.has_identity(self._community):
             raise DelayPacketByMissingMember(self._community, member.mid)
         offset += key_length
@@ -422,7 +422,7 @@ class BinaryConversion(Conversion):
             key = data[offset:offset+key_length]
             if not ec_check_public_bin(key):
                 raise DropPacket("Invalid cryptographic key (_decode_authorize)")
-            member = self._community.get_member(key)
+            member = self._community.dispersy.get_member(key)
             if not member.has_identity(self._community):
                 raise DelayPacketByMissingMember(self._community, member.mid)
             offset += key_length
@@ -518,7 +518,7 @@ class BinaryConversion(Conversion):
             key = data[offset:offset+key_length]
             if not ec_check_public_bin(key):
                 raise DropPacket("Invalid cryptographic key (_decode_revoke)")
-            member = self._community.get_member(key)
+            member = self._community.dispersy.get_member(key)
             if not member.has_identity(self._community):
                 raise DelayPacketByMissingMember(self._community, member.mid)
             offset += key_length
@@ -604,7 +604,7 @@ class BinaryConversion(Conversion):
 
         members = []
         while len(data) >= offset + 20:
-            members.extend(member for member in self._community.get_members_from_id(data[offset:offset+20]) if member.has_identity(self._community))
+            members.extend(member for member in self._community.dispersy.get_members_from_id(data[offset:offset+20]) if member.has_identity(self._community))
             offset += 20
 
         if not members:
@@ -656,7 +656,7 @@ class BinaryConversion(Conversion):
         public_key = data[offset:offset+key_length]
         if not ec_check_public_bin(public_key):
             raise DropPacket("Invalid cryptographic key (_decode_revoke)")
-        member = self._community.get_member(public_key)
+        member = self._community.dispersy.get_member(public_key)
         if not member.has_identity(self._community):
             raise DelayPacketByMissingMember(self._community, member.mid)
         offset += key_length
@@ -694,7 +694,7 @@ class BinaryConversion(Conversion):
         key = data[offset:offset+key_length]
         if not ec_check_public_bin(key):
             raise DropPacket("Invalid cryptographic key (_decode_missing_proof)")
-        member = self._community.get_member(key)
+        member = self._community.dispersy.get_member(key)
         if not member.has_identity(self._community):
             raise DelayPacketByMissingMember(self._community, member.mid)
         offset += key_length
@@ -1110,7 +1110,7 @@ class BinaryConversion(Conversion):
 
                 if __debug__:
                     debug_begin = time()
-                members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
+                members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
                 if __debug__:
                     self.debug_stats["decode-authentication-get-member-from-id"] += time() - debug_begin
                 if not members:
@@ -1150,7 +1150,7 @@ class BinaryConversion(Conversion):
 
                 if __debug__:
                     debug_begin = time()
-                member = self._community.get_member(key)
+                member = self._community.dispersy.get_member(key)
                 if __debug__:
                     self.debug_stats["decode-authentication-get-member"] += time() - debug_begin
 
@@ -1192,7 +1192,7 @@ class BinaryConversion(Conversion):
             members_ids = []
             for _ in range(authentication.count):
                 member_id = data[offset:offset+20]
-                members = [member for member in self._community.get_members_from_id(member_id) if member.has_identity(self._community)]
+                members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
                 if not members:
                     raise DelayPacketByMissingMember(self._community, member_id)
                 offset += 20
