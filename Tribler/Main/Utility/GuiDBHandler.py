@@ -15,6 +15,7 @@ import sys
 from traceback import format_stack, extract_stack, format_exc, print_exc,\
     print_stack
 import os
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 
 DEBUG = False
@@ -31,6 +32,8 @@ class GUIDBProducer():
         #Lets get the reference to the shared database_thread
         from Tribler.Core.Session import Session
         self.database_thread = Session.get_instance().lm.database_thread
+        
+        self.guitaskqueue = GUITaskQueue.getInstance()
         
         #Lets get a reference to utility
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -50,7 +53,7 @@ class GUIDBProducer():
     def onSameThread(self):
         return get_ident() == self.database_thread._thread_ident
     
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False, workerType = "dbthread"):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread.
         """
@@ -132,7 +135,11 @@ class GUIDBProducer():
         wrapper.__name__ = name
         
         if not self.onSameThread() or delay:
-            self.database_thread.register(wrapper, delay=delay, id_=callbackId)
+            if workerType == "dbThread":
+                self.database_thread.register(wrapper, delay=delay, id_=callbackId)
+                
+            elif workerType == "guiTaskQueue":
+                self.guitaskqueue.add_task(wrapper, t = delay, )
         else:
             if __debug__:
                 print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately"%name
@@ -233,7 +240,7 @@ def startWorker(
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
-    uId=None, retryOnBusy=False):
+    uId=None, retryOnBusy=False, workerType="dbThread"):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -267,8 +274,8 @@ def startWorker(
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy)
-
+            name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, workerType=workerType)
+        
     return result
 
 def cancelWorker(uId):
