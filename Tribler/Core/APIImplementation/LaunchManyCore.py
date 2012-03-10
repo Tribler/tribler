@@ -394,19 +394,23 @@ class TriblerLaunchMany(Thread):
             schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
-                counter = -1
-                for counter, master in enumerate(cls.get_master_members()):
-                    if self.dispersy.has_community(master.mid):
-                        continue
-
-                    cls.load_community(master, *args, **kargs)
-
-                    desync = (yield 1.0)
-                    while desync > 0.1:
-                        if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [loading community]"
-                        desync = (yield desync)
-
-                if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
+                try:
+                    counter = -1
+                    for counter, master in enumerate(cls.get_master_members()):
+                        if self.dispersy.has_community(master.mid):
+                            continue
+    
+                        cls.load_community(master, *args, **kargs)
+    
+                        desync = (yield 1.0)
+                        while desync > 0.1:
+                            if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [loading community]"
+                            desync = (yield desync)
+    
+                    if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
+                except:
+                    #Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
+                    print_exc()
 
         # start dispersy
         config = self.session.sessconfig
@@ -441,7 +445,7 @@ class TriblerLaunchMany(Thread):
 
         self.initComplete = True
 
-    def add(self,tdef,dscfg,pstate=None,initialdlstatus=None,commit=True):
+    def add(self,tdef,dscfg,pstate=None,initialdlstatus=None,commit=True, setupDelay = 0):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -464,10 +468,9 @@ class TriblerLaunchMany(Thread):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback)
-
+            d.setup(dscfg,pstate,initialdlstatus,self.network_engine_wrapper_created_callback,self.network_vod_event_callback, wrapperDelay=setupDelay)
+            
             if self.torrent_db != None and self.mypref_db != None:
-                
                 try:
                     raw_filename = tdef.get_name_as_unicode()
                     save_name = get_readable_torrent_name(infohash, raw_filename)
@@ -503,6 +506,7 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.addMyPreference(infohash, data,commit=commit)
                 # BuddyCast is now notified of this new Download in our
                 # preferences via the Notifier mechanism. See BC.sesscb_ntfy_myprefs()
+            
             return d
         finally:
             self.sesslock.release()
@@ -688,30 +692,13 @@ class TriblerLaunchMany(Thread):
             filelist = os.listdir(dir)
             filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
             
-            batchsize = 2
-            batches = zip(*[filelist[i::batchsize] for i in range(batchsize)])
-            for i, batch in enumerate(batches):
-                shouldCommit = i+1 == len(batches)
+            for i, filename in enumerate(filelist):
+                shouldCommit = i+1 == len(filelist)
+                self.resume_download(filename,initialdlstatus,commit=shouldCommit,setupDelay=i*0.5)
                 
-                network_load_checkpoint_lambda = lambda batch=batch:self.network_load_checkpoint(batch, initialdlstatus, shouldCommit)
-                self.rawserver.add_task(network_load_checkpoint_lambda, i)
         finally:
             self.sesslock.release()
             
-    def network_load_checkpoint(self, filenames, initialdlstatus=None, commit=True):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            for i, filename in enumerate(filenames):
-                if commit:
-                    shouldCommit = i+1 == len(filenames)
-                else:
-                    shouldCommit = False
-                
-                self.resume_download(filename,initialdlstatus,commit=shouldCommit)
-        finally:
-            self.sesslock.release()
-
     def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
         try:
@@ -724,7 +711,7 @@ class TriblerLaunchMany(Thread):
             #self.rawserver_nonfatalerrorfunc(e)
             return None
 
-    def resume_download(self,filename,initialdlstatus=None,commit=True):
+    def resume_download(self,filename,initialdlstatus=None,commit=True,setupDelay=0):
         tdef = dscfg = pstate = None
         
         try:
@@ -783,7 +770,7 @@ class TriblerLaunchMany(Thread):
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '': #removed torrent ignoring
                 try:
-                    self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit)
+                    self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit,setupDelay=setupDelay)
                 except Exception,e:
                     self.rawserver_nonfatalerrorfunc(e)
             else:

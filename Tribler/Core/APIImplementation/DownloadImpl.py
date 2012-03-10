@@ -38,7 +38,7 @@ class DownloadImpl:
     #
     # Creating a Download
     #
-    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodeventcallback=None):
+    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodeventcallback=None,wrapperDelay=0):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case 
@@ -134,7 +134,11 @@ class DownloadImpl:
             if initialdlstatus != DLSTATUS_STOPPED:
                 if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
                     # Also restart on STOPPED_ON_ERROR, may have been transient
-                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus) # RePEX: propagate initialdlstatus
+                    if wrapperDelay:
+                        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus)
+                        self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,wrapperDelay) 
+                    else:
+                        self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus) # RePEX: propagate initialdlstatus
                 
             self.pstate_for_restart = pstate
                 
