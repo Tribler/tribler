@@ -2424,7 +2424,7 @@ class CommentList(List):
             altControl.Add(button, 0, wx.TOP, 3)
             altControl.AddStretchSpacer()
             
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start receiving comments.','No comments collected yet', altControl)
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start receiving comments.','No comments received yet', altControl)
         
     def EnableCommeting(self, enable = True):
         self.footer.EnableCommeting(enable)
@@ -2578,7 +2578,7 @@ class ActivityList(List):
             altControl.Add(button, 0, wx.TOP, 3)
             altControl.AddStretchSpacer()
             
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing activity.','No activity collected yet', altControl)
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing activity.','No activity received yet', altControl)
             
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)
@@ -2655,7 +2655,7 @@ class ModificationList(List):
         
     @forceWxThread   
     def ShowPreview(self):
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing modifications.','No modifications collected yet')
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing modifications.','No modifications received yet')
         
     def OnRevertModification(self, modification):
         dlg = wx.Dialog(None, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
@@ -2801,7 +2801,7 @@ class ModerationList(List):
             altControl.Add(button, 0, wx.TOP, 3)
             altControl.AddStretchSpacer()
             
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing moderations.','No moderations collected yet', altControl)        
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing moderations.','No moderations received yet', altControl)        
         
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)
