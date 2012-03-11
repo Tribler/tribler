@@ -51,7 +51,9 @@ class SettingsDialog(wx.Dialog):
                              'use_bundle_magic',\
                              'minimize_to_tray',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
-                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3']
+                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',\
+                             'use_webui', \
+                             'webui_port']
 
         self.myname = None
         self.elements = {}
@@ -94,6 +96,7 @@ class SettingsDialog(wx.Dialog):
         self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
         self.tree.AppendItem(root,'Seeding',data=wx.TreeItemData(xrc.XRCCTRL(self,"seeding_panel")))
         self.tree.AppendItem(root,'Misc',data=wx.TreeItemData(xrc.XRCCTRL(self,"misc_panel")))
+        self.tree.AppendItem(root,'Experimental',data=wx.TreeItemData(xrc.XRCCTRL(self,"exp_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
         #Bind event listeners
@@ -207,6 +210,10 @@ class SettingsDialog(wx.Dialog):
         g2g_hours = self.utility.config.Read('g2g_hours', 'int') 
         g2g_mins = self.utility.config.Read('g2g_mins', 'int')
         self.elements['g2g2text'].SetLabel("%d:%d"%(g2g_hours, g2g_mins))
+        
+        self.elements['use_webui'].SetValue(self.utility.config.Read('use_webui', "boolean"))
+        self.elements['webui_port'].SetValue(str(self.utility.config.Read('webui_port', "int")))
+        
         wx.CallAfter(self.Refresh)
     
     def OnSelectionChanging(self, event):
@@ -304,6 +311,10 @@ class SettingsDialog(wx.Dialog):
                         errors['g2g2text'] = 'Needs to be hours:minutes'
                     else:
                         self.elements['g2g2text'].SetValue('')
+                        
+        valwebuiport = self.elements['webui_port'].GetValue().strip()
+        if not valwebuiport.isdigit():
+            errors['webui_port'] = 'Value must be a digit'
         
         if len(errors) == 0: #No errors found, continue saving
             restart = False
@@ -361,6 +372,15 @@ class SettingsDialog(wx.Dialog):
             useBundleMagic = self.elements['use_bundle_magic'].IsChecked()
             if useBundleMagic != self.utility.config.Read('use_bundle_magic', "boolean"):
                 self.utility.config.Write('use_bundle_magic', useBundleMagic, "boolean")
+                
+            useWebUI = self.elements['use_webui'].IsChecked() 
+            if useWebUI != self.utility.config.Read('use_webui', "boolean"):
+                self.utility.config.Write('use_webui', useWebUI, "boolean")
+                restart = True
+            
+            if valwebuiport != str(self.utility.config.Read('webui_port', "int")):
+                self.utility.config.Write('webui_port', valwebuiport, "int")
+                restart = True
                 
             curMintray =  self.utility.config.Read('mintray', "int")
             minimizeToTray = 1 if self.elements['minimize_to_tray'].IsChecked() else 0 

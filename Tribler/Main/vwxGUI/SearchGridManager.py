@@ -38,6 +38,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+from Tribler.Main.webUI.webUI import WebUI
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
 DEBUG = False
@@ -510,7 +511,11 @@ class TorrentManager:
         
         if len(self.searchkeywords) == 0 and len(self.fts3feaures) == 0:
             return False
+    
+        return self._doSearchLocalDatabase()
         
+    @forceAndReturnDBThread
+    def _doSearchLocalDatabase(self):
         results = self.torrent_db.searchNames(self.searchkeywords + self.fts3feaures)
 
         if len(results) > 0:
@@ -937,6 +942,18 @@ class LibraryManager:
         else:
             videoplayer.play(ds, selectedinfilename)
     
+    def startDownloadFromUrl(self, url, useDefault = False):
+        if useDefault:
+            dscfg = DefaultDownloadStartupConfig.getInstance()
+            destdir = dscfg.get_dest_dir()
+        else:
+            destdir = None
+        
+        if url.startswith("http"):
+            self.guiUtility.frame.startDownloadFromUrl(url, destdir)
+        elif url.startswith("magnet:"):
+            self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
+    
     def resumeTorrent(self, torrent):
         download = None
         if torrent.ds:
@@ -965,6 +982,24 @@ class LibraryManager:
             else:
                 callback = lambda infohash, metadata, filename: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
+        
+        self.user_download_choice.set_download_state(torrent.infohash, "restart")
+        
+    def stopTorrent(self, torrent):
+        download = None
+        if torrent.ds:
+            download = torrent.ds.get_download()
+        
+        if not download:
+            session = self.guiUtility.utility.session
+            for curdownload in session.get_downloads():
+                if curdownload.get_def().get_infohash() == torrent.infohash:
+                    download = curdownload
+                    break
+        
+        if download:
+            download.stop()
+        self.user_download_choice.set_download_state(torrent.infohash, "stop")
     
     def deleteTorrent(self, torrent, removecontent = False):
         self.deleteTorrentDS(torrent.ds, torrent.infohash, removecontent)
@@ -1043,6 +1078,7 @@ class LibraryManager:
             
             #touch channel to force load
             t.channel
+            self.addDownloadState(t)
             return t
     
     def exists(self, infohashes):
@@ -1822,7 +1858,10 @@ class ChannelManager:
      
         if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
             return False
+        return self._searchLocalDatabase()
 
+    @forceAndReturnDBThread
+    def _searchLocalDatabase(self):
         self.hits = {}
         hits = self.channelcast_db.searchChannels(self.searchkeywords)
         _,_,channels = self._createChannels(hits)

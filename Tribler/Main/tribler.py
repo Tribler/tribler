@@ -35,6 +35,7 @@ from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
+from Tribler.Main.webUI.webUI import WebUI
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -238,6 +239,12 @@ class ABCApp():
             self.frame.Show(True)
            
             self.torrentfeed = RssParser.getInstance()
+            
+            if self.utility.config.Read('use_webui', "boolean"):
+                self.webUI = WebUI.getInstance(self.guiUtility.library_manager,  self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
+                self.webUI.start()
+            else:
+                self.webUI = None
             
             wx.CallAfter(self.PostInit2)
             
@@ -885,6 +892,8 @@ class ABCApp():
         #friends.done(self.utility.session)
         
         self.torrentfeed.shutdown()
+        if self.webUI:
+            self.webUI.stop()
         
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()

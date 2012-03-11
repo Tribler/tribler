@@ -713,6 +713,71 @@
 	                    <flag>wxEXPAND</flag>
 	                    <option>1</option>
 					</object>
+					<object class="sizeritem">
+	                    <object class="wxPanel" name="exp_panel"> 
+	                        <hidden>1</hidden>
+	                        <object class="wxBoxSizer">
+	                            <orient>wxVERTICAL</orient>
+	                            <object class="sizeritem">
+	                                <object class="wxStaticText">
+	                                    <label>Experimental</label>
+	                                    <font>
+	                                        <weight>bold</weight>
+	                                        <size>11</size>
+	                                    </font>
+	                                </object>
+	                            </object>
+								<object class="sizeritem">
+	                                <object class="wxStaticLine">
+	                                    <size>-1, 1</size>
+	                                    <style>wxLI_HORIZONTAL</style>
+	                                </object>
+	                                <flag>wxEXPAND|wxBOTTOM</flag>
+	                                <border>7</border>
+	                            </object>
+	                            <object class="sizeritem">
+									<object class="wxFlexGridSizer">
+                                		<rows>2</rows>
+										<cols>2</cols>
+										<vgap>3</vgap>
+										<object class="sizeritem">
+	                                    	<object class="wxCheckBox" name="use_webui">
+												<label></label>
+												<checked>0</checked>
+											</object>
+										</object>
+										<object class="sizeritem">
+				                        	<object class="wxStaticText">
+	                                        	<label>Enable webUI</label>
+	                                    	</object>
+											<minsize>100,-1</minsize>
+										</object>
+										<object class="sizeritem">
+				                        	<object class="wxStaticText">
+	                                        	<label>Current port</label>
+	                                    	</object>
+											<minsize>100,-1</minsize>
+											<flag>wxALIGN_CENTER_VERTICAL</flag>
+										</object>
+										<object class="sizeritem">
+											<object class="wxTextCtrl" name="webui_port">
+	                                            <style>wxTE_PROCESS_ENTER</style>
+	                                        </object>
+										</object>
+									</object>
+								</object>
+								<object class="sizeritem">
+		                        	<object class="wxStaticText">
+                                    	<label>The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\nFurthermore, we additionally allow you to control Tribler using your Browser.\nGo to http://localhost:PORT/gui to open it.</label>
+                                	</object>
+									<flag>wxEXPAND|wxTOP</flag>
+									<border>7</border>
+								</object>
+	                        </object>
+	                    </object>
+	                    <flag>wxEXPAND</flag>
+	                    <option>1</option>
+					</object>
 				</object>
                 <flag>wxEXPAND|wxALL</flag>
                 <border>10</border>

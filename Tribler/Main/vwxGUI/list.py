@@ -77,7 +77,7 @@ class RemoteSearchManager:
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
         
-        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True)
+        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue")
 
     def _on_refresh(self, delayedResult):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
@@ -1330,15 +1330,10 @@ class LibraryList(SizeList):
     def OnResume(self, event):
         item = self.list.GetExpandedItem()
         self.library_manager.resumeTorrent(item.original_data)
-        self.user_download_choice.set_download_state(item.original_data.infohash, "restart")
     
     def OnStop(self, event):
         item = self.list.GetExpandedItem()
-        ds = item.original_data.ds
-        if ds:
-            ds.get_download().stop()
-            
-        self.user_download_choice.set_download_state(item.original_data.infohash, "stop")
+        self.library_manager.stopTorrent(item.original_data)
 
     @warnWxThread
     def OnDelete(self, event):
