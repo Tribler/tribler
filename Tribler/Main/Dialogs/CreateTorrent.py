@@ -431,7 +431,7 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         else:
             tdef.add_content(srcpath)
         
-        if params['urllist']:
+        if params.get('urllist', False):
             tdef.set_urllist(params['urllist'])
     
     if params['name']:
