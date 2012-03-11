@@ -12,7 +12,7 @@ from hashlib import sha1
 # from itertools import count
 # from math import sqrt
 # from random import gauss, choice
-from random import expovariate, random, Random
+from random import expovariate, random, Random, randint
 
 from bloomfilter import BloomFilter
 from cache import CacheDict
@@ -748,6 +748,39 @@ class Community(object):
         elif __debug__:
             dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
         return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+
+    #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
+    @runtime_duration_warning(0.1)
+    def dispersy_claim_sync_bloom_filter_modulo(self):
+        if __debug__:
+            t1 = time()
+        
+        syncable_messages = u", ".join(unicode(meta.database_id) for meta in self._meta_messages.itervalues() if isinstance(meta.distribution, SyncDistribution) and meta.distribution.priority > 32)
+        if syncable_messages:
+            if __debug__:
+                t2 = time()
+                    
+            bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+            capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+            
+            self._nrsyncpackets = list(self._dispersy_database.execute(u"SELECT count(*) FROM sync WHERE meta_message IN (%s) AND undone = 0 LIMIT 1" % (syncable_messages)))[0][0]
+            modulo = int(ceil(self._nrsyncpackets / float(capacity)))
+            offset = randint(0, modulo)
+            
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE meta_message IN (%s)"%syncable_messages+" AND sync.undone == 0 AND (sync.global_time + ?) % ? = 0",
+                                                  (offset, modulo)))
+            for _, packet in data:
+                bloom.add(str(packet))
+                
+            if __debug__:
+                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, totalnr = %d"%(modulo, offset, len(data), capacity, self._nrsyncpackets))
+            
+            return (1, self.acceptable_global_time, modulo, offset, bloom)
+            
+        elif __debug__:
+            dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
         assert isinstance(syncable_messages, unicode)

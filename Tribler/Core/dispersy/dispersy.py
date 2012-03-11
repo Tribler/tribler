@@ -2136,8 +2136,8 @@ class Dispersy(Singleton):
                     binary = bloom_filter.bytes
                     bloom_filter.clear()
                     counter = 0
-                    for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ?",
-                                                          (community.database_id, time_low, community.global_time if time_high == 0 else time_high)):
+                    for packet, in self._database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.undone == 0 AND global_time BETWEEN ? AND ? AND (sync.global_time + ?) % ? = 0",
+                                                          (community.database_id, time_low, community.global_time if time_high == 0 else time_high, offset, modulo)):
                         bloom_filter.add(str(packet))
                         counter += 1
                     assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
