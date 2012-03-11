@@ -27,10 +27,10 @@ from distribution import SyncDistribution
 from member import Member
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 from timeline import Timeline
+from math import ceil
 
 if __debug__:
     from dprint import dprint
-    from math import ceil
     from time import time
 
 class SubjectiveSetCache(object):
