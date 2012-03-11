@@ -765,7 +765,7 @@ class Community(object):
             
             self._nrsyncpackets = list(self._dispersy_database.execute(u"SELECT count(*) FROM sync WHERE meta_message IN (%s) AND undone = 0 LIMIT 1" % (syncable_messages)))[0][0]
             modulo = int(ceil(self._nrsyncpackets / float(capacity)))
-            offset = randint(0, modulo)
+            offset = randint(0, modulo-1)
             
             data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE meta_message IN (%s)"%syncable_messages+" AND sync.undone == 0 AND (sync.global_time + ?) % ? = 0",
                                                   (offset, modulo)))
