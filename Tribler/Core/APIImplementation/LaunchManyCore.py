@@ -292,7 +292,10 @@ class TriblerLaunchMany(Thread):
 
             # Start up KTH mainline DHT
             #TODO: Can I get the local IP number?
-            mainlineDHT.init(('127.0.0.1', self.listen_port), config['state_dir'])
+            try:
+                mainlineDHT.init(('127.0.0.1', self.listen_port), config['state_dir'])
+            except:
+                print_exc()
 
         # add task for tracker checking
         if config['torrent_checking']:
