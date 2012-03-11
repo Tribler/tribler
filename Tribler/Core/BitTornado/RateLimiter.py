@@ -95,7 +95,7 @@ class RateLimiter:
             #why not try to send this at once?
             #bytes = cur.send_partial(self.unitsize)
             
-            remaining_bytes = 1 - self.bytes_sent
+            remaining_bytes = max(self.unitsize, int(1 - self.bytes_sent))
             bytes = cur.send_partial(remaining_bytes)
             
             self.bytes_sent += bytes
