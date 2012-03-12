@@ -2714,29 +2714,33 @@ class Dispersy(Singleton):
         assert all(len(packet) > 0 for packet in packets)
         assert isinstance(key, unicode), type(key)
 
-        self._statistics.increment_total_up(sum(len(packet) for packet in packets) * len(candidates), len(packets) * len(candidates))
-
         if __debug__:
             if not packets:
                 # this is a programming bug.
                 dprint("no packets given (wanted to send to ", len(candidates), " addresses)", level="error", stack=True)
 
-        # send packets
-        for candidate in candidates:
-            assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
-            assert self.is_valid_remote_address(candidate.sock_addr), [candidate.sock_addr, self._lan_address, self._wan_address]
-            # if not self.is_valid_remote_address(candidate.sock_addr):
-            #     # this is a programming bug.  apparently an invalid address is being used
-            #     if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
-            #     return False
+        if candidates and packets:
+            self._statistics.increment_total_up(sum(len(packet) for packet in packets) * len(candidates), len(packets) * len(candidates))
 
-            for packet in packets:
-                self._socket.send(candidate.sock_addr, packet)
-            if __debug__:
-                dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
-                self._statistics.outgoing(candidate.sock_addr, key, sum(len(packet) for packet in packets), len(packets))
+            # send packets
+            for candidate in candidates:
+                assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
+                assert self.is_valid_remote_address(candidate.sock_addr), [candidate.sock_addr, self._lan_address, self._wan_address]
+                # if not self.is_valid_remote_address(candidate.sock_addr):
+                #     # this is a programming bug.  apparently an invalid address is being used
+                #     if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
+                #     return False
 
-        return True
+                for packet in packets:
+                    self._socket.send(candidate.sock_addr, packet)
+                if __debug__:
+                    dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
+                    self._statistics.outgoing(candidate.sock_addr, key, sum(len(packet) for packet in packets), len(packets))
+
+            return True
+
+        else:
+            return False
 
     def _check_triggers(self):
         assert self._untriggered_messages, "should not check if there are no messages"
