@@ -38,7 +38,6 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Main.webUI.webUI import WebUI
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
 DEBUG = False
