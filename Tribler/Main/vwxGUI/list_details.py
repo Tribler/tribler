@@ -151,9 +151,12 @@ class TorrentDetails(AbstractDetails):
         
         self.isEditable = {}
         
-        if DEBUG:
-            print >> sys.stderr, "TorrentDetails: loading", torrent['name']
+        self._doLoad()
 
+    def _doLoad(self):
+        if DEBUG:
+            print >> sys.stderr, "TorrentDetails: loading", self.torrent['name']
+            
         #is this torrent collected?
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
         if filename:
@@ -161,14 +164,17 @@ class TorrentDetails(AbstractDetails):
         else:
             requesttype = self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
             if requesttype:
-                self.showRequestType(requesttype)
+                self.showRequestType('The torrentfile is requested %s.'%requesttype)
             
             wx.CallLater(10000, self._timeout)
     
     @forceWxThread
     def showRequestType(self, requesttype):
         try:
-            self.messagePanel.SetLabel("Loading details, please wait.\nThe torrentfile is requested %s."%requesttype)
+            if requesttype:
+                self.messagePanel.SetLabel("Loading details, please wait.\n%s"%requesttype)
+            else:
+                self.messagePanel.SetLabel("Loading details, please wait.")
             
             self.Layout()
             self.parent.parent_list.OnChange()
@@ -1420,6 +1426,13 @@ class LibraryDetails(TorrentDetails):
         self.old_progress = -1
         self.startstop = None
         TorrentDetails.__init__(self, parent, torrent)
+        
+    def _doLoad(self):
+        if DEBUG:
+            print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']
+        
+        self.showRequestType('')
+        wx.CallAfter(self.guiutility.torrentsearch_manager.loadTorrent, self.torrent, callback = self.showTorrent)
         
     @forceWxThread
     def _timeout(self):
