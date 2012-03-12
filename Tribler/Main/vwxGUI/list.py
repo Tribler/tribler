@@ -34,7 +34,7 @@ from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 
-DEBUG = True
+DEBUG = False
 DEBUG_RELEVANCE = False
 
 class RemoteSearchManager:
