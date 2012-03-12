@@ -3,11 +3,26 @@ import random
 import sys
 import os
 from binascii import hexlify,unhexlify
-import atexit
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-from cherrypy import tools
+
+import json
+from functools import wraps
+from cherrypy import response, expose
+
 
 DEBUG = False
+
+
+def jsonify(func):
+    '''JSON decorator for CherryPy'''
+    @wraps(func)
+    def wrapper(*args, **kw):
+        value = func(*args, **kw)
+        response.headers["Content-Type"] = "application/json"
+        return json.dumps(value)
+
+    return wrapper
+
 
 class WebUI():
     __single = None
@@ -60,7 +75,7 @@ class WebUI():
         return mypass
     
     @cherrypy.expose
-    @cherrypy.tools.json_out()
+    @jsonify
     def index(self, **args):
         if DEBUG:
             for key, value in args.iteritems():
