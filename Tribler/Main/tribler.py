@@ -35,7 +35,6 @@ from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
-from Tribler.Main.webUI.webUI import WebUI
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -241,6 +240,7 @@ class ABCApp():
             self.torrentfeed = RssParser.getInstance()
             
             if self.utility.config.Read('use_webui', "boolean"):
+                from Tribler.Main.webUI.webUI import WebUI
                 self.webUI = WebUI.getInstance(self.guiUtility.library_manager,  self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
                 self.webUI.start()
             else:
