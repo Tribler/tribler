@@ -34,7 +34,7 @@ from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 
-DEBUG = False
+DEBUG = True
 DEBUG_RELEVANCE = False
 
 class RemoteSearchManager:
@@ -68,16 +68,21 @@ class RemoteSearchManager:
         self.refresh_partial(self.dirtyset)
         self.dirtyset.clear()   
    
-    @forceWxThread
-    def refresh(self):
+    def refresh(self,remote=False):
         def db_callback():
+            if DEBUG:
+                begintime = time()
+                
             keywords = self.oldkeywords
             
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
+            if DEBUG:
+                print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
+            
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
-        
-        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue")
+        delay = 0.5 if remote else 0.0
+        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue")
 
     def _on_refresh(self, delayedResult):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()

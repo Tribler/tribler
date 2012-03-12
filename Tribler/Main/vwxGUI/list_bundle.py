@@ -207,7 +207,7 @@ class BundlePanel(wx.BoxSizer):
         self.AddHeader()
         self.AddGrid()
         
-        self.SetHits(hits)
+        self.SetHits(hits, noChange = True)
         self.UpdateHeader(general_description, description)
         
         self.AddSpacer((self.indent, -1))
@@ -270,7 +270,7 @@ class BundlePanel(wx.BoxSizer):
             return True
         return False
     
-    def UpdateGrid(self, hits):
+    def UpdateGrid(self, hits, noChange=False):
         N = BUNDLE_NUM_ROWS * BUNDLE_NUM_COLS
         items_to_add = min(N, self.nrhits)
         if self.nrhits > N:
@@ -334,7 +334,7 @@ class BundlePanel(wx.BoxSizer):
             if self.state != self.COLLAPSED:
                 self.ShowGrid(False)
                 
-            if rowsChanged:
+            if rowsChanged and not noChange:
                 self.parent_listitem.OnChange()
                     
         self.parent.Thaw()
@@ -399,10 +399,10 @@ class BundlePanel(wx.BoxSizer):
             general_description = u'Similar'
         self.header.SetLabel(u'%s items (%s):' % (general_description, self.nrhits))
     
-    def SetHits(self, hits):
+    def SetHits(self, hits, noChange=False):
         self.nrhits = len(hits)
         
-        gridChanged = self.UpdateGrid(hits)
+        gridChanged = self.UpdateGrid(hits, noChange)
         self.UpdateList(hits)
         
         self.Layout()

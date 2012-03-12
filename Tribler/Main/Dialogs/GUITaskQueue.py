@@ -20,7 +20,7 @@ class GUITaskQueue(TimedTaskQueue):
             raise RuntimeError, "GUITaskQueue is singleton"
         GUITaskQueue.__single = self
 
-        TimedTaskQueue.__init__(self)
+        TimedTaskQueue.__init__(self, nameprefix = "GUITaskQueue")
         
     def getInstance(*args, **kw):
         if GUITaskQueue.__single is None:

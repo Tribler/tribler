@@ -50,10 +50,14 @@ class GUIDBProducer():
         return GUIDBProducer.__single
     getInstance = staticmethod(getInstance)
     
-    def onSameThread(self):
-        return get_ident() == self.database_thread._thread_ident
+    def onSameThread(self, type):
+        onDBThread = get_ident() == self.database_thread._thread_ident
+        if type == "dbthread" or onDBThread:
+            return onDBThread
+        
+        return threading.currentThread().getName().startswith('GUITaskQueue')
     
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False, workerType = "dbthread"):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False, priority=0, workerType = "dbthread"):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread.
         """
@@ -134,9 +138,9 @@ class GUIDBProducer():
                 
         wrapper.__name__ = name
         
-        if not self.onSameThread() or delay:
+        if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
-                self.database_thread.register(wrapper, delay=delay, id_=callbackId)
+                self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
                 
             elif workerType == "guiTaskQueue":
                 self.guitaskqueue.add_task(wrapper, t = delay, )
@@ -240,7 +244,8 @@ def startWorker(
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
-    uId=None, retryOnBusy=False, workerType="dbThread"):
+    uId=None, retryOnBusy=False, 
+    priority=0, workerType="dbThread"):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -274,7 +279,7 @@ def startWorker(
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-            name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, workerType=workerType)
+            name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
         
     return result
 
@@ -282,7 +287,7 @@ def cancelWorker(uId):
     thread = GUIDBProducer.getInstance()
     thread.Remove(uId)
 
-def onWorkerThread():
+def onWorkerThread(type):
     dbProducer = GUIDBProducer.getInstance()
-    return dbProducer.onSameThread()
+    return dbProducer.onSameThread(type)
 

@@ -112,7 +112,7 @@ def register_task(*args, **kwargs):
 
 def forceDBThread(func):
     def invoke_func(*args,**kwargs):
-        if onWorkerThread():
+        if onWorkerThread('dbThread'):
             func(*args, **kwargs)
         else:
             if TRHEADING_DEBUG:
@@ -127,7 +127,7 @@ def forceDBThread(func):
 
 def forceAndReturnDBThread(func):
     def invoke_func(*args,**kwargs):
-        if onWorkerThread():
+        if onWorkerThread('dbThread'):
             return func(*args, **kwargs)
         else:
             if TRHEADING_DEBUG:

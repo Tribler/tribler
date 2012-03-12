@@ -411,7 +411,7 @@ class TorrentManager:
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
         if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
+            print >> sys.stderr, 'TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
         
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
@@ -492,11 +492,12 @@ class TorrentManager:
                 self.hitsLock.release()
                 self.remoteLock.release()
             
-    def setBundleMode(self, bundle_mode):
+    def setBundleMode(self, bundle_mode,refresh=True):
         if bundle_mode != self.bundle_mode:
             self.bundle_mode = bundle_mode
             self.bundle_mode_changed = True
-            self.refreshGrid()
+            if refresh:
+                self.refreshGrid()
 
     def searchLocalDatabase(self):
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
@@ -723,11 +724,11 @@ class TorrentManager:
             self.remoteLock.release()
             
             if refreshGrid:
-                self.refreshGrid()
+                self.refreshGrid(remote=True)
     
-    def refreshGrid(self):
+    def refreshGrid(self, remote=False):
         if self.gridmgr is not None:
-            self.gridmgr.refresh()
+            self.gridmgr.refresh(remote)
 
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the torrent results
@@ -1781,6 +1782,8 @@ class ChannelManager:
             pass
         
     def getChannelHits(self):
+        if DEBUG: begintime = time()
+        
         hitsUpdated = self.searchLocalDatabase()
         if DEBUG:
             print >>sys.stderr,'ChannelManager: getChannelHits: search found: %d items' % len(self.hits)
@@ -1820,6 +1823,9 @@ class ChannelManager:
                         hitsUpdated = True
         finally:
             self.remoteLock.release()
+
+        if DEBUG:
+            print >> sys.stderr, "ChannelManager: getChannelHits took", time() - begintime
 
         if len(self.hits) == 0:
             return [0, hitsUpdated, None]
@@ -1897,7 +1903,7 @@ class ChannelManager:
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True)
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True, workerType = "guiTaskQueue")
 
     def _gotRemoteHits(self, permid, kws, answers):
         # @param permid: the peer who returned the answer to the query

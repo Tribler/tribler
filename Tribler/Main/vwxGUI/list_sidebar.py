@@ -225,7 +225,7 @@ class SearchSideBar(wx.Panel):
         self.Thaw()
     
     def Reset(self):
-        self.SetBundleState(None)
+        self.SetBundleState(None,refresh=False)
         self.nochannels.Show()
         
         for channel in self.channels:
@@ -259,7 +259,7 @@ class SearchSideBar(wx.Panel):
         
         self.guiutility.frame.guiserver.add_task(db_callback)
         
-    def SetBundleState(self, newstate):
+    def SetBundleState(self, newstate,refresh=True):
         if newstate is None:
             auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
             
@@ -288,7 +288,7 @@ class SearchSideBar(wx.Panel):
             self.bundlestatetext.SetLabel(' by %s' % self.bundlestates_str[newstate])
         else:
             self.bundlestatetext.SetLabel(' is %s' % self.bundlestates_str[newstate])
-        self.torrentsearch_manager.setBundleMode(newstate)
+        self.torrentsearch_manager.setBundleMode(newstate,refresh)
         
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)
