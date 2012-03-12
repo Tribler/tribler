@@ -1407,7 +1407,7 @@ DLSTATUS_SEEDING = "completed/sharing"
 DLSTATUS_STOPPED = "stopped"
 DLSTATUS_STOPPED_ON_ERROR = "stopped/error"
 
-duplicate_download_msg = "You are already downloading this torrent, see the My Files section."
+duplicate_download_msg = "You are already downloading this torrent, see the Downloads section."
 duplicate_download_title = "Duplicate download"
 
 invalid_torrent_no_playable_files_msg = "You are attempting to play files from a torrent that does not contain any playable files."
