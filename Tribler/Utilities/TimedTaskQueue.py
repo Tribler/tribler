@@ -18,7 +18,9 @@ class TimedTaskQueue:
     
     __single = None
     
-    def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True):
+    def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True, inDEBUG = DEBUG):
+        self.inDEBUG = inDEBUG
+        
         self.cond = Condition()
         self.queue = []
         self.count = 0.0 # serves to keep task that were scheduled at the same time in FIFO order
@@ -42,7 +44,8 @@ class TimedTaskQueue:
         self.cond.acquire()
         when = time()+t
         if DEBUG:
-            print >>sys.stderr,"ttqueue: ADD EVENT",t,task
+            debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
+            print >>sys.stderr,"ttqueue: ADD EVENT",t , task, debug_call_name
 
         if __debug__:
             self.callstack[self.count] = format_stack()
@@ -110,7 +113,16 @@ class TimedTaskQueue:
                         t = when-time()+0.001
                         self.add_task('quit',t)
                 else:
+                    if self.inDEBUG:
+                        t1 = time()
+                    
                     task()
+                    
+                    if self.inDEBUG:
+                        took = time() - t1
+                        if took > 0.2:
+                            debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
+                            print >> sys.stderr,"ttqueue: EVENT TOOK", took, debug_call_name
             except:
                 print_exc()
                 if __debug__:
