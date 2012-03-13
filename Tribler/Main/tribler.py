@@ -471,7 +471,7 @@ class ABCApp():
             
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
         
-        progress('Creating session/Checking database')
+        progress('Creating session/Checking database (may take a minute to complete)')
         s = Session(self.sconfig)
         self.utility.session = s
 
@@ -908,7 +908,8 @@ class ABCApp():
             print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
             sleep(3)
         print >>sys.stderr,"main: ONEXIT Session is shutdown"
-
+        
+        print >>sys.stderr,"main: ONEXIT cleaning database"
         peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
         peerdb._db.clean_db(randint(0,24) == 0)
         

@@ -760,6 +760,7 @@ class MainFrame(wx.Frame):
         wx.CallLater(6000, self.upgradeCallback)
 
     #Force restart of Tribler
+    @forceWxThread
     def Restart(self):
         path = os.getcwd()
         if sys.platform == "win32":
