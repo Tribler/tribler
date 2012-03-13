@@ -30,7 +30,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 ##Changed from 8 to 9 for Niels's Open2Edit tables
 ##Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
 ##Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
-CURRENT_MAIN_DB_VERSION = 11
+##Changed from 11 to 12 imposing some limits on the Tribler database
+CURRENT_MAIN_DB_VERSION = 12
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -671,6 +672,8 @@ class SQLiteCacheDBBase:
         else:
             find = list(find)
             if len(find) > 0:
+                if DEBUG and len(find) > 1:
+                    print >> sys.stderr, "FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement", sql, len(find)
                 find = find[0]
             else:
                 return NULL
@@ -2000,7 +2003,28 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
         if fromver < 11:
             index = "CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id)"
-            self.execute_write(index)           
+            self.execute_write(index)
+            
+        if fromver < 12:
+            remove_indexes = ["Message_receive_time_idx","Size_calc_age_idx","Number_of_seeders_idx","Number_of_leechers_idx","Torrent_length_idx","Torrent_num_seeders_idx","Torrent_num_leechers_idx"]
+            for index in remove_indexes:
+                self.execute_write("DROP INDEX %s"%index, commit = False)
+    
+            self.clean_db(True)
+            
+    def clean_db(self, vacuum = False):
+        from time import time
+        
+        oneweekago = long(time() - 604800)
+        self.execute_write("DELETE FROM Popularity WHERE msg_receive_time < ?", (oneweekago, ), commit = False)
+        self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit = False)
+        self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
+        self.execute_write("DELETE FROM Preference where peer_id not in (Select peer_id From Peer where num_prefs > 5 or similarity > 0)", commit = False)
+        self.execute_write("DELETE FROM TorrentFiles where torrent_id not in (select torrent_id from CollectedTorrent)")
+        
+        if vacuum:
+            self.execute_read("VACUUM")        
+    
             
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

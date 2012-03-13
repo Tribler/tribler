@@ -1299,7 +1299,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         nb = NetworkBuzzDBHandler.getInstance()
-        nb.addTorrent(torrent_id, torrent_name, commit=False)
+        nb.addTorrent(torrent_id, torrent_name, collected = source == 'BC', commit=False)
         
         self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
         if commit:
@@ -2914,7 +2914,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         if 'uploaded' in itemdict.keys() and 'downloaded' in itemdict.keys():
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-            item = {'uploaded': ul, 'downloaded':dl}
+            item = {'uploaded': ul, 'downloaded':dl, 'last_seen':int(time())}
             self._db.update(self.table_name, where = where, commit=commit, **item)            
 
     def getPeerIDPairs(self):
@@ -5269,6 +5269,10 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         from Tribler.Core.Tag.Extraction import TermExtraction
         self.extractor = TermExtraction.getInstance()
         
+        count_sql = "SELECT COUNT(*) FROM TorrentBiTermPhrase"
+        self.nr_bi_phrases = self._db.fetchone(count_sql)
+        
+        
     # Default sampling size (per freq category)
     # With an update period of 5s, there will be at most 12 updates per minute.
     # Each update consumes, say, 5 terms or phrases for a freq category, so about
@@ -5287,6 +5291,9 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     
     # Partition parameters
     PARTITION_AT = (0.33, 0.67)
+    
+    # Only start adding collected torrents at
+    MAX_UNCOLLECTED = 5000
     
     # Tables from which can be sampled:
     TABLES = dict(
@@ -5310,7 +5317,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         )
     )
     
-    def addTorrent(self, torrent_id, torrent_name, commit=True):
+    def addTorrent(self, torrent_id, torrent_name, collected = False, commit=True):
         """
         Extracts terms and the bi-term phrase from the added Torrent and stores it in
         the TermFrequency and TorrentBiTermPhrase tables, respectively.
@@ -5319,26 +5326,27 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         @param torrent_name Name of the added Torrent.
         @param commit Flag to indicate whether database changes should be committed.
         """
-        keywords = split_into_keywords(torrent_name)
-        terms = set(self.extractor.extractTerms(keywords))
-        phrase = self.extractor.extractBiTermPhrase(keywords)
-        
-        update_terms_sql = u"""
-            INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
-            UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
-            """
-        ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
-                                    SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
-                                    FROM TermFrequency TF1, TermFrequency TF2
-                                    WHERE TF1.term = ? AND TF2.term = ?"""
+        if collected or self.nr_bi_phrases < self.MAX_UNCOLLECTED:
+            keywords = split_into_keywords(torrent_name)
+            terms = set(self.extractor.extractTerms(keywords))
+            phrase = self.extractor.extractBiTermPhrase(keywords)
             
-        
-        self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
-        if phrase is not None:
-            self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
-        
-        if commit:
-            self.commit()
+            update_terms_sql = u"""
+                INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
+                UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
+                """
+            ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
+                                        SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
+                                        FROM TermFrequency TF1, TermFrequency TF2
+                                        WHERE TF1.term = ? AND TF2.term = ?"""
+                
+            
+            self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
+            if phrase is not None:
+                self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
+            
+            if commit:
+                self.commit()
     
     def deleteTorrent(self, torrent_id, commit=True):
         """
@@ -5381,7 +5389,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
         else:
             phrases_triple = []
-        
+
         if not flat:
             return terms_triple, phrases_triple
         else:

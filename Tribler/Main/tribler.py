@@ -35,6 +35,7 @@ from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
+from random import randint
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -470,7 +471,7 @@ class ABCApp():
             
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
         
-        progress('Creating session')
+        progress('Creating session/Checking database')
         s = Session(self.sconfig)
         self.utility.session = s
 
@@ -908,11 +909,8 @@ class ABCApp():
             sleep(3)
         print >>sys.stderr,"main: ONEXIT Session is shutdown"
 
-        
-#        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"
-#        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-#        peerdb._db.execute_read('VACUUM')
-#        print >> sys.stderr, long(time()), "main: Finished running SQLite vacuum" 
+        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+        peerdb._db.clean_db(randint(0,24) == 0)
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker

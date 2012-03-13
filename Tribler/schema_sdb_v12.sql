@@ -176,10 +176,6 @@ CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
 
-CREATE INDEX Torrent_length_idx
-  ON Torrent
-  (length);
-
 CREATE INDEX Torrent_creation_date_idx
   ON Torrent
   (creation_date);
@@ -187,14 +183,6 @@ CREATE INDEX Torrent_creation_date_idx
 CREATE INDEX Torrent_relevance_idx
   ON Torrent
   (relevance);
-
-CREATE INDEX Torrent_num_seeders_idx
-  ON Torrent
-  (num_seeders);
-
-CREATE INDEX Torrent_num_leechers_idx
-  ON Torrent
-  (num_leechers);
 
 CREATE INDEX Torrent_name_idx 
   ON Torrent
@@ -274,22 +262,6 @@ CREATE TABLE Popularity (
                          num_leechers INTEGER DEFAULT 0,
                          num_of_sources INTEGER DEFAULT 0
                      );
-
-CREATE INDEX Message_receive_time_idx 
-  ON Popularity 
-   (msg_receive_time);
-
-CREATE INDEX Size_calc_age_idx 
-  ON Popularity 
-   (size_calc_age);
-
-CREATE INDEX Number_of_seeders_idx 
-  ON Popularity 
-   (num_seeders);
-
-CREATE INDEX Number_of_leechers_idx 
-  ON Popularity 
-   (num_leechers);
 
 CREATE UNIQUE INDEX Popularity_idx
   ON Popularity
@@ -633,7 +605,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 11);
+INSERT INTO MyInfo VALUES ('version', 12);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
