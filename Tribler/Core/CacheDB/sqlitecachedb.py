@@ -2009,7 +2009,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             remove_indexes = ["Message_receive_time_idx","Size_calc_age_idx","Number_of_seeders_idx","Number_of_leechers_idx","Torrent_length_idx","Torrent_num_seeders_idx","Torrent_num_leechers_idx"]
             for index in remove_indexes:
                 self.execute_write("DROP INDEX %s"%index, commit = False)
-    
+                
+            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)");
             self.clean_db(True)
             
     def clean_db(self, vacuum = False):
@@ -2021,7 +2022,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
         self.execute_write("DELETE FROM Preference where peer_id not in (Select peer_id From Peer where num_prefs > 5 or similarity > 0)", commit = False)
         self.execute_write("DELETE FROM TorrentFiles where torrent_id not in (select torrent_id from CollectedTorrent)")
-        
+               
         if vacuum:
             self.execute_read("VACUUM")        
     
