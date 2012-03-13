@@ -188,12 +188,19 @@ class Stats(XRCPanel):
     def onKey(self, event):
         if event.ControlDown() and (event.GetKeyCode() == 73 or event.GetKeyCode() == 105): #ctrl + i
             self._showInspectionTool()
+            
+        elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100): #ctrl + d 
+            self._printDBStats()
         else:
             event.Skip()
 
     def onMouse(self, event):
         if all([event.RightUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
             self._showInspectionTool()
+            
+        elif all([event.LeftUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
+            self._printDBStats()
+            
         else:
             event.Skip()
             
@@ -247,6 +254,12 @@ class Stats(XRCPanel):
         except Exception:
             import traceback
             traceback.print_exc()
+            
+    def _printDBStats(self):
+        torrentdb = TorrentDBHandler.getInstance()
+        tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+        for table, in tables:
+            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s"%table)
 
     def Show(self, show = True):
         if show:
