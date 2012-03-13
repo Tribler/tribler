@@ -322,15 +322,18 @@ class PeerDBHandler(BasicDBHandler):
         return peers
     
     def getLocalPeerList(self, max_peers,minoversion=None): # return a list of peer_ids
-        """Return a list of peerids for local nodes, friends first, then random local nodes"""
+        """Return a list of peerids for local nodes, then random local nodes"""
         
         sql = 'select permid from Peer where is_local=1 '
         if minoversion is not None:
             sql += 'and oversion >= '+str(minoversion)+' '
-        sql += 'ORDER BY friend DESC, random() limit %d'%max_peers
+        #sql += 'ORDER BY friend DESC, random() limit %d'%max_peers
+        sql += 'ORDER BY random() limit %d'%max_peers
+        
         list = []
         for row in self._db.fetchall(sql):
             list.append(base64.b64decode(row[0]))
+
         return list
 
 
