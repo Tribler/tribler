@@ -926,13 +926,12 @@ class BuzzPanel(HomePanel):
         timerstop = not enter #stop timer if one control has enter==true
 
         if timerstop != self.timer.IsRunning():
-            if enter:
-                self.timer.Stop()
-            else:
+            if not enter:
                 self.timer.Start(1000, False)
                 self.footer.SetTitle('Resuming update')
         
         if enter:
+            self.timer.Stop()
             self.footer.SetTitle('Update has paused')
         return enter
 
