@@ -126,14 +126,19 @@ class Home(XRCPanel):
 class Stats(XRCPanel):
     def __init__(self, parent = None):
         XRCPanel.__init__(self, parent)
+        self.createTimer = None
         self.isReady = False
 
     def _DoInit(self):
+        
         try:
             disp = DispersyPanel(self)
         except:
-            #Dispersy not ready, try again in 1s
-            wx.CallLater(1000, self._DoInit)
+            #Dispersy not ready, try again in 5s
+            if self.createTimer is None:
+                self.createTimer = wx.CallLater(5000, self._DoInit)
+            else:
+                self.createTimer.Restart(5000)
             print_exc()
             return
 
