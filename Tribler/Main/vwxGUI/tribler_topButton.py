@@ -550,6 +550,7 @@ class LinkText(GenStaticText):
     
     def Reset(self):
         self.SetFontColour(self.fonts[0], self.colours[0])
+        self.enter = False
     
     def SetFontColour(self, font, colour):
         needRefresh = False

@@ -815,6 +815,10 @@ class BuzzPanel(HomePanel):
 
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
+        if event:
+            if self.DoPauseResume():
+                return
+        
         self.refresh -= 1
         if self.refresh <= 0 or force or fromDBThread:
             if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force or fromDBThread:
@@ -908,6 +912,7 @@ class BuzzPanel(HomePanel):
                 control = control.GetWindow()
 
             if getattr(control, 'enter', False):
+                print >> sys.stderr, control, 'enter'
                 return True
 
             if getattr(control, 'GetChildren', False):
@@ -923,14 +928,18 @@ class BuzzPanel(HomePanel):
         if timerstop != self.timer.IsRunning():
             if enter:
                 self.timer.Stop()
-                self.footer.SetTitle('Update has paused')
             else:
                 self.timer.Start(1000, False)
                 self.footer.SetTitle('Resuming update')
+        
+        if enter:
+            self.footer.SetTitle('Update has paused')
+        return enter
 
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
             self.OnEnterWindow(event)
+            
         elif event.Leaving():
             self.OnLeaveWindow(event)
 
@@ -939,6 +948,7 @@ class BuzzPanel(HomePanel):
     def OnEnterWindow(self, event):
         evtobj = event.GetEventObject()
         evtobj.enter = True
+        
         self.DoPauseResume()
 
     def OnLeaveWindow(self, event = None):
@@ -946,7 +956,7 @@ class BuzzPanel(HomePanel):
             evtobj = event.GetEventObject()
             evtobj.enter = False
 
-        self.DoPauseResume()
+        wx.CallAfter(self.DoPauseResume)
 
     def OnClick(self, event):
         evtobj = event.GetEventObject()
