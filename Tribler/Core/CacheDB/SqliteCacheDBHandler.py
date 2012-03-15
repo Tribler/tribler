@@ -3854,6 +3854,8 @@ class ChannelCastDBHandler(object):
                 else:
                     sql = "DELETE FROM _TorrentMarkings WHERE channeltorrent_id = ? AND peer_id IS NULL"
                     self._db.execute_write(sql, (channeltorrent_id, ), commit = False)
+            else:
+                return
                     
         sql = "INSERT INTO _TorrentMarkings (dispersy_id, global_time, channeltorrent_id, peer_id, type, time_stamp) VALUES (?,?,?,?,?,?)"
         self._db.execute_write(sql, (dispersy_id, global_time, channeltorrent_id, peer_id, type, timestamp), commit = self.shouldCommit)
