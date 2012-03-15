@@ -128,6 +128,10 @@ CREATE INDEX Peer_num_torrents_idx
   ON Peer
   (num_torrents);
 
+CREATE INDEX Peer_local_oversion_idx
+  ON Peer
+  (is_local, oversion);
+
 ----------------------------------------
 
 CREATE TABLE Preference (
@@ -413,6 +417,7 @@ CREATE TABLE IF NOT EXISTS _ChannelTorrents (
 CREATE VIEW ChannelTorrents AS SELECT * FROM _ChannelTorrents WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS TorChannelIndex ON _ChannelTorrents(channel_id);
 CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id);
+CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id);
 
 CREATE TABLE IF NOT EXISTS _Playlists (
   id                        integer         PRIMARY KEY ASC,
