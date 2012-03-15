@@ -240,12 +240,14 @@ class ABCApp():
            
             self.torrentfeed = RssParser.getInstance()
             
+            self.webUI = None
             if self.utility.config.Read('use_webui', "boolean"):
-                from Tribler.Main.webUI.webUI import WebUI
-                self.webUI = WebUI.getInstance(self.guiUtility.library_manager,  self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
-                self.webUI.start()
-            else:
-                self.webUI = None
+                try:
+                    from Tribler.Main.webUI.webUI import WebUI
+                    self.webUI = WebUI.getInstance(self.guiUtility.library_manager,  self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
+                    self.webUI.start()
+                except Exception:
+                    print_exc()
             
             wx.CallAfter(self.PostInit2)
             
