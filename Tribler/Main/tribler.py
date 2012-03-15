@@ -966,7 +966,7 @@ class ABCApp():
                 if torrentfilename.startswith("magnet:"):
                     self.frame.startDownloadFromMagnet(torrentfilename)
                 else:
-                    self.frame.startDownload(torrentfilename,vodmode=True)
+                    self.frame.startDownload(torrentfilename)
                 self.guiUtility.ShowPage('my_files')
 
             wx.CallAfter(start_asked_download)
