@@ -28,7 +28,7 @@ from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
-    LibraryTorrent
+    LibraryTorrent, ChannelTorrent
 from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
@@ -197,7 +197,7 @@ class TorrentDetails(AbstractDetails):
                 if showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
                     showTab = "Files"
                 
-                if self.torrent.hasChannel():
+                if isinstance(self.torrent, ChannelTorrent) and self.torrent.hasChannel():
                     state, iamModerator = self.torrent.channel.getState()
                     
                     if isinstance(self, LibraryDetails):
