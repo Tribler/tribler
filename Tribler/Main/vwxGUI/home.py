@@ -912,7 +912,6 @@ class BuzzPanel(HomePanel):
                 control = control.GetWindow()
 
             if getattr(control, 'enter', False):
-                print >> sys.stderr, control, 'enter'
                 return True
 
             if getattr(control, 'GetChildren', False):
