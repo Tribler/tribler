@@ -49,9 +49,9 @@ torrent_dir = None
 config_dir = None
 TEST_OVERRIDE = False
 
-
 DEBUG = False
 DEBUG_THREAD = False
+DEBUG_TIME = True
 
 class Warning(Exception):
     pass
@@ -127,6 +127,23 @@ def print_exc_plus():
                 print >> sys.stderr, value
             except:
                 print >> sys.stderr, "<ERROR WHILE PRINTING VALUE>"
+                
+def debugTime(func):
+    def invoke_func(*args,**kwargs):
+        if DEBUG_TIME:
+            t1 = time()
+        
+        result = func(*args, **kwargs)
+        
+        if DEBUG_TIME:
+            diff = time() - t1
+            if diff > 0.5:
+                print >> sys.stderr, "TOOK", diff, args
+            
+        return result
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
 
 class safe_dict(dict): 
     def __init__(self, *args, **kw): 
@@ -480,7 +497,7 @@ class SQLiteCacheDBBase:
                 # This bug already reported by Johan
             raise msg
         
-
+#    @debugTime
     def execute_read(self, sql, args=None):
         # this is only called for reading. If you want to write the db, always use execute_write or executemany
         return self._execute(sql, args)
@@ -681,7 +698,7 @@ class SQLiteCacheDBBase:
             return find
         else:
             return find[0]
-           
+    
     def fetchall(self, sql, args=None, retry=0):
         res = self.execute_read(sql, args)
         if res != None:
@@ -2010,7 +2027,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             for index in remove_indexes:
                 self.execute_write("DROP INDEX %s"%index, commit = False)
                 
-            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)");
+            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)", commit = False)
+            self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
             self.clean_db(True)
             
     def clean_db(self, vacuum = False):
