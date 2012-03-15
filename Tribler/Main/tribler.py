@@ -471,7 +471,7 @@ class ABCApp():
             
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
         
-        progress('Creating session/Checking database (may take a minute to complete)')
+        progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         self.utility.session = s
 
