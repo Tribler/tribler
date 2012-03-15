@@ -464,7 +464,7 @@ class DispersyPanel(HomePanel):
             self.gridSizer.Add(self.textdict[key])
 
         for key, value in info.iteritems():
-            if key in ["lan_address", "wan_address", "statistics"]:
+            if key in ["lan_address", "wan_address", "statistics", "connection_type"]:
                 if key == 'statistics':
                     if 'total_up' in value:
                         addColumn('total_up')

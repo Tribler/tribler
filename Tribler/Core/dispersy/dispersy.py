@@ -538,10 +538,10 @@ class Dispersy(Singleton):
                     ]
 
         if community.dispersy_enable_candidate_walker_responses:
-            messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request, batch=BatchConfiguration(max_window=0.1, max_age=5.0)),
-                             Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response, batch=BatchConfiguration(max_window=0.1, max_age=5.0)),
-                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request, batch=BatchConfiguration(max_window=0.1, max_age=4.0)),
-                             Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture, batch=BatchConfiguration(max_window=0.1, max_age=5.0))])
+            messages.extend([Message(community, u"dispersy-introduction-request", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionRequestPayload(), self.check_sync, self.on_introduction_request),
+                             Message(community, u"dispersy-introduction-response", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), IntroductionResponsePayload(), self.check_introduction_response, self.on_introduction_response),
+                             Message(community, u"dispersy-puncture-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PunctureRequestPayload(), self._generic_timeline_check, self.on_puncture_request),
+                             Message(community, u"dispersy-puncture", MemberAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PuncturePayload(), self.check_puncture, self.on_puncture)])
 
         return messages
 
@@ -864,6 +864,9 @@ class Dispersy(Singleton):
                 # our address may not be a candidate
                 if self._wan_address in self._candidates:
                     del self._candidates[self._wan_address]
+
+            if self._connection_type == u"unknown" and self._lan_address == self._wan_address:
+                self._connection_type = u"public"
 
             if __debug__: dprint("got invalid external vote from ", voter_address[0],":",voter_address[1], " received ", address[0], ":", address[1])
 
@@ -1306,7 +1309,7 @@ class Dispersy(Singleton):
         for address, _ in packets:
             if not address in candidates:
                 candidates[address] = self._candidates[address] if address in self._candidates else Candidate(address, address, address)
-        self._callback.register(self.on_incoming_packets, ([(candidates[address], packet) for address, packet in packets],), {"timestamp":time()})
+        self._callback.register(self.on_incoming_packets, ([(candidates[address], packet) for address, packet in packets],), {"timestamp":time()}, priority=1024)
 
     def load_message(self, community, member, global_time):
         """
@@ -2151,10 +2154,10 @@ class Dispersy(Singleton):
         # wait for introduction-response
         meta_response = community.get_meta_message(u"dispersy-introduction-response")
         footprint = meta_response.generate_footprint(payload=(identifier,))
-        # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before the next walk
-        timeout = 4.5
+        # we walk every 5.0 seconds, ensure that this candidate is dropped (if unresponsive) before it is selected for a walk again
+        timeout = 10.5
         assert meta_request.batch.max_window + meta_response.batch.max_window < timeout
-        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination,), timeout=timeout)
+        self.await_message(footprint, self.introduction_response_or_timeout, response_args=(community, destination), timeout=timeout)
 
         # release walk identifier some seconds after timeout expires
         self._callback.register(self._walk_identifiers.pop, (identifier,), delay=timeout+10.0)
@@ -4388,8 +4391,9 @@ class Dispersy(Singleton):
         #      community["dispersy_acceptable_global_time_range"]
         # 2.7: added community["database_id"]
         # 2.8: added global_time to candidates
+        # 2.9: added connection_type
 
-        info = {"version":2.8, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version}
+        info = {"version":2.9, "class":"Dispersy", "lan_address":self._lan_address, "wan_address":self._wan_address, "database_version":self._database.database_version, "connection_type":self._connection_type}
 
         if statistics:
             info["statistics"] = self._statistics.info()
