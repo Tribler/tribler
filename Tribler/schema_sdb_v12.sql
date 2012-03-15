@@ -226,6 +226,8 @@ CREATE TABLE TorrentTracker (
 CREATE UNIQUE INDEX torrent_tracker_idx
   ON TorrentTracker
   (torrent_id, tracker);
+
+CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check );
   
 ----------------------------------------
 
