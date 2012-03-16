@@ -1432,7 +1432,7 @@ class LibraryDetails(TorrentDetails):
             print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']
         
         self.showRequestType('')
-        wx.CallAfter(self.guiutility.torrentsearch_manager.loadTorrent, self.torrent, callback = self.showTorrent)
+        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent}, workerType = "guiTaskQueue")
         
     @forceWxThread
     def _timeout(self):
