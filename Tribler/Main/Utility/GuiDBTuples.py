@@ -13,6 +13,8 @@ from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
+DEBUGDB = False
+
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
     try:
@@ -131,6 +133,8 @@ class Torrent(Helper):
     @cacheProperty
     def torrent_id(self):
         if not self._torrent_id:
+            if DEBUGDB:
+                print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
             self._torrent_id = self.torrent_db.getTorrentID(self.infohash)
         return self._torrent_id
     
@@ -139,6 +143,9 @@ class Torrent(Helper):
         if self._channel is not None:
             return self._channel
         
+        if DEBUGDB:
+            print >> sys.stderr, "Torrent: fetching getMostPopularChannelFromTorrent from DB", self
+            
         channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
         if channel:
             self.channeltorrents_id = channel[-1]
@@ -256,6 +263,9 @@ class CollectedTorrent(Helper):
     
     @cacheProperty
     def swarminfo(self):
+        if DEBUGDB:
+            print >> sys.stderr, "CollectedTorrent: fetching getSwarmInfo from DB", self
+        
         swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
         
         if swarminfo:
@@ -348,6 +358,9 @@ class ChannelTorrent(Torrent):
     
     @cacheProperty
     def getPlaylist(self):
+        if DEBUGDB:
+            print >> sys.stderr, "ChannelTorrent: fetching getPlaylistForTorrent from DB", self
+        
         playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
         if playlist:
             return Playlist(*playlist+(self.channel,))
@@ -410,6 +423,9 @@ class Channel(Helper):
     def getState(self):
         if self.isDispersy():
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            
+            if DEBUGDB:
+                print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
             
             searchManager = ChannelManager.getInstance()
             result = searchManager.getChannelStateByCID(self.dispersy_cid)
@@ -506,6 +522,9 @@ class Comment(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
+            if DEBUGDB:
+                print >> sys.stderr, "Comment: fetching getTorrentFromChannelTorrentId from DB", self
+            
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
@@ -578,6 +597,9 @@ class Modification(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
+            if DEBUGDB:
+                print >> sys.stderr, "Modification: fetching getTorrentFromChannelTorrentId from DB", self
+            
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
 
@@ -625,6 +647,9 @@ class Marking(Helper):
     def torrent(self):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            
+            if DEBUGDB:
+                print >> sys.stderr, "Marking: fetching getTorrentFromChannelTorrentId from DB", self
             
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
