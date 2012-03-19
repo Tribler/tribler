@@ -402,15 +402,16 @@ class TriblerLaunchMany(Thread):
                     for counter, master in enumerate(cls.get_master_members()):
                         if self.dispersy.has_community(master.mid):
                             continue
-    
+
+                        print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX")
                         cls.load_community(master, *args, **kargs)
-    
+
                         desync = (yield 1.0)
                         while desync > 0.1:
                             if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [loading community]"
                             desync = (yield desync)
-    
-                    if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
+
+                    print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
                 except:
                     #Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
                     print_exc()
