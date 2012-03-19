@@ -395,6 +395,7 @@ class TriblerLaunchMany(Thread):
             if sys.argv[0].endswith("dispersy-channel-booster.py"):
                 schedule = []
                 schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True}))
+                schedule.append((ChannelCommunity, (), {}))
 
             else:
                 schedule = []
