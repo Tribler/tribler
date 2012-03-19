@@ -174,6 +174,10 @@ class Utility:
             'window_y': "",
             'popup_player': 0,
             'use_bundle_magic': 1,
+            
+            # WebUI
+            'use_webui':0,
+            'webui_port':8080
         }
 
         if sys.platform == 'win32':

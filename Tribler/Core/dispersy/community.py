@@ -10,7 +10,7 @@ Community instance.
 
 from hashlib import sha1
 from itertools import islice
-from random import random, Random
+from random import random, Random, randint
 
 from bloomfilter import BloomFilter
 from cache import CacheDict
@@ -22,13 +22,13 @@ from destination import SubjectiveDestination
 from dispersy import Dispersy
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution
+from math import ceil
 from member import DummyMember, Member
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 from timeline import Timeline
 
 if __debug__:
     from dprint import dprint
-    from math import ceil
     from time import time
 
 class SubjectiveSetCache(object):
@@ -85,14 +85,17 @@ class Community(object):
             # new community instance
             community = cls.load_community(master, *args, **kargs)
             assert community.database_id == community_database_id
+            assert community._global_time == 0
 
             # create the dispersy-identity for the master member
             meta = community.get_meta_message(u"dispersy-identity")
             message = meta.impl(authentication=(master,), distribution=(community.claim_global_time(),))
             community.dispersy.store_update_forward([message], True, True, False)
+            assert message.distribution.global_time == 1
 
             # create my dispersy-identity
-            community.create_dispersy_identity()
+            message = community.create_dispersy_identity()
+            assert message.distribution.global_time == 2
 
             # authorize MY_MEMBER
             permission_triplets = []
@@ -581,7 +584,7 @@ class Community(object):
 
         elif time_high > global_time - capacity:
             time_low = max(1, global_time - capacity)
-            time_high = 0
+            time_high = self.acceptable_global_time
             db_high = global_time
 
         else:
@@ -635,14 +638,14 @@ class Community(object):
                 time_low = min(from_gbtime, data[0][0])
 
                 if mostRecent:
-                    time_high = 0
+                    time_high = self.acceptable_global_time
                 else:
                     time_high = max(from_gbtime, data[-1][0])
 
             #we did not fill complete bloomfilter, assume we selected all items
             else:
                 time_low = 1
-                time_high = 0
+                time_high = self.acceptable_global_time
 
             for _, packet in data:
                 bloom.add(str(packet))
@@ -650,7 +653,7 @@ class Community(object):
             #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
 
             return (time_low, time_high, 1, 0, bloom)
-        return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, divide capacity to have 50/50 divivion around pivot
     @runtime_duration_warning(0.5)
@@ -705,14 +708,14 @@ class Community(object):
                     time_low = min(from_gbtime, data[0][0])
 
                 if mostRecent:
-                    time_high = 0
+                    time_high = self.acceptable_global_time
                 else:
                     time_high = max(from_gbtime, data[-1][0])
 
             #we did not fill complete bloomfilter, assume we selected all items
             else:
                 time_low = 1
-                time_high = 0
+                time_high = self.acceptable_global_time
 
             for _, packet in data:
                 bloom.add(str(packet))
@@ -720,7 +723,7 @@ class Community(object):
             #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
 
             return (time_low, time_high, 1, 0, bloom)
-        return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
     @runtime_duration_warning(0.1)
@@ -750,8 +753,8 @@ class Community(object):
                 #skip left
                 if right[2] == capacity:
                     left, leftdata = self._select_bloomfilter_range(syncable_messages, from_gbtime + 1, capacity, False)
-                    left_range = left[1] - left[0]
-                    right_range = right[1] - right[0]
+                    left_range = (left[1] or self.global_time) - left[0]
+                    right_range = (right[1] or self.global_time) - right[0]
 
                     if left_range > right_range:
                         bloomfilter_range = left
@@ -761,7 +764,7 @@ class Community(object):
                         data = rightdata
                         
                     if __debug__:
-                        dprint(self.cid.encode("HEX"), " bloomfilterrange left", left, " right", right)
+                        dprint(self.cid.encode("HEX"), " bloomfilterrange left", left, " right", right, "left" if left_range > right_range else "right")
                 else:
                     bloomfilter_range = right
                     data = rightdata
@@ -772,7 +775,7 @@ class Community(object):
                 if __debug__:
                     t3 = time()
                     
-                bloomfilter_range = [1, 0]
+                bloomfilter_range = [1, self.acceptable_global_time]
                 
                 data, fixed = self._select_and_fix(syncable_messages, 0, capacity, True)
                 if len(data) > 0 and fixed:
@@ -797,7 +800,44 @@ class Community(object):
                 
         elif __debug__:
             dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
-        return (1, 0, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+
+    #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
+    @runtime_duration_warning(0.1)
+    def dispersy_claim_sync_bloom_filter_modulo(self):
+        if __debug__:
+            t1 = time()
+        
+        syncable_messages = u", ".join(unicode(meta.database_id) for meta in self._meta_messages.itervalues() if isinstance(meta.distribution, SyncDistribution) and meta.distribution.priority > 32)
+        if syncable_messages:
+            if __debug__:
+                t2 = time()
+                    
+            bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
+            capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
+            
+            self._nrsyncpackets = list(self._dispersy_database.execute(u"SELECT count(*) FROM sync WHERE meta_message IN (%s) AND undone = 0 LIMIT 1" % (syncable_messages)))[0][0]
+            modulo = int(ceil(self._nrsyncpackets / float(capacity)))
+            if modulo > 1:
+                offset = randint(0, modulo-1)
+            else:
+                offset = 0
+                modulo = 1
+            
+            data = list(self._dispersy_database.execute(u"SELECT sync.global_time, sync.packet FROM sync WHERE meta_message IN (%s)"%syncable_messages+" AND sync.undone == 0 AND (sync.global_time + ?) % ? = 0",
+                                                  (offset, modulo)))
+            for _, packet in data:
+                bloom.add(str(packet))
+                
+            if __debug__:
+                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, totalnr = %d"%(modulo, offset, len(data), capacity, self._nrsyncpackets))
+            
+            return (1, self.acceptable_global_time, modulo, offset, bloom)
+            
+        elif __debug__:
+            dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
+        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+
 
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
         assert isinstance(syncable_messages, unicode)
@@ -835,11 +875,11 @@ class Community(object):
             to_select = to_select - len(data)
             if to_select > 25:
                 if higher:
-                    lower, lowerfixed = self._select_and_fix(syncable_messages, global_time + 1, to_select, False)
-                    data = lower + data
+                    lowerdata, lowerfixed = self._select_and_fix(syncable_messages, global_time + 1, to_select, False)
+                    data = lowerdata + data
                 else:
-                    higher, higherfixed = self._select_and_fix(syncable_messages, global_time - 1, to_select, True)
-                    data = data + higher
+                    higherdata, higherfixed = self._select_and_fix(syncable_messages, global_time - 1, to_select, True)
+                    data = data + higherdata
         
         bloomfilter_range = [data[0][0], data[-1][0], len(data)]
         #we can use the global_time as a min or max value for lower and upper bound
@@ -850,7 +890,7 @@ class Community(object):
             
             #if not fixed and higher, then we have selected up to all know packets
             if not fixed:
-                bloomfilter_range[1] = 0
+                bloomfilter_range[1] = self.acceptable_global_time
             if not lowerfixed:
                 bloomfilter_range[0] = 1
         else:
@@ -861,8 +901,8 @@ class Community(object):
             if not fixed:
                 bloomfilter_range[0] = 1
             if not higherfixed:
-                bloomfilter_range[1] = 0
-            
+                bloomfilter_range[1] = self.acceptable_global_time
+        
         return bloomfilter_range, data
 
     # def dispersy_claim_sync_bloom_filter(self, identifier):
@@ -1001,6 +1041,10 @@ class Community(object):
         return (1500 - 60 - 8 - 51 - self._my_member.signature_length - 1 - 3) * 8
 
     @property
+    def dispersy_acceptable_global_time_range(self):
+        return 10000
+
+    @property
     def cid(self):
         """
         The 20 byte sha1 digest of the public master key, in other words: the community identifier.
@@ -1055,10 +1099,40 @@ class Community(object):
     @property
     def global_time(self):
         """
-        The most recent global time.
+        The most highest global time that we have stored in the database.
         @rtype: int or long
         """
         return max(1, self._global_time)
+
+    @property
+    def acceptable_global_time(self):
+        """
+        The highest global time that we will accept for incoming messages that need to be stored in
+        the database.
+
+        We follow one of two strategies:
+
+        When we have more than 5 candidates (i.e. we have more than 5 opinions about what the
+        global_time should be) we will use its median + dispersy_acceptable_global_time_range.
+
+        Otherwise we will not trust the candidate's opinions and use our own global time (obtained
+        from the highest global time in the database) + dispersy_acceptable_global_time_range.
+
+        @rtype: int or long
+        """
+        # get opinions from all active candidates
+        now = time()
+        options = sorted(global_time for global_time in (candidate.get_global_time(self) for candidate in self._dispersy.candidates if candidate.in_community(self, now) and candidate.is_any_active(now)) if global_time > 0)
+
+        if len(options) > 5:
+            # note: officially when the number of options is even, the median is the average between the
+            # two 'middle' options.  in our case we simply round down the 'middle' option
+            median_global_time = options[len(options) / 2]
+
+        else:
+            median_global_time = 0
+
+        return max(self._global_time, median_global_time) + self.dispersy_acceptable_global_time_range
 
     def unload_community(self):
         """

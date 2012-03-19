@@ -144,8 +144,8 @@ class Upload:
                    or length > self.max_slice_length):
             self.connection.close()
             return
-        if not self.cleared:
-            self.buffer.append((index, begin, length))
+        
+        self.buffer.append((index, begin, length))
         if not self.choked and self.connection.next_upload is None:
             self.ratelimiter.queue(self.connection)
 

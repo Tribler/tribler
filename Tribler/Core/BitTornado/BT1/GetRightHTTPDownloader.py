@@ -36,7 +36,7 @@ haveall = haveComplete()
 
 class SingleDownload():
 
-    def __init__(self, downloader, url):
+    def __init__(self, downloader, url, video_support_policy):
         self.downloader = downloader
         self.baseurl = url
         
@@ -78,15 +78,16 @@ class SingleDownload():
         self.cancelled = False
         # HTTP Video Support
         self.request_lock = Lock()
-        self.video_support_policy     = True  # TODO : get from constructor parameters
+        self.video_support_policy     = video_support_policy  # Niels: 08-03-2012 using svc_video or play_video in download_bt1
         self.video_support_enabled    = False # Don't start immediately with support
         self.video_support_speed      = 0.0   # Start with the faster rescheduling speed
         self.video_support_slow_start = False # If enabled delay the first request (give chance to peers to give bandwidth)
+        
         # Arno, 2010-04-07: Wait 1 second before using HTTP seed. TODO good policy
         # If Video Support policy is not eneabled then use Http seed normaly
         if not self.video_support_policy:
             self.resched(1)
-
+            
 
     def resched(self, len = None):
         if self.video_support_policy:
@@ -338,7 +339,7 @@ class SingleDownload():
 class GetRightHTTPDownloader:
     def __init__(self, storage, picker, rawserver,
                  finflag, errorfunc, peerdownloader,
-                 max_rate_period, infohash, measurefunc, gotpiecefunc):
+                 max_rate_period, infohash, measurefunc, gotpiecefunc, video_support_policy):
         self.storage = storage
         self.picker = picker
         self.rawserver = rawserver
@@ -351,10 +352,11 @@ class GetRightHTTPDownloader:
         self.measurefunc = measurefunc
         self.downloads = []
         self.seedsfound = 0
+        self.video_support_policy = video_support_policy
         self.video_support_enabled = False
 
     def make_download(self, url):
-        self.downloads.append(SingleDownload(self, url))
+        self.downloads.append(SingleDownload(self, url, self.video_support_policy))
         return self.downloads[-1]
 
     def get_downloads(self):

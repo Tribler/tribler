@@ -8,6 +8,7 @@ import sys
 import time
 
 from Tribler.Core.simpledefs import *
+from traceback import print_exc
 
 DEBUG = False
 
@@ -47,13 +48,16 @@ class GlobalSeedingManager:
         filename = os.path.join(self.storage_dir, binascii.hexlify(infohash) + ".pickle")
         if os.path.exists(filename):
             if DEBUG: print >>sys.stderr, "SeedingManager: read_storage", filename
-            f = open(filename, "rb")
-            storage = cPickle.load(f)
-            f.close()
-            # Any version upgrading must be done here
-
-            if storage["version"] == STORAGE_VERSION_CURRENT:
-                return storage
+            try:
+                f = open(filename, "rb")
+                storage = cPickle.load(f)
+                f.close()
+                # Any version upgrading must be done here
+    
+                if storage["version"] == STORAGE_VERSION_CURRENT:
+                    return storage
+            except:
+                print_exc()
 
         # return new storage confirming to version
         # STORAGE_VERSION_CURRENT

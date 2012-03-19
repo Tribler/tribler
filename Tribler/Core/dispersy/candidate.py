@@ -72,10 +72,17 @@ class Candidate(object):
         self._key = key
         self._associations = set()
         self._timestamps = dict()
+        self._global_times = dict()
 
     @property
     def key(self):
         return self._key
+
+    def set_global_time(self, community, global_time):
+        self._global_times[community.cid] = max(self._global_times.get(community.cid, 0), global_time)
+
+    def get_global_time(self, community):
+        return self._global_times.get(community.cid, 0)
 
     def _get_or_create_timestamps(self, community):
         if __debug__:
@@ -129,6 +136,8 @@ class Candidate(object):
         assert isinstance(community, Community)
         assert isinstance(member, Member)
         self._associations.remove((community.cid, member))
+        if community.cid in self._global_times:
+            del self._global_times[community.cid]
 
     def get_members(self, community):
         """

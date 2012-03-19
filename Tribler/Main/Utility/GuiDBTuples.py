@@ -4,13 +4,16 @@ import os.path
 from datetime import date
 from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
-from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS
+from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
+    CHANNEL_REQ_COLUMNS
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
     DLSTATUS_SEEDING, DLSTATUS_REPEXING, DLSTATUS_HASHCHECKING,\
     DLSTATUS_WAITING4HASHCHECK
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.Search.SearchManager import split_into_keywords
+
+DEBUGDB = False
 
 def getValidArgs(func, argsDict):
     args, _, _, defaults = getargspec(func)
@@ -96,7 +99,7 @@ class Helper(object):
             setattr(self, key, value)
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'torrent_db', 'channelcast_db', 'ds', 'progress', 'relevance_score', 'query_permids')
+    __slots__ = ('_torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'ds', 'progress', 'relevance_score', 'query_permids')
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
@@ -109,7 +112,8 @@ class Torrent(Helper):
         self.num_leechers = num_leechers or 0
         
         self._channel = channel
-             
+        
+        self.channeltorrents_id = None
         self.torrent_db = None
         self.channelcast_db = None
         self.ds = None
@@ -129,6 +133,8 @@ class Torrent(Helper):
     @cacheProperty
     def torrent_id(self):
         if not self._torrent_id:
+            if DEBUGDB:
+                print >> sys.stderr, "Torrent: fetching getTorrentID from DB", self
             self._torrent_id = self.torrent_db.getTorrentID(self.infohash)
         return self._torrent_id
     
@@ -137,9 +143,13 @@ class Torrent(Helper):
         if self._channel is not None:
             return self._channel
         
+        if DEBUGDB:
+            print >> sys.stderr, "Torrent: fetching getMostPopularChannelFromTorrent from DB", self
+            
         channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
         if channel:
-            return Channel(*channel)
+            self.channeltorrents_id = channel[-1]
+            return Channel(*channel[:-1])
         return False
     
     def updateChannel(self, c):
@@ -253,6 +263,9 @@ class CollectedTorrent(Helper):
     
     @cacheProperty
     def swarminfo(self):
+        if DEBUGDB:
+            print >> sys.stderr, "CollectedTorrent: fetching getSwarmInfo from DB", self
+        
         swarminfo = self.torrent_db.getSwarmInfo(self.torrent_id)
         
         if swarminfo:
@@ -334,7 +347,6 @@ class ChannelTorrent(Torrent):
         self.inserted = inserted
         self.playlist = playlist
         
-        
     # @property
     def __get_name(self):
         return self.chant_name or self.colt_name
@@ -346,6 +358,9 @@ class ChannelTorrent(Torrent):
     
     @cacheProperty
     def getPlaylist(self):
+        if DEBUGDB:
+            print >> sys.stderr, "ChannelTorrent: fetching getPlaylistForTorrent from DB", self
+        
         playlist = self.channelcast_db.getPlaylistForTorrent(self.channeltorrent_id, PLAYLIST_REQ_COLUMNS)
         if playlist:
             return Playlist(*playlist+(self.channel,))
@@ -362,6 +377,7 @@ class RemoteChannelTorrent(ChannelTorrent):
     def __init__(self, torrent_id, infohash, name, length = 0, category_id = None, status_id = None, num_seeders = 0, num_leechers = 0, channel = False, query_permids = set()):
         ChannelTorrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
         self.query_permids = query_permids
+
     
 class Channel(Helper):
     __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents')
@@ -397,12 +413,19 @@ class Channel(Helper):
     
     def isOpen(self):
         state, myChannel = self.getState()
-        return state == ChannelCommunity.CHANNEL_OPEN
+        return state >= ChannelCommunity.CHANNEL_OPEN
+    
+    def isSemiOpen(self):
+        state, myChannel = self.getState()
+        return state >= ChannelCommunity.CHANNEL_SEMI_OPEN
     
     @cache
     def getState(self):
         if self.isDispersy():
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            
+            if DEBUGDB:
+                print >> sys.stderr, "Channel: fetching getChannelStateByCID from DB", self
             
             searchManager = ChannelManager.getInstance()
             result = searchManager.getChannelStateByCID(self.dispersy_cid)
@@ -499,6 +522,9 @@ class Comment(Helper):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
             
+            if DEBUGDB:
+                print >> sys.stderr, "Comment: fetching getTorrentFromChannelTorrentId from DB", self
+            
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(self.channel, self.channeltorrent_id)
     
@@ -527,8 +553,11 @@ class Playlist(Helper):
         names = [torrent.name for torrent in torrents]
         if len(names) > 0:
             return "Contents: '"+"'    '".join(names)+"'"
-        else:
+        elif self.channel.isOpen():
             return 'This playlist is currently empty, drag and drop any .torrent to add it to this playlist.'
+        elif self.channel.isMyChannel():
+            return 'This playlist is currently empty, you are the only one who can add torrents to it.'            
+        return 'This playlist is currently empty, the channel owner has restricted anyone but himself to add torrents to it.'
     
     def __eq__(self, other):
         if other:
@@ -567,6 +596,9 @@ class Modification(Helper):
     def torrent(self):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            
+            if DEBUGDB:
+                print >> sys.stderr, "Modification: fetching getTorrentFromChannelTorrentId from DB", self
             
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)
@@ -615,6 +647,9 @@ class Marking(Helper):
     def torrent(self):
         if self.channeltorrent_id:
             from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            
+            if DEBUGDB:
+                print >> sys.stderr, "Marking: fetching getTorrentFromChannelTorrentId from DB", self
             
             searchManager = ChannelManager.getInstance()
             return searchManager.getTorrentFromChannelTorrentId(None, self.channeltorrent_id)

@@ -181,7 +181,7 @@ dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fa
 dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
 dldefaults['saveas'] = None # Set to get_default_destdir()
-dldefaults['showsaveas'] = False # Allow users to choose directory for every new download
+dldefaults['showsaveas'] = True # Allow users to choose directory for every new download
 dldefaults['max_slice_length'] = 2 ** 17
 dldefaults['max_rate_period'] = 20.0
 dldefaults['upload_rate_fudge'] = 5.0
@@ -207,7 +207,7 @@ dldefaults['snub_time'] = 30.0
 dldefaults['rarest_first_cutoff'] = 2
 dldefaults['rarest_first_priority_cutoff'] = 5
 dldefaults['min_uploads'] = 4
-dldefaults['max_files_open'] = 50
+dldefaults['max_files_open'] = 20
 dldefaults['round_robin_period'] = 30
 dldefaults['super_seeder'] = 0
 dldefaults['security'] = 1

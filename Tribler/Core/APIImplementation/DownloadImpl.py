@@ -38,7 +38,7 @@ class DownloadImpl:
     #
     # Creating a Download
     #
-    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodeventcallback=None):
+    def setup(self,dcfg=None,pstate=None,initialdlstatus=None,lmcreatedcallback=None,lmvodeventcallback=None,wrapperDelay=0):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case 
@@ -134,7 +134,7 @@ class DownloadImpl:
             if initialdlstatus != DLSTATUS_STOPPED:
                 if pstate is None or pstate['dlstate']['status'] != DLSTATUS_STOPPED: 
                     # Also restart on STOPPED_ON_ERROR, may have been transient
-                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus) # RePEX: propagate initialdlstatus
+                    self.create_engine_wrapper(lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus,wrapperDelay=wrapperDelay) # RePEX: propagate initialdlstatus
                 
             self.pstate_for_restart = pstate
                 
@@ -144,7 +144,7 @@ class DownloadImpl:
             self.set_error(e)
             self.dllock.release()
 
-    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus=None):
+    def create_engine_wrapper(self,lmcreatedcallback,pstate,lmvodeventcallback,initialdlstatus=None,wrapperDelay=0):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
             print >>sys.stderr,"Download: create_engine_wrapper()"
@@ -260,7 +260,7 @@ class DownloadImpl:
 
         # Delegate creation of engine wrapper to network thread
         network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodeventcallback)
-        self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,0) 
+        self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,wrapperDelay) 
         
 
     def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate,lmvodeventcallback):

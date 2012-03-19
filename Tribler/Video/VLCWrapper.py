@@ -83,8 +83,9 @@ class VLCWrapper:
                 self.VLC_MEDIACONTROL_API_VERSION = "0.1"
 
         self.media = self.get_vlc_mediactrl()
-            
         self.videorawserv = VideoRawVLCServer.getInstance()
+        
+        print >> sys.stderr, "VLCWrapper is using API %s"%self.VLC_MEDIACONTROL_API_VERSION
 
         if not self.window is None:
             self.set_window(self.window)

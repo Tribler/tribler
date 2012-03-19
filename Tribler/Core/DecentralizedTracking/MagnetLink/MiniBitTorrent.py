@@ -558,6 +558,7 @@ class MiniTracker(Thread):
     """
     def __init__(self, swarm, trackers):
         Thread.__init__(self)
+        self.setName("MiniTracker_%s"%swarm)
         self._swarm = swarm
         #for now use first tracker only
         self._tracker = trackers[0]

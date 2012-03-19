@@ -455,10 +455,11 @@ class BT1Download:
                 print >>sys.stderr,"BT1Download: startEngine: Banning ip: " + str(ip)
             self.encoder_ban(ip)
 
+        use_video_support_policy = self.svc_video or self.play_video 
         self.ghttpdownloader = GetRightHTTPDownloader(self.storagewrapper, self.picker, 
             self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
             self.config['max_rate_period'], self.infohash, self._received_http_data, 
-            self.connecter.got_piece)
+            self.connecter.got_piece, use_video_support_policy)
         if self.response.has_key('url-list') and not self.finflag.isSet():
             for u in self.response['url-list']:
                 self.ghttpdownloader.make_download(u)

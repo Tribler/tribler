@@ -126,14 +126,19 @@ class Home(XRCPanel):
 class Stats(XRCPanel):
     def __init__(self, parent = None):
         XRCPanel.__init__(self, parent)
+        self.createTimer = None
         self.isReady = False
 
     def _DoInit(self):
+        
         try:
             disp = DispersyPanel(self)
         except:
-            #Dispersy not ready, try again in 1s
-            wx.CallLater(1000, self._DoInit)
+            #Dispersy not ready, try again in 5s
+            if self.createTimer is None:
+                self.createTimer = wx.CallLater(5000, self._DoInit)
+            else:
+                self.createTimer.Restart(5000)
             print_exc()
             return
 
@@ -188,12 +193,19 @@ class Stats(XRCPanel):
     def onKey(self, event):
         if event.ControlDown() and (event.GetKeyCode() == 73 or event.GetKeyCode() == 105): #ctrl + i
             self._showInspectionTool()
+            
+        elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100): #ctrl + d 
+            self._printDBStats()
         else:
             event.Skip()
 
     def onMouse(self, event):
         if all([event.RightUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
             self._showInspectionTool()
+            
+        elif all([event.LeftUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
+            self._printDBStats()
+            
         else:
             event.Skip()
             
@@ -247,6 +259,12 @@ class Stats(XRCPanel):
         except Exception:
             import traceback
             traceback.print_exc()
+            
+    def _printDBStats(self):
+        torrentdb = TorrentDBHandler.getInstance()
+        tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+        for table, in tables:
+            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s"%table)
 
     def Show(self, show = True):
         if show:
@@ -446,7 +464,7 @@ class DispersyPanel(HomePanel):
             self.gridSizer.Add(self.textdict[key])
 
         for key, value in info.iteritems():
-            if key in ["lan_address", "wan_address", "statistics"]:
+            if key in ["lan_address", "wan_address", "statistics", "connection_type"]:
                 if key == 'statistics':
                     if 'total_up' in value:
                         addColumn('total_up')
@@ -526,17 +544,23 @@ class DispersyPanel(HomePanel):
                 root = self.summary_tree.AddRoot("fake")
                 for community in sorted(info["communities"], key=lambda community: (community["classification"], community["hex_cid"])):
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
-                        candidates = str(len(community["candidates"]))
+                        candidates = "%d " % len(community["candidates"])
+                    elif community["candidates"]:
+                        candidates = "%d*" % len(community["candidates"])
                     else:
-                        candidates = "-"
-                    parent = self.summary_tree.AppendItem(root, u"%s %6d %2s %s @%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"]))
-                    self.summary_tree.AppendItem(parent, u"%s @%d" % (community["classification"], community["global_time"]))
+                        candidates = "- "
+                    parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"classification:     %s" % community["classification"])
+                    self.summary_tree.AppendItem(parent, u"database id:        %d" % community["database_id"])
+                    self.summary_tree.AppendItem(parent, u"global time:        %d" % community["global_time"])
+                    self.summary_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community["acceptable_global_time"] - community["dispersy_acceptable_global_time_range"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community["dispersy_acceptable_global_time_range"])
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
-                        for address in sorted(("%s:%d" % wan_address if lan_address == wan_address else "%s:%d, %s:%d" % (wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
-                                        for lan_address, wan_address
-                                        in community["candidates"]):
-                            self.summary_tree.AppendItem(sub_parent, address)
+                        for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
+                                                for lan_address, wan_address, global_time
+                                                in community["candidates"]):
+                            self.summary_tree.AppendItem(sub_parent, candidate)
                     sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
                     for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
                         self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
@@ -748,7 +772,7 @@ class BuzzPanel(HomePanel):
         self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
 
         self.refresh = 5
-        self.GetBuzzFromDB(doRefresh=True)
+        self.GetBuzzFromDB(doRefresh=True,samplesize=10)
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
@@ -778,15 +802,9 @@ class BuzzPanel(HomePanel):
 
     def ForceUpdate(self):
         self.GetBuzzFromDB(doRefresh=True)
-
     
-    def GetBuzzFromDB(self, doRefresh=False):
+    def GetBuzzFromDB(self, doRefresh=False, samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
         def do_db():
-        
-            # needs fine-tuning:
-            # (especially for cold-start/fresh Tribler install?)
-            samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE
-    
             self.buzz_cache = [[],[],[]]
             buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
             for i in range(len(buzz)):
@@ -799,6 +817,10 @@ class BuzzPanel(HomePanel):
 
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
+        if event:
+            if self.DoPauseResume():
+                return
+        
         self.refresh -= 1
         if self.refresh <= 0 or force or fromDBThread:
             if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force or fromDBThread:
@@ -905,16 +927,19 @@ class BuzzPanel(HomePanel):
         timerstop = not enter #stop timer if one control has enter==true
 
         if timerstop != self.timer.IsRunning():
-            if enter:
-                self.timer.Stop()
-                self.footer.SetTitle('Update has paused')
-            else:
+            if not enter:
                 self.timer.Start(1000, False)
                 self.footer.SetTitle('Resuming update')
+        
+        if enter:
+            self.timer.Stop()
+            self.footer.SetTitle('Update has paused')
+        return enter
 
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
             self.OnEnterWindow(event)
+            
         elif event.Leaving():
             self.OnLeaveWindow(event)
 
@@ -923,6 +948,7 @@ class BuzzPanel(HomePanel):
     def OnEnterWindow(self, event):
         evtobj = event.GetEventObject()
         evtobj.enter = True
+        
         self.DoPauseResume()
 
     def OnLeaveWindow(self, event = None):
@@ -930,7 +956,7 @@ class BuzzPanel(HomePanel):
             evtobj = event.GetEventObject()
             evtobj.enter = False
 
-        self.DoPauseResume()
+        wx.CallAfter(self.DoPauseResume)
 
     def OnClick(self, event):
         evtobj = event.GetEventObject()

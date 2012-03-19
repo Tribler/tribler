@@ -385,6 +385,7 @@ class SelectedChannelList(GenericSearchList):
     def SetChannelState(self, state, iamModerator):
         self.iamModerator = iamModerator
         self.state = state
+        
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.commentList.Show(True)
@@ -432,7 +433,7 @@ class SelectedChannelList(GenericSearchList):
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.extended_description, playlist.nr_torrents, 0, 0], playlist, PlaylistItem) for playlist in playlists]
             
-            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.state == ChannelCommunity.CHANNEL_OPEN)
+            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.isOpen())
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.time_stamp, torrent.length, 0, 0], torrent, DragItem) for torrent in torrents]
             else:
@@ -443,7 +444,7 @@ class SelectedChannelList(GenericSearchList):
         else:
             header =  'No torrents or playlists found.'
             
-            if self.state == ChannelCommunity.CHANNEL_OPEN:
+            if self.channel.isOpen():
                 message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
                 self.list.ShowMessage(message, header = header)
             else:
@@ -1416,7 +1417,12 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 return channel_state, iamModerator
             
             def update_panel(delayedResult):
-                channel_state, iamModerator = delayedResult.get() 
+                try:
+                    channel_state, iamModerator = delayedResult.get()
+                    
+                except:
+                    startWorker(update_panel, db_call, delay=1.0, retryOnBusy=True)
+                    return
                 
                 if iamModerator:
                     if iamModerator and not channel.isMyChannel():
@@ -2284,13 +2290,18 @@ class CommentManager:
         self.playlist = None
         self.channeltorrent = None
     
-    def SetIds(self, channel = None, playlist = None, channeltorrent = None):
+    def SetIds(self, channel, playlist = None, channeltorrent = None):
         changed = False
         
         if channel != self.channel:
             self.channel = channel
             self.list.header.SetTitle('Comments for this channel')
             
+            if channel:
+                self.list.EnableCommeting(channel.isFavorite())
+            else:
+                self.list.EnableCommeting(False)
+                
             changed = True
         
         if playlist != self.playlist:
@@ -2327,8 +2338,12 @@ class CommentManager:
             if self.channeltorrent:
                 return self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
             return self.channelsearch_manager.getCommentsFromChannel(self.channel)
-
-        startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+        
+        if self.channel.isFavorite():
+            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+        else:
+            self.list.ShowPreview()
+            self.list.dirty = False
             
     def new_comment(self):
         self.do_or_schedule_refresh()
@@ -2397,6 +2412,22 @@ class CommentList(List):
         else:
             self.list.ShowMessage('No comments are found.')
         self.SetNrResults(len(listData))
+        
+    def ShowPreview(self):
+        altControl = None
+        if isinstance(self.parent_list, SelectedChannelList):
+            altControl = wx.BoxSizer(wx.HORIZONTAL)
+            altControl.AddStretchSpacer()
+            
+            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
+            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+            altControl.Add(button, 0, wx.TOP, 3)
+            altControl.AddStretchSpacer()
+            
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start receiving comments.','No comments received yet', altControl)
+        
+    def EnableCommeting(self, enable = True):
+        self.footer.EnableCommeting(enable)
     
     def OnExpand(self, item):
         if self.canReply:
@@ -2435,7 +2466,7 @@ class ActivityManager:
         self.playlist = None
         self.channeltorrent = None
         
-    def SetIds(self, channel = None, playlist = None):
+    def SetIds(self, channel, playlist = None):
         if channel != self.channel:
             self.channel = channel
             self.list.dirty = True
@@ -2485,7 +2516,11 @@ class ActivityManager:
             self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
             self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations, recent_markings)
         
-        startWorker(do_gui, db_callback, retryOnBusy=True)
+        if self.channel.isFavorite():
+            startWorker(do_gui, db_callback, retryOnBusy=True)
+        else:
+            self.list.ShowPreview()
+            self.list.dirty = False
         
     def new_activity(self):
         self.do_or_schedule_refresh()
@@ -2530,6 +2565,20 @@ class ActivityList(List):
             self.list.SetData(data)
         else:
             self.list.ShowMessage('No recent activity is found.')
+        
+    @forceWxThread   
+    def ShowPreview(self):
+        altControl = None
+        if isinstance(self.parent_list, SelectedChannelList):
+            altControl = wx.BoxSizer(wx.HORIZONTAL)
+            altControl.AddStretchSpacer()
+            
+            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
+            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+            altControl.Add(button, 0, wx.TOP, 3)
+            altControl.AddStretchSpacer()
+            
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing activity.','No activity received yet', altControl)
             
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)
@@ -2564,7 +2613,11 @@ class ModificationManager:
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
-        startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+        if self.torrent.channel.isFavorite():
+            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+        else:
+            self.list.ShowPreview()
+            self.list.dirty = False
         
     def new_modification(self):
         self.do_or_schedule_refresh()
@@ -2599,6 +2652,10 @@ class ModificationList(List):
         else:
             self.list.ShowMessage('No modifications are found.')
         self.SetNrResults(len(data))
+        
+    @forceWxThread   
+    def ShowPreview(self):
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing modifications.','No modifications received yet')
         
     def OnRevertModification(self, modification):
         dlg = wx.Dialog(None, -1, 'Revert this modification', size = (700, 400), style = wx.RESIZE_BORDER|wx.DEFAULT_DIALOG_STYLE)
@@ -2696,7 +2753,11 @@ class ModerationManager:
                 return self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
             return self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         
-        startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+        if self.channel.isFavorite():
+            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True)
+        else:
+            self.list.ShowPreview()
+            self.list.dirty = False
         
     def new_moderation(self):
         self.do_or_schedule_refresh()
@@ -2727,6 +2788,20 @@ class ModerationList(List):
         else:
             self.list.ShowMessage('No moderations are found.\nModerations are modifications which are reverted by another peer.')
         self.SetNrResults(len(data))
+        
+    @forceWxThread   
+    def ShowPreview(self):
+        altControl = None
+        if isinstance(self.parent_list, SelectedChannelList):
+            altControl = wx.BoxSizer(wx.HORIZONTAL)
+            altControl.AddStretchSpacer()
+            
+            button = wx.Button(self.list.messagePanel, -1, 'Mark as Favorite')
+            button.Bind(wx.EVT_BUTTON, self.parent_list.OnFavorite)
+            altControl.Add(button, 0, wx.TOP, 3)
+            altControl.AddStretchSpacer()
+            
+        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing moderations.','No moderations received yet', altControl)        
         
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)

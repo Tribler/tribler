@@ -305,13 +305,14 @@ class Storage:
                     length = min(end-pos, MAXREADSIZE)
                     data = h.read(length)
                     if len(data) != length:
-                        raise IOError('error reading data from '+ file)
+                        raise IOError('Could not read up to length')
                     r.append(data)
                     pos += length
+            except Exception, e:
+                raise IOError('error reading data from %s, error (%s)'%(file, e))
+            
+            finally:
                 self.lock.release()
-            except:
-                self.lock.release()
-                raise IOError('error reading data from '+ file)
         return r
 
     def write(self, pos, s):

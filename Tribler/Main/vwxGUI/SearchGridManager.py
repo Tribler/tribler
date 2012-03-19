@@ -38,7 +38,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedT
 import threading
 from copy import copy
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from wx.lib import delayedresult
+from Tribler.community.channel.preview import PreviewChannelCommunity
 
 DEBUG = False
 
@@ -275,7 +275,17 @@ class TorrentManager:
                     if torrent_filename[0]:
                         return torrent_filename[1]
             else:
-                tdef = TorrentDef.load(torrent_filename)
+                try:
+                    tdef = TorrentDef.load(torrent_filename)
+                except ValueError:
+                    #we should move fixTorrent to this object
+                    if self.guiUtility.frame.fixTorrent(torrent_filename):
+                        tdef = TorrentDef.load(torrent_filename)
+                    else:
+                        #cannot repair torrent, removing
+                        os.remove(torrent_filename)
+                        self.loadTorrent(torrent, callback)
+                        
                 torrent = CollectedTorrent(torrent, tdef)
             
         if not callback is None:
@@ -400,7 +410,7 @@ class TorrentManager:
         returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
 
         if DEBUG:
-            print >> sys.stderr, 'getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
+            print >> sys.stderr, 'TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s' % (time() - begintime, beginbundle - beginsort, time() - beginbundle)
         
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
@@ -481,11 +491,12 @@ class TorrentManager:
                 self.hitsLock.release()
                 self.remoteLock.release()
             
-    def setBundleMode(self, bundle_mode):
+    def setBundleMode(self, bundle_mode,refresh=True):
         if bundle_mode != self.bundle_mode:
             self.bundle_mode = bundle_mode
             self.bundle_mode_changed = True
-            self.refreshGrid()
+            if refresh:
+                self.refreshGrid()
 
     def searchLocalDatabase(self):
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """
@@ -500,7 +511,11 @@ class TorrentManager:
         
         if len(self.searchkeywords) == 0 and len(self.fts3feaures) == 0:
             return False
+    
+        return self._doSearchLocalDatabase()
         
+    @forceAndReturnDBThread
+    def _doSearchLocalDatabase(self):
         results = self.torrent_db.searchNames(self.searchkeywords + self.fts3feaures)
 
         if len(results) > 0:
@@ -708,11 +723,11 @@ class TorrentManager:
             self.remoteLock.release()
             
             if refreshGrid:
-                self.refreshGrid()
+                self.refreshGrid(remote=True)
     
-    def refreshGrid(self):
+    def refreshGrid(self, remote=False):
         if self.gridmgr is not None:
-            self.gridmgr.refresh()
+            self.gridmgr.refresh(remote)
 
     #Rameez: The following code will call normalization functions and then 
     #sort and merge the torrent results
@@ -927,6 +942,18 @@ class LibraryManager:
         else:
             videoplayer.play(ds, selectedinfilename)
     
+    def startDownloadFromUrl(self, url, useDefault = False):
+        if useDefault:
+            dscfg = DefaultDownloadStartupConfig.getInstance()
+            destdir = dscfg.get_dest_dir()
+        else:
+            destdir = None
+        
+        if url.startswith("http"):
+            self.guiUtility.frame.startDownloadFromUrl(url, destdir)
+        elif url.startswith("magnet:"):
+            self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
+    
     def resumeTorrent(self, torrent):
         download = None
         if torrent.ds:
@@ -949,10 +976,30 @@ class LibraryManager:
                 
                 destdirs = self.mypref_db.getMyPrefStats(torrent.torrent_id)
                 destdir = destdirs.get(torrent.torrent_id, None)
+                if destdir:
+                    destdir = destdir[-1]
                 self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
             else:
                 callback = lambda infohash, metadata, filename: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
+        
+        self.user_download_choice.set_download_state(torrent.infohash, "restart")
+        
+    def stopTorrent(self, torrent):
+        download = None
+        if torrent.ds:
+            download = torrent.ds.get_download()
+        
+        if not download:
+            session = self.guiUtility.utility.session
+            for curdownload in session.get_downloads():
+                if curdownload.get_def().get_infohash() == torrent.infohash:
+                    download = curdownload
+                    break
+        
+        if download:
+            download.stop()
+        self.user_download_choice.set_download_state(torrent.infohash, "stop")
     
     def deleteTorrent(self, torrent, removecontent = False):
         self.deleteTorrentDS(torrent.ds, torrent.infohash, removecontent)
@@ -983,14 +1030,16 @@ class LibraryManager:
             self.mypref_db.updateDestDir(infohash,"")
             self.user_download_choice.remove_download_state(infohash)
     
-    def connect(self, session, torrentsearch_manager):
+    def connect(self, session, torrentsearch_manager, channelsearch_manager):
         self.session = session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
         self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
         self.search_db = session.open_dbhandler(NTFY_SEARCH)
+        
         self.torrentsearch_manager = torrentsearch_manager
+        self.channelsearch_manager = channelsearch_manager
     
     def getHitsInCategory(self):
         if DEBUG: begintime = time()
@@ -1002,11 +1051,13 @@ class LibraryManager:
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 
-                #touch channel to force load
-                t.channel
+                #touch channel to force load, if it has a channel -> load channeltorrent
+                if t.channel:
+                    ct = self.channelsearch_manager.getTorrentFromChannelTorrentId(t.channel, t.channeltorrents_id)
+                    ct.progress = t.progress
+                    return ct 
                 
                 return t
-            
             results = map(create_torrent, results)
         
         #Niels: maybe create a clever reranking for library results, for now disable
@@ -1027,6 +1078,7 @@ class LibraryManager:
             
             #touch channel to force load
             t.channel
+            self.addDownloadState(t)
             return t
     
     def exists(self, infohashes):
@@ -1706,7 +1758,7 @@ class ChannelManager:
         community._disp_create_moderation(text, long(time()), severity, cause)
         
     def getChannelForTorrent(self, infohash):
-        return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)
+        return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)[:-1]
     
     def getNrTorrentsDownloaded(self, publisher_id):
         return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
@@ -1729,6 +1781,8 @@ class ChannelManager:
             pass
         
     def getChannelHits(self):
+        if DEBUG: begintime = time()
+        
         hitsUpdated = self.searchLocalDatabase()
         if DEBUG:
             print >>sys.stderr,'ChannelManager: getChannelHits: search found: %d items' % len(self.hits)
@@ -1769,6 +1823,9 @@ class ChannelManager:
         finally:
             self.remoteLock.release()
 
+        if DEBUG:
+            print >> sys.stderr, "ChannelManager: getChannelHits took", time() - begintime
+
         if len(self.hits) == 0:
             return [0, hitsUpdated, None]
         else:
@@ -1806,7 +1863,10 @@ class ChannelManager:
      
         if len(self.searchkeywords) == 0 or len(self.searchkeywords) == 1 and self.searchkeywords[0] == '':
             return False
+        return self._searchLocalDatabase()
 
+    @forceAndReturnDBThread
+    def _searchLocalDatabase(self):
         self.hits = {}
         hits = self.channelcast_db.searchChannels(self.searchkeywords)
         _,_,channels = self._createChannels(hits)
@@ -1842,7 +1902,7 @@ class ChannelManager:
     def gotRemoteHits(self, permid, kws, answers):
         """ Called by GUIUtil when hits come in. """
         if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True)
+            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True, workerType = "guiTaskQueue")
 
     def _gotRemoteHits(self, permid, kws, answers):
         # @param permid: the peer who returned the answer to the query

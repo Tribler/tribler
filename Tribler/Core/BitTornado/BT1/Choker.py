@@ -31,7 +31,6 @@ class Choker:
         
         # SelectiveSeeding
         self.seeding_manager = None
-
         
     def set_round_robin_period(self, x):
         self.round_robin_period = x
@@ -257,3 +256,7 @@ class Choker:
     def set_seeding_manager(self, manager):
         # When seeding starts, a non-trivial seeding manager will be set
         self.seeding_manager = manager
+        
+    def is_conn_eligible(self, connection):
+        if self.seeding_manager:
+            return self.seeding_manager.is_conn_eligible(connection)

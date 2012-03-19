@@ -12,10 +12,11 @@ from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from threading import Event
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import forceWxThread
+from traceback import print_exc
 
 class CreateTorrent(wx.Dialog):
     def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel = False):
-        wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(500,200))
+        wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600,200))
         self.guiutility = GUIUtility.getInstance()
         self.toChannel = toChannel
         
@@ -38,6 +39,10 @@ class CreateTorrent(wx.Dialog):
         hSizer.Add(browseButton)
         hSizer.Add(browseDirButton)
         vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
+        
+        self.recursive = wx.CheckBox(self, -1, 'Include all subdirectories')
+        self.recursive.Bind(wx.EVT_CHECKBOX, self.OnRecursive)
+        vSizer.Add(self.recursive, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
         
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
         
@@ -88,7 +93,13 @@ class CreateTorrent(wx.Dialog):
         
         vSizer.Add(StaticText(self, -1, 'Comment'))
         self.commentList = wx.TextCtrl(self, -1, '', style = wx.TE_MULTILINE)
-        vSizer.Add(self.commentList, 0, wx.EXPAND|wx.BOTTOM, 3)
+        vSizer.Add(self.commentList, 0, wx.EXPAND, 3)
+        
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.TOP, 10)
+        
+        header = wx.StaticText(self, -1, 'Advanced options')
+        _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Add(header, 0, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)
         
         abbrev_mb = " " + self.guiutility.utility.lang.get('MB')
         abbrev_kb = " " + self.guiutility.utility.lang.get('KB')
@@ -106,7 +117,12 @@ class CreateTorrent(wx.Dialog):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, 'Piecesize'), 1)
         hSizer.Add(self.pieceChoice)
-        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
+        
+        vSizer.Add(StaticText(self, -1, 'Webseed'))
+        self.webSeed = wx.TextCtrl(self, -1, 'Please select a file or files first')
+        self.webSeed.Enable(False)
+        vSizer.Add(self.webSeed, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
@@ -136,6 +152,7 @@ class CreateTorrent(wx.Dialog):
             self.latestFile = self.filehistory.GetHistoryFile(0)
         else:
             self.latestFile = ''
+        self.paths = None
         
     def OnBrowse(self, event):
         dlg = wx.FileDialog(self, "Please select the file(s).", style = wx.FD_OPEN|wx.FD_MULTIPLE, defaultDir = self.latestFile)
@@ -157,19 +174,23 @@ class CreateTorrent(wx.Dialog):
         else:
             dlg.Destroy()
             
+    def OnRecursive(self, event):
+        self._browsePaths()
+            
     def OnCombine(self, event = None):
         combine = self.combineRadio.GetValue()
-        self.specifiedName.Enable(combine)
-        
+        self.specifiedName.Enable(False)
         if combine:
             path = ''
-            if len(self.selectedPaths) > 1:
-                path = os.path.commonprefix(self.selectedPaths)
-                if path:
-                    path = path[:-1]
-            elif len(self.selectedPaths) > 0:
-                path = self.selectedPaths[0]
             
+            nrFiles = len([file for file in self.selectedPaths if os.path.isfile(file)])
+            if nrFiles > 1:
+                self.specifiedName.Enable(True)
+                path = os.path.abspath(os.path.commonprefix(self.selectedPaths))
+                
+            elif nrFiles > 0:
+                path = self.selectedPaths[0]
+                
             _, name = os.path.split(path)
             self.specifiedName.SetValue(name)
             
@@ -242,9 +263,11 @@ class CreateTorrent(wx.Dialog):
             self.filehistory.Save(self.fileconfig)
             self.fileconfig.Flush() 
             
-            
             params['announce'] = trackers[0]
             params['announce-list'] = [trackers]
+            
+            if self.webSeed.GetValue():
+                params['urllist'] = [self.webSeed.GetValue()]
             
             params['nodes'] = False
             params['httpseeds'] = False
@@ -269,17 +292,25 @@ class CreateTorrent(wx.Dialog):
                     self.EndModal(wx.ID_OK)
             
             def create_torrents():
-                if self.combineRadio.GetValue():
-                    params['name'] = self.specifiedName.GetValue()
-                    make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
-                else:
-                    for i, path in enumerate(self.selectedPaths):
-                        make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                try:
+                    if self.combineRadio.GetValue():
+                        params['name'] = self.specifiedName.GetValue()
+                        make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
+                    else:
+                        for path in self.selectedPaths:
+                            if os.path.isfile(path):
+                                make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                except:
+                    print_exc()
                         
                 wx.CallAfter(do_gui)
                 
             def start():
-                self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                if self.combineRadio.GetValue():
+                    self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+                else:
+                    self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style = wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                self.progressDlg.Pulse()
                 self.progressDlg.cur = 0
                 
                 self.guiserver = GUITaskQueue.getInstance()
@@ -311,25 +342,54 @@ class CreateTorrent(wx.Dialog):
     def OnCancel(self, event):
         self.EndModal(wx.ID_CANCEL)
         
-    def _browsePaths(self, paths):
-        label = ";".join(paths)
-        self.locationText.SetLabel(label)
-        
-        if os.path.isdir(paths[0]):
-            paths = [os.path.join(paths[0], file) for file in os.listdir(paths[0]) if (not file.endswith('.torrent') and not file.lower().endswith('thumbs.db') and os.path.isfile(os.path.join(paths[0], file)))]
-        
-        self.selectedPaths = paths
-        self.foundFilesText.SetLabel('Selected %d files'%len(paths))
-        
-        self.combineRadio.Enable(len(paths) > 0)
-        self.sepRadio.Enable(len(paths) > 1)
-        
-        self.combineRadio.SetValue(len(paths) == 1)
-        self.sepRadio.SetValue(len(paths) > 1)
-        
-        self.OnCombine()
-        
-        self.Layout()
+    def _browsePaths(self, paths = None):
+        if paths:
+            self.paths = paths
+        else:
+            paths = self.paths
+            
+        if paths:
+            label = ";".join(paths)
+            self.locationText.SetLabel(label)
+            
+            if os.path.isdir(paths[0]):
+                def addDir(path, recursive = False):
+                    paths = [path]
+                    
+                    for file in os.listdir(path):
+                        absfile = os.path.join(path, file)
+                        
+                        if os.path.isfile(absfile):
+                            if file.lower().endswith('.torrent') or file.lower().endswith('thumbs.db'):
+                                continue
+                            paths.append(absfile)
+                            
+                        elif os.path.isdir(absfile) and recursive:
+                            paths.extend(addDir(absfile, recursive))
+                    
+                    return paths
+                paths = addDir(paths[0], self.recursive.GetValue())
+            
+            self.selectedPaths = paths
+            nrFiles = len([file for file in paths if os.path.isfile(file)])
+            self.foundFilesText.SetLabel('Selected %d files'%nrFiles)
+            
+            if nrFiles == 1:
+                self.webSeed.SetLabel('')
+                self.webSeed.Enable(True)
+            else:
+                self.webSeed.SetLabel('Webseed will only work for a single file.')
+                self.webSeed.Enable(False)
+            
+            self.combineRadio.Enable(nrFiles > 0)
+            self.sepRadio.Enable(nrFiles > 1)
+            
+            self.combineRadio.SetValue(nrFiles == 1)
+            self.sepRadio.SetValue(nrFiles > 1)
+            
+            self.OnCombine()
+            
+            self.Layout()
     
     @forceWxThread
     def _torrentCreated(self, path, correctedfilename, torrentfilename):
@@ -344,28 +404,35 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     tdef = TorrentDef()
     
     basedir = None
-    if len(srcpaths) > 1:
-        basepath = []
+    
+    nrFiles = len([file for file in srcpaths if os.path.isfile(file)])
+    if nrFiles > 1:
+        #outpaths should start with a common prefix, this prefix is the swarmname of the torrent
+        #if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
+        #if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
+        basepath = os.path.abspath(os.path.commonprefix(srcpaths))
+        basepath, basedir = os.path.split(basepath)
         for srcpath in srcpaths:
-            path, filename = os.path.split(srcpath)
-            basepath.append(path)
-        
-        basepath, basedir = os.path.split(os.path.commonprefix(basepath))
-        for srcpath in srcpaths:
-            outpath = os.path.relpath(srcpath, basepath)
-            
-            # h4x0r playtime
-            if 'playtime' in params:
-                tdef.add_content(srcpath, outpath, playtime=params['playtime'])
-            else:
-                tdef.add_content(srcpath, outpath)
+            if os.path.isfile(srcpath):
+                outpath = os.path.relpath(srcpath, basepath)
+                
+                # h4x0r playtime
+                if 'playtime' in params:
+                    tdef.add_content(srcpath, outpath, playtime=params['playtime'])
+                else:
+                    tdef.add_content(srcpath, outpath)
     else:
+        srcpaths = [file for file in srcpaths if os.path.isfile(file)]
+        
         srcpath = srcpaths[0]
         basepath, _ = os.path.split(srcpath)
         if 'playtime' in params:
             tdef.add_content(srcpath,playtime=params['playtime'])
         else:
             tdef.add_content(srcpath)
+        
+        if params.get('urllist', False):
+            tdef.set_urllist(params['urllist'])
     
     if params['name']:
         tdef.set_name(params['name'])

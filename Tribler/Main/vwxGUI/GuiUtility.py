@@ -54,7 +54,6 @@ class GUIUtility:
 
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
-     
 
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
         self.max_remote_queries = 20    # max number of remote peers to query
@@ -75,7 +74,7 @@ class GUIUtility:
         
         self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
         self.channelsearch_manager.connect(self.utility.session, self.torrentsearch_manager)
-        self.library_manager.connect(self.utility.session, self.torrentsearch_manager)
+        self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
         self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
     
     def ShowPlayer(self, show):
@@ -299,7 +298,7 @@ class GUIUtility:
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 
-                wx.CallAfter(self.torrentsearch_manager.refreshGrid)
+                startWorker(None, self.torrentsearch_manager.refreshGrid, priority = 1)
                 
                 if len(remotekeywords) > 0:
                     #Start remote search

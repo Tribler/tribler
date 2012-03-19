@@ -98,6 +98,7 @@ class DispersyDatabase(Database):
         if database_version == 0:
             # setup new database with current database_version
             self.executescript(schema)
+            self.commit()
 
         else:
             # upgrade an older version
@@ -108,6 +109,7 @@ class DispersyDatabase(Database):
 ALTER TABLE sync ADD COLUMN priority INTEGER DEFAULT 128;
 UPDATE option SET value = '2' WHERE key = 'database_version';
 """)
+                self.commit()
 
             # upgrade from version 2 to version 3
             if database_version < 3:
@@ -121,6 +123,7 @@ ALTER TABLE sync ADD COLUMN undone BOOL DEFAULT 0;
 UPDATE tag SET value = 'blacklist' WHERE key = 4;
 UPDATE option SET value = '3' WHERE key = 'database_version';
 """)
+                self.commit()
 
             # upgrade from version 3 to version 4
             if database_version < 4:
@@ -233,6 +236,7 @@ ALTER TABLE new_malicious_proof RENAME TO malicious_proof;
 -- update database version
 UPDATE option SET value = '4' WHERE key = 'database_version';
 """)
+                self.commit()
 
             # upgrade from version 4 to version 5
             if database_version < 5:
@@ -240,6 +244,7 @@ UPDATE option SET value = '4' WHERE key = 'database_version';
 DROP TABLE candidate;
 UPDATE option SET value = '5' WHERE key = 'database_version';
 """)
+                self.commit()
 
             # upgrade from version 5 to version 6
             if database_version < 6:
@@ -247,6 +252,7 @@ UPDATE option SET value = '5' WHERE key = 'database_version';
 DROP TABLE identity;
 UPDATE option SET value = '6' WHERE key = 'database_version';
 """)
+                self.commit()
 
             # upgrade from version 6 to version 7
             if database_version < 7:
@@ -255,6 +261,7 @@ DROP INDEX sync_meta_message_index;
 CREATE INDEX sync_meta_message_global_time_index ON sync(meta_message, global_time);
 UPDATE option SET value = '7' WHERE key = 'database_version';
 """)
+                self.commit()
 
             # upgrade from version 7 to version 8
             if database_version < 8:
@@ -264,22 +271,26 @@ ALTER TABLE community ADD COLUMN database_version INTEGER DEFAULT 0;
 UPDATE option SET value = '8' WHERE key = 'database_version';
 """)
                 if __debug__: dprint("upgrade database ", database_version, " -> ", 8, " (done)")
+                self.commit()
 
             # upgrade from version 8 to version 9
             if database_version < 9:
                 if __debug__: dprint("upgrade database ", database_version, " -> ", 9)
                 self.executescript(u"""
-DROP INDEX sync_meta_message_global_time_index;
-CREATE INDEX sync_global_time_undone_meta_message_index ON sync(global_time, undone, meta_message);
+DROP INDEX IF EXISTS sync_meta_message_global_time_index;
+CREATE INDEX IF NOT EXISTS sync_global_time_undone_meta_message_index ON sync(global_time, undone, meta_message);
 UPDATE option SET value = '9' WHERE key = 'database_version';
 """)
                 if __debug__: dprint("upgrade database ", database_version, " -> ", 9, " (done)")
+                self.commit()
 
             # upgrade from version 9 to version 10
             if database_version < 10:
                 # there is no version 10 yet...
                 # if __debug__: dprint("upgrade database ", database_version, " -> ", 10)
                 # self.executescript(u"""UPDATE option SET value = '10' WHERE key = 'database_version';""")
+                # self.commit()
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 10, " (done)")
                 pass
 
         return LATEST_VERSION

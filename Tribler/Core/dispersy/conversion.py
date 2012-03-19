@@ -911,19 +911,27 @@ class BinaryConversion(Conversion):
     #
 
     def _encode_full_sync_distribution(self, container, message):
+        assert message.distribution.global_time
+        if message.distribution.global_time > message.community.global_time:
+            # did not use community.claim_global_time() FAIL
+            raise ValueError("incorrect global_time value chosen")
         if message.distribution.enable_sequence_number:
-            assert message.distribution.global_time
             assert message.distribution.sequence_number
             container.append(pack("!QL", message.distribution.global_time, message.distribution.sequence_number))
         else:
-            assert message.distribution.global_time
             container.append(pack("!Q", message.distribution.global_time))
 
     def _encode_last_sync_distribution(self, container, message):
         assert message.distribution.global_time
+        if message.distribution.global_time > message.community.global_time:
+            # did not use community.claim_global_time() FAIL
+            raise ValueError("incorrect global_time value chosen")
         container.append(pack("!Q", message.distribution.global_time))
 
     def _encode_direct_distribution(self, container, message):
+        if message.distribution.global_time > message.community.global_time:
+            # did not use community.claim_global_time() FAIL
+            raise ValueError("incorrect global_time value chosen")
         assert message.distribution.global_time
         container.append(pack("!Q", message.distribution.global_time))
 

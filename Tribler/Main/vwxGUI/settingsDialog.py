@@ -1,5 +1,4 @@
-# Written by Richard Gwin
-# Modified by Niels Zeilemaker
+# Written by Niels Zeilemaker
 
 # see LICENSE.txt for license information
 import wx
@@ -52,7 +51,9 @@ class SettingsDialog(wx.Dialog):
                              'use_bundle_magic',\
                              'minimize_to_tray',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
-                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3']
+                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',\
+                             'use_webui', \
+                             'webui_port']
 
         self.myname = None
         self.elements = {}
@@ -60,10 +61,17 @@ class SettingsDialog(wx.Dialog):
         
         pre = wx.PreDialog() 
         self.PostCreate(pre) 
-        self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate) 
+        if sys.platform == 'linux2': 
+            self.Bind(wx.EVT_SIZE, self.OnCreate)
+        else:
+            self.Bind(wx.EVT_WINDOW_CREATE, self.OnCreate)
         
     def OnCreate(self, event):
-        self.Unbind(wx.EVT_WINDOW_CREATE)
+        if sys.platform == 'linux2': 
+            self.Unbind(wx.EVT_SIZE)
+        else:
+            self.Unbind(wx.EVT_WINDOW_CREATE)
+        
         wx.CallAfter(self._PostInit)
         event.Skip()
         return True
@@ -88,6 +96,7 @@ class SettingsDialog(wx.Dialog):
         self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
         self.tree.AppendItem(root,'Seeding',data=wx.TreeItemData(xrc.XRCCTRL(self,"seeding_panel")))
         self.tree.AppendItem(root,'Misc',data=wx.TreeItemData(xrc.XRCCTRL(self,"misc_panel")))
+        self.tree.AppendItem(root,'Experimental',data=wx.TreeItemData(xrc.XRCCTRL(self,"exp_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
         #Bind event listeners
@@ -201,6 +210,10 @@ class SettingsDialog(wx.Dialog):
         g2g_hours = self.utility.config.Read('g2g_hours', 'int') 
         g2g_mins = self.utility.config.Read('g2g_mins', 'int')
         self.elements['g2g2text'].SetLabel("%d:%d"%(g2g_hours, g2g_mins))
+        
+        self.elements['use_webui'].SetValue(self.utility.config.Read('use_webui', "boolean"))
+        self.elements['webui_port'].SetValue(str(self.utility.config.Read('webui_port', "int")))
+        
         wx.CallAfter(self.Refresh)
     
     def OnSelectionChanging(self, event):
@@ -298,38 +311,47 @@ class SettingsDialog(wx.Dialog):
                         errors['g2g2text'] = 'Needs to be hours:minutes'
                     else:
                         self.elements['g2g2text'].SetValue('')
+                        
+        valwebuiport = self.elements['webui_port'].GetValue().strip()
+        if not valwebuiport.isdigit():
+            errors['webui_port'] = 'Value must be a digit'
         
         if len(errors) == 0: #No errors found, continue saving
             restart = False
             
+            state_dir = self.utility.session.get_state_dir()
+            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            
             if valdown == 'unlimited':
                 self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
-                self.guiUtility.utility.config.Write('maxdownloadrate', '0')
+                self.utility.config.Write('maxdownloadrate', '0')
             else:
                 self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, int(valdown))
-                self.guiUtility.utility.config.Write('maxdownloadrate', valdown)
+                self.utility.config.Write('maxdownloadrate', valdown)
 
             if valup == 'unlimited':
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
                 self.utility.ratelimiter.set_global_max_seedupload_speed(0)
-                self.guiUtility.utility.config.Write('maxuploadrate', '0')
-                self.guiUtility.utility.config.Write('maxseeduploadrate', '0')
+                self.utility.config.Write('maxuploadrate', '0')
+                self.utility.config.Write('maxseeduploadrate', '0')
             elif valup == '0':
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
                 self.utility.ratelimiter.set_global_max_seedupload_speed(0.0001)
-                self.guiUtility.utility.config.Write('maxuploadrate', '-1')
-                self.guiUtility.utility.config.Write('maxseeduploadrate', '-1')
+                self.utility.config.Write('maxuploadrate', '-1')
+                self.utility.config.Write('maxseeduploadrate', '-1')
             else: 
                 self.utility.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
                 self.utility.ratelimiter.set_global_max_seedupload_speed(int(valup))
-                self.guiUtility.utility.config.Write('maxuploadrate', valup)
-                self.guiUtility.utility.config.Write('maxseeduploadrate', valup)
+                self.utility.config.Write('maxuploadrate', valup)
+                self.utility.config.Write('maxseeduploadrate', valup)
 
             if valport != self.currentPortValue:
-                self.currentPortValue = self.elements['firewallValue'].GetValue()
                 self.utility.config.Write('minport', valport)
-                self.utility.config.Write('minport', valport + 10)
-                self.utility.config.Write('dispersy_port', valport - 1)
+                self.utility.config.Write('maxport', int(valport) + 10)
+                
+                scfg.set_dispersy_port(int(valport) - 1)
+                self.saveDefaultDownloadConfig(scfg)
                 
                 self.guiUtility.set_port_number(valport) 
                 self.guiUtility.set_firewall_restart(True)
@@ -338,24 +360,27 @@ class SettingsDialog(wx.Dialog):
             showSave = self.elements['diskLocationChoice'].IsChecked()
             if showSave != self.defaultDLConfig.get_show_saveas():
                 self.defaultDLConfig.set_show_saveas(showSave)
-                self.saveDefaultDownloadConfig()
-            
-            state_dir = self.utility.session.get_state_dir()
-            cfgfilename = self.utility.session.get_default_config_filename(state_dir)
-            scfg = SessionStartupConfig.load(cfgfilename)
+                self.saveDefaultDownloadConfig(scfg)
             
             if valdir != self.currentDestDir:
                 self.defaultDLConfig.set_dest_dir(valdir)
-                scfg.set_proxyservice_dir(os.path.join(valdir, PROXYSERVICE_DESTDIR))
-                scfg.set_subtitles_collecting_dir(os.path.join(valdir, 'collected_subtitles_files'))
                 
-                self.saveDefaultDownloadConfig()
+                self.saveDefaultDownloadConfig(scfg)
                 self.moveCollectedTorrents(self.currentDestDir, valdir)
                 restart = True
                 
             useBundleMagic = self.elements['use_bundle_magic'].IsChecked()
             if useBundleMagic != self.utility.config.Read('use_bundle_magic', "boolean"):
                 self.utility.config.Write('use_bundle_magic', useBundleMagic, "boolean")
+                
+            useWebUI = self.elements['use_webui'].IsChecked() 
+            if useWebUI != self.utility.config.Read('use_webui', "boolean"):
+                self.utility.config.Write('use_webui', useWebUI, "boolean")
+                restart = True
+            
+            if valwebuiport != str(self.utility.config.Read('webui_port', "int")):
+                self.utility.config.Write('webui_port', valwebuiport, "int")
+                restart = True
                 
             curMintray =  self.utility.config.Read('mintray', "int")
             minimizeToTray = 1 if self.elements['minimize_to_tray'].IsChecked() else 0 
@@ -378,10 +403,15 @@ class SettingsDialog(wx.Dialog):
                 self.utility.config.Write('popup_player', selectedPopup, "boolean")
                 restart = True
             
-            # tit-4-tat 
+            # tit-4-tat
+            t4t_option = self.utility.config.Read('t4t_option', 'int')
             for i in range (4):
                 if self.elements['t4t%d'%i].GetValue():
                     self.utility.config.Write('t4t_option', i)
+                    
+                    if i != t4t_option:
+                        restart = True
+                    
                     break
             t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection())*100)
             self.utility.config.Write("t4t_ratio", t4t_ratio)
@@ -397,9 +427,13 @@ class SettingsDialog(wx.Dialog):
                     self.utility.config.Write("t4t_mins", 0)
             
             # give-2-get
+            g2g_option = self.utility.config.Read('g2g_option', 'int')
             for i in range (4):
                 if self.elements['g2g%d'%i].GetValue():
                     self.utility.config.Write("g2g_option", i)
+                    
+                    if i != g2g_option:
+                        restart = True
                     break
             g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection())*100)
             self.utility.config.Write("g2g_ratio", g2g_ratio)
@@ -576,7 +610,7 @@ class SettingsDialog(wx.Dialog):
                     dlg.SetSelections(select)
                 dlg.allselected = not dlg.allselected
 
-    def saveDefaultDownloadConfig(self):
+    def saveDefaultDownloadConfig(self, scfg):
         # Save DownloadStartupConfig
         dlcfgfilename = get_default_dscfg_filename(self.utility.session)
         self.defaultDLConfig.save(dlcfgfilename)
@@ -584,17 +618,23 @@ class SettingsDialog(wx.Dialog):
         # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
         # Save SessionStartupConfig
         # Also change torrent collecting dir, which is by default in the default destdir
+        
         state_dir = self.utility.session.get_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
-        scfg = SessionStartupConfig.load(cfgfilename)
-
         defaultdestdir = self.defaultDLConfig.get_dest_dir()
-        dirname = os.path.join(defaultdestdir,STATEDIR_TORRENTCOLL_DIR)
         for target in [scfg,self.utility.session]:
             try:
-                target.set_torrent_collecting_dir(dirname)
+                target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
             except:
                 print_exc()
+            try:
+                target.set_proxyservice_dir(os.path.join(defaultdestdir, PROXYSERVICE_DESTDIR))
+            except:
+                print_exc()
+            try:    
+                target.set_subtitles_collecting_dir(os.path.join(defaultdestdir, STATEDIR_SUBSCOLL_DIR))
+            except:
+                print_exc()    
         scfg.save(cfgfilename)
     
     def moveCollectedTorrents(self, old_dir, new_dir):

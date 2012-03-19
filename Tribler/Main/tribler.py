@@ -35,6 +35,7 @@ from Tribler.Core.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
+from random import randint
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -141,7 +142,7 @@ class ABCApp():
             self.utility.app = self
 
             sys.stderr.write('Client Starting Up.\n')
-            sys.stderr.write('Build: ' + self.utility.lang.get('build') + '\n')
+            sys.stderr.write('Tribler Version: '+self.utility.lang.get('version') + ' Build: ' + self.utility.lang.get('build') + '\n')
             
             # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
             self.PostInit()
@@ -238,6 +239,15 @@ class ABCApp():
             self.frame.Show(True)
            
             self.torrentfeed = RssParser.getInstance()
+            
+            self.webUI = None
+            if self.utility.config.Read('use_webui', "boolean"):
+                try:
+                    from Tribler.Main.webUI.webUI import WebUI
+                    self.webUI = WebUI.getInstance(self.guiUtility.library_manager,  self.guiUtility.torrentsearch_manager, self.utility.config.Read('webui_port', "int"))
+                    self.webUI.start()
+                except Exception:
+                    print_exc()
             
             wx.CallAfter(self.PostInit2)
             
@@ -463,7 +473,7 @@ class ABCApp():
             
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
         
-        progress('Creating session')
+        progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         self.utility.session = s
 
@@ -885,6 +895,8 @@ class ABCApp():
         #friends.done(self.utility.session)
         
         self.torrentfeed.shutdown()
+        if self.webUI:
+            self.webUI.stop()
         
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()
@@ -895,15 +907,13 @@ class ABCApp():
 
         while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
             diff = time() - session_shutdown_start
-            print >>sys.stderr,"main ONEXIT: Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
+            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
             sleep(3)
-        print >>sys.stderr,"main ONEXIT: Session is shutdown"
-
+        print >>sys.stderr,"main: ONEXIT Session is shutdown"
         
-#        print >> sys.stderr, long(time()), "main: Running SQLite vacuum"
-#        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-#        peerdb._db.execute_read('VACUUM')
-#        print >> sys.stderr, long(time()), "main: Finished running SQLite vacuum" 
+        print >>sys.stderr,"main: ONEXIT cleaning database"
+        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+        peerdb._db.clean_db(randint(0,24) == 0)
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -958,7 +968,7 @@ class ABCApp():
                 if torrentfilename.startswith("magnet:"):
                     self.frame.startDownloadFromMagnet(torrentfilename)
                 else:
-                    self.frame.startDownload(torrentfilename,vodmode=True)
+                    self.frame.startDownload(torrentfilename)
                 self.guiUtility.ShowPage('my_files')
 
             wx.CallAfter(start_asked_download)

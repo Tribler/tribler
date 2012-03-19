@@ -523,6 +523,11 @@ class AbstractListBody():
             else:
                 b = b[1][self.sortcolumn] 
             
+            if isinstance(a, basestring):
+                a = a.lower()
+            if isinstance(b, basestring):
+                b = b.lower()
+            
             return cmp(a, b)
         
         if self.sortcolumn != None:
@@ -674,13 +679,14 @@ class AbstractListBody():
         
         if self.messageText.altControl:
             self.messageText.sizer.Detach(self.messageText.altControl)
-            self.messageText.altControl.ShowItems(False)
-            self.messageText.altControl.Clear(True)
+            if getattr(self.messageText.altControl, 'ShowItems', False):
+                self.messageText.altControl.ShowItems(False)
+                self.messageText.altControl.Clear(True)
             self.messageText.altControl = None
 
         if altControl:
             self.messageText.altControl = altControl
-            self.messageText.sizer.Insert(2, altControl)
+            self.messageText.sizer.Insert(2, altControl, 0, wx.EXPAND)
             
         self.loadNext.Hide()
         self.vSizer.ShowItems(False)
@@ -737,7 +743,7 @@ class AbstractListBody():
         else:
             self.raw_data = data
             
-        assert len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d'%(len(data[0][1]), len(self.columns)) 
+        assert len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list)) 
             
         if highlight is None:
             highlight = not self.IsEmpty()
@@ -982,12 +988,7 @@ class AbstractListBody():
     def RemoveItem(self, remove):
         for key, item in self.items.iteritems():
             if item == remove:
-                self.items.pop(key)
-                
-                self.vSizer.Detach(item)
-                item.Destroy()
-                
-                self.OnChange()
+                self.RemoveKey(key)
                 break
             
     @warnWxThread          
@@ -1000,6 +1001,11 @@ class AbstractListBody():
             item.Destroy()
                 
             self.OnChange()
+            
+            for i, curdata in enumerate(self.raw_data):
+                if curdata[0] == key:
+                    self.raw_data.pop(i)
+                    break
             
     def GetExpandedItem(self):
         return self.cur_expanded

@@ -11,7 +11,8 @@ from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDes
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.Core.dispersy.member import DummyMember, Member
-from Tribler.Core.dispersy.message import Message, DropMessage
+from Tribler.Core.dispersy.message import Message, DropMessage,\
+    BatchConfiguration
 from Tribler.Core.dispersy.resolution import PublicResolution
 
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
@@ -71,6 +72,9 @@ class AllChannelCommunity(Community):
             return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
         else:
             return super(AllChannelCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
+        
+    def dispersy_claim_sync_bloom_filter(self, identifier):
+        return self.dispersy_claim_sync_bloom_filter_modulo()
 
     def __init__(self, master, integrate_with_tribler = True, auto_join_channel = False):
         super(AllChannelCommunity, self).__init__(master)
@@ -104,15 +108,21 @@ class AllChannelCommunity(Community):
         self._searchCallbacks = {}
 
     def initiate_meta_messages(self):
+        batch_delay = 3.0
+        
         return [Message(self, u"channelcast", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
                 Message(self, u"channelcast-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
                 Message(self, u"channelsearch", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchPayload(), self.check_channelsearch, self.on_channelsearch),
                 Message(self, u"channelsearch-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelSearchResponsePayload(), self.check_channelsearch_response, self.on_channelsearch_response),
-                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast, self.undo_votecast)
+                Message(self, u"votecast", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), VoteCastPayload(), self.check_votecast, self.on_votecast, self.undo_votecast, batch=BatchConfiguration(max_window=batch_delay))
                 ]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
+    
+    @property
+    def dispersy_sync_response_limit(self):
+        return 50 * 1024
 
     def create_channelcast(self):
         try:
@@ -357,6 +367,7 @@ class AllChannelCommunity(Community):
                 
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
+            votelist = []
             for message in messages:
                 if __debug__: dprint(message)
                 dispersy_id = message.packet_id
@@ -374,11 +385,13 @@ class AllChannelCommunity(Community):
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
                     channel_id = self._get_channel_id(message.payload.cid)
-                    
-                self._votecast_db.on_vote_from_dispersy(channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp)
+                
+                votelist.append((channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp))
                 
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
+                    
+            self._votecast_db.on_votes_from_dispersy(votelist)
     
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -472,13 +485,14 @@ class AllChannelCommunity(Community):
         # 2. convert packet into a Message instance
         message = self._dispersy.convert_packet_to_message(str(packet))        
         if message:
-            assert message.name == messagename, "Expecting a '%s' message"%messagename
             message.packet_id = packet_id
         else:
-            raise RuntimeError("unable to convert packet")
+            raise RuntimeError("Unable to convert packet")
         
         if message.name == messagename:
             return message
+        
+        raise RuntimeError("Message is of an incorrect type, expecting a '%s' message got a '%s'"%(messagename, message.name))
         
     def _drop_all_newer(self, dispersy_id):
         self._channelcast_db.drop_all_newer(dispersy_id)

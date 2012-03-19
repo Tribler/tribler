@@ -397,41 +397,43 @@ class EmbeddedPlayerPanel(wx.Panel):
             self._ToggleFullScreen()
             
         elif event.GetUnicodeKey() == wx.WXK_SPACE:
-            if self.GetState() == MEDIASTATE_PLAYING:
-                self.vlcwrap.pause()
-            else:
-                self.vlcwrap.resume()
+            self._TogglePause()
+    
+    def _TogglePause(self):
+        if self.GetState() == MEDIASTATE_PLAYING:
+            self.vlcwrap.pause()
+        else:
+            self.vlcwrap.resume()
     
     def _ToggleFullScreen(self):
         self.__check_thread()
         
         if isinstance(self.parent, wx.Frame): #are we shown in popup frame
-            if self.ctrlsizer.IsShown(0):
+            if self.ctrlsizer.IsShown(0): #we are not in fullscreen -> ctrlsizer is showing
                 self.parent.ShowFullScreen(True)
                 self.ctrlsizer.ShowItems(False)
                 self.statuslabel.Show(False)
-                
-                def bindEvents(control):
-                    control.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
-                    func = getattr(control, 'GetChildren', False)
-                    if func:
-                        for child in func():
-                            bindEvents(child)
-                bindEvents(self.parent)
                 self.Layout()
+
+                #Niels: 07-03-2012, only evt_close seems to work :(
+                quitId = wx.NewId()
+                pauseId = wx.NewId()
+                self.parent.Bind(wx.EVT_MENU, lambda event: self._ToggleFullScreen(), id = quitId)
+                self.parent.Bind(wx.EVT_MENU, lambda event: self._TogglePause(), id = pauseId)
+                
+                self.parent.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
+                self.parent.Bind(wx.EVT_LEFT_DCLICK, lambda event: self._ToggleFullScreen())
+                
+                accelerators = [(wx.ACCEL_NORMAL, wx.WXK_ESCAPE, quitId), (wx.ACCEL_CTRL, wx.WXK_SPACE, pauseId)]
+                self.parent.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
             else:
                 self.parent.ShowFullScreen(False)
                 self.ctrlsizer.ShowItems(True)
                 self.statuslabel.Show(True)
-                
-                def bindEvents(control):
-                    control.Unbind(wx.EVT_KEY_DOWN)
-                    func = getattr(control, 'GetChildren', False)
-                    if func:
-                        for child in func():
-                            bindEvents(child)
-                bindEvents(self.parent)
                 self.Layout()
+                
+                self.parent.SetAcceleratorTable(wx.NullAcceleratorTable)
+                self.parent.Unbind(wx.EVT_CLOSE)
         else:
             #saving media player state
             cur_time = self.vlcwrap.get_media_position()
@@ -448,8 +450,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 eventPanel.SetBackgroundColour(wx.BLACK)
                 eventPanel.Bind(wx.EVT_KEY_DOWN, lambda event: self.OnFullScreenKey(event))
                 self.fullscreenwindow.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
-                
                 self.fullscreenwindow.ShowFullScreen(True)
+                eventPanel.SetFocus()
                 self.vlcwrap.set_window(self.fullscreenwindow)
             else:
                 self.TellLVCWrapWindow4Playback()

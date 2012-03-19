@@ -214,115 +214,115 @@ class TorrentChecking(Thread):
         while True:
             start = time()
             self.sleepEvent.clear()
-            
             fromQueue = False
             didTrackerCheck = False
             
-            try:
-                self.queueLock.acquire()
-                
-                while True:
-                    torrent = self.queue.popleft()
-                    self.queueset.discard(torrent['infohash'])
-                
-                    fromQueue = True
-                
-                    diff = time() - (torrent['last_check'] or 0)
-                    if diff < 1800:
-                        if DEBUG:
-                            print >> sys.stderr, "Torrent Checking: checking too soon:", torrent
-                        continue    
-                
-                    if DEBUG:
-                        print >> sys.stderr, "Torrent Checking: get value from QUEUE:", torrent
-                        
-                    break
-            
-            except:
-                policy = self.selectPolicy()
-                torrent = self.torrentdb.selectTorrentToCheck(policy=policy)
-                
-                if DEBUG:
-                    print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
+            try:    
+                try:
+                    self.queueLock.acquire()
                     
-            finally:
-                self.queueLock.release()
-                
-            if torrent:
-                notify = []
-                
-                if fromQueue and torrent['ignored_times'] > 0:
-                    #ignoring this torrent
-                    if DEBUG:
-                        print >> sys.stderr, 'Torrent Checking: ignoring torrent:', torrent
-                        
-                    kw = { 'ignored_times': torrent['ignored_times'] -1 }
+                    while True:
+                        torrent = self.queue.popleft()
+                        self.queueset.discard(torrent['infohash'])
                     
-                else:
-                    # read the torrent from disk / use other sources to specify trackers
-                    torrent = self.readTrackers(torrent)
-                    if self.hasTrackers(torrent):
+                        fromQueue = True
+                    
+                        diff = time() - (torrent['last_check'] or 0)
+                        if diff < 1800:
+                            if DEBUG:
+                                print >> sys.stderr, "Torrent Checking: checking too soon:", torrent
+                            continue    
+                    
                         if DEBUG:
-                            print >> sys.stderr, "Torrent Checking: tracker checking", torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
-                            trackerStart = time()
-                               
-                        multidict = multiTrackerChecking(torrent, self.GetInfoHashesForTracker)
-                        didTrackerCheck = True
-                        if DEBUG:
-                            print >> sys.stderr, "Torrent Checking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
-                        
-                        for key, values in multidict.iteritems():
+                            print >> sys.stderr, "Torrent Checking: get value from QUEUE:", torrent
                             
-                            if key != torrent['infohash']:
-                                seeder, leecher = values
-                                
-                                if seeder > 0 or leecher > 0:
-                                    #store result
-                                    curkw = {'seeder':seeder, 'leecher':leecher, 'ignored_times': 0, 'last_check_time': long(time()), 'status':'good'}
-                                    self.torrentdb.updateTorrent(key, commit = False, **curkw)
-                                    notify.append(key)
-                                    
-                                    if DEBUG:
-                                        print >> sys.stderr, "Torrent Checking: new status:", curkw
-                                
-                                for tor in self.queue:
-                                    if tor and tor['infohash'] == key:
-                                        tor['last_check'] = time()
-                    
-                    if not didTrackerCheck:
-                        torrent["seeder"] = -2
-                        torrent["leecher"] = -2
-                        
-                    # Update torrent with new status
-                    self.updateTorrentInfo(torrent)
-
-                    # Save in DB                    
-                    kw = {
-                        'last_check_time': int(time()),
-                        'seeder': torrent['seeder'],
-                        'leecher': torrent['leecher'],
-                        'status': torrent['status'],
-                        'ignored_times': torrent['ignored_times'],
-                        'retried_times': torrent['retried_times']
-                    }
-                    
-                # Must come after tracker check, such that if tracker dead and DHT still alive, the
-                # status is still set to good
-                if torrent['status'] == 'dead':
-                    self.mldhtchecker.lookup(torrent['infohash'])
-            
-                if DEBUG:
-                    print >> sys.stderr, "Torrent Checking: new status:", kw
-            
-                self.torrentdb.updateTorrent(torrent['infohash'], **kw)
+                        break
                 
-                #notify after commit
-                for infohash in notify:
-                    self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
-            
-            # schedule sleep time, only if a tracker was consulted and 
-            # we do not have any infohashes scheduled
-            if didTrackerCheck and len(self.queue) == 0:
+                except:
+                    policy = self.selectPolicy()
+                    torrent = self.torrentdb.selectTorrentToCheck(policy=policy)
+                    
+                    if DEBUG:
+                        print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
+                        
+                finally:
+                    self.queueLock.release()
+                    
+                if torrent:
+                    notify = []
+                    
+                    if fromQueue and torrent['ignored_times'] > 0:
+                        #ignoring this torrent
+                        if DEBUG:
+                            print >> sys.stderr, 'Torrent Checking: ignoring torrent:', torrent
+                            
+                        kw = { 'ignored_times': torrent['ignored_times'] -1 }
+                        
+                    else:
+                        # read the torrent from disk / use other sources to specify trackers
+                        torrent = self.readTrackers(torrent)
+                        if self.hasTrackers(torrent):
+                            if DEBUG:
+                                print >> sys.stderr, "Torrent Checking: tracker checking", torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
+                                trackerStart = time()
+                                   
+                            multidict = multiTrackerChecking(torrent, self.GetInfoHashesForTracker)
+                            didTrackerCheck = True
+                            if DEBUG:
+                                print >> sys.stderr, "Torrent Checking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
+                            
+                            for key, values in multidict.iteritems():
+                                if key != torrent['infohash']:
+                                    seeder, leecher = values
+                                    
+                                    if seeder > 0 or leecher > 0:
+                                        #store result
+                                        curkw = {'seeder':seeder, 'leecher':leecher, 'ignored_times': 0, 'last_check_time': long(time()), 'status':'good'}
+                                        self.torrentdb.updateTorrent(key, commit = False, notify = False, **curkw)
+                                        notify.append(key)
+                                        
+                                        if DEBUG:
+                                            print >> sys.stderr, "Torrent Checking: new status:", curkw
+                                    
+                                    for tor in self.queue:
+                                        if tor and tor['infohash'] == key:
+                                            tor['last_check'] = time()
+                        
+                        if not didTrackerCheck:
+                            torrent["seeder"] = -2
+                            torrent["leecher"] = -2
+                            
+                        # Update torrent with new status
+                        self.updateTorrentInfo(torrent)
+    
+                        # Save in DB                    
+                        kw = {
+                            'last_check_time': int(time()),
+                            'seeder': torrent['seeder'],
+                            'leecher': torrent['leecher'],
+                            'status': torrent['status'],
+                            'ignored_times': torrent['ignored_times'],
+                            'retried_times': torrent['retried_times']
+                        }
+                        
+                    # Must come after tracker check, such that if tracker dead and DHT still alive, the
+                    # status is still set to good
+                    if torrent['status'] == 'dead':
+                        self.mldhtchecker.lookup(torrent['infohash'])
+                
+                    if DEBUG:
+                        print >> sys.stderr, "Torrent Checking: new status:", kw
+                
+                    self.torrentdb.updateTorrent(torrent['infohash'], notify = didTrackerCheck, **kw)
+                    
+                    #notify after commit
+                    for infohash in notify:
+                        self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+            except:
+                print_exc()
+                    
+            # schedule sleep time, only if we do not have any infohashes scheduled
+            if len(self.queue) == 0:
                 diff = time() - start
                 remaining = int(self.interval - diff)
                 if remaining > 0:

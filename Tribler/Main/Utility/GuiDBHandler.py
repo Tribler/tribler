@@ -15,6 +15,8 @@ import sys
 from traceback import format_stack, extract_stack, format_exc, print_exc,\
     print_stack
 import os
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+
 
 DEBUG = False
 
@@ -27,15 +29,20 @@ class GUIDBProducer():
             raise RuntimeError, "GuiDBProducer is singleton"
         GUIDBProducer.__single = self
         
-        #Let get the reference to the shared database_thread
+        #Lets get the reference to the shared database_thread
         from Tribler.Core.Session import Session
-
-        session = Session.get_instance()
-        triblerlaunchmany = session.lm
-        self.database_thread = triblerlaunchmany.database_thread
+        self.database_thread = Session.get_instance().lm.database_thread
+        
+        self.guitaskqueue = GUITaskQueue.getInstance()
+        
+        #Lets get a reference to utility
+        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+        self.utility = GUIUtility.getInstance().utility
         
         self.uIds = set()
         self.uIdsLock = Lock()
+        
+        self.nrCallbacks = {}
         
     def getInstance(*args, **kw):
         if GUIDBProducer.__single is None:
@@ -43,13 +50,20 @@ class GUIDBProducer():
         return GUIDBProducer.__single
     getInstance = staticmethod(getInstance)
     
-    def onSameThread(self):
-        return get_ident() == self.database_thread._thread_ident
+    def onSameThread(self, type):
+        onDBThread = get_ident() == self.database_thread._thread_ident
+        if type == "dbthread" or onDBThread:
+            return onDBThread
+        
+        return threading.currentThread().getName().startswith('GUITaskQueue')
     
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False, priority=0, workerType = "dbthread"):
         """The sender will send the return value of 
         workerFn(*args, **kwargs) to the main thread.
         """
+        if self.utility.abcquitting:
+            return
+        
         if uId:
             try:
                 self.uIdsLock.acquire()
@@ -65,9 +79,22 @@ class GUIDBProducer():
             callbackId = uId
         else:
             callbackId = name
+    
+        if __debug__:
+            self.uIdsLock.acquire()
+            self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
+            if self.nrCallbacks[callbackId] > 10:
+                print >> sys.stderr, "GUIDBHandler: Scheduled Task(%s) %d times"%(callbackId, self.nrCallbacks[callbackId])
+            
+            self.uIdsLock.release()
         
         t1 = time()
         def wrapper():
+            if __debug__:
+                self.uIdsLock.acquire()
+                self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) - 1
+                self.uIdsLock.release()
+            
             try:
                 t2 = time()
                 result = workerFn(*args, **kwargs)
@@ -111,8 +138,12 @@ class GUIDBProducer():
                 
         wrapper.__name__ = name
         
-        if not self.onSameThread() or delay:
-            self.database_thread.register(wrapper, delay=delay, id_=callbackId)
+        if not self.onSameThread(workerType) or delay:
+            if workerType == "dbThread":
+                self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
+                
+            elif workerType == "guiTaskQueue":
+                self.guitaskqueue.add_task(wrapper, t = delay, )
         else:
             if __debug__:
                 print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately"%name
@@ -126,6 +157,10 @@ class GUIDBProducer():
             try:
                 self.uIdsLock.acquire()
                 self.uIds.discard(uId)
+                
+                if __debug__:
+                    self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
+
             finally:
                 self.uIdsLock.release()
                 
@@ -209,7 +244,8 @@ def startWorker(
     cargs=(), ckwargs={}, 
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
-    uId=None, retryOnBusy=False):
+    uId=None, retryOnBusy=False, 
+    priority=0, workerType="dbThread"):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -243,15 +279,15 @@ def startWorker(
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
-                name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy)
-
+            name=jobID, delay=delay, uId=uId, retryOnBusy=retryOnBusy, priority=priority, workerType=workerType)
+        
     return result
 
 def cancelWorker(uId):
     thread = GUIDBProducer.getInstance()
     thread.Remove(uId)
 
-def onWorkerThread():
+def onWorkerThread(type):
     dbProducer = GUIDBProducer.getInstance()
-    return dbProducer.onSameThread()
+    return dbProducer.onSameThread(type)
 

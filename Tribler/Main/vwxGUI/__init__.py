@@ -1,13 +1,15 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
 # ReWritten by Niels Zeilemaker
 # see LICENSE.txt for license information
+from time import time, sleep
 import wx
 import inspect
-from time import time
 import sys
 
 from datetime import datetime
 from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker
+from Tribler.Core.dispersy.dispersy import Dispersy
+from threading import Event
 
 #batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
@@ -93,16 +95,65 @@ def warnWxThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+
+_register_task = None
+def register_task(*args, **kwargs):
+    global _register_task
+    if not _register_task:
+        # 21/11/11 Boudewijn: there are conditions where the Dispersy instance has not yet been
+        # created.  In this case we must wait.
+        
+        dispersy = Dispersy.has_instance()
+        while not dispersy:
+            sleep(0.1)
+            dispersy = Dispersy.has_instance()
+        _register_task = dispersy.callback.register
+    return _register_task(*args, **kwargs)
+
 def forceDBThread(func):
     def invoke_func(*args,**kwargs):
-        if onWorkerThread():
+        if onWorkerThread('dbThread'):
             func(*args, **kwargs)
         else:
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            startWorker(None, func, wargs=args, wkwargs=kwargs)
+            
+            register_task(func, args, kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forceAndReturnDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if onWorkerThread('dbThread'):
+            return func(*args, **kwargs)
+        else:
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            event = Event()
+            
+            result = [None]
+            def db_thread():
+                try:
+                    result[0] = func(*args, **kwargs)
+                finally:
+                    event.set()
+            
+            #Niels: 10-03-2012, setting prio to 1024 because we are actively waiting for this
+            db_thread.__name__ = func.__name__
+            register_task(db_thread, priority = 1024)
+            
+            if event.wait(100) or event.isSet():
+                return result[0]
+            
+            from traceback import print_stack
+            print_stack()
+            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDBThread", func.__name__
             
     invoke_func.__name__ = func.__name__
     return invoke_func

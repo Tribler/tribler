@@ -322,15 +322,18 @@ class PeerDBHandler(BasicDBHandler):
         return peers
     
     def getLocalPeerList(self, max_peers,minoversion=None): # return a list of peer_ids
-        """Return a list of peerids for local nodes, friends first, then random local nodes"""
+        """Return a list of peerids for local nodes, then random local nodes"""
         
         sql = 'select permid from Peer where is_local=1 '
         if minoversion is not None:
             sql += 'and oversion >= '+str(minoversion)+' '
-        sql += 'ORDER BY friend DESC, random() limit %d'%max_peers
+        #sql += 'ORDER BY friend DESC, random() limit %d'%max_peers
+        sql += 'ORDER BY random() limit %d'%max_peers
+        
         list = []
         for row in self._db.fetchall(sql):
             list.append(base64.b64decode(row[0]))
+
         return list
 
 
@@ -1299,7 +1302,7 @@ class TorrentDBHandler(BasicDBHandler):
         
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
         nb = NetworkBuzzDBHandler.getInstance()
-        nb.addTorrent(torrent_id, torrent_name, commit=False)
+        nb.addTorrent(torrent_id, torrent_name, collected = source == 'BC', commit=False)
         
         self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
         if commit:
@@ -1361,7 +1364,7 @@ class TorrentDBHandler(BasicDBHandler):
         if len(values) > 0:
             self._db.executemany(sql_insert_torrent_tracker, values, commit=commit)
         
-    def updateTorrent(self, infohash, commit=True, **kw):    # watch the schema of database
+    def updateTorrent(self, infohash, commit=True, notify=True, **kw):    # watch the schema of database
         if 'category' in kw:
             cat_id = self._getCategoryID(kw.pop('category'))
             kw['category_id'] = cat_id
@@ -1389,6 +1392,8 @@ class TorrentDBHandler(BasicDBHandler):
             
         if commit:
             self.commit()
+        
+        if notify:
             self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
         
     def updateTracker(self, infohash, kw, tier=1, tracker=None, commit=True):
@@ -2912,7 +2917,7 @@ class BarterCastDBHandler(BasicDBHandler):
 
         if 'uploaded' in itemdict.keys() and 'downloaded' in itemdict.keys():
             where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-            item = {'uploaded': ul, 'downloaded':dl}
+            item = {'uploaded': ul, 'downloaded':dl, 'last_seen':int(time())}
             self._db.update(self.table_name, where = where, commit=commit, **item)            
 
     def getPeerIDPairs(self):
@@ -3112,6 +3117,21 @@ class VoteCastDBHandler(BasicDBHandler):
         
         self._updateVotes(channel_id)
         self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+    
+    def on_votes_from_dispersy(self, votes):
+        removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
+        self.removeVotes(removeVotes, updateVotes = False)
+
+        insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
+        self._db.executemany(insert_vote, votes)
+        
+        channel_ids = set(channel_id for channel_id, voter_id, _, _, _ in votes)
+        for channel_id in channel_ids:
+            self._updateVotes(channel_id, commit = False)
+        self._db.commit()
+        
+        for channel_id in channel_ids:  
+            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
         
     def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
@@ -3173,21 +3193,33 @@ class VoteCastDBHandler(BasicDBHandler):
         for channel in channels:
             self._updateVotes(channel)
         
-    def removeVote(self, channel_id, voter_id):
+    def removeVote(self, channel_id, voter_id, commit = True):
         if voter_id:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
-            self._db.execute_write(sql, (long(time()), channel_id, voter_id))
+            self._db.execute_write(sql, (long(time()), channel_id, voter_id), commit=commit)
         else:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id ISNULL"
-            self._db.execute_write(sql, (long(time()), channel_id))
+            self._db.execute_write(sql, (long(time()), channel_id), commit=commit)
             self.my_votes = None
         
-        self._updateVotes(channel_id)
+        if commit:
+            self._updateVotes(channel_id)
+        
+    def removeVotes(self, votes, updateVotes = True):
+        for channel_id, voter_id in votes:
+            self.removeVote(channel_id, voter_id, commit=False)
+        self._db.commit()
+        
+        if updateVotes:
+            channel_ids = set([channel_id for channel_id, _ in votes])        
+            for channel_id in channel_ids:
+                self._updateVotes(channel_id)
+            self._db.commit()
             
-    def _updateVotes(self, channel_id):
+    def _updateVotes(self, channel_id, commit = True):
         nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id, ))
         nr_spam = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == -1 AND channel_id = ?", (channel_id, ))
-        self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id))
+        self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id), commit=commit)
 
     #ONLY CALLED FOR NON-DISPERSY CHANNELS
     def subscribe(self, channel_id):
@@ -3824,6 +3856,8 @@ class ChannelCastDBHandler(object):
                 else:
                     sql = "DELETE FROM _TorrentMarkings WHERE channeltorrent_id = ? AND peer_id IS NULL"
                     self._db.execute_write(sql, (channeltorrent_id, ), commit = False)
+            else:
+                return
                     
         sql = "INSERT INTO _TorrentMarkings (dispersy_id, global_time, channeltorrent_id, peer_id, type, time_stamp) VALUES (?,?,?,?,?,?)"
         self._db.execute_write(sql, (dispersy_id, global_time, channeltorrent_id, peer_id, type, timestamp), commit = self.shouldCommit)
@@ -4126,7 +4160,7 @@ class ChannelCastDBHandler(object):
         return self._db.fetchall(sql, (playlist_id,))
     
     def getRecentMarkingsFromPlaylist(self, playlist_id, keys, limit = None):
-        sql = "SELECT " + ", ".join(keys) +" FROM TorrentMarkings, PlaylistTorrents WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND PlaylistTorrents.playlist_id = ? ORDER BY TorrentMarkings.time_stamp DESC"
+        sql = "SELECT " + ", ".join(keys) +" FROM TorrentMarkings, PlaylistTorrents, ChannelTorrents WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id AND PlaylistTorrents.playlist_id = ? AND ChannelTorrents.dispersy_id <> -1 ORDER BY TorrentMarkings.time_stamp DESC"
         if limit:
             sql += " LIMIT %d"%limit
         return self._db.fetchall(sql, (playlist_id,))
@@ -4138,7 +4172,10 @@ class ChannelCastDBHandler(object):
     
     def getPlaylistForTorrent(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) +", count(DISTINCT channeltorrent_id) FROM Playlists, PlaylistTorrents WHERE Playlists.id = PlaylistTorrents.playlist_id AND channeltorrent_id = ?"
-        return self._db.fetchone(sql, (channeltorrent_id, ))
+        result = self._db.fetchone(sql, (channeltorrent_id, ))
+        #Niels: 29-02-2012 due to the count this always returns one row, check count to return None if playlist was actually not found.
+        if result[-1]:
+            return result 
     
     def getPlaylistsForTorrents(self, torrent_ids, keys):
         torrent_ids = " ,".join(map(str, torrent_ids))
@@ -4412,7 +4449,7 @@ class ChannelCastDBHandler(object):
 
     def getMostPopularChannelFromTorrent(self, infohash):
         """Returns channel id, name, nrfavorites of most popular channel if any"""
-        sql = "select Channels.id, Channels.dispersy_cid, Channels.name, Channels.description, Channels.nr_torrents, Channels.nr_favorite, Channels.nr_spam, Channels.modified from Channels, ChannelTorrents, Torrent where Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.torrent_id = Torrent.torrent_id AND infohash = ?" 
+        sql = "select Channels.id, Channels.dispersy_cid, Channels.name, Channels.description, Channels.nr_torrents, Channels.nr_favorite, Channels.nr_spam, Channels.modified, ChannelTorrents.id from Channels, ChannelTorrents, Torrent where Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.torrent_id = Torrent.torrent_id AND infohash = ?" 
         channels = self._db.fetchall(sql,(bin2str(infohash),))
         
         if len(channels) > 0:
@@ -4423,8 +4460,8 @@ class ChannelCastDBHandler(object):
             myVotes = self.votecast_db.getMyVotes()
             
             best_channel = None
-            for id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, modified in channels:
-                channel = id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, myVotes.get(id, 0), modified, id == self._channel_id
+            for id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, modified, channeltorrent_id in channels:
+                channel = id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, myVotes.get(id, 0), modified, id == self._channel_id, channeltorrent_id
                 
                 #allways prefer mychannel
                 if channel[-1]:
@@ -5239,6 +5276,10 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         from Tribler.Core.Tag.Extraction import TermExtraction
         self.extractor = TermExtraction.getInstance()
         
+        count_sql = "SELECT COUNT(*) FROM TorrentBiTermPhrase"
+        self.nr_bi_phrases = self._db.fetchone(count_sql)
+        
+        
     # Default sampling size (per freq category)
     # With an update period of 5s, there will be at most 12 updates per minute.
     # Each update consumes, say, 5 terms or phrases for a freq category, so about
@@ -5257,6 +5298,9 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     
     # Partition parameters
     PARTITION_AT = (0.33, 0.67)
+    
+    # Only start adding collected torrents at
+    MAX_UNCOLLECTED = 5000
     
     # Tables from which can be sampled:
     TABLES = dict(
@@ -5280,7 +5324,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         )
     )
     
-    def addTorrent(self, torrent_id, torrent_name, commit=True):
+    def addTorrent(self, torrent_id, torrent_name, collected = False, commit=True):
         """
         Extracts terms and the bi-term phrase from the added Torrent and stores it in
         the TermFrequency and TorrentBiTermPhrase tables, respectively.
@@ -5289,26 +5333,27 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         @param torrent_name Name of the added Torrent.
         @param commit Flag to indicate whether database changes should be committed.
         """
-        keywords = split_into_keywords(torrent_name)
-        terms = set(self.extractor.extractTerms(keywords))
-        phrase = self.extractor.extractBiTermPhrase(keywords)
-        
-        update_terms_sql = u"""
-            INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
-            UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
-            """
-        ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
-                                    SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
-                                    FROM TermFrequency TF1, TermFrequency TF2
-                                    WHERE TF1.term = ? AND TF2.term = ?"""
+        if collected or self.nr_bi_phrases < self.MAX_UNCOLLECTED:
+            keywords = split_into_keywords(torrent_name)
+            terms = set(self.extractor.extractTerms(keywords))
+            phrase = self.extractor.extractBiTermPhrase(keywords)
             
-        
-        self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
-        if phrase is not None:
-            self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
-        
-        if commit:
-            self.commit()
+            update_terms_sql = u"""
+                INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
+                UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
+                """
+            ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
+                                        SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
+                                        FROM TermFrequency TF1, TermFrequency TF2
+                                        WHERE TF1.term = ? AND TF2.term = ?"""
+                
+            
+            self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
+            if phrase is not None:
+                self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
+            
+            if commit:
+                self.commit()
     
     def deleteTorrent(self, torrent_id, commit=True):
         """
@@ -5339,14 +5384,19 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         triple. If with_freq=True, each sample is a list of (term,freq) tuples, 
         otherwise it is a list of terms. 
         """
-        num_torrents = self._db.getOne('CollectedTorrent', 'COUNT(torrent_id)')
+        num_torrents = self._db.size('CollectedTorrent')
         if num_torrents is None or num_torrents < self.NUM_TORRENTS_THRESHOLD:
             max_freq = None
         else:
             max_freq = int(round(num_torrents * self.STOPWORD_THRESHOLD))
         
         terms_triple = self.getBuzzForTable('TermFrequency', size, with_freq, max_freq = max_freq)
-        phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
+        #Niels: 29-02-2012 at startup we only request 10 terms
+        if not flat or size > 10:
+            phrases_triple = self.getBuzzForTable('TorrentBiTermPhrase', size, with_freq)
+        else:
+            phrases_triple = []
+
         if not flat:
             return terms_triple, phrases_triple
         else:
@@ -5402,6 +5452,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         sql = 'SELECT MAX(freq) FROM %s WHERE freq >= %s' % (self.TABLES[table]['table'], self.MIN_FREQ)
         if max_freq is not None:
             sql += ' AND freq < %s' % max_freq
+        sql += ' LIMIT 1'
+        
         return self._db.fetchone(sql)
     
     def _sample(self, table, range, samplesize, with_freq=True):

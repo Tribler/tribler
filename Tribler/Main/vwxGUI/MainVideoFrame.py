@@ -70,8 +70,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
     def get_videopanel(self):
         if self.videopanel is None:
             self.videopanel = EmbeddedPlayerPanel(self, self.utility, self.vlcwrap, '#E6E6E6', False)
-            self.videopanel.SetMinSize(EmbeddedPlayerPanel.VIDEO_SIZE)
-            #self.videopanel.SetMinSize((320,320)) # vliegendhart: why 320x320?
+            self.videopanel.SetMinSize((320,300)) # vliegendhart: why 320x280? -> Niels: we need space for ctrlsizer
             
             mainbox = wx.BoxSizer()
             mainbox.Add(self.videopanel, 1, wx.EXPAND)

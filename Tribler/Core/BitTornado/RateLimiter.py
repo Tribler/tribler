@@ -83,13 +83,21 @@ class RateLimiter:
         if DEBUG: print >>sys.stderr, "RateLimiter: try_send"
         t = clock()
         self.bytes_sent -= (t - self.lasttime) * self.upload_rate
-        #print 'try_send: bytes_sent: %s' % self.bytes_sent
+        #print >> sys.stderr, 'try_send: bytes_sent: %s' % self.bytes_sent
         self.lasttime = t
-        if check_time:
+        if check_time and (self.upload_rate < MAX_RATE * 1000):
+            #do not set self.bytes_sent to 0 if we are unlimited...
             self.bytes_sent = max(self.bytes_sent, 0)
+            
         cur = self.last.next_upload
         while self.bytes_sent <= 0:
-            bytes = cur.send_partial(self.unitsize)
+            #we would like to send up to self.bytes_sent data to someone
+            #why not try to send this at once?
+            #bytes = cur.send_partial(self.unitsize)
+            
+            remaining_bytes = max(self.unitsize, int(1 - self.bytes_sent))
+            bytes = cur.send_partial(remaining_bytes)
+            
             self.bytes_sent += bytes
             self.measure.update_rate(bytes)
             if bytes == 0 or cur.backlogged():
@@ -102,9 +110,10 @@ class RateLimiter:
                     cur.next_upload = None
                     cur = self.last.next_upload
             else:
+                #does this connection still have a buffer?
                 if not cur.upload.buffer:
                     self.last = cur
-                    cur = cur.next_upload
+                    cur = cur.next_upload #switch to the next one
                 else:
                     pass
         else:

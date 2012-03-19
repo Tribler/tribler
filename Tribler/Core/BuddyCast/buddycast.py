@@ -603,7 +603,7 @@ class BuddyCastCore:
         self.bootstrapped = False    # bootstrap once every 1 hours
         self.bootstrap_time = 0  # number of times to bootstrap
         self.total_bootstrapped_time = 0
-        self.last_bootstrapped = 0    # bootstrap time of the last time
+        self.last_bootstrapped = now()    # bootstrap time of the last time
         self.start_time = now()
         self.last_check_time = 0
         
@@ -715,7 +715,7 @@ class BuddyCastCore:
         
         _now = now()
         # bootstrapped recently, so wait for a while
-        if self.bootstrapped or (_now - self.last_bootstrapped) < self.bootstrap_interval:
+        if self.bootstrapped and (_now - self.last_bootstrapped) < self.bootstrap_interval:
             self.bootstrap_time = 0    # let it read the most recent peers next time
             return -1
         

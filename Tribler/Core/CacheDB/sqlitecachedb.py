@@ -30,7 +30,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 ##Changed from 8 to 9 for Niels's Open2Edit tables
 ##Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
 ##Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
-CURRENT_MAIN_DB_VERSION = 11
+##Changed from 11 to 12 imposing some limits on the Tribler database
+CURRENT_MAIN_DB_VERSION = 12
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -48,9 +49,9 @@ torrent_dir = None
 config_dir = None
 TEST_OVERRIDE = False
 
-
 DEBUG = False
 DEBUG_THREAD = False
+DEBUG_TIME = True
 
 class Warning(Exception):
     pass
@@ -126,6 +127,23 @@ def print_exc_plus():
                 print >> sys.stderr, value
             except:
                 print >> sys.stderr, "<ERROR WHILE PRINTING VALUE>"
+                
+def debugTime(func):
+    def invoke_func(*args,**kwargs):
+        if DEBUG_TIME:
+            t1 = time()
+        
+        result = func(*args, **kwargs)
+        
+        if DEBUG_TIME:
+            diff = time() - t1
+            if diff > 0.5:
+                print >> sys.stderr, "TOOK", diff, args
+            
+        return result
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
 
 class safe_dict(dict): 
     def __init__(self, *args, **kw): 
@@ -479,7 +497,7 @@ class SQLiteCacheDBBase:
                 # This bug already reported by Johan
             raise msg
         
-
+#    @debugTime
     def execute_read(self, sql, args=None):
         # this is only called for reading. If you want to write the db, always use execute_write or executemany
         return self._execute(sql, args)
@@ -658,7 +676,7 @@ class SQLiteCacheDBBase:
     
     # -------- Read Operations --------
     def size(self, table_name):
-        num_rec_sql = u"SELECT count(*) FROM %s;"%table_name
+        num_rec_sql = u"SELECT count(*) FROM %s LIMIT 1"%table_name
         result = self.fetchone(num_rec_sql)
         return result
 
@@ -671,6 +689,8 @@ class SQLiteCacheDBBase:
         else:
             find = list(find)
             if len(find) > 0:
+                if DEBUG and len(find) > 1:
+                    print >> sys.stderr, "FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement", sql, len(find)
                 find = find[0]
             else:
                 return NULL
@@ -678,7 +698,7 @@ class SQLiteCacheDBBase:
             return find
         else:
             return find[0]
-           
+    
     def fetchall(self, sql, args=None, retry=0):
         res = self.execute_read(sql, args)
         if res != None:
@@ -2000,7 +2020,31 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
         if fromver < 11:
             index = "CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id)"
-            self.execute_write(index)           
+            self.execute_write(index)
+            
+        if fromver < 12:
+            remove_indexes = ["Message_receive_time_idx","Size_calc_age_idx","Number_of_seeders_idx","Number_of_leechers_idx","Torrent_length_idx","Torrent_num_seeders_idx","Torrent_num_leechers_idx"]
+            for index in remove_indexes:
+                self.execute_write("DROP INDEX %s"%index, commit = False)
+                
+            self.execute_write("CREATE INDEX Peer_local_oversion_idx ON Peer(is_local, oversion)", commit = False)
+            self.execute_write("CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check)", commit = False)
+            self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
+            self.clean_db(True)
+            
+    def clean_db(self, vacuum = False):
+        from time import time
+        
+        oneweekago = long(time() - 604800)
+        self.execute_write("DELETE FROM Popularity WHERE msg_receive_time < ?", (oneweekago, ), commit = False)
+        self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit = False)
+        self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
+        self.execute_write("DELETE FROM Preference where peer_id not in (Select peer_id From Peer where num_prefs > 5 or similarity > 0)", commit = False)
+        self.execute_write("DELETE FROM TorrentFiles where torrent_id not in (select torrent_id from CollectedTorrent)")
+               
+        if vacuum:
+            self.execute_read("VACUUM")        
+    
             
 class SQLiteCacheDB(SQLiteCacheDBV5):
     __single = None    # used for multithreaded singletons pattern

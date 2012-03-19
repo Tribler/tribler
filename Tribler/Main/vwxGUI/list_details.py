@@ -28,7 +28,7 @@ from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
-    LibraryTorrent
+    LibraryTorrent, ChannelTorrent
 from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
@@ -151,9 +151,12 @@ class TorrentDetails(AbstractDetails):
         
         self.isEditable = {}
         
-        if DEBUG:
-            print >> sys.stderr, "TorrentDetails: loading", torrent['name']
+        self._doLoad()
 
+    def _doLoad(self):
+        if DEBUG:
+            print >> sys.stderr, "TorrentDetails: loading", self.torrent['name']
+            
         #is this torrent collected?
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
         if filename:
@@ -161,14 +164,17 @@ class TorrentDetails(AbstractDetails):
         else:
             requesttype = self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback = self.showTorrent)
             if requesttype:
-                self.showRequestType(requesttype)
+                self.showRequestType('The torrentfile is requested %s.'%requesttype)
             
             wx.CallLater(10000, self._timeout)
     
     @forceWxThread
     def showRequestType(self, requesttype):
         try:
-            self.messagePanel.SetLabel("Loading details, please wait.\nThe torrentfile is requested %s."%requesttype)
+            if requesttype:
+                self.messagePanel.SetLabel("Loading details, please wait.\n%s"%requesttype)
+            else:
+                self.messagePanel.SetLabel("Loading details, please wait.")
             
             self.Layout()
             self.parent.parent_list.OnChange()
@@ -191,7 +197,7 @@ class TorrentDetails(AbstractDetails):
                 if showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
                     showTab = "Files"
                 
-                if self.torrent.hasChannel():
+                if isinstance(self.torrent, ChannelTorrent) and self.torrent.hasChannel():
                     state, iamModerator = self.torrent.channel.getState()
                     
                     if isinstance(self, LibraryDetails):
@@ -557,7 +563,7 @@ class TorrentDetails(AbstractDetails):
             vSizer = wx.FlexGridSizer(0, 2, 3, 3)
             vSizer.AddGrowableCol(1)
             
-            if 'description' in self.torrent and self.torrent.channel.isOpen():
+            if self.canEdit or self.torrent.get('description', ''):
                 overviewColumnsOrder = ["Name", "Description", "Type", "Uploaded", "Filesize", "Status"]
             else:
                 del overviewColumns['Description']
@@ -1184,7 +1190,7 @@ class TorrentDetails(AbstractDetails):
 
     def RefreshData(self, data):
         if self.isReady:
-            if isinstance(data[2], Torrent):
+            if isinstance(self.torrent, Torrent):
                 #replace current torrent
                 self.torrent.name = data[2].name
                 self.torrent.length = data[2].length
@@ -1192,6 +1198,9 @@ class TorrentDetails(AbstractDetails):
                 self.torrent.status_id = data[2].status_id
                 self.torrent.num_seeders = data[2].num_seeders
                 self.torrent.num_leechers = data[2].num_leechers
+                
+            elif isinstance(data[2], Torrent):
+                self.torrent.torrent = data[2]
             else:
                 self.torrent.torrent = data[2]['bundle'][0] 
             
@@ -1418,6 +1427,13 @@ class LibraryDetails(TorrentDetails):
         self.startstop = None
         TorrentDetails.__init__(self, parent, torrent)
         
+    def _doLoad(self):
+        if DEBUG:
+            print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']
+        
+        self.showRequestType('')
+        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent}, workerType = "guiTaskQueue")
+        
     @forceWxThread
     def _timeout(self):
         try:
@@ -1499,7 +1515,7 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
-        self.peerList.SetToolTipString("States:\nO\toptimistic unchoked\nUI\tgot interested\nUC\tupload chocked\nUQ\tgot request\nDI\tsend interested\nDC\tdownload chocked\nS\tis snubbed\nL\tOutgoing connection\nR\tIncoming connection")
+        self.peerList.SetToolTipString("States:\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\tOutgoing connection\nR\t\tIncoming connection")
         vSizer.Add(self.peerList, 1, wx.EXPAND)
         
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -1640,10 +1656,10 @@ class LibraryDetails(TorrentDetails):
                     self.progress = StringProgressPanel(self.overviewPanel, self.torrent)
                     
                     self.overviewSizer.Add(self.progress, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
-                    self.overviewSizer.AddStretchSpacer()
-                                        
+                    
                     #Optional stream button
                     if self.torrent.isPlayable():
+                        self.overviewSizer.AddStretchSpacer()
                         self._AddVodAd(self.overviewPanel, self.overviewSizer)
                     
                 elif self.state == TorrentDetails.VOD:
@@ -1751,6 +1767,10 @@ class LibraryDetails(TorrentDetails):
                     state += "UC,"
                 if peer_dict['uhasqueries']:
                     state += "UQ,"
+                if not peer_dict['uflushed']:
+                    state += "UBL,"
+                if peer_dict['ueligable']:
+                    state += "UE,"
                 if peer_dict['dinterested']:
                     state += "DI,"
                 if peer_dict['dchoked']:

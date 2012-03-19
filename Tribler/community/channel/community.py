@@ -66,9 +66,10 @@ def forceAndReturnDispersyThread(func):
                     result[0] = func(*args, **kwargs)
                 finally:
                     event.set()
-                    
+            
+            #Niels: 10-03-2012, setting prio to 1 because we are actively waiting for this
             dispersy_thread.__name__ = func.__name__
-            register_task(dispersy_thread)
+            register_task(dispersy_thread, priority = 1)
             
             if event.wait(100) or event.isSet():
                 return result[0]
@@ -830,6 +831,7 @@ class ChannelCommunity(Community):
                     packets = []
                     identity_meta = self.get_meta_message(u"dispersy-identity")
                     authorize_meta = self.get_meta_message(u"dispersy-authorize")
+                    dynamic_settings_meta = self.get_meta_message(u"dispersy-dynamic-settings")
 
                     # 23/11/11: when a node joins a channel for the first time she requires the channel
                     # message.  decoding the channel message requires a dispersy-identity, furthermore,
@@ -850,6 +852,11 @@ class ChannelCommunity(Community):
                         # get the first existing dispersy-authorize.  this most likely contains the
                         # permission for the channel message
                         packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (authorize_meta.database_id,)).next()
+                        packets.append(str(packet))
+
+                        # get the first existing dispersy-dynamic-settings.  this most likely
+                        # contains useful permission information
+                        packet, = self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message = ? ORDER BY global_time ASC LIMIT 1", (dynamic_settings_meta.database_id,)).next()
                         packets.append(str(packet))
 
                     except StopIteration:

@@ -140,7 +140,7 @@ class ListHeader(wx.Panel):
                         if remainingWidth > 0:
                             sizer.AddSpacer((remainingWidth, 1))
                         else:
-                            print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width']
+                            print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width'], remainingWidth
                             label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
                         
                     self.columnHeaders.append(label)

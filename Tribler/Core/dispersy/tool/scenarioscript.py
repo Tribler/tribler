@@ -1,7 +1,7 @@
 try:
     from scipy.stats import poisson, expon
 except ImportError:
-    poisson = expont = None
+    poisson = expon = None
     print "Unable to import scipy.  ScenarioPoisson and ScenarioExpon are disabled"
 
 from random import random

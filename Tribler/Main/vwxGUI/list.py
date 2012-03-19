@@ -32,6 +32,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
+from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -67,16 +68,21 @@ class RemoteSearchManager:
         self.refresh_partial(self.dirtyset)
         self.dirtyset.clear()   
    
-    @forceWxThread
-    def refresh(self):
+    def refresh(self,remote=False):
         def db_callback():
+            if DEBUG:
+                begintime = time()
+                
             keywords = self.oldkeywords
             
             total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
+            if DEBUG:
+                print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
+            
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
-        
-        startWorker(self._on_refresh, db_callback, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True)
+        delay = 0.5 if remote else 0.0
+        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue")
 
     def _on_refresh(self, delayedResult):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
@@ -633,6 +639,10 @@ class List(wx.BoxSizer):
     def ShowLoading(self):
         if self.isReady:
             self.list.ShowLoading()
+            
+    def ShowMessage(self, message, header = None, altControl = None):
+        if self.isReady:
+            self.list.ShowMessage(message, header, altControl)
             
     def OnLoadAll(self):
         if self.isReady:
@@ -1220,8 +1230,11 @@ class LibraryList(SizeList):
         self.user_download_choice = UserDownloadChoice.get_singleton()
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
+        
         self.library_manager = self.guiutility.library_manager
         self.library_manager.add_download_state_callback(self.RefreshItems)
+        
+        self.channelsearch_manager = self.guiutility.channelsearch_manager
         
         self.statefilter = None
         self.newfilter = False
@@ -1322,65 +1335,36 @@ class LibraryList(SizeList):
     def OnResume(self, event):
         item = self.list.GetExpandedItem()
         self.library_manager.resumeTorrent(item.original_data)
-        self.user_download_choice.set_download_state(item.original_data.infohash, "restart")
     
     def OnStop(self, event):
         item = self.list.GetExpandedItem()
-        ds = item.original_data.ds
-        if ds:
-            ds.get_download().stop()
-            
-        self.user_download_choice.set_download_state(item.original_data.infohash, "stop")
+        self.library_manager.stopTorrent(item.original_data)
 
     @warnWxThread
     def OnDelete(self, event):
         item = self.list.GetExpandedItem()
-        
-        dlg = wx.Dialog(None, -1, 'Are you sure you want to remove this torrent?', style=wx.DEFAULT_DIALOG_STYLE, size = (600, 125))
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticBitmap(dlg, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)), 0, wx.RIGHT, 10)
-        
-        vSizer = wx.BoxSizer(wx.VERTICAL)
-        firstLine = wx.StaticText(dlg, -1, "Delete '%s' from disk, or just remove them from your downloads?"%item.data[0])
-        font = firstLine.GetFont()
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        firstLine.SetFont(font)
-        firstLine.SetMinSize((1, -1))
-        
-        vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 7)
-        vSizer.AddStretchSpacer()
-        vSizer.Add(wx.StaticText(dlg, -1, "Removing from disk will move the selected item to your trash."), 0, wx.EXPAND)
-        
-        bSizer = wx.BoxSizer(wx.HORIZONTAL)
-        bSizer.AddStretchSpacer()
-        bSizer.Add(wx.Button(dlg, wx.ID_CANCEL), 0, wx.RIGHT, 3)
-        bSizer.Add(wx.Button(dlg, wx.ID_DEFAULT, 'Only delete from downloads'), 0, wx.RIGHT, 3)
-        bSizer.Add(wx.Button(dlg, wx.ID_DELETE, 'Also delete from disk'))
-        
-        vSizer.Add(bSizer, 0, wx.ALIGN_RIGHT|wx.TOP, 7)
-        hSizer.Add(vSizer, 1, wx.EXPAND)
-        
-        border = wx.BoxSizer()
-        border.Add(hSizer, 1, wx.ALL|wx.EXPAND, 10)
-        
-        dlg.Bind(wx.EVT_BUTTON, lambda event: dlg.EndModal(event.GetId()))
-        dlg.SetSizer(border)
-        dlg.CenterOnParent()
-        
+        torrent = item.original_data
+        dlg = RemoveTorrent(None, torrent)
         buttonId = dlg.ShowModal()
         if buttonId == wx.ID_DEFAULT:
-            self.library_manager.deleteTorrent(item.original_data)
+            self.library_manager.deleteTorrent(torrent)
             self.list.RemoveItem(item)
             
         elif buttonId == wx.ID_DELETE:
-            self.library_manager.deleteTorrent(item.original_data, True)
+            self.library_manager.deleteTorrent(torrent, True)
             self.list.RemoveItem(item)
         
         if self.list.IsEmpty():
             self.SetData([])
         
+        if dlg.newName:
+            if dlg.newName.IsChanged():
+                dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                if dlg2.ShowModal() == wx.ID_YES:
+                    self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':self.newName.GetValue()})
+                dlg2.Destroy()
         dlg.Destroy()
-        
+                
     def __ds__eq__(self, ds1, ds2):
         #Exact same objects or both None
         if ds1 == ds2:
@@ -1402,6 +1386,12 @@ class LibraryList(SizeList):
         if ds1.get_num_con_candidates() != ds2.get_num_con_candidates():
             return False
         
+        #Compare current speed
+        if ds1.get_current_speed('down') != ds2.get_current_speed('down'):
+            return False
+        if ds1.get_current_speed('up') != ds2.get_current_speed('up'):
+            return False
+        
         seeds1, peers1 = ds1.get_num_seeds_peers()
         seeds2, peers2 = ds2.get_num_seeds_peers()
         if seeds1 != seeds2:
@@ -1410,26 +1400,6 @@ class LibraryList(SizeList):
             return False
         
         if ds1.get_progress() != ds2.get_progress():
-            return False
-
-        #Compare upload/download        
-        def get_up_down(ds):
-            if ds.get_seeding_statistics():
-                stats = ds.get_seeding_statistics()
-                dl = stats['total_down']
-                ul = stats['total_up']
-            else:                
-                dl = ds.get_total_transferred(DOWNLOAD)
-                ul = ds.get_total_transferred(UPLOAD)
-            
-            return dl, ul
-        
-        dl1, ul1 = get_up_down(ds1)
-        dl2, ul2 = get_up_down(ds2)
-        
-        if dl1 != dl2:
-            return False
-        if ul1 != ul2:
             return False
         
         #Compare size
@@ -1477,6 +1447,10 @@ class LibraryList(SizeList):
                     
                     if infohash in dsdict:
                         original_data.ds = dsdict[infohash]
+                        
+                        if infohash in self.list.items: #torrents in raw_data and items are not equal
+                            self.list.items[infohash].original_data.ds = dsdict[infohash]
+                        
                         del dsdict[infohash]
                     else:
                         original_data.ds = None
