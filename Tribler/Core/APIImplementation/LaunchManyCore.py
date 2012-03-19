@@ -392,9 +392,14 @@ class TriblerLaunchMany(Thread):
                 if __debug__: print >> sys.stderr, "lmc: busy... backing off for", "%4f" % desync, "seconds [initial delay]"
                 desync = (yield desync)
 
-            schedule = []
-            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {}))
-            schedule.append((ChannelCommunity, (), {}))
+            if sys.argv[0].endswith("dispersy-channel-booster.py"):
+                schedule = []
+                schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True}))
+
+            else:
+                schedule = []
+                schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
+                schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
                 try:
