@@ -409,7 +409,7 @@ class TriblerLaunchMany(Thread):
                         if self.dispersy.has_community(master.mid):
                             continue
 
-                        print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX")
+                        print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX"), "#%d" % counter
                         cls.load_community(master, *args, **kargs)
 
                         desync = (yield 1.0)
