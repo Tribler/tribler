@@ -186,9 +186,9 @@ class Community(object):
 
         if __debug__: dprint("retrieving all master members owning ", cls.get_classification(), " communities")
         execute = DispersyDatabase.get_instance().execute
-        return [loader(mid, master_public_key)
+        return (loader(mid, master_public_key)
                 for mid, master_public_key
-                in list(execute(u"SELECT m.mid, m.public_key FROM community AS c JOIN member AS m ON m.id = c.master WHERE c.classification = ?", (cls.get_classification(),)))]
+                in list(execute(u"SELECT m.mid, m.public_key FROM community AS c JOIN member AS m ON m.id = c.master WHERE c.classification = ?", (cls.get_classification(),))))
 
     @classmethod
     def load_community(cls, master, *args, **kargs):
