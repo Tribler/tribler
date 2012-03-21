@@ -1604,21 +1604,24 @@ class Dispersy(Singleton):
 
          3. All remaining messages are passed to on_message_batch.
         """
-        def unique(batch):
-            unique = set()
-            for candidate, packet, conversion in batch:
-                assert isinstance(packet, str)
-                if packet in unique:
-                    if __debug__:
-                        dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", candidate, level="warning")
-                        self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
-                else:
-                    unique.add(packet)
-                    yield candidate, packet, conversion
+        # 21/03/12 Boudewijn: we can not filter all packets this way.  i.e. when multiple people
+        # send us missing-identity messages some of them will be dropped
+        #
+        # def unique(batch):
+        #     unique = set()
+        #     for candidate, packet, conversion in batch:
+        #         assert isinstance(packet, str)
+        #         if packet in unique:
+        #             if __debug__:
+        #                 dprint("drop a ", len(packet), " byte packet (duplicate in batch) from ", candidate, level="warning")
+        #                 self._statistics.drop("_convert_packets_into_batch:duplicate in batch", len(packet))
+        #         else:
+        #             unique.add(packet)
+        #             yield candidate, packet, conversion
 
-        # remove duplicated
-        # todo: make _convert_batch_into_messages accept iterator instead of list to avoid conversion
-        batch = list(unique(batch))
+        # # remove duplicated
+        # # todo: make _convert_batch_into_messages accept iterator instead of list to avoid conversion
+        # batch = list(unique(batch))
 
         # convert binary packets into Message.Implementation instances
         messages = list(self._convert_batch_into_messages(batch))
