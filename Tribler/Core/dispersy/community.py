@@ -11,6 +11,7 @@ Community instance.
 from hashlib import sha1
 from itertools import islice
 from random import random, Random, randint
+from time import time
 
 from bloomfilter import BloomFilter
 from cache import CacheDict
@@ -29,7 +30,6 @@ from timeline import Timeline
 
 if __debug__:
     from dprint import dprint
-    from time import time
 
 class SubjectiveSetCache(object):
     def __init__(self, packet, subjective_set):
@@ -265,7 +265,7 @@ class Community(object):
         self._my_member = Member(str(member_public_key))
         assert self._my_member.public_key, [self._database_id, self._my_member.database_id, self._my_member.public_key]
         assert self._my_member.private_key, [self._database_id, self._my_member.database_id, self._my_member.private_key]
-        if not self._master_member.public_key and self.dispersy_enable_candidate_walker:
+        if not self._master_member.public_key and self.dispersy_enable_candidate_walker and self.dispersy_auto_download_master_member:
             self._pending_callbacks.append(self._dispersy.callback.register(self._download_master_member_identity))
 
         # define all available messages
@@ -461,6 +461,13 @@ class Community(object):
                                         (1 if auto_load else 0, self._master_member.database_id))
     # .setter was introduced in Python 2.6
     dispersy_auto_load = property(__get_dispersy_auto_load, __set_dispersy_auto_load)
+
+    @property
+    def dispersy_auto_download_master_member(self):
+        """
+        Enable or disable automatic downloading of the dispersy-identity for the master member.
+        """
+        return True
 
     @property
     def dispersy_enable_candidate_walker(self):

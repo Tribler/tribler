@@ -3637,6 +3637,7 @@ class DispersyBootstrapServers(ScriptBase):
                 self._request = {}
                 self._summary = {}
                 self._hostname = {}
+                self._identifiers = {}
                 self._candidates = self._dispersy._bootstrap_candidates.values()
                 # self._candidates = [BootstrapCandidate(("130.161.211.198", 6431))]
 
@@ -3644,6 +3645,7 @@ class DispersyBootstrapServers(ScriptBase):
                     self._request[candidate.sock_addr] = {}
                     self._summary[candidate.sock_addr] = []
                     self._hostname[candidate.sock_addr] = socket.getfqdn(candidate.sock_addr[0])
+                    self._identifiers[candidate.sock_addr] = ""
 
             def _initialize_meta_messages(self):
                 super(PingCommunity, self)._initialize_meta_messages()
@@ -3673,6 +3675,7 @@ class DispersyBootstrapServers(ScriptBase):
                     if candidate.sock_addr in self._request:
                         request_stamp = self._request[candidate.sock_addr].pop(message.payload.identifier, 0.0)
                         self._summary[candidate.sock_addr].append(now - request_stamp)
+                        self._identifiers[candidate.sock_addr] = message.authentication.member.mid
                 return self._original_on_introduction_response(messages)
 
             def ping(self, now):
@@ -3684,7 +3687,7 @@ class DispersyBootstrapServers(ScriptBase):
             def summary(self):
                 for sock_addr, rtts in sorted(self._summary.iteritems()):
                     if rtts:
-                        dprint(len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts), "] from ", sock_addr[0], ":", sock_addr[1], " aka ", self._hostname[sock_addr], force=True)
+                        dprint(self._identifiers[sock_addr].encode("HEX"), " %15s:%-5d %-30s " % (sock_addr[0], sock_addr[1], self._hostname[sock_addr]), len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts), "]", force=True)
                     else:
                         dprint(sock_addr[0], ":", sock_addr[1], "  missing", force=True)
 

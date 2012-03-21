@@ -525,15 +525,15 @@ class Dispersy(Singleton):
             # pylint: disable-msg=W0404
             from community import Community
         assert isinstance(community, Community)
-        messages = [Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity, batch=BatchConfiguration(max_window=1.0, priority=512)),
+        messages = [Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity),
                     Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
                     Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response),
-                    Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize, batch=BatchConfiguration(max_window=1.0, priority=504)),
-                    Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke, batch=BatchConfiguration(max_window=1.0, priority=504)),
-                    Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, batch=BatchConfiguration(max_window=1.0, priority=500)),
-                    Message(community, u"dispersy-undo-other", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo, batch=BatchConfiguration(max_window=1.0, priority=500)),
+                    Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize),
+                    Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke),
+                    Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo),
+                    Message(community, u"dispersy-undo-other", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo),
                     Message(community, u"dispersy-destroy-community", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=192), CommunityDestination(node_count=50), DestroyCommunityPayload(), self._generic_timeline_check, self.on_destroy_community),
-                    Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set, batch=BatchConfiguration(max_window=1.0)),
+                    Message(community, u"dispersy-subjective-set", MemberAuthentication(), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), SubjectiveSetPayload(), self._generic_timeline_check, self.on_subjective_set),
                     Message(community, u"dispersy-dynamic-settings", MemberAuthentication(), LinearResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"DESC", priority=191), CommunityDestination(node_count=10), DynamicSettingsPayload(), self._generic_timeline_check, community.dispersy_on_dynamic_settings),
 
                     #
@@ -2732,21 +2732,27 @@ class Dispersy(Singleton):
 
         if candidates and packets:
             self._statistics.increment_total_up(sum(len(packet) for packet in packets) * len(candidates), len(packets) * len(candidates))
+            wan_host = self._wan_address[0]
 
             # send packets
             for candidate in candidates:
+                sock_addr = candidate.lan_address if wan_host == candidate.wan_address[0] else candidate.wan_address
                 assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
-                assert self.is_valid_remote_address(candidate.sock_addr), [candidate.sock_addr, self._lan_address, self._wan_address]
+                assert self.is_valid_remote_address(sock_addr), [sock_addr, self._lan_address, self._wan_address]
                 # if not self.is_valid_remote_address(candidate.sock_addr):
                 #     # this is a programming bug.  apparently an invalid address is being used
                 #     if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
                 #     return False
 
+                # TODO DEBUG
+                if not sock_addr == candidate.sock_addr:
+                    print "unexpected sock_addr", sock_addr, "-", candidate.sock_addr, "-", candidate
+
                 for packet in packets:
-                    self._socket.send(candidate.sock_addr, packet)
+                    self._socket.send(sock_addr, packet)
                 if __debug__:
                     dprint("out... ", len(packets), " ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate)
-                    self._statistics.outgoing(candidate.sock_addr, key, sum(len(packet) for packet in packets), len(packets))
+                    self._statistics.outgoing(sock_addr, key, sum(len(packet) for packet in packets), len(packets))
 
             return True
 

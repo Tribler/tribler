@@ -57,6 +57,10 @@ class TrackerCommunity(Community):
                      u"dispersy-missing-identity"]:
             self._meta_messages[name] = meta_messages[name]
 
+    @property
+    def dispersy_auto_download_master_member(self):
+        return False
+
     def update_strikes(self, now):
         # does the community have any active candidates
         for candidate in self._dispersy.candidates:
