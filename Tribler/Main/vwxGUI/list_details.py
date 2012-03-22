@@ -197,7 +197,8 @@ class TorrentDetails(AbstractDetails):
                 if showTab == None and self.saveSpace and not isinstance(self, LibraryDetails):
                     showTab = "Files"
                 
-                if isinstance(self.torrent, ChannelTorrent) and self.torrent.hasChannel():
+                isChannelTorrent = isinstance(self.torrent, ChannelTorrent) or (isinstance(self.torrent, CollectedTorrent) and isinstance(self.torrent.torrent, ChannelTorrent))
+                if isChannelTorrent and self.torrent.hasChannel():
                     state, iamModerator = self.torrent.channel.getState()
                     
                     if isinstance(self, LibraryDetails):
@@ -2161,6 +2162,9 @@ class MyChannelPlaylist(AbstractDetails):
         else:
             self.name = StaticText(self, -1, playlist.get('name', ''))
             self.description = StaticText(self, -1, playlist.get('description',''))
+            
+            self.name.SetMinSize((1, -1))
+            self.description.SetMinSize((1, -1))
         
         self._add_row(self, gridSizer, 'Name', self.name)
         self._add_row(self, gridSizer, 'Description', self.description)
