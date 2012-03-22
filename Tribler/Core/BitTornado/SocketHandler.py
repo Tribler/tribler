@@ -501,20 +501,21 @@ class SocketHandler:
             if s:
                 packets = []
                 try:
-                    while True:
-                        (data, addr) = s.socket.recvfrom(65535)
-                        if not data:
-                            if DEBUG:
-                                print >> sys.stderr, "SocketHandler: UDP no-data", addr
-                            break
-                        else:
-                            if DEBUG:
-                                print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
-                            packets.append((addr, data))
+                    try:
+                        while True:
+                            (data, addr) = s.socket.recvfrom(65535)
+                            if not data:
+                                if DEBUG:
+                                    print >> sys.stderr, "SocketHandler: UDP no-data", addr
+                                break
+                            else:
+                                if DEBUG:
+                                    print >> sys.stderr,"SocketHandler: Got UDP data",addr,"len",len(data)
+                                packets.append((addr, data))
 
-                except socket.error, e:
-                    if DEBUG:
-                        print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
+                    except socket.error, e:
+                        if DEBUG:
+                            print >> sys.stderr,"SocketHandler: UDP Socket error",str(e)
 
                 finally:
                     s.handler.data_came_in(packets)
