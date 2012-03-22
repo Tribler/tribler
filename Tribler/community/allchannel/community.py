@@ -119,6 +119,11 @@ class AllChannelCommunity(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), AllChannelConversion(self)]
+
+    @property
+    def dispersy_auto_download_master_member(self):
+        # there is no dispersy-identity for the master member, so don't try to download
+        return False
     
     @property
     def dispersy_sync_response_limit(self):
