@@ -91,8 +91,8 @@ class ScenarioScript(ScriptBase):
         else:
             # use default scenario
             origin = time()
-            scenario.append((origin, -1, getattr(self, "scenario_start")))
-            scenario.append((origin + 14 * 60.0, -1, getattr(self, "scenario_end")))
+            scenario.append((origin, -1, getattr(self, "scenario_start"), ()))
+            scenario.append((origin + 14 * 60.0, -1, getattr(self, "scenario_end"), ()))
 
         assert scenario, "scenario is empty"
         assert any(func.__name__ == "scenario_end" for _, _, func, _ in scenario), "scenario end is not defined"
