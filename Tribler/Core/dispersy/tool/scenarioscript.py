@@ -68,6 +68,7 @@ class ScenarioScript(ScriptBase):
         """
         Yields (TIMESTAMP, FUNC, ARGS) tuples, where TIMESTAMP is the time when FUNC must be called.
         """
+        scenario = []
         re_line = re_compile("^([@+])\s*(?:(\d+):)?(\d+)(?:[.](\d+))?(?:\s*-\s*(?:(\d+):)?(\d+)(?:[.](\d+))?)?\s+(\w+)(?:\s+(.+?))?\s*$")
         filename = self._kargs["scenario"]
         origin = {"@":int(self._kargs["startstamp"]),
