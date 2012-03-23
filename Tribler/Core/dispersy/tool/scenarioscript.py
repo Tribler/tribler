@@ -68,22 +68,31 @@ class ScenarioScript(ScriptBase):
         """
         Yields (TIMESTAMP, FUNC, ARGS) tuples, where TIMESTAMP is the time when FUNC must be called.
         """
-        re_line = re_compile("^([@+])\s*(?:(\d+):)?(\d+)(?:[.](\d+))?(?:\s*-\s*(?:(\d+):)?(\d+)(?:[.](\d+))?)?\s+(\w+)(?:\s+(.+?))?\s*$")
-        filename = self._kargs["scenario"]
-        origin = {"@":int(self._kargs["startstamp"]),
-                  "+":time()}
-        scenario = []
-        for lineno, line in enumerate(open(filename, "r")):
-            match = re_line.match(line)
-            if match:
-                type_, bhour, bminute, bsecond, ehour, eminute, esecond, func, args = match.groups()
-                begin = (int(bhour) * 3600.0 if bhour else 0.0) + (int(bminute) * 60.0) + (int(bsecond) if bsecond else 0.0)
-                end = ((int(ehour) * 3600.0 if ehour else 0.0) + (int(eminute) * 60.0) + (int(esecond) if esecond else 0.0)) if eminute else 0.0
-                assert end == 0.0 or begin <= end, "when end time is given it must be at or after the start time"
-                scenario.append((origin[type_] + begin + (random() * (end - begin) if end else 0.0),
-                                 lineno,
-                                 getattr(self, "scenario_" + func),
-                                 tuple(args.split()) if args else ()))
+        if "scenario" in self._kargs:
+            # read scenario from scenario file
+
+            re_line = re_compile("^([@+])\s*(?:(\d+):)?(\d+)(?:[.](\d+))?(?:\s*-\s*(?:(\d+):)?(\d+)(?:[.](\d+))?)?\s+(\w+)(?:\s+(.+?))?\s*$")
+            filename = self._kargs["scenario"]
+            origin = {"@":int(self._kargs["startstamp"]),
+                      "+":time()}
+            scenario = []
+            for lineno, line in enumerate(open(filename, "r")):
+                match = re_line.match(line)
+                if match:
+                    type_, bhour, bminute, bsecond, ehour, eminute, esecond, func, args = match.groups()
+                    begin = (int(bhour) * 3600.0 if bhour else 0.0) + (int(bminute) * 60.0) + (int(bsecond) if bsecond else 0.0)
+                    end = ((int(ehour) * 3600.0 if ehour else 0.0) + (int(eminute) * 60.0) + (int(esecond) if esecond else 0.0)) if eminute else 0.0
+                    assert end == 0.0 or begin <= end, "when end time is given it must be at or after the start time"
+                    scenario.append((origin[type_] + begin + (random() * (end - begin) if end else 0.0),
+                                     lineno,
+                                     getattr(self, "scenario_" + func),
+                                     tuple(args.split()) if args else ()))
+
+        else:
+            # use default scenario
+            origin = time()
+            scenario.append((origin, -1, getattr(self, "scenario_start")))
+            scenario.append((origin + 14 * 60.0, -1, getattr(self, "scenario_end")))
 
         assert scenario, "scenario is empty"
         assert any(func.__name__ == "scenario_end" for _, _, func, _ in scenario), "scenario end is not defined"
