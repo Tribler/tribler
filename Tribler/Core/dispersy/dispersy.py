@@ -329,8 +329,13 @@ class Dispersy(Singleton):
             port = self._lan_address[1]
 
         self._wan_address = (host, port)
-        self._wan_address_votes = {self._wan_address:set()}
-        self.wan_address_vote(self._wan_address, LoopbackCandidate())
+        self._wan_address_votes = {}
+        if self._is_valid_wan_address(self._wan_address):
+            self._wan_address_votes[self._wan_address] = set()
+            self.wan_address_vote(self._wan_address, LoopbackCandidate())
+        else:
+            self._wan_address = ("0.0.0.0", 0)
+            self._wan_address_votes[self._wan_address] = set()
         if __debug__ and __debug__:
             dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1], force=True)
             dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
