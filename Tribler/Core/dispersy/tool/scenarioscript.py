@@ -71,7 +71,7 @@ class ScenarioScript(ScriptBase):
         scenario = []
         re_line = re_compile("^([@+])\s*(?:(\d+):)?(\d+)(?:[.](\d+))?(?:\s*-\s*(?:(\d+):)?(\d+)(?:[.](\d+))?)?\s+(\w+)(?:\s+(.+?))?\s*$")
         filename = self._kargs["scenario"]
-        origin = {"@":int(self._kargs["startstamp"]),
+        origin = {"@":int(self._kargs["startstamp"]) if "startstamp" in self._kargs else time(),
                   "+":time()}
         for lineno, line in enumerate(open(filename, "r")):
             match = re_line.match(line)
