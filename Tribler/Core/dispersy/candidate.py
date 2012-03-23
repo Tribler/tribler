@@ -9,6 +9,7 @@ if __debug__:
         assert len(address) == 2, len(address)
         assert isinstance(address[0], str), type(address[0])
         assert address[0], address[0]
+        assert not address[0] == "0.0.0.0", address[0]
         assert isinstance(address[1], int), type(address[1])
         assert address[1] >= 0, address[1]
         return True
@@ -262,12 +263,11 @@ class WalkCandidate(Candidate):
             self.last_stumble = 0.0
             self.last_intro = 0.0
 
-    def __init__(self, sock_addr, lan_address, wan_address, connection_type=u"unknown"):
+    def __init__(self, sock_addr, lan_address=("0.0.0.0", 0), wan_address=("0.0.0.0", 0), connection_type=u"unknown"):
         super(WalkCandidate, self).__init__(sock_addr)
-
-        assert is_address(sock_addr)
-        assert is_address(lan_address)
-        assert is_address(wan_address)
+        assert is_address(sock_addr), sock_addr
+        assert lan_address == ("0.0.0.0", 0) or is_address(lan_address)
+        assert wan_address == ("0.0.0.0", 0) or is_address(wan_address)
         assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
         self._lan_address = lan_address
         self._wan_address = wan_address
@@ -295,7 +295,7 @@ class WalkCandidate(Candidate):
 
         A WalkCandidate is active if the category is either u"walk", u"stumble", or u"sandi".
         """
-        if self._timestamps:
+        if self._timestamps and not (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
             return (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
                     now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
         return False
@@ -404,17 +404,18 @@ class WalkCandidate(Candidate):
         self._get_or_create_timestamps(community).last_intro = now
 
     def update(self, lan_address, wan_address, connection_type):
-        assert is_address(lan_address)
-        assert is_address(wan_address)
+        assert lan_address == ("0.0.0.0", 0) or is_address(lan_address)
+        assert wan_address == ("0.0.0.0", 0) or is_address(wan_address)
         assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
-        self._lan_address = lan_address
-        self._wan_address = wan_address
+        if not lan_address == ("0.0.0.0", 0):
+            self._lan_address = lan_address
+        if not wan_address == ("0.0.0.0", 0):
+            self._wan_address = wan_address
         self._connection_type = u"public" if connection_type == u"unknown" and lan_address == wan_address else connection_type
 
     def __str__(self):
         if self._lan_address == self._wan_address:
             return "%s:%d" % self._lan_address
-
         else:
             return "%s:%d (%s:%d)" % (self._lan_address[0], self._lan_address[1], self._wan_address[0], self._wan_address[1])
 

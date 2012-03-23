@@ -675,7 +675,7 @@ def dprint(*args, **kargs):
     |     def expensive_calculation():
     |         import time
     |         time.sleep(1)
-    |         return "moo-milk"
+    |         return "moo-milk",
     |     dprint("foo-bar", callback=expensive_calculation)
     filename:6    <module>                  | foo-bar moo-milk
     ---
@@ -733,7 +733,7 @@ def dprint(*args, **kargs):
     messages = []
 
     if kargs["callback"]:
-        args = args + (kargs["callback"](),)
+        args = args + kargs["callback"]()
 
     # print each variable in args
     if kargs["binary"]:

@@ -17,6 +17,8 @@ from Tribler.Core.dispersy.distribution import DirectDistribution
 from Tribler.Core.dispersy.message import Message
 from Tribler.Core.dispersy.resolution import PublicResolution
 
+from Tribler.Core.dispersy.candidate import CANDIDATE_WALK_LIFETIME, CANDIDATE_STUMBLE_LIFETIME, CANDIDATE_INTRO_LIFETIME
+
 from payload import ContactPayload
 from conversion import WalktestConversion
 
@@ -26,6 +28,7 @@ if __debug__:
 class WalktestCommunity(Community):
     def __init__(self, *args, **kargs):
         super(WalktestCommunity, self).__init__(*args, **kargs)
+        if __debug__: dprint("cid: ", self.cid.encode("HEX"), force=1)
 
         try:
             hostname = open("/etc/hostname", "r").readline().strip()
@@ -39,8 +42,8 @@ class WalktestCommunity(Community):
             **self._default_log())
 
         # redirect introduction-response timeout
-        self._origional__introduction_response_or_timeout = self._dispersy.introduction_response_or_timeout
-        self._dispersy.introduction_response_or_timeout = self._replacement__introduction_response_or_timeout
+        self._origional__introduction_response_timeout = self._dispersy.introduction_response_timeout
+        self._dispersy.introduction_response_timeout = self._replacement__introduction_response_timeout
 
     def unload_community(self):
         log("walktest.log",
@@ -53,19 +56,15 @@ class WalktestCommunity(Community):
                     wan_address=self._dispersy.wan_address,
                     connection_type=self._dispersy.connection_type)
 
-    @staticmethod
-    def flush_log():
-        log("walktest.log", "scenario-end")
-        close("walktest.log")
-
-    def _replacement__introduction_response_or_timeout(self, message, community, intermediary_candidate):
-        if message is None and self == community:
+    def _replacement__introduction_response_timeout(self, identifier):
+        has_response, into_resp_candidate, punct_candidate, community, helper_candidate, req_timestamp = self._dispersy._walk_identifiers.get(identifier)
+        if not has_response and self == community:
             log("walktest.log",
                 "timeout",
-                intermediary_lan_address=intermediary_candidate.lan_address,
-                intermediary_wan_address=intermediary_candidate.wan_address,
+                intermediary_lan_address=helper_candidate.lan_address,
+                intermediary_wan_address=helper_candidate.wan_address,
                 **self._default_log())
-        return self._origional__introduction_response_or_timeout(message, community, intermediary_candidate)
+        return self._origional__introduction_response_timeout(identifier)
 
     def _initialize_meta_messages(self):
         super(WalktestCommunity, self)._initialize_meta_messages()
@@ -91,13 +90,35 @@ class WalktestCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), WalktestConversion(self)]
 
+    @property
+    def dispersy_auto_download_master_member(self):
+        return False
+
     if DAS4SCENARIO:
         def initiate_meta_messages(self):
             return []
 
+        @staticmethod
+        def _get_merged_candidate_category(candidate, community, now):
+            timestamps = candidate._timestamps[community.cid]
+
+            if now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME:
+                yield u"walk"
+
+            if now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME and now >= timestamps.last_intro + CANDIDATE_INTRO_LIFETIME:
+                yield u"stumble"
+
+            if now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME and now >= timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME:
+                yield u"intro"
+
+            if now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME and now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME:
+                yield u"sandi"
+
+            yield u"none"
+
         def dispersy_take_step(self):
             now = time()
-            addresses = [(candidate.lan_address, candidate.get_category(self, now)) for candidate in self._dispersy._candidates.itervalues() if candidate.in_community(self, now)]
+            addresses = [(candidate.lan_address, candidate.get_category(self, now), "-".join(self._get_merged_candidate_category(candidate, self, now))) for candidate in self._dispersy._candidates.itervalues() if candidate.in_community(self, now)]
             log("walktest.log",
                 "candidates",
                 candidates=addresses,

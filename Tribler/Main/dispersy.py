@@ -5,11 +5,12 @@ Run Dispersy in standalone mode.  Tribler will not be started.
 """
 
 import errno
+import optparse
 import socket
 import sys
-import traceback
 import threading
-import optparse
+import time
+import traceback
 
 # from Tribler.Community.Discovery.Community import DiscoveryCommunity
 from Tribler.Core.BitTornado.RawServer import RawServer
@@ -39,6 +40,7 @@ def main():
             self.rawserver = rawserver
             self.rawserver.start_listening_udp(self.socket, self)
             self.dispersy = dispersy
+            self.sendqueue_lock = threading.Lock()
             self.sendqueue = []
 
         def get_address(self):
@@ -50,6 +52,10 @@ def main():
             # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
             # sometimes called without any packets...
             if packets:
+                # for address, data in packets:
+                #     meta = self.dispersy.convert_packet_to_meta_message(data, load=False)
+                #     print "%.1f %30s <- %15s:%-5d %4d bytes" % (time.time(), meta.name, address[0], address[1], len(data))
+
                 try:
                     self.dispersy.data_came_in(packets)
                 except:
@@ -57,27 +63,36 @@ def main():
                     raise
 
         def send(self, address, data):
-            try:
-                self.socket.sendto(data, address)
-            except socket.error, error:
-                if error[0] == SOCKET_BLOCK_ERRORCODE:
+            # meta = self.dispersy.convert_packet_to_meta_message(data, load=False)
+            # print "%.1f %30s -> %15s:%-5d %4d bytes" % (time.time(), meta.name, address[0], address[1], len(data))
+
+            with self.sendqueue_lock:
+                if self.sendqueue:
                     self.sendqueue.append((data, address))
-                    self.rawserver.add_task(self.process_sendqueue, 0.1)
+                else:
+                    try:
+                        self.socket.sendto(data, address)
+
+                    except socket.error, error:
+                        if error[0] == SOCKET_BLOCK_ERRORCODE:
+                            self.sendqueue.append((data, address))
+                            print >> sys.stderr, time.time(), "sendqueue overflowing", len(self.sendqueue), "(first schedule)"
+                            self.rawserver.add_task(self.process_sendqueue, 0.1)
 
         def process_sendqueue(self):
-            sendqueue = self.sendqueue
-            self.sendqueue = []
+            print >> sys.stderr, time.time(), "sendqueue overflowing", len(self.sendqueue)
 
-            while sendqueue:
-                data, address = sendqueue.pop(0)
-                try:
-                    self.socket.sendto(data, address)
-                except socket.error, error:
-                    if error[0] == SOCKET_BLOCK_ERRORCODE:
-                        self.sendqueue.append((data, address))
-                        self.sendqueue.extend(sendqueue)
-                        self.rawserver.add_task(self.process_sendqueue, 0.1)
-                        break
+            with self.sendqueue_lock:
+                while self.sendqueue:
+                    data, address = self.sendqueue.pop(0)
+                    try:
+                        self.socket.sendto(data, address)
+
+                    except socket.error, error:
+                        if error[0] == SOCKET_BLOCK_ERRORCODE:
+                            self.sendqueue.insert(0, (data, address))
+                            self.rawserver.add_task(self.process_sendqueue, 0.1)
+                            break
 
     def on_fatal_error(error):
         print >> sys.stderr, "Rawserver fatal error:", error
