@@ -68,6 +68,7 @@ class ScenarioScript(ScriptBase):
         """
         Yields (TIMESTAMP, FUNC, ARGS) tuples, where TIMESTAMP is the time when FUNC must be called.
         """
+        scenario = []
         if "scenario" in self._kargs:
             # read scenario from scenario file
 
@@ -75,7 +76,6 @@ class ScenarioScript(ScriptBase):
             filename = self._kargs["scenario"]
             origin = {"@":int(self._kargs["startstamp"]),
                       "+":time()}
-            scenario = []
             for lineno, line in enumerate(open(filename, "r")):
                 match = re_line.match(line)
                 if match:
