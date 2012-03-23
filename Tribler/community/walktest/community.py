@@ -4,10 +4,7 @@ DAS4SCENARIO = True
 
 from time import time
 
-if DAS2SCENARIO:
-    from lencoder import log
-else:
-    from lencoder import close, bz2log as log
+from lencoder import close, bz2log
 
 from Tribler.Core.dispersy.authentication import NoAuthentication
 from Tribler.Core.dispersy.community import Community
@@ -35,20 +32,20 @@ class WalktestCommunity(Community):
         except:
             hostname = "unknown"
 
-        log("walktest.log",
-            "load",
-            mid=self.my_member.mid,
-            hostname=hostname,
-            **self._default_log())
+        bz2log("walktest.log",
+               "load",
+               mid=self.my_member.mid,
+               hostname=hostname,
+               **self._default_log())
 
         # redirect introduction-response timeout
         self._origional__introduction_response_timeout = self._dispersy.introduction_response_timeout
         self._dispersy.introduction_response_timeout = self._replacement__introduction_response_timeout
 
     def unload_community(self):
-        log("walktest.log",
-            "unload",
-            **self._default_log())
+        bz2log("walktest.log",
+               "unload",
+               **self._default_log())
         return super(WalktestCommunity, self).unload_community()
 
     def _default_log(self):
@@ -59,11 +56,11 @@ class WalktestCommunity(Community):
     def _replacement__introduction_response_timeout(self, identifier):
         has_response, into_resp_candidate, punct_candidate, community, helper_candidate, req_timestamp = self._dispersy._walk_identifiers.get(identifier)
         if not has_response and self == community:
-            log("walktest.log",
-                "timeout",
-                intermediary_lan_address=helper_candidate.lan_address,
-                intermediary_wan_address=helper_candidate.wan_address,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "timeout",
+                   intermediary_lan_address=helper_candidate.lan_address,
+                   intermediary_wan_address=helper_candidate.wan_address,
+                   **self._default_log())
         return self._origional__introduction_response_timeout(identifier)
 
     def _initialize_meta_messages(self):
@@ -119,10 +116,10 @@ class WalktestCommunity(Community):
         def dispersy_take_step(self):
             now = time()
             addresses = [(candidate.lan_address, candidate.get_category(self, now), "-".join(self._get_merged_candidate_category(candidate, self, now))) for candidate in self._dispersy._candidates.itervalues() if candidate.in_community(self, now)]
-            log("walktest.log",
-                "candidates",
-                candidates=addresses,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "candidates",
+                   candidates=addresses,
+                   **self._default_log())
             return super(WalktestCommunity, self).dispersy_take_step()
 
     if DAS2SCENARIO:
@@ -134,72 +131,72 @@ class WalktestCommunity(Community):
             message = meta.impl(distribution=(self.global_time,), destination=(destination,), payload=(identifier,))
             self._dispersy.store_update_forward([message], False, False, True)
 
-            log("walktest.log",
-                "out-contact",
-                destination_address=destination.sock_addr,
-                identifier=identifier,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "out-contact",
+                   destination_address=destination.sock_addr,
+                   identifier=identifier,
+                   **self._default_log())
 
         def check_contact(self, messages):
             return messages
 
         def on_contact(self, messages):
             for message in messages:
-                log("walktest.log",
-                    "in-contact",
-                    source_address=message.candidate.sock_addr,
-                    identifier=message.payload.identifier,
-                    **self._default_log())
+                bz2log("walktest.log",
+                       "in-contact",
+                       source_address=message.candidate.sock_addr,
+                       identifier=message.payload.identifier,
+                       **self._default_log())
 
         def impl_introduction_request(self, meta, *args, **kargs):
             message = meta.__origional_impl(*args, **kargs)
-            log("walktest.log",
-                "out-introduction-request",
-                destination_address=message.destination.candidates[0].sock_addr,
-                advice=message.payload.advice,
-                identifier=message.payload.identifier,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "out-introduction-request",
+                   destination_address=message.destination.candidates[0].sock_addr,
+                   advice=message.payload.advice,
+                   identifier=message.payload.identifier,
+                   **self._default_log())
             return message
 
         def on_introduction_request(self, meta, messages):
             for message in messages:
-                log("walktest.log",
-                    "in-introduction-request",
-                    source_address=message.candidate.sock_addr,
-                    mid=message.authentication.member.mid,
-                    destination_address=message.payload.destination_address,
-                    source_lan_address=message.payload.source_lan_address,
-                    source_wan_address=message.payload.source_wan_address,
-                    advice=message.payload.advice,
-                    identifier=message.payload.identifier,
-                    **self._default_log())
+                bz2log("walktest.log",
+                       "in-introduction-request",
+                       source_address=message.candidate.sock_addr,
+                       mid=message.authentication.member.mid,
+                       destination_address=message.payload.destination_address,
+                       source_lan_address=message.payload.source_lan_address,
+                       source_wan_address=message.payload.source_wan_address,
+                       advice=message.payload.advice,
+                       identifier=message.payload.identifier,
+                       **self._default_log())
             return meta.__origional_handle(messages)
 
         def impl_introduction_response(self, meta, *args, **kargs):
             message = meta.__origional_impl(*args, **kargs)
             assert len(message.destination.candidates) == 1
-            log("walktest.log",
-                "out-introduction-response",
-                destination_address=message.destination.candidates[0].sock_addr,
-                lan_introduction_address=message.payload.lan_introduction_address,
-                wan_introduction_address=message.payload.wan_introduction_address,
-                identifier=message.payload.identifier,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "out-introduction-response",
+                   destination_address=message.destination.candidates[0].sock_addr,
+                   lan_introduction_address=message.payload.lan_introduction_address,
+                   wan_introduction_address=message.payload.wan_introduction_address,
+                   identifier=message.payload.identifier,
+                   **self._default_log())
             return message
 
         def on_introduction_response(self, meta, messages):
             for message in messages:
-                log("walktest.log",
-                    "in-introduction-response",
-                    member=message.authentication.member.public_key,
-                    source_address=message.candidate.sock_addr,
-                    destination_address=message.payload.destination_address,
-                    source_lan_address=message.payload.source_lan_address,
-                    source_wan_address=message.payload.source_wan_address,
-                    lan_introduction_address=message.payload.lan_introduction_address,
-                    wan_introduction_address=message.payload.wan_introduction_address,
-                    identifier=message.payload.identifier,
-                    **self._default_log())
+                bz2log("walktest.log",
+                       "in-introduction-response",
+                       member=message.authentication.member.public_key,
+                       source_address=message.candidate.sock_addr,
+                       destination_address=message.payload.destination_address,
+                       source_lan_address=message.payload.source_lan_address,
+                       source_wan_address=message.payload.source_wan_address,
+                       lan_introduction_address=message.payload.lan_introduction_address,
+                       wan_introduction_address=message.payload.wan_introduction_address,
+                       identifier=message.payload.identifier,
+                       **self._default_log())
 
                 # schedule the 'contact' message after one second.  this should give time for the
                 # puncture to complete
@@ -210,46 +207,46 @@ class WalktestCommunity(Community):
         def impl_puncture_request(self, meta, *args, **kargs):
             message = meta.__origional_impl(*args, **kargs)
             assert len(message.destination.candidates) == 1
-            log("walktest.log",
-                "out-puncture-request",
-                destination=message.destination.candidates[0].sock_addr,
-                lan_walker_address=message.payload.lan_walker_address,
-                wan_walker_address=message.payload.wan_walker_address,
-                identifier=message.payload.identifier,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "out-puncture-request",
+                   destination=message.destination.candidates[0].sock_addr,
+                   lan_walker_address=message.payload.lan_walker_address,
+                   wan_walker_address=message.payload.wan_walker_address,
+                   identifier=message.payload.identifier,
+                   **self._default_log())
             return message
 
         def on_puncture_request(self, meta, messages):
             for message in messages:
-                log("walktest.log",
-                    "in-puncture-request",
-                    source_address=message.candidate.sock_addr,
-                    lan_walker_address=message.payload.lan_walker_address,
-                    wan_walker_address=message.payload.wan_walker_address,
-                    identifier=message.payload.identifier,
-                    **self._default_log())
+                bz2log("walktest.log",
+                       "in-puncture-request",
+                       source_address=message.candidate.sock_addr,
+                       lan_walker_address=message.payload.lan_walker_address,
+                       wan_walker_address=message.payload.wan_walker_address,
+                       identifier=message.payload.identifier,
+                       **self._default_log())
             return meta.__origional_handle(messages)
 
         def impl_puncture(self, meta, *args, **kargs):
             message = meta.__origional_impl(*args, **kargs)
             assert len(message.destination.candidates) == 1
-            log("walktest.log",
-                "out-puncture",
-                destination_address=message.destination.candidates[0].sock_addr,
-                source_lan_address=message.payload.source_lan_address,
-                source_wan_address=message.payload.source_wan_address,
-                identifier=message.payload.identifier,
-                **self._default_log())
+            bz2log("walktest.log",
+                   "out-puncture",
+                   destination_address=message.destination.candidates[0].sock_addr,
+                   source_lan_address=message.payload.source_lan_address,
+                   source_wan_address=message.payload.source_wan_address,
+                   identifier=message.payload.identifier,
+                   **self._default_log())
             return message
 
         def on_puncture(self, meta, messages):
             for message in messages:
-                log("walktest.log",
-                    "in-puncture",
-                    member=message.authentication.member.mid,
-                    source_address=message.candidate.sock_addr,
-                    source_lan_address=message.payload.source_lan_address,
-                    source_wan_address=message.payload.source_wan_address,
-                    identifier=message.payload.identifier,
-                    **self._default_log())
+                bz2log("walktest.log",
+                       "in-puncture",
+                       member=message.authentication.member.mid,
+                       source_address=message.candidate.sock_addr,
+                       source_lan_address=message.payload.source_lan_address,
+                       source_wan_address=message.payload.source_wan_address,
+                       identifier=message.payload.identifier,
+                       **self._default_log())
             return meta.__origional_handle(messages)
