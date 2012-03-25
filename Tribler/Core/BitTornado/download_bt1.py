@@ -143,7 +143,7 @@ class BT1Download:
                              config['rarest_first_priority_cutoff'], piecesize=self.piecesize)
             else:
                 self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'])
+                             config['rarest_first_priority_cutoff'], filepieceranges = dlinstance.filepieceranges)
             
         except:
             print_exc()
