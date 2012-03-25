@@ -199,6 +199,7 @@ class TorrentDetails(AbstractDetails):
                 
                 isChannelTorrent = isinstance(self.torrent, ChannelTorrent) or (isinstance(self.torrent, CollectedTorrent) and isinstance(self.torrent.torrent, ChannelTorrent))
                 if isChannelTorrent and self.torrent.hasChannel():
+                    #This is a db call
                     state, iamModerator = self.torrent.channel.getState()
                     
                     if isinstance(self, LibraryDetails):

@@ -67,9 +67,9 @@ def forceAndReturnDispersyThread(func):
                 finally:
                     event.set()
             
-            #Niels: 10-03-2012, setting prio to 1 because we are actively waiting for this
+            #Niels: 10-03-2012, setting prio to 1024 because we are actively waiting for this
             dispersy_thread.__name__ = func.__name__
-            register_task(dispersy_thread, priority = 1)
+            register_task(dispersy_thread, priority = 1024)
             
             if event.wait(100) or event.isSet():
                 return result[0]
