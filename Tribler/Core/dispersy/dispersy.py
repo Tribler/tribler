@@ -337,8 +337,8 @@ class Dispersy(Singleton):
             self._wan_address = ("0.0.0.0", 0)
             self._wan_address_votes[self._wan_address] = set()
         if __debug__ and __debug__:
-            dprint("my lan address is ", self._lan_address[0], ":", self._lan_address[1], force=True)
-            dprint("my wan address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
+            dprint("my LAN address is ", self._lan_address[0], ":", self._lan_address[1], force=True)
+            dprint("my WAN address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
 
         # bootstrap peers
         bootstrap_addresses = get_bootstrap_addresses(self._working_directory)
@@ -426,15 +426,15 @@ class Dispersy(Singleton):
         self._socket = socket
 
         host, port = socket.get_address()
-        if __debug__ and __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=True)
+        if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=True)
         self._lan_address = (self._lan_address[0], port)
 
         if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
-            if __debug__ and __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", host, ":", self._lan_address[1], force=True)
+            if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", host, ":", self._lan_address[1], force=True)
             self._lan_address = (host, self._lan_address[1])
 
             if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
-                if __debug__ and __debug__: dprint("update lan address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
+                if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
                 self._lan_address = (self._wan_address[0], self._lan_address[1])
 
         # our address may not be a bootstrap address

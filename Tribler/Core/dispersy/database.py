@@ -102,7 +102,7 @@ class Database(Singleton):
         """
         assert self._debug_thread_ident == thread.get_ident()
 
-        if __debug__: dprint("disabling Database.commit()", stack=1)
+        if __debug__: dprint("disabling Database.commit()")
         self._pending_commits = max(1, self._pending_commits)
         return self
 
