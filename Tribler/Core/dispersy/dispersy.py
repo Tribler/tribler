@@ -926,16 +926,28 @@ class Dispersy(Singleton):
         assert isinstance(address[1], int)
         assert isinstance(voter, Candidate)
         if self._is_valid_wan_address(address, check_my_wan_address=False):
+            # a candidate may only vote on one possible WAN address
+            for key, votes in [(key, votes) for key, votes in self._wan_address_votes.iteritems() if voter.key in votes]:
+                votes.remove(voter.key)
+                if not self._wan_address == key and len(votes) == 0:
+                    del self._wan_address_votes[key]
+
             if not address in self._wan_address_votes:
                 self._wan_address_votes[address] = set()
             self._wan_address_votes[address].add(voter.key)
 
             # change when new vote count equal or higher than old address vote count
             if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
-                if len(self._wan_address_votes[address]) == 1 and len(self._wan_address_votes[self._wan_address]) == 1:
+                if len(self._wan_address_votes[address]) >= 1 and len(self._wan_address_votes[self._wan_address]) >= 1:
                     if __debug__ and __debug__: dprint("not updating WAN address, suspect symmetric NAT", force=1)
                     self._connection_type = u"symmetric-NAT"
                     return
+
+                # it is possible that, for some time after the WAN address changes, we will believe
+                # that the connection type is symmetric NAT.  once votes decay we may find that we
+                # are no longer behind a symmetric-NAT
+                if self._connection_type == u"symmetric-NAT":
+                    self._connection_type = u"unknown"
 
                 if __debug__ and __debug__:
                     dprint("update WAN address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
