@@ -268,7 +268,7 @@ class WalkCandidate(Candidate):
         assert is_address(sock_addr), sock_addr
         assert lan_address == ("0.0.0.0", 0) or is_address(lan_address)
         assert wan_address == ("0.0.0.0", 0) or is_address(wan_address)
-        assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
+        assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", u"symmetric-NAT")
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._connection_type = connection_type
@@ -341,11 +341,13 @@ class WalkCandidate(Candidate):
         - it is CANDIDATE_ELIGIBLE_DELAY or more seconds since the previous step.
         """
         assert community.cid in self._timestamps
-        timestamps = self._timestamps[community.cid]
-        return (now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY and
-                (now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
-                 now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
-                 now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME))
+        if not (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
+            timestamps = self._timestamps[community.cid]
+            return (now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY and
+                    (now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
+                     now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
+                     now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME))
+        return False
 
     def last_walk(self, community):
         assert community.cid in self._timestamps

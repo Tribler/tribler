@@ -58,6 +58,7 @@ class WalktestCommunity(Community):
         if not has_response and self == community:
             bz2log("walktest.log",
                    "timeout",
+                   intermediary_sock_address=helper_candidate.sock_addr,
                    intermediary_lan_address=helper_candidate.lan_address,
                    intermediary_wan_address=helper_candidate.wan_address,
                    **self._default_log())
@@ -153,6 +154,8 @@ class WalktestCommunity(Community):
             bz2log("walktest.log",
                    "out-introduction-request",
                    destination_address=message.destination.candidates[0].sock_addr,
+                   destination_lan_address=message.destination.candidates[0].lan_address,
+                   destination_wan_address=message.destination.candidates[0].wan_address,
                    advice=message.payload.advice,
                    identifier=message.payload.identifier,
                    **self._default_log())

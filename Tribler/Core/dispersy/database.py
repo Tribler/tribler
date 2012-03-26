@@ -1,6 +1,3 @@
-# Python 2.5 features
-from __future__ import with_statement
-
 """
 This module provides basic database functionalty and simple version control.
 
@@ -36,7 +33,12 @@ class Database(Singleton):
         # self._connection.setrollbackhook(self._on_rollback)
         self._cursor = self._connection.cursor()
 
+        # _commit_callbacks contains a list with functions that are called on each database commit
         self._commit_callbacks = []
+
+        # Database.commit() is enabled when _pending_commits == 0.  Database.commit() is disabled
+        # when _pending_commits > 0.  A commit is required when _pending_commits > 1.
+        self._pending_commits = 0
 
         #
         # PRAGMA synchronous = 0 | OFF | 1 | NORMAL | 2 | FULL;
@@ -94,39 +96,30 @@ class Database(Singleton):
 
     def __enter__(self):
         """
-        Enter a database transaction block.
-
-        Using the __enter__ and __exit__ methods we can group multiple insert and update queries
-        together, causing only one transaction block to be used, hence increasing database
-        performance.  When __exit__ is called the transaction block is commited.
-
-        >>> with database as execute:
-        >>>    execute(u"INSERT INTO ...")
-        >>>    execute(u"INSERT INTO ...")
-        >>>    execute(u"INSERT INTO ...")
+        Enters a no-commit state.  The commit will be performed by __exit__.
 
         @return: The method self.execute
         """
         assert self._debug_thread_ident == thread.get_ident()
 
-        if __debug__: dprint("COMMIT")
-        self._connection.commit()
+        if __debug__: dprint("disabling Database.commit()", stack=1)
+        self._pending_commits = max(1, self._pending_commits)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
-        Exit a database transaction block.
-
-        Using the __enter__ and __exit__ methods we can group multiple insert and update queries
-        together, causing only one transaction block to be used, hence increasing database
-        performance.  When __exit__ is called the transaction block is commited.
+        Leaves a no-commit state.  A commit will be performed if Database.commit() was called while
+        in the no-commit state.
         """
         assert self._debug_thread_ident == thread.get_ident()
 
+        self._pending_commits, pending_commits = 0, self._pending_commits
 
         if exc_type is None:
-            if __debug__: dprint("COMMIT")
-            self._connection.commit()
+            if __debug__: dprint("enabling Database.commit()")
+            if pending_commits > 1:
+                if __debug__: dprint("performing ", pending_commits - 1, " pending commits")
+                self._connection.commit()
             return True
         else:
             if __debug__: dprint("ROLLBACK", level="error")
@@ -260,14 +253,20 @@ class Database(Singleton):
     def commit(self):
         assert self._debug_thread_ident == thread.get_ident(), "Calling Database.commit on the wrong thread"
 
-        if __debug__: dprint("COMMIT")
-        result = self._connection.commit()
-        for callback in self._commit_callbacks:
-            try:
-                callback()
-            except Exception:
-                if __debug__: dprint(exception=True, stack=True)
-        return result
+        if self._pending_commits:
+            if __debug__: dprint("defer COMMIT")
+            self._pending_commits += 1
+            return False
+
+        else:
+            if __debug__: dprint("COMMIT")
+            result = self._connection.commit()
+            for callback in self._commit_callbacks:
+                try:
+                    callback()
+                except Exception:
+                    if __debug__: dprint(exception=True, stack=True)
+            return result
 
     # def _on_rollback(self):
     #     if __debug__: dprint("ROLLBACK", level="warning")
@@ -298,84 +297,3 @@ class Database(Singleton):
     def detach_commit_callback(self, func):
         assert func in self._commit_callbacks
         self._commit_callbacks.remove(func)
-
-if __debug__:
-    if __name__ == "__main__":
-        class TestDatabase(Database):
-            def check_database(self, database_version):
-                pass
-
-        import time
-
-        db = TestDatabase(u"test.db")
-        db.execute(u"CREATE TABLE pair (key INTEGER, value TEXT)")
-
-        a = time.time()
-        for i in xrange(1000):
-            db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
-
-        b = time.time()
-        with db:
-            for i in xrange(1000):
-                db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
-
-        c = time.time()
-        for i in xrange(1000):
-            for row in db.execute(u"SELECT * FROM pair WHERE key = ?", (u"-%d-" % i,)):
-                pass
-
-        d = time.time()
-        for i in xrange(2000, 3000):
-            db.execute(u"INSERT INTO pair (key, value) VALUES (?, ?)", (i, u"-%d-" % i))
-
-        try:
-            db.execute(u"INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42)")
-            print "ERROR"
-            assert False
-        except Exception:
-            pass
-
-        l = list(db.execute(u"SELECT * FROM pair WHERE key BETWEEN 2000 AND 3000"))
-        if not len(l) == 1000:
-            print "ERROR"
-            assert False
-
-        try:
-            with db:
-                db.execute(u"INSERT INTO pair (key, value) VALUES ('foo', 'bar')")
-                db.execute(u"INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42)")
-        except Exception:
-            pass
-        # there should not be a foo/bar entry
-        try:
-            key, value = db.execute(u"SELECT key, value FROM pair WHERE key = 'foo'").next()
-            print "ERROR"
-            assert False
-        except StopIteration:
-            pass
-
-        try:
-            with db:
-                db.executescript(u"""
-INSERT INTO pair (key, value) VALUES ('foo', 'bar');
-INSERT INTO invalid_table_name (foo, bar) VALUES (42, 42);
-""")
-        except sqlite3.OperationalError, e:
-            assert str(e) == "no such table: invalid_table_name", e
-        # there should not be a foo/bar entry
-        try:
-            key, value = db.execute(u"SELECT key, value FROM pair WHERE key = 'foo'").next()
-            print "ERROR"
-            assert False
-        except StopIteration:
-            pass
-
-        e = time.time()
-        db.commit()
-
-        f = time.time()
-        print "implicit insert:", b - a
-        print "explicit insert:", c - b
-        print "select:", d - c
-        print "test1: ", e - d
-        print "close: ", f - e

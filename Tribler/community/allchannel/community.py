@@ -360,15 +360,16 @@ class AllChannelCommunity(Community):
         return message
                     
     def check_votecast(self, messages):
-        for message in messages:
-            if __debug__: dprint(message)
-            
-            channel_id = self._get_channel_id(message.payload.cid)
-            if not channel_id:
-                community = self._get_channel_community(message.payload.cid)
-                yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
-            else:
-                yield message
+        with self._dispersy.database:
+            for message in messages:
+                if __debug__: dprint(message)
+
+                channel_id = self._get_channel_id(message.payload.cid)
+                if not channel_id:
+                    community = self._get_channel_community(message.payload.cid)
+                    yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
+                else:
+                    yield message
                 
     def on_votecast(self, messages):
         if self.integrate_with_tribler:

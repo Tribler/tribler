@@ -287,25 +287,25 @@ class BarterScenarioScript(ScriptBase):
         community_database_id = 1
         _peer_ids = {}
         all_peers = []
-        with self._dispersy.database as execute:
-            with open('data/peers') as file:
-                for index, line in zip(count(), file):
-                    name, ip, port, public_key, private_key = line.split(' ')
-                    if __debug__:
-                        _peer_counter += 1
-                        log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
-                    port = int(port)
-                    public_key = public_key.decode('HEX')
-                    private_key = private_key.strip().decode("HEX") # stip to remove newline character
-                    _peer_ids[public_key] = int(name)
-                    all_peers.append((index, (ip, port), public_key, private_key))
-                    if name == my_name: continue
+        execute = self._dispersy.database.execute
+        with open('data/peers') as file:
+            for index, line in zip(count(), file):
+                name, ip, port, public_key, private_key = line.split(' ')
+                if __debug__:
+                    _peer_counter += 1
+                    log("barter.log", "read-peer-config", position=_peer_counter, name=name, ip=ip, port=port)
+                port = int(port)
+                public_key = public_key.decode('HEX')
+                private_key = private_key.strip().decode("HEX") # stip to remove newline character
+                _peer_ids[public_key] = int(name)
+                all_peers.append((index, (ip, port), public_key, private_key))
+                if name == my_name: continue
 
-                    #self._dispersy._send([(ip, port)], [message.packet])
-                    execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (community_database_id, unicode(ip), port))
-                    # execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
-                    #if __debug__:
-                    #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
+                #self._dispersy._send([(ip, port)], [message.packet])
+                execute(u"INSERT OR IGNORE INTO candidate(community, host, port, incoming_time, outgoing_time) VALUES(?, ?, ?, DATETIME(), '2010-01-01 00:00:00')", (community_database_id, unicode(ip), port))
+                # execute(u"INSERT OR IGNORE INTO user(mid, public_key, host, port) VALUES(?, ?, ?, ?)", (buffer(sha1(public_key).digest()), buffer(public_key), unicode(ip), port))
+                #if __debug__:
+                #    log("barter.log", "mid_add", mid=sha1(public_key).digest())
 
         # join the barter community with the newly created member
         self._barter = BarterCommunity.join_community(sha1(master_key).digest(), master_key, my_member)

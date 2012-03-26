@@ -1,6 +1,3 @@
-# Python 2.5 features
-from __future__ import with_statement
-
 from conversion import BarterCommunityConversion
 from database import BarterDatabase
 from payload import BarterRecordPayload
@@ -195,45 +192,45 @@ class BarterCommunity(Community):
         I create or update a row in my database
         """
         if __debug__: dprint("storing ", len(messages), " records")
-        with self._database as execute:
-            for message in messages:
-                if __debug__: log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
-                # check if there is already a record about this pair
-                try:
-                    first_member, second_member, global_time = \
-                                  execute(u"SELECT first_member, second_member, global_time FROM \
-                                  record WHERE (first_member = ? AND second_member = ?) OR \
-                                  (first_member = ? AND second_member = ?)",
-                                          (message.authentication.members[0].database_id,
-                                           message.authentication.members[1].database_id,
-                                           message.authentication.members[1].database_id,
-                                           message.authentication.members[0].database_id)).next()
-                except StopIteration:
-                    global_time = -1
-                    first_member = message.authentication.members[0].database_id
-                    second_member = message.authentication.members[1].database_id
+        execute = self._database.execute
+        for message in messages:
+            if __debug__: log("dispersy.log", "handled-barter-record") # TODO: maybe move to barter.log
+            # check if there is already a record about this pair
+            try:
+                first_member, second_member, global_time = \
+                              execute(u"SELECT first_member, second_member, global_time FROM \
+                              record WHERE (first_member = ? AND second_member = ?) OR \
+                              (first_member = ? AND second_member = ?)",
+                                      (message.authentication.members[0].database_id,
+                                       message.authentication.members[1].database_id,
+                                       message.authentication.members[1].database_id,
+                                       message.authentication.members[0].database_id)).next()
+            except StopIteration:
+                global_time = -1
+                first_member = message.authentication.members[0].database_id
+                second_member = message.authentication.members[1].database_id
 
-                if global_time >= message.distribution.global_time:
-                    # ignore the message
-                    if __debug__:
-                        dprint("Ignoring older message")
-                else:
-                    self._database.execute(u"INSERT OR REPLACE INTO \
-                    record(community, global_time, first_member, second_member, \
-                    upload_first_member, upload_second_member) \
-                    VALUES(?, ?, ?, ?, ?, ?)",
-                                           (self._database_id,
-                                            message.distribution.global_time,
-                                            first_member,
-                                            second_member,
-                                            message.payload.first_upload,
-                                            message.payload.second_upload))
-                    if __debug__:
-                        peer1_id = self._peer_ids.get(message.authentication.members[0].public_key, -1)
-                        peer2_id = self._peer_ids.get(message.authentication.members[1].public_key, -1)
-                        peer1_upload = message.payload.first_upload
-                        peer2_upload = message.payload.second_upload
-                        if peer1_id > peer2_id:
-                            peer1_id, peer2_id = peer2_id, peer1_id
-                            peer1_upload, peer2_upload = peer2_upload, peer1_upload
-                        log("barter.log", "barter-record", first=peer1_id, second=peer2_id, first_upload=peer1_upload, second_upload=peer2_upload)
+            if global_time >= message.distribution.global_time:
+                # ignore the message
+                if __debug__:
+                    dprint("Ignoring older message")
+            else:
+                self._database.execute(u"INSERT OR REPLACE INTO \
+                record(community, global_time, first_member, second_member, \
+                upload_first_member, upload_second_member) \
+                VALUES(?, ?, ?, ?, ?, ?)",
+                                       (self._database_id,
+                                        message.distribution.global_time,
+                                        first_member,
+                                        second_member,
+                                        message.payload.first_upload,
+                                        message.payload.second_upload))
+                if __debug__:
+                    peer1_id = self._peer_ids.get(message.authentication.members[0].public_key, -1)
+                    peer2_id = self._peer_ids.get(message.authentication.members[1].public_key, -1)
+                    peer1_upload = message.payload.first_upload
+                    peer2_upload = message.payload.second_upload
+                    if peer1_id > peer2_id:
+                        peer1_id, peer2_id = peer2_id, peer1_id
+                        peer1_upload, peer2_upload = peer2_upload, peer1_upload
+                    log("barter.log", "barter-record", first=peer1_id, second=peer2_id, first_upload=peer1_upload, second_upload=peer2_upload)

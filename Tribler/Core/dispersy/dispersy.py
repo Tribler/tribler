@@ -2504,10 +2504,17 @@ class Dispersy(Singleton):
                 if candidate:
                     return
 
-                # create candidate but set its state to inactive to ensure that it will not be used
-                # except by yield_walk_candidates
-                self._candidates[sock_introduction_addr] = candidate = WalkCandidate(sock_introduction_addr, lan_introduction_address, wan_introduction_address)
-                candidate.inactive(community, now)
+                # symmetric NAT can give us multiple candidates for the same node
+                for candidate in self._candidates.itervalues():
+                    if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_introduction_addr[0]:
+                        # using existing candidate
+                        break
+
+                else:
+                    # create candidate but set its state to inactive to ensure that it will not be used
+                    # except by yield_walk_candidates
+                    self._candidates[sock_introduction_addr] = candidate = WalkCandidate(sock_introduction_addr, lan_introduction_address, wan_introduction_address)
+                    candidate.inactive(community, now)
 
             # reset the 'I have been introduced' timer
             candidate.intro(community, now)
