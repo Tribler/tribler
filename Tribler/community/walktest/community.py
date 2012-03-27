@@ -25,7 +25,9 @@ if __debug__:
 class WalktestCommunity(Community):
     def __init__(self, *args, **kargs):
         super(WalktestCommunity, self).__init__(*args, **kargs)
-        if __debug__: dprint("cid: ", self.cid.encode("HEX"), force=1)
+        if __debug__:
+            dprint("cid: ", self.cid.encode("HEX"), force=1)
+            dprint("mid: ", self.my_member.mid.encode("HEX"), force=1)
 
         try:
             hostname = open("/etc/hostname", "r").readline().strip()
