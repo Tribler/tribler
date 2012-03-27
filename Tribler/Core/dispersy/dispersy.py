@@ -2489,7 +2489,10 @@ class Dispersy(Singleton):
 
         # mark that we have received a response
         # TODO DAS4 should just set to True
-        candidate_tuple[0] += index
+        # candidate_tuple[0] += index
+
+        if index == 1:
+            candidate_tuple[0] = True
 
         # # TODO DAS4 remove me
         # if index == 1 and lan_introduction_address == ("0.0.0.0", 0) and wan_introduction_address == ("0.0.0.0", 0):
