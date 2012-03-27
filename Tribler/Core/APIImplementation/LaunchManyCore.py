@@ -767,7 +767,7 @@ class TriblerLaunchMany(Thread):
                 if self.mypref_db != None:
                     preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
                     if preferences:
-                        if os.path.isdir(preferences[2]):
+                        if os.path.isdir(preferences[2]) or preferences[2] == '':
                             dscfg.set_dest_dir(preferences[2])
             
         if DEBUG:
