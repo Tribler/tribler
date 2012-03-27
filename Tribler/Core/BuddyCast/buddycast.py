@@ -1863,7 +1863,7 @@ class BuddyCastCore:
         
     # -------------- handle overlay connections from SecureOverlay ---------- #
     def handleConnection(self,exc,permid,selversion,locally_initiated):
-        if exc is None and permid != self.permid and self.doesAcceptConnection(locally_initiated):    # add a connection
+        if exc is None and permid != self.permid:    # add a connection
             self.addConnection(permid, selversion, locally_initiated)
         else:
             self.closeConnection(permid, 'overlayswarm:'+str(exc))
@@ -1873,13 +1873,6 @@ class BuddyCastCore:
                 self.get_peer_info(permid), "selversion:", selversion, \
                 "local_init:", locally_initiated, ctime(now()), "; #connections:", len(self.connected_connectable_peers), \
                 "; #TB:", len(self.connected_taste_buddies), "; #RP:", len(self.connected_random_peers)
-    
-    def doesAcceptConnection(self, locally_initiated):      
-        max = self.max_conn_tb + self.max_conn_rp + self.max_conn_up + 10
-        
-        if debug:
-            print >> sys.stderr, len(self.connections), max
-        return len(self.connections) < max  
     
     def addConnection(self, peer_permid, selversion, locally_initiated):
         # add connection to connection list
