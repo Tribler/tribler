@@ -2573,10 +2573,10 @@ class Dispersy(Singleton):
 
             # modify either the senders LAN or WAN address based on how we perceive that node
             source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
-            if __debug__: dprint("received introduction response from ", message.candidate)
 
             # update sender candidate
             message.candidate.update(source_lan_address, source_wan_address, message.payload.connection_type)
+            if __debug__: dprint("introduction response from ", message.candidate)
 
             # handle the introduction
             self._received_introduction(1, community, now, message.payload.identifier, message.payload.lan_introduction_address, message.payload.wan_introduction_address)
@@ -2590,6 +2590,7 @@ class Dispersy(Singleton):
             # helper_candidate did not respond to a request message in this community.  after some
             # time inactive candidates become obsolete and will be removed by
             # _periodically_cleanup_candidates
+            if __debug__: dprint("timeout for ", helper_candidate)
 
             # we choose to set the entire helper to inactive instead of just the community where the
             # timeout occurred.  this will allow us to quickly respond to nodes going offline, while

@@ -289,48 +289,48 @@ class WalkCandidate(Candidate):
     def connection_type(self):
         return self._connection_type
 
-    def is_any_active(self, now):
-        """
-        Returns True if any of the associated communities are still active.
+    # def is_any_active(self, now):
+    #     """
+    #     Returns True if any of the associated communities are still active.
 
-        A WalkCandidate is active if the category is either u"walk", u"stumble", or u"sandi".
-        """
-        if self._timestamps and not (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
-            return (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
-                    now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
-        return False
+    #     A WalkCandidate is active if the category is either u"walk", u"stumble", or u"sandi".
+    #     """
+    #     if self._timestamps and not (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
+    #         return (now < max(timestamps.last_walk for timestamps in self._timestamps.itervalues()) + CANDIDATE_WALK_LIFETIME or
+    #                 now < max(timestamps.last_stumble for timestamps in self._timestamps.itervalues()) + CANDIDATE_STUMBLE_LIFETIME)
+    #     return False
 
-    def is_active(self, community, now):
-        """
-        Returns True if COMMUNITY is still active.
-        """
-        if community.cid in self._timestamps:
-            return (now <= self._timestamps[community.cid].last_walk + CANDIDATE_WALK_LIFETIME or
-                    now <= self._timestamps[community.cid].last_stumble + CANDIDATE_STUMBLE_LIFETIME)
-        return False
+    # def is_active(self, community, now):
+    #     """
+    #     Returns True if COMMUNITY is still active.
+    #     """
+    #     if community.cid in self._timestamps:
+    #         return (now <= self._timestamps[community.cid].last_walk + CANDIDATE_WALK_LIFETIME or
+    #                 now <= self._timestamps[community.cid].last_stumble + CANDIDATE_STUMBLE_LIFETIME)
+    #     return False
 
-    def inactive(self, community, now):
-        """
-        Called to explicitly set this candidate to inactive.
-        """
-        timestamps = self._get_or_create_timestamps(community)
-        timestamps.last_active = now - CANDIDATE_INACTIVE
-        timestamps.last_walk = now - CANDIDATE_WALK_LIFETIME
-        timestamps.last_stumble = now - CANDIDATE_STUMBLE_LIFETIME
+    # def inactive(self, community, now):
+    #     """
+    #     Called to explicitly set this candidate to inactive.
+    #     """
+    #     timestamps = self._get_or_create_timestamps(community)
+    #     timestamps.last_active = now - CANDIDATE_INACTIVE
+    #     timestamps.last_walk = now - CANDIDATE_WALK_LIFETIME
+    #     timestamps.last_stumble = now - CANDIDATE_STUMBLE_LIFETIME
 
-    def all_inactive(self, now):
-        """
-        Sets the state to INACTIVE (or keep it at OBSOLETE) for all associated communities.
+    # def all_inactive(self, now):
+    #     """
+    #     Sets the state to INACTIVE (or keep it at OBSOLETE) for all associated communities.
 
-        This is used when a timeout occurs while waiting for an introduction-response.  We choose to
-        set all communities to inactive to improve churn handling.  Setting the entire candidate to
-        inactive will not remove it and any associated 3-way handshake information.  This is
-        retained until the entire candidate becomes obsolete.
-        """
-        for timestamps in self._timestamps.itervalues():
-            timestamps.last_active = min(now - CANDIDATE_INACTIVE, timestamps.last_active)
-            timestamps.last_walk = min(now - CANDIDATE_WALK_LIFETIME, timestamps.last_walk)
-            timestamps.last_stumble = min(now - CANDIDATE_STUMBLE_LIFETIME, timestamps.last_stumble)
+    #     This is used when a timeout occurs while waiting for an introduction-response.  We choose to
+    #     set all communities to inactive to improve churn handling.  Setting the entire candidate to
+    #     inactive will not remove it and any associated 3-way handshake information.  This is
+    #     retained until the entire candidate becomes obsolete.
+    #     """
+    #     for timestamps in self._timestamps.itervalues():
+    #         timestamps.last_active = min(now - CANDIDATE_INACTIVE, timestamps.last_active)
+    #         timestamps.last_walk = min(now - CANDIDATE_WALK_LIFETIME, timestamps.last_walk)
+    #         timestamps.last_stumble = min(now - CANDIDATE_STUMBLE_LIFETIME, timestamps.last_stumble)
 
     def is_eligible_for_walk(self, community, now):
         """
@@ -340,14 +340,29 @@ class WalkCandidate(Candidate):
         - the category is WALK, STUMBLE, INTRO, or SANDI.
         - it is CANDIDATE_ELIGIBLE_DELAY or more seconds since the previous step.
         """
-        assert community.cid in self._timestamps
-        if not (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
-            timestamps = self._timestamps[community.cid]
-            return (now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY and
-                    (now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
-                     now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
-                     now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME))
+        if (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
+            return False
+
+        timestamps = self._timestamps[community.cid]
+        if now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY:
+
+            category = self.get_category(community, now)
+            if category == u"walk" or category == u"stumble" or category == u"sandi":
+                return self.is_active(community, now)
+
+            if category == u"intro":
+                return True
+
         return False
+
+        # assert community.cid in self._timestamps
+        # if not (self._lan_address == ("0.0.0.0", 0) or self._wan_address == ("0.0.0.0", 0)):
+        #     timestamps = self._timestamps[community.cid]
+        #     return (now >= timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY and
+        #             (now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
+        #              now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
+        #              now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME))
+        # return False
 
     def last_walk(self, community):
         assert community.cid in self._timestamps
