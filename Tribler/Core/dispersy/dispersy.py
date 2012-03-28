@@ -1443,7 +1443,7 @@ class Dispersy(Singleton):
         multiple peers may exist.
         """
         assert candidate.connection_type == u"symmetric-NAT"
-        host, port = candidate.sock_addr[0]
+        host, port = candidate.sock_addr
         for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.sock_addr[0] == host]:
             if not candidate.sock_addr[1] == port:
                 del self._candidates[candidate.key]
