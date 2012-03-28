@@ -121,8 +121,11 @@ REM MainClient specific
 mkdir dist\installdir\Tribler\Main
 mkdir dist\installdir\Tribler\Main\vwxGUI
 mkdir dist\installdir\Tribler\Main\vwxGUI\images
+mkdir dist\installdir\Tribler\Main\webUI
+mkdir dist\installdir\Tribler\Main\webUI\static
 copy Tribler\Main\vwxGUI\*.xrc dist\installdir\Tribler\Main\vwxGUI
 copy Tribler\Main\vwxGUI\images\*.* dist\installdir\Tribler\Main\vwxGUI\images
+copy Tribler\Main\webUI\static\*.* dist\installdir\Tribler\Main\webUI\static
 mkdir dist\installdir\Tribler\Category
 copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
