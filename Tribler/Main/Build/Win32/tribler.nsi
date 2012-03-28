@@ -138,6 +138,12 @@ Section "!Main EXE" SecMain
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
  File Tribler\Main\vwxGUI\images\*.*
+ 
+ CreateDirectory "$INSTDIR\Tribler\Main\webUI"
+ CreateDirectory "$INSTDIR\Tribler\Main\webUI\static"
+ SetOutPath "$INSTDIR\Tribler\Main\webUI\static"
+ File Tribler\Main\webUI\static\*.*
+ 
  ; Categories
  CreateDirectory "$INSTDIR\Tribler\Category"
  SetOutPath "$INSTDIR\Tribler\Category"
