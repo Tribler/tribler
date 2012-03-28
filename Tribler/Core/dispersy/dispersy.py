@@ -313,30 +313,14 @@ class Dispersy(Singleton):
         self._connection_type = u"unknown"
 
         # our LAN and WAN addresses
-        self._lan_address = (get_my_wan_ip() or "0.0.0.0", 0)
-
-        try:
-            host, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_wan_ip' LIMIT 1").next()
-            host = str(host)
-        except StopIteration:
-            host = self._lan_address[0]
-            # DAS4 exception
-            # host = "130.161.7.3"
-
-        try:
-            port, = self._database.execute(u"SELECT value FROM option WHERE key = 'my_wan_port' LIMIT 1").next()
-        except StopIteration:
-            port = self._lan_address[1]
-
-        self._wan_address = (host, port)
+        host = get_my_wan_ip() or "0.0.0.0"
+        port = 0
+        self._lan_address = (host, port)
+        # DAS4 exception
+        # host = "130.161.7.3"
+        self._wan_address = (host, port) if self._is_valid_wan_address((host, port)) else ("0.0.0.0", 0)
         self._wan_address_votes = {}
-        if self._is_valid_wan_address(self._wan_address):
-            self._wan_address_votes[self._wan_address] = set()
-            self.wan_address_vote(self._wan_address, LoopbackCandidate())
-        else:
-            self._wan_address = ("0.0.0.0", 0)
-            self._wan_address_votes[self._wan_address] = set()
-        if __debug__ and __debug__:
+        if __debug__:
             dprint("my LAN address is ", self._lan_address[0], ":", self._lan_address[1], force=True)
             dprint("my WAN address is ", self._wan_address[0], ":", self._wan_address[1], force=True)
 
@@ -426,15 +410,15 @@ class Dispersy(Singleton):
         self._socket = socket
 
         host, port = socket.get_address()
-        if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=True)
+        if __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._lan_address[0], ":", port, force=True)
         self._lan_address = (self._lan_address[0], port)
 
         if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
-            if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", host, ":", self._lan_address[1], force=True)
+            if __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", host, ":", self._lan_address[1], force=True)
             self._lan_address = (host, self._lan_address[1])
 
             if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
-                if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
+                if __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
                 self._lan_address = (self._wan_address[0], self._lan_address[1])
 
         # our address may not be a bootstrap address
@@ -926,20 +910,25 @@ class Dispersy(Singleton):
         assert isinstance(address[1], int)
         assert isinstance(voter, Candidate)
         if self._is_valid_wan_address(address, check_my_wan_address=False):
-            # a candidate may only vote on one possible WAN address
-            for key, votes in [(key, votes) for key, votes in self._wan_address_votes.iteritems() if voter.key in votes]:
-                votes.remove(voter.key)
-                if not self._wan_address == key and len(votes) == 0:
-                    del self._wan_address_votes[key]
+            votes = self._wan_address_votes
 
-            if not address in self._wan_address_votes:
-                self._wan_address_votes[address] = set()
-            self._wan_address_votes[address].add(voter.key)
+            # a candidate may only vote on one possible WAN address
+            for vote, voters in [(vote, voters) for vote, voters in votes.iteritems() if voter.key in voters and address != vote]:
+                if __debug__: dprint("removing previous (different) vote")
+                voters.remove(voter.key)
+                if len(voters) == 0:
+                    del votes[vote]
+
+            if not address in votes:
+                votes[address] = set()
+            votes[address].add(voter.key)
+
+            if __debug__: dprint(["%5d %15s:%-d" % (len(voters), vote[0], vote[1]) for vote, voters in votes.iteritems()], lines=True)
 
             # change when new vote count equal or higher than old address vote count
-            if self._wan_address != address and len(self._wan_address_votes[address]) >= len(self._wan_address_votes[self._wan_address]):
-                if len(self._wan_address_votes[address]) >= 1 and len(self._wan_address_votes[self._wan_address]) >= 1:
-                    if __debug__ and __debug__: dprint("not updating WAN address, suspect symmetric NAT", force=1)
+            if self._wan_address != address and len(votes[address]) >= len(votes.get(self._wan_address, ())):
+                if len(votes) > 1:
+                    if __debug__: dprint("not updating WAN address, suspect symmetric NAT", force=1)
                     self._connection_type = u"symmetric-NAT"
                     return
 
@@ -949,16 +938,11 @@ class Dispersy(Singleton):
                 if self._connection_type == u"symmetric-NAT":
                     self._connection_type = u"unknown"
 
-                if __debug__ and __debug__:
-                    dprint("update WAN address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
-                    dprint([(x, len(votes)) for x, votes in self._wan_address_votes.iteritems()], lines=True)
-
+                if __debug__: dprint("update WAN address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
                 self._wan_address = address
-                self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_ip', ?)", (unicode(address[0]),))
-                self._database.execute(u"REPLACE INTO option (key, value) VALUES ('my_wan_port', ?)", (address[1],))
 
                 if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
-                    if __debug__ and __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
+                    if __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
                     self._lan_address = (self._wan_address[0], self._lan_address[1])
 
                 # our address may not be a bootstrap address
@@ -1907,10 +1891,9 @@ class Dispersy(Singleton):
 
         if __debug__:
             debug_end = time()
-            level = "warning" if (debug_end - debug_begin) > 1.0 else "normal"
             for key, value in sorted(Conversion.debug_stats.iteritems()):
                 if value - begin_stats[key] > 0.0:
-                    dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key, level=level)
+                    dprint("[", value - begin_stats[key], " cnv] ", len(batch), "x ", key)
 
     def _store(self, messages):
         """

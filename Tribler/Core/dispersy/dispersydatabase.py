@@ -13,7 +13,7 @@ from database import Database
 if __debug__:
     from dprint import dprint
 
-LATEST_VERSION = 9
+LATEST_VERSION = 10
 
 schema = u"""
 CREATE TABLE member(
@@ -283,11 +283,23 @@ UPDATE option SET value = '9' WHERE key = 'database_version';
 
             # upgrade from version 9 to version 10
             if database_version < 10:
-                # there is no version 10 yet...
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 10)
-                # self.executescript(u"""UPDATE option SET value = '10' WHERE key = 'database_version';""")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 10)
+                self.executescript(u"""
+DELETE FROM option WHERE key = 'my_wan_ip';
+DELETE FROM option WHERE key = 'my_wan_port';
+UPDATE option SET value = '10' WHERE key = 'database_version';
+""")
+                self.commit()
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 10, " (done)")
+                pass
+
+            # upgrade from version 10 to version 11
+            if database_version < 11:
+                # there is no version 11 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 11)
+                # self.executescript(u"""UPDATE option SET value = '11' WHERE key = 'database_version';""")
                 # self.commit()
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 10, " (done)")
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 11, " (done)")
                 pass
 
         return LATEST_VERSION
