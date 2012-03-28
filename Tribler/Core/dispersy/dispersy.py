@@ -1396,20 +1396,60 @@ class Dispersy(Singleton):
         assert all(isinstance(tup[1], str) for tup in packets), packets
         self._callback.register(self.on_socket_endpoint, (packets,), dict(timestamp=time()), priority=RAWSERVER_TO_DISPERSY_PRIORITY)
 
+    def _get_candidate(self, sock_addr, replace=True):
+        """
+        Returns an existing candidate object or None
+
+        1. returns an existing candidate from self._candidates, or
+
+        2. returns a bootstrap candidate from self._bootstrap_candidates, or
+
+        3. returns an existing candidate with the same host on a different port if this candidate is
+           marked as a symmetric NAT.  When replace is True, the existing candidate is moved from
+           its previous sock_addr to the new sock_addr.
+        """
+        # use existing (bootstrap) candidate
+        candidate = self._candidates.get(sock_addr) or self._bootstrap_candidates.get(sock_addr)
+
+        if candidate is None:
+            # find matching candidate with the same host but a different port (symmetric NAT)
+            for candidate in self._candidates.itervalues():
+                if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_addr[0]:
+                    # using existing candidate
+
+                    if replace:
+                        candidate.key = sock_addr
+                        self._candidates[sock_addr] = candidate
+
+                    break
+
+        return candidate
+
+    def _create_candidate(self, cls, key, *args):
+        """
+        Creates and returns a new Candidate class of type CLS.
+        """
+        assert issubclass(cls, Candidate), cls
+        assert not key in self._candidates
+        self._candidates[key] = candidate = cls(key, *args)
+        return candidate
+
+    def _filter_symmetric_nat_candidate(self, candidate):
+        """
+        When we learn that a candidate happens to be behind a symmetric NAT we must remove all other
+        candidates that have the same host.
+
+        Unfortunately this only allows us to 'see' one peer behind a symmetric NAT, even though
+        multiple peers may exist.
+        """
+        assert candidate.connection_type == u"symmetric-NAT"
+        host, port = candidate.sock_addr[0]
+        for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.sock_addr[0] == host]:
+            if not candidate.sock_addr[1] == port:
+                del self._candidates[candidate.key]
+
     def on_socket_endpoint(self, packets, cache=True, timestamp=0.0):
-        def get_candidate(address):
-            """
-            Get (or create) a candidate and update its activity flag.
-            """
-            candidate = self._candidates.get(address)
-            if not candidate:
-                candidate = self._bootstrap_candidates.get(address)
-                if not candidate:
-                    self._candidates[address] = candidate = WalkCandidate(address)
-
-            return candidate
-
-        self._on_incoming_packets([(get_candidate(address), packet) for address, packet in packets], cache, timestamp)
+        self._on_incoming_packets([(self._get_candidate(sock_addr) or self._create_candidate(WalkCandidate, sock_addr), packet) for sock_addr, packet in packets], cache, timestamp)
 
     def load_message(self, community, member, global_time):
         """
@@ -2353,6 +2393,9 @@ class Dispersy(Singleton):
             message.candidate.stumble(community, now)
             if __debug__: dprint("received introduction request from ", message.candidate)
 
+            if message.candidate.connection_type == u"symmetric-NAT":
+                self._filter_symmetric_nat_candidate(message.candidate)
+
             if source_wan_address == ("0.0.0.0", 0):
                 if __debug__: dprint("problems determining source WAN address, unable to introduce")
                 candidate = None
@@ -2495,24 +2538,12 @@ class Dispersy(Singleton):
 
             # get or create the introduced candidate
             sock_introduction_addr = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
-            candidate = self._candidates.get(sock_introduction_addr)
-            if not candidate:
-                # safety check, may not point to a bootstrap peer
-                candidate = self._bootstrap_candidates.get(sock_introduction_addr)
-                if candidate:
-                    return
-
-                # symmetric NAT can give us multiple candidates for the same node
-                for candidate in self._candidates.itervalues():
-                    if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_introduction_addr[0]:
-                        # using existing candidate
-                        break
-
-                else:
-                    # create candidate but set its state to inactive to ensure that it will not be used
-                    # except by yield_walk_candidates
-                    self._candidates[sock_introduction_addr] = candidate = WalkCandidate(sock_introduction_addr, lan_introduction_address, wan_introduction_address)
-                    candidate.inactive(community, now)
+            candidate = self._get_candidate(sock_introduction_addr, replace=False)
+            if candidate is None:
+                # create candidate but set its state to inactive to ensure that it will not be used
+                # except by yield_walk_candidates
+                candidate = self._create_candidate(WalkCandidate, sock_introduction_addr, lan_introduction_address, wan_introduction_address)
+                candidate.inactive(community, now)
 
             # reset the 'I have been introduced' timer
             candidate.intro(community, now)
@@ -2563,6 +2594,9 @@ class Dispersy(Singleton):
             # update sender candidate
             message.candidate.update(source_lan_address, source_wan_address, message.payload.connection_type)
             if __debug__: dprint("introduction response from ", message.candidate)
+
+            if message.candidate.connection_type == u"symmetric-NAT":
+                self._filter_symmetric_nat_candidate(message.candidate)
 
             # handle the introduction
             self._received_introduction(1, community, now, message.payload.identifier, message.payload.lan_introduction_address, message.payload.wan_introduction_address)
@@ -2640,13 +2674,12 @@ class Dispersy(Singleton):
             # we are asked to send a message to a -possibly- unknown node
             # get or create the candidate
             sock_addr = lan_walker_address if wan_walker_address[0] == self._wan_address[0] else wan_walker_address
-            candidate = self._candidates.get(sock_addr)
-            if not candidate:
-                candidate = self._bootstrap_candidates.get(sock_addr)
-                if not candidate:
-                    # create candidate but set its state to inactive to ensure that it is not used
-                    self._candidates[sock_addr] = candidate = WalkCandidate(sock_addr, lan_walker_address, wan_walker_address)
-                    candidate.inactive(community, now)
+            candidate = self._get_candidate(sock_addr, replace=False)
+            if candidate is None:
+                # create candidate but set its state to inactive to ensure that it is not used
+                # except by yield_walk_candidates
+                candidate = self._create_candidate(WalkCandidate, sock_addr, lan_walker_address, wan_walker_address)
+                candidate.inactive(community, now)
 
             if candidate.lan_address == ("0.0.0.0", 0) and candidate.wan_address == ("0.0.0.0", 0):
                 candidate.update(lan_walker_address, wan_walker_address, u"unknown")

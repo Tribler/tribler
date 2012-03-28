@@ -75,6 +75,15 @@ class Candidate(object):
         self._timestamps = dict()
         self._global_times = dict()
 
+    # @property
+    def __get_key(self):
+        return self._key
+    # @key.setter
+    def __set_key(self, key):
+        self._key = key
+    # .setter was introduced in Python 2.6
+    key = property(__get_key, __set_key)
+
     @property
     def key(self):
         return self._key
