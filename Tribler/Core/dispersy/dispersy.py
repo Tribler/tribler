@@ -2649,7 +2649,7 @@ class Dispersy(Singleton):
                     candidate.inactive(community, now)
 
             if candidate.lan_address == ("0.0.0.0", 0) and candidate.wan_address == ("0.0.0.0", 0):
-                candidate.update(lan_walker_address, lan_walker_address, u"unknown")
+                candidate.update(lan_walker_address, wan_walker_address, u"unknown")
 
             punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(candidate,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
             if __debug__: dprint(message.candidate, " asked us to send a puncture to ", candidate)
