@@ -84,7 +84,7 @@ class Candidate(object):
         self._associations.update(other._associations)
         for cid, timestamps in other._timestamps.iteritems():
             if cid in self._timestamps:
-                self._timestamps[cid].timestamps.merge(timestamps)
+                self._timestamps[cid].merge(timestamps)
             else:
                 self._timestamps[cid] = timestamps
         for cid, global_time in self._global_times.iteritems():
