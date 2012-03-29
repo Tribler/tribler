@@ -84,10 +84,6 @@ class Candidate(object):
     # .setter was introduced in Python 2.6
     key = property(__get_key, __set_key)
 
-    @property
-    def key(self):
-        return self._key
-
     def set_global_time(self, community, global_time):
         self._global_times[community.cid] = max(self._global_times.get(community.cid, 0), global_time)
 
