@@ -1415,6 +1415,7 @@ class Dispersy(Singleton):
                     if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)")
 
                     if replace:
+                        del self._candidates[candidate.key]
                         candidate.key = sock_addr
                         self._candidates[sock_addr] = candidate
 
