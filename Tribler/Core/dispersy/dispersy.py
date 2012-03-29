@@ -1414,6 +1414,10 @@ class Dispersy(Singleton):
                 # TODO revert me, DAS2 only
                 # if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_addr[0]:
                 if candidate.sock_addr[0] == sock_addr[0]:
+                    if __debug__:
+                        if not candidate.connection_type == u"symmetric-NAT":
+                            dprint("this candidate should have been marked as symmetric-NAT ", candidate, level="error")
+
                     if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)")
 
                     if replace:
@@ -1449,9 +1453,10 @@ class Dispersy(Singleton):
         """
         assert candidate.connection_type == u"symmetric-NAT"
         host, port = candidate.sock_addr
-        for candidate in [candidate for candidate in self._candidates.itervalues() if candidate.sock_addr[0] == host]:
-            if not candidate.sock_addr[1] == port:
-                del self._candidates[candidate.key]
+        for other in [other for other in self._candidates.itervalues() if other.sock_addr[0] == host]:
+            if not other.sock_addr[1] == port:
+                if __debug__: dprint("removing ", other, " in favor or ", candidate, force=1)
+                del self._candidates[other.key]
 
     def on_socket_endpoint(self, packets, cache=True, timestamp=0.0):
         self._on_incoming_packets([(self._get_candidate(sock_addr) or self._create_candidate(WalkCandidate, sock_addr), packet) for sock_addr, packet in packets], cache, timestamp)
