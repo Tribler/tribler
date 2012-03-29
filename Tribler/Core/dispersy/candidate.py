@@ -276,7 +276,7 @@ class WalkCandidate(Candidate):
 
     - IS_NONE: when neither the WALK nor the STUMBLE nor the INTRO markers are set.
     """
-    class Timestamps(object):
+    class Timestamps(Candidate.Timestamps):
         def __init__(self):
             self.last_active = 0.0
             self.last_walk = 0.0
