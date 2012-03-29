@@ -67,6 +67,10 @@ class Candidate(object):
         def __init__(self):
             self.last_active = 0.0
 
+        def merge(self, other):
+            assert isinstance(other, Candidate.Timestamps), other
+            self.last_active = max(self.last_active, other.last_active)
+
     def __init__(self, key):
         # key can be anything
         # - for WalkCandidate's it is sock_addr
@@ -74,6 +78,17 @@ class Candidate(object):
         self._associations = set()
         self._timestamps = dict()
         self._global_times = dict()
+
+    def merge(self, other):
+        assert isinstance(other, Candidate), other
+        self._associations.update(other._associations)
+        for cid, timestamps in other._timestamps.iteritems():
+            if cid in self._timestamps:
+                self._timestamps[cid].timestamps.merge(timestamps)
+            else:
+                self._timestamps[cid] = timestamps
+        for cid, global_time in self._global_times.iteritems():
+            self._global_times[cid] = max(self._global_times.get(cid, 0), global_time)
 
     # @property
     def __get_key(self):
@@ -268,6 +283,13 @@ class WalkCandidate(Candidate):
             self.last_stumble = 0.0
             self.last_intro = 0.0
 
+        def merge(self, other):
+            assert isinstance(other, WalkCandidate.Timestamps), other
+            super(WalkCandidate.Timestamps, self).merge(other)
+            self.last_walk = max(self.last_walk, other.last_walk)
+            self.last_stumble = max(self.last_stumble, other.last_stumble)
+            self.last_intro = max(self.last_intro, other.last_intro)
+
     def __init__(self, sock_addr, lan_address=("0.0.0.0", 0), wan_address=("0.0.0.0", 0), connection_type=u"unknown"):
         super(WalkCandidate, self).__init__(sock_addr)
         assert is_address(sock_addr), sock_addr
@@ -277,6 +299,16 @@ class WalkCandidate(Candidate):
         self._lan_address = lan_address
         self._wan_address = wan_address
         self._connection_type = connection_type
+
+    def merge(self, other):
+        assert isinstance(other, WalkCandidate), other
+        super(WalkCandidate, self).merge(other)
+        if not other._lan_address == ("0.0.0.0", 0):
+            self._lan_address = other._lan_address
+        if not other._wan_address == ("0.0.0.0", 0):
+            self._wan_address = other._wan_address
+        if not other._connection_type == u"unknown":
+            self._connection_type = other._connection_type
 
     @property
     def sock_addr(self):

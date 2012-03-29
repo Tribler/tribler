@@ -1456,6 +1456,7 @@ class Dispersy(Singleton):
         for other in [other for other in self._candidates.itervalues() if other.sock_addr[0] == host]:
             if not other.sock_addr[1] == port:
                 if __debug__: dprint("removing ", other, " in favor or ", candidate, force=1)
+                candidate.merge(other)
                 del self._candidates[other.key]
 
     def on_socket_endpoint(self, packets, cache=True, timestamp=0.0):
