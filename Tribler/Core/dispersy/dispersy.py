@@ -1411,7 +1411,9 @@ class Dispersy(Singleton):
         if candidate is None:
             # find matching candidate with the same host but a different port (symmetric NAT)
             for candidate in self._candidates.itervalues():
-                if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_addr[0]:
+                # TODO revert me, DAS2 only
+                # if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_addr[0]:
+                if candidate.sock_addr[0] == sock_addr[0]:
                     if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)")
 
                     if replace:

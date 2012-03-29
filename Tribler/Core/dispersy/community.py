@@ -243,7 +243,6 @@ class Community(object):
         assert isinstance(master, DummyMember)
         if __debug__:
             dprint("initializing:  ", self.get_classification())
-            dprint("identifier:    ", master.mid.encode("HEX"))
             dprint("master member: ", master.mid.encode("HEX"), "" if isinstance(master, Member) else " (using DummyMember)")
 
         self._dispersy = Dispersy.get_instance()
@@ -263,6 +262,7 @@ class Community(object):
         self._cid = master.mid
         self._master_member = master
         self._my_member = Member(str(member_public_key))
+        if __debug__: dprint("my member:     ", self._my_member.mid.encode("HEX"))
         assert self._my_member.public_key, [self._database_id, self._my_member.database_id, self._my_member.public_key]
         assert self._my_member.private_key, [self._database_id, self._my_member.database_id, self._my_member.private_key]
         if not self._master_member.public_key and self.dispersy_enable_candidate_walker and self.dispersy_auto_download_master_member:
