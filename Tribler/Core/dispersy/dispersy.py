@@ -4811,7 +4811,7 @@ class Dispersy(Singleton):
         # 3.0: added info["statistics"]["walk_attempt"] and info["statistics"]["walk_success"]
 
         now = time()
-        info = {"version":2.9,
+        info = {"version":3.0,
                 "class":"Dispersy",
                 "lan_address":self._lan_address,
                 "wan_address":self._wan_address,
