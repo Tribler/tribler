@@ -55,6 +55,7 @@ from decorator import runtime_duration_warning
 from destination import CommunityDestination, CandidateDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
+from dprint import dprint
 from member import DummyMember, Member
 from message import BatchConfiguration, Packet, Message
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
@@ -77,7 +78,6 @@ from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 
 if __debug__:
     from candidate import Candidate
-    from dprint import dprint
 
 # callback priorities.  note that a lower value is less priority
 RAWSERVER_TO_DISPERSY_PRIORITY = 1024
@@ -117,6 +117,8 @@ class Statistics(object):
         self._total_up = 0, 0
         self._total_down = 0, 0
         self._busy_time = 0.0
+        self._walk_attempt = 0
+        self._walk_success = 0
         if __debug__:
             self._drop = {}
             self._delay = {}
@@ -145,14 +147,19 @@ class Statistics(object):
                     "total_down":self._total_down,
                     "busy_time":self._busy_time,
                     "start":self._start,
-                    "runtime":time() - self._start}
+                    "runtime":time() - self._start,
+                    "walk_attempt":self._walk_attempt,
+                    "walk_success":self._walk_success}
+
         else:
             return {"sequence_number":self._sequence_number,
                     "total_up":self._total_up,
                     "total_down":self._total_down,
                     "busy_time":self._busy_time,
                     "start":self._start,
-                    "runtime":time() - self._start}
+                    "runtime":time() - self._start,
+                    "walk_attempt":self._walk_attempt,
+                    "walk_success":self._walk_success}
 
     if __debug__:
         def summary(self):
@@ -183,6 +190,8 @@ class Statistics(object):
             self._sequence_number += 1
             self._total_up = 0, 0
             self._total_down = 0, 0
+            self._walk_attempt = 0
+            self._walk_success = 0
             if __debug__:
                 self._drop = {}
                 self._delay = {}
@@ -249,6 +258,12 @@ class Statistics(object):
     def increment_busy_time(self, busy_time):
         assert isinstance(busy_time, float)
         self._busy_time += busy_time
+
+    def increment_walk_attempt(self):
+        self._walk_attempt += 1
+
+    def increment_walk_success(self):
+        self._walk_success += 1
 
 class Dispersy(Singleton):
     """
@@ -883,6 +898,19 @@ class Dispersy(Singleton):
         else:
             return self.convert_packet_to_message(str(packet), community)
 
+    def wan_address_unvote(self, voter):
+        """
+        Removes and returns one vote made by VOTER.
+        """
+        assert isinstance(voter, Candidate)
+        for vote, voters in self._wan_address_votes.iteritems():
+            if voter.key in voters:
+                if __debug__: dprint("removing vote for ", vote, " made by ", voter)
+                voters.remove(voter.key)
+                if len(voters) == 0:
+                    del self._wan_address_votes[vote]
+                return vote
+
     def wan_address_vote(self, address, voter):
         """
         Add one vote and possibly re-determine our wan address.
@@ -907,13 +935,7 @@ class Dispersy(Singleton):
         assert isinstance(voter, Candidate)
         if self._is_valid_wan_address(address, check_my_wan_address=False):
             votes = self._wan_address_votes
-
-            # a candidate may only vote on one possible WAN address
-            for vote, voters in [(vote, voters) for vote, voters in votes.iteritems() if voter.key in voters and address != vote]:
-                if __debug__: dprint("removing previous (different) vote")
-                voters.remove(voter.key)
-                if len(voters) == 0:
-                    del votes[vote]
+            self.wan_address_unvote(voter)
 
             if not address in votes:
                 votes[address] = set()
@@ -1421,9 +1443,17 @@ class Dispersy(Singleton):
                     if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)")
 
                     if replace:
+                        # remove vote under previous key
+                        vote = self.wan_address_unvote(candidate)
+
+                        # replace candidate
                         del self._candidates[candidate.key]
-                        candidate.key = sock_addr
                         self._candidates[sock_addr] = candidate
+                        candidate.key = sock_addr
+
+                        # add vote under new key
+                        if vote:
+                            self.wan_address_vote(vote, candidate)
 
                     break
 
@@ -1458,6 +1488,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("removing ", other, " in favor or ", candidate, force=1)
                 candidate.merge(other)
                 del self._candidates[other.key]
+                self.wan_address_unvote(other)
 
     def on_socket_endpoint(self, packets, cache=True, timestamp=0.0):
         self._on_incoming_packets([(self._get_candidate(sock_addr) or self._create_candidate(WalkCandidate, sock_addr), packet) for sock_addr, packet in packets], cache, timestamp)
@@ -1806,7 +1837,11 @@ class Dispersy(Singleton):
 
         # check all remaining messages on the community side.  may yield Message.Implementation,
         # DropMessage, and DelayMessage instances
-        messages = list(meta.check_callback(messages))
+        try:
+            messages = list(meta.check_callback(messages))
+        except:
+            dprint("exception during check_callback for ", meta.name, exception=True, level="error")
+            return 0
         assert len(messages) >= 0 # may return zero messages
         assert all(isinstance(message, (Message.Implementation, DropMessage, DelayMessage)) for message in messages)
 
@@ -2301,6 +2336,7 @@ class Dispersy(Singleton):
 
         # release walk identifier some seconds after timeout expires
         self._callback.register(self.introduction_response_timeout, (identifier,), delay=10.5)
+        self._statistics.increment_walk_attempt()
 
         # decide if the requested node should introduce us to someone else
         # advice = random() < 0.5 or len(self._candidates) <= 5
@@ -2528,19 +2564,23 @@ class Dispersy(Singleton):
         # TODO DAS4 should just set to True
         # candidate_tuple[0] += index
 
-        if index == 1:
-            candidate_tuple[0] = True
-
         # # TODO DAS4 remove me
         # if index == 1 and lan_introduction_address == ("0.0.0.0", 0) and wan_introduction_address == ("0.0.0.0", 0):
         #     candidate_tuple[0] += 4
 
+        if index == 1:
+            # we can ignore multiple introduction responses
+            if candidate_tuple[0]:
+                return
+
+            # mark walk as successful
+            candidate_tuple[0] = True
+
+            # increment statistics only the first time
+            self._statistics.increment_walk_success()
+
         # we can ignore an introduction if we already received the puncture
         if candidate_tuple[2]:
-            return
-
-        # we can ignore multiple introduction responses
-        if index == 1 and candidate_tuple[1]:
             return
 
         if not (lan_introduction_address == ("0.0.0.0", 0) or wan_introduction_address == ("0.0.0.0", 0)):
@@ -2777,7 +2817,11 @@ class Dispersy(Singleton):
         if update:
             if __debug__:
                 begin = time()
-            messages[0].handle_callback(messages)
+            try:
+                messages[0].handle_callback(messages)
+            except:
+                dprint("exception during handle_callback for ", messages[0].name, exception=True, level="error")
+                return False
             if __debug__:
                 end = time()
                 level = "warning" if (end - begin) > 1.0 else "normal"
@@ -4652,16 +4696,10 @@ class Dispersy(Singleton):
             yield 5 * 60.0
 
             now = time()
-            for key in [key for key, candidate in self._candidates.iteritems() if candidate.is_all_obsolete(now)]:
-                if __debug__: dprint("removing obsolete candidate ", self._candidates[key])
+            for key, candidate in [(key, candidate) for key, candidate in self._candidates.iteritems() if candidate.is_all_obsolete(now)]:
+                if __debug__: dprint("removing obsolete candidate ", candidate)
                 del self._candidates[key]
-
-                if __debug__: dprint("removing obsolete votes")
-                for voters in self._wan_address_votes.itervalues():
-                    if key in voters:
-                        voters.remove(key)
-                for address in [address for address, voters in self._wan_address_votes.iteritems() if not (voters or address == self._wan_address)]:
-                    del self._wan_address_votes[address]
+                self.wan_address_unvote(candidate)
 
     if __debug__:
         def _stats_candidates(self):
@@ -4770,6 +4808,7 @@ class Dispersy(Singleton):
         # 2.7: added community["database_id"]
         # 2.8: added global_time to candidates
         # 2.9: added connection_type
+        # 3.0: added info["statistics"]["walk_attempt"] and info["statistics"]["walk_success"]
 
         now = time()
         info = {"version":2.9,

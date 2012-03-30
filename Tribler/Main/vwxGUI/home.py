@@ -480,6 +480,8 @@ class DispersyPanel(HomePanel):
                             addColumn("avg_up")
                         if "total_down" in value:
                             addColumn("avg_down")
+                    if "walk_attempt" in value and "walk_success" in value:
+                        addColumn("walker_success")
                 else:
                     addColumn(key)
 
@@ -586,6 +588,7 @@ class DispersyPanel(HomePanel):
                         updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")
                         updateColumn("avg_up", self.utility.size_format(int(value["total_up"][1] / value["runtime"])) + "/s")
                         updateColumn("in_debugmode", str(__debug__))
+                        updateColumn("walker_success", "%d / %d ~%.1f%%" % (value["walk_success"], value["walk_attempt"], 100.0 * value["walk_success"] / value["walk_attempt"]))
 
                     parentNode = self.tree.AppendItem(fakeRoot, key)
                     addValue(parentNode, value)
