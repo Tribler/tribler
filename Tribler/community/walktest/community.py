@@ -60,6 +60,7 @@ class WalktestCommunity(Community):
         if not has_response and self == community:
             bz2log("walktest.log",
                    "timeout",
+                   identifier=identifier,
                    intermediary_sock_address=helper_candidate.sock_addr,
                    intermediary_lan_address=helper_candidate.lan_address,
                    intermediary_wan_address=helper_candidate.wan_address,
