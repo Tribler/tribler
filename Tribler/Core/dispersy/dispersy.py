@@ -1433,14 +1433,8 @@ class Dispersy(Singleton):
         if candidate is None:
             # find matching candidate with the same host but a different port (symmetric NAT)
             for candidate in self._candidates.itervalues():
-                # TODO revert me, DAS2 only
-                if __debug__:
-                    if candidate.sock_addr[0] == sock_addr[0]:
-                        if not candidate.connection_type == u"symmetric-NAT":
-                            dprint("this candidate should have been marked as symmetric-NAT ", candidate, level="error")
-
                 if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_addr[0]:
-                    if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)")
+                    if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)", force=1)
 
                     if replace:
                         # remove vote under previous key
@@ -1448,8 +1442,8 @@ class Dispersy(Singleton):
 
                         # replace candidate
                         del self._candidates[candidate.key]
-                        self._candidates[sock_addr] = candidate
                         candidate.key = sock_addr
+                        self._candidates[candidate.key] = candidate
 
                         # add vote under new key
                         if vote:
@@ -1470,7 +1464,7 @@ class Dispersy(Singleton):
         assert issubclass(cls, Candidate), cls
         assert not key in self._candidates
         self._candidates[key] = candidate = cls(key, *args)
-        if __debug__: dprint(candidate)
+        if __debug__: dprint(candidate, force=1)
         return candidate
 
     def _filter_symmetric_nat_candidate(self, candidate):
