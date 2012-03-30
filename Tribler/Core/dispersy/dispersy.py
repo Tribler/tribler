@@ -1442,7 +1442,9 @@ class Dispersy(Singleton):
 
                         # replace candidate
                         del self._candidates[candidate.key]
+                        lan_address, wan_address = self._estimate_lan_and_wan_addresses(sock_addr, candidate.lan_address, candidate.wan_address)
                         candidate.key = sock_addr
+                        candidate.update(lan_address, wan_address, candidate.connection_type)
                         self._candidates[candidate.key] = candidate
 
                         # add vote under new key
