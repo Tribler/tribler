@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# Python 2.5 features
+from __future__ import with_statement
+
 """
 Run Dispersy in standalone tracker mode.  Tribler will not be started.
 """
@@ -258,6 +261,7 @@ class DispersySocket(object):
         # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
         # sometimes called without any packets...
         if packets:
+            # TODO remove me (DAS2 experiment)
             for address, data in packets:
                 if address[0] == "130.161.211.209":
                     print "%.1f %30s <- %15s:%-5d %4d bytes" % (time(), "???", address[0], address[1], len(data))
@@ -269,6 +273,7 @@ class DispersySocket(object):
                 raise
 
     def send(self, address, data):
+        # TODO remove me (DAS2 experiment)
         if address[0] == "130.161.211.209":
             print "%.1f %30s -> %15s:%-5d %4d bytes" % (time(), "???", address[0], address[1], len(data))
 
