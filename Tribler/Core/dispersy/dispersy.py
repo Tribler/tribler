@@ -931,49 +931,55 @@ class Dispersy(Singleton):
         assert isinstance(address[0], str)
         assert isinstance(address[1], int)
         assert isinstance(voter, Candidate)
-        if self._is_valid_wan_address(address, check_my_wan_address=False):
-            votes = self._wan_address_votes
-            self.wan_address_unvote(voter)
+        if self._wan_address[0] in (voter.wan_address[0], voter.sock_addr[0]):
+            if __debug__: dprint("ignoring vote from candidate on the same LAN", force=1)
+            return
 
-            if not address in votes:
-                votes[address] = set()
-            votes[address].add(voter.key)
-
-            if __debug__: dprint(["%5d %15s:%-d" % (len(voters), vote[0], vote[1]) for vote, voters in votes.iteritems()], lines=True, force=1)
-
-            # change when new vote count equal or higher than old address vote count
-            if self._wan_address != address and len(votes[address]) >= len(votes.get(self._wan_address, ())):
-                if len(votes) > 1:
-                    if __debug__: dprint("not updating WAN address, suspect symmetric NAT", force=1)
-                    self._connection_type = u"symmetric-NAT"
-                    return
-
-                # it is possible that, for some time after the WAN address changes, we will believe
-                # that the connection type is symmetric NAT.  once votes decay we may find that we
-                # are no longer behind a symmetric-NAT
-                if self._connection_type == u"symmetric-NAT":
-                    self._connection_type = u"unknown"
-
-                if __debug__: dprint("update WAN address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
-                self._wan_address = address
-
-                if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
-                    if __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
-                    self._lan_address = (self._wan_address[0], self._lan_address[1])
-
-                # our address may not be a bootstrap address
-                if self._wan_address in self._bootstrap_candidates:
-                    del self._bootstrap_candidates[self._wan_address]
-
-                # our address may not be a candidate
-                if self._wan_address in self._candidates:
-                    del self._candidates[self._wan_address]
-
-            if self._connection_type == u"unknown" and self._lan_address == self._wan_address:
-                self._connection_type = u"public"
-
-        else:
+        if not self._is_valid_wan_address(address, check_my_wan_address=False):
             if __debug__: dprint("got invalid external vote from ", voter, " received ", address[0], ":", address[1], force=1)
+            return
+
+        # undo previous vote
+        self.wan_address_unvote(voter)
+
+        # do vote
+        votes = self._wan_address_votes
+        if not address in votes:
+            votes[address] = set()
+        votes[address].add(voter.key)
+
+        if __debug__: dprint(["%5d %15s:%-d" % (len(voters), vote[0], vote[1]) for vote, voters in votes.iteritems()], lines=True, force=1)
+
+        # change when new vote count equal or higher than old address vote count
+        if self._wan_address != address and len(votes[address]) >= len(votes.get(self._wan_address, ())):
+            if len(votes) > 1:
+                if __debug__: dprint("not updating WAN address, suspect symmetric NAT", force=1)
+                self._connection_type = u"symmetric-NAT"
+                return
+
+            # it is possible that, for some time after the WAN address changes, we will believe
+            # that the connection type is symmetric NAT.  once votes decay we may find that we
+            # are no longer behind a symmetric-NAT
+            if self._connection_type == u"symmetric-NAT":
+                self._connection_type = u"unknown"
+
+            if __debug__: dprint("update WAN address ", self._wan_address[0], ":", self._wan_address[1], " -> ", address[0], ":", address[1], force=True)
+            self._wan_address = address
+
+            if not self._is_valid_lan_address(self._lan_address, check_my_lan_address=False):
+                if __debug__: dprint("update LAN address ", self._lan_address[0], ":", self._lan_address[1], " -> ", self._wan_address[0], ":", self._lan_address[1], force=True)
+                self._lan_address = (self._wan_address[0], self._lan_address[1])
+
+            # our address may not be a bootstrap address
+            if self._wan_address in self._bootstrap_candidates:
+                del self._bootstrap_candidates[self._wan_address]
+
+            # our address may not be a candidate
+            if self._wan_address in self._candidates:
+                del self._candidates[self._wan_address]
+
+        if self._connection_type == u"unknown" and self._lan_address == self._wan_address:
+            self._connection_type = u"public"
 
     def _is_duplicate_sync_message(self, message):
         """
@@ -2413,10 +2419,7 @@ class Dispersy(Singleton):
 
         for message in messages:
             # apply vote to determine our WAN address
-            if not self._wan_address[0] == message.candidate.wan_address[0]:
-                self.wan_address_vote(message.payload.destination_address, message.candidate)
-            else:
-                if __debug__: dprint("ignoring vote from candidate on the same LAN")
+            self.wan_address_vote(message.payload.destination_address, message.candidate)
 
             # modify either the senders LAN or WAN address based on how we perceive that node
             source_lan_address, source_wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
@@ -2620,10 +2623,7 @@ class Dispersy(Singleton):
 
         for message in messages:
             # apply vote to determine our WAN address
-            if not self._wan_address[0] == message.candidate.wan_address[0]:
-                self.wan_address_vote(message.payload.destination_address, message.candidate)
-            else:
-                if __debug__: dprint("ignoring vote from candidate on the same LAN")
+            self.wan_address_vote(message.payload.destination_address, message.candidate)
 
             # until we implement a proper 3-way handshake we are going to assume that the creator of
             # this message is associated to this candidate
