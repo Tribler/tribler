@@ -467,6 +467,11 @@ class WalkCandidate(Candidate):
             self._wan_address = wan_address
         self._connection_type = u"public" if connection_type == u"unknown" and lan_address == wan_address else connection_type
 
+        if __debug__:
+            if not (self._lan_address == ("0.0.0.0", 0) and self._wan_address == ("0.0.0.0", 0)):
+                if not (self.sock_addr == self._lan_address or self.sock_addr == self._wan_address):
+                    dprint("Either lan LAN ", self._lan_address, " or the WAN ", self._wan_address, " should be SOCK_ADDR ", self.sock_addr, level="error", force=1, stack=1)
+
     def __str__(self):
         if self._key == self._lan_address == self._wan_address:
             return "{%s:%d}" % self._lan_address
