@@ -468,10 +468,12 @@ class WalkCandidate(Candidate):
         self._connection_type = u"public" if connection_type == u"unknown" and lan_address == wan_address else connection_type
 
     def __str__(self):
-        if self._lan_address == self._wan_address:
-            return "%s:%d" % self._lan_address
+        if self._key == self._lan_address == self._wan_address:
+            return "{%s:%d}" % self._lan_address
+        elif self._key in (self._lan_address, self._wan_address):
+            return "{%s:%d %s:%d}" % (self._lan_address[0], self._lan_address[1], self._wan_address[0], self._wan_address[1])
         else:
-            return "%s:%d (%s:%d)" % (self._lan_address[0], self._lan_address[1], self._wan_address[0], self._wan_address[1])
+            return "{%s:%d %s:%d %s:%d}" % (self._key[0], self._key[1], self._lan_address[0], self._lan_address[1], self._wan_address[0], self._wan_address[1])
 
 class BootstrapCandidate(WalkCandidate):
     def __init__(self, sock_addr):
