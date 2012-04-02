@@ -439,8 +439,6 @@ class Dispersy(Singleton):
         # our address may not be a candidate
         if self._lan_address in self._candidates:
             del self._candidates[self._lan_address]
-
-        self.wan_address_vote(self._lan_address, LoopbackCandidate())
     # .setter was introduced in Python 2.6
     socket = property(__get_socket, __set_socket)
 
@@ -2378,7 +2376,7 @@ class Dispersy(Singleton):
         request = meta_request.impl(authentication=(community.my_member,),
                                     distribution=(community.global_time,),
                                     destination=(destination,),
-                                    payload=(destination.sock_addr, self._lan_address, self._wan_address, advice, self._connection_type, sync, identifier))
+                                    payload=(self._get_destination_address(destination), self._lan_address, self._wan_address, advice, self._connection_type, sync, identifier))
 
         if __debug__:
             if sync:
@@ -2472,7 +2470,7 @@ class Dispersy(Singleton):
                 if __debug__: dprint("telling ", message.candidate, " that ", candidate, " exists")
 
                 # create introduction response
-                responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(message.candidate.sock_addr, self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, self._connection_type, message.payload.identifier)))
+                responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(self._get_destination_address(message.candidate), self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, self._connection_type, message.payload.identifier)))
 
                 # create puncture request
                 requests.append(meta_puncture_request.impl(distribution=(community.global_time,), destination=(candidate,), payload=(source_lan_address, source_wan_address, message.payload.identifier)))
@@ -2897,6 +2895,14 @@ class Dispersy(Singleton):
 
         return False
 
+    def _get_destination_address(self, candidate):
+        assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
+        sock_addr = candidate.lan_address if self._wan_address[0] == candidate.wan_address[0] else candidate.wan_address
+        if sock_addr == ("0.0.0.0", 0):
+            sock_addr = candidate.sock_addr
+        assert self.is_valid_remote_address(sock_addr), [sock_addr, candidate.lan_address, candidate.wan_address, self._lan_address, self._wan_address]
+        return sock_addr
+
     def _send(self, candidates, packets, key=u"unspecified"):
         """
         Send one or more packets to one or more addresses.
@@ -2926,27 +2932,10 @@ class Dispersy(Singleton):
 
         if candidates and packets:
             self._statistics.increment_total_up(sum(len(packet) for packet in packets) * len(candidates), len(packets) * len(candidates))
-            wan_host = self._wan_address[0]
 
             # send packets
             for candidate in candidates:
-                assert isinstance(candidate, WalkCandidate), "currently we only support (and use) the WalkCandidate"
-                sock_addr = candidate.lan_address if wan_host == candidate.wan_address[0] else candidate.wan_address
-                if sock_addr == ("0.0.0.0", 0):
-                    sock_addr = candidate.sock_addr
-                assert self.is_valid_remote_address(sock_addr), [sock_addr, candidate.lan_address, candidate.wan_address, self._lan_address, self._wan_address]
-                # if not self.is_valid_remote_address(candidate.sock_addr):
-                #     # this is a programming bug.  apparently an invalid address is being used
-                #     if __debug__: dprint("aborted sending ", len(packets), "x ", key, " (", sum(len(packet) for packet in packets), " bytes) to ", candidate, " (invalid remote address)", level="error")
-                #     return False
-
-                # # TODO DAS4 remove me
-                # if not sock_addr == candidate.sock_addr:
-                #     print "unexpected destination1 %s:%d" % sock_addr, " [candidate.sock_addr: %s:%d," % candidate.sock_addr, " candidate.lan_address: %s:%d," % candidate.lan_address, " candidate.wan_address: %s:%d," % candidate.wan_address, " self.lan_address: %s:%d," % self.lan_address, " self.wan_address: %s:%d]" % self.wan_address
-
-                # if sock_addr[0] == "130.161.7.3":
-                #     print "unexpected destination2 %s:%d" % sock_addr, " [candidate.sock_addr: %s:%d," % candidate.sock_addr, " candidate.lan_address: %s:%d," % candidate.lan_address, " candidate.wan_address: %s:%d," % candidate.wan_address, " self.lan_address: %s:%d," % self.lan_address, " self.wan_address: %s:%d]" % self.wan_address
-
+                sock_addr = self._get_destination_address(candidate)
                 for packet in packets:
                     self._socket.send(sock_addr, packet)
                 if __debug__:
