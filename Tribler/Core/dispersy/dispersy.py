@@ -2374,6 +2374,11 @@ class Dispersy(Singleton):
                         counter += 1
                     assert binary == bloom_filter.bytes, "The returned bloom filter does not match the given range [%d:%d] packets:%d" % (time_low, time_high, counter)
 
+        if __debug__:
+            if self._get_destination_address(destination) != destination.sock_addr:
+                dprint("WARNING", force=1)
+            dprint("intro-req -> ", destination, " (_get_destination_address: ", self._get_destination_address(destination), ")", force=1)
+
         meta_request = community.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(community.my_member,),
                                     distribution=(community.global_time,),
@@ -2467,6 +2472,11 @@ class Dispersy(Singleton):
 
             if candidate:
                 if __debug__: dprint("telling ", message.candidate, " that ", candidate, " exists")
+
+                if __debug__:
+                    if self._get_destination_address(message.candidate) != message.candidate.sock_addr:
+                        dprint("WARNING", force=1)
+                    dprint("intro-req -> ", message.candidate, " (_get_destination_address: ", self._get_destination_address(message.candidate), ")", force=1)
 
                 # create introduction response
                 responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(self._get_destination_address(message.candidate), self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, self._connection_type, message.payload.identifier)))
