@@ -948,7 +948,7 @@ class Dispersy(Singleton):
             votes[address] = set()
         votes[address].add(voter.key)
 
-        if __debug__: dprint(["%5d %15s:%-d" % (len(voters), vote[0], vote[1]) for vote, voters in votes.iteritems()], lines=True, force=1)
+        if __debug__: dprint(["%5d %15s:%-d [%s]" % (len(voters), vote[0], vote[1], ", ".join("%s:%d" % key for key in voters)) for vote, voters in votes.iteritems()], lines=True, force=1)
 
         # change when new vote count equal or higher than old address vote count
         if self._wan_address != address and len(votes[address]) >= len(votes.get(self._wan_address, ())):
