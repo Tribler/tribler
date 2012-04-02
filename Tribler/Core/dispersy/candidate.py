@@ -305,20 +305,22 @@ class WalkCandidate(Candidate):
                 if not (self.sock_addr == self._lan_address or self.sock_addr == self._wan_address):
                     dprint("Either LAN ", self._lan_address, " or the WAN ", self._wan_address, " should be SOCK_ADDR ", self.sock_addr, level="error", force=1, stack=1)
 
-    def merge(self, other):
-        assert isinstance(other, WalkCandidate), other
-        super(WalkCandidate, self).merge(other)
-        if not other._lan_address == ("0.0.0.0", 0):
-            self._lan_address = other._lan_address
-        if not other._wan_address == ("0.0.0.0", 0):
-            self._wan_address = other._wan_address
-        if not other._connection_type == u"unknown":
-            self._connection_type = other._connection_type
+    # def merge(self, other):
+    #     assert isinstance(other, WalkCandidate), other
+    #     super(WalkCandidate, self).merge(other)
 
-        if __debug__:
-            if not (self._lan_address == ("0.0.0.0", 0) and self._wan_address == ("0.0.0.0", 0)):
-                if not (self.sock_addr == self._lan_address or self.sock_addr == self._wan_address):
-                    dprint("Either LAN ", self._lan_address, " or the WAN ", self._wan_address, " should be SOCK_ADDR ", self.sock_addr, level="error", force=1, stack=1)
+    #     # Boudewijn: bugged.  Must match the sock_addr
+    #     # if not other._lan_address == ("0.0.0.0", 0):
+    #     #     self._lan_address = other._lan_address
+    #     # if not other._wan_address == ("0.0.0.0", 0):
+    #     #     self._wan_address = other._wan_address
+    #     # if not other._connection_type == u"unknown":
+    #     #     self._connection_type = other._connection_type
+
+    #     if __debug__:
+    #         if not (self._lan_address == ("0.0.0.0", 0) and self._wan_address == ("0.0.0.0", 0)):
+    #             if not (self.sock_addr == self._lan_address or self.sock_addr == self._wan_address):
+    #                 dprint("Either LAN ", self._lan_address, " or the WAN ", self._wan_address, " should be SOCK_ADDR ", self.sock_addr, level="error", force=1, stack=1)
 
     @property
     def sock_addr(self):
