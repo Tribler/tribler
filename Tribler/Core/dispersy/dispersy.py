@@ -1445,10 +1445,6 @@ class Dispersy(Singleton):
                         candidate.update(lan_address, wan_address, candidate.connection_type)
                         self._candidates[candidate.key] = candidate
 
-                        # add vote under new key
-                        if vote:
-                            self.wan_address_vote(vote, candidate)
-
                     break
 
             else:
