@@ -941,12 +941,12 @@ class Dispersy(Singleton):
                 votes[address] = set()
             votes[address].add(voter.key)
 
-            if __debug__: dprint(["%5d %15s:%-d" % (len(voters), vote[0], vote[1]) for vote, voters in votes.iteritems()], lines=True)
+            if __debug__: dprint(["%5d %15s:%-d" % (len(voters), vote[0], vote[1]) for vote, voters in votes.iteritems()], lines=True, force=1)
 
             # change when new vote count equal or higher than old address vote count
             if self._wan_address != address and len(votes[address]) >= len(votes.get(self._wan_address, ())):
                 if len(votes) > 1:
-                    if __debug__: dprint("not updating WAN address, suspect symmetric NAT")
+                    if __debug__: dprint("not updating WAN address, suspect symmetric NAT", force=1)
                     self._connection_type = u"symmetric-NAT"
                     return
 
@@ -975,7 +975,7 @@ class Dispersy(Singleton):
                 self._connection_type = u"public"
 
         else:
-            if __debug__: dprint("got invalid external vote from ", voter, " received ", address[0], ":", address[1])
+            if __debug__: dprint("got invalid external vote from ", voter, " received ", address[0], ":", address[1], force=1)
 
     def _is_duplicate_sync_message(self, message):
         """
@@ -1414,7 +1414,7 @@ class Dispersy(Singleton):
         assert all(isinstance(tup[1], str) for tup in packets), packets
         self._callback.register(self.on_socket_endpoint, (packets,), dict(timestamp=time()), priority=RAWSERVER_TO_DISPERSY_PRIORITY)
 
-    def _get_candidate(self, sock_addr, replace=True):
+    def _get_candidate(self, sock_addr, replace=True, lan_address=("0.0.0.0", 0)):
         """
         Returns an existing candidate object or None
 
@@ -1433,8 +1433,8 @@ class Dispersy(Singleton):
         if candidate is None:
             # find matching candidate with the same host but a different port (symmetric NAT)
             for candidate in self._candidates.itervalues():
-                if candidate.connection_type == u"symmetric-NAT" and candidate.sock_addr[0] == sock_addr[0]:
-                    if __debug__: dprint("using existing symmetric NAT candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)", force=1)
+                if candidate.sock_addr[0] == sock_addr[0] and candidate.lan_address in (("0.0.0.0", 0), lan_address):
+                    if __debug__: dprint("using existing candidate ", candidate, " at different port ", sock_addr[1], " (replace)" if replace else " (no replace)", force=1)
 
                     if replace:
                         # remove vote under previous key
@@ -1479,7 +1479,7 @@ class Dispersy(Singleton):
         """
         assert candidate.connection_type == u"symmetric-NAT"
         host, port = candidate.sock_addr
-        for other in [other for other in self._candidates.itervalues() if other.sock_addr[0] == host]:
+        for other in [other for other in self._candidates.itervalues() if other.sock_addr[0] == host and other.lan_address in (("0.0.0.0", 0), candidate.lan_address)]:
             if not other.sock_addr[1] == port:
                 if __debug__: dprint("removing ", other, " in favor or ", candidate, force=1)
                 candidate.merge(other)
@@ -2585,7 +2585,7 @@ class Dispersy(Singleton):
 
             # get or create the introduced candidate
             sock_introduction_addr = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
-            candidate = self._get_candidate(sock_introduction_addr, replace=False)
+            candidate = self._get_candidate(sock_introduction_addr, replace=False, lan_address=lan_introduction_address)
             if candidate is None:
                 # create candidate but set its state to inactive to ensure that it will not be used
                 # except by yield_walk_candidates
@@ -2721,7 +2721,7 @@ class Dispersy(Singleton):
             # we are asked to send a message to a -possibly- unknown node
             # get or create the candidate
             sock_addr = lan_walker_address if wan_walker_address[0] == self._wan_address[0] else wan_walker_address
-            candidate = self._get_candidate(sock_addr, replace=False)
+            candidate = self._get_candidate(sock_addr, replace=False, lan_address=lan_walker_address)
             if candidate is None:
                 # create candidate but set its state to inactive to ensure that it is not used
                 # except by yield_walk_candidates
