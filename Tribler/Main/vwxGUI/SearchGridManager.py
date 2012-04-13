@@ -1044,20 +1044,16 @@ class LibraryManager:
     def getHitsInCategory(self):
         if DEBUG: begintime = time()
         
-        results = self.torrent_db.getTorrents(sort = "name", library = True)
+        results = self.torrent_db.getLibraryTorrents(LIBRARY_REQ_COLUMNS)
         if len(results) > 0:
             def create_torrent(a):
-                t = LibraryTorrent(**getValidArgs(LibraryTorrent.__init__, a))
+                t = ChannelTorrent(*a[:-1]+(None,))
+                
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
-                
-                #touch channel to force load, if it has a channel -> load channeltorrent
-                if t.channel:
-                    ct = self.channelsearch_manager.getTorrentFromChannelTorrentId(t.channel, t.channeltorrents_id)
-                    ct.progress = t.progress
-                    return ct 
-                
+                t.progress = a[-1]
                 return t
+            
             results = map(create_torrent, results)
         
         #Niels: maybe create a clever reranking for library results, for now disable

@@ -37,7 +37,7 @@ from Tribler.Core.Search.SearchManager import split_into_keywords,\
 from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
-from threading import currentThread
+from threading import currentThread, Lock
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -1701,6 +1701,10 @@ class TorrentDBHandler(BasicDBHandler):
         del res_list
         del mypref_stats
         return torrent_list
+    
+    def getLibraryTorrents(self, keys):
+        sql = "SELECT " + ", ".join(keys) +" FROM Torrent,MyPreference LEFT JOIN ChannelTorrents ON Torrent.torrent_id = ChannelTorrents.torrent_id WHERE Torrent.torrent_id = MyPreference.torrent_id AND destination_path != '' GROUP BY Torrent.torrent_id ORDER BY lower(Torrent.name)"
+        return self._db.fetchall(sql)
 
     def valuelist2torrentlist(self,value_name,res_list,ranks,mypref_stats):
         
@@ -2949,12 +2953,14 @@ class BarterCastDBHandler(BasicDBHandler):
         # i.e. the DB stored (a,b) and (b,a) and we want to count just one.
         
         processed =  set()
-        
 
         value_name = '*'
-        increment = 500
-        
         nrecs = self.size()
+        if local_only:
+            increment = nrecs
+        else:
+            increment = max(500, nrecs/1000)
+                
         #print >>sys.stderr,"NEXTtopN: size is",nrecs
         
         for offset in range(0,nrecs,increment):
@@ -2964,16 +2970,17 @@ class BarterCastDBHandler(BasicDBHandler):
                 limit = increment
             #print >>sys.stderr,"NEXTtopN: get",offset,limit
         
-            reslist = self.getAll(value_name, offset=offset, limit=limit)
+            if local_only:
+                sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast WHERE (peer_id_from = ? or peer_id_to = ?) LIMIT ? OFFSET ?"
+                reslist = self._db.fetchall(sql, (my_peer_id, my_peer_id, limit, offset))
+            else:
+                sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast LIMIT ? OFFSET ?"
+                reslist = self._db.fetchall(sql, (limit, offset))
+        
             #print >>sys.stderr,"NEXTtopN: res len is",len(reslist),`reslist`
             for res in reslist:
                 (peer_id_from,peer_id_to,downloaded,uploaded,last_seen,value) = res
             
-                if local_only:
-                    if not (peer_id_to == my_peer_id or peer_id_from == my_peer_id):
-                        # get only items of my local dealings
-                        continue
-                        
                 if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
                 #if (not peer_id_to == peer_id_from):
         
@@ -2998,7 +3005,6 @@ class BarterCastDBHandler(BasicDBHandler):
                     # process peer_id_to
                     total_up[peer_id_to] = total_up.get(peer_id_to, 0) + down
                     total_down[peer_id_to] = total_down.get(peer_id_to, 0) +  up
-
                     
         # create top N peers
         top = []
@@ -4613,16 +4619,19 @@ class PopularityDBHandler(BasicDBHandler):
         return PopularityDBHandler.__single
     getInstance = staticmethod(getInstance)
 
-    def __init__(self):
+    def __init__(self, rawserver):
         if PopularityDBHandler.__single is not None:
             raise RuntimeError, "PopularityDBHandler is singleton"
         PopularityDBHandler.__single = self
+        
         db = SQLiteCacheDB.getInstance()        
         BasicDBHandler.__init__(self,db, 'Popularity')
         
         # define local handlers to access Peer and Torrent tables.
         self.peer_db = PeerDBHandler.getInstance()
         self.torrent_db = TorrentDBHandler.getInstance()
+        self.rawserver = rawserver
+        self.rawserver.add_task(self._addPopularity, 300)
         
     ###--------------------------------------------------------------------------------------------------------------------------
         
@@ -4714,7 +4723,10 @@ class PopularityDBHandler(BasicDBHandler):
             return False
         else:
             return True
-    ###--------------------------------------------------------------------------------------------------------------------------        
+        
+    ###--------------------------------------------------------------------------------------------------------------------------
+    _popularityList = []
+    _popularityLock = Lock()
     def addPopularity(self, torrent_id, peer_id, recv_time, calc_age=sys.maxint, num_seeders=-1, num_leechers=-1, num_sources=-1, validatePeerId=False, validateTorrentId=False,
                        checkNumRecConstraint=True, commit=True):
         '''
@@ -4735,25 +4747,47 @@ class PopularityDBHandler(BasicDBHandler):
         if validateTorrentId: #checks whether the torrent is valid or not
             if not self.checkTorrentValidity(torrent_id):
                 return None
+        
+        try:
+            self._popularityLock.acquire()
+            self._popularityList.append((torrent_id, peer_id, recv_time, calc_age, num_seeders, num_leechers, num_sources, checkNumRecConstraint))
+        finally:
+            self._popularityLock.release()
 
+    def _addPopularity(self):
+        localList = []
+        try:
+            self._popularityLock.acquire()
+            localList = self._popularityList[:]
+            self._popularityList = []
+            
+        finally:
+            self._popularityLock.release()
+        
         sql_insert_new_populairty = u"""INSERT OR REPLACE INTO Popularity (torrent_id, peer_id, msg_receive_time, size_calc_age, num_seeders,
                                         num_leechers, num_of_sources) VALUES (?,?,?,?,?,?,?)"""
         try:
-            self._db.execute_write(sql_insert_new_populairty, (torrent_id, peer_id, recv_time, calc_age, num_seeders, num_leechers, num_sources), commit=commit)
-        except Exception, msg:    
-            print_exc() 
-        
-        timeNow = int(time())
-        if checkNumRecConstraint: # Removes old records. The number of records should not exceed defined limitations.
- 
-            availableRecsT = self.countTorrentPopularityRec(torrent_id, timeNow)
-            if availableRecsT[0] > MAX_POPULARITY_REC_PER_TORRENT:
-                self.deleteOldTorrentRecords(torrent_id, availableRecsT[0] - MAX_POPULARITY_REC_PER_TORRENT, timeNow, commit=commit)
-    
-    
-            availableRecsTP = self.countTorrentPeerPopularityRec(torrent_id, peer_id, timeNow)
-            if availableRecsTP[0] > MAX_POPULARITY_REC_PER_TORRENT_PEER:
-                self.deleteOldTorrentPeerRecords(torrent_id,peer_id, availableRecsTP[0] - MAX_POPULARITY_REC_PER_TORRENT_PEER, timeNow, commit=commit)
+            if len(localList) > 0:
+                newLocalList = [tuple[:-1] for tuple in localList]
+                try:
+                    self._db.executemany(sql_insert_new_populairty, newLocalList, commit=True)
+                except Exception, msg:    
+                    print_exc() 
+            
+                timeNow = int(time())
+                for torrent_id, peer_id, recv_time, calc_age, num_seeders, num_leechers, num_sources, checkNumRecConstraint in localList:
+                    availableRecsT = self.countTorrentPopularityRec(torrent_id, timeNow)
+                    if availableRecsT[0] > MAX_POPULARITY_REC_PER_TORRENT:
+                        self.deleteOldTorrentRecords(torrent_id, availableRecsT[0] - MAX_POPULARITY_REC_PER_TORRENT, timeNow, commit=False)
+            
+            
+                    availableRecsTP = self.countTorrentPeerPopularityRec(torrent_id, peer_id, timeNow)
+                    if availableRecsTP[0] > MAX_POPULARITY_REC_PER_TORRENT_PEER:
+                        self.deleteOldTorrentPeerRecords(torrent_id,peer_id, availableRecsTP[0] - MAX_POPULARITY_REC_PER_TORRENT_PEER, timeNow, commit=False)
+                self._db.commit()
+        except:
+            print_exc()
+        self.rawserver.add_task(self._addPopularity, 300)
     
     ###--------------------------------------------------------------------------------------------------------------------------            
     def storePeerPopularity(self, peer_id, popularityList, validatePeerId=False, validateTorrentId=False, commit=True):

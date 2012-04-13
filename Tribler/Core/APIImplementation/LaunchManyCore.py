@@ -129,7 +129,8 @@ class TriblerLaunchMany(Thread):
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
 
             cachedb.init(config, self.rawserver_fatalerrorfunc)
-
+            
+            self.pops_db = PopularityDBHandler.getInstance(self.rawserver)
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
@@ -150,7 +151,6 @@ class TriblerLaunchMany(Thread):
             self.search_db      = SearchDBHandler.getInstance()
             self.term_db        = TermDBHandler.getInstance()
             self.simi_db        = SimilarityDBHandler.getInstance()
-            self.pops_db = PopularityDBHandler.getInstance()
 
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             self.richmetadataDbHandler = MetadataDBHandler.getInstance()
