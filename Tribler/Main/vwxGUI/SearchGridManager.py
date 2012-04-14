@@ -1047,7 +1047,7 @@ class LibraryManager:
         results = self.torrent_db.getLibraryTorrents(LIBRARY_REQ_COLUMNS)
         if len(results) > 0:
             def create_torrent(a):
-                t = ChannelTorrent(*a[:-1]+(None,))
+                t = ChannelTorrent(*a[1:-1]+(None,None))
                 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
