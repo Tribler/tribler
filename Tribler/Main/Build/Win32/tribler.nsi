@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "5.5.23"
+!define VERSION "5.5.24"
 
 !include "MUI.nsh"
 !include "UAC.nsh"
@@ -145,6 +145,12 @@ Section "!Main EXE" SecMain
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
  File Tribler\Main\vwxGUI\images\*.*
+
+ CreateDirectory "$INSTDIR\Tribler\Main\webUI"
+ CreateDirectory "$INSTDIR\Tribler\Main\webUI\static"
+ SetOutPath "$INSTDIR\Tribler\Main\webUI\static"
+ File Tribler\Main\webUI\static\*.*
+
  ; Categories
  CreateDirectory "$INSTDIR\Tribler\Category"
  SetOutPath "$INSTDIR\Tribler\Category"
