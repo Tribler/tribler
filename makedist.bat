@@ -136,6 +136,8 @@ REM Arno: Sign .EXE so MS "Block / Unblock" dialog has publisher info.
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
 :makeinstaller
+%NSIS% tribler_novlc.nsi
+move Tribler_*.exe ..
 %NSIS% tribler.nsi
 move Tribler_*.exe ..
 cd ..
