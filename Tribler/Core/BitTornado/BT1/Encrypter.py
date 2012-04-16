@@ -80,8 +80,8 @@ if sys.platform == 'win32':
     if winvertuple[0] == 5 or (winvertuple[0] == 6 and winvertuple[1] == 0 and spstr < "Service Pack 2"):
         MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout, 10 is official limit
     else:
-        #Niels: Opening 1024 connections will cause problems with all kinds of firewalls etc, reducing to 64
-        MAX_INCOMPLETE = 64
+        #Niels: Opening 1024 connections will cause problems with all kinds of firewalls etc, reducing to 48
+        MAX_INCOMPLETE = 48
 else:
     MAX_INCOMPLETE = 32
 MAX_HISTORY_INCOMPLETE = max(MAX_INCOMPLETE*10, 320)  # allow X connections to be initiated every 60s
