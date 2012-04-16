@@ -1046,8 +1046,15 @@ class LibraryManager:
         
         results = self.torrent_db.getLibraryTorrents(LIBRARY_REQ_COLUMNS)
         if len(results) > 0:
+            channelDict = {}
+            channels = set((result[0] for result in results))
+            if len(channels) > 0:
+                _,_,channels = self.channelsearch_manager.getChannels(channels)
+                for channel in channels:
+                    channelDict[channel.id] = channel
+            
             def create_torrent(a):
-                t = ChannelTorrent(*a[1:-1]+(None,None))
+                t = ChannelTorrent(*a[1:-1]+[channelDict.get(a[0], None),None])
                 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
