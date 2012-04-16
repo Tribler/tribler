@@ -77,7 +77,7 @@ copy C:\WINDOWS\WinSxS\%CRTFULLNAME%\msvcp90.dll .
 REM Arno: Move py2exe results to installdir
 move dist\*.* dist\installdir
 
-copy Tribler\Main\Build\Win32\tribler.nsi dist\installdir
+copy Tribler\Main\Build\Win32\tribler*.nsi dist\installdir
 copy Tribler\Main\Build\Win32\tribler.exe.manifest dist\installdir
 REM copy %PYTHONHOME%\msvcr71.dll dist\installdir
 REM For Vista. This works only when building on XP
