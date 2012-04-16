@@ -1704,7 +1704,7 @@ class TorrentDBHandler(BasicDBHandler):
     
     def getLibraryTorrents(self, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM Torrent,MyPreference LEFT JOIN ChannelTorrents ON Torrent.torrent_id = ChannelTorrents.torrent_id WHERE Torrent.torrent_id = MyPreference.torrent_id AND destination_path != '' GROUP BY Torrent.torrent_id ORDER BY lower(Torrent.name)"
-        return self._db.fetchall(sql)
+        return self.__fixTorrents(keys, self._db.fetchall(sql))
 
     def valuelist2torrentlist(self,value_name,res_list,ranks,mypref_stats):
         
@@ -1745,6 +1745,16 @@ class TorrentDBHandler(BasicDBHandler):
                 
             torrent_list.append(torrent)
         return  torrent_list
+
+    def __fixTorrents(self, keys, results):
+        if 'infohash' in keys:
+            infohash_index = keys.index('infohash')
+            for i in range(len(results)):
+                result = list(results[i])
+                result[infohash_index] = str2bin(result[infohash_index])
+                results[i] = result
+                
+        return results
         
     def getRanks(self):
         value_name = 'infohash'
