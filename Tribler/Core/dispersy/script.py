@@ -3687,7 +3687,7 @@ class DispersyBootstrapServers(ScriptBase):
             def summary(self):
                 for sock_addr, rtts in sorted(self._summary.iteritems()):
                     if rtts:
-                        dprint(self._identifiers[sock_addr].encode("HEX"), " %15s:%-5d %-30s " % (sock_addr[0], sock_addr[1], self._hostname[sock_addr]), len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts), "]", force=True)
+                        dprint(self._identifiers[sock_addr].encode("HEX"), " %15s:%-5d %-30s " % (sock_addr[0], sock_addr[1], self._hostname[sock_addr]), len(rtts), "x  ", round(sum(rtts) / len(rtts), 1), " avg  [", ", ".join(str(round(rtt, 1)) for rtt in rtts[-10:]), "]", force=True)
                     else:
                         dprint(sock_addr[0], ":", sock_addr[1], "  missing", force=True)
 
