@@ -147,10 +147,16 @@ Section "!Main EXE" SecMain
 
  CreateDirectory "$INSTDIR\Tribler\Main\webUI"
  CreateDirectory "$INSTDIR\Tribler\Main\webUI\static"
+ CreateDirectory "$INSTDIR\Tribler\Main\webUI\static\images"
+ CreateDirectory "$INSTDIR\Tribler\Main\webUI\static\lang"
  SetOutPath "$INSTDIR\Tribler\Main\webUI\static"
  File Tribler\Main\webUI\static\*.*
-
- ; Categories
+ SetOutPath "$INSTDIR\Tribler\Main\webUI\static\images"
+ File Tribler\Main\webUI\static\images\*.*
+ SetOutPath "$INSTDIR\Tribler\Main\webUI\static\lang"
+ File Tribler\Main\webUI\static\lang\*.*
+ 
+  ; Categories
  CreateDirectory "$INSTDIR\Tribler\Category"
  SetOutPath "$INSTDIR\Tribler\Category"
  File Tribler\Category\*.conf
