@@ -49,7 +49,7 @@ from time import time
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_addresses
-from callback import Callback, Idle, Return
+from callback import Callback
 from candidate import BootstrapCandidate, LoopbackCandidate, WalkCandidate
 from destination import CommunityDestination, CandidateDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
@@ -116,7 +116,6 @@ class Statistics(object):
         self._sequence_number = 0
         self._total_up = 0, 0
         self._total_down = 0, 0
-        self._busy_time = 0.0
         self._walk_attempt = 0
         self._walk_success = 0
         if __debug__:
@@ -145,7 +144,6 @@ class Statistics(object):
                     "sequence_number":self._sequence_number,
                     "total_up":self._total_up,
                     "total_down":self._total_down,
-                    "busy_time":self._busy_time,
                     "start":self._start,
                     "runtime":time() - self._start,
                     "walk_attempt":self._walk_attempt,
@@ -155,7 +153,6 @@ class Statistics(object):
             return {"sequence_number":self._sequence_number,
                     "total_up":self._total_up,
                     "total_down":self._total_down,
-                    "busy_time":self._busy_time,
                     "start":self._start,
                     "runtime":time() - self._start,
                     "walk_attempt":self._walk_attempt,
@@ -254,10 +251,6 @@ class Statistics(object):
         assert isinstance(byte_count, (int, long))
         a, b = self._total_down
         self._total_down = (a+amount, b+byte_count)
-
-    # def increment_busy_time(self, busy_time):
-    #     assert isinstance(busy_time, float)
-    #     self._busy_time += busy_time
 
     def increment_walk_attempt(self):
         self._walk_attempt += 1
@@ -704,17 +697,8 @@ class Dispersy(Singleton):
         # when this is a create or join this message is created only after the attach_community
         if __debug__:
             if "--sanity-check" in sys.argv:
-                # def sanity_check_callback(result):
-                #     assert result == True, [community.database_id, str(result)]
-                #     try:
-                #         community._pending_callbacks.remove(callback_id)
-                #     except ValueError:
-                #         pass
-                # callback_id = self._callback.register(self.sanity_check_generator, (community,), priority=-128, callback=sanity_check_callback)
-                # community._pending_callbacks.append(callback_id)
                 try:
-                    for _ in self.sanity_check_generator(community):
-                        pass
+                    self.sanity_check_generator(community):
                 except ValueError:
                     dprint(exception=True, level="error")
                     assert False
@@ -4453,9 +4437,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             except StopIteration:
                 raise ValueError("unable to find the dispersy-identity message for my member")
 
-            # back-off because the sanity check is very expensive
             if __debug__: dprint("my identity is OK")
-            yield Idle()
 
             #
             # the dispersy-identity must be in the database for each member that has one or more
@@ -4465,8 +4447,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             B = set(id_ for id_, in self._database.execute(u"SELECT member FROM sync WHERE meta_message = ?", (meta_identity.database_id,)))
             if not len(A) == len(B):
                 raise ValueError("inconsistent dispersy-identity messages.", A.difference(B))
-
-            yield Idle()
 
         try:
             meta_undo_other = community.get_meta_message(u"dispersy-undo-other")
@@ -4507,7 +4487,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                     raise ValueError("found dispersy-undo-other that, according to the timeline, has no proof")
 
                 if __debug__: dprint("dispersy-undo-other packet ", undo_packet_id, "@", undo_packet_global_time, " referring ", undo_message.payload.packet.name, " ", undo_message.payload.member.database_id, "@", undo_message.payload.global_time, " is OK")
-                yield Idle()
 
         #
         # ensure all packets in the database are valid and that the binary packets are consistent
@@ -4538,7 +4517,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
                 # back-off because the sanity check is very expensive
                 if __debug__: dprint("packet ", packet_id, "@", global_time, " is OK")
-                yield Idle()
 
         for meta in community.get_meta_messages():
             #
@@ -4562,7 +4540,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
                     # back-off because the sanity check is very expensive
                     if __debug__: dprint("FullSyncDistribution for '", meta.name, "' is OK")
-                    yield Idle()
 
             #
             # ensure that we have only history-size messages per member
@@ -4586,7 +4563,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
                         # back-off because the sanity check is very expensive
                         if __debug__: dprint("LastSyncDistribution for '", meta.name, "' is OK")
-                        yield Idle()
 
                 else:
                     assert isinstance(meta.authentication, MultiMemberAuthentication)
@@ -4611,10 +4587,8 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
                         # back-off because the sanity check is very expensive
                         if __debug__: dprint("LastSyncDistribution for '", meta.name, "' is OK")
-                        yield Idle()
 
         if __debug__: dprint(community.cid.encode("HEX"), " success")
-        yield Return(True)
 
     def _generic_timeline_check(self, messages):
         meta = messages[0].meta
@@ -4657,8 +4631,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         while True:
             try:
                 yield 60.0
-                # desync = (yield 60.0)
-                # self._statistics.increment_busy_time(desync)
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()
@@ -4688,8 +4660,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", delay, "s between each step")
 
             yield delay
-            # desync = (yield delay)
-            # self._statistics.increment_busy_time(desync)
 
     def _periodically_cleanup_candidates(self):
         """
@@ -4793,9 +4763,10 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         # 2.8: added global_time to candidates
         # 2.9: added connection_type
         # 3.0: added info["statistics"]["walk_attempt"] and info["statistics"]["walk_success"]
+        # 3.1: removed busy_time from statistics
 
         now = time()
-        info = {"version":3.0,
+        info = {"version":3.1,
                 "class":"Dispersy",
                 "lan_address":self._lan_address,
                 "wan_address":self._wan_address,

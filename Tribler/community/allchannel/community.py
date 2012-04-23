@@ -424,9 +424,7 @@ class AllChannelCommunity(Community):
             
     def unload_preview(self):
         while True:
-            desync = (yield 300.0)
-            if desync > 0.1:
-                yield desync
+            yield 300.0
                 
             inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity)]
             if __debug__:

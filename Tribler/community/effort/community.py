@@ -66,7 +66,7 @@ class EffortCommunity(Community):
     def _watchdog(self):
         while True:
             try:
-                desync = (yield 60.0)
+                yield 60.0
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()

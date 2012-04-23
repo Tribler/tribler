@@ -21,81 +21,6 @@ if __debug__:
     # dprint warning when registered call, or generator call, should have run N seconds ago
     QUEUE_DELAY_FOR_WARNING = 1.0
 
-class Yielder(object):
-    pass
-
-class Delay(Yielder):
-    def __init__(self, delay, strict=False):
-        assert isinstance(delay, float)
-        assert delay > 0.0
-        assert isinstance(strict, bool)
-        self._delay = delay
-        self._strict = strict
-
-    def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
-        if self._strict:
-            new_deadline = deadline + self._delay
-        else:
-            new_deadline = time() + self._delay
-        heappush(requests, new_deadline, priority, root_id, (call[0], "desync"), callback)
-
-class Switch(Yielder):
-    def __init__(self, cother):
-        assert isinstance(cother, Callback)
-        self._cother = cother
-
-    def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
-        with self._cother._lock:
-            if not isinstance(root_id, basestring):
-                self._cother._id += 1
-                root_id = self._cother._id
-            self._cother._new_actions.append(("register", (deadline, priority, root_id, call, callback)))
-
-            # wakeup if sleeping
-            self._cother._event.set()
-
-class Idle(Yielder):
-    def __init__(self, min_delay=0.0, max_delay=300.0, idle_threshold=0.1):
-        assert isinstance(min_delay, float)
-        assert isinstance(max_delay, float)
-        assert 0.0 <= min_delay < max_delay, [min_delay, max_delay]
-        assert isinstance(idle_threshold, float)
-        assert idle_threshold > 0.0
-        self._min_delay = min_delay
-        self._max_delay = max_delay
-        self._idle_threshold = idle_threshold
-
-    def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
-        self._expired = expired
-        self._origional_deadline = deadline
-        self._origional_priority = priority
-        self._origional_root_id = root_id
-        self._origional_generator = call[0]
-        self._origional_callback = callback
-        generator = self._test_idle(actual_time - deadline)
-        generator.send(None)
-        if deadline + self._min_delay <= actual_time:
-            heappush(expired, (priority + 1024, deadline + self._min_delay, root_id, (generator, "desync"), None))
-        else:
-            heappush(requests, (deadline + self._min_delay, priority + 1024, root_id, (generator, "desync"), None))
-
-    def _test_idle(self, desync):
-        remaining_delay = self._max_delay - self._min_delay
-        while remaining_delay > 0.0:
-            desync = (yield 0.0)
-            if desync < self._idle_threshold:
-                break
-            remaining_delay -= desync
-        heappush(self._expired, (self._origional_priority, self._origional_deadline, self._origional_root_id, (self._origional_generator, "desync"), self._origional_callback))
-
-class Return(Yielder):
-    def __init__(self, *results):
-        self._results = results
-
-    def handle(self, cself, requests, expired, actual_time, deadline, priority, root_id, call, callback):
-        if callback:
-            heappush(expired, (priority, deadline, root_id, (callback[0], self._results + callback[1], callback[2]), None))
-
 class Callback(object):
     def __init__(self):
         # _event is used to wakeup the thread when new actions arrive
@@ -251,7 +176,7 @@ class Callback(object):
          >       yield 1.0
          > callback.register(my_generator)
          > -> my_generator will be called immediately printing "foo", subsequently "foo" will be
-              printed at exactly 1.0 second intervals
+              printed at 1.0 second intervals
         """
         assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
@@ -584,18 +509,10 @@ class Callback(object):
                         if __debug__:
                             debug_begin = get_timestamp()
                         result = call.next()
-                        if isinstance(result, float):
-                            # schedule CALL again in RESULT seconds
-                            # equivalent to: yield Delay(SECONDS)
-                            assert result >= 0.0
-                            with lock:
-                                heappush(requests, (get_timestamp() + result, priority, root_id, call, callback))
-                        elif isinstance(result, Yielder):
-                            # let the Yielder object handle everything
-                            # result.handle(self, requests, expired, actual_time, deadline, priority, root_id, call, callback)
-                            raise NotImplementedError("not yet done")
-                        else:
-                            dprint("yielded invalid type ", type(result), level="error")
+                        assert isinstance(result, float), type(result)
+                        assert result >= 0.0
+                        with lock:
+                            heappush(requests, (get_timestamp() + result, priority, root_id, call, callback))
 
                 except StopIteration:
                     if callback:
