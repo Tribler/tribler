@@ -474,8 +474,6 @@ class DispersyPanel(HomePanel):
                         addColumn('total_dropped')
                     if 'runtime' in value:
                         addColumn('runtime')
-                        if 'busy_time' in value:
-                            addColumn('busy_time')
                         if "total_up" in value:
                             addColumn("avg_up")
                         if "total_down" in value:
@@ -584,7 +582,6 @@ class DispersyPanel(HomePanel):
                         if "drop" in value:
                             updateColumn("total_dropped", self.utility.size_format(int(sum(byte_count for _, byte_count in value["drop"].itervalues()))))
                         updateColumn('runtime', self.utility.eta_value(value['runtime']))
-                        updateColumn('busy_time', self.utility.eta_value(value['busy_time']))
                         updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")
                         updateColumn("avg_up", self.utility.size_format(int(value["total_up"][1] / value["runtime"])) + "/s")
                         updateColumn("in_debugmode", str(__debug__))

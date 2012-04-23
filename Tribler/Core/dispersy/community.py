@@ -736,7 +736,7 @@ class Community(object):
         return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
-    @runtime_duration_warning(0.1)
+    @runtime_duration_warning(0.5)
     def dispersy_claim_sync_bloom_filter_largest(self):
         if __debug__:
             t1 = time()
@@ -813,7 +813,7 @@ class Community(object):
         return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
-    @runtime_duration_warning(0.1)
+    @runtime_duration_warning(0.5)
     def dispersy_claim_sync_bloom_filter_modulo(self):
         if __debug__:
             t1 = time()
@@ -837,7 +837,7 @@ class Community(object):
             bloom.add_keys(str(packet) for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync WHERE meta_message IN (%s) AND sync.undone = 0 AND sync.global_time > 0 AND (sync.global_time + ?) %% ? = 0" % syncable_messages, (offset, modulo)))
 
             if __debug__:
-                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, totalnr = %d"%(modulo, offset, len(data), capacity, self._nrsyncpackets))
+                dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, totalnr = %d"%(modulo, offset, self._nrsyncpackets, capacity, self._nrsyncpackets))
 
             return (1, self.acceptable_global_time, modulo, offset, bloom)
 
