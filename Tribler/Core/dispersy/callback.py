@@ -11,7 +11,7 @@ from itertools import chain
 from thread import get_ident
 from threading import Thread, Lock, Event
 from time import sleep, time
-from types import GeneratorType
+from types import GeneratorType, TupleType
 
 if __debug__:
     from itertools import islice
@@ -100,6 +100,8 @@ class Callback(object):
     def __init__(self):
         # _event is used to wakeup the thread when new actions arrive
         self._event = Event()
+        self._event_set = self._event.set
+        self._event_is_set = self._event.is_set
 
         # _lock is used to protect variables that are written to on multiple threads
         self._lock = Lock()
@@ -134,11 +136,13 @@ class Callback(object):
         # identifier.  it is protected by _lock
         self._id = 0
 
-        # _new_actions contains a list of actions that must be handled on the running thread.  it is
-        # protected by _lock
-        self._new_actions = []  # (type, action)
-                                # type=register, action=(deadline, priority, root_id, (call, args, kargs), callback)
-                                # type=unregister, action=root_id
+        # requests are ordered by deadline and moved to -expired- when they need to be handled
+        # (deadline, priority, root_id, (call, args, kargs), callback)
+        self._requests = []
+
+        # expired requests are ordered and handled by priority
+        # (priority, root_id, None, (call, args, kargs), callback)
+        self._expired = []
 
         if __debug__:
             def must_close(callback):
@@ -259,17 +263,31 @@ class Callback(object):
         assert isinstance(callback_args, tuple), "CALLBACK_ARGS has invalid type: %s" % type(callback_args)
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
         if __debug__: dprint("register ", call, " after ", delay, " seconds")
+
         with self._lock:
             if not id_:
                 self._id += 1
                 id_ = self._id
-            self._new_actions.append(("register", (delay + time(),
-                                                   -priority,
-                                                   id_,
-                                                   (call, args, {} if kargs is None else kargs),
-                                                   None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
+
+                if delay <= 0.0:
+                    heappush(self._expired,
+                             (-priority,
+                              id_,
+                              None,
+                              (call, args, {} if kargs is None else kargs),
+                              None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+
+                else:
+                    heappush(self._requests,
+                             (delay + time(),
+                              -priority,
+                              id_,
+                              (call, args, {} if kargs is None else kargs),
+                              None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+
             # wakeup if sleeping
-            self._event.set()
+            if not self._event_is_set():
+                self._event_set()
             return id_
 
     def persistent_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0, callback=None, callback_args=(), callback_kargs=None):
@@ -299,14 +317,40 @@ class Callback(object):
         assert isinstance(callback_args, tuple), "CALLBACK_ARGS has invalid type: %s" % type(callback_args)
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
         if __debug__: dprint("persistent register ", call, " after ", delay, " seconds")
+
         with self._lock:
-            self._new_actions.append(("persistent-register", (delay + time(),
-                                                              -priority,
-                                                              id_,
-                                                              (call, args, {} if kargs is None else kargs),
-                                                              None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
-            # wakeup if sleeping
-            self._event.set()
+            for tup in self._requests:
+                if tup[2] == id_:
+                    break
+
+            else:
+                # not found in requests
+                for tup in self._expired:
+                    if tup[1] == id_:
+                        break
+
+                else:
+                    # not found in expired
+                    if delay <= 0.0:
+                        heappush(self._expired,
+                                 (-priority,
+                                  id_,
+                                  None,
+                                  (call, args, {} if kargs is None else kargs),
+                                  None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+
+                    else:
+                        heappush(self._requests,
+                                 (delay + time(),
+                                  -priority,
+                                  id_,
+                                  (call, args, {} if kargs is None else kargs),
+                                  None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+
+                    # wakeup if sleeping
+                    if not self._event_is_set():
+                        self._event_set()
+
             return id_
 
     def replace_register(self, id_, call, args=(), kargs=None, delay=0.0, priority=0, callback=None, callback_args=(), callback_kargs=None):
@@ -328,14 +372,32 @@ class Callback(object):
         assert callback_kargs is None or isinstance(callback_kargs, dict), "CALLBACK_KARGS has invalid type: %s" % type(callback_kargs)
         if __debug__: dprint("replace register ", call, " after ", delay, " seconds")
         with self._lock:
-            self._new_actions.append(("unregister", id_))
-            self._new_actions.append(("register", (delay + time(),
-                                                   -priority,
-                                                   id_,
-                                                   (call, args, {} if kargs is None else kargs),
-                                                   None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs))))
+            # un-register
+            for index in reversed([index for index, tup in enumerate(self._requests) if tup[2] == id_]):
+                del self._requests[index]
+            for index in reversed([index for index, tup in enumerate(self._expired) if tup[1] == id_]):
+                del self._expired[index]
+
+            # register
+            if delay <= 0.0:
+                heappush(self._expired,
+                         (-priority,
+                          id_,
+                          None,
+                          (call, args, {} if kargs is None else kargs),
+                          None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+
+            else:
+                heappush(self._requests,
+                         (delay + time(),
+                          -priority,
+                          id_
+                          (call, args, {} if kargs is None else kargs),
+                          None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+
             # wakeup if sleeping
-            self._event.set()
+            if not self._event_is_set():
+                self._event_set()
             return id_
 
     def unregister(self, id_):
@@ -346,7 +408,11 @@ class Callback(object):
         assert id_, "ID_ may not be zero or an empty (unicode)string"
         if __debug__: dprint(id_)
         with self._lock:
-            self._new_actions.append(("unregister", id_))
+            # un-register
+            for index in reversed([index for index, tup in enumerate(self._requests) if tup[2] == id_]):
+                del self._requests[index]
+            for index in reversed([index for index, tup in enumerate(self._expired) if tup[1] == id_]):
+                del self._expired[index]
 
     def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", timeout=0.0, default=None):
         """
@@ -441,16 +507,14 @@ class Callback(object):
         if __debug__: dprint()
 
         # put some often used methods and object in the local namespace
+        actual_time = 0
+        event_clear = self._event.clear
+        event_wait = self._event.wait
+        event_is_set = self._event.is_set
+        expired = self._expired
         get_timestamp = time
         lock = self._lock
-        new_actions = self._new_actions
-
-        # the timestamp that the callback is currently handling
-        actual_time = 0
-        # requests are ordered by deadline and moved to -expired- when they need to be handled
-        requests = [] # (deadline, priority, root_id, (call, args, kargs), callback)
-        # expired requests are ordered and handled by priority
-        expired = [] # (priority, deadline, root_id, (call, args, kargs), callback)
+        requests = self._requests
 
         self._thread_ident = get_ident()
 
@@ -459,157 +523,116 @@ class Callback(object):
                 self._state = "STATE_RUNNING"
                 if __debug__: dprint("STATE_RUNNING")
 
-        while self._state == "STATE_RUNNING":
-            with lock:
-                # schedule all new actions
-                for type_, action in new_actions:
-                    if type_ == "register":
-                        heappush(requests, action)
-                    elif type_ == "persistent-register":
-                        for tup in chain(requests, expired):
-                            if tup[2] == action[2]:
-                                break
-                        else:
-                            # no break, register callback
-                            heappush(requests, action)
-                    else:
-                        assert type_ == "unregister"
-                        if __debug__: dprint("unregister ", len([request for request in requests if request[2] == action]), ":", len([request for request in expired if request[2] == action]), " from requests ", action)
-                        requests = [request for request in requests if not request[2] == action]
-                        expired = [request for request in expired if not request[2] == action]
-                del new_actions[:]
-                self._event.clear()
-
+        while 1:
             actual_time = get_timestamp()
 
-            # move expired requests from REQUESTS to EXPIRED
-            while requests and requests[0][0] <= actual_time:
-                # notice that the deadline and priority entries are swiched, hence, the entries in
-                # the EXPIRED list are ordered by priority instead of deadline
-                deadline, priority, root_id, call, callback = heappop(requests)
-                heappush(expired, (priority, deadline, root_id, call, callback))
-
-            if expired:
-                if __debug__:
-                    debug_desyncs = [deadline - actual_time for _, deadline, _, _, _ in expired]
-                    level = "warning" if max(debug_desyncs) > QUEUE_DELAY_FOR_WARNING else "normal"
-                    dprint(len(requests), " non-expired waiting in queue")
-                    dprint(len(expired), " expired waiting in queue (min desync %.4fs" % min(debug_desyncs), ", max desync %.4fs" % max(debug_desyncs), ")", level=level)
-
-                # we need to handle the next call in line
-                priority, deadline, root_id, call, callback = heappop(expired)
-                assert deadline <= actual_time
-
-                while True:
-                    if __debug__:
-                        # 10/02/12 Boudewijn: in python 2.5 generators do not have .__name__
-                        debug_call_name = call[0].__name__ if hasattr(call[0], "__name__") else str(call[0])
-                        debug_call_start = time()
-
-                    # call can be either:
-                    # 1. A (generator, arg)
-                    # 2. A (callable, args, kargs) tuple
-
-                    if isinstance(call[0], GeneratorType):
-                        try:
-                            # start next generator iteration
-                            if __debug__:
-                                debug_begin = get_timestamp()
-                            result = call[0].send(actual_time - deadline if call[1] == "desync" else call[1])
-                        except StopIteration:
-                            if callback:
-                                heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
-                        except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
-                            dprint(exception=True, level="error")
-                            with lock:
-                                self._state = "STATE_EXCEPTION"
-                                self._exception = exception
-                            self._call_exception_handlers(exception, True)
-                        except Exception, exception:
-                            dprint(exception=True, level="error")
-                            if callback:
-                                heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
-                            self._call_exception_handlers(exception, False)
-                        else:
-                            if isinstance(result, float):
-                                # schedule CALL again in RESULT seconds
-                                # equivalent to: yield Delay(SECONDS)
-                                assert result >= 0.0
-                                heappush(requests, (get_timestamp() + result, priority, root_id, (call[0], "desync"), callback))
-                            elif isinstance(result, Yielder):
-                                # let the Yielder object handle everything
-                                result.handle(self, requests, expired, actual_time, deadline, priority, root_id, call, callback)
-                            else:
-                                dprint("yielded invalid type ", type(result), level="error")
-                        finally:
-                            if __debug__:
-                                debug_delay = get_timestamp() - debug_begin
-                                debug_level = "warning" if debug_delay > CALL_DELAY_FOR_WARNING else "normal"
-                                dprint("call took %.4fs to " % debug_delay, call[0], level=debug_level)
-
-                    else:
-                        assert callable(call[0])
-                        try:
-                            # callback
-                            if __debug__:
-                                debug_begin = get_timestamp()
-                            result = call[0](*call[1], **call[2])
-                        except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
-                            dprint(exception=True, level="error")
-                            with lock:
-                                self._state = "STATE_EXCEPTION"
-                                self._exception = exception
-                            self._call_exception_handlers(exception, True)
-                        except Exception, exception:
-                            dprint(exception=True, level="error")
-                            if callback:
-                                heappush(expired, (priority, deadline, root_id, (callback[0], (exception,) + callback[1], callback[2]), None))
-                            self._call_exception_handlers(exception, False)
-                        else:
-                            if isinstance(result, GeneratorType):
-                                # we only received the generator, no actual call has been made to the
-                                # function yet, therefore we call it again immediately
-                                call = (result, None)
-                                continue
-
-                            elif callback:
-                                heappush(expired, (priority, deadline, root_id, (callback[0], (result,) + callback[1], callback[2]), None))
-
-                        finally:
-                            if __debug__:
-                                debug_delay = get_timestamp() - debug_begin
-                                debug_level = "warning" if debug_delay > CALL_DELAY_FOR_WARNING else "normal"
-                                dprint("call took %.4fs to " % debug_delay, call[0], level=debug_level)
-
-                    if __debug__:
-                        if debug_call_name not in self._debug_statistics:
-                            self._debug_statistics[debug_call_name] = [0.0, 0]
-
-                        self._debug_statistics[debug_call_name][0] += time() - debug_call_start
-                        self._debug_statistics[debug_call_name][1] += 1
-
-                    # break out of the while loop
+            with lock:
+                # check if we should continue to run
+                if self._state != "STATE_RUNNING":
                     break
 
-            else:
-                # we need to wait for new requests
-                if requests:
-                    # there are no requests that have to be handled right now. Sleep for a while.
-                    if __debug__: dprint("wait at most %.1fs" % min(300.0, requests[0][0] - actual_time), " before next call")
-                    self._event.wait(min(300.0, requests[0][0] - actual_time))
+                # move expired requests from REQUESTS to EXPIRED
+                while requests and requests[0][0] <= actual_time:
+                    # notice that the deadline and priority entries are switched, hence, the entries in
+                    # the EXPIRED list are ordered by priority instead of deadline
+                    _, priority, root_id, call, callback = heappop(requests)
+                    heappush(expired, (priority, root_id, None, call, callback))
+
+                if expired:
+                    # we need to handle the next call in line
+                    priority, root_id, _, call, callback = heappop(expired)
+                    wait = 0.0
 
                 else:
-                    # there are no requests on the list, wait till something is scheduled
-                    if __debug__: dprint("wait at most 300.0s before next call")
-                    self._event.wait(300.0)
-                continue
+                    # there is nothing to handle
+                    wait = min(300.0, requests[0][0] - actual_time if requests else 300.0)
+
+                if event_is_set():
+                    event_clear()
+
+            if wait:
+                if __debug__: dprint("wait at most %.1fs before next call" % wait)
+                event_wait(wait)
+
+            else:
+                if __debug__:
+                    # 10/02/12 Boudewijn: in python 2.5 generators do not have .__name__
+                    debug_call_name = call[0].__name__ if isinstance(call, TupleType) else str(call)
+                    debug_call_start = time()
+
+                # call can be either:
+                # 1. a generator
+                # 2. a (callable, args, kargs) tuple
+
+                try:
+                    if isinstance(call, TupleType):
+                        # callback
+                        if __debug__:
+                            debug_begin = get_timestamp()
+                        result = call[0](*call[1], **call[2])
+                        if isinstance(result, GeneratorType):
+                            # we only received the generator, no actual call has been made to the
+                            # function yet, therefore we call it again immediately
+                            call = result
+
+                        elif callback:
+                            with lock:
+                                heappush(expired, (priority, root_id, None, (callback[0], (result,) + callback[1], callback[2]), None))
+
+                    if isinstance(call, GeneratorType):
+                        # start next generator iteration
+                        if __debug__:
+                            debug_begin = get_timestamp()
+                        result = call.next()
+                        if isinstance(result, float):
+                            # schedule CALL again in RESULT seconds
+                            # equivalent to: yield Delay(SECONDS)
+                            assert result >= 0.0
+                            with lock:
+                                heappush(requests, (get_timestamp() + result, priority, root_id, call, callback))
+                        elif isinstance(result, Yielder):
+                            # let the Yielder object handle everything
+                            # result.handle(self, requests, expired, actual_time, deadline, priority, root_id, call, callback)
+                            raise NotImplementedError("not yet done")
+                        else:
+                            dprint("yielded invalid type ", type(result), level="error")
+
+                except StopIteration:
+                    if callback:
+                        with lock:
+                            heappush(expired, (priority, root_id, None, (callback[0], (result,) + callback[1], callback[2]), None))
+
+                except (SystemExit, KeyboardInterrupt, GeneratorExit, AssertionError), exception:
+                    dprint(exception=True, level="error")
+                    with lock:
+                        self._state = "STATE_EXCEPTION"
+                        self._exception = exception
+                    self._call_exception_handlers(exception, True)
+
+                except Exception, exception:
+                    dprint(exception=True, level="error")
+                    if callback:
+                        with lock:
+                            heappush(expired, (priority, root_id, None, (callback[0], (exception,) + callback[1], callback[2]), None))
+                    self._call_exception_handlers(exception, False)
+
+                if __debug__:
+                    if debug_call_name not in self._debug_statistics:
+                        self._debug_statistics[debug_call_name] = [0.0, 0]
+
+                    self._debug_statistics[debug_call_name][0] += time() - debug_call_start
+                    self._debug_statistics[debug_call_name][1] += 1
+
+        with lock:
+            requests = requests[:]
+            expired = expired[:]
 
         # send GeneratorExit exceptions to remaining generators
         for _, _, _, call, _ in chain(expired, requests):
-            if isinstance(call[0], GeneratorType):
-                if __debug__: dprint("raise Shutdown in ", call[0])
+            if isinstance(call, GeneratorType):
+                if __debug__: dprint("raise Shutdown in ", call)
                 try:
-                    call[0].close()
+                    call.close()
                 except:
                     dprint(exception=True, level="error")
 
@@ -704,6 +727,15 @@ if __debug__:
             yield Idle(5.0)
             dprint("after", force=1)
         c.register(call6)
+
+        def call7():
+            dprint("init", force=1)
+            while True:
+                yield 1.0
+                dprint("-", force=1)
+                c.unregister(task_id)
+        task_id = c.register(call7)
+        c.unregister(task_id)
 
         sleep(21.0)
         dprint(line=1)

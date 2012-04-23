@@ -136,6 +136,9 @@ def main():
                 script.add("dispersy-undo", DispersyUndoScript)
                 script.add("dispersy-bootstrap-servers", DispersyBootstrapServers)
 
+                from Tribler.Core.dispersy.tool.callbackscript import DispersyCallbackScript
+                script.add("dispersy-callback", DispersyCallbackScript)
+
             if opt.enable_allchannel_script:
                 # from Tribler.Community.allchannel.script import AllChannelScript
                 # script.add("allchannel", AllChannelScript, include_with_all=False)
@@ -191,10 +194,15 @@ def main():
     command_line_parser.add_option("--enable-effort-script", action="store_true", help="Include effort scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
+    command_line_parser.add_option("--yappi", action="store_true", help="Use Yappi to produce a performance profile")
 
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()
     print "Press Ctrl-C to stop Dispersy"
+
+    if opt.yappi:
+        import yappi
+        yappi.start()
 
     # start threads
     session_done_flag = threading.Event()
@@ -227,17 +235,13 @@ def main():
         global exit_exception
         exit_exception = callback.exception
 
+    if opt.yappi:
+        stats = yappi.get_stats(yappi.SORTTYPE_TSUB)
+        for func_stats in stats.func_stats[:50]:
+            print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
+
 if __name__ == "__main__":
-    # import yappi
-    # yappi.start()
-
-
     exit_exception = None
     main()
-
-    # stats = yappi.get_stats(yappi.SORTTYPE_TSUB)
-    # for func_stats in stats.func_stats[:50]:
-    #     print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
-
     if exit_exception:
         raise exit_exception
