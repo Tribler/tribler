@@ -119,7 +119,7 @@ def main():
                     key, value = arg.split('=')
                     script_kargs[key] = value
 
-            if not opt.disable_dispersy_script:
+            if opt.enable_dispersy_script:
                 from Tribler.Core.dispersy.script import DispersyClassificationScript, DispersyTimelineScript, DispersyDestroyCommunityScript, DispersyBatchScript, DispersySyncScript, DispersyIdenticalPayloadScript, DispersySubjectiveSetScript, DispersySignatureScript, DispersyMemberTagScript, DispersyMissingMessageScript, DispersyUndoScript, DispersyCryptoScript, DispersyDynamicSettings, DispersyBootstrapServers
                 script.add("dispersy-batch", DispersyBatchScript)
                 script.add("dispersy-classification", DispersyClassificationScript)
@@ -136,22 +136,34 @@ def main():
                 script.add("dispersy-undo", DispersyUndoScript)
                 script.add("dispersy-bootstrap-servers", DispersyBootstrapServers)
 
-            if not opt.disable_allchannel_script:
+            if opt.enable_allchannel_script:
                 # from Tribler.Community.allchannel.script import AllChannelScript
                 # script.add("allchannel", AllChannelScript, include_with_all=False)
 
                 from Tribler.community.allchannel.script import AllChannelScenarioScript
                 script.add("allchannel-scenario", AllChannelScenarioScript, script_kargs, include_with_all=False)
 
-            if not opt.disable_walktest_script:
+            if opt.enable_walktest_script:
                 from Tribler.community.walktest.script import ScenarioScript
                 script.add("walktest-scenario", ScenarioScript, script_kargs, include_with_all=False)
 
-            if not opt.disable_effort_script:
+            if opt.enable_ycsb_script:
+                from Tribler.community.ycsb.script import YCSBScript
+                script.add("ycsb-scenario", YCSBScript, script_kargs, include_with_all=False)
+
+            if opt.enable_demers_script:
+                from Tribler.community.demerstest.script import DemersScript
+                script.add("demers-scenario", DemersScript, script_kargs, include_with_all=False)
+
+            if opt.enable_udp_script:
+                from Tribler.Core.dispersy.script import DispersyUDPScript
+                script.add("udp-scenario", DispersyUDPScript, script_kargs, include_with_all=False)
+
+            if opt.enable_effort_script:
                 from Tribler.community.effort.script import ScenarioScript
                 script.add("effort-scenario", ScenarioScript, script_kargs, include_with_all=False)
 
-            # if not opt.disable_barter_script:
+            # if opt.enable_barter_script:
             #     from Tribler.Community.barter.script import BarterScript, BarterScenarioScript
             #     script.add("barter", BarterScript)
             #     script.add("barter-scenario", BarterScenarioScript, script_kargs, include_with_all=False)
@@ -169,11 +181,14 @@ def main():
     command_line_parser.add_option("--port", action="store", type="int", help="Dispersy uses this UDL port", default=12345)
     command_line_parser.add_option("--timeout-check-interval", action="store", type="float", default=1.0)
     command_line_parser.add_option("--timeout", action="store", type="float", default=300.0)
-    command_line_parser.add_option("--disable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
-    command_line_parser.add_option("--disable-barter-script", action="store_true", help="Include barter scripts", default=False)
-    command_line_parser.add_option("--disable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
-    command_line_parser.add_option("--disable-walktest-script", action="store_true", help="Include walktest scripts", default=False)
-    command_line_parser.add_option("--disable-effort-script", action="store_true", help="Include effort scripts", default=False)
+    command_line_parser.add_option("--enable-allchannel-script", action="store_true", help="Include allchannel scripts", default=False)
+    command_line_parser.add_option("--enable-barter-script", action="store_true", help="Include barter scripts", default=False)
+    command_line_parser.add_option("--enable-dispersy-script", action="store_true", help="Include dispersy scripts", default=False)
+    command_line_parser.add_option("--enable-walktest-script", action="store_true", help="Include walktest scripts", default=False)
+    command_line_parser.add_option("--enable-ycsb-script", action="store_true", help="Include ycsb scripts", default=False)
+    command_line_parser.add_option("--enable-demers-script", action="store_true", help="Include demers scripts", default=False)
+    command_line_parser.add_option("--enable-udp-script", action="store_true", help="Include udp-testing scripts", default=False)
+    command_line_parser.add_option("--enable-effort-script", action="store_true", help="Include effort scripts", default=False)
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
 
@@ -187,13 +202,13 @@ def main():
     callback = Callback()
     callback.start(name="Dispersy")
 
-    def rawserver_adrenaline():
-        """
-        The rawserver tends to wait for a long time between handling tasks.  Our tests will fail if
-        they are delayed by the rawserver for too long.
-        """
-        rawserver.add_task(rawserver_adrenaline, 0.1)
-    rawserver.add_task(rawserver_adrenaline, 0.1)
+    # def rawserver_adrenaline():
+    #     """
+    #     The rawserver tends to wait for a long time between handling tasks.  Our tests will fail if
+    #     they are delayed by the rawserver for too long.
+    #     """
+    #     rawserver.add_task(rawserver_adrenaline, 0.1)
+    # rawserver.add_task(rawserver_adrenaline, 0.1)
 
     def watchdog():
         while True:
@@ -213,7 +228,16 @@ def main():
         exit_exception = callback.exception
 
 if __name__ == "__main__":
+    # import yappi
+    # yappi.start()
+
+
     exit_exception = None
     main()
+
+    # stats = yappi.get_stats(yappi.SORTTYPE_TSUB)
+    # for func_stats in stats.func_stats[:50]:
+    #     print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
+
     if exit_exception:
         raise exit_exception

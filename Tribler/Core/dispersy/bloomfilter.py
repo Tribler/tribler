@@ -49,7 +49,7 @@ class BloomFilter(Constructor):
             hypothetical_error_rates = [0.4, 0.3, 0.2, 0.1, 0.01, 0.001, 0.0001]
             dprint("hypothetical error rate: ", " | ".join("%.4f" % hypothetical_error_rate for hypothetical_error_rate in hypothetical_error_rates))
             dprint("hypothetical capacity:   ", " | ".join("%6d" % self.get_capacity(hypothetical_error_rate) for hypothetical_error_rate in hypothetical_error_rates))
-    
+
         # determine hash function
         if m_size >= (1 << 31):
             fmt_code, chunk_size = "Q", 8
@@ -57,7 +57,7 @@ class BloomFilter(Constructor):
             fmt_code, chunk_size = "L", 4
         else:
             fmt_code, chunk_size = "H", 2
-        
+
         # we need at most chunk_size * k bits from our hash function
         bits_required = chunk_size * k_functions * 8
         assert bits_required <= 512, "Combining multiple hashfunctions is not implemented, cannot create a hash for %d bits" % bits_required
@@ -81,7 +81,7 @@ class BloomFilter(Constructor):
         assert isinstance(bytes_, str)
         assert 0 < len(bytes_)
         if __debug__: dprint("constructing bloom filter based on ", len(bytes_), " bytes and k_functions ", k_functions)
-        self._init_(len(bytes_) * 8, k_functions, prefix, long(sum(ord(bytes_[i]) << (i*8) for i in xrange(len(bytes_)))))
+        self._init_(len(bytes_) * 8, k_functions, prefix, long(sum(ord(c) << (i*8) for i, c in enumerate(bytes_))))
 
     @constructor(int, float)
     def _init_m_f(self, m_size, f_error_rate, prefix=""):
@@ -95,18 +95,39 @@ class BloomFilter(Constructor):
         # self._k = int(ceil(log(2) * (m / self._n)))
         if __debug__: dprint("constructing bloom filter based on m_size ", m_size, " bits and f_error_rate ", f_error_rate)
         self._init_(m_size, self._get_k_functions(m_size, self._get_n_capacity(m_size, f_error_rate)), prefix, 0L)
-    
+
     def _hashes(self, key):
         h = self._salt.copy()
         h.update(key)
         return (index % self._m_size for index in unpack(self._fmt, h.digest()))
-        
+
     def add(self, key):
+        """
+        Add KEY to the BloomFilter.
+        """
         bits = 0L
         for pos in self._hashes(key):
             bits |= 1 << pos
         self._filter |= bits
-      
+
+    def add_keys(self, keys):
+        """
+        Add a sequence of KEYS to the BloomFilter.
+        """
+        filter_ = self._filter
+        salt_copy = self._salt.copy
+        m_size = self._m_size
+        fmt = self._fmt
+
+        for key in keys:
+            assert isinstance(key, str)
+            h = salt_copy()
+            h.update(key)
+            for pos in (index % m_size for index in unpack(fmt, h.digest())):
+                filter_ |= 1 << pos
+
+        self._filter = filter_
+
     def clear(self):
         """
         Set all bits in the filter to zero.
@@ -117,15 +138,36 @@ class BloomFilter(Constructor):
         filter_ = self._filter
         for pos in self._hashes(key):
             if not filter_ & (1 << pos):
-                return False 
+                return False
         return True
+
+    def not_filter(self, iterator):
+        """
+        Yields all tuples in iterator where the first element in the tuple is NOT in the bloom
+        filter.
+        """
+        filter_ = self._filter
+        salt_copy = self._salt.copy
+        m_size = self._m_size
+        fmt = self._fmt
+
+        for tup in iterator:
+            assert isinstance(tup, tuple)
+            assert len(tup) > 0
+            assert isinstance(tup[0], str)
+            h = salt_copy()
+            h.update(tup[0])
+            for pos in (index % m_size for index in unpack(fmt, h.digest())):
+                if not filter_ & (1 << pos):
+                    yield tup
+                    break
 
     def _get_k_functions(self, m_size, n_capacity):
         return int(ceil(log(2) * m_size / n_capacity))
-        
+
     def _get_n_capacity(self, m_size, f_error_rate):
         return int(m_size * (log(2) ** 2 / abs(log(f_error_rate))))
-    
+
     def get_capacity(self, f_error_rate):
         """
         Returns the capacity given a certain error rate.
@@ -134,7 +176,7 @@ class BloomFilter(Constructor):
         assert isinstance(f_error_rate, float)
         assert 0 < f_error_rate < 1
         return self._get_n_capacity(self._m_size, f_error_rate)
-        
+
     @property
     def size(self):
         """
@@ -160,14 +202,15 @@ class BloomFilter(Constructor):
 
     @property
     def bytes(self):
-        return "".join(chr((self._filter & (0xff << c)) >> c) for c in xrange(0, self._m_size, 8))
-    
+        filter_ = self._filter
+        return "".join(chr((filter_ & (0xff << c)) >> c) for c in xrange(0, self._m_size, 8))
+
 if __debug__:
     def _test_behavior():
         length = 1024
         f_error_rate = 0.15
         m_size = length * 8
-        
+
         b = BloomFilter(m_size, f_error_rate)
         assert len(b.bytes) == length, b.bytes
 
@@ -182,7 +225,7 @@ if __debug__:
         for i in xrange(1000):
             assert str(i) in d
         print d.size, d.get_capacity(f_error_rate), d.bytes.encode("HEX")
-        
+
     def _performance_test():
         def test2(bits, count, constructor = BloomFilter):
             generate_begin = time()
@@ -231,7 +274,7 @@ if __debug__:
         #c = BloomFilter(data, 0)
         #assert "Hello" in c
         #assert not "Bye" in c
-        
+
         test2(10, 10,FasterBloomFilter)
         test2(10, 100,FasterBloomFilter)
         test2(100, 100,FasterBloomFilter)
@@ -240,7 +283,7 @@ if __debug__:
         test2(1000, 10000,FasterBloomFilter)
         test2(10000, 10000,FasterBloomFilter)
         test2(10000, 100000,FasterBloomFilter)
-        
+
         test(10, 10,FasterBloomFilter)
         test(10, 100,FasterBloomFilter)
         test(100, 100,FasterBloomFilter)
@@ -251,7 +294,7 @@ if __debug__:
         test(10000, 100000,FasterBloomFilter)
         test(100000, 100000,FasterBloomFilter)
         test(100000, 1000000,FasterBloomFilter)
-        
+
 
         #test2(10, 10)
         #test2(10, 100)
@@ -319,7 +362,7 @@ if __debug__:
 
         test(100000, 100000)
         test(100000, 1000000)
-        
+
 
     def _taste_test():
         def pri(f, m, invert=False):
@@ -475,7 +518,7 @@ if __debug__:
     #     for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4]:
     #         a = constructor(error_rate, 1024*8)
     #         p(a)
-            
+
     #         data = ["%i" % i for i in xrange(int(a.capacity))]
     #         map(a.add, data)
 
@@ -497,7 +540,7 @@ if __debug__:
             a = constructor(1024*8, error_rate)
             capacity = a.get_capacity(error_rate)
             print "capacity:", capacity, " error-rate:", error_rate, "bits:", a.size, "bytes:", a.size / 8
-            
+
             data = ["%i" % i for i in xrange(capacity)]
             map(a.add, data)
 
@@ -506,10 +549,10 @@ if __debug__:
                 if "X%i" % i in a:
                     errors += 1
             end = time()
-                    
+
             print "%.3f"%(end-begin), "Errors:", errors, "/", i + 1, " ~ ", errors / (i + 1.0)
             print
-            
+
     def _test_prefix_false_positives(constructor = BloomFilter):
         for error_rate in [0.0001, 0.001, 0.01, 0.1, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
             a = constructor(error_rate, 10374, prefix="A")
@@ -518,7 +561,7 @@ if __debug__:
             d = constructor(error_rate, 10374, prefix="D")
             p(a)
             print "Estimated errors:", a.error_rate, "->", a.error_rate * b.error_rate, "->", a.error_rate * b.error_rate * c.error_rate, "->", a.error_rate * b.error_rate * c.error_rate * d.error_rate
-            
+
             #we fill each bloomfilter up to its capacity
             data = ["%i" % i for i in xrange(a.capacity)]
             map(a.add, data)
@@ -530,7 +573,7 @@ if __debug__:
             two_errors = 0
             three_errors = 0
             four_errors = 0
-            
+
             #we check what happens if we check twice the capacity
             for i in xrange(a.capacity * 2):
                 if "X%i" % i in a:
@@ -557,10 +600,10 @@ if __debug__:
                 pass
 
         db = TestDatabase.get_instance(u"test.db")
-        
+
         DATA_COUNT = 1000
         RUN_COUNT = 1000
-        
+
         db.execute(u"CREATE TABLE data10 (id INTEGER PRIMARY KEY AUTOINCREMENT, public_key TEXT, global_time INTEGER)")
         db.execute(u"CREATE TABLE data500 (id INTEGER PRIMARY KEY AUTOINCREMENT, packet TEXT)")
         db.execute(u"CREATE TABLE data1500 (id INTEGER PRIMARY KEY AUTOINCREMENT, packet TEXT)")
@@ -579,7 +622,7 @@ if __debug__:
         b1500 = BloomFilter(1000, 0.1)
         for packet, in db.execute(u"SELECT packet FROM data1500"):
             b1500.add(str(packet))
-            
+
         check10 = []
         check500 = []
         check1500 = []
@@ -605,7 +648,7 @@ if __debug__:
                     raise RuntimeError("err")
             end = clock()
             check1500.append(end - start)
-            
+
         print DATA_COUNT, "*", RUN_COUNT, "=", DATA_COUNT * RUN_COUNT
         print "check"
         print "10  ", sum(check10)
@@ -616,7 +659,7 @@ if __debug__:
         # 01/11/11 currently bloom filters get 10240 bits of space
         b = BloomFilter(10240, 0.01)
         b = BloomFilter(128*2, 0.01)
-        
+
     def p(b, postfix=""):
         # print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
         print "error-rate", b.error_rate, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
@@ -634,7 +677,7 @@ if __debug__:
         # _test_prefix_false_positives(FasterBloomFilter)
         # _test_behavior(FasterBloomFilter)
         _test_size()
-        
+
         # MTU = 1500 # typical MTU
         # # MTU = 576 # ADSL
         # DISP = 51 + 60 + 16 + 8

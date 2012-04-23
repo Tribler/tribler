@@ -112,57 +112,7 @@ class DummyMember(object):
     def __str__(self):
         return "<%s 0 %s>" % (self.__class__.__name__, self._mid.encode("HEX"))
 
-class Member(DummyMember):
-    __cache_length = 512
-    __cache = []
-
-    if __debug__:
-        __stats_hit = 0
-        __stats_prio_hit = 0
-        __stats_miss = 0
-        __stats_move = 0
-        __stats_del = 0
-
-    def __new__(cls, public_key, private_key=""):
-        assert isinstance(public_key, str)
-        assert isinstance(private_key, str)
-        assert ec_check_public_bin(public_key), [len(public_key), public_key.encode("HEX")]
-        assert private_key == "" or ec_check_private_bin(private_key), [len(private_key), private_key.encode("HEX")]
-
-        # retrieve Member from cache
-        for index, member in enumerate(cls.__cache):
-            if member._public_key == public_key:
-                if cls.__cache_length / 2 < index:
-                    del cls.__cache[index]
-                    cls.__cache.insert(0, member)
-
-                if __debug__:
-                    cls.__stats_hit += 1
-                    if cls.__cache_length / 2 < index:
-                        cls.__stats_move += 1
-                    else:
-                        cls.__stats_prio_hit += 1
-
-                return member
-
-        # create new Member and store in cache
-        member = object.__new__(cls)
-        if len(cls.__cache) >= cls.__cache_length:
-            del cls.__cache[-1]
-        cls.__cache.insert(cls.__cache_length / 3, member)
-
-        if __debug__:
-            # stats prio hit: 3689 hit: 4715 miss: 1325 move: 1026 del: 1069                [insert at length/2]
-            # stats prio hit: 4332 hit: 4529 miss: 1325 move:  197 del: 1069 cache: 256     [insert at length/3]
-            # stats prio hit:119684 hit:125291 miss:33901 move:5607 del:33646 cache:256     [long run]
-            # stats prio hit:142272 hit:147010 miss:40155 move:4738 del:39644 cache:512
-            cls.__stats_miss += 1
-            if len(cls.__cache) == cls.__cache_length:
-                cls.__stats_del += 1
-            dprint("stats prio hit:", cls.__stats_prio_hit, " hit:", cls.__stats_hit, " miss:", cls.__stats_miss, " move:", cls.__stats_move, " del:", cls.__stats_del, " cache:", len(cls.__cache))
-
-        return member
-
+class MemberBase(DummyMember):
     def __init__(self, public_key, private_key=""):
         """
         Create a new Member instance.
@@ -372,3 +322,58 @@ class Member(DummyMember):
         Returns a human readable string representing the member.
         """
         return "<%s %d %s>" % (self.__class__.__name__, self._database_id, self._mid.encode("HEX"))
+
+class Member(MemberBase):
+    _cache_length = 512
+    _cache = []
+
+    def __new__(cls, public_key, private_key=""):
+        assert isinstance(public_key, str)
+        assert isinstance(private_key, str)
+        assert ec_check_public_bin(public_key), [len(public_key), public_key.encode("HEX")]
+        assert private_key == "" or ec_check_private_bin(private_key), [len(private_key), private_key.encode("HEX")]
+
+        # retrieve Member from cache
+        for index, member in enumerate(cls._cache):
+            if member._public_key == public_key:
+                if cls._cache_length / 2 < index:
+                    del cls._cache[index]
+                    cls._cache.insert(0, member)
+                return member
+
+        # create new Member and store in cache
+        member = object.__new__(cls)
+        if len(cls._cache) >= cls._cache_length:
+            del cls._cache[-1]
+        cls._cache.insert(cls._cache_length / 3, member)
+
+        return member
+
+class MemberFromId(Member):
+    def __new__(cls, mid):
+        assert isinstance(mid, str)
+        assert len(mid) == 20
+
+        # retrieve Member from cache
+        for index, member in enumerate(cls._cache):
+            if member._mid == mid:
+                if cls._cache_length / 2 < index:
+                    del cls._cache[index]
+                    cls._cache.insert(0, member)
+                return member
+
+        raise LookupError(mid)
+
+class MemberWithoutCheck(Member):
+    def __new__(cls, public_key, private_key=""):
+        assert isinstance(public_key, str)
+        assert isinstance(private_key, str)
+        assert ec_check_public_bin(public_key), [len(public_key), public_key.encode("HEX")]
+        assert private_key == "" or ec_check_private_bin(private_key), [len(private_key), private_key.encode("HEX")]
+
+        # create new Member and store in cache
+        member = object.__new__(cls)
+        if len(cls._cache) >= cls._cache_length:
+            del cls._cache[-1]
+        cls._cache.insert(cls._cache_length / 3, member)
+        return member

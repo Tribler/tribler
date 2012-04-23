@@ -9,7 +9,7 @@ if __debug__:
         assert len(address) == 2, len(address)
         assert isinstance(address[0], str), type(address[0])
         assert address[0], address[0]
-        assert not address[0] == "0.0.0.0", address[0]
+        assert not address[0] == "0.0.0.0", address
         assert isinstance(address[1], int), type(address[1])
         assert address[1] >= 0, address[1]
         return True
@@ -470,13 +470,16 @@ class WalkCandidate(Candidate):
         self._get_or_create_timestamps(community).last_intro = now
 
     def update(self, lan_address, wan_address, connection_type):
-        assert lan_address == ("0.0.0.0", 0) or is_address(lan_address)
-        assert wan_address == ("0.0.0.0", 0) or is_address(wan_address)
-        assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", "symmetric-NAT")
+        assert lan_address == ("0.0.0.0", 0) or is_address(lan_address), lan_address
+        assert wan_address == ("0.0.0.0", 0) or is_address(wan_address), wan_address
+        assert isinstance(connection_type, unicode), type(connection_type)
+        assert connection_type in (u"unknown", u"public", "symmetric-NAT"), connection_type
         if not lan_address == ("0.0.0.0", 0):
             self._lan_address = lan_address
         if not wan_address == ("0.0.0.0", 0):
             self._wan_address = wan_address
+        # someone can also reset from a known connection_type to unknown (i.e. it now believes it is
+        # no longer public nor symmetric NAT)
         self._connection_type = u"public" if connection_type == u"unknown" and lan_address == wan_address else connection_type
 
         if __debug__:

@@ -138,7 +138,7 @@ class FullSyncDistribution(SyncDistribution):
             assert (meta._enable_sequence_number and sequence_number > 0) or (not meta._enable_sequence_number and sequence_number == 0), (meta._enable_sequence_number, sequence_number)
             super(FullSyncDistribution.Implementation, self).__init__(meta, global_time)
             self._sequence_number = sequence_number
-            
+
         @property
         def enable_sequence_number(self):
             return self._meta._enable_sequence_number
@@ -146,7 +146,7 @@ class FullSyncDistribution(SyncDistribution):
         @property
         def sequence_number(self):
             return self._sequence_number
-        
+
         @property
         def footprint(self):
             return "".join(("FullSyncDistribution:", str(self._global_time), ",", str(self._sequence_number)))
@@ -180,7 +180,7 @@ class FullSyncDistribution(SyncDistribution):
                         str(global_time) if global_time else "[0-9]+",
                         ",",
                         str(sequence_number) if sequence_number else "[0-9]+"))
-    
+
 class LastSyncDistribution(SyncDistribution):
     class Implementation(SyncDistribution.Implementation):
         @property

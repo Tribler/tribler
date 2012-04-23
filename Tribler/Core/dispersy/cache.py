@@ -56,6 +56,17 @@ class CacheDict(object):
         else:
             return value
 
+    def get_or_create(self, key, func):
+        cache = self._dict.get(key)
+        if cache:
+            cache.__poke_count += 1
+            self._pokes += 1
+        else:
+            self._dict[key] = cache = func()
+            assert isinstance(cache, object)
+            cache.__poke_count = self._initial_poke_count
+        return cache
+
     def __iter__(self):
         """
         Iterate through the cache ordered by poke counts.

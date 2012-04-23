@@ -1,7 +1,7 @@
 from hashlib import sha1
 from math import ceil
 from socket import inet_ntoa, inet_aton
-from struct import pack, unpack_from
+from struct import pack, unpack_from, Struct
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -13,22 +13,12 @@ from message import DelayPacketByMissingMember, DelayPacketByMissingMessage, Dro
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
+    from authentication import Authentication
     from candidate import Candidate
+    from destination import Destination
+    from distribution import Distribution
     from dprint import dprint
-    from time import time
-
-class Placeholder(object):
-    def __init__(self, candidate, offset, data):
-        self.candidate = candidate
-        self.offset = offset
-        self.data = data
-        self.meta = None
-        self.authentication = None
-        self.resolution = None
-        self.first_signature_offset = 0
-        self.destination = None
-        self.distribution = None
-        self.payload = None
+    from resolution import Resolution
 
 class Conversion(object):
     """
@@ -36,13 +26,6 @@ class Conversion(object):
     community version.  If also allows outgoing messages to be converted to a different, possibly
     older, community version.
     """
-    if __debug__:
-        debug_stats = {"encode-meta":0.0, "encode-authentication":0.0, "encode-destination":0.0, "encode-distribution":0.0, "encode-payload":0.0,
-                       "decode-meta":0.0, "decode-authentication":0.0, "decode-destination":0.0, "decode-distribution":0.0, "decode-payload":0.0,
-                       "decode-authentication-verify":0.0, "decode-authentication-check":0.0, "decode-authentication-get-member":0.0, "decode-authentication-get-member-from-id":0.0, "encode-message-sign":0.0,
-                       "encode-message":0.0, "decode-message":0.0,
-                       "-encode-count":0, "-decode-count":0}
-
     def __init__(self, community, dispersy_version, community_version):
         """
         COMMUNITY instance that this conversion belongs to.
@@ -134,22 +117,59 @@ class BinaryConversion(Conversion):
     This conversion is intended to be as space efficient as possible.
     All data is encoded in a binary form.
     """
+    class Placeholder(object):
+        __slots__ = ["candidate", "meta", "offset", "data", "authentication", "resolution", "first_signature_offset", "destination", "distribution", "payload"]
+
+        def __init__(self, candidate, meta, offset, data):
+            self.candidate = candidate
+            self.meta = meta
+            self.offset = offset
+            self.data = data
+            self.authentication = None
+            self.resolution = None
+            self.first_signature_offset = 0
+            self.destination = None
+            self.distribution = None
+            self.payload = None
+
+    class EncodeFunctions(object):
+        __slots__ = ["byte", "authentication", "signature", "resolution", "distribution", "payload"]
+
+        def __init__(self, byte, (authentication, signature), resolution, distribution, payload):
+            self.byte = byte
+            self.authentication = authentication
+            self.signature = signature
+            self.resolution = resolution
+            self.distribution = distribution
+            self.payload = payload
+
+    class DecodeFunctions(object):
+        __slots__ = ["meta", "authentication", "resolution", "distribution", "destination", "payload"]
+
+        def __init__(self, meta, authentication, resolution, distribution, destination, payload):
+            self.meta = meta
+            self.authentication = authentication
+            self.resolution = resolution
+            self.distribution = distribution
+            self.destination = destination
+            self.payload = payload
+
     def __init__(self, community, community_version):
         Conversion.__init__(self, community, "\x00", community_version)
-        self._encode_distribution_map = {FullSyncDistribution.Implementation:self._encode_full_sync_distribution,
-                                         LastSyncDistribution.Implementation:self._encode_last_sync_distribution,
-                                         DirectDistribution.Implementation:self._encode_direct_distribution}
-        self._decode_distribution_map = {FullSyncDistribution:self._decode_full_sync_distribution,
-                                         LastSyncDistribution:self._decode_last_sync_distribution,
-                                         DirectDistribution:self._decode_direct_distribution}
-        self._encode_resolution_map = {PublicResolution.Implementation:self._encode_public_resolution,
-                                       LinearResolution.Implementation:self._encode_linear_resolution,
-                                       DynamicResolution.Implementation:self._encode_dynamic_resolution}
-        self._decode_resolution_map = {PublicResolution:self._decode_public_resolution,
-                                       LinearResolution:self._decode_linear_resolution,
-                                       DynamicResolution:self._decode_dynamic_resolution}
-        self._encode_message_map = dict() # message.name : (byte, encode_payload_func)
-        self._decode_message_map = dict() # byte : (message, decode_payload_func)
+
+        self._struct_B = Struct(">B")
+        self._struct_BBH = Struct(">BBH")
+        self._struct_BH = Struct(">BH")
+        self._struct_H = Struct(">H")
+        self._struct_LL = Struct(">LL")
+        self._struct_Q = Struct(">Q")
+        self._struct_QH = Struct(">QH")
+        self._struct_QL = Struct(">QL")
+        self._struct_QQHHBH = Struct(">QQHHBH")
+        self._struct_ccB = Struct(">ccB")
+
+        self._encode_message_map = dict() # message.name : EncodeFunctions
+        self._decode_message_map = dict() # byte : DecodeFunctions
 
         # the dispersy-introduction-request and dispersy-introduction-response have several bitfield
         # flags that must be set correctly
@@ -200,17 +220,48 @@ class BinaryConversion(Conversion):
             if debug_non_available:
                 dprint("unable to define non-available messages ", ", ".join(debug_non_available), level="warning")
 
-    def define_meta_message(self, byte, message, encode_payload_func, decode_payload_func):
+    def define_meta_message(self, byte, meta, encode_payload_func, decode_payload_func):
         assert isinstance(byte, str)
         assert len(byte) == 1
-        assert isinstance(message, Message)
+        assert isinstance(meta, Message)
         assert 0 < ord(byte) < 255
-        assert not message.name in self._encode_message_map
+        assert not meta.name in self._encode_message_map
         assert not byte in self._decode_message_map, "This byte has already been defined (%d)" % ord(byte)
         assert callable(encode_payload_func)
         assert callable(decode_payload_func)
-        self._encode_message_map[message.name] = (byte, encode_payload_func)
-        self._decode_message_map[byte] = (message, decode_payload_func)
+
+        mapping = {MemberAuthentication:(self._encode_member_authentication, self._encode_member_authentication_signature),
+                   MultiMemberAuthentication:(self._encode_multi_member_authentication, self._encode_multi_member_authentication_signature),
+                   NoAuthentication:(self._encode_no_authentication, self._encode_no_authentication_signature),
+
+                   PublicResolution:self._encode_public_resolution,
+                   LinearResolution:self._encode_linear_resolution,
+                   DynamicResolution:self._encode_dynamic_resolution,
+
+                   FullSyncDistribution:self._encode_full_sync_distribution,
+                   LastSyncDistribution:self._encode_last_sync_distribution,
+                   DirectDistribution:self._encode_direct_distribution}
+
+        self._encode_message_map[meta.name] = self.EncodeFunctions(byte, mapping[type(meta.authentication)], mapping[type(meta.resolution)], mapping[type(meta.distribution)], encode_payload_func)
+
+        mapping = {MemberAuthentication:self._decode_member_authentication,
+                   MultiMemberAuthentication:self._decode_multi_member_authentication,
+                   NoAuthentication:self._decode_no_authentication,
+
+                   DynamicResolution:self._decode_dynamic_resolution,
+                   LinearResolution:self._decode_linear_resolution,
+                   PublicResolution:self._decode_public_resolution,
+
+                   DirectDistribution:self._decode_direct_distribution,
+                   FullSyncDistribution:self._decode_full_sync_distribution,
+                   LastSyncDistribution:self._decode_last_sync_distribution,
+
+                   CandidateDestination:self._decode_empty_destination,
+                   CommunityDestination:self._decode_empty_destination,
+                   MemberDestination:self._decode_empty_destination,
+                   SubjectiveDestination:self._decode_subjective_destination}
+
+        self._decode_message_map[byte] = self.DecodeFunctions(meta, mapping[type(meta.authentication)], mapping[type(meta.resolution)], mapping[type(meta.distribution)], mapping[type(meta.destination)], decode_payload_func)
 
     #
     # Dispersy payload
@@ -219,8 +270,8 @@ class BinaryConversion(Conversion):
     def _encode_missing_sequence(self, message):
         payload = message.payload
         assert payload.message.name in self._encode_message_map, payload.message.name
-        message_id, _ = self._encode_message_map[payload.message.name]
-        return payload.member.mid, message_id, pack("!LL", payload.missing_low, payload.missing_high)
+        message_id = self._encode_message_map[payload.message.name].byte
+        return payload.member.mid, message_id, self._struct_LL.pack(payload.missing_low, payload.missing_high)
 
     def _decode_missing_sequence(self, placeholder, offset, data):
         if len(data) < offset + 29:
@@ -237,17 +288,17 @@ class BinaryConversion(Conversion):
             raise DropPacket("Unrecoverable: ambiguous member")
         member = members[0]
 
-        missing_meta_message, _ = self._decode_message_map.get(data[offset], (None, None))
-        if missing_meta_message is None:
+        decode_functions = self._decode_message_map.get(data[offset])
+        if decode_functions is None:
             raise DropPacket("Invalid message")
         offset += 1
 
-        missing_low, missing_high = unpack_from("!LL", data, offset)
+        missing_low, missing_high = self._struct_LL.unpack_from(data, offset)
         if not (0 < missing_low <= missing_high):
             raise DropPacket("Invalid missing_low and missing_high combination")
         offset += 8
 
-        return offset, placeholder.meta.payload.implement(member, missing_meta_message, missing_low, missing_high)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, decode_functions.meta, missing_low, missing_high)
 
     def _encode_missing_message(self, message):
         """
@@ -265,13 +316,13 @@ class BinaryConversion(Conversion):
          - 8 bytes: the global time
         """
         payload = message.payload
-        return pack("!H", len(payload.member.public_key)), payload.member.public_key, pack("!%dQ" % len(payload.global_times), *payload.global_times)
+        return self._struct_H.pack(len(payload.member.public_key)), payload.member.public_key, pack("!%dQ" % len(payload.global_times), *payload.global_times)
 
     def _decode_missing_message(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size (_decode_missing_message.1)")
 
-        key_length, = unpack_from("!H", data, offset)
+        key_length, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
         if len(data) < offset + key_length:
@@ -295,45 +346,45 @@ class BinaryConversion(Conversion):
         global_times = unpack_from("!%dQ" % global_time_length, data, offset)
         offset += 8 * len(global_times)
 
-        return offset, placeholder.meta.payload.implement(member, global_times)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, global_times)
 
     def _encode_signature_request(self, message):
-        return pack("!H", message.payload.identifier), self.encode_message(message.payload.message),
+        return self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message),
 
     def _decode_signature_request(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size (_decode_signature_request)")
 
-        identifier, = unpack_from("!H", data, offset)
+        identifier, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
         message = self._decode_message(placeholder.candidate, data[offset:], False)
         offset = len(data)
 
-        return offset, placeholder.meta.payload.implement(identifier, message)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier, message)
 
     def _encode_signature_response(self, message):
-        return pack("!H", message.payload.identifier), self.encode_message(message.payload.message),
+        return self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message),
         # return message.payload.identifier, message.payload.signature
 
     def _decode_signature_response(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size (_decode_signature_request)")
 
-        identifier, = unpack_from("!H", data, offset)
+        identifier, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
         message = self._decode_message(placeholder.candidate, data[offset:], False)
         offset = len(data)
 
-        return offset, placeholder.meta.payload.implement(identifier, message)
-        # return len(data), placeholder.meta.payload.implement(data[offset:offset+20], data[offset+20:])
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier, message)
+        # return len(data), placeholder.meta.payload.Implementation(placeholder.meta.payload, data[offset:offset+20], data[offset+20:])
 
     def _encode_identity(self, message):
         return ()
 
     def _decode_identity(self, placeholder, offset, data):
-        return offset, placeholder.meta.payload.implement()
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload)
 
     def _encode_missing_identity(self, message):
         return message.payload.mid,
@@ -342,7 +393,7 @@ class BinaryConversion(Conversion):
         if len(data) < offset + 20:
             raise DropPacket("Insufficient packet size")
 
-        return offset + 20, placeholder.meta.payload.implement(data[offset:offset+20])
+        return offset + 20, placeholder.meta.payload.Implementation(placeholder.meta.payload, data[offset:offset+20])
 
     def _encode_destroy_community(self, message):
         if message.payload.is_soft_kill:
@@ -360,7 +411,7 @@ class BinaryConversion(Conversion):
             degree = u"hard-kill"
         offset += 1
 
-        return offset, placeholder.meta.payload.implement(degree)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, degree)
 
     def _encode_authorize(self, message):
         """
@@ -383,7 +434,7 @@ class BinaryConversion(Conversion):
             public_key = member.public_key
             assert isinstance(public_key, str)
             assert message.name in self._encode_message_map
-            message_id = self._encode_message_map[message.name][0]
+            message_id = self._encode_message_map[message.name].byte
             assert isinstance(message_id, str)
             assert len(message_id) == 1
             assert permission in permission_map
@@ -399,9 +450,9 @@ class BinaryConversion(Conversion):
 
         bytes_ = []
         for public_key, messages in members.iteritems():
-            bytes_.extend((pack("!H", len(public_key)), public_key, pack("!B", len(messages))))
+            bytes_.extend((self._struct_H.pack(len(public_key)), public_key, self._struct_B.pack(len(messages))))
             for message_id, permission_bits in messages.iteritems():
-                bytes_.extend((message_id, pack("!B", permission_bits)))
+                bytes_.extend((message_id, self._struct_B.pack(permission_bits)))
 
         return tuple(bytes_)
 
@@ -413,7 +464,7 @@ class BinaryConversion(Conversion):
             if len(data) < offset + 2:
                 raise DropPacket("Insufficient packet size")
 
-            key_length, = unpack_from("!H", data, offset)
+            key_length, = self._struct_H.unpack_from(data, offset)
             offset += 2
 
             if len(data) < offset + key_length + 1:
@@ -427,7 +478,7 @@ class BinaryConversion(Conversion):
                 raise DelayPacketByMissingMember(self._community, member.mid)
             offset += key_length
 
-            messages_length, = unpack_from("!B", data, offset)
+            messages_length, = self._struct_B.unpack_from(data, offset)
             offset += 1
 
             if len(data) < offset + messages_length * 2:
@@ -436,9 +487,10 @@ class BinaryConversion(Conversion):
             for _ in xrange(messages_length):
                 message_id = data[offset]
                 offset += 1
-                if not message_id in self._decode_message_map:
+                decode_functions = self._decode_message_map.get(message_id)
+                if decode_functions is None:
                     raise DropPacket("Unknown sub-message id [%d]" % ord(message_id))
-                message = self._decode_message_map[message_id][0]
+                message = decode_functions.meta
 
                 if not isinstance(message.resolution, (PublicResolution, LinearResolution, DynamicResolution)):
                     raise DropPacket("Invalid resolution policy")
@@ -449,14 +501,14 @@ class BinaryConversion(Conversion):
                     # policy it is impossible to verify WHO created the message.
                     raise DropPacket("Invalid authentication policy")
 
-                permission_bits, = unpack_from("!B", data, offset)
+                permission_bits, = self._struct_B.unpack_from(data, offset)
                 offset += 1
 
                 for permission, permission_bit in permission_map.iteritems():
                     if permission_bit & permission_bits:
                         permission_triplets.append((member, message, permission))
 
-        return offset, placeholder.meta.payload.implement(permission_triplets)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, permission_triplets)
 
     def _encode_revoke(self, message):
         """
@@ -479,7 +531,7 @@ class BinaryConversion(Conversion):
             public_key = member.public_key
             assert isinstance(public_key, str)
             assert message.name in self._encode_message_map
-            message_id = self._encode_message_map[message.name][0]
+            message_id = self._encode_message_map[message.name].byte
             assert isinstance(message_id, str)
             assert len(message_id) == 1
             assert permission in permission_map
@@ -495,9 +547,9 @@ class BinaryConversion(Conversion):
 
         bytes = []
         for public_key, messages in members.iteritems():
-            bytes.extend((pack("!H", len(public_key)), public_key, pack("!B", len(messages))))
+            bytes.extend((self._struct_H.pack(len(public_key)), public_key, self._struct_B.pack(len(messages))))
             for message_id, permission_bits in messages.iteritems():
-                bytes.extend((message_id, pack("!B", permission_bits)))
+                bytes.extend((message_id, self._struct_B.pack(permission_bits)))
 
         return tuple(bytes)
 
@@ -509,7 +561,7 @@ class BinaryConversion(Conversion):
             if len(data) < offset + 2:
                 raise DropPacket("Insufficient packet size")
 
-            key_length, = unpack_from("!H", data, offset)
+            key_length, = self._struct_H.unpack_from(data, offset)
             offset += 2
 
             if len(data) < offset + key_length + 1:
@@ -523,7 +575,7 @@ class BinaryConversion(Conversion):
                 raise DelayPacketByMissingMember(self._community, member.mid)
             offset += key_length
 
-            messages_length, = unpack_from("!B", data, offset)
+            messages_length, = self._struct_B.unpack_from(data, offset)
             offset += 1
 
             if len(data) < offset + messages_length * 2:
@@ -532,9 +584,10 @@ class BinaryConversion(Conversion):
             for _ in xrange(messages_length):
                 message_id = data[offset]
                 offset += 1
-                if not message_id in self._decode_message_map:
+                decode_functions = self._decode_message_map.get(message_id)
+                if decode_functions is None:
                     raise DropPacket("Unknown message id [%d]" % ord(message_id))
-                message = self._decode_message_map[message_id][0]
+                message = decode_functions.meta
 
                 if not isinstance(message.resolution, LinearResolution):
                     # it makes no sence to authorize a message that does not use the
@@ -549,14 +602,14 @@ class BinaryConversion(Conversion):
                     # verify WHO created the message.
                     raise DropPacket("Invalid authentication policy")
 
-                permission_bits, = unpack_from("!B", data, offset)
+                permission_bits, = self._struct_B.unpack_from(data, offset)
                 offset += 1
 
                 for permission, permission_bit in permission_map.iteritems():
                     if permission_bit & permission_bits:
                         permission_triplets.append((member, message, permission))
 
-        return offset, placeholder.meta.payload.implement(permission_triplets)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, permission_triplets)
 
     def _encode_subjective_set(self, message):
         payload = message.payload
@@ -564,13 +617,13 @@ class BinaryConversion(Conversion):
         assert 0 < payload.subjective_set.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
         assert len(payload.subjective_set.prefix) == 0, "Should not have a prefix"
         assert len(payload.subjective_set.bytes) == int(ceil(payload.subjective_set.size / 8))
-        return pack("!BBH", payload.cluster, payload.subjective_set.functions, payload.subjective_set.size), payload.subjective_set.bytes
+        return self._struct_BBH.pack(payload.cluster, payload.subjective_set.functions, payload.subjective_set.size), payload.subjective_set.bytes
 
     def _decode_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
-        cluster, functions, size = unpack_from("!BBH", data, offset)
+        cluster, functions, size = self._struct_BBH.unpack_from(data, offset)
         offset += 4
         if not 0 < functions:
             raise DropPacket("Invalid functions value")
@@ -585,16 +638,16 @@ class BinaryConversion(Conversion):
         subjective_set = BloomFilter(data[offset:offset + length], functions)
         offset += length
 
-        return offset, placeholder.meta.payload.implement(cluster, subjective_set)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, cluster, subjective_set)
 
     def _encode_missing_subjective_set(self, message):
-        return (pack("!B", message.payload.cluster),) + tuple([member.mid for member in message.payload.members])
+        return (self._struct_B.pack(message.payload.cluster),) + tuple([member.mid for member in message.payload.members])
 
     def _decode_missing_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 
-        cluster, = unpack_from("!B", data, offset)
+        cluster, = self._struct_B.unpack_from(data, offset)
         offset += 1
 
         # check that the cluster is valid, i.e. that there is a message with a SubjectiveDestination
@@ -610,10 +663,10 @@ class BinaryConversion(Conversion):
         if not members:
             raise DropPacket("Invalid subjective-set-request: no members given")
 
-        return offset, placeholder.meta.payload.implement(cluster, members)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, cluster, members)
 
     def _encode_undo_own(self, message):
-        return pack("!Q", message.payload.global_time),
+        return self._struct_Q.pack(message.payload.global_time),
 
     def _decode_undo_own(self, placeholder, offset, data):
         # use the member in the Authentication policy
@@ -622,7 +675,7 @@ class BinaryConversion(Conversion):
         if len(data) < offset + 8:
             raise DropPacket("Insufficient packet size")
 
-        global_time, = unpack_from("!Q", data, offset)
+        global_time, = self._struct_Q.unpack_from(data, offset)
         offset += 8
 
         if not global_time < placeholder.distribution.global_time:
@@ -636,18 +689,18 @@ class BinaryConversion(Conversion):
 
         packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
 
-        return offset, placeholder.meta.payload.implement(member, global_time, packet)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, global_time, packet)
 
     def _encode_undo_other(self, message):
         public_key = message.payload.member.public_key
         assert message.payload.member.public_key
-        return pack("!H", len(public_key)), public_key, pack("!Q", message.payload.global_time)
+        return self._struct_H.pack(len(public_key)), public_key, self._struct_Q.pack(message.payload.global_time)
 
     def _decode_undo_other(self, placeholder, offset, data):
         if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size")
 
-        key_length, = unpack_from("!H", data, offset)
+        key_length, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
         if len(data) < offset + key_length:
@@ -664,7 +717,7 @@ class BinaryConversion(Conversion):
         if len(data) < offset + 8:
             raise DropPacket("Insufficient packet size")
 
-        global_time, = unpack_from("!Q", data, offset)
+        global_time, = self._struct_Q.unpack_from(data, offset)
         offset += 8
 
         if not global_time < placeholder.distribution.global_time:
@@ -678,17 +731,17 @@ class BinaryConversion(Conversion):
 
         packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
 
-        return offset, placeholder.meta.payload.implement(member, global_time, packet)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, global_time, packet)
 
     def _encode_missing_proof(self, message):
         payload = message.payload
-        return pack("!QH", payload.global_time, len(payload.member.public_key)), payload.member.public_key
+        return self._struct_QH.pack(payload.global_time, len(payload.member.public_key)), payload.member.public_key
 
     def _decode_missing_proof(self, placeholder, offset, data):
         if len(data) < offset + 10:
             raise DropPacket("Insufficient packet size (_decode_missing_proof)")
 
-        global_time, key_length = unpack_from("!QH", data, offset)
+        global_time, key_length = self._struct_QH.unpack_from(data, offset)
         offset += 10
 
         key = data[offset:offset+key_length]
@@ -699,7 +752,7 @@ class BinaryConversion(Conversion):
             raise DelayPacketByMissingMember(self._community, member.mid)
         offset += key_length
 
-        return offset, placeholder.meta.payload.implement(member, global_time)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, global_time)
 
     def _encode_dynamic_settings(self, message):
         data = []
@@ -708,11 +761,11 @@ class BinaryConversion(Conversion):
             assert isinstance(policy, (PublicResolution, LinearResolution))
             assert isinstance(meta.resolution, DynamicResolution)
             assert policy in meta.resolution.policies, "the given policy must be one available at meta message creation"
-            meta_id = self._encode_message_map[meta.name][0]
+            meta_id = self._encode_message_map[meta.name].byte
             # currently only supporting resolution policy changes
             policy_type = "r"
             policy_index = meta.resolution.policies.index(policy)
-            data.append(pack("!ccB", meta_id, policy_type, policy_index))
+            data.append(self._struct_ccB.pack(meta_id, policy_type, policy_index))
         return data
 
     def _decode_dynamic_settings(self, placeholder, offset, data):
@@ -721,10 +774,11 @@ class BinaryConversion(Conversion):
 
         policies = []
         while len(data) >= offset + 3:
-            meta_id, policy_type, policy_index = unpack_from("!ccB", data, offset)
-            if not meta_id in self._decode_message_map:
+            meta_id, policy_type, policy_index = self._struct_ccB.unpack_from(data, offset)
+            decode_functions = self._decode_message_map.get(meta_id)
+            if decode_functions is None:
                 raise DropPacket("Unknown meta id [%d]" % ord(meta_id))
-            meta = self._decode_message_map[meta_id][0]
+            meta = decode_functions.meta
             if not isinstance(meta.resolution, DynamicResolution):
                 raise DropPacket("Invalid meta id [%d]" % ord(meta_id))
 
@@ -739,16 +793,16 @@ class BinaryConversion(Conversion):
 
             policies.append((meta, policy))
 
-        return offset, placeholder.meta.payload.implement(policies)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, policies)
 
     def _encode_introduction_request(self, message):
         payload = message.payload
 
-        data = [inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]),
-                inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]),
-                inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]),
-                pack("!B", self._encode_advice_map[payload.advice] | self._encode_connection_type_map[payload.connection_type] | self._encode_sync_map[payload.sync]),
-                pack("!H", payload.identifier)]
+        data = [inet_aton(payload.destination_address[0]), self._struct_H.pack(payload.destination_address[1]),
+                inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]),
+                inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]),
+                self._struct_B.pack(self._encode_advice_map[payload.advice] | self._encode_connection_type_map[payload.connection_type] | self._encode_sync_map[payload.sync]),
+                self._struct_H.pack(payload.identifier)]
 
         # add optional sync
         if payload.sync:
@@ -756,7 +810,7 @@ class BinaryConversion(Conversion):
             assert 0 < payload.bloom_filter.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
             assert len(payload.bloom_filter.prefix) == 1, "must have a one character prefix"
             assert len(payload.bloom_filter.bytes) == int(ceil(payload.bloom_filter.size / 8))
-            data.extend((pack("!QQHHBH", payload.time_low, payload.time_high, payload.modulo, payload.offset, payload.bloom_filter.functions, payload.bloom_filter.size),
+            data.extend((self._struct_QQHHBH.pack(payload.time_low, payload.time_high, payload.modulo, payload.offset, payload.bloom_filter.functions, payload.bloom_filter.size),
                          payload.bloom_filter.prefix, payload.bloom_filter.bytes))
 
         return data
@@ -765,16 +819,16 @@ class BinaryConversion(Conversion):
         if len(data) < offset + 21:
             raise DropPacket("Insufficient packet size")
 
-        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        destination_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        source_lan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        source_lan_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        source_wan_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        flags, identifier = unpack_from("!BH", data, offset)
+        flags, identifier = self._struct_BH.unpack_from(data, offset)
         offset += 3
 
         if not flags & int("1", 2) in self._decode_advice_map:
@@ -791,7 +845,7 @@ class BinaryConversion(Conversion):
             if len(data) < offset + 24:
                 raise DropPacket("Insufficient packet size")
 
-            time_low, time_high, modulo, modulo_offset, functions, size = unpack_from("!QQHHBH", data, offset)
+            time_low, time_high, modulo, modulo_offset, functions, size = self._struct_QQHHBH.unpack_from(data, offset)
             offset += 23
 
             prefix = data[offset]
@@ -824,116 +878,135 @@ class BinaryConversion(Conversion):
         else:
             sync = None
 
-        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
 
     def _encode_introduction_response(self, message):
         payload = message.payload
-        return inet_aton(payload.destination_address[0]), pack("!H", payload.destination_address[1]), \
-            inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]), \
-            inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
-            inet_aton(payload.lan_introduction_address[0]), pack("!H", payload.lan_introduction_address[1]), \
-            inet_aton(payload.wan_introduction_address[0]), pack("!H", payload.wan_introduction_address[1]), \
-            pack("!B", self._encode_connection_type_map[payload.connection_type]), \
-            pack("!H", payload.identifier)
+        return inet_aton(payload.destination_address[0]), self._struct_H.pack(payload.destination_address[1]), \
+            inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]), \
+            inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]), \
+            inet_aton(payload.lan_introduction_address[0]), self._struct_H.pack(payload.lan_introduction_address[1]), \
+            inet_aton(payload.wan_introduction_address[0]), self._struct_H.pack(payload.wan_introduction_address[1]), \
+            self._struct_B.pack(self._encode_connection_type_map[payload.connection_type]), \
+            self._struct_H.pack(payload.identifier)
 
     def _decode_introduction_response(self, placeholder, offset, data):
         if len(data) < offset + 33:
             raise DropPacket("Insufficient packet size")
 
-        destination_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        destination_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        source_lan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        source_lan_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        source_wan_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        lan_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        lan_introduction_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        wan_introduction_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        wan_introduction_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        flags, identifier, = unpack_from("!BH", data, offset)
+        flags, identifier, = self._struct_BH.unpack_from(data, offset)
         offset += 3
 
         if not flags & int("1110", 2) in self._decode_connection_type_map:
             raise DropPacket("Invalid connection type flag")
         connection_type = self._decode_connection_type_map[flags & int("1110", 2)]
 
-        return offset, placeholder.meta.payload.implement(destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier)
 
     def _encode_puncture_request(self, message):
         payload = message.payload
-        return inet_aton(payload.lan_walker_address[0]), pack("!H", payload.lan_walker_address[1]), \
-            inet_aton(payload.wan_walker_address[0]), pack("!H", payload.wan_walker_address[1]), \
-            pack("!H", payload.identifier)
+        return inet_aton(payload.lan_walker_address[0]), self._struct_H.pack(payload.lan_walker_address[1]), \
+            inet_aton(payload.wan_walker_address[0]), self._struct_H.pack(payload.wan_walker_address[1]), \
+            self._struct_H.pack(payload.identifier)
 
     def _decode_puncture_request(self, placeholder, offset, data):
         if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
-        lan_walker_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        lan_walker_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        wan_walker_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        wan_walker_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        identifier, = unpack_from("!H", data, offset)
+        identifier, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
-        return offset, placeholder.meta.payload.implement(lan_walker_address, wan_walker_address, identifier)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, lan_walker_address, wan_walker_address, identifier)
 
     def _encode_puncture(self, message):
         payload = message.payload
-        return inet_aton(payload.source_lan_address[0]), pack("!H", payload.source_lan_address[1]), \
-            inet_aton(payload.source_wan_address[0]), pack("!H", payload.source_wan_address[1]), \
-            pack("!H", payload.identifier)
+        return inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]), \
+            inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]), \
+            self._struct_H.pack(payload.identifier)
 
     def _decode_puncture(self, placeholder, offset, data):
         if len(data) < offset + 14:
             raise DropPacket("Insufficient packet size")
 
-        source_lan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        source_lan_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        source_wan_address = (inet_ntoa(data[offset:offset+4]), unpack_from("!H", data, offset+4)[0])
+        source_wan_address = (inet_ntoa(data[offset:offset+4]), self._struct_H.unpack_from(data, offset+4)[0])
         offset += 6
 
-        identifier, = unpack_from("!H", data, offset)
+        identifier, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
-        return offset, placeholder.meta.payload.implement(source_lan_address, source_wan_address, identifier)
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, source_lan_address, source_wan_address, identifier)
 
     #
     # Encoding
     #
 
+    def _encode_no_authentication(self, container, message):
+        pass
+
+    def _encode_member_authentication(self, container, message):
+        if message.authentication.encoding == "sha1":
+            container.append(message.authentication.member.mid)
+        elif message.authentication.encoding == "bin":
+            assert message.authentication.member.public_key
+            assert ec_check_public_bin(message.authentication.member.public_key), message.authentication.member.public_key.encode("HEX")
+            container.extend((self._struct_H.pack(len(message.authentication.member.public_key)), message.authentication.member.public_key))
+        else:
+            raise NotImplementedError(message.authentication.encoding)
+
+    def _encode_multi_member_authentication(self, container, message):
+        container.extend([member.mid for member in message.authentication.members])
+
     def _encode_full_sync_distribution(self, container, message):
         assert message.distribution.global_time
-        if message.distribution.global_time > message.community.global_time:
-            # did not use community.claim_global_time() FAIL
-            raise ValueError("incorrect global_time value chosen")
+        # 23/04/12 Boudewijn: testcases generate global time values that have not been claimed
+        # if message.distribution.global_time > message.community.global_time:
+        #     # did not use community.claim_global_time() FAIL
+        #     raise ValueError("incorrect global_time value chosen")
         if message.distribution.enable_sequence_number:
             assert message.distribution.sequence_number
-            container.append(pack("!QL", message.distribution.global_time, message.distribution.sequence_number))
+            container.append(self._struct_QL.pack(message.distribution.global_time, message.distribution.sequence_number))
         else:
-            container.append(pack("!Q", message.distribution.global_time))
+            container.append(self._struct_Q.pack(message.distribution.global_time))
 
     def _encode_last_sync_distribution(self, container, message):
         assert message.distribution.global_time
-        if message.distribution.global_time > message.community.global_time:
-            # did not use community.claim_global_time() FAIL
-            raise ValueError("incorrect global_time value chosen")
-        container.append(pack("!Q", message.distribution.global_time))
+        # 23/04/12 Boudewijn: testcases generate global time values that have not been claimed
+        # if message.distribution.global_time > message.community.global_time:
+        #     # did not use community.claim_global_time() FAIL
+        #     raise ValueError("incorrect global_time value chosen")
+        container.append(self._struct_Q.pack(message.distribution.global_time))
 
     def _encode_direct_distribution(self, container, message):
-        if message.distribution.global_time > message.community.global_time:
-            # did not use community.claim_global_time() FAIL
-            raise ValueError("incorrect global_time value chosen")
         assert message.distribution.global_time
-        container.append(pack("!Q", message.distribution.global_time))
+        # 23/04/12 Boudewijn: testcases generate global time values that have not been claimed
+        # if message.distribution.global_time > message.community.global_time:
+        #     # did not use community.claim_global_time() FAIL
+        #     raise ValueError("incorrect global_time value chosen")
+        container.append(self._struct_Q.pack(message.distribution.global_time))
 
     def _encode_public_resolution(self, container, message):
         pass
@@ -942,107 +1015,63 @@ class BinaryConversion(Conversion):
         pass
 
     def _encode_dynamic_resolution(self, container, message):
+        assert isinstance(message.resolution.policy, (PublicResolution.Implementation, LinearResolution.Implementation)), message.resolution.policy
+        assert not isinstance(message.resolution.policy, DynamicResolution), message.resolution.policy
         index = message.resolution.policies.index(message.resolution.policy.meta)
         container.append(chr(index))
+        # both the public and the linear resolution do not require any storage
 
-        assert type(message.resolution.policy) in self._encode_resolution_map, type(message.resolution.policy)
-        assert not isinstance(message.resolution.policy, DynamicResolution)
-        self._encode_resolution_map[type(message.resolution.policy)](container, message)
+    def _encode_no_authentication_signature(self, container, message):
+        return "".join(container)
+
+    def _encode_member_authentication_signature(self, container, message):
+        assert message.authentication.member.private_key, (message.authentication.member.database_id, message.authentication.member.mid.encode("HEX"), id(message.authentication.member))
+        data = "".join(container)
+        signature = message.authentication.member.sign(data)
+        message.authentication.set_signature(signature)
+        return data + signature
+
+    def _encode_multi_member_authentication_signature(self, container, message):
+        data = "".join(container)
+        signatures = []
+        for signature, member in message.authentication.signed_members:
+            if signature:
+                signatures.append(signature)
+            elif member.private_key:
+                signature = member.sign(data)
+                message.authentication.set_signature(member, signature)
+                signatures.append(signature)
+            else:
+                signatures.append("\x00" * member.signature_length)
+        return data + "".join(signatures)
 
     def encode_message(self, message):
         assert isinstance(message, Message.Implementation), message
         assert message.name in self._encode_message_map, message.name
-        message_id, encode_payload_func = self._encode_message_map[message.name]
+        encode_functions = self._encode_message_map[message.name]
 
-        # Community prefix, message-id
-        container = [self._prefix, message_id]
-
-        if __debug__:
-            debug_begin_encode = debug_begin = time()
+        # community prefix, message-id
+        container = [self._prefix, encode_functions.byte]
 
         # authentication
-        if isinstance(message.authentication, NoAuthentication.Implementation):
-            pass
-        elif isinstance(message.authentication, MemberAuthentication.Implementation):
-            if message.authentication.encoding == "sha1":
-                container.append(message.authentication.member.mid)
-            elif message.authentication.encoding == "bin":
-                assert message.authentication.member.public_key
-                assert ec_check_public_bin(message.authentication.member.public_key), message.authentication.member.public_key.encode("HEX")
-                container.extend((pack("!H", len(message.authentication.member.public_key)), message.authentication.member.public_key))
-            else:
-                raise NotImplementedError(message.authentication.encoding)
-        elif isinstance(message.authentication, MultiMemberAuthentication.Implementation):
-            container.extend([member.mid for member in message.authentication.members])
-        else:
-            raise NotImplementedError(type(message.authentication))
-
-        if __debug__:
-            self.debug_stats["encode-meta"] += time() - debug_begin
-            debug_begin = time()
+        encode_functions.authentication(container, message)
 
         # resolution
-        assert type(message.resolution) in self._encode_resolution_map
-        self._encode_resolution_map[type(message.resolution)](container, message)
-
-        # destination does not hold any space in the message
+        encode_functions.resolution(container, message)
 
         # distribution
-        assert type(message.distribution) in self._encode_distribution_map
-        self._encode_distribution_map[type(message.distribution)](container, message)
-
-        if __debug__:
-            self.debug_stats["encode-distribution"] += time() - debug_begin
-            dprint(message.name, "          head ", sum(map(len, container)) + 1, " bytes")
-            debug_begin = time()
+        encode_functions.distribution(container, message)
 
         # payload
-        itererator = encode_payload_func(message)
-        assert isinstance(itererator, (tuple, list)), (type(itererator), encode_payload_func)
-        assert not filter(lambda x: not isinstance(x, str), itererator)
-        container.extend(itererator)
-
-        if __debug__:
-            self.debug_stats["encode-payload"] += time() - debug_begin
-            dprint(message.name, "     head+body ", sum(map(len, container)), " bytes")
-            debug_begin = time()
+        payload = encode_functions.payload(message)
+        assert isinstance(payload, (tuple, list)), (type(payload), encode_functions.payload)
+        assert all(isinstance(x, str) for x in payload)
+        container.extend(payload)
 
         # sign
-        if isinstance(message.authentication, NoAuthentication.Implementation):
-            packet = "".join(container)
-
-        elif isinstance(message.authentication, MemberAuthentication.Implementation):
-            assert message.authentication.member.private_key, (message.authentication.member.database_id, message.authentication.member.mid.encode("HEX"), id(message.authentication.member))
-            data = "".join(container)
-            signature = message.authentication.member.sign(data)
-            message.authentication.set_signature(signature)
-            packet = data + signature
-
-        elif isinstance(message.authentication, MultiMemberAuthentication.Implementation):
-            data = "".join(container)
-            signatures = []
-            for signature, member in message.authentication.signed_members:
-                if signature:
-                    signatures.append(signature)
-                elif member.private_key:
-                    signature = member.sign(data)
-                    message.authentication.set_signature(member, signature)
-                    signatures.append(signature)
-                else:
-                    signatures.append("\x00" * member.signature_length)
-            packet = data + "".join(signatures)
-
-        else:
-            raise NotImplementedError(type(message.authentication))
+        packet = encode_functions.signature(container, message)
 
         if __debug__:
-            self.debug_stats["encode-message-sign"] += time() - debug_begin
-            self.debug_stats["encode-message"] += time() - debug_begin_encode
-            self.debug_stats["-encode-count"] += 1
-
-        if __debug__:
-            dprint(message.name, " head+body+sig ", len(packet), " bytes")
-
             if len(packet) > 1500 - 60 - 8:
                 dprint("Packet size for ", message.name, " exceeds MTU - IP header - UDP header (", len(packet), " bytes)", level="warning")
 
@@ -1053,190 +1082,186 @@ class BinaryConversion(Conversion):
     # Decoding
     #
 
-    def _decode_full_sync_distribution(self, placeholder, offset, data):
-        if placeholder.meta.distribution.enable_sequence_number:
-            global_time, sequence_number = unpack_from("!QL", data, offset)
+    def _decode_full_sync_distribution(self, placeholder):
+        distribution = placeholder.meta.distribution
+        if distribution.enable_sequence_number:
+            global_time, sequence_number = self._struct_QL.unpack_from(placeholder.data, placeholder.offset)
             if not global_time:
                 raise DropPacket("Invalid global time value (_decode_full_sync_distribution)")
             if not sequence_number:
                 raise DropPacket("Invalid sequence number value (_decode_full_sync_distribution)")
-            return offset + 12, placeholder.meta.distribution.implement(global_time, sequence_number)
+            placeholder.offset += 12
+            placeholder.distribution = distribution.Implementation(distribution, global_time, sequence_number)
+
         else:
-            global_time, = unpack_from("!Q", data, offset)
+            global_time, = self._struct_Q.unpack_from(placeholder.data, placeholder.offset)
             if not global_time:
                 raise DropPacket("Invalid global time value (_decode_full_sync_distribution)")
-            return offset + 8, placeholder.meta.distribution.implement(global_time)
+            placeholder.offset += 8
+            placeholder.distribution = distribution.Implementation(distribution, global_time)
 
-    def _decode_last_sync_distribution(self, placeholder, offset, data):
-        global_time, = unpack_from("!Q", data, offset)
+    def _decode_last_sync_distribution(self, placeholder):
+        global_time, = self._struct_Q.unpack_from(placeholder.data, placeholder.offset)
         if not global_time:
             raise DropPacket("Invalid global time value (_decode_last_sync_distribution)")
-        return offset + 8, placeholder.meta.distribution.implement(global_time)
+        placeholder.offset += 8
+        placeholder.distribution = LastSyncDistribution.Implementation(placeholder.meta.distribution, global_time)
 
-    def _decode_direct_distribution(self, placeholder, offset, data):
-        global_time, = unpack_from("!Q", data, offset)
-        return offset + 8, placeholder.meta.distribution.implement(global_time)
+    def _decode_direct_distribution(self, placeholder):
+        global_time, = self._struct_Q.unpack_from(placeholder.data, placeholder.offset)
+        placeholder.offset += 8
+        placeholder.distribution = DirectDistribution.Implementation(placeholder.meta.distribution, global_time)
 
-    def _decode_public_resolution(self, placeholder, offset, data, dynamic_policy=None):
-        if dynamic_policy:
-            return offset, dynamic_policy.implement()
-        else:
-            return offset, placeholder.meta.resolution.implement()
+    def _decode_public_resolution(self, placeholder):
+        placeholder.resolution = PublicResolution.Implementation(placeholder.meta.resolution)
 
-    def _decode_linear_resolution(self, placeholder, offset, data, dynamic_policy=None):
-        if dynamic_policy:
-            return offset, dynamic_policy.implement()
-        else:
-            return offset, placeholder.meta.resolution.implement()
+    def _decode_linear_resolution(self, placeholder):
+        placeholder.resolution = LinearResolution.Implementation(placeholder.meta.resolution)
 
-    def _decode_dynamic_resolution(self, placeholder, offset, data):
-        if len(data) < offset + 1:
+    def _decode_dynamic_resolution(self, placeholder):
+        if len(placeholder.data) < placeholder.offset + 1:
             raise DropPacket("Insufficient packet size (_decode_dynamic_resolution)")
 
-        index = ord(data[offset])
+        index = ord(placeholder.data[placeholder.offset])
         if index > len(placeholder.meta.resolution.policies):
             raise DropPacket("Invalid policy index")
-        policy = placeholder.meta.resolution.policies[index]
-        offset += 1
+        meta_policy = placeholder.meta.resolution.policies[index]
+        placeholder.offset += 1
 
-        assert type(policy) in self._decode_resolution_map
-        assert not isinstance(policy, DynamicResolution)
-        offset, policy = self._decode_resolution_map[type(policy)](placeholder, offset, data, policy)
+        assert isinstance(meta_policy, (PublicResolution, LinearResolution)), meta_policy
+        assert not isinstance(meta_policy, DynamicResolution), meta_policy
+        # both the public and the linear resolution do not require any storage
+        policy = meta_policy.Implementation(meta_policy)
 
-        return offset, placeholder.meta.resolution.implement(policy)
+        placeholder.resolution = DynamicResolution.Implementation(placeholder.meta.resolution, policy)
 
-    def _decode_authentication(self, authentication, offset, data):
-        if isinstance(authentication, NoAuthentication):
-            return offset, authentication.implement(), len(data)
+    def _decode_no_authentication(self, placeholder):
+        placeholder.first_signature_offset = len(placeholder.data)
+        placeholder.authentication = NoAuthentication.Implementation(placeholder.meta.authentication)
 
-        elif isinstance(authentication, MemberAuthentication):
-            if authentication.encoding == "sha1":
-                if len(data) < offset + 20:
-                    raise DropPacket("Insufficient packet size (_decode_authentication sha1)")
-                member_id = data[offset:offset+20]
-                offset += 20
+    def _decode_member_authentication(self, placeholder):
+        authentication = placeholder.meta.authentication
+        offset = placeholder.offset
+        data = placeholder.data
 
-                if __debug__:
-                    debug_begin = time()
-                members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
-                if __debug__:
-                    self.debug_stats["decode-authentication-get-member-from-id"] += time() - debug_begin
-                if not members:
-                    raise DelayPacketByMissingMember(self._community, member_id)
+        if authentication.encoding == "sha1":
+            if len(data) < offset + 20:
+                raise DropPacket("Insufficient packet size (_decode_member_authentication sha1)")
+            member_id = data[offset:offset+20]
+            offset += 20
 
-                for member in members:
-                    first_signature_offset = len(data) - member.signature_length
-
-                    if __debug__:
-                        debug_begin = time()
-                    if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
-                        if __debug__:
-                            self.debug_stats["decode-authentication-verify"] += time() - debug_begin
-                        return offset, authentication.implement(member, is_signed=True), first_signature_offset
-                    if __debug__:
-                        self.debug_stats["decode-authentication-verify"] += time() - debug_begin
-
+            members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
+            if not members:
                 raise DelayPacketByMissingMember(self._community, member_id)
 
-            elif authentication.encoding == "bin":
-                key_length, = unpack_from("!H", data, offset)
-                offset += 2
-                if len(data) < offset + key_length:
-                    raise DropPacket("Insufficient packet size (_decode_authentication bin)")
-                key = data[offset:offset+key_length]
-                offset += key_length
-
-                if __debug__:
-                    debug_begin = time()
-                if not ec_check_public_bin(key):
-                    if __debug__:
-                        dprint(key_length, " ", key.encode("HEX"), level="warning")
-                        self.debug_stats["decode-authentication-check"] += time() - debug_begin
-                    raise DropPacket("Invalid cryptographic key (_decode_authentication)")
-                if __debug__:
-                    self.debug_stats["decode-authentication-check"] += time() - debug_begin
-
-                if __debug__:
-                    debug_begin = time()
-                member = self._community.dispersy.get_member(key)
-                if __debug__:
-                    self.debug_stats["decode-authentication-get-member"] += time() - debug_begin
-
-                # TODO we should ensure that member.has_identity(self._community), however, the
-                # exception is the dispersy-identity message.  hence we need the placeholder
-                # parameter to check this
+            # signatures are enabled, verify that the signature matches the member sha1
+            # identifier
+            for member in members:
                 first_signature_offset = len(data) - member.signature_length
-
-                if __debug__:
-                    debug_begin = time()
                 if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
-                    if __debug__:
-                        self.debug_stats["decode-authentication-verify"] += time() - debug_begin
-                    return offset, authentication.implement(member, is_signed=True), first_signature_offset
-                else:
-                    if __debug__:
-                        self.debug_stats["decode-authentication-verify"] += time() - debug_begin
-                    raise DropPacket("Invalid signature")
+                    placeholder.offset = offset
+                    placeholder.first_signature_offset = first_signature_offset
+                    placeholder.authentication = MemberAuthentication.Implementation(authentication, member, is_signed=True)
+                    return
 
-            else:
-                raise NotImplementedError(authentication.encoding)
-
-        elif isinstance(authentication, MultiMemberAuthentication):
-            def iter_options(members_ids):
-                """
-                members_ids = [[m1_a, m1_b], [m2_a], [m3_a, m3_b]]
-                --> m1_a, m2_a, m3_a
-                --> m1_a, m2_a, m3_b
-                --> m1_b, m2_a, m3_a
-                --> m1_b, m2_a, m3_b
-                """
-                if members_ids:
-                    for member_id in members_ids[0]:
-                        for others in iter_options(members_ids[1:]):
-                            yield [member_id] + others
-                else:
-                    yield []
-
-            members_ids = []
-            for _ in range(authentication.count):
-                member_id = data[offset:offset+20]
-                members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
-                if not members:
-                    raise DelayPacketByMissingMember(self._community, member_id)
-                offset += 20
-                members_ids.append(members)
-
-            for members in iter_options(members_ids):
-                # try this member combination
-                first_signature_offset = len(data) - sum([member.signature_length for member in members])
-                signature_offset = first_signature_offset
-                signatures = [""] * authentication.count
-                valid_or_null = True
-                for index, member in zip(range(authentication.count), members):
-                    signature = data[signature_offset:signature_offset+member.signature_length]
-                    # dprint("INDEX: ", index)
-                    # dprint(signature.encode('HEX'))
-                    if not signature == "\x00" * member.signature_length:
-                        if member.verify(data, data[signature_offset:signature_offset+member.signature_length], length=first_signature_offset):
-                            signatures[index] = signature
-                        else:
-                            valid_or_null = False
-                            break
-                    signature_offset += member.signature_length
-
-                # found a valid combination
-                if valid_or_null:
-                    return offset, authentication.implement(members, signatures=signatures), first_signature_offset
             raise DelayPacketByMissingMember(self._community, member_id)
 
-        raise NotImplementedError()
+        elif authentication.encoding == "bin":
+            key_length, = self._struct_H.unpack_from(data, offset)
+            offset += 2
+            if len(data) < offset + key_length:
+                raise DropPacket("Insufficient packet size (_decode_authentication bin)")
+            key = data[offset:offset+key_length]
+            offset += key_length
+
+            if not ec_check_public_bin(key):
+                raise DropPacket("Invalid cryptographic key (_decode_authentication)")
+
+            member = self._community.dispersy.get_member(key)
+
+            # TODO we should ensure that member.has_identity(self._community), however, the
+            # exception is the dispersy-identity message.  hence we need the placeholder
+            # parameter to check this
+            first_signature_offset = len(data) - member.signature_length
+
+            # signatures are enabled, verify that the signature matches the member sha1
+            # identifier
+            if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
+                placeholder.offset = offset
+                placeholder.first_signature_offset = first_signature_offset
+                placeholder.authentication = MemberAuthentication.Implementation(authentication, member, is_signed=True)
+                return
+
+            raise DropPacket("Invalid signature")
+
+        else:
+            raise NotImplementedError(authentication.encoding)
+
+    def _decode_multi_member_authentication(self, placeholder):
+        def iter_options(members_ids):
+            """
+            members_ids = [[m1_a, m1_b], [m2_a], [m3_a, m3_b]]
+            --> m1_a, m2_a, m3_a
+            --> m1_a, m2_a, m3_b
+            --> m1_b, m2_a, m3_a
+            --> m1_b, m2_a, m3_b
+            """
+            if members_ids:
+                for member_id in members_ids[0]:
+                    for others in iter_options(members_ids[1:]):
+                        yield [member_id] + others
+            else:
+                yield []
+
+        authentication = placeholder.meta.authentication
+        offset = placeholder.offset
+        data = placeholder.data
+        members_ids = []
+
+        for _ in range(authentication.count):
+            member_id = data[offset:offset+20]
+            members = [member for member in self._community.dispersy.get_members_from_id(member_id) if member.has_identity(self._community)]
+            if not members:
+                raise DelayPacketByMissingMember(self._community, member_id)
+            offset += 20
+            members_ids.append(members)
+
+        for members in iter_options(members_ids):
+            # try this member combination
+            first_signature_offset = len(data) - sum([member.signature_length for member in members])
+            signature_offset = first_signature_offset
+            signatures = [""] * authentication.count
+            valid_or_null = True
+            for index, member in zip(range(authentication.count), members):
+                signature = data[signature_offset:signature_offset+member.signature_length]
+                # dprint("INDEX: ", index)
+                # dprint(signature.encode('HEX'))
+                if not signature == "\x00" * member.signature_length:
+                    if member.verify(data, data[signature_offset:signature_offset+member.signature_length], length=first_signature_offset):
+                        signatures[index] = signature
+                    else:
+                        valid_or_null = False
+                        break
+                signature_offset += member.signature_length
+
+            # found a valid combination
+            if valid_or_null:
+                placeholder.offset = offset
+                placeholder.first_signature_offset = first_signature_offset
+                placeholder.authentication = MultiMemberAuthentication.Implementation(placeholder.meta.authentication, members, signatures=signatures)
+                return
+
+        raise DelayPacketByMissingMember(self._community, member_id)
+
+    def _decode_empty_destination(self, placeholder):
+        placeholder.destination = placeholder.meta.destination.Implementation(placeholder.meta.destination)
 
     def _decode_subjective_destination(self, placeholder):
         meta = placeholder.meta
         # we want to know if the sender occurs in our subjective bloom filter
         subjective_set = self._community.get_subjective_set(self._community.my_member, meta.destination.cluster)
         assert subjective_set, "We must always have subjective sets for ourself"
-        return meta.destination.implement(placeholder.authentication.member.public_key in subjective_set)
+        placeholder.destination = meta.destination.Implementation(meta.destination, placeholder.authentication.member.public_key in subjective_set)
 
     def _decode_message(self, candidate, data, verify_all_signatures):
         """
@@ -1256,81 +1281,51 @@ class BinaryConversion(Conversion):
         if len(data) < 100:
             DropPacket("Packet is to small to decode")
 
-        placeholder = Placeholder(candidate, 22, data)
-
-        if __debug__:
-            debug_begin_decode = debug_begin = time()
-
         # meta_message
-        placeholder.meta, decode_payload_func = self._decode_message_map.get(placeholder.data[placeholder.offset], (None, None))
-        if placeholder.meta is None:
-            raise DropPacket("Unknown message code %d" % ord(placeholder.data[placeholder.offset]))
-        placeholder.offset += 1
+        decode_functions = self._decode_message_map.get(data[22])
+        if decode_functions is None:
+            raise DropPacket("Unknown message code %d" % ord(data[22]))
 
-        if __debug__:
-            self.debug_stats["decode-meta"] += time() - debug_begin
-            debug_begin = time()
+        # placeholder
+        placeholder = self.Placeholder(candidate, decode_functions.meta, 23, data)
 
         # authentication
-        placeholder.offset, placeholder.authentication, placeholder.first_signature_offset = self._decode_authentication(placeholder.meta.authentication, placeholder.offset, placeholder.data)
+        decode_functions.authentication(placeholder)
+        assert isinstance(placeholder.authentication, Authentication.Implementation)
         if verify_all_signatures and not placeholder.authentication.is_signed:
             raise DropPacket("Invalid signature")
         # drop packet if the creator is blacklisted.  we would prefer to do this in dispersy.py,
         # however, decoding the payload can cause DelayPacketByMissingMessage to be raised for
         # dispersy-undo messages, and the last thing that we want is to request messages from a
         # blacklisted member
-        if isinstance(placeholder.authentication, (MemberAuthentication.Implementation, MultiMemberAuthentication.Implementation)) and placeholder.authentication.member.must_blacklist:
+        if isinstance(placeholder.meta.authentication, (MemberAuthentication, MultiMemberAuthentication)) and placeholder.authentication.member.must_blacklist:
             self._community.dispersy.send_malicious_proof(self._community, placeholder.authentication.member, candidate)
             raise DropPacket("Creator is blacklisted")
 
-        if __debug__:
-            self.debug_stats["decode-authentication"] += time() - debug_begin
-            debug_begin = time()
-
         # resolution
-        assert type(placeholder.meta.resolution) in self._decode_resolution_map, type(placeholder.meta.resolution)
-        placeholder.offset, placeholder.resolution = self._decode_resolution_map[type(placeholder.meta.resolution)](placeholder, placeholder.offset, placeholder.data)
+        decode_functions.resolution(placeholder)
+        assert isinstance(placeholder.resolution, Resolution.Implementation)
 
         # destination
-        assert isinstance(placeholder.meta.destination, (MemberDestination, CommunityDestination, CandidateDestination, SubjectiveDestination))
-        if isinstance(placeholder.meta.destination, CandidateDestination):
-            placeholder.destination = placeholder.meta.destination.implement()
-        elif isinstance(placeholder.meta.destination, MemberDestination):
-            placeholder.destination = placeholder.meta.destination.implement()
-        elif isinstance(placeholder.meta.destination, SubjectiveDestination):
-            placeholder.destination = self._decode_subjective_destination(placeholder)
-        else:
-            placeholder.destination = placeholder.meta.destination.implement()
-
-        if __debug__:
-            self.debug_stats["decode-destination"] += time() - debug_begin
-            debug_begin = time()
+        decode_functions.destination(placeholder)
+        assert isinstance(placeholder.destination, Destination.Implementation)
 
         # distribution
-        assert type(placeholder.meta.distribution) in self._decode_distribution_map, type(placeholder.meta.distribution)
-        placeholder.offset, placeholder.distribution = self._decode_distribution_map[type(placeholder.meta.distribution)](placeholder, placeholder.offset, placeholder.data)
-
-        if __debug__:
-            self.debug_stats["decode-distribution"] += time() - debug_begin
-            debug_begin = time()
+        decode_functions.distribution(placeholder)
+        assert isinstance(placeholder.distribution, Distribution.Implementation)
 
         # payload
-        placeholder.offset, placeholder.payload = decode_payload_func(placeholder, placeholder.offset, placeholder.data[:placeholder.first_signature_offset])
+        placeholder.offset, placeholder.payload = decode_functions.payload(placeholder, placeholder.offset, placeholder.data[:placeholder.first_signature_offset])
         if placeholder.offset != placeholder.first_signature_offset:
             if __debug__: dprint("invalid packet size for ", placeholder.meta.name, " data:", placeholder.first_signature_offset, "; offset:", placeholder.offset, level="warning")
             raise DropPacket("Invalid packet size (there are unconverted bytes)")
-
-        if __debug__:
-            self.debug_stats["decode-payload"] += time() - debug_begin
-            self.debug_stats["decode-message"] += time() - debug_begin_decode
-            self.debug_stats["-decode-count"] += 1
 
         if __debug__:
             from payload import Payload
             assert isinstance(placeholder.payload, Payload.Implementation), type(placeholder.payload)
             assert isinstance(placeholder.offset, (int, long))
 
-        return placeholder.meta.implement(placeholder.authentication, placeholder.resolution, placeholder.distribution, placeholder.destination, placeholder.payload, conversion=self, candidate=candidate, packet=placeholder.data)
+        return placeholder.meta.Implementation(placeholder.meta, placeholder.authentication, placeholder.resolution, placeholder.distribution, placeholder.destination, placeholder.payload, conversion=self, candidate=candidate, packet=placeholder.data)
 
     def decode_meta_message(self, data):
         """
@@ -1343,11 +1338,11 @@ class BinaryConversion(Conversion):
             raise DropPacket("Packet is to small to decode")
 
         # meta_message
-        meta_message, _ = self._decode_message_map.get(data[22], (None, None))
-        if meta_message is None:
+        decode_functions = self._decode_message_map.get(data[22])
+        if decode_functions is None:
             raise DropPacket("Unknown message code %d" % ord(data[22]))
 
-        return meta_message
+        return decode_functions.meta
 
     def decode_message(self, candidate, data):
         """

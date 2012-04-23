@@ -424,13 +424,7 @@ class Message(MetaObject):
             self._destination = destination
             self._payload = payload
             self._candidate = candidate
-            self._footprint = " ".join((meta._name.encode("UTF-8"),
-                                        "Community:%s" % meta._community.cid.encode("HEX"),
-                                        authentication.footprint,
-                                        resolution.footprint,
-                                        distribution.footprint,
-                                        destination.footprint,
-                                        payload.footprint))
+            self._footprint = None
 
             # allow setup parts.  used to setup callback when something changes that requires the
             # self._packet to be generated again
@@ -447,9 +441,7 @@ class Message(MetaObject):
             else:
                 self._conversion = meta._community.get_conversion()
 
-            if packet:
-                self._packet = packet
-            else:
+            if not packet:
                 self._packet = self._conversion.encode_message(self)
 
         @property
@@ -482,6 +474,14 @@ class Message(MetaObject):
 
         @property
         def footprint(self):
+            if self._footprint is None:
+                self._footprint = " ".join((self._meta.name.encode("UTF-8"),
+                                            "Community:%s" % self._meta.community.cid.encode("HEX"),
+                                            self._authentication.footprint,
+                                            self._resolution.footprint,
+                                            self._distribution.footprint,
+                                            self._destination.footprint,
+                                            self._payload.footprint))
             return self._footprint
 
         def load_message(self):

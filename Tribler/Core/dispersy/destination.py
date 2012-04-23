@@ -4,7 +4,7 @@ class Destination(MetaObject):
     class Implementation(MetaObject.Implementation):
         @property
         def footprint(self):
-            return self._meta.__class__.__name__
+            return "Destination"
 
     def setup(self, message):
         """
@@ -15,7 +15,7 @@ class Destination(MetaObject):
         assert isinstance(message, Message)
 
     def generate_footprint(self):
-        return self.__class__.__name__
+        return "Destination"
 
 class CandidateDestination(Destination):
     """
@@ -27,7 +27,7 @@ class CandidateDestination(Destination):
             Construct a CandidateDestination.Implementation object.
 
             META the associated CandidateDestination object.
-            
+
             CANDIDATES is a tuple containing zero or more Candidate objects.  These will contain the
             destination addresses when the associated message is sent.
             """
@@ -58,7 +58,7 @@ class MemberDestination(Destination):
             Construct an AddressDestination.Implementation object.
 
             META the associated MemberDestination object.
-            
+
             MEMBERS is a tuple containing one or more Member instances.  These will be used to try
             to find the destination addresses when the associated message is sent.
             """
@@ -110,7 +110,7 @@ class SubjectiveDestination(Destination):
     The bloom filter used by the SubjectiveDestination policy contains public keys of members that a
     member is interested in and can change over time.  The members' own public key will always be
     added to its own subjective set.
-    
+
     For each different CLUSTER value a unique subjective set will be created and maintained.  The
     subjective set consists of a bloom filter using community.dispersy_subjective_set_bits bits and
     community.dispersy_subjective_set_error_rate error rate (note that all subjective sets use the
@@ -157,7 +157,7 @@ class SubjectiveDestination(Destination):
         different CLUSTER value a dispersy-subjective-set message is generated and spread around,
         hence SubjectiveDestination policies with the same CLUSTER value will use the same
         subjective set.
-        
+
         NODE_COUNT is an integer giving the number of nodes where, when the message is created, the
         message must be sent to.  These nodes are selected using the
         dispersy.yield_subjective_candidates(...) method.  NODE_COUNT must be zero or higher.

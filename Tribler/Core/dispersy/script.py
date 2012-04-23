@@ -108,6 +108,7 @@ class ScriptBase(object):
         self._dispersy = Dispersy.get_instance()
         self._dispersy_database = DispersyDatabase.get_instance()
         self._dispersy.callback.register(self.run)
+        self.caller(self.wait_for_wan_address)
 
     def caller(self, run, args=()):
         assert callable(run)
@@ -116,6 +117,16 @@ class ScriptBase(object):
 
     def run(self):
         raise NotImplementedError("Must implement a generator or use self.caller(...)")
+
+    def wait_for_wan_address(self):
+        ec = ec_generate_key(u"low")
+        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
+        community = DebugCommunity.create_community(my_member)
+
+        while self._dispersy.wan_address[0] == "0.0.0.0":
+            yield 0.1
+
+        community.unload_community()
 
 class ScenarioScriptBase(ScriptBase):
     #TODO: all bartercast references should be converted to some universal style

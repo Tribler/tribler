@@ -13,7 +13,7 @@ from database import Database
 if __debug__:
     from dprint import dprint
 
-LATEST_VERSION = 10
+LATEST_VERSION = 11
 
 schema = u"""
 CREATE TABLE member(
@@ -60,7 +60,7 @@ CREATE TABLE sync(
  undone INTEGER DEFAULT 0,
  packet BLOB,
  UNIQUE(community, member, global_time));
-CREATE INDEX sync_meta_message_global_time_index ON sync(meta_message, global_time);
+CREATE INDEX sync_meta_message_undone_global_time_index ON sync(meta_message, undone, global_time);
 
 CREATE TABLE malicious_proof(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -291,15 +291,29 @@ UPDATE option SET value = '10' WHERE key = 'database_version';
 """)
                 self.commit()
                 if __debug__: dprint("upgrade database ", database_version, " -> ", 10, " (done)")
-                pass
 
             # upgrade from version 10 to version 11
             if database_version < 11:
-                # there is no version 11 yet...
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 11)
-                # self.executescript(u"""UPDATE option SET value = '11' WHERE key = 'database_version';""")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 11)
+                # unfortunately the default SCHEMA did not contain
+                # sync_global_time_undone_meta_message_index but was still using
+                # sync_meta_message_global_time_index in database version 10
+                self.executescript(u"""
+DROP INDEX IF EXISTS sync_meta_message_global_time_index;
+DROP INDEX IF EXISTS sync_global_time_undone_meta_message_index;
+CREATE INDEX sync_meta_message_undone_global_time_index ON sync(meta_message, undone, global_time);
+UPDATE option SET value = '11' WHERE key = 'database_version';
+""")
+                self.commit()
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 11, " (done)")
+
+            # upgrade from version 11 to version 12
+            if database_version < 12:
+                # there is no version 12 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 12)
+                # self.executescript(u"""UPDATE option SET value = '12' WHERE key = 'database_version';""")
                 # self.commit()
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 11, " (done)")
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 12, " (done)")
                 pass
 
         return LATEST_VERSION

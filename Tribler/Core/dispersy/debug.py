@@ -28,14 +28,22 @@ class Node(object):
 
     @property
     def lan_address(self):
-        return self._socket.getsockname()
+        _, port = self._socket.getsockname()
+        return ("127.0.0.1", port)
 
     @property
     def wan_address(self):
-        if self._community:
-            return self._dispersy.wan_address[0], self.lan_address[1]
+        if self._dispersy:
+            host = self._dispersy.wan_address[0]
+
+            if host == "0.0.0.0":
+                host = self._dispersy.lan_address[0]
+
         else:
-            return self.lan_address
+            host = "0.0.0.0"
+
+        _, port = self._socket.getsockname()
+        return (host, port)
 
     def init_socket(self):
         assert self._socket is None

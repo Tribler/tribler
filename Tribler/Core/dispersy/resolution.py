@@ -83,7 +83,7 @@ class DynamicResolution(Resolution):
         """
         assert isinstance(policies, tuple)
         assert 0 < len(policies) < 255
-        assert not filter(lambda x: not isinstance(x, (PublicResolution, LinearResolution)), policies)
+        assert all(isinstance(x, (PublicResolution, LinearResolution)) for x in policies)
         self._policies = policies
 
     @property
