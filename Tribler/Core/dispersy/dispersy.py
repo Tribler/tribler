@@ -107,8 +107,42 @@ class DummySocket(object):
         if __debug__: dprint("Thrown away ", len(data), " bytes worth of outgoing data to ", address[0], ":", address[1], level="warning")
 
 class SignatureRequestCache(Cache):
-    def __init__(self, identifier):
-        super(SignatureRequestCache, self).__init__(identifier)
+    cleanup_delay = 0.0
+
+    def __init__(self, members, response_func, response_args, timeout):
+        self.request = None
+        self.members = members
+        self.response_func = response_func
+        self.response_args = response_args
+        self.timeout_delay = timeout
+
+    def on_timeout(self):
+        if __debug__: dprint("timeout")
+        self.response_func(self.request.payload.message, None, True, *response_args)
+
+class IntroductionRequestCache(Cache):
+    timeout_delay = 10.5
+    cleanup_delay = 0.0
+
+    def __init__(self, community, helper_candidate):
+        self.community = community
+        self.helper_candidate = helper_candidate
+        self.response_candidate = None
+        self.puncture_candidate = None
+
+    def on_timeout(self):
+        # helper_candidate did not respond to a request message in this community.  after some time
+        # inactive candidates become obsolete and will be removed by
+        # _periodically_cleanup_candidates
+        if __debug__: dprint("timeout for ", self.helper_candidate)
+
+        # we choose to set the entire helper to inactive instead of just the community where the
+        # timeout occurred.  this will allow us to quickly respond to nodes going offline, while the
+        # downside is that one dropped packet will cause us to invalidly inactivate all communities
+        # of the candidate.
+        now = time()
+        self.helper_candidate.obsolete(self.community, now)
+        self.helper_candidate.all_inactive(now)
 
 class Statistics(object):
     def __init__(self):
@@ -301,17 +335,6 @@ class Dispersy(Singleton):
         # address is obtained from socket.recv_from)
         self._candidates = {}
         self._callback.register(self._periodically_cleanup_candidates)
-
-        # random numbers in the range [0:2**16) that are used to match outgoing
-        # introduction-request, incoming introduction-response, and incoming puncture.  it contains
-        # identifier:(response, response-candidate, puncture-candidate, helper-candidate) pairs,
-        # where response is a boolean indicating that a introduction-response or a puncture was
-        # received, response-candidate is the candidate supplied in the introduction-response and
-        # puncture-candidate is the candidate supplied in the puncture message.  Ideally these
-        # should both be set and point to the same candidate, however, packet loss, NAT, and
-        # malicious behavior can prevent this.  Finally, helper-candidate is the node where we send
-        # the introduction-request too.
-        self._walk_identifiers = {}
 
         # assigns temporary cache objects to unique identifiers
         self._request_cache = RequestCache(self._callback)
@@ -514,7 +537,7 @@ class Dispersy(Singleton):
         assert isinstance(community, Community)
         messages = [Message(community, u"dispersy-identity", MemberAuthentication(encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"ASC", priority=16, history_size=1), CommunityDestination(node_count=0), IdentityPayload(), self._generic_timeline_check, self.on_identity),
                     Message(community, u"dispersy-signature-request", NoAuthentication(), PublicResolution(), DirectDistribution(), MemberDestination(), SignatureRequestPayload(), self.check_signature_request, self.on_signature_request),
-                    Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self._generic_timeline_check, self.on_signature_response),
+                    Message(community, u"dispersy-signature-response", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), SignatureResponsePayload(), self.check_signature_response, self.on_signature_response),
                     Message(community, u"dispersy-authorize", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), AuthorizePayload(), self._generic_timeline_check, self.on_authorize),
                     Message(community, u"dispersy-revoke", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), RevokePayload(), self._generic_timeline_check, self.on_revoke),
                     Message(community, u"dispersy-undo-own", MemberAuthentication(), PublicResolution(), FullSyncDistribution(enable_sequence_number=True, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=10), UndoPayload(), self.check_undo, self.on_undo),
@@ -2320,18 +2343,11 @@ class Dispersy(Singleton):
     def create_introduction_request(self, community, destination):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
+        self._statistics.increment_walk_attempt()
         destination.walk(community, time())
 
-        # claim unique walk identifier
-        while True:
-            identifier = int(random() * 2**16)
-            if not identifier in self._walk_identifiers:
-                self._walk_identifiers[identifier] = [0, None, None, community, destination, time()]
-                break
-
-        # release walk identifier some seconds after timeout expires
-        self._callback.register(self.introduction_response_timeout, (identifier,), delay=10.5)
-        self._statistics.increment_walk_attempt()
+        # temporary cache object
+        identifier = self._request_cache.claim(IntroductionRequestCache(community, destination))
 
         # decide if the requested node should introduce us to someone else
         # advice = random() < 0.5 or len(self._candidates) <= 5
@@ -2427,7 +2443,7 @@ class Dispersy(Singleton):
             # drop all requests that have an outstanding identifier.  This is not a perfect
             # solution, but the change that two nodes select the same identifier and send requests
             # to each other is relatively small.
-            if message.payload.identifier in self._walk_identifiers:
+            if self._request_cache.has(message.payload.identifier, IntroductionRequestCache):
                 if __debug__: dprint("dropping dispersy-introduction-request, this identifier is already in use.")
                 yield DropMessage(message, "Duplicate identifier (most likely received from ourself)")
                 continue
@@ -2635,7 +2651,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
     def check_introduction_response(self, messages):
         for message in messages:
-            if not message.payload.identifier in self._walk_identifiers:
+            if not self._request_cache.has(message.payload.identifier, IntroductionRequestCache):
                 yield DropMessage(message, "invalid response identifier")
                 continue
 
@@ -2677,7 +2693,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             yield message
 
-    def _received_introduction(self, index, community, now, identifier, lan_introduction_address, wan_introduction_address):
+    def _received_introduction(self, community, now, lan_introduction_address, wan_introduction_address):
         """
         Called when a response to an introduction-request is received.
 
@@ -2685,37 +2701,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         identifier will match the responses to the introduction-request.  If the responses are
         contradictory the response from the puncture will be leading, as this should contain the
         most recent information.
-
-        INDEX point to the entry in self._walk_identifiers, hence 1 for an introduction-response and
-        2 for a puncture.
         """
-        assert isinstance(index, int)
-        assert 1 <= index <= 2
-        assert isinstance(identifier, int)
-        assert identifier in self._walk_identifiers, "Must be a valid identifier, should be checked in the check_... handler"
-        candidate_tuple = self._walk_identifiers[identifier]
-        # [0] : True when either an introduction-response or a puncture is received
-        # [1] : None or candidate from introduction-response
-        # [2] : None or candidate from puncture
-        # [3] : community
-        # [4] : helper candidate
-        # [5] : timestamp request
-
-        if index == 1:
-            # we can ignore multiple introduction responses
-            if candidate_tuple[0]:
-                return
-
-            # mark walk as successful
-            candidate_tuple[0] = True
-
-            # increment statistics only the first time
-            self._statistics.increment_walk_success()
-
-        # we can ignore an introduction if we already received the puncture
-        if candidate_tuple[2]:
-            return
-
         if not (lan_introduction_address == ("0.0.0.0", 0) or wan_introduction_address == ("0.0.0.0", 0)):
             assert self._is_valid_lan_address(lan_introduction_address), lan_introduction_address
             assert self._is_valid_wan_address(wan_introduction_address), wan_introduction_address
@@ -2736,29 +2722,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             candidate.intro(community, now)
             if __debug__: dprint("received introduction to ", candidate)
 
-            # update the _walk_identifiers
-            candidate_tuple[index] = candidate
-
-            # 22/03/12 Boudewijn: disabled this optimization.  we do not want to explain how this
-            # exception influences the performance of the walker just to win a few seconds
-            #
-            # # 13/10/11 Boudewijn: when we had no candidates and we received this response from a
-            # # bootstrap node, we will immediately take an additional step towards the introduced node
-            # if index == 1 and isinstance(candidate_tuple[4], BootstrapCandidate):
-            #     # we need to count the number of WalkCandidates for this community.  If the total number
-            #     # of candidates is one and this candidate has category u"intro" we will directly create
-            #     # a new introduction request to this node.
-            #     iterator = (c for c in self._candidates.itervalues() if c.in_community(community, now) and c.is_any_active(now))
-            #     try:
-            #         iterator.next()
-            #         iterator.next()
-            #     except StopIteration:
-            #         # there are very few candidates that are active.  if the candidate that was just
-            #         # introduced is eligible we should connect to it.
-            #         if candidate.is_eligible_for_walk(community, now):
-            #             if __debug__: dprint("we have no candidates, immediately contact the introduced node")
-            #             self.create_introduction_request(community, candidate)
-            #             assert not candidate.is_eligible_for_walk(community, now)
+            return candidate
 
     def on_introduction_response(self, messages):
         community = messages[0].community
@@ -2780,24 +2744,14 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             self._filter_duplicate_candidate(message.candidate)
             if __debug__: dprint("introduction response from ", message.candidate)
 
+            # increment statistics only the first time
+            self._statistics.increment_walk_success()
+
+            # get cache object linked to this request and stop timeout from occurring
+            cache = self._request_cache.get(message.payload.identifier, True)
+
             # handle the introduction
-            self._received_introduction(1, community, now, message.payload.identifier, message.payload.lan_introduction_address, message.payload.wan_introduction_address)
-
-    def introduction_response_timeout(self, identifier):
-        has_response, intro_resp_candidate, punct_candidate, community, helper_candidate, request_time = self._walk_identifiers.pop(identifier)
-        if not has_response:
-            # helper_candidate did not respond to a request message in this community.  after some
-            # time inactive candidates become obsolete and will be removed by
-            # _periodically_cleanup_candidates
-            if __debug__: dprint("timeout for ", helper_candidate)
-
-            # we choose to set the entire helper to inactive instead of just the community where the
-            # timeout occurred.  this will allow us to quickly respond to nodes going offline, while
-            # the downside is that one dropped packet will cause us to invalidly inactivate all
-            # communities of the candidate.
-            now = time()
-            helper_candidate.obsolete(community, now)
-            helper_candidate.all_inactive(now)
+            cache.response_candidate = self._received_introduction(community, now, message.payload.lan_introduction_address, message.payload.wan_introduction_address)
 
     def check_puncture_request(self, messages):
         for message in messages:
@@ -2850,7 +2804,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
     def check_puncture(self, messages):
         for message in messages:
-            if not message.payload.identifier in self._walk_identifiers:
+            if not self._request_cache.has(message.payload.identifier, IntroductionRequestCache):
                 yield DropMessage(message, "invalid response identifier")
                 continue
 
@@ -2861,6 +2815,9 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         now = time()
 
         for message in messages:
+            # get cache object linked to this request but does NOT stop timeout from occurring
+            cache = self._request_cache.get(message.payload.identifier)
+
             # when the sender is behind a symmetric NAT and we are not, we will not be able to get
             # through using the port that the helper node gave us (symmetric NAT will give a
             # different port for each destination address).
@@ -2868,7 +2825,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             # we can match this source address (message.candidate.sock_addr) to the candidate and
             # modify the LAN or WAN address that has been proposed.
             lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
-            self._received_introduction(2, community, now, message.payload.identifier, lan_address, wan_address)
+            cache.puncture_candidate = self._received_introduction(community, now, lan_address, wan_address)
 
     def store_update_forward(self, messages, store, update, forward):
         """
@@ -3676,21 +3633,18 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         members = [member for signature, member in message.authentication.signed_members if not (signature or member.private_key)]
 
         # temporary cache object
-        cache = self._request_cache.claim(timeout + 10.0, SignatureRequestCache)
+        cache = SignatureRequestCache(members, response_func, response_args, timeout)
+        identifier = self._request_cache.claim(cache)
 
         # the dispersy-signature-request message that will hold the
         # message that should obtain more signatures
         meta = community.get_meta_message(u"dispersy-signature-request")
-        request = meta.impl(distribution=(community.global_time,),
-                            destination=tuple(members),
-                            payload=(cache.identifier, message))
+        cache.request = meta.impl(distribution=(community.global_time,),
+                                  destination=tuple(members),
+                                  payload=(identifier, message))
 
-        # set callback and timeout
-        footprint = community.get_meta_message(u"dispersy-signature-response").generate_footprint(payload=(cache.identifier,))
-        self.await_message(footprint, self._on_signature_response, (request, response_func, response_args), timeout, len(members))
-
-        self.store_update_forward([request], store, False, forward)
-        return request
+        self.store_update_forward([cache.request], store, False, forward)
+        return cache.request
 
     def check_signature_request(self, messages):
         assert isinstance(messages[0].meta.authentication, NoAuthentication)
@@ -3771,59 +3725,38 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
         self.store_update_forward(responses, False, False, True)
 
+    def check_signature_response(self, messages):
+        for message in messages:
+            if not self._request_cache.has(message.payload.identifier, SignatureRequestCache):
+                yield DropMessage(message, "invalid response identifier")
+                continue
+
+            yield message
+
     def on_signature_response(self, messages):
-        pass
-
-    def _on_signature_response(self, response, request, response_func, response_args):
         """
-        A Trigger matched a received dispersy-signature-response message.
+        Handle one or more dispersy-signature-response messages.
 
-        We sent out a dispersy-signature-request, though the create_signature_request method, and
+        We sent out a dispersy-signature-request, through the create_signature_request method, and
         have now received a dispersy-signature-response in reply.  If the signature is valid, we
         will call response_func with sub-message, where sub-message is the message parameter given
         to the create_signature_request method.
 
-        When a timeout occurs the response_func will also be called, although now the address and
-        sub-message parameters will be set None.
-
         Note that response_func is also called when the sub-message does not yet contain all the
         signatures.  This can be checked using sub-message.authentication.is_signed.
-
-        @see: create_signature_request
-
-        @param response: The dispersy-signature-response message.
-        @type response: Message.Implementation
-
-        @param request: The dispersy-dispersy-request message.
-        @type message: Message.Implementation
-
-        @param response_func: The method that is called when a signature or a timeout is received.
-        @type response_func: callable method
-
-        @param response_args: Optional arguments added when calling response_func.
-        @type response_args: tuple
         """
-        assert response is None or isinstance(response, Message.Implementation)
-        assert response is None or response.name == u"dispersy-signature-response"
-        assert isinstance(request, Message.Implementation)
-        assert request.name == u"dispersy-signature-request"
-        assert hasattr(response_func, "__call__")
-        assert isinstance(response_args, tuple)
+        for message in messages:
+            # get cache object linked to this request and stop timeout from occurring
+            cache = self._request_cache.get(message.payload.identifier, True)
 
-        # check for timeout
-        if response is None:
-            if __debug__: dprint("timeout")
-            response_func(request.payload.message, None, True, *response_args)
-
-        else:
             if __debug__: dprint("response")
-            old_submsg = request.payload.message
-            new_submsg = response.payload.message
+            old_submsg = cache.request.payload.message
+            new_submsg = message.payload.message
 
             old_body = old_submsg.packet[:len(old_submsg.packet) - sum([member.signature_length for member in old_submsg.authentication.members])]
             new_body = new_submsg.packet[:len(new_submsg.packet) - sum([member.signature_length for member in new_submsg.authentication.members])]
 
-            store, update, forward = response_func(old_submsg, new_submsg, old_body == new_body, *response_args)
+            store, update, forward = cache.response_func(old_submsg, new_submsg, old_body == new_body, *cache.response_args)
             if store or update or forward:
                 for signature, member in new_submsg.authentication.signed_members:
                     if not signature and member.private_key:

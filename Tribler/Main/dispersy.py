@@ -53,8 +53,11 @@ def main():
             # sometimes called without any packets...
             if packets:
                 # for address, data in packets:
-                #     meta = self.dispersy.convert_packet_to_meta_message(data, load=False)
-                #     print "%.1f %30s <- %15s:%-5d %4d bytes" % (time.time(), meta.name, address[0], address[1], len(data))
+                #     try:
+                #         name = self.dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
+                #     except:
+                #         name = "???"
+                #     print "%.1f %30s <- %15s:%-5d %4d bytes" % (time.time(), name, address[0], address[1], len(data))
 
                 try:
                     self.dispersy.data_came_in(packets)
@@ -63,8 +66,11 @@ def main():
                     raise
 
         def send(self, address, data):
-            # meta = self.dispersy.convert_packet_to_meta_message(data, load=False)
-            # print "%.1f %30s -> %15s:%-5d %4d bytes" % (time.time(), meta.name, address[0], address[1], len(data))
+            # try:
+            #     name = self.dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
+            # except:
+            #     name = "???"
+            # print "%.1f %30s -> %15s:%-5d %4d bytes" % (time.time(), name, address[0], address[1], len(data))
 
             with self.sendqueue_lock:
                 if self.sendqueue:

@@ -37,7 +37,7 @@ class Callback(object):
         # _state contains the current state of the thread.  it is protected by _lock and follows the
         # following states:
         #
-        #                                              -> fatal-exception -> STATE_EXCEPTION
+        #                                              --> fatal-exception -> STATE_EXCEPTION
         #                                             /
         # STATE_INIT -> start() -> PLEASE_RUN -> STATE_RUNNING
         #                                \            \
@@ -233,7 +233,7 @@ class Callback(object):
         """
         assert isinstance(id_, basestring), "ID_ has invalid type: %s" % type(id_)
         assert id_, "ID_ may not be an empty (unicode)string"
-        assert hasattr(call, "__call__"), "CALL must be callable"
+        assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
         assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
         assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
@@ -287,7 +287,7 @@ class Callback(object):
         """
         assert isinstance(id_, (basestring, int)), "ID_ has invalid type: %s" % type(id_)
         assert id_, "ID_ may not be zero or an empty (unicode)string"
-        assert hasattr(call, "__call__"), "CALL must be callable"
+        assert callable(call), "CALL must be callable"
         assert isinstance(args, tuple), "ARGS has invalid type: %s" % type(args)
         assert kargs is None or isinstance(kargs, dict), "KARGS has invalid type: %s" % type(kargs)
         assert isinstance(delay, float), "DELAY has invalid type: %s" % type(delay)
@@ -316,7 +316,7 @@ class Callback(object):
                 heappush(self._requests,
                          (delay + time(),
                           -priority,
-                          id_
+                          id_,
                           (call, args, {} if kargs is None else kargs),
                           None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
 
