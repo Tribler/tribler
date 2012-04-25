@@ -1234,8 +1234,8 @@ class BinaryConversion(Conversion):
             valid_or_null = True
             for index, member in zip(range(authentication.count), members):
                 signature = data[signature_offset:signature_offset+member.signature_length]
-                # dprint("INDEX: ", index)
-                # dprint(signature.encode('HEX'))
+                # dprint("INDEX: ", index, force=1)
+                # dprint(signature.encode('HEX'), force=1)
                 if not signature == "\x00" * member.signature_length:
                     if member.verify(data, data[signature_offset:signature_offset+member.signature_length], length=first_signature_offset):
                         signatures[index] = signature

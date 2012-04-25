@@ -58,7 +58,7 @@ from dprint import dprint
 from member import DummyMember, Member, MemberFromId, MemberWithoutCheck
 from message import BatchConfiguration, Packet, Message
 from message import DropMessage, DelayMessage, DelayMessageByProof, DelayMessageBySequence, DelayMessageBySubjectiveSet
-from message import DropPacket, DelayPacket
+from message import DropPacket, DelayPacket, DelayPacketByMissingMember
 from payload import AuthorizePayload, RevokePayload, UndoPayload
 from payload import DestroyCommunityPayload
 from payload import DynamicSettingsPayload
@@ -117,12 +117,14 @@ class SignatureRequestCache(Cache):
         self.timeout_delay = timeout
 
     def on_timeout(self):
-        if __debug__: dprint("timeout")
-        self.response_func(self.request.payload.message, None, True, *response_args)
+        self.response_func(self.request.payload.message, None, True, *self.response_args)
 
 class IntroductionRequestCache(Cache):
+    # we will accept the response at most 10.5 seconds after our request
     timeout_delay = 10.5
-    cleanup_delay = 0.0
+    # the cache remains available at most 4.5 after receiving the response.  this gives some time to
+    # receive the puncture message
+    cleanup_delay = 4.5
 
     def __init__(self, community, helper_candidate):
         self.community = community
@@ -143,6 +145,20 @@ class IntroductionRequestCache(Cache):
         now = time()
         self.helper_candidate.obsolete(self.community, now)
         self.helper_candidate.all_inactive(now)
+
+class MissingMemberRequestCache(Cache):
+    timeout_delay = 4.5
+    cleanup_delay = 0.0
+
+    def __init__(self, community):
+        self.community = community
+        self.delayed_packets = []
+        self.callbacks = []
+
+    def on_timeout(self):
+        if __debug__: dprint(len(self.delayed_packets), " packets and ", len(self.callbacks), " callbacks")
+        for func, args in self.callbacks:
+            func(None, *args)
 
 class Statistics(object):
     def __init__(self):
@@ -1710,7 +1726,6 @@ class Dispersy(Singleton):
         Hopefully the delay caused the batch to collect as many messages as possible.
         """
         assert isinstance(meta, Message)
-        assert meta in self._batch_cache
         assert isinstance(timestamp, float)
         assert isinstance(batch, list)
         assert len(batch) > 0
@@ -1978,10 +1993,25 @@ class Dispersy(Singleton):
                     dprint("drop a ", len(packet), " byte packet (", exception, ") from ", candidate, level="warning")
                     self._statistics.drop("_convert_batch_into_messages:%s" % exception, len(packet))
 
+            except DelayPacketByMissingMember, delay:
+                if __debug__:
+                    dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate)
+                    self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
+
+                cache = self._request_cache.get(delay.identifier)
+                if cache:
+                    cache.delayed_packets.append((candidate, packet))
+                else:
+                    cache = MissingMemberRequestCache(conversion.community)
+                    cache.delayed_packets.append((candidate, packet))
+                    self._request_cache.set(delay.identifier, cache)
+                    self._send([candidate], [delay.request.packet], u"-delay-packet-")
+
             except DelayPacket, delay:
                 if __debug__:
                     dprint("delay a ", len(packet), " byte packet (", delay, ") from ", candidate)
                     self._statistics.delay("_convert_batch_into_messages:%s" % delay, len(packet))
+
                 # try to extend an existing Trigger with the same pattern
                 for trigger in self._triggers:
                     if isinstance(trigger, TriggerPacket) and trigger.extend(delay.pattern, [(candidate, packet)]):
@@ -1993,7 +2023,7 @@ class Dispersy(Singleton):
                     if __debug__: dprint("created a new TriggerPacket")
                     self._triggers.append(trigger)
                     self._callback.register(trigger.on_timeout, delay=10.0, priority=TRIGGER_TIMEOUT_PRIORITY)
-                    self._send([candidate], [delay.request_packet], u"-delay-packet-")
+                    self._send([candidate], [delay.request.packet], u"-delay-packet-")
 
     def _store(self, messages):
         """
@@ -2533,11 +2563,6 @@ class Dispersy(Singleton):
             if candidate:
                 if __debug__: dprint("telling ", message.candidate, " that ", candidate, " exists")
 
-                if __debug__:
-                    if self._get_destination_address(message.candidate) != message.candidate.sock_addr:
-                        dprint("WARNING", force=1)
-                    dprint("intro-req -> ", message.candidate, " (_get_destination_address: ", self._get_destination_address(message.candidate), ")", force=1)
-
                 # create introduction response
                 responses.append(meta_introduction_response.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(message.candidate,), payload=(self._get_destination_address(message.candidate), self._lan_address, self._wan_address, candidate.lan_address, candidate.wan_address, self._connection_type, message.payload.identifier)))
 
@@ -2693,7 +2718,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             yield message
 
-    def _received_introduction(self, community, now, lan_introduction_address, wan_introduction_address):
+    def _received_introduction(self, community, now, lan_introduction_address, wan_introduction_address, update_addresses):
         """
         Called when a response to an introduction-request is received.
 
@@ -2715,8 +2740,9 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 candidate = self._create_candidate(WalkCandidate, sock_introduction_addr, lan_introduction_address, wan_introduction_address)
                 candidate.inactive(community, now)
 
-            # update candidate
-            candidate.update(lan_introduction_address, wan_introduction_address, u"unknown")
+            if update_addresses:
+                # update candidate
+                candidate.update(lan_introduction_address, wan_introduction_address, u"unknown")
 
             # reset the 'I have been introduced' timer
             candidate.intro(community, now)
@@ -2751,7 +2777,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             cache = self._request_cache.get(message.payload.identifier, True)
 
             # handle the introduction
-            cache.response_candidate = self._received_introduction(community, now, message.payload.lan_introduction_address, message.payload.wan_introduction_address)
+            cache.response_candidate = self._received_introduction(community, now, message.payload.lan_introduction_address, message.payload.wan_introduction_address, False)
 
     def check_puncture_request(self, messages):
         for message in messages:
@@ -2825,7 +2851,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             # we can match this source address (message.candidate.sock_addr) to the candidate and
             # modify the LAN or WAN address that has been proposed.
             lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
-            cache.puncture_candidate = self._received_introduction(community, now, lan_address, wan_address)
+            cache.puncture_candidate = self._received_introduction(community, now, lan_address, wan_address, True)
 
     def store_update_forward(self, messages, store, update, forward):
         """
@@ -3421,9 +3447,16 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         """
         We received a dispersy-identity message.
         """
-        pass
+        for message in messages:
+            # get cache object linked to this request and stop timeout from occurring
+            cache = self._request_cache.get("-missing-member-%s-%s-" % (message.community.cid.encode("HEX"), message.authentication.member.mid.encode("HEX")), True)
+            if cache:
+                if cache.delayed_packets:
+                    self._on_incoming_packets(cache.delayed_packets)
+                for func, args in cache.callbacks:
+                    func(message, *args)
 
-    def create_missing_identity(self, community, candidate, dummy_member, response_func=None, response_args=(), timeout=10.0, forward=True):
+    def create_missing_identity(self, community, candidate, dummy_member, response_func=None, response_args=(), forward=True):
         """
         Create a dispersy-missing-identity message.
 
@@ -3440,19 +3473,19 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             assert not dummy_member.public_key
             assert response_func is None or callable(response_func)
             assert isinstance(response_args, tuple)
-            assert isinstance(timeout, float)
-            assert timeout > 0.0
             assert isinstance(forward, bool)
 
-        meta = community.get_meta_message(u"dispersy-missing-identity")
-        request = meta.impl(distribution=(community.global_time,), destination=(candidate,), payload=(dummy_member.mid,))
+        identifier = "-missing-member-%s-%s-" % (community.cid.encode("HEX"), dummy_member.mid.encode("HEX"))
+        cache = self._request_cache.get(identifier)
+        if not cache:
+            cache = MissingMemberRequestCache(community)
+            self._request_cache.set(identifier, cache)
 
-        if response_func:
-            footprint = community.get_meta_message(u"dispersy-identity").generate_footprint(authentication=([dummy_member.mid],))
-            self.await_message(footprint, response_func, response_args, timeout, 1)
+            meta = community.get_meta_message(u"dispersy-missing-identity")
+            request = meta.impl(distribution=(community.global_time,), destination=(candidate,), payload=(dummy_member.mid,))
+            self.store_update_forward([request], False, False, forward)
 
-        self.store_update_forward([request], False, False, forward)
-        return request
+        cache.callbacks.append((response_func, response_args))
 
     def on_missing_identity(self, messages):
         """
@@ -3571,7 +3604,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         """
         Create a dispersy-signature-request message.
 
-        The dispersy-signature-request message contains a sub-message that is to be signed my
+        The dispersy-signature-request message contains a sub-message that is to be signed by
         multiple members.  The sub-message must use the MultiMemberAuthentication policy in order to
         store the multiple members and their signatures.
 
@@ -3643,6 +3676,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                                   destination=tuple(members),
                                   payload=(identifier, message))
 
+        if __debug__: dprint("asking ", ", ".join(member.mid.encode("HEX") for member in members))
         self.store_update_forward([cache.request], store, False, forward)
         return cache.request
 
@@ -3756,7 +3790,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             old_body = old_submsg.packet[:len(old_submsg.packet) - sum([member.signature_length for member in old_submsg.authentication.members])]
             new_body = new_submsg.packet[:len(new_submsg.packet) - sum([member.signature_length for member in new_submsg.authentication.members])]
 
-            store, update, forward = cache.response_func(old_submsg, new_submsg, old_body == new_body, *cache.response_args)
+            store, update, forward = cache.response_func(old_submsg, new_submsg, old_body != new_body, *cache.response_args)
             if store or update or forward:
                 for signature, member in new_submsg.authentication.signed_members:
                     if not signature and member.private_key:
@@ -4612,8 +4646,11 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             while True:
                 yield 10.0
                 now = time()
-                dprint("--- ", self._lan_address, "(", self._wan_address, ")  ", self._connection_type)
+                dprint("--- %s:%d" % self._lan_address, " (%s:%d) " % self._wan_address, self._connection_type)
                 for community in sorted(self._communities.itervalues(), key=lambda community: community.cid):
+                    if community.get_classification() == u"PreviewChannelCommunity":
+                        continue
+
                     candidates = [candidate for candidate in self._candidates.itervalues() if candidate.in_community(community, now) and candidate.is_any_active(now)]
                     dprint(" ", community.cid.encode("HEX"), " ", "%20s" % community.get_classification(), " with ", len(candidates), "" if community.dispersy_enable_candidate_walker else "*", " candidates[:5] ", ", ".join(str(candidate) for candidate in candidates[:5]))
 
@@ -4621,10 +4658,10 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             while True:
                 yield 10.0
                 now = time()
-                dprint("--- ", self._lan_address, "(", self._wan_address, ")  ", self._connection_type)
+                dprint("--- %s:%d" % self._lan_address, " (%s:%d) " % self._wan_address, self._connection_type)
                 for community in sorted(self._communities.itervalues(), key=lambda community: community.cid):
-                    # if community.get_classification() == u"PreviewChannelCommunity":
-                    #     continue
+                    if community.get_classification() == u"PreviewChannelCommunity":
+                        continue
 
                     categories = {u"walk":[], u"stumble":[], u"intro":[], u"sandi":[], u"none":[]}
                     for candidate in self._candidates.itervalues():

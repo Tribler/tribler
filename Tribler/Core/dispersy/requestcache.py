@@ -19,17 +19,24 @@ class RequestCache(object):
         self._identifiers = dict()
 
     def claim(self, cache):
+        while True:
+            identifier = int(random() * 2**16)
+            if not identifier in self._identifiers:
+                if __debug__: dprint("claiming on ", identifier, " for ", cache)
+                break
+
+        self.set(identifier, cache)
+        return identifier
+
+    def set(self, identifier, cache):
+        assert isinstance(identifier, (int, long, str)), type(identifier)
         assert isinstance(cache, Cache)
         assert isinstance(cache.timeout_delay, float)
         assert cache.timeout_delay > 0.0
 
-        while True:
-            identifier = int(random() * 2**16)
-            if not identifier in self._identifiers:
-                self._callback.register(self._on_timeout, (identifier,), id_="requestcache-%s" % identifier, delay=cache.timeout_delay)
-                self._identifiers[identifier] = cache
-                if __debug__: dprint("claiming on ", identifier, " for ", cache)
-                return identifier
+        if __debug__: dprint("set ", identifier, " for ", cache, " (", cache.timeout_delay, "s timeout)")
+        self._callback.register(self._on_timeout, (identifier,), id_="requestcache-%s" % identifier, delay=cache.timeout_delay)
+        self._identifiers[identifier] = cache
 
     def has(self, identifier, cls):
         if __debug__: dprint("cache contains ", identifier, "? ", identifier in self._identifiers)

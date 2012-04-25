@@ -2078,10 +2078,12 @@ class DispersySignatureScript(ScriptBase):
         yield 0.555
 
         dprint("SELF requests NODE to double sign")
-        def on_response(response):
+        def on_response(request, response, modified):
             assert_(response is None)
             container["timeout"] += 1
-        request = community.create_double_signed_text("Accept=<does not reach this point>", Member(node.my_member.public_key), on_response, (), 3.0)
+            return False, False, False
+
+        community.create_double_signed_text("Accept=<does not reach this point>", Member(node.my_member.public_key), on_response, (), 3.0)
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message")
@@ -2089,8 +2091,9 @@ class DispersySignatureScript(ScriptBase):
         # do not send a response
 
         # should timeout
-        for counter in range(4):
-            dprint("waiting... ", 4 - counter)
+        wait = 4
+        for counter in range(wait):
+            dprint("waiting... ", wait - counter)
             yield 1.0
         yield 0.11
 
@@ -2106,8 +2109,6 @@ class DispersySignatureScript(ScriptBase):
         SELF will request a signature from NODE.  SELF will receive the signature and produce a
         double signed message.
         """
-        ec = ec_generate_key(u"low")
-        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         container = {"response":0}
@@ -2119,11 +2120,13 @@ class DispersySignatureScript(ScriptBase):
         node.init_my_member()
 
         dprint("SELF requests NODE to double sign")
-        def on_response(response):
+        def on_response(request, response, modified):
             assert_(container["response"] == 0, container["response"])
-            assert_(request.authentication.is_signed)
+            assert_(response.authentication.is_signed)
+            assert_(modified == False)
             container["response"] += 1
-        request = community.create_double_signed_text("Accept=<does not matter>", Member(node.my_member.public_key), on_response, (), 3.0)
+            return False, False, False
+        community.create_double_signed_text("Accept=<does not matter>", Member(node.my_member.public_key), on_response, (), 3.0)
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message from SELF")
@@ -2133,11 +2136,12 @@ class DispersySignatureScript(ScriptBase):
         first_signature_offset = second_signature_offset - node.my_member.signature_length
         assert_(submsg.packet[second_signature_offset:] == "\x00" * node.my_member.signature_length, "The first signature MUST BE \x00's.  The creator must hold control over the community+member+global_time triplet")
         signature = node.my_member.sign(submsg.packet, length=first_signature_offset)
+        submsg.authentication.set_signature(node.my_member, signature)
 
         dprint("NODE sends dispersy-signature-response message to SELF")
-        request_id = hashlib.sha1(request.packet).digest()
+        identifier = message.payload.identifier
         global_time = community.global_time
-        node.give_message(node.create_dispersy_signature_response_message(request_id, signature, global_time, candidate))
+        node.give_message(node.create_dispersy_signature_response_message(identifier, submsg, global_time, candidate))
         yield 1.11
         assert_(container["response"] == 1, container["response"])
 
@@ -2150,8 +2154,6 @@ class DispersySignatureScript(ScriptBase):
         SELF will request a signature from NODE1 and NODE2.  Both NODE1 and NODE2 will ignore this
         request and SELF should get a timeout on the signature request after a few seconds.
         """
-        ec = ec_generate_key(u"low")
-        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         community = DebugCommunity.create_community(self._my_member)
         address = self._dispersy.socket.get_address()
         container = {"timeout":0}

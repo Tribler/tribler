@@ -2,14 +2,21 @@ import socket
 
 from bloomfilter import BloomFilter
 from candidate import Candidate, WalkCandidate
-from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
+from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin, ec_from_private_bin
 from dprint import dprint
 from member import Member
 from message import Message
 from time import time
 
 class DebugOnlyMember(Member):
-    pass
+    _cache = []
+
+    def __init__(self, public_key, private_key=""):
+        super(DebugOnlyMember, self).__init__(public_key)
+
+        if private_key:
+            self._private_key = private_key
+            self._ec = ec_from_private_bin(private_key)
 
 class Node(object):
     _socket_range = (8000, 8999)
@@ -282,16 +289,15 @@ class Node(object):
                          destination=(destination_member,),
                          payload=(message,))
 
-    def create_dispersy_signature_response_message(self, request_id, signature, global_time, destination_candidate):
-        assert isinstance(request_id, str)
-        assert len(request_id) == 20
-        assert isinstance(signature, str)
+    def create_dispersy_signature_response_message(self, identifier, message, global_time, destination_candidate):
+        isinstance(identifier, (int, long))
+        isinstance(message, Message.Implementation)
         assert isinstance(global_time, (int, long))
         assert isinstance(destination_candidate, Candidate)
         meta = self._community.get_meta_message(u"dispersy-signature-response")
         return meta.impl(distribution=(global_time,),
                          destination=(destination_candidate,),
-                         payload=(request_id, signature))
+                         payload=(identifier, message))
 
     def create_dispersy_subjective_set_message(self, cluster, subjective_set, global_time):
         assert isinstance(cluster, int)

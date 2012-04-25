@@ -8,20 +8,19 @@ class DelayMessageReqChannelMessage(DelayMessage):
         if __debug__:
             from Tribler.Core.dispersy.message import Message
         assert isinstance(delayed, Message.Implementation)
-        
-        if not community:
-            community = delayed.community
-        cid = community.cid.encode("HEX")
-        
+
+        self._community = community or delayed.community
+        self._includeSnapshot = includeSnapshot
+
         # the footprint that will trigger the delayed packet
-        footprint = "".join(("channel",
-                             " Community:", cid))
+        footprint = "".join(("channel", " Community:", self._community.cid.encode("HEX")))
+        super(DelayMessageReqChannelMessage, self).__init__("Missing channel-message", footprint, delayed)
 
-        # the request message that asks for the message that will
-        # trigger the delayed packet
-        meta = community.get_meta_message(u"missing-channel")
-        message = meta.impl(distribution=(community.global_time,),
-                            destination=(delayed.candidate,),
-                            payload=(includeSnapshot,))
+    @property
+    def request(self):
+        # the request message that asks for the message that will trigger the delayed packet
+        meta = self._community.get_meta_message(u"missing-channel")
+        return meta.impl(distribution=(self._community.global_time,),
+                         destination=(self._delayed.candidate,),
+                         payload=(self._includeSnapshot,))
 
-        super(DelayMessageReqChannelMessage, self).__init__("Missing channel-message", footprint, message, delayed)

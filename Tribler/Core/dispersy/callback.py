@@ -194,21 +194,21 @@ class Callback(object):
                 self._id += 1
                 id_ = self._id
 
-                if delay <= 0.0:
-                    heappush(self._expired,
-                             (-priority,
-                              id_,
-                              None,
-                              (call, args, {} if kargs is None else kargs),
-                              None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+            if delay <= 0.0:
+                heappush(self._expired,
+                         (-priority,
+                          id_,
+                          None,
+                          (call, args, {} if kargs is None else kargs),
+                          None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
 
-                else:
-                    heappush(self._requests,
-                             (delay + time(),
-                              -priority,
-                              id_,
-                              (call, args, {} if kargs is None else kargs),
-                              None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
+            else:
+                heappush(self._requests,
+                         (delay + time(),
+                          -priority,
+                          id_,
+                          (call, args, {} if kargs is None else kargs),
+                          None if callback is None else (callback, callback_args, {} if callback_kargs is None else callback_kargs)))
 
             # wakeup if sleeping
             if not self._event_is_set():
