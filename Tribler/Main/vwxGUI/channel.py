@@ -925,7 +925,9 @@ class PlaylistItem(ListItem):
         self.title.icon.type = 'tree'
         self.controls.append(self.title)
         
-        self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+        
+        self.desc = MaxBetterText(self, self.data[1], 2, 200, name="description")
+        #self.desc = wx.StaticText(self, -1, self.data[1], style = wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
         self.desc.SetMinSize((1, -1))
         self.hSizer.AddSpacer((40, -1))
         self.hSizer.Add(self.desc, 1, wx.LEFT|wx.BOTTOM, 3)
@@ -950,6 +952,9 @@ class PlaylistItem(ListItem):
         
             self.Layout()
             self.Thaw()
+            
+    def OnChange(self):
+        self.parent_list.OnChange()
     
 class ManageChannelFilesManager():
     def __init__(self, list):

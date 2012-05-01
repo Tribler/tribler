@@ -77,7 +77,7 @@ copy C:\WINDOWS\WinSxS\%CRTFULLNAME%\msvcp90.dll .
 REM Arno: Move py2exe results to installdir
 move dist\*.* dist\installdir
 
-copy Tribler\Main\Build\Win32\tribler.nsi dist\installdir
+copy Tribler\Main\Build\Win32\tribler*.nsi dist\installdir
 copy Tribler\Main\Build\Win32\tribler.exe.manifest dist\installdir
 REM copy %PYTHONHOME%\msvcr71.dll dist\installdir
 REM For Vista. This works only when building on XP
@@ -121,8 +121,15 @@ REM MainClient specific
 mkdir dist\installdir\Tribler\Main
 mkdir dist\installdir\Tribler\Main\vwxGUI
 mkdir dist\installdir\Tribler\Main\vwxGUI\images
+mkdir dist\installdir\Tribler\Main\webUI
+mkdir dist\installdir\Tribler\Main\webUI\static
+mkdir dist\installdir\Tribler\Main\webUI\static\images
+mkdir dist\installdir\Tribler\Main\webUI\static\lang
 copy Tribler\Main\vwxGUI\*.xrc dist\installdir\Tribler\Main\vwxGUI
 copy Tribler\Main\vwxGUI\images\*.* dist\installdir\Tribler\Main\vwxGUI\images
+copy Tribler\Main\webUI\static\*.* dist\installdir\Tribler\Main\webUI\static
+copy Tribler\Main\webUI\static\images\*.* dist\installdir\Tribler\Main\webUI\static\images
+copy Tribler\Main\webUI\static\lang\*.* dist\installdir\Tribler\Main\webUI\static\lang
 mkdir dist\installdir\Tribler\Category
 copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
@@ -133,6 +140,8 @@ REM Arno: Sign .EXE so MS "Block / Unblock" dialog has publisher info.
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
 :makeinstaller
+%NSIS% tribler_novlc.nsi
+move Tribler_*.exe ..
 %NSIS% tribler.nsi
 move Tribler_*.exe ..
 cd ..

@@ -13,7 +13,7 @@ RequestExecutionLevel user
 
 ;General
 Name "${PRODUCT} ${VERSION}"
-OutFile "${PRODUCT}_${VERSION}.exe"
+OutFile "${PRODUCT}_${VERSION}_noVLC.exe"
 
 ;Folder selection page
 InstallDir "$PROGRAMFILES\${PRODUCT}"
@@ -102,7 +102,6 @@ Section "!Main EXE" SecMain
  ; File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
- File /r vlc
  File *.bat
  Delete "$INSTDIR\*.pyd"
  File *.pyd
@@ -156,8 +155,8 @@ Section "!Main EXE" SecMain
  File Tribler\Main\webUI\static\images\*.*
  SetOutPath "$INSTDIR\Tribler\Main\webUI\static\lang"
  File Tribler\Main\webUI\static\lang\*.*
-
- ; Categories
+ 
+  ; Categories
  CreateDirectory "$INSTDIR\Tribler\Category"
  SetOutPath "$INSTDIR\Tribler\Category"
  File Tribler\Category\*.conf
@@ -178,7 +177,7 @@ Section "!Main EXE" SecMain
  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
  IntFmt $0 "0x%08X" $0
  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "EstimatedSize" "$0"
-
+ 
  ; Now writing to KHEY_LOCAL_MACHINE only -- remove references to uninstall from current user
  DeleteRegKey HKEY_CURRENT_USER "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
  ; Remove old error log if present
@@ -325,7 +324,7 @@ Function .onInit
   MessageBox MB_OK "The installer is already running."
 
   Abort 
-
+  
   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
   StrCmp $R0 "" done
 

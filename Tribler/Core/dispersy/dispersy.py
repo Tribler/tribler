@@ -1870,7 +1870,7 @@ class Dispersy(Singleton):
         assert all(isinstance(message, (Message.Implementation, DropMessage, DelayMessage)) for message in messages)
 
         # handle/remove DropMessage and DelayMessage instances
-        messages = [message for message in messages if _filter_fail(message)]
+        messages = [message for message in messages if isinstance(message, Message.Implementation) or _filter_fail(message)]
         if not messages:
             return 0
 

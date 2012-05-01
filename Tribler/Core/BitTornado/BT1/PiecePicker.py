@@ -29,12 +29,18 @@ DEBUG = False
 class PiecePicker:
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20):
+                 priority_step = 20, filepieceranges = []):
         # If we have less than the cutoff pieces, choose pieces at random. Otherwise,
         # go for rarest first.
         self.rarest_first_cutoff = rarest_first_cutoff
-
         self.priority_step = priority_step
+        
+        if filepieceranges and len(filepieceranges) > 0:
+            self.filepieceranges = set()
+            for start, end, _ in filepieceranges:
+                self.filepieceranges.update(range(start, end+1))
+        else:
+            self.filepieceranges = None
 
         # cutoff = number of non-seeds which need to have a piece before other
         #          partials take priority over rarest first. In effect, equal to:
@@ -427,6 +433,10 @@ class PiecePicker:
         @param connection: the connection object on which the returned piece will be requested
         @return: a piece number or None 
         """
+        
+        if self.filepieceranges:
+            wantfunc = lambda piece, oldwantfunc = wantfunc: piece in self.filepieceranges and oldwantfunc(piece)
+        
         while True:
             # ProxyService_
             #

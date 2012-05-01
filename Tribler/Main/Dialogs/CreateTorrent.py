@@ -40,9 +40,9 @@ class CreateTorrent(wx.Dialog):
         hSizer.Add(browseDirButton)
         vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
         
-        self.recursive = wx.CheckBox(self, -1, 'Include all subdirectories')
-        self.recursive.Bind(wx.EVT_CHECKBOX, self.OnRecursive)
-        vSizer.Add(self.recursive, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
+        #self.recursive = wx.CheckBox(self, -1, 'Include all subdirectories')
+        #self.recursive.Bind(wx.EVT_CHECKBOX, self.OnRecursive)
+        #vSizer.Add(self.recursive, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
         
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 10)
         
@@ -368,7 +368,7 @@ class CreateTorrent(wx.Dialog):
                             paths.extend(addDir(absfile, recursive))
                     
                     return paths
-                paths = addDir(paths[0], self.recursive.GetValue())
+                paths = addDir(paths[0], False)#self.recursive.GetValue())
             
             self.selectedPaths = paths
             nrFiles = len([file for file in paths if os.path.isfile(file)])

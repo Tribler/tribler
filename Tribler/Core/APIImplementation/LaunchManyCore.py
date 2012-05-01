@@ -133,7 +133,8 @@ class TriblerLaunchMany(Thread):
                 print >>sys.stderr,'tlm: Reading Session state from',config['state_dir']
 
             cachedb.init(config, self.rawserver_fatalerrorfunc)
-
+            
+            self.pops_db = PopularityDBHandler.getInstance(self.rawserver)
             self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
@@ -154,7 +155,6 @@ class TriblerLaunchMany(Thread):
             self.search_db      = SearchDBHandler.getInstance()
             self.term_db        = TermDBHandler.getInstance()
             self.simi_db        = SimilarityDBHandler.getInstance()
-            self.pops_db = PopularityDBHandler.getInstance()
 
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             self.richmetadataDbHandler = MetadataDBHandler.getInstance()
@@ -399,9 +399,15 @@ class TriblerLaunchMany(Thread):
             # initial delay
             yield 5.0
 
-            schedule = []
-            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {}))
-            schedule.append((ChannelCommunity, (), {}))
+            if sys.argv[0].endswith("dispersy-channel-booster.py"):
+                schedule = []
+                schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True}))
+                schedule.append((ChannelCommunity, (), {}))
+
+            else:
+                schedule = []
+                schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
+                schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
                 try:
@@ -410,10 +416,12 @@ class TriblerLaunchMany(Thread):
                         if self.dispersy.has_community(master.mid):
                             continue
 
+                        if __debug__: print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX"), "#%d" % counter
                         cls.load_community(master, *args, **kargs)
                         yield 1.0
 
                     if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
+
                 except:
                     #Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
                     print_exc()
@@ -769,7 +777,7 @@ class TriblerLaunchMany(Thread):
                 if self.mypref_db != None:
                     preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
                     if preferences:
-                        if os.path.isdir(preferences[2]):
+                        if os.path.isdir(preferences[2]) or preferences[2] == '':
                             dscfg.set_dest_dir(preferences[2])
             
         if DEBUG:

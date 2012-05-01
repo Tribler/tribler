@@ -178,6 +178,7 @@ class DelayMessageBySequence(DelayMessage):
 
     @property
     def request(self):
+        if __debug__: dprint("delay ", self._delayed.meta.name, " message by sequence [", self._missing_low, ":", self._missing_high, "]", force=1)
         # the request message that asks for the message that will trigger the delayed packet
         meta = self._delayed.community.get_meta_message(u"dispersy-missing-sequence")
         return meta.impl(distribution=(self._delayed.community.global_time,), payload=(self._delayed.authentication.member, self._delayed.meta, self._missing_low, self._missing_high))

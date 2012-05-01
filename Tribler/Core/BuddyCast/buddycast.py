@@ -813,6 +813,7 @@ class BuddyCastCore:
         """
 
         timeout_list = []
+        to_be_removed = []
         for peer_permid in self.connections:
             # we don't close connection here, because if no incoming msg,
             # sockethandler will close connection in 5-6 min.
@@ -820,12 +821,20 @@ class BuddyCastCore:
             if (peer_permid in self.connected_connectable_peers or \
                  peer_permid in self.connected_unconnectable_peers):   
                 timeout_list.append(peer_permid)
+                
+            else:
+                to_be_removed.append(peer_permid)
 
         # 04/08/10 boudewijn: a crawler can no longer disconnect.
         # Staying connected means that the crawler is returned in
         # buddycast messages, otherwise not.
         for peer_permid in timeout_list:
             self.sendKeepAliveMsg(peer_permid)
+            
+        # Removing actually will close the connection on the next keepalive we receive
+        if len(to_be_removed) > 1:
+            for peer_permid in to_be_removed:
+                self.closeConnection(peer_permid, "Too many open connections, removing")
                 
     def sendKeepAliveMsg(self, peer_permid):
         """ Send keep alive message to a peer, and extend its expiration """
@@ -1873,7 +1882,7 @@ class BuddyCastCore:
                 self.get_peer_info(permid), "selversion:", selversion, \
                 "local_init:", locally_initiated, ctime(now()), "; #connections:", len(self.connected_connectable_peers), \
                 "; #TB:", len(self.connected_taste_buddies), "; #RP:", len(self.connected_random_peers)
-        
+    
     def addConnection(self, peer_permid, selversion, locally_initiated):
         # add connection to connection list
         _now = now()

@@ -79,7 +79,7 @@ class urlopen:
                     self.connection.close()
                 except:
                     pass
-                self._open(self.response.getheader('Location'))
+                self._open(self.response.getheader('Location'), silent)
                 return
             if status != 200:
                 try:

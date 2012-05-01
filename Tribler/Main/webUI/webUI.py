@@ -35,8 +35,10 @@ class WebUI():
         self.currentTokens = set()
         self.currentTorrents = {}
         
+        
         self.library_manager = library_manager
         self.torrentsearch_manager = torrentsearch_manager
+        self.guiUtility = library_manager.guiUtility
         self.port = port
         
         self.started = False
@@ -51,6 +53,8 @@ class WebUI():
         if not self.started:
             self.started = True
             current_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            current_dir = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'webUI')
             
             cherrypy.server.socket_host = "0.0.0.0"
             cherrypy.server.socket_port = self.port
