@@ -26,7 +26,7 @@ class Callback(object):
         # _event is used to wakeup the thread when new actions arrive
         self._event = Event()
         self._event_set = self._event.set
-        self._event_is_set = self._event.is_set
+        self._event_is_set = self._event.isSet
 
         # _lock is used to protect variables that are written to on multiple threads
         self._lock = Lock()
@@ -435,7 +435,7 @@ class Callback(object):
         actual_time = 0
         event_clear = self._event.clear
         event_wait = self._event.wait
-        event_is_set = self._event.is_set
+        event_is_set = self._event.isSet
         expired = self._expired
         get_timestamp = time
         lock = self._lock
