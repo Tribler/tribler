@@ -62,6 +62,12 @@ class SwiftDef(ContentDefinition):
         @return string
         """
         return self.get_roothash_as_hex()
+    
+    def get_id(self):
+        """ Returns a identifier for this Definition
+        @return string
+        """
+        return self.get_roothash()
 
     def get_live(self):
         """ Whether swift swarm is a live stream 

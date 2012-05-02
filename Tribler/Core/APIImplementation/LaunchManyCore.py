@@ -725,7 +725,7 @@ class TriblerLaunchMany(Thread):
             return None
 
     def resume_download(self,filename,initialdlstatus=None,commit=True,setupDelay=0):
-        tdef = dscfg = pstate = None
+        tdef = sdef = dscfg = pstate = None
         
         try:
             pstate = self.load_download_pstate(filename)
@@ -733,11 +733,8 @@ class TriblerLaunchMany(Thread):
             # SWIFTPROC
             if SwiftDef.is_swift_url(pstate['metainfo']):
                 sdef = SwiftDef.load_from_url(pstate['metainfo'])
-                self.swift_add(sdef,dscfg,pstate,initialdlstatus)
-
             else:
                 tdef = TorrentDef.load_from_dict(pstate['metainfo'])
-                self.add(tdef,dscfg,pstate,initialdlstatus)
             
             dlconfig = pstate['dlconfig']
             if isinstance(dlconfig['saveas'], tuple):
@@ -787,10 +784,14 @@ class TriblerLaunchMany(Thread):
             else:
                 print >>sys.stderr,"tlm: load_checkpoint: resumedata len",len(pstate['engineresumedata'])
         
-        if tdef and dscfg:
+        if (tdef or sdef) and dscfg:
             if dscfg.get_dest_dir() != '': #removed torrent ignoring
                 try:
-                    self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit,setupDelay=setupDelay)
+                    if tdef:
+                        self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit,setupDelay=setupDelay)
+                    else:
+                        self.swift_add(sdef,dscfg,pstate,initialdlstatus)
+                        
                 except Exception,e:
                     self.rawserver_nonfatalerrorfunc(e)
             else:

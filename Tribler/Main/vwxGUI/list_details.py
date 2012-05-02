@@ -28,7 +28,7 @@ from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
-    LibraryTorrent, ChannelTorrent
+    LibraryTorrent, ChannelTorrent, CollectedTorrent
 from Tribler.community.channel.community import ChannelCommunity
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']

@@ -211,7 +211,12 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         @return string
         """
         return "torrent"
-
+    
+    def get_id(self):
+        """ Returns a identifier for this Definition
+        @return string
+        """
+        return self.get_infohash()
     
     #
     # Convenience instance methods for publishing new content

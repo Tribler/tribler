@@ -5,7 +5,7 @@ import wx
 import os
 
 class SaveAs(wx.Dialog):
-    def __init__(self, parent, torrentdef, defaultdir, defaultname, configfile):
+    def __init__(self, parent, cdef, defaultdir, defaultname, configfile):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600,450))
         self.filehistory = wx.FileHistory(10)
         self.config = wx.FileConfig(appName = "Tribler", localFilename = configfile)
@@ -18,7 +18,7 @@ class SaveAs(wx.Dialog):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        if torrentdef:
+        if cdef and cdef.get_def_type() == 'torrent':
             line = 'Please select a directory where to save:'
         else:
             line = 'Please select a directory where to save the torrent(s)'
@@ -28,8 +28,8 @@ class SaveAs(wx.Dialog):
         firstLine.SetFont(font)
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        if torrentdef:
-            torrentName = wx.StaticText(self, -1, torrentdef.get_name_as_unicode())
+        if cdef and cdef.get_def_type() == 'torrent':
+            torrentName = wx.StaticText(self, -1, cdef.get_name_as_unicode())
             torrentName.SetMinSize((1, -1))
             vSizer.Add(torrentName, 0, wx.LEFT|wx.EXPAND, 10)
         

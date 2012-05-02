@@ -45,3 +45,9 @@ class ContentDefinition:
         """
         raise NotYetImplementedException()
     
+    def get_id(self):
+        """ Returns a identifier for this Definition
+        @return string
+        """
+        raise NotYetImplementedException()
+    

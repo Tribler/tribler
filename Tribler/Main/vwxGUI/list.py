@@ -1434,8 +1434,8 @@ class LibraryList(SizeList):
             dsdict = {}
             old_dsdict = {}
             for ds in dslist:
-                infohash = ds.get_download().get_def().get_infohash()
-                dsdict[infohash] = ds
+                id = ds.get_download().get_def().get_id()
+                dsdict[id] = ds
                         
             curStates = {}
             didStateChange = False
@@ -1466,8 +1466,8 @@ class LibraryList(SizeList):
             
             if didStateChange and self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again
-            
-            for infohash, item in self.list.items.iteritems():
+
+            for id, item in self.list.items.iteritems():
                 ds = item.original_data.ds
                 status = item.progressPanel.Update(ds)
                 
@@ -1480,7 +1480,7 @@ class LibraryList(SizeList):
                 totals[3] = totals[3] + item.data[3]
                 totals[4] = totals[4] + item.data[4]
                 
-                if newFilter or not self.__ds__eq__(ds, old_dsdict.get(infohash, None)):
+                if newFilter or not self.__ds__eq__(ds, old_dsdict.get(id, None)):
                     nr_connections = str(item.data[2][0] + item.data[2][1])
                     item.connections.SetLabel(nr_connections)
                     

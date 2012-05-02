@@ -22,6 +22,7 @@ from time import time
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
+from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 
 DEBUG = False
 
@@ -264,6 +265,11 @@ class GUIUtility:
             
         elif input.startswith("magnet:"):
             if self.frame.startDownloadFromMagnet(str(input)):
+                self.frame.top_bg.searchField.Clear()
+                self.ShowPage('my_files')
+        
+        elif input.startswith(SWIFT_URL_SCHEME):
+            if self.frame.startDownloadFromSwift(str(input)):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
                 

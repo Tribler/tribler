@@ -869,14 +869,13 @@ class LibraryManager:
         updates = False
         
         for ds in self.dslist[:]:
-            infohash = ds.get_download().get_def().get_infohash()
-            
+            id = ds.get_download().get_def().get_id()
             progress = (ds.get_progress() or 0.0) * 100.0
             #update progress if difference is larger than 5%
-            if progress - self.cache_progress.get(infohash, 0) > 5:
-                self.cache_progress[infohash] = progress
+            if progress - self.cache_progress.get(id, 0) > 5:
+                self.cache_progress[id] = progress
                 try:
-                    self.mypref_db.updateProgress(infohash, progress, commit = False)
+                    self.mypref_db.updateProgress(id, progress, commit = False)
                     updates = True
                 except:
                     print_exc()

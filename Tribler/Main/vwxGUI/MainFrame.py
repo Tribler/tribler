@@ -376,7 +376,7 @@ class MainFrame(wx.Frame):
     def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            self.startDownload(tdef=tdef, destdir = destdir)
+            self.startDownload(cdef=tdef, destdir = destdir)
                 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
@@ -386,11 +386,16 @@ class MainFrame(wx.Frame):
         print >> sys.stderr, "Trying to retrieve metadata for:", url
         return True
     
+    def startDownloadFromSwift(self, url, destdir = None):
+        cdef = SwiftDef.load_from_url(url)
+        self.startDownload(cdef=cdef, destdir = destdir)
+        return True
+    
     def startDownloadFromUrl(self, url, destdir = None):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                self.startDownload(tdef=tdef, destdir = destdir)
+                self.startDownload(cdef=tdef, destdir = destdir)
                 return True
         except:
             print_exc()
@@ -398,15 +403,15 @@ class MainFrame(wx.Frame):
         return False
 
     @forceWxThread
-    def startDownload(self,torrentfilename=None,destdir=None,tdef = None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
+    def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
         if DEBUG:
-            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,tdef
+            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,cdef
         
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
         try:
-            if tdef is None:
-                tdef = TorrentDef.load(torrentfilename)
+            if cdef is None:
+                cdef = TorrentDef.load(torrentfilename)
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             
@@ -417,7 +422,7 @@ class MainFrame(wx.Frame):
                 if not correctedFilename and tdef.is_multifile_torrent():
                     defaultname = tdef.get_name_as_unicode()
                     
-                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
+                dlg = SaveAs(self, cdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 dlg.CenterOnParent()
                 if dlg.ShowModal() == wx.ID_OK:
                     #for multifile we enabled correctedFilenames, use split to remove the filename from the path
@@ -442,21 +447,25 @@ class MainFrame(wx.Frame):
 #                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
                 # _ProxyService 90s Test
             
-                videofiles = tdef.get_files(exts=videoextdefaults)
+                if cdef.get_def_type() == 'torrent':
+                    videofiles = cdef.get_files(exts=videoextdefaults)
+                else:
+                    videofiles = []
+                    
                 if vodmode and len(videofiles) == 0:
                     vodmode = False
     
-                if vodmode or tdef.get_live():
+                if vodmode or cdef.get_live():
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
                     videoplayer = VideoPlayer.getInstance()
-                    result = videoplayer.start_and_play(tdef,dscfg)
+                    result = videoplayer.start_and_play(cdef,dscfg)
                     
                 else:
                     if selectedFiles:
                         dscfg.set_selected_files(selectedFiles)
                     
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
-                    result = self.utility.session.start_download(tdef,dscfg)
+                    result = self.utility.session.start_download(cdef,dscfg)
                 
                 if result:
                     self.show_saved()
