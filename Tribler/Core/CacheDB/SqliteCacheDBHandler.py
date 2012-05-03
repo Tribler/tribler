@@ -2973,48 +2973,49 @@ class BarterCastDBHandler(BasicDBHandler):
                 
         #print >>sys.stderr,"NEXTtopN: size is",nrecs
         
-        for offset in range(0,nrecs,increment):
-            if offset+increment > nrecs:
-                limit = nrecs-offset
-            else:
-                limit = increment
-            #print >>sys.stderr,"NEXTtopN: get",offset,limit
-        
-            if local_only:
-                sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast WHERE (peer_id_from = ? or peer_id_to = ?) LIMIT ? OFFSET ?"
-                reslist = self._db.fetchall(sql, (my_peer_id, my_peer_id, limit, offset))
-            else:
-                sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast LIMIT ? OFFSET ?"
-                reslist = self._db.fetchall(sql, (limit, offset))
-        
-            #print >>sys.stderr,"NEXTtopN: res len is",len(reslist),`reslist`
-            for res in reslist:
-                (peer_id_from,peer_id_to,downloaded,uploaded,last_seen,value) = res
+        if nrecs > 0:
+            for offset in range(0,nrecs,increment):
+                if offset+increment > nrecs:
+                    limit = nrecs-offset
+                else:
+                    limit = increment
+                #print >>sys.stderr,"NEXTtopN: get",offset,limit
             
-                if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
-                #if (not peer_id_to == peer_id_from):
+                if local_only:
+                    sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast WHERE (peer_id_from = ? or peer_id_to = ?) LIMIT ? OFFSET ?"
+                    reslist = self._db.fetchall(sql, (my_peer_id, my_peer_id, limit, offset))
+                else:
+                    sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast LIMIT ? OFFSET ?"
+                    reslist = self._db.fetchall(sql, (limit, offset))
+            
+                #print >>sys.stderr,"NEXTtopN: res len is",len(reslist),`reslist`
+                for res in reslist:
+                    (peer_id_from,peer_id_to,downloaded,uploaded,last_seen,value) = res
+                
+                    if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
+                    #if (not peer_id_to == peer_id_from):
+            
+                        up = uploaded *1024 # make into bytes
+                        down = downloaded *1024
         
-                    up = uploaded *1024 # make into bytes
-                    down = downloaded *1024
-    
-                    if DEBUG:
-                        print >> sys.stderr, "bartercastdb: getTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getNameByID(peer_id_from), self.getNameByID(peer_id_to), up, down)
-    
-                    processed.add((peer_id_from, peer_id_to))
-    
-                    # fix for multiple my_permids
-                    if peer_id_from == -1: # 'non-tribler':
-                        peer_id_to = my_peer_id
-                    if peer_id_to == -1: # 'non-tribler':
-                        peer_id_from = my_peer_id
-    
-                    # process peer_id_from
-                    total_up[peer_id_from] = total_up.get(peer_id_from, 0) + up
-                    total_down[peer_id_from] = total_down.get(peer_id_from, 0) + down
-    
-                    # process peer_id_to
-                    total_up[peer_id_to] = total_up.get(peer_id_to, 0) + down
-                    total_down[peer_id_to] = total_down.get(peer_id_to, 0) +  up
+                        if DEBUG:
+                            print >> sys.stderr, "bartercastdb: getTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getNameByID(peer_id_from), self.getNameByID(peer_id_to), up, down)
+        
+                        processed.add((peer_id_from, peer_id_to))
+        
+                        # fix for multiple my_permids
+                        if peer_id_from == -1: # 'non-tribler':
+                            peer_id_to = my_peer_id
+                        if peer_id_to == -1: # 'non-tribler':
+                            peer_id_from = my_peer_id
+        
+                        # process peer_id_from
+                        total_up[peer_id_from] = total_up.get(peer_id_from, 0) + up
+                        total_down[peer_id_from] = total_down.get(peer_id_from, 0) + down
+        
+                        # process peer_id_to
+                        total_up[peer_id_to] = total_up.get(peer_id_to, 0) + down
+                        total_down[peer_id_to] = total_down.get(peer_id_to, 0) +  up
                     
         # create top N peers
         top = []
