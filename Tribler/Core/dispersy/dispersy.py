@@ -1457,9 +1457,9 @@ class Dispersy(Singleton):
         others = [other
                   for other
                   in self._candidates.itervalues()
-                  if ((is_symmetric_nat or other.connection_type == u"symmetric-NAT")
-                      and other.sock_addr[0] == sock_addr[0]
-                      and other.lan_address in (("0.0.0.0", 0), lan_address))]
+                  if ((is_symmetric_nat or other.connection_type == u"symmetric-NAT") and
+                      other.sock_addr[0] == sock_addr[0] and
+                      other.lan_address == lan_address)]
 
         # merge and remove existing candidates in favor of the new CANDIDATE
         for other in others:
@@ -1467,7 +1467,7 @@ class Dispersy(Singleton):
             if not other == candidate:
                 if __debug__: dprint("removing ", other, " in favor or ", candidate)
                 candidate.merge(other)
-                del self._candidates[other.key]
+                del self._candidates[other.sock_addr]
                 self.wan_address_unvote(other)
 
     def load_message(self, community, member, global_time):
