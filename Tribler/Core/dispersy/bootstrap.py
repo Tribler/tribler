@@ -1,6 +1,8 @@
 import os
 from socket import gethostbyname
 
+from candidate import BootstrapCandidate
+
 _trackers = [(u"dispersy1.tribler.org", 6421),
              (u"dispersy2.tribler.org", 6422),
              (u"dispersy3.tribler.org", 6423),
@@ -30,20 +32,20 @@ def get_bootstrap_hosts(working_directory):
     else:
         return _trackers
 
-def get_bootstrap_addresses(working_directory):
+def get_bootstrap_candidates(dispersy):
     """
     Returns a list with all known bootstrap peers.
 
     Bootstrap peers are retrieved from WORKING_DIRECTORY/bootstraptribler.txt if it exits.
     Otherwise it is created using the trackers defined in _TRACKERS.
 
-    Each bootstrap peer gives either None or a (ip-address, port) tuple.  None values can be caused
-    by malfunctioning DNS.
+    Each bootstrap peer gives either None or a Candidate.  None values can be caused by
+    malfunctioning DNS.
     """
-    def get_address(host, port):
+    def get_candidate(host, port):
         try:
-            return gethostbyname(host), port
+            return BootstrapCandidate((gethostbyname(host), port), False)
         except:
             return None
 
-    return [get_address(host, port) for host, port in get_bootstrap_hosts(working_directory)]
+    return [get_candidate(host, port) for host, port in get_bootstrap_hosts(dispersy.working_directory)]

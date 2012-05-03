@@ -12,7 +12,7 @@ from Tribler.Core.Swift.SwiftProcess import *
 from Tribler.Utilities.Instance2Instance import *
 
 
-DEBUG = True
+DEBUG = False
 
 class SwiftProcessMgr(InstanceConnectionHandler):
     """ Class that manages a number of SwiftProcesses """

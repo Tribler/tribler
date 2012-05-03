@@ -143,7 +143,7 @@ class DebugCommunity(Community):
     """
     @property
     def my_candidate(self):
-        return WalkCandidate(self._dispersy.lan_address, self._dispersy.lan_address, self._dispersy.wan_address)
+        return WalkCandidate(self._dispersy.lan_address, False, self._dispersy.lan_address, self._dispersy.wan_address)
 
     @property
     def dispersy_candidate_request_initial_delay(self):

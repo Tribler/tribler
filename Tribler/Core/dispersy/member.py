@@ -211,7 +211,7 @@ class MemberBase(DummyMember):
 
         else:
             try:
-                self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ?",
+                self._database.execute(u"SELECT 1 FROM sync WHERE member = ? AND meta_message = ? LIMIT 1",
                                        (self._database_id, community.get_meta_message(u"dispersy-identity").database_id)).next()
             except StopIteration:
                 return False

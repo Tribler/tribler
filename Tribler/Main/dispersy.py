@@ -4,102 +4,17 @@
 Run Dispersy in standalone mode.  Tribler will not be started.
 """
 
-import errno
 import optparse
-import socket
 import sys
 import threading
-import time
-import traceback
 
-# from Tribler.Community.Discovery.Community import DiscoveryCommunity
 from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
 from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.dispersy import Dispersy
-
-if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
-
-if sys.platform == 'win32':
-    SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
-else:
-    SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
+from Tribler.Core.dispersy.endpoint import TunnelEndpoint, RawserverEndpoint
 
 def main():
-    class DispersySocket(object):
-        def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
-            while True:
-                try:
-                    self.socket = rawserver.create_udpsocket(port, ip)
-                    if __debug__: dprint("Dispersy listening at ", port, force=True)
-                except socket.error, error:
-                    port += 1
-                    continue
-                break
-
-            self.rawserver = rawserver
-            self.rawserver.start_listening_udp(self.socket, self)
-            self.dispersy = dispersy
-            self.sendqueue_lock = threading.Lock()
-            self.sendqueue = []
-
-        def get_address(self):
-            return self.socket.getsockname()
-
-        def data_came_in(self, packets):
-            # called on the Tribler rawserver
-
-            # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
-            # sometimes called without any packets...
-            if packets:
-                # for address, data in packets:
-                #     try:
-                #         name = self.dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
-                #     except:
-                #         name = "???"
-                #     print "%.1f %30s <- %15s:%-5d %4d bytes" % (time.time(), name, address[0], address[1], len(data))
-
-                try:
-                    self.dispersy.data_came_in(packets)
-                except:
-                    traceback.print_exc()
-                    raise
-
-        def send(self, address, data):
-            # try:
-            #     name = self.dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
-            # except:
-            #     name = "???"
-            # print "%.1f %30s -> %15s:%-5d %4d bytes" % (time.time(), name, address[0], address[1], len(data))
-
-            with self.sendqueue_lock:
-                if self.sendqueue:
-                    self.sendqueue.append((data, address))
-                else:
-                    try:
-                        self.socket.sendto(data, address)
-
-                    except socket.error, error:
-                        if error[0] == SOCKET_BLOCK_ERRORCODE:
-                            self.sendqueue.append((data, address))
-                            print >> sys.stderr, time.time(), "sendqueue overflowing", len(self.sendqueue), "(first schedule)"
-                            self.rawserver.add_task(self.process_sendqueue, 0.1)
-
-        def process_sendqueue(self):
-            print >> sys.stderr, time.time(), "sendqueue overflowing", len(self.sendqueue)
-
-            with self.sendqueue_lock:
-                while self.sendqueue:
-                    data, address = self.sendqueue.pop(0)
-                    try:
-                        self.socket.sendto(data, address)
-
-                    except socket.error, error:
-                        if error[0] == SOCKET_BLOCK_ERRORCODE:
-                            self.sendqueue.insert(0, (data, address))
-                            self.rawserver.add_task(self.process_sendqueue, 0.1)
-                            break
-
     def on_fatal_error(error):
         print >> sys.stderr, "Rawserver fatal error:", error
         global exit_exception
@@ -112,7 +27,17 @@ def main():
     def start():
         # start Dispersy
         dispersy = Dispersy.get_instance(callback, unicode(opt.statedir))
-        dispersy.socket = DispersySocket(rawserver, dispersy, opt.port, opt.ip)
+
+        if opt.swiftproc:
+            # start swift
+            sesslock = threading.Lock()
+            spm = SwiftProcessMgr(opt.swiftpath, opt.swiftcmdlistenport, opt.swiftdlsperproc, sesslock)
+            swift_process = spm.get_or_create_sp(opt.statedir)
+            dispersy.endpoint = TunnelEndpoint(swift_process, dispersy)
+            swift_process.add_download(dispersy.endpoint)
+
+        else:
+            dispersy.endpoint = RawserverEndpoint(rawserver, dispersy, opt.port, opt.ip)
 
         # load the script parser
         if opt.script:
@@ -201,6 +126,11 @@ def main():
     command_line_parser.add_option("--script", action="store", type="string", help="Runs the Script python file with <SCRIPT> as an argument")
     command_line_parser.add_option("--script-args", action="store", type="string", help="Executes --script with these arguments.  Example 'startingtimestamp=1292333014,endingtimestamp=12923340000'")
     command_line_parser.add_option("--yappi", action="store_true", help="Use Yappi to produce a performance profile")
+    # swift
+    command_line_parser.add_option("--swiftproc", action="store_true", help="Use swift to tunnel all traffic", default=False)
+    command_line_parser.add_option("--swiftpath", action="store", type="string", default="./swift")
+    command_line_parser.add_option("--swiftcmdlistenport", action="store", type="int", default=7760+481)
+    command_line_parser.add_option("--swiftdlsperproc", action="store", type="int", default=1000)
 
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()

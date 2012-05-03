@@ -871,10 +871,14 @@ class ChannelCommunity(Community):
                         if tormessage:
                             packets.append(tormessage.packet)
 
-                self._dispersy._send([message.candidate], packets, key = u'missing-channel-response')
+                if __debug__:
+                    self._dispersy.statistics.outgoing(u"missing-channel-response", sum(len(packet) for packet in packets), len(packets))
+                self._dispersy.endpoint.send([message.candidate], packets)
 
             else:
-                self._dispersy._send([message.candidate], [channelmessage.packet], key = u'missing-channel-response')
+                if __debug__:
+                    self._dispersy.statistics.outgoing(u"missing-channel-response", len(channelmessage.packet), 1)
+                self._dispersy.endpoint.send([message.candidate], [channelmessage.packet])
 
     #check or receive moderation messages
     @forceDispersyThread

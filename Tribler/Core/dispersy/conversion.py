@@ -179,6 +179,10 @@ class BinaryConversion(Conversion):
         # reserve 2nd bit for enable/disable sync
         self._encode_sync_map = {True:int("10", 2), False:int("00", 2)}
         self._decode_sync_map = dict((value, key) for key, value in self._encode_sync_map.iteritems())
+        # reserve 3rd bit for enable/disable tunnel (02/05/12)
+        self._encode_tunnel_map = {True:int("100", 2), False:int("000", 2)}
+        self._decode_tunnel_map = dict((value, key) for key, value in self._encode_tunnel_map.iteritems())
+        # 4th, 5th and 6th bits are currently unused
         # reserve 7th and 8th bits for connection type
         self._encode_connection_type_map = {u"unknown":int("00000000", 2), u"public":int("10000000", 2), u"symmetric-NAT":int("11000000", 2)}
         self._decode_connection_type_map = dict((value, key) for key, value in self._encode_connection_type_map.iteritems())
@@ -271,7 +275,7 @@ class BinaryConversion(Conversion):
         payload = message.payload
         assert payload.message.name in self._encode_message_map, payload.message.name
         message_id = self._encode_message_map[payload.message.name].byte
-        return payload.member.mid, message_id, self._struct_LL.pack(payload.missing_low, payload.missing_high)
+        return (payload.member.mid, message_id, self._struct_LL.pack(payload.missing_low, payload.missing_high))
 
     def _decode_missing_sequence(self, placeholder, offset, data):
         if len(data) < offset + 29:
@@ -316,7 +320,7 @@ class BinaryConversion(Conversion):
          - 8 bytes: the global time
         """
         payload = message.payload
-        return self._struct_H.pack(len(payload.member.public_key)), payload.member.public_key, pack("!%dQ" % len(payload.global_times), *payload.global_times)
+        return (self._struct_H.pack(len(payload.member.public_key)), payload.member.public_key, pack("!%dQ" % len(payload.global_times), *payload.global_times))
 
     def _decode_missing_message(self, placeholder, offset, data):
         if len(data) < offset + 2:
@@ -349,7 +353,7 @@ class BinaryConversion(Conversion):
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, global_times)
 
     def _encode_signature_request(self, message):
-        return self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message),
+        return (self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message))
 
     def _decode_signature_request(self, placeholder, offset, data):
         if len(data) < offset + 2:
@@ -364,7 +368,7 @@ class BinaryConversion(Conversion):
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier, message)
 
     def _encode_signature_response(self, message):
-        return self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message),
+        return (self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message))
         # return message.payload.identifier, message.payload.signature
 
     def _decode_signature_response(self, placeholder, offset, data):
@@ -387,7 +391,7 @@ class BinaryConversion(Conversion):
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload)
 
     def _encode_missing_identity(self, message):
-        return message.payload.mid,
+        return (message.payload.mid,)
 
     def _decode_missing_identity(self, placeholder, offset, data):
         if len(data) < offset + 20:
@@ -397,9 +401,9 @@ class BinaryConversion(Conversion):
 
     def _encode_destroy_community(self, message):
         if message.payload.is_soft_kill:
-            return "s",
+            return ("s",)
         else:
-            return "h",
+            return ("h",)
 
     def _decode_destroy_community(self, placeholder, offset, data):
         if len(data) < offset + 1:
@@ -448,13 +452,13 @@ class BinaryConversion(Conversion):
 
             members[public_key][message_id] |= permission_bit
 
-        bytes_ = []
+        data = []
         for public_key, messages in members.iteritems():
-            bytes_.extend((self._struct_H.pack(len(public_key)), public_key, self._struct_B.pack(len(messages))))
+            data.extend((self._struct_H.pack(len(public_key)), public_key, self._struct_B.pack(len(messages))))
             for message_id, permission_bits in messages.iteritems():
-                bytes_.extend((message_id, self._struct_B.pack(permission_bits)))
+                data.extend((message_id, self._struct_B.pack(permission_bits)))
 
-        return tuple(bytes_)
+        return tuple(data)
 
     def _decode_authorize(self, placeholder, offset, data):
         permission_map = {u"permit":int("0001", 2), u"authorize":int("0010", 2), u"revoke":int("0100", 2), u"undo":int("1000", 2)}
@@ -545,13 +549,13 @@ class BinaryConversion(Conversion):
 
             members[public_key][message_id] |= permission_bit
 
-        bytes = []
+        data = []
         for public_key, messages in members.iteritems():
-            bytes.extend((self._struct_H.pack(len(public_key)), public_key, self._struct_B.pack(len(messages))))
+            data.extend((self._struct_H.pack(len(public_key)), public_key, self._struct_B.pack(len(messages))))
             for message_id, permission_bits in messages.iteritems():
-                bytes.extend((message_id, self._struct_B.pack(permission_bits)))
+                data.extend((message_id, self._struct_B.pack(permission_bits)))
 
-        return tuple(bytes)
+        return tuple(data)
 
     def _decode_revoke(self, placeholder, offset, data):
         permission_map = {u"permit":int("0001", 2), u"authorize":int("0010", 2), u"revoke":int("0100", 2), u"undo":int("1000", 2)}
@@ -617,7 +621,7 @@ class BinaryConversion(Conversion):
         assert 0 < payload.subjective_set.functions < 256, "assuming that we choose BITS to ensure the bloom filter will fit in one MTU, it is unlikely that there will be more than 255 functions.  hence we can encode this in one byte"
         assert len(payload.subjective_set.prefix) == 0, "Should not have a prefix"
         assert len(payload.subjective_set.bytes) == int(ceil(payload.subjective_set.size / 8))
-        return self._struct_BBH.pack(payload.cluster, payload.subjective_set.functions, payload.subjective_set.size), payload.subjective_set.bytes
+        return (self._struct_BBH.pack(payload.cluster, payload.subjective_set.functions, payload.subjective_set.size), payload.subjective_set.bytes)
 
     def _decode_subjective_set(self, placeholder, offset, data):
         if len(data) < offset + 4:
@@ -666,7 +670,7 @@ class BinaryConversion(Conversion):
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, cluster, members)
 
     def _encode_undo_own(self, message):
-        return self._struct_Q.pack(message.payload.global_time),
+        return (self._struct_Q.pack(message.payload.global_time),)
 
     def _decode_undo_own(self, placeholder, offset, data):
         # use the member in the Authentication policy
@@ -694,7 +698,7 @@ class BinaryConversion(Conversion):
     def _encode_undo_other(self, message):
         public_key = message.payload.member.public_key
         assert message.payload.member.public_key
-        return self._struct_H.pack(len(public_key)), public_key, self._struct_Q.pack(message.payload.global_time)
+        return (self._struct_H.pack(len(public_key)), public_key, self._struct_Q.pack(message.payload.global_time))
 
     def _decode_undo_other(self, placeholder, offset, data):
         if len(data) < offset + 2:
@@ -735,7 +739,7 @@ class BinaryConversion(Conversion):
 
     def _encode_missing_proof(self, message):
         payload = message.payload
-        return self._struct_QH.pack(payload.global_time, len(payload.member.public_key)), payload.member.public_key
+        return (self._struct_QH.pack(payload.global_time, len(payload.member.public_key)), payload.member.public_key)
 
     def _decode_missing_proof(self, placeholder, offset, data):
         if len(data) < offset + 10:
@@ -831,17 +835,18 @@ class BinaryConversion(Conversion):
         flags, identifier = self._struct_BH.unpack_from(data, offset)
         offset += 3
 
-        if not flags & int("1", 2) in self._decode_advice_map:
+        advice = self._decode_advice_map.get(flags & int("1", 2))
+        if advice is None:
             raise DropPacket("Invalid advice flag")
-        advice = self._decode_advice_map[flags & int("1", 2)]
 
-        if not flags & int("11000000", 2) in self._decode_connection_type_map:
+        connection_type = self._decode_connection_type_map.get(flags & int("11000000", 2))
+        if connection_type is None:
             raise DropPacket("Invalid connection type flag")
-        connection_type = self._decode_connection_type_map[flags & int("11000000", 2)]
 
-        if not flags & int("10", 2) in self._decode_sync_map:
+        sync = self._decode_sync_map.get(flags & int("10", 2))
+        if sync is None:
             raise DropPacket("Invalid sync flag")
-        if self._decode_sync_map[flags & int("10", 2)]:
+        if sync:
             if len(data) < offset + 24:
                 raise DropPacket("Insufficient packet size")
 
@@ -882,13 +887,13 @@ class BinaryConversion(Conversion):
 
     def _encode_introduction_response(self, message):
         payload = message.payload
-        return inet_aton(payload.destination_address[0]), self._struct_H.pack(payload.destination_address[1]), \
-            inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]), \
-            inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]), \
-            inet_aton(payload.lan_introduction_address[0]), self._struct_H.pack(payload.lan_introduction_address[1]), \
-            inet_aton(payload.wan_introduction_address[0]), self._struct_H.pack(payload.wan_introduction_address[1]), \
-            self._struct_B.pack(self._encode_connection_type_map[payload.connection_type]), \
-            self._struct_H.pack(payload.identifier)
+        return (inet_aton(payload.destination_address[0]), self._struct_H.pack(payload.destination_address[1]),
+                inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]),
+                inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]),
+                inet_aton(payload.lan_introduction_address[0]), self._struct_H.pack(payload.lan_introduction_address[1]),
+                inet_aton(payload.wan_introduction_address[0]), self._struct_H.pack(payload.wan_introduction_address[1]),
+                self._struct_B.pack(self._encode_connection_type_map[payload.connection_type] | self._encode_tunnel_map[payload.tunnel]),
+                self._struct_H.pack(payload.identifier))
 
     def _decode_introduction_response(self, placeholder, offset, data):
         if len(data) < offset + 33:
@@ -912,17 +917,21 @@ class BinaryConversion(Conversion):
         flags, identifier, = self._struct_BH.unpack_from(data, offset)
         offset += 3
 
-        if not flags & int("1110", 2) in self._decode_connection_type_map:
+        connection_type = self._decode_connection_type_map.get(flags & int("1110", 2))
+        if connection_type is None:
             raise DropPacket("Invalid connection type flag")
-        connection_type = self._decode_connection_type_map[flags & int("1110", 2)]
 
-        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier)
+        tunnel = self._decode_tunnel_map.get(flags & int("100", 2))
+        if tunnel is None:
+            raise DropPacket("Invalid tunnel flag")
+
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
 
     def _encode_puncture_request(self, message):
         payload = message.payload
-        return inet_aton(payload.lan_walker_address[0]), self._struct_H.pack(payload.lan_walker_address[1]), \
-            inet_aton(payload.wan_walker_address[0]), self._struct_H.pack(payload.wan_walker_address[1]), \
-            self._struct_H.pack(payload.identifier)
+        return (inet_aton(payload.lan_walker_address[0]), self._struct_H.pack(payload.lan_walker_address[1]),
+                inet_aton(payload.wan_walker_address[0]), self._struct_H.pack(payload.wan_walker_address[1]),
+                self._struct_H.pack(payload.identifier))
 
     def _decode_puncture_request(self, placeholder, offset, data):
         if len(data) < offset + 14:
@@ -941,9 +950,9 @@ class BinaryConversion(Conversion):
 
     def _encode_puncture(self, message):
         payload = message.payload
-        return inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]), \
-            inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]), \
-            self._struct_H.pack(payload.identifier)
+        return (inet_aton(payload.source_lan_address[0]), self._struct_H.pack(payload.source_lan_address[1]),
+                inet_aton(payload.source_wan_address[0]), self._struct_H.pack(payload.source_wan_address[1]),
+                self._struct_H.pack(payload.identifier))
 
     def _decode_puncture(self, placeholder, offset, data):
         if len(data) < offset + 14:

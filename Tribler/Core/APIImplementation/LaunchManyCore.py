@@ -35,6 +35,7 @@ from Tribler.Core.Swift.SwiftDownloadImpl import SwiftDownloadImpl
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.dispersy.callback import Callback
 from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.Core.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -325,6 +326,13 @@ class TriblerLaunchMany(Thread):
             # initialise the first instance
             MagnetHandler.get_instance(self.rawserver)
 
+        # SWIFTPROC
+        if config['swiftproc']:
+            self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.sesslock)
+        else:
+            self.spm = None
+
+        # Dispersy (depends on swift for tunneling)
         self.dispersy = None
         self.dispersy_thread = None
         self.session.dispersy_member = None
@@ -334,71 +342,8 @@ class TriblerLaunchMany(Thread):
             # required to ensure that the BitTornado core can access the dispersy instance.
             self.dispersy_thread.call(self.start_dispersy)
 
-        # SWIFTPROC
-        if config['swiftproc']:
-            self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.sesslock)
-        else:
-            self.spm = None
-
     def start_dispersy(self):
-        class DispersySocket(object):
-            def __init__(self, rawserver, dispersy, port, ip="0.0.0.0"):
-                while True:
-                    try:
-                        self.socket = rawserver.create_udpsocket(port, ip)
-                        print >>sys.stderr, "Dispersy listening at", port
-                    except socket.error, error:
-                        port += 1
-                        continue
-                    break
-
-                self.rawserver = rawserver
-                self.rawserver.start_listening_udp(self.socket, self)
-                self.dispersy = dispersy
-                self.sendqueue = []
-
-            def get_address(self):
-                return self.socket.getsockname()
-
-            def data_came_in(self, packets):
-                # called on the Tribler rawserver
-
-                # the rawserver SUCKS.  every now and then exceptions are not shown and apparently we are
-                # sometimes called without any packets...
-                if packets:
-                    try:
-                        self.dispersy.data_came_in(packets)
-                    except:
-                        print_exc()
-                        raise
-
-            def send(self, address, data):
-                try:
-                    self.socket.sendto(data, address)
-                except socket.error, error:
-                    if error[0] == SOCKET_BLOCK_ERRORCODE:
-                        self.sendqueue.append((data, address))
-                        self.rawserver.add_task(self.process_sendqueue, 0.1)
-
-            def process_sendqueue(self):
-                sendqueue = self.sendqueue
-                self.sendqueue = []
-
-                while sendqueue:
-                    data, address = sendqueue.pop(0)
-                    try:
-                        self.socket.sendto(data, address)
-                    except socket.error, error:
-                        if error[0] == SOCKET_BLOCK_ERRORCODE:
-                            self.sendqueue.append((data, address))
-                            self.sendqueue.extend(sendqueue)
-                            self.rawserver.add_task(self.process_sendqueue, 0.1)
-                            break
-
         def load_communities():
-            # initial delay
-            yield 5.0
-
             if sys.argv[0].endswith("dispersy-channel-booster.py"):
                 schedule = []
                 schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True}))
@@ -410,21 +355,22 @@ class TriblerLaunchMany(Thread):
                 schedule.append((ChannelCommunity, (), {}))
 
             for cls, args, kargs in schedule:
-                try:
-                    counter = -1
-                    for counter, master in enumerate(cls.get_master_members()):
-                        if self.dispersy.has_community(master.mid):
-                            continue
+                counter = -1
+                for counter, master in enumerate(cls.get_master_members()):
+                    if self.dispersy.has_community(master.mid):
+                        continue
 
-                        if __debug__: print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX"), "#%d" % counter
+                    if __debug__: print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX"), "#%d" % counter
+                    try:
                         cls.load_community(master, *args, **kargs)
-                        yield 1.0
+                    except:
+                        # Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
+                        print_exc()
 
-                    if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
+                    # release thread before loading next community
+                    yield 0.0
 
-                except:
-                    #Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
-                    print_exc()
+                if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
 
         # start dispersy
         config = self.session.sessconfig
@@ -436,7 +382,22 @@ class TriblerLaunchMany(Thread):
         else:
             self.dispersy = Dispersy.get_instance(self.dispersy_thread, working_directory)
 
-        self.dispersy.socket = DispersySocket(self.rawserver, self.dispersy, config['dispersy_port'])
+        # set communication endpoint
+        endpoint = None
+        if self.spm:
+            try:
+                swift_process = self.spm.get_or_create_sp(".") # TODO argument will change when Arno merges new SwiftProcess code
+            except OSError:
+                # could not find/run swift
+                pass
+            else:
+                endpoint = TunnelEndpoint(swift_process, self.dispersy)
+                swift_process.add_download(endpoint)
+
+        if endpoint is None:
+            endpoint = RawserverEndpoint(self.rawserver, self.dispersy, config['dispersy_port'])
+
+        self.dispersy.endpoint = endpoint
 
         # use the same member key as that from Tribler
         from Tribler.Core.Overlay.permid import read_keypair

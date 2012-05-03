@@ -22,10 +22,28 @@ python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script disp
 python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-member-tag || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-missing-message || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-signature || exit 1
-python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-subjective-set || exit 1
+# python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-subjective-set || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-sync || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-timeline || exit 1
 python "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-undo || exit 1
+
+rm -f sqlite/dispersy.db
+rm -f sqlite/dispersy.db-journal
+rm -f dispersy.log
+
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-batch || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-classification || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-crypto || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-destroy-community || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-dynamic-settings || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-identical-payload || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-member-tag || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-missing-message || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-signature || exit 1
+# python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-subjective-set || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-sync || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-timeline || exit 1
+python "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-undo || exit 1
 
 echo "================================================================================"
 echo "Testcases in optimized mode"
@@ -44,10 +62,28 @@ python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script d
 python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-member-tag || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-missing-message || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-signature || exit 1
-python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-subjective-set || exit 1
+# python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-subjective-set || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-sync || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-timeline || exit 1
 python -O "$BRANCH/Tribler/Main/dispersy.py" --enable-dispersy-script --script dispersy-undo || exit 1
+
+rm -f sqlite/dispersy.db
+rm -f sqlite/dispersy.db-journal
+rm -f dispersy.log
+
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-batch || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-classification || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-crypto || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-destroy-community || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-dynamic-settings || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-identical-payload || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-member-tag || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-missing-message || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-signature || exit 1
+# python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-subjective-set || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-sync || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-timeline || exit 1
+python -O "$BRANCH/Tribler/Main/dispersy.py" --swiftproc --enable-dispersy-script --script dispersy-undo || exit 1
 
 echo "================================================================================"
 echo "Finished testcases successfully"

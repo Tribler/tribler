@@ -198,7 +198,11 @@ class InstanceConnection:
                 if self.buffer[i] == '\n':
                     cmd = self.buffer[0:i+1] 
                     self.buffer = self.buffer[i+1:]
-                    self.readlinecallback(self,cmd[:-2])# strip off \r\n
+                    if self.readlinecallback(self,cmd[:-2]): # strip off \r\n
+                        # 01/05/12 Boudewijn: when a positive value is returned we immediately
+                        # return to allow more bytes to be pushed into the buffer
+                        self.buffer = cmd + self.buffer # undo 'cmd'
+                        return
                     break
                     
                 self.rflag = False

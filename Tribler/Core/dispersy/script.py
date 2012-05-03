@@ -835,7 +835,6 @@ class DispersyTimelineScript(ScriptBase):
         dispersy-missing-proof message to try to obtain the dispersy-authorize.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node1 = DebugNode()
@@ -875,7 +874,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # SELF sends dispersy-missing-proof to NODE2
         dprint("NODE2 receives dispersy-missing-proof")
-        _, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-missing-proof"])
+        _, message = node2.receive_message(message_names=[u"dispersy-missing-proof"])
         assert_(message.payload.member.public_key == node2.my_member.public_key)
         assert_(message.payload.global_time == global_time)
 
@@ -909,7 +908,6 @@ class DispersyTimelineScript(ScriptBase):
         When SELF receives a dispersy-missing-proof message she needs to find and send the proof.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node = DebugNode()
@@ -929,7 +927,7 @@ class DispersyTimelineScript(ScriptBase):
         yield 0.555
 
         # SELF sends dispersy-authorize to NODE
-        _, authorize = node.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
+        _, authorize = node.receive_message(message_names=[u"dispersy-authorize"])
 
         permission_triplet = (community.my_member, community.get_meta_message(u"protected-full-sync-text"), u"permit")
         assert_(permission_triplet in authorize.payload.permission_triplets)
@@ -952,7 +950,6 @@ class DispersyTimelineScript(ScriptBase):
         the dispersy-authorize message for authorize(MASTER, OWNER) must be returned.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
         node1 = DebugNode()
@@ -991,7 +988,7 @@ class DispersyTimelineScript(ScriptBase):
 
         # SELF sends dispersy-authorize containing authorize(MASTER, OWNER) to NODE
         dprint("NODE2 receives the proof from SELF")
-        _, authorize = node2.receive_message(addresses=[address], message_names=[u"dispersy-authorize"])
+        _, authorize = node2.receive_message(message_names=[u"dispersy-authorize"])
 
         permission_triplet = (message.authentication.member, community.get_meta_message(u"protected-full-sync-text"), u"permit")
         dprint((permission_triplet[0].database_id, permission_triplet[1].name, permission_triplet[2]))
@@ -1014,7 +1011,6 @@ class DispersyDestroyCommunityScript(ScriptBase):
 
     def hard_kill(self):
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -1022,6 +1018,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
         node.init_socket()
         node.set_community(community)
         node.init_my_member()
+        yield 0.555
 
         # should be no messages from NODE yet
         times = list(self._dispersy_database.execute(u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?", (community.database_id, node.my_member.database_id, message.database_id)))
@@ -1039,7 +1036,7 @@ class DispersyDestroyCommunityScript(ScriptBase):
         yield 0.555
 
         # node should receive the dispersy-destroy-community message
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-destroy-community"])
+        _, message = node.receive_message(message_names=[u"dispersy-destroy-community"])
         assert_(not message.payload.is_soft_kill)
         assert_(message.payload.is_hard_kill)
 
@@ -1065,7 +1062,6 @@ class DispersyMemberTagScript(ScriptBase):
         them in our database.  However, the GUI may choose not to display any messages from them.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -1122,7 +1118,6 @@ class DispersyMemberTagScript(ScriptBase):
         member.  No callback will be given to the community code.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         message = community.get_meta_message(u"full-sync-text")
 
         # create node and ensure that SELF knows the node address
@@ -2058,8 +2053,8 @@ class DispersySignatureScript(ScriptBase):
 
         self.caller(self.double_signed_timeout)
         self.caller(self.double_signed_response)
-        self.caller(self.triple_signed_timeout)
-        self.caller(self.triple_signed_response)
+        # self.caller(self.triple_signed_timeout)
+        # self.caller(self.triple_signed_response)
 
     def double_signed_timeout(self):
         """
@@ -2067,7 +2062,6 @@ class DispersySignatureScript(ScriptBase):
         a timeout on the signature request after a few seconds.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         container = {"timeout":0}
 
         # create node and ensure that SELF knows the node address
@@ -2087,7 +2081,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message")
-        _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        _, message = node.receive_message(message_names=[u"dispersy-signature-request"])
         # do not send a response
 
         # should timeout
@@ -2110,7 +2104,6 @@ class DispersySignatureScript(ScriptBase):
         double signed message.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         container = {"response":0}
 
         # create node and ensure that SELF knows the node address
@@ -2130,7 +2123,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         dprint("NODE receives dispersy-signature-request message from SELF")
-        candidate, message = node.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        candidate, message = node.receive_message(message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         second_signature_offset = len(submsg.packet) - community.my_member.signature_length
         first_signature_offset = second_signature_offset - node.my_member.signature_length
@@ -2155,7 +2148,6 @@ class DispersySignatureScript(ScriptBase):
         request and SELF should get a timeout on the signature request after a few seconds.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         container = {"timeout":0}
 
         # create node and ensure that SELF knows the node address
@@ -2179,8 +2171,8 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         # receive dispersy-signature-request message
-        _, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
-        _, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        _, message = node1.receive_message(message_names=[u"dispersy-signature-request"])
+        _, message = node2.receive_message(message_names=[u"dispersy-signature-request"])
         # do not send a response
 
         # should timeout
@@ -2200,9 +2192,7 @@ class DispersySignatureScript(ScriptBase):
         and produce a triple signed message.
         """
         ec = ec_generate_key(u"low")
-        my_member = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
         container = {"response":0}
 
         # create node and ensure that SELF knows the node address
@@ -2225,7 +2215,7 @@ class DispersySignatureScript(ScriptBase):
         yield 0.11
 
         # receive dispersy-signature-request message
-        candidate, message = node1.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        candidate, message = node1.receive_message(message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         third_signature_offset = len(submsg.packet) - node2.my_member.signature_length
         second_signature_offset = third_signature_offset - node1.my_member.signature_length
@@ -2239,7 +2229,7 @@ class DispersySignatureScript(ScriptBase):
         node1.give_message(node1.create_dispersy_signature_response_message(request_id, signature1, global_time, candidate))
 
         # receive dispersy-signature-request message
-        candidate, message = node2.receive_message(addresses=[address], message_names=[u"dispersy-signature-request"])
+        candidate, message = node2.receive_message(message_names=[u"dispersy-signature-request"])
         submsg = message.payload.message
         third_signature_offset = len(submsg.packet) - node2.my_member.signature_length
         second_signature_offset = third_signature_offset - node1.my_member.signature_length
@@ -3080,7 +3070,6 @@ class DispersyUndoScript(ScriptBase):
          2. the proof of malicious behaviour must be forwarded to other nodes
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         node = DebugNode()
         node.init_socket()
@@ -3132,7 +3121,7 @@ class DispersyUndoScript(ScriptBase):
         malicious_packets = []
         try:
             while True:
-                _, response = node2.receive_packet(addresses=[address])
+                _, response = node2.receive_packet(addresses=[self._dispersy.lan_address])
                 malicious_packets.append(response)
         finally:
             assert_(sorted(malicious_packets) == sorted([undo1.packet, undo2.packet]), [len(malicious_packets), [packet.encode("HEX") for packet in malicious_packets], undo1.packet.encode("HEX"), undo2.packet.encode("HEX")])
@@ -3147,7 +3136,6 @@ class DispersyUndoScript(ScriptBase):
         generates an undo.  The second undo should NOT cause NODE of SELF to be marked as malicious.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         node = DebugNode()
         node.init_socket()
@@ -3194,7 +3182,6 @@ class DispersyUndoScript(ScriptBase):
         messages need to be processed and subsequently undone.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         node = DebugNode()
         node.init_socket()
@@ -3215,7 +3202,7 @@ class DispersyUndoScript(ScriptBase):
         # receive the dispersy-missing-message messages
         global_times = [message.distribution.global_time for message in messages]
         for _ in xrange(len(messages)):
-            _, message = node.receive_message(addresses=[address], message_names=[u"dispersy-missing-message"])
+            _, message = node.receive_message(message_names=[u"dispersy-missing-message"])
             assert_(len(message.payload.global_times) == 1, "we currently only support one global time in an undo message")
             assert_(message.payload.member.public_key == node.my_member.public_key)
             assert_(message.payload.global_times[0] in global_times)
@@ -3312,7 +3299,6 @@ class DispersyCryptoScript(ScriptBase):
         SELF receives a dispersy-identity message containing an invalid public-key.
         """
         community = DebugCommunity.create_community(self._my_member)
-        address = self._dispersy.socket.get_address()
 
         node = DebugNode()
         node.init_socket()

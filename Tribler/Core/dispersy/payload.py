@@ -158,7 +158,7 @@ class IntroductionRequestPayload(Payload):
 
 class IntroductionResponsePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, identifier):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier):
             """
             Create the payload for an introduction-response message.
 
@@ -183,6 +183,9 @@ class IntroductionResponsePayload(Payload):
             creator has.  Currently the following values are supported: u"unknown", u"public", and
             u"symmetric-NAT".
 
+            TUNNEL is a boolean indicating that the connection is tunneled and all messages send to
+            the introduced candidate require a ffffffff prefix.
+
             IDENTIFIER is a number that was given in the associated introduction-request.  This
             number allows to distinguish between multiple introduction-response messages.
 
@@ -197,6 +200,7 @@ class IntroductionResponsePayload(Payload):
             assert is_address(lan_introduction_address)
             assert is_address(wan_introduction_address)
             assert isinstance(connection_type, unicode) and connection_type in (u"unknown", u"public", u"symmetric-NAT")
+            assert isinstance(tunnel, bool)
             assert isinstance(identifier, int)
             assert 0 <= identifier < 2**16
             super(IntroductionResponsePayload.Implementation, self).__init__(meta)
@@ -206,6 +210,7 @@ class IntroductionResponsePayload(Payload):
             self._lan_introduction_address = lan_introduction_address
             self._wan_introduction_address = wan_introduction_address
             self._connection_type = connection_type
+            self._tunnel = tunnel
             self._identifier = identifier
 
         @property
@@ -235,6 +240,10 @@ class IntroductionResponsePayload(Payload):
         @property
         def connection_type(self):
             return self._connection_type
+
+        @property
+        def tunnel(self):
+            return self._tunnel
 
         @property
         def identifier(self):

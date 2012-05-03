@@ -6,7 +6,7 @@ from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin, ec_from
 from dprint import dprint
 from member import Member
 from message import Message
-from time import time
+from time import time, sleep
 
 class DebugOnlyMember(Member):
     _cache = []
@@ -103,6 +103,8 @@ class Node(object):
             assert self._community, "Community needs to be set to candidate"
             message = self.create_dispersy_introduction_request_message(self._community.my_candidate, self.lan_address, self.wan_address, False, u"unknown", None, 1, 1)
             self.give_message(message)
+            sleep(0.1)
+            self.receive_message(message_names=[u"dispersy-introduction-response"])
 
     @property
     def community(self):
@@ -123,20 +125,22 @@ class Node(object):
             self._community._my_member = tmp_member
         return packet
 
-    def give_packet(self, packet, verbose=False, cache=False):
+    def give_packet(self, packet, verbose=False, cache=False, tunnel=False):
         assert isinstance(packet, str)
         assert isinstance(verbose, bool)
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", len(packet), " bytes")
-        self._dispersy.on_socket_endpoint([(self.lan_address, packet)], cache=cache, timestamp=time())
+        candidate = self._dispersy.get_candidate(self.lan_address) or self._dispersy.create_candidate(WalkCandidate, self.lan_address, tunnel)
+        self._dispersy.on_incoming_packets([(candidate, packet)], cache=cache, timestamp=time())
         return packet
 
-    def give_packets(self, packets, verbose=False, cache=False):
+    def give_packets(self, packets, verbose=False, cache=False, tunnel=False):
         assert isinstance(packets, list)
         assert isinstance(verbose, bool)
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", sum(len(packet) for packet in packets), " bytes")
-        self._dispersy.on_socket_endpoint([(self.lan_address, packet) for packet in packets], cache=cache, timestamp=time())
+        candidate = self._dispersy.get_candidate(self.lan_address) or self._dispersy.create_candidate(WalkCandidate, self.lan_address, tunnel)
+        self._dispersy.on_incoming_packets([(candidate, packet) for packet in packets], cache=cache, timestamp=time())
         return packets
 
     def give_message(self, message, verbose=False, cache=False):
@@ -188,7 +192,7 @@ class Node(object):
         assert addresses is None or isinstance(addresses, list)
         assert addresses is None or all(isinstance(address, tuple) for address in addresses)
         assert packets is None or isinstance(packets, list)
-        assert packets is None or all(isinstance(packet, str) for packet in packsts)
+        assert packets is None or all(isinstance(packet, str) for packet in packets)
 
         while True:
             try:
@@ -202,7 +206,13 @@ class Node(object):
             if not (packets is None or packet in packets):
                 continue
 
-            candidate = WalkCandidate(address, address, address)
+            if packet.startswith("ffffffff".decode("HEX")):
+                tunnel = True
+                packet = packet[4:]
+            else:
+                tunnel = False
+
+            candidate = WalkCandidate(address, tunnel, address, address)
             dprint(len(packet), " bytes from ", candidate)
             return candidate, packet
 
@@ -219,8 +229,6 @@ class Node(object):
             try:
                 message = self._community.get_conversion(packet[:22]).decode_message(candidate, packet)
             except KeyError:
-                # not for this community
-                dprint("Ignored ", message.name, " (", len(packet), " bytes) from ", candidate)
                 continue
 
             if not (message_names is None or message.name in message_names):

@@ -4,7 +4,6 @@
 import sys
 import subprocess
 import random
-import time
 import binascii
 from threading import RLock
 from traceback import print_exc,print_stack
@@ -12,7 +11,7 @@ from traceback import print_exc,print_stack
 from Tribler.Core.simpledefs import *
 from Tribler.Utilities.Instance2Instance import *
 
-DEBUG = True
+DEBUG = False
 
 DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
@@ -47,7 +46,7 @@ class SwiftProcess(InstanceConnection):
         # args.append("-B") # DEBUG Hack        
         
         if DEBUG:
-            print >>sys.stderr,"SwiftProcess: __init__: Running",args
+            print >>sys.stderr,"SwiftProcess: __init__: Running",args, "in", destdir
         
         self.popen = subprocess.Popen(args,close_fds=True,cwd=destdir) 
 
@@ -62,38 +61,56 @@ class SwiftProcess(InstanceConnection):
         self.singsock = self.connhandler.start_connection(("127.0.0.1", self.cmdport),self)
         
     def i2ithread_readlinecallback(self,ic,cmd):
-        #print >>sys.stderr,"sp: Got command #"+cmd+"#"
+        if DEBUG:
+            print >>sys.stderr,"sp: Got command #"+cmd+"#"
         words = cmd.split()
-        roothash = binascii.unhexlify(words[1])
-        
-        self.splock.acquire()
-        try:
-            d = self.roothash2dl[roothash]
-        except:
-            print "GOT", words
-            print "HAVE", [key.encode("HEX") for key in self.roothash2dl.keys()]
-            raise
-        finally:
-            self.splock.release()
-        
-        # Hide NSSA interface for SwiftDownloadImpl
-        if words[0] == "INFO": # INFO HASH status dl/total
-            dlstatus = int(words[2])
-            pargs = words[3].split("/")
-            dynasize = int(pargs[1])
-            if dynasize == 0:
-                progress = 0.0
-            else:
-                progress = float(pargs[0])/float(pargs[1])
-            dlspeed = float(words[4])
-            ulspeed = float(words[5])
-            numleech = int(words[6])
-            numseeds = int(words[7])
-            d.i2ithread_info_callback(dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds)
-        elif words[0] == "PLAY":
-            httpurl = words[2]
-            d.i2ithread_vod_event_callback(VODEVENT_START,httpurl)
 
+        if words[0] == "TUNNELRECV":
+            address, session = words[1].split("/")
+            host, port = address.split(":")
+            port = int(port)
+            session = session.decode("HEX")
+            length = int(words[2])
+
+            # require LENGTH bytes
+            if len(ic.buffer) < length:
+                return length - len(ic.buffer)
+
+            data = ic.buffer[:length]
+            ic.buffer = ic.buffer[length:]
+
+            self.roothash2dl["dispersy"].i2ithread_data_came_in(session, (host, port), data)
+
+        else:
+            roothash = binascii.unhexlify(words[1])
+
+            self.splock.acquire()
+            try:
+                d = self.roothash2dl[roothash]
+            except:
+                print "GOT", words
+                print "HAVE", [key.encode("HEX") for key in self.roothash2dl.keys()]
+                raise
+            finally:
+                self.splock.release()
+
+            # Hide NSSA interface for SwiftDownloadImpl
+            if words[0] == "INFO": # INFO HASH status dl/total
+                dlstatus = int(words[2])
+                pargs = words[3].split("/")
+                dynasize = int(pargs[1])
+                if dynasize == 0:
+                    progress = 0.0
+                else:
+                    progress = float(pargs[0])/float(pargs[1])
+                dlspeed = float(words[4])
+                ulspeed = float(words[5])
+                numleech = int(words[6])
+                numseeds = int(words[7])
+                d.i2ithread_info_callback(dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds)
+            elif words[0] == "PLAY":
+                httpurl = words[2]
+                d.i2ithread_vod_event_callback(VODEVENT_START,httpurl)
 
     #
     # Swift Mgmt interface
@@ -121,6 +138,16 @@ class SwiftProcess(InstanceConnection):
         finally:
             self.splock.release()
 
+    def add_download(self,d):
+        self.splock.acquire()
+        try:
+            roothash = d.get_def().get_roothash()
+
+            # Before send to handle INFO msgs
+            self.roothash2dl[roothash] = d
+
+        finally:
+            self.splock.release()
         
     def remove_download(self,d,removestate,removecontent):
         self.splock.acquire()
@@ -241,4 +268,11 @@ class SwiftProcess(InstanceConnection):
         
         self.singsock.write(cmd)
         
-        
+    def send_tunnel(self,session,address,data):
+        # assume splock is held to avoid concurrency on socket
+        if DEBUG:
+            print >>sys.stderr,"sp: send_tunnel:",len(data),"bytes -> %s:%d" % address
+
+        self.singsock.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
+        self.singsock.write(data)
+

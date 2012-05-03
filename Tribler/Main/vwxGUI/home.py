@@ -423,6 +423,26 @@ class DispersyPanel(HomePanel):
         self.timer.Start(5000, False)
         self.UpdateStats()
 
+        self.mapping = {"total_down":[("Down", lambda info: self.utility.size_format(info["total_down"])),
+                                      ("Down avg", lambda info: self.utility.size_format(int(info["total_down"] / info["runtime"])) + "/s")],
+                        "total_up":[("Up", lambda info: self.utility.size_format(info["total_up"])),
+                                    ("Up avg", lambda info: self.utility.size_format(int(info["total_up"] / info["runtime"])) + "/s")],
+                        "drop":[("Dropped", lambda info: self.utility.size_format(int(sum(byte_count for _, byte_count in info["drop"].itervalues()))))],
+                        "walk_success":[("Walker success", lambda info: "%d / %d ~%.1f%%" % (info["walk_success"], info["walk_attempt"], (100.0 * info["walk_success"] / info["walk_attempt"]) if info["walk_attempt"] else 0.0))],
+                        "wan_address":[("Address wan", lambda info: "%s:%d" % info["wan_address"])],
+                        "lan_address":[("Address lan", lambda info: "%s:%d" % info["lan_address"])],
+                        "runtime":[("Runtime", lambda info: self.utility.eta_value(info["runtime"]))],
+                        "walk_attempt":[],
+                        "outgoing":[],
+                        "timestamp":[],
+                        "class":[],
+                        "success":[],
+                        "delay":[],
+                        "version":[],
+                        "communities":[],
+                        "sequence_number":[],
+                        "start":[]}
+
     def CreatePanel(self):
         panel = wx.Panel(self)
         panel.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -463,28 +483,14 @@ class DispersyPanel(HomePanel):
             self.textdict[key] = StaticText(self.panel, -1, '')
             self.gridSizer.Add(self.textdict[key])
 
-        for key, value in info.iteritems():
-            if key in ["lan_address", "wan_address", "statistics", "connection_type"]:
-                if key == 'statistics':
-                    if 'total_up' in value:
-                        addColumn('total_up')
-                    if 'total_down' in value:
-                        addColumn('total_down')
-                    if 'drop' in value:
-                        addColumn('total_dropped')
-                    if 'runtime' in value:
-                        addColumn('runtime')
-                        if "total_up" in value:
-                            addColumn("avg_up")
-                        if "total_down" in value:
-                            addColumn("avg_down")
-                    if "walk_attempt" in value and "walk_success" in value:
-                        addColumn("walker_success")
-                else:
-                    addColumn(key)
+        columns = ["in_debugmode"]
+        for key in info.iterkeys():
+            for title, _ in self.mapping.get(key, [(key, None)]):
+                columns.append(title)
 
-        addColumn('database_version')
-        addColumn('in_debugmode')
+        for title in sorted(columns):
+            addColumn(title)
+
         self.buildColumns = True
 
     def OnMouseEvent(self, event):
@@ -533,11 +539,11 @@ class DispersyPanel(HomePanel):
                 addValue(keyNode, value)
 
         def updateColumn(key, value):
-            if key.find('address') != -1:
-                value = "%s:%d"%value
+            # if key.find('address') != -1:
+            #     value = "%s:%d"%value
             self.textdict[key].SetLabel(str(value))
 
-        # summary tree
+        # center tree
         if not self.summary_tree.blockUpdate:
             self.summary_tree.DeleteAllItems()
             if "communities" in info:
@@ -568,27 +574,19 @@ class DispersyPanel(HomePanel):
                 # self.summary_tree.ExpandAll()
 
 
-        # full tree
+        # left tree
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
             fakeRoot = self.tree.AddRoot('fake')
-            for key, value in info.items():
-                if key in self.textdict:
-                    updateColumn(key, value)
-                else:
-                    if key == 'statistics':
-                        updateColumn('total_down', self.utility.size_format(value['total_down'][1]))
-                        updateColumn('total_up', self.utility.size_format(value['total_up'][1]))
-                        if "drop" in value:
-                            updateColumn("total_dropped", self.utility.size_format(int(sum(byte_count for _, byte_count in value["drop"].itervalues()))))
-                        updateColumn('runtime', self.utility.eta_value(value['runtime']))
-                        updateColumn("avg_down", self.utility.size_format(int(value["total_down"][1] / value["runtime"])) + "/s")
-                        updateColumn("avg_up", self.utility.size_format(int(value["total_up"][1] / value["runtime"])) + "/s")
-                        updateColumn("in_debugmode", str(__debug__))
-                        updateColumn("walker_success", "%d / %d ~%.1f%%" % (value["walk_success"], value["walk_attempt"], 100.0 * value["walk_success"] / value["walk_attempt"]))
 
-                    parentNode = self.tree.AppendItem(fakeRoot, key)
-                    addValue(parentNode, value)
+            for key, value in info.iteritems():
+                for title, func in self.mapping.get(key, [(key, lambda info: str(info[key]))]):
+                    updateColumn(title, func(info))
+            updateColumn("in_debugmode", str(__debug__))
+
+        # right tree
+        parentNode = self.tree.AppendItem(fakeRoot, "raw info")
+        addValue(parentNode, info)
 
         self.panel.Layout()
 

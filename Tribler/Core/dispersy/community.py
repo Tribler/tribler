@@ -600,14 +600,10 @@ class Community(object):
         else:
             db_high = time_high
 
-        nr_packets = 0
-        for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?",
-                                                       (self._database_id, time_low, db_high)):
-            bloom.add(str(packet))
-            nr_packets += 1
+        bloom.add_keys(str(packet) for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?", (self._database_id, time_low, db_high)))
 
         import sys
-        print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, pivot = %d"%(time_low, time_high, nr_packets, capacity, time_low)
+        print >> sys.stderr, "Syncing %d-%d, capacity = %d, pivot = %d"%(time_low, time_high, capacity, time_low)
         return (time_low, time_high, 1, 0, bloom)
 
     #choose a pivot, add all items capacity to the right. If too small, add items left of pivot
@@ -657,8 +653,7 @@ class Community(object):
                 time_low = 1
                 time_high = self.acceptable_global_time
 
-            for _, packet in data:
-                bloom.add(str(packet))
+            bloom.add_keys(str(packet) for _, packet in data)
 
             #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
 
@@ -727,8 +722,7 @@ class Community(object):
                 time_low = 1
                 time_high = self.acceptable_global_time
 
-            for _, packet in data:
-                bloom.add(str(packet))
+            bloom.add_keys(str(packet) for _, packet in data)
 
             #print >> sys.stderr, "Syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d"%(time_low, time_high, len(data), capacity, data[0][0], data[-1][0])
 
@@ -796,8 +790,7 @@ class Community(object):
                 t4 = time()
 
             if len(data) > 0:
-                for _, packet in data:
-                    bloom.add(str(packet))
+                bloom.add_keys(str(packet) for _, packet in data)
 
                 if __debug__:
                     dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilter_range[0], bloomfilter_range[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
