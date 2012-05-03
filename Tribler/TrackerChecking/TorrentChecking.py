@@ -367,6 +367,8 @@ class TorrentChecking(Thread):
     
     def GetInfoHashesForTracker(self, tracker):
         try:
+            tracker = str(tracker)
+            
             #see if any other torrents in queue have this tracker
             infohashes = []
             
