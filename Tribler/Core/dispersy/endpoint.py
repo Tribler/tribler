@@ -1,3 +1,6 @@
+# Python 2.5 features
+from __future__ import with_statement
+
 import sys
 from socket import error
 from threading import Lock
@@ -89,7 +92,7 @@ class RawserverEndpoint(Endpoint):
                             name = self._dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
                         except:
                             name = "???"
-                        print >> sys.stderr, "endpoint: %.1f %30s <- %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
+                        print >> sys.stderr, "rendpoint: %.1f %30s <- %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
             self._dispersy.callback.register(self.dispersythread_data_came_in, (packets, time()), priority=1024)
 
     def dispersythread_data_came_in(self, packets, timestamp):
@@ -139,7 +142,7 @@ class RawserverEndpoint(Endpoint):
                                     name = self._dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
                                 except:
                                     name = "???"
-                                print >> sys.stderr, "endpoint: %.1f %30s -> %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
+                                print >> sys.stderr, "rendpoint: %.1f %30s -> %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
 
                         if candidate.tunnel:
                             data = TUNNEL_PREFIX + data
@@ -211,7 +214,7 @@ class TunnelEndpoint(Endpoint):
                                 name = self._dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
                             except:
                                 name = "???"
-                            print >> sys.stderr, "endpoint: %.1f %30s -> %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
+                            print >> sys.stderr, "sendpoint: %.1f %30s -> %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
                     self._swift.send_tunnel(self._session, sock_addr, data)
 
             # return True when something has been send
@@ -228,7 +231,7 @@ class TunnelEndpoint(Endpoint):
                     name = self._dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
                 except:
                     name = "???"
-                print >> sys.stderr, "endpoint: %.1f %30s <- %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
+                print >> sys.stderr, "sendpoint: %.1f %30s <- %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
         self._total_down += len(data)
         self._dispersy.callback.register(self.dispersythread_data_came_in, (sock_addr, data, time()), priority=1024)
 

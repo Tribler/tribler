@@ -388,6 +388,7 @@ class TriblerLaunchMany(Thread):
             try:
                 swift_process = self.spm.get_or_create_sp(".") # TODO argument will change when Arno merges new SwiftProcess code
             except OSError:
+                print >> sys.stderr, "lmc: could not start a swift process"
                 # could not find/run swift
                 pass
             else:
