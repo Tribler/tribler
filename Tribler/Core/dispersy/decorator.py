@@ -96,7 +96,7 @@ def attach_profiler(func):
         profiler = Profile()
 
         try:
-            return profiler.runcall(lambda:func(*args, **kargs))
+            return profiler.runcall(func, *args, **kargs)
         finally:
             dprint("profiler results [", filename, "]", level="warning")
             profiler.dump_stats(filename)
