@@ -5,13 +5,15 @@ from __future__ import with_statement
 A callback thread running Dispersy.
 """
 
-from dprint import dprint
 from heapq import heappush, heappop
 from itertools import chain
 from thread import get_ident
 from threading import Thread, Lock, Event
 from time import sleep, time
 from types import GeneratorType, TupleType
+
+from decorator import attach_profiler
+from dprint import dprint
 
 if __debug__:
     from itertools import islice
@@ -428,6 +430,7 @@ class Callback(object):
 
         return self.is_finished
 
+    @attach_profiler
     def _loop(self):
         if __debug__: dprint()
 

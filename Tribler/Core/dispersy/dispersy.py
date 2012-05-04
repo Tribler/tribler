@@ -4535,7 +4535,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         """
         while True:
             try:
-                yield 60.0
+                yield 5 * 60.0
 
                 # flush changes to disk every 1 minutes
                 self._database.commit()

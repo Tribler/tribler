@@ -13,7 +13,7 @@ from database import Database
 if __debug__:
     from dprint import dprint
 
-LATEST_VERSION = 11
+LATEST_VERSION = 12
 
 schema = u"""
 CREATE TABLE member(
@@ -61,6 +61,7 @@ CREATE TABLE sync(
  packet BLOB,
  UNIQUE(community, member, global_time));
 CREATE INDEX sync_meta_message_undone_global_time_index ON sync(meta_message, undone, global_time);
+CREATE INDEX sync_meta_message_member ON sync(meta_message, member);
 
 CREATE TABLE malicious_proof(
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -309,11 +310,23 @@ UPDATE option SET value = '11' WHERE key = 'database_version';
 
             # upgrade from version 11 to version 12
             if database_version < 12:
-                # there is no version 12 yet...
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 12)
-                # self.executescript(u"""UPDATE option SET value = '12' WHERE key = 'database_version';""")
+                # according to the profiler the dispersy/member.py:201(has_identity) has a
+                # disproportionally long runtime.  this is easily improved using the below index.
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 12)
+                self.executescript(u"""
+CREATE INDEX sync_meta_message_member ON sync(meta_message, member);
+UPDATE option SET value = '12' WHERE key = 'database_version';
+""")
+                self.commit()
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 12, " (done)")
+
+            # upgrade from version 12 to version 13
+            if database_version < 13:
+                # there is no version 13 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 13)
+                # self.executescript(u"""UPDATE option SET value = '13' WHERE key = 'database_version';""")
                 # self.commit()
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 12, " (done)")
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 13, " (done)")
                 pass
 
         return LATEST_VERSION

@@ -17,13 +17,14 @@ Ippolito <bob@redivi.com>.  Simplified, and optimized to use just python code.
 
 from hashlib import sha1, sha256, sha384, sha512, md5
 from math import ceil, log
-from struct import unpack
+from struct import Struct
 
 from decorator import Constructor, constructor
 
 if __debug__:
     from dprint import dprint
     from time import time
+    from decorator import attach_profiler
 
 class BloomFilter(Constructor):
     def _init_(self, m_size, k_functions, prefix, filter_):
@@ -73,7 +74,7 @@ class BloomFilter(Constructor):
         else:
             hashfn = md5
 
-        self._fmt = ">" + (fmt_code * k_functions) + ("x" * (hashfn().digest_size - bits_required / 8))
+        self._fmt_unpack = Struct(">" + (fmt_code * k_functions) + ("x" * (hashfn().digest_size - bits_required / 8))).unpack
         self._salt = hashfn(prefix)
 
     @constructor(str, int)
@@ -99,7 +100,10 @@ class BloomFilter(Constructor):
     def _hashes(self, key):
         h = self._salt.copy()
         h.update(key)
-        return (index % self._m_size for index in unpack(self._fmt, h.digest()))
+
+        # 04/05/12 Boudewijn: using a list instead of a generator is significantly faster.
+        # while generators are more memory efficient, this list will be relatively short.
+        return [index % self._m_size for index in self._fmt_unpack(h.digest())]
 
     def add(self, key):
         """
@@ -117,13 +121,16 @@ class BloomFilter(Constructor):
         filter_ = self._filter
         salt_copy = self._salt.copy
         m_size = self._m_size
-        fmt = self._fmt
+        fmt_unpack = self._fmt_unpack
 
         for key in keys:
             assert isinstance(key, str)
             h = salt_copy()
             h.update(key)
-            for pos in (index % m_size for index in unpack(fmt, h.digest())):
+
+            # 04/05/12 Boudewijn: using a list instead of a generator is significantly faster.
+            # while generators are more memory efficient, this list will be relatively short.
+            for pos in [index % m_size for index in fmt_unpack(h.digest())]:
                 filter_ |= 1 << pos
 
         self._filter = filter_
@@ -149,7 +156,7 @@ class BloomFilter(Constructor):
         filter_ = self._filter
         salt_copy = self._salt.copy
         m_size = self._m_size
-        fmt = self._fmt
+        fmt_unpack = self._fmt_unpack
 
         for tup in iterator:
             assert isinstance(tup, tuple)
@@ -157,7 +164,10 @@ class BloomFilter(Constructor):
             assert isinstance(tup[0], str)
             h = salt_copy()
             h.update(tup[0])
-            for pos in (index % m_size for index in unpack(fmt, h.digest())):
+
+            # 04/05/12 Boudewijn: using a list instead of a generator is significantly faster.
+            # while generators are more memory efficient, this list will be relatively short.
+            for pos in [index % m_size for index in fmt_unpack(h.digest())]:
                 if not filter_ & (1 << pos):
                     yield tup
                     break
@@ -660,13 +670,19 @@ if __debug__:
         b = BloomFilter(10240, 0.01)
         b = BloomFilter(128*2, 0.01)
 
+    @attach_profiler
+    def _test_performance():
+        data = [str(i) for i in xrange(100000)]
+        b = BloomFilter(1024 * 8, 0.01)
+        b.add_keys(data)
+
     def p(b, postfix=""):
         # print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
         print "error-rate", b.error_rate, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
 
     if __name__ == "__main__":
         # _test_behavior()
-        #_performance_test()
+        # _performance_test()
         # _taste_test()
         # _test_occurrence()
         # _test_documentation()
@@ -676,7 +692,8 @@ if __debug__:
         # _test_prefix_false_positives()
         # _test_prefix_false_positives(FasterBloomFilter)
         # _test_behavior(FasterBloomFilter)
-        _test_size()
+        # _test_size()
+        _test_performance()
 
         # MTU = 1500 # typical MTU
         # # MTU = 576 # ADSL

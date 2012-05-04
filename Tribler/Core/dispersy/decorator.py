@@ -1,3 +1,5 @@
+import sys
+
 if __debug__:
     from time import time, sleep
     from dprint import dprint
@@ -46,7 +48,6 @@ def constructor(*types):
     def helper(func):
         if __debug__:
             # do not do anything when running epydoc
-            import sys
             if sys.argv[0] == "(imported)":
                 return func
         global __constructor_order
@@ -82,6 +83,33 @@ def runtime_duration_warning(threshold):
         else:
             return func
     return helper
+
+profiled_threads = set()
+def attach_profiler(func):
+    def helper(*args, **kargs):
+        filename = "profile-%s-%d.out" % (current_thread().name, get_ident())
+        if filename in profiled_threads:
+            raise RuntimeError("Can not attach profiler on the same thread twice")
+
+        dprint("running with profiler [", filename, "]", level="warning")
+        profiled_threads.add(filename)
+        profiler = Profile()
+
+        try:
+            return profiler.runcall(lambda:func(*args, **kargs))
+        finally:
+            dprint("profiler results [", filename, "]", level="warning")
+            profiler.dump_stats(filename)
+
+    if "--profiler" in sys.argv:
+        from dprint import dprint
+        from cProfile import Profile
+        from thread import get_ident
+        from threading import current_thread
+
+        return helper
+    else:
+        return func
 
 if __debug__:
     def main():

@@ -172,6 +172,8 @@ def main():
         exit_exception = callback.exception
 
     if opt.yappi:
+        yappi.stop()
+        print "YAPPI:", yappi.clock_type()
         stats = yappi.get_stats(yappi.SORTTYPE_TSUB)
         for func_stats in stats.func_stats[:50]:
             print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
