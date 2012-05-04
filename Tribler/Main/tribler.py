@@ -90,11 +90,6 @@ from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import SimpleServer
 
-
-# ProxyService 90s Test_
-#from Tribler.Core.simpledefs import *
-# _ProxyService 90s Test
-
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
 from time import time, sleep
@@ -267,11 +262,6 @@ class ABCApp():
             status.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
             
             self.ready = True
-            
-            # ProxyService 90s Test_
-#            session = Session.get_instance()
-#            session.add_observer(self.start_90s_dl, NTFY_GUI_STARTED, [NTFY_INSERT])
-            # _ProxyService 90s Test
 
         except Exception,e:
             self.onError(e)
@@ -315,82 +305,7 @@ class ABCApp():
         # initialize torrents using guiserverthread
         self.guiserver.add_task(self.loadSessionCheckpoint, 5.0)
 
-    # ProxyService 90s Test_
-#    def start_90s_dl(self, subject, changeType, objectID, *args):
-#        self.guiserver.add_task(self.gui_start_90s_dl, 3)
-#        # wx.CallAfter(self.gui_start_90s_dl)
-#        
-#    def gui_start_90s_dl(self):
-#        # Test if the 90s file exists in the Session.get_state_dir() folder
-#        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2")):
-#            self.del_dl('restart')
-#        else:
-#            # Execute the 90s test
-#    
-#            # Mark test as active
-#            session = Session.get_instance()
-#            session.set_90stest_state(True)
-#    
-#            # Create the 90s empty file
-#            open(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2"), "w").close()
-#            torrent_def = TorrentDef.load_from_url('http://proxytestreporter.tribler.org/Data.90s-test.8M.swarm.torrent')
-#    
-#            # Check if the torrent_def is a valid object
-#            if torrent_def is None:
-#                return
-#    
-#            # Start the 90s test download
-#            # guiUtility = GUIUtility.getInstance()
-#            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-#            destdir = defaultDLConfig.get_dest_dir()
-#            self.guiUtility.frame.startDownload(tdef = torrent_def, destdir=destdir, doemode=DOE_MODE_PRIVATE)
-#    
-#            # 300000ms = 300s = 5 minutes
-#            self.guiserver.add_task(self.del_dl, 300)
-#            # wx.CallLater(300000, self.del_dl, '5minutetimeout')
-#    
-#    def del_dl(self, reasonwhy = ''):
-#        if self._remove_download_by_name("'Data.90s-test.8M.bin'"):
-#            status = get_status_holder("Proxy90secondsTest")
-#            status.create_and_add_event("deleted-90s-test(%s)"%reasonwhy, [True])
-#    
-#        # Mark test as inactive
-#        session = Session.get_instance()
-#        session.set_90stest_state(False)
-#        
-#        # See if we need to turn on proxy-ing
-#        turn_proxy_on = False
-#        try:
-#            curr_status = urllib.urlopen('http://proxytestreporter.tribler.org/test2.txt').readlines()
-#            if curr_status[0].strip() == "on":
-#                turn_proxy_on = True
-#            else:
-#                turn_proxy_on = False
-#        except Exception:
-#            print >> sys.stderr, "NetworkTest: verification failed"
-#        
-#        if turn_proxy_on:
-#            session.set_proxyservice_status(PROXYSERVICE_ON)
-#            
-#    def _remove_download_by_name(self, name):
-#        guiUtility = GUIUtility.getInstance()
-#        library_manager = guiUtility.library_manager
-#        
-#        dlist = guiUtility.utility.session.get_downloads()
-#        for d in dlist:
-#            safename = `d.get_def().get_name()`
-#            if safename == name:
-#                infohash = d.get_def().get_infohash()
-#                
-#                library_manager.deleteTorrentDownload(d, infohash, removecontent = True)
-#                library_manager.mypref_db.deletePreference(infohash)
-#                
-#                listManager = guiUtility.frame.librarylist.GetManager()
-#                wx.CallAfter(listManager.refresh)
-#                return True
-#            
-#        return False
-    # _ProxyService 90s Test
+
 
     def startAPI(self, progress):
         
@@ -609,28 +524,9 @@ class ABCApp():
             playds = None
             d = self.videoplayer.get_vod_download()
             for ds in dslist:
-                # ProxyService 90s Test_
-#                if not self.proxytest_reported:
-#                    safename = `ds.get_download().get_def().get_name()`
-#                    if safename == "'Data.90s-test.8M.bin'":
-#                        if ds.get_progress() <= 1.0:
-#                            status = get_status_holder("Proxy90secondsTest")
-#                            status.create_and_add_event("transfer-rate", [safename, dlstatus_strings[ds.get_status()], 100.0*ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers()])
-#                    
-#                            # Report the logs when the download completes
-#                            if ds.get_progress() == 1.0:
-#                                status.report_now()
-#                                self.proxytest_reported = True
-                # _ProxyService 90s Test
                 if ds.get_download() == d:
                     playds = ds
                     
-                    # ProxyService 90s Test_
-#                    #only break if proxytest is not active
-#                    if self.proxytest_reported:
-#                        break
-                    # _ProxyService 90s Test
-            
             # Apply status displaying from SwarmPlayer
             if playds:
                 def do_video():
@@ -746,10 +642,6 @@ class ABCApp():
     def loadSessionCheckpoint(self):
         self.utility.session.load_checkpoint()
         
-        # ProxyService 90s Test_
-#        if os.path.isfile(os.path.join(self.utility.session.get_state_dir(),"Proxy90secondsTestV2")):
-#            self.del_dl('restart')
-        # _ProxyService 90s Test
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -1152,13 +1044,6 @@ def run(params = None):
 
             #Niels: No code should be present here, only executed after gui closes
             
-            
-            # ProxyService 90s Test
-#            from Tribler.Core.Statistics.Status.ProxyTestReporter import ProxyTestPeriodicReporter
-#            status = get_status_holder("Proxy90secondsTest")
-#            status.add_reporter(ProxyTestPeriodicReporter("Proxy90secondsTest", 300, "id01"))
-            # _ProxyService 90s Test
-    
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(1)
 
