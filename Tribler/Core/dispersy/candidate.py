@@ -289,9 +289,10 @@ class WalkCandidate(Candidate):
         """
         timestamps = self._timestamps.get(community.cid)
         if timestamps:
-            return (timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY <= now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
-                    now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
-                    now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME)
+            return (timestamps.last_walk + CANDIDATE_ELIGIBLE_DELAY <= now and
+                    (now < timestamps.last_walk + CANDIDATE_WALK_LIFETIME or
+                     now < timestamps.last_stumble + CANDIDATE_STUMBLE_LIFETIME or
+                     now < timestamps.last_intro + CANDIDATE_INTRO_LIFETIME))
         else:
             return False
 
