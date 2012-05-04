@@ -500,13 +500,11 @@ class ABCApp():
         if not self.ready:
             return (5.0, True)
         
-        """ Called by GUITHREAD  """
         if DEBUG: 
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
             print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
             
-        #print >>sys.stderr,"main: Stats: NAT",self.utility.session.get_nat_type()
         try:
             # Print stats on Console
             if DEBUG:
@@ -587,7 +585,7 @@ class ABCApp():
             if doCheckpoint:
                 self.utility.session.checkpoint()
             
-# SelectiveSeeding_
+            # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance
             # Boudewijn 12/01/10: apply seeding policies immediately
             # applyseedingpolicy = False
@@ -596,7 +594,7 @@ class ABCApp():
             # self.seedingcount += 1
             # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(dslist)
-# _SelectiveSeeding
+            # _SelectiveSeeding
             
             # Pass DownloadStates to libaryView
             try:
@@ -619,7 +617,7 @@ class ABCApp():
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
             
-# Crawling Seeding Stats_
+            # Crawling Seeding Stats_
             if self.seedingstats_enabled == 1:
                 snapshot_seeding_stats = False
                 if self.seeding_snapshot_count % self.seedingstats_interval == 0:
@@ -632,7 +630,7 @@ class ABCApp():
                 
                     seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
                     seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
-# _Crawling Seeding Stats
+            # _Crawling Seeding Stats
 
         except:
             print_exc()
