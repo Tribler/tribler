@@ -453,6 +453,7 @@ class DispersyPanel(HomePanel):
 
         vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
 
+        vSumSizer = wx.BoxSizer(wx.VERTICAL)
         self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.summary_tree.blockUpdate = False
         self.summary_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
@@ -461,8 +462,12 @@ class DispersyPanel(HomePanel):
         font = self.summary_tree.GetFont()
         font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.summary_tree.SetFont(font)
-
-        vSizer.Add(self.summary_tree, 2, wx.EXPAND|wx.LEFT, 10)
+        
+        vSumSizer.Add(self.summary_tree, 1, wx.EXPAND)
+        self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
+        vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
+        
+        vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
 
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.tree.blockUpdate = False
@@ -509,6 +514,9 @@ class DispersyPanel(HomePanel):
             self.UpdateStats()
 
     def UpdateStats(self):
+        includeStuffs = self.includeStuffs.GetValue()
+        print >> sys.stderr, includeStuffs
+        
         def db_callback():
             info = self.dispersy.info()
             self._UpdateStats(info)
