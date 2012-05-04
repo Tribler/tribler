@@ -367,7 +367,10 @@ class MainFrame(wx.Frame):
         
     def startCMDLineTorrent(self):
         if self.params[0] != "":
-            if self.params[0].startswith("magnet:"):
+            if self.params[0].startswith("--"):
+                # it is a parameter, ignore
+                pass
+            elif self.params[0].startswith("magnet:"):
                 self.startDownloadFromMagnet(self.params[0])
             else:
                 torrentfilename = self.params[0]
