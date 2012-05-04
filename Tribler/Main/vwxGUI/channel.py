@@ -1018,13 +1018,17 @@ class ManageChannelFilesManager():
         except:
             return False
     
-    def startDownload(self, torrentfilename, *args, **kwargs):
+    def startDownload(self, torrentfilename, cdef = None, *args, **kwargs):
         try:
             tdef = TorrentDef.load(torrentfilename)
-            if 'fixtorrent' not in kwargs:
-                self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
-
-            return self.AddTDef(tdef)
+            if cdef:
+                if 'fixtorrent' not in kwargs:
+                    self.guiutility.frame.startDownload(cdef = cdef, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
+                return self.AddCDef(cdef, tdef)
+            else:
+                if 'fixtorrent' not in kwargs:
+                    self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
+                return self.AddTDef(tdef)
         except:
             return False
         
@@ -1061,6 +1065,14 @@ class ManageChannelFilesManager():
                 notification = 'New torrent added to My Channel'
             self.guiutility.frame.top_bg.Notify(notification, wx.ART_INFORMATION)
             
+            return True
+        return False
+    
+    
+    def AddCDef(self, cdef, tdef):
+        if tdef and cdef:
+            torrent = self.channelsearch_manager.getTorrentFromChannel(self.channel.id, tdef.get_infohash())
+            self.channelsearch_manager.modifyTorrent(self.channel.id, torrent.channeltorrent_id, {'swift-url':cdef.get_url()})
             return True
         return False
 

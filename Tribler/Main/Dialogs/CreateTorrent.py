@@ -392,13 +392,13 @@ class CreateTorrent(wx.Dialog):
             self.Layout()
     
     @forceWxThread
-    def _torrentCreated(self, path, correctedfilename, torrentfilename):
+    def _torrentCreated(self, path, correctedfilename, torrentfilename, root_hash):
         self.progressDlg.cur += 1
         keepGoing, _ = self.progressDlg.Update(self.progressDlg.cur)
         if not keepGoing:
             self.cancelEvent.Set()
         
-        self.createdTorrents.append((path, correctedfilename, torrentfilename))
+        self.createdTorrents.append((path, correctedfilename, torrentfilename, root_hash))
         
 def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfilenameCallback):
     tdef = TorrentDef()
@@ -481,5 +481,11 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         torrentfilename = os.path.join(basepath, tdef.get_name()+postfix)
     tdef.save(torrentfilename)
     
+    # Generate the roothash for swift
+    tdef.set_create_merkle_torrent(True)
+    tdef.finalize()
+    
+    root_hash = tdef.get_infohash()
+    
     # Inform higher layer we created torrent
-    torrentfilenameCallback(basepath, basedir, torrentfilename)
+    torrentfilenameCallback(basepath, basedir, torrentfilename, root_hash)

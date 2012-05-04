@@ -826,7 +826,10 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         (Merkle torrents) or hash of the live-source authentication key.
         @return A string of length 20. """
         if self.metainfo_valid:
-            return self.infohash
+            if self.is_merkle_torrent():
+                return self.metainfo['info']['root hash']
+            else:
+                return self.infohash
         else:
             raise TorrentDefNotFinalizedException()
 
