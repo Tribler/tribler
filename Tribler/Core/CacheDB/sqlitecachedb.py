@@ -31,7 +31,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 ##Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
 ##Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
 ##Changed from 11 to 12 imposing some limits on the Tribler database
-CURRENT_MAIN_DB_VERSION = 12
+##Changed from 12 to 13 introduced swift-url modification type
+CURRENT_MAIN_DB_VERSION = 13
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
