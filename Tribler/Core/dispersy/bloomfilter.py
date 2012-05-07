@@ -130,8 +130,9 @@ class BloomFilter(Constructor):
 
             # 04/05/12 Boudewijn: using a list instead of a generator is significantly faster.
             # while generators are more memory efficient, this list will be relatively short.
-            for pos in [index % m_size for index in fmt_unpack(h.digest())]:
-                filter_ |= 1 << pos
+            # 07/05/12 Niels: using no list at all is even more efficient/faster
+            for pos in fmt_unpack(h.digest()):
+                filter_ |= 1 << (pos % m_size)
 
         self._filter = filter_
 
@@ -143,8 +144,13 @@ class BloomFilter(Constructor):
 
     def __contains__(self, key):
         filter_ = self._filter
-        for pos in self._hashes(key):
-            if not filter_ & (1 << pos):
+        m_size_ = self._m_size
+        
+        h = self._salt.copy()
+        h.update(key)
+
+        for pos in self._fmt_unpack(h.digest()):
+            if not filter_ & (1 << (pos % m_size_)):
                 return False
         return True
 
@@ -672,9 +678,14 @@ if __debug__:
 
     @attach_profiler
     def _test_performance():
-        data = [str(i) for i in xrange(100000)]
+        data = [str(i) for i in xrange(200000)]
+        testdata = [str(i) for i in xrange(len(data) * 2)]
+        
         b = BloomFilter(1024 * 8, 0.01)
         b.add_keys(data)
+        
+        for i in testdata:
+            test = i in b
 
     def p(b, postfix=""):
         # print "capacity:", b.capacity, "error-rate:", b.error_rate, "num-slices:", b.num_slices, "bits-per-slice:", b.bits_per_slice, "bits:", b.size, "bytes:", b.size / 8, "packet-bytes:", b.size / 8 + 51 + 60 + 16 + 8, postfix
