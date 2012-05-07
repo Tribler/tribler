@@ -85,6 +85,7 @@ class TorrentManager:
         self.bundle_mode = None
         self.bundle_mode_changed = True
         self.category = Category.getInstance()
+        self.prevff = self.category.family_filter_enabled()
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -340,8 +341,12 @@ class TorrentManager:
             
             if key.lower() == categorykey.lower():
                 categorykey = id
-                
+        
         deadstatus_id = self.torrent_db.status_table['dead']
+        
+        ffchanged = self.category.family_filter_enabled() != self.prevff
+        if ffchanged:
+            self.prevff = self.category.family_filter_enabled() 
 
         def torrentFilter(torrent):
             okCategory = False
@@ -382,7 +387,7 @@ class TorrentManager:
             if DEBUG:
                 beginsort = time()
             
-            if new_local_hits or new_remote_hits:
+            if new_local_hits or new_remote_hits or ffchanged:
                 self.hits = filter(torrentFilter, self.hits)
                 
                 if sort == 'rameezmetric':
@@ -1139,12 +1144,12 @@ class ChannelManager:
 
         if Dispersy.has_instance():
             self.dispersy = Dispersy.get_instance()
-            self.dispersy.database.attach_commit_callback(self.channelcast_db.commit)
+            self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
 
         else:
             def dispersy_started(subject,changeType,objectID):
                 self.dispersy = Dispersy.get_instance()
-                self.dispersy.database.attach_commit_callback(self.channelcast_db.commit)
+                self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
                 
                 self.session.remove_observer(dispersy_started)
             

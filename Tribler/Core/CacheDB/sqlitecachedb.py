@@ -16,6 +16,9 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from threading import currentThread, Event, RLock
+import inspect
+
 #support_version = (3,5,9)
 #support_version = (3,3,13)
 #apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
@@ -53,6 +56,7 @@ TEST_OVERRIDE = False
 DEBUG = False
 DEBUG_THREAD = False
 DEBUG_TIME = True
+TRHEADING_DEBUG = False
 
 class Warning(Exception):
     pass
@@ -2044,37 +2048,62 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
                
         if vacuum:
-            self.execute_read("VACUUM")        
-    
-            
-class SQLiteCacheDB(SQLiteCacheDBV5):
-    __single = None    # used for multithreaded singletons pattern
+            self.execute_read("VACUUM")
 
-    @classmethod
-    def getInstance(cls, *args, **kw):
-        # Singleton pattern with double-checking to ensure that it can only create one object
-        if cls.__single is None:
-            cls.lock.acquire()   
-            try:
-                if cls.__single is None:
-                    cls.__single = cls(*args, **kw)
-                    #print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
-            finally:
-                cls.lock.release()
-        return cls.__single
+_callback = None
+def register_task(db, *args, **kwargs):
+    global _callback
+    if not _callback:
+        from Tribler.Core.dispersy.dispersy import Dispersy
+        
+        dispersy = Dispersy.has_instance()
+        if dispersy:
+            _callback = dispersy.callback
+            db.cacheCommit = True
+            
+            print >> sys.stderr, "Using actual DB thread"
+            
+    if not _callback or not _callback.is_running:
+        def fakeDispersy(func):
+            func()
+        return fakeDispersy(*args)
+    return _callback.register(*args, **kwargs)
+
+def forceAndReturnDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if not currentThread().getName()== 'Dispersy':
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            event = Event()
+            
+            result = [None]
+            def dispersy_thread():
+                try:
+                    result[0] = func(*args, **kwargs)
+                finally:
+                    event.set()
+            
+            dispersy_thread.__name__ = func.__name__
+            register_task(args[0], dispersy_thread)
+            
+            if event.wait(100) or event.isSet():
+                return result[0]
+            
+            print_stack()
+            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__
+        else:
+            return func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
     
-    def __init__(self, *args, **kargs):
-        # always use getInstance() to create this object
-        
-        # ARNOCOMMENT: why isn't the lock used on this read?!
-        
-        if self.__single != None:
-            raise RuntimeError, "SQLiteCacheDB is singleton"
-        SQLiteCacheDBBase.__init__(self, *args, **kargs)
-        
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
     __single = None
     DEBUG = False
+    
     @classmethod
     def getInstance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
@@ -2094,48 +2123,54 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
         
-        db = SQLiteCacheDB.getInstance()
-        self.class_variables = db.class_variables
+        self.cacheCommit = False
         self.shouldCommit = False
 
-    def commit(self):
-        if self.shouldCommit:
-            self._execute("COMMIT")
+    def commitNow(self):
+        if self.cacheCommit and self.shouldCommit:
+            self._execute("COMMIT; BEGIN;")
             self.shouldCommit = False
     
     def execute_write(self, sql, args=None, commit=True):
-        if not self.shouldCommit:
+        if self.cacheCommit and not self.shouldCommit:
             sql = "BEGIN;"+sql
+            self.shouldCommit = True
             
         self._execute(sql, args)
-        
-        if commit:
-            self.commit()
-        else:
-            self.shouldCommit = True
     
     def executemany(self, sql, args, commit=True):
-        if not self.shouldCommit:
-            self._execute("BEGIN;")
+        if self.cacheCommit and not self.shouldCommit:
+            sql = "BEGIN;"+sql
+            self.shouldCommit = True    
         
         self._executemany(sql, args)
-        
-        if commit:
-            self.commit()
-            
-        else:
-            self.shouldCommit = True
     
     def cache_transaction(self, sql, args=None):
-        raise DeprecationWarning('Please do not use cache_transaction')
+        if TRHEADING_DEBUG:
+            raise DeprecationWarning('Please do not use cache_transaction')
     
     def transaction(self, sql=None, args=None):
-        raise DeprecationWarning('Please do not use transaction')
+        if TRHEADING_DEBUG:
+            raise DeprecationWarning('Please do not use transaction')
             
     def _transaction(self, sql, args=None):
-        raise DeprecationWarning('Please do not use _transaction')
+        if TRHEADING_DEBUG:
+            raise DeprecationWarning('Please do not use _transaction')
+    
+    def commit(self):
+        if TRHEADING_DEBUG:
+            raise DeprecationWarning('Please do not use commit')
+    
+    @forceAndReturnDBThread
+    def fetchone(self, sql, args=None):
+        return SQLiteCacheDBV5.fetchone(self, sql, args)
+    
+    @forceAndReturnDBThread
+    def fetchall(self, sql, args=None, retry=0):
+        return SQLiteCacheDBV5.fetchall(self, sql, args, retry)
                 
-    def _execute(self, sql, args=None):    
+    @forceAndReturnDBThread
+    def _execute(self, sql, args=None):
         cur = self.getCursor()
 
         if SHOW_ALL_EXECUTE or self.show_execute:
@@ -2157,6 +2192,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
             raise msg
     
+    @forceAndReturnDBThread
     def _executemany(self, sql, args=None):    
         cur = self.getCursor()
 
@@ -2179,6 +2215,31 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 thread_name = threading.currentThread().getName()
                 print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
             raise msg
+            
+class SQLiteCacheDB(SQLiteNoCacheDB):
+    __single = None    # used for multithreaded singletons pattern
+
+    @classmethod
+    def getInstance(cls, *args, **kw):
+        # Singleton pattern with double-checking to ensure that it can only create one object
+        if cls.__single is None:
+            cls.lock.acquire()   
+            try:
+                if cls.__single is None:
+                    cls.__single = cls(*args, **kw)
+                    #print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
+            finally:
+                cls.lock.release()
+        return cls.__single
+    
+    def __init__(self, *args, **kargs):
+        # always use getInstance() to create this object
+        
+        # ARNOCOMMENT: why isn't the lock used on this read?!
+        
+        if self.__single != None:
+            raise RuntimeError, "SQLiteCacheDB is singleton"
+        SQLiteNoCacheDB.__init__(self, *args, **kargs)
     
 if __name__ == '__main__':
     configure_dir = sys.argv[1]

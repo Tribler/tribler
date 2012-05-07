@@ -56,6 +56,7 @@ class RemoteSearchManager:
             cancelWorker("RemoteSearchManager_refresh_channel_%s"%self.oldkeywords)
         
         self.oldkeywords = ''
+        self.torrentsearch_manager.oldsearchkeywords = None
         self.data_channels = []
         self.dirtyset.clear()
         
@@ -1196,7 +1197,11 @@ class SearchList(GenericSearchList):
     
     def toggleFamilyFilter(self, event = None):
         GenericSearchList.toggleFamilyFilter(self)
-        self.guiutility.dosearch()
+        
+        if self.guiutility.getFamilyFilter():
+            self.GetManager().refresh()
+        else:
+            self.guiutility.dosearch()
     
     def Reset(self):
         GenericSearchList.Reset(self)
