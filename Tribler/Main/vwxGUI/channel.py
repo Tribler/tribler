@@ -2080,14 +2080,13 @@ class CommentItem(AvantarItem):
         else:
             self.inTorrent = False
         
-        comment = original_data
+        _, comment = original_data
         self.canRemove = comment.isMyComment() or (comment.channel and comment.channel.isMyChannel())
         
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):
-        comment = self.original_data
-        depth = self.data[0]
+        depth, comment = self.original_data
         
         self.header = "Posted %s by %s"%(format_time(comment.time_stamp).lower(), comment.name)
         self.body = comment.comment
@@ -2417,7 +2416,7 @@ class CommentList(List):
         
         listData = []
         def addComments(comment, depth):
-            listData.append((comment.id, [depth], comment, CommentItem))
+            listData.append((comment.id, [], (depth, comment), CommentItem))
             for reply in comment.replies:
                 addComments(reply, depth+1)
         
