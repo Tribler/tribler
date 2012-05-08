@@ -2109,18 +2109,19 @@ class CommentItem(AvantarItem):
         AvantarItem.AddComponents(self, leftSpacer, rightSpacer)       
         
     def ShowTorrent(self, event):
-        if self.original_data.torrent:
-            self.parent_list.parent_list.OnShowTorrent(self.original_data.torrent)
+        _, comment = self.original_data
+        if comment.torrent:
+            self.parent_list.parent_list.OnShowTorrent(comment.torrent)
     
     def RemoveComment(self, event):
-        comment = self.original_data
+        _, comment = self.original_data
         self.parent_list.parent_list.OnRemoveComment(comment)
         
         
 class CommentActivityItem(CommentItem):
         
     def AddComponents(self, leftSpacer, rightSpacer):
-        comment = self.original_data
+        _, comment = self.original_data
         self.header = "New comment received, posted %s by %s"%(format_time(comment.time_stamp).lower(), comment.name)
         
         if not self.inTorrent and comment.torrent:
@@ -2367,14 +2368,16 @@ class CommentManager:
     def addComment(self, comment):
         item = self.list.GetExpandedItem()
         if item:
-            reply_to = item.original_data.dispersy_id
+            _, comment = item.original_data
+            reply_to = comment.dispersy_id
         else:
             reply_to = None
         
         reply_after = None
         items = self.list.GetItems().values()
         if len(items) > 0:
-            reply_after = items[-1].original_data.dispersy_id
+            _, comment = items[-1].original_data
+            reply_after = comment.dispersy_id
             
         def db_callback():
             if self.playlist:
@@ -2567,7 +2570,7 @@ class ActivityList(List):
         recent_received_torrents = [torrent for torrent in recent_received_torrents if torrent.infohash not in recent_torrent_infohashes]
         
         #first element must be timestamp, allows for easy sorting
-        data =  [(comment.inserted, ("COMMENT_%d"%comment.id, (), comment, CommentActivityItem)) for comment in comments]
+        data =  [(comment.inserted, ("COMMENT_%d"%comment.id, (), (0, comment), CommentActivityItem)) for comment in comments]
         data += [(torrent.inserted, (torrent.infohash, (), torrent, NewTorrentActivityItem)) for torrent in recent_torrents]
         data += [(torrent.inserted, (torrent.infohash, (), torrent, TorrentActivityItem)) for torrent in recent_received_torrents]
         data += [(modification.inserted, ("MODIFICATION_%d"%modification.id, (), modification, ModificationActivityItem)) for modification in recent_modifications]
