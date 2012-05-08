@@ -2163,7 +2163,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             raise DeprecationWarning('Please do not use commit')
 
     def clean_db(self, vacuum = False):
-        super(SQLiteNoCacheDB, self).clean_db(False)
+        SQLiteCacheDBV5.clean_db(self, False)
 
         if TRHEADING_DEBUG and vacuum:
             raise DeprecationWarning('Please do not use clean_db with vacuum')
