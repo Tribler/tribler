@@ -151,8 +151,8 @@ class DelayedPacketCache(Cache):
 
 class MissingMemberCache(DelayedPacketCache):
     @staticmethod
-    def properties_to_identifier(*args):
-        return "-missing-member-%s-%s-" % (args[0].cid, args[1].mid)
+    def properties_to_identifier(community, member):
+        return "-missing-member-%s-%s-" % (community.cid, member.mid)
 
     @staticmethod
     def message_to_identifier(message):
@@ -160,8 +160,8 @@ class MissingMemberCache(DelayedPacketCache):
 
 class MissingMessageCache(DelayedPacketCache):
     @staticmethod
-    def properties_to_identifier(*args):
-        return "-missing-message-%s-%s-%d-" % (args[0].cid, args[1].mid.encode, args[2])
+    def properties_to_identifier(community, member, global_time):
+        return "-missing-message-%s-%s-%d-" % (community.cid, member.mid, global_time)
 
     @staticmethod
     def message_to_identifier(message):
@@ -169,8 +169,8 @@ class MissingMessageCache(DelayedPacketCache):
 
 class MissingLastMessageCache(DelayedPacketCache):
     @staticmethod
-    def properties_to_identifier(*args):
-        return "-missing-last-message-%s-%s-%s-" % (args[0].cid, args[1].mid, args[2].name.encode("UTF-8"))
+    def properties_to_identifier(community, member, message):
+        return "-missing-last-message-%s-%s-%s-" % (community.cid, member.mid, message.name.encode("UTF-8"))
 
     @staticmethod
     def message_to_identifier(message):
@@ -2341,7 +2341,10 @@ class Dispersy(Singleton):
                     response_func(message, *response_args)
 
             else:
-                if __debug__: dprint("no request cache found for ", message, " [", cls.message_to_identifier(message), "]")
+                if __debug__:
+                    dprint("no request cache found for ", message, " [", cls.message_to_identifier(message), "]")
+                    for index, identifier in enumerate(self._request_cache._identifiers.iterkeys()):
+                        dprint(index, "] ", identifier)
 
     def create_introduction_request(self, community, destination):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
