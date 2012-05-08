@@ -145,7 +145,7 @@ class BloomFilter(Constructor):
     def __contains__(self, key):
         filter_ = self._filter
         m_size_ = self._m_size
-        
+
         h = self._salt.copy()
         h.update(key)
 
@@ -173,8 +173,9 @@ class BloomFilter(Constructor):
 
             # 04/05/12 Boudewijn: using a list instead of a generator is significantly faster.
             # while generators are more memory efficient, this list will be relatively short.
-            for pos in [index % m_size for index in fmt_unpack(h.digest())]:
-                if not filter_ & (1 << pos):
+            # 07/05/12 Niels: using no list at all is even more efficient/faster
+            for pos in fmt_unpack(h.digest()):
+                if not filter_ & (1 << (pos % m_size)):
                     yield tup
                     break
 
