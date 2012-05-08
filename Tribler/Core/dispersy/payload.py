@@ -607,25 +607,28 @@ class MissingMessagePayload(Payload):
         def global_times(self):
             return self._global_times
 
-# class MissingLastPayload(Payload):
-#     class Implementation(Payload.Implementation):
-#         def __init__(self, meta, member, message):
-#             if __debug__:
-#                 from member import Member
-#             assert isinstance(member, Member)
-#             assert isinstance(message, Message)
-#             assert isinstance(message.distribution, LastSyncDistribution), "Currently we only support LastSyncDistribution"
-#             super(MissingLastPayload.Implementation, self).__init__(meta)
-#             self._member = member
-#             self._message = message
+class MissingLastMessagePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, member, message, count):
+            if __debug__:
+                from member import Member
+            assert isinstance(member, Member)
+            super(MissingLastMessagePayload.Implementation, self).__init__(meta)
+            self._member = member
+            self._message = message
+            self._count = count
 
-#         @property
-#         def member(self):
-#             return self._member
+        @property
+        def member(self):
+            return self._member
 
-#         @property
-#         def message(self):
-#             return self._message
+        @property
+        def message(self):
+            return self._message
+
+        @property
+        def count(self):
+            return self._count
 
 class MissingProofPayload(Payload):
     class Implementation(Payload.Implementation):

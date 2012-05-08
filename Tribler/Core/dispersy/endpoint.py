@@ -16,6 +16,7 @@ if __debug__:
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035    # WSAEWOULDBLOCK
 else:
+    import errno
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
 TUNNEL_PREFIX = "ffffffff".decode("HEX")

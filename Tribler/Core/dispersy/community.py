@@ -391,7 +391,7 @@ class Community(object):
 
                 # check that this is the packet we are looking for, i.e. has the right cluster
                 conversion = self.get_conversion(packet[:22])
-                message = conversion.decode_message(canidate, packet)
+                message = conversion.decode_message(candidate, packet)
                 key = (self._my_member, message.payload.cluster)
                 assert not key in self._subjective_sets
                 self._subjective_sets[key] = SubjectiveSetCache(message.packet, message.payload.subjective_set)
@@ -740,6 +740,7 @@ class Community(object):
             if __debug__:
                 t2 = time()
 
+            acceptable_global_time = self.acceptable_global_time
             bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
             capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
 
@@ -779,7 +780,7 @@ class Community(object):
                 if __debug__:
                     t3 = time()
 
-                bloomfilter_range = [1, self.acceptable_global_time]
+                bloomfilter_range = [1, acceptable_global_time]
 
                 data, fixed = self._select_and_fix(syncable_messages, 0, capacity, True)
                 if len(data) > 0 and fixed:
@@ -796,14 +797,14 @@ class Community(object):
                     dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, packets %d-%d, pivot = %d"%(bloomfilter_range[0], bloomfilter_range[1], len(data), capacity, data[0][0], data[-1][0], from_gbtime))
                     dprint(self.cid.encode("HEX"), " took %f (fakejoin %f, rangeselect %f, dataselect %f, bloomfill, %f"%(time()-t1, t2-t1, t3-t2, t4-t3, time()-t4))
 
-                return (bloomfilter_range[0], bloomfilter_range[1], 1, 0, bloom)
+                return (min(bloomfilter_range[0], acceptable_global_time), min(bloomfilter_range[1], acceptable_global_time), 1, 0, bloom)
 
             if __debug__:
                 dprint(self.cid.encode("HEX"), " no messages to sync")
 
         elif __debug__:
             dprint(self.cid.encode("HEX"), " NOT syncing no syncable messages")
-        return (1, self.acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
+        return (1, acceptable_global_time, 1, 0, BloomFilter(8, 0.1, prefix='\x00'))
 
     #instead of pivot + capacity, compare pivot - capacity and pivot + capacity to see which globaltime range is largest
     @runtime_duration_warning(0.5)
@@ -1138,7 +1139,9 @@ class Community(object):
             else:
                 median_global_time = 0
 
-            return max(self._global_time, median_global_time) + self.dispersy_acceptable_global_time_range
+            # 07/05/12 Boudewijn: for an unknown reason values larger than 2^63-1 cause overflow
+            # exceptions in the sqlite3 wrapper
+            return min(max(self._global_time, median_global_time) + self.dispersy_acceptable_global_time_range, 2**63-1)
 
         # get opinions from all active candidates
         now = time()

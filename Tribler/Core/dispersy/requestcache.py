@@ -39,15 +39,26 @@ class RequestCache(object):
         self._identifiers[identifier] = cache
 
     def has(self, identifier, cls):
+        assert isinstance(identifier, (int, long, str)), type(identifier)
+        assert issubclass(cls, Cache), cls
+
         if __debug__: dprint("cache contains ", identifier, "? ", identifier in self._identifiers)
         return isinstance(self._identifiers.get(identifier), cls)
 
-    def get(self, identifier, cancel_timeout=False):
+    def get(self, identifier, cls):
         assert isinstance(identifier, (int, long, str)), type(identifier)
-        assert isinstance(cancel_timeout, bool)
+        assert issubclass(cls, Cache), cls
 
         cache = self._identifiers.get(identifier)
-        if cancel_timeout and cache:
+        if cache and isinstance(cache, cls):
+            return cache
+
+    def pop(self, identifier, cls):
+        assert isinstance(identifier, (int, long, str)), type(identifier)
+        assert issubclass(cls, Cache), cls
+
+        cache = self._identifiers.get(identifier)
+        if cache and isinstance(cache, cls):
             assert isinstance(cache.cleanup_delay, float)
             assert cache.cleanup_delay >= 0.0
             if __debug__: dprint("canceling timeout on ", identifier, " for ", cache)
@@ -59,7 +70,7 @@ class RequestCache(object):
                 self._callback.unregister("requestcache-%s" % identifier)
                 del self._identifiers[identifier]
 
-        return cache
+            return cache
 
     def _on_timeout(self, identifier):
         assert identifier in self._identifiers

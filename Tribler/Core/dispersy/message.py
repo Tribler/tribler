@@ -1,4 +1,5 @@
 from candidate import LoopbackCandidate
+from member import DummyMember
 from meta import MetaObject
 
 if __debug__:
@@ -30,26 +31,52 @@ class DelayPacketUsingFootprint(DelayPacket):
     def request(self):
         raise NotImplementedError()
 
-class DelayPacketByMissingMember(DelayPacket):
+class DelayPacketUsingIdentifier(DelayPacket):
+    """
+    Uses an identifier to match request to response.
+    """
+    def __init__(self, msg, community):
+        super(DelayPacketUsingIdentifier, self).__init__(msg)
+        self._community = community
+
+    def create_request(self, candidate, delayed):
+        # create and send a request.  once the response is received the _on_response can pass the
+        # (candidate, delayed) tuple to dispersy for reprocessing
+        raise NotImplementedError()
+
+    def _process_delayed_packet(self, response, candidate, delayed):
+        if response:
+            # process the response and the delayed message
+            self._community.dispersy.on_incoming_packets([(candidate, delayed)])
+
+        else:
+            # timeout, do nothing
+            pass
+
+class DelayPacketByMissingMember(DelayPacketUsingIdentifier):
     def __init__(self, community, missing_member_id):
-        if __debug__:
-            from community import Community
-        assert isinstance(community, Community)
         assert isinstance(missing_member_id, str)
         assert len(missing_member_id) == 20
-        super(DelayPacketByMissingMember, self).__init__("Missing member")
-        self._identifier = "-missing-member-%s-%s-" % (community.cid.encode("HEX"), missing_member_id.encode("HEX"))
-        self._community = community
+        super(DelayPacketByMissingMember, self).__init__("Missing member", community)
         self._missing_member_id = missing_member_id
 
-    @property
-    def identifier(self):
-        return self._identifier
+    def create_request(self, candidate, delayed):
+        self._community.dispersy.create_missing_identity(self._community, candidate, DummyMember(self._missing_member_id), self._process_delayed_packet, (candidate, delayed))
 
-    @property
-    def request(self):
-        meta = self._community.get_meta_message(u"dispersy-missing-identity")
-        return meta.impl(distribution=(self._community.global_time,), payload=(self._missing_member_id,))
+class DelayPacketByMissingLastMessage(DelayPacketUsingIdentifier):
+    def __init__(self, community, member, message, count):
+        if __debug__:
+            from member import Member
+        assert isinstance(member, Member)
+        assert isinstance(message, Message)
+        assert isinstance(count, int)
+        super(DelayPacketByMissingLastMessage, self).__init__("Missing last message", community)
+        self._member = member
+        self._message = message
+        self._count = count
+
+    def create_request(self, candidate, delayed):
+        self._community.dispersy.create_missing_last_message(self._community, candidate, self._member, self._message, self._count, self._process_delayed_packet, (candidate, delayed))
 
 class DelayPacketByMissingMessage(DelayPacketUsingFootprint):
     """

@@ -92,7 +92,7 @@ class TriggerCallback(Trigger):
         for message in messages:
             if __debug__:
                 if self._responses_remaining > 0:
-                    dprint("Does it match? ", bool(self._responses_remaining > 0 and self._search(message.footprint)))
+                    dprint("Does it match? ", bool(self._responses_remaining > 0 and self._search(message.footprint)), " (", self._response_func, ")")
                     dprint("Expression: ", self._debug_pattern)
                     dprint(" Footprint: ", message.footprint)
             if self._responses_remaining > 0 and self._search(message.footprint):

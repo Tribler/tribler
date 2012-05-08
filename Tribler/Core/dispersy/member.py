@@ -16,20 +16,11 @@ class DummyMember(object):
         assert DispersyDatabase.has_instance(), "DispersyDatabase has not yet been created"
         database = DispersyDatabase.get_instance()
 
-        if __debug__:
-            # may only create a DummyMember when the public key is not available
-            try:
-                public_key, = database.execute(u"SELECT public_key FROM member WHERE mid = ? LIMIT 1", (buffer(mid),)).next()
-                assert public_key is None
-            except StopIteration:
-                pass
-
         try:
-            database_id, tags = database.execute(u"SELECT id, tags FROM member WHERE mid = ? LIMIT 1", (buffer(mid),)).next()
+            database_id, = database.execute(u"SELECT id FROM member WHERE mid = ? LIMIT 1", (buffer(mid),)).next()
         except StopIteration:
             database.execute(u"INSERT INTO member (mid) VALUES (?)", (buffer(mid),))
             database_id = database.last_insert_rowid
-            tags = u""
 
         self._database_id = database_id
         self._mid = mid

@@ -219,6 +219,7 @@ class BinaryConversion(Conversion):
         define(238, u"dispersy-undo-own", self._encode_undo_own, self._decode_undo_own)
         define(237, u"dispersy-undo-other", self._encode_undo_other, self._decode_undo_other)
         define(236, u"dispersy-dynamic-settings", self._encode_dynamic_settings, self._decode_dynamic_settings)
+        define(235, u"dispersy-missing-last-message", self._encode_missing_last_message, self._decode_missing_last_message)
 
         if __debug__:
             if debug_non_available:
@@ -351,6 +352,61 @@ class BinaryConversion(Conversion):
         offset += 8 * len(global_times)
 
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, global_times)
+
+    def _encode_missing_last_message(self, message):
+        """
+        Encode the payload for dispersy-missing-last-message.
+
+        The payload will contain one public key, this is a binary string of variable length.  It
+        also contains the meta message where the last message is requested from.  It also contains a
+        counter, i.e. how many last we want.
+
+        The payload contains:
+         - 2 bytes: the request identifier
+         - 2 bytes: the length of the public key
+         - n bytes: the public key
+         - 1 byte:  the meta message
+         - 1 byte:  the max count we want
+        """
+        payload = message.payload
+        return (self._struct_H.pack(len(payload.member.public_key)),
+                payload.member.public_key,
+                self._encode_message_map[payload.message.name].byte,
+                chr(payload.count))
+
+    def _decode_missing_last_message(self, placeholder, offset, data):
+        if len(data) < offset + 2:
+            raise DropPacket("Insufficient packet size (_decode_missing_message.1)")
+
+        key_length, = self._struct_H.unpack_from(data, offset)
+        offset += 2
+
+        if len(data) < offset + key_length:
+            raise DropPacket("Insufficient packet size (_decode_missing_message.2)")
+
+        key = data[offset:offset+key_length]
+        if not ec_check_public_bin(key):
+            raise DropPacket("Invalid cryptographic key (_decode_missing_message)")
+        member = self._community.dispersy.get_member(key)
+        if not member.has_identity(self._community):
+            raise DelayPacketByMissingMember(self._community, member.mid)
+        offset += key_length
+
+        if len(data) < offset + 1:
+            raise DropPacket("Insufficient packet size (_decode_missing_message.3)")
+        message_id = data[offset]
+        offset += 1
+        decode_functions = self._decode_message_map.get(message_id)
+        if decode_functions is None:
+            raise DropPacket("Unknown sub-message id [%d]" % ord(message_id))
+        message = decode_functions.meta
+
+        if len(data) < offset + 1:
+            raise DropPacket("Insufficient packet size (_decode_missing_message.4)")
+        count = ord(data[offset])
+        offset += 1
+
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, member, message, count)
 
     def _encode_signature_request(self, message):
         return (self._struct_H.pack(message.payload.identifier), self.encode_message(message.payload.message))
