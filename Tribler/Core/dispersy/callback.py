@@ -495,8 +495,6 @@ class Callback(object):
                 try:
                     if isinstance(call, TupleType):
                         # callback
-                        if __debug__:
-                            debug_begin = get_timestamp()
                         result = call[0](*call[1], **call[2])
                         if isinstance(result, GeneratorType):
                             # we only received the generator, no actual call has been made to the
@@ -509,8 +507,6 @@ class Callback(object):
 
                     if isinstance(call, GeneratorType):
                         # start next generator iteration
-                        if __debug__:
-                            debug_begin = get_timestamp()
                         result = call.next()
                         assert isinstance(result, float), type(result)
                         assert result >= 0.0
@@ -537,10 +533,13 @@ class Callback(object):
                     self._call_exception_handlers(exception, False)
 
                 if __debug__:
+                    debug_call_duration = time() - debug_call_start
+                    if debug_call_duration > 1.0:
+                        dprint(round(debug_call_duration, 2), "s call to ", debug_call_name, level="warning")
+
                     if debug_call_name not in self._debug_statistics:
                         self._debug_statistics[debug_call_name] = [0.0, 0]
-
-                    self._debug_statistics[debug_call_name][0] += time() - debug_call_start
+                    self._debug_statistics[debug_call_name][0] += debug_call_duration
                     self._debug_statistics[debug_call_name][1] += 1
 
         with lock:

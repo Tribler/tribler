@@ -173,7 +173,8 @@ class Stats(XRCPanel):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
         hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
-        hSizer.Add(TopContributorsPanel(self), 1, wx.EXPAND)
+        # boudewijn: disabled TopContributorsPanel, getTopNPeers is a very expensive call
+        # hSizer.Add(TopContributorsPanel(self), 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
@@ -441,7 +442,8 @@ class DispersyPanel(HomePanel):
                         "version":[],
                         "communities":[],
                         "sequence_number":[],
-                        "start":[]}
+                        "start":[],
+                        "walk_fail":[]}
 
     def CreatePanel(self):
         panel = wx.Panel(self)
@@ -515,10 +517,9 @@ class DispersyPanel(HomePanel):
 
     def UpdateStats(self):
         includeStuffs = self.includeStuffs.GetValue()
-        print >> sys.stderr, includeStuffs
-        
+
         def db_callback():
-            info = self.dispersy.info()
+            info = self.dispersy.info(database_sync=includeStuffs)
             self._UpdateStats(info)
 
         startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats")
@@ -563,7 +564,8 @@ class DispersyPanel(HomePanel):
                         candidates = "%d*" % len(community["candidates"])
                     else:
                         candidates = "- "
-                    parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community["hex_cid"], sum(community["database_sync"].itervalues()), candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    total_packets = sum(community["database_sync"].itervalues()) if "database_sync" in community else -1
+                    parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community["hex_cid"], total_packets, candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
                     self.summary_tree.AppendItem(parent, u"classification:     %s" % community["classification"])
                     self.summary_tree.AppendItem(parent, u"database id:        %d" % community["database_id"])
                     self.summary_tree.AppendItem(parent, u"global time:        %d" % community["global_time"])
@@ -575,9 +577,10 @@ class DispersyPanel(HomePanel):
                                                 for lan_address, wan_address, global_time
                                                 in community["candidates"]):
                             self.summary_tree.AppendItem(sub_parent, candidate)
-                    sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
-                    for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
-                        self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
+                    if "database_sync" in community:
+                        sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
+                        for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
+                            self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
                     # self.summary_tree.Expand(parent)
                 # self.summary_tree.ExpandAll()
 

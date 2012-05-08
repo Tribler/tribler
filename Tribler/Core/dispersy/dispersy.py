@@ -119,7 +119,9 @@ class IntroductionRequestCache(Cache):
         # helper_candidate did not respond to a request message in this community.  after some time
         # inactive candidates become obsolete and will be removed by
         # _periodically_cleanup_candidates
-        if __debug__: dprint("timeout for ", self.helper_candidate)
+        if __debug__:
+            dprint("timeout for ", self.helper_candidate)
+            self.community.dispersy._statistics.walk_fail(self.helper_candidate.sock_addr)
 
         # we choose to set the entire helper to inactive instead of just the community where the
         # timeout occurred.  this will allow us to quickly respond to nodes going offline, while the
@@ -187,6 +189,7 @@ class Statistics(object):
             self._delay = {}
             self._success = {}
             self._outgoing = {}
+            self._walk_fail = {}
 
     def info(self):
         """
@@ -201,7 +204,8 @@ class Statistics(object):
                     "start":self._start,
                     "runtime":time() - self._start,
                     "walk_attempt":self._walk_attempt,
-                    "walk_success":self._walk_success}
+                    "walk_success":self._walk_success,
+                    "walk_fail":self._walk_fail}
 
         else:
             return {"sequence_number":self._sequence_number,
@@ -226,6 +230,7 @@ class Statistics(object):
                 self._delay = {}
                 self._success = {}
                 self._outgoing = {}
+                self._walk_fail = {}
 
     if __debug__:
         def drop(self, key, byte_count, amount=1):
@@ -267,6 +272,12 @@ class Statistics(object):
             assert isinstance(amount, (int, long))
             a, b = self._outgoing.get(key, (0, 0))
             self._outgoing[key] = (a+amount, b+byte_count)
+
+        def walk_fail(self, sock_addr):
+            if sock_addr in self._walk_fail:
+                self._walk_fail[sock_addr] += 1
+            else:
+                self._walk_fail[sock_addr] = 1
 
     def increment_walk_attempt(self):
         self._walk_attempt += 1
@@ -4594,7 +4605,9 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 # flush changes to disk every 1 minutes
                 self._database.commit()
             except GeneratorExit:
-                if __debug__: dprint("shutdown")
+                if __debug__:
+                    dprint("shutdown")
+                    dprint(self.info(), pprint=True, force=1)
                 self._database.commit()
                 break
 
@@ -4604,21 +4617,55 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         """
         walker_communities = self._walker_commmunities
 
-        while walker_communities:
+        steps = 0
+        start = time()
+
+        # delay will never be less than 0.1, hence we can accommodate 50 communities before the
+        # interval between each step becomes larger than 5.0 seconds
+        optimaldelay = max(0.1, 5.0 / len(walker_communities))
+        if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", optimaldelay, "s (on average) between each step")
+
+        if __debug__:
+            RESETS = 0
+            STEPS = 0
+            START = start
+            DELAY = 0.0
+            TOTALDELAY = 0.0
+
+        while True:
             community = walker_communities.pop(0)
             walker_communities.append(community)
+
+            if __debug__:
+                TOTALDELAY += DELAY
+                DELAYDIFF = STEPS * optimaldelay - TOTALDELAY
+                STEPSDIFF = DELAYDIFF / optimaldelay
+                OPTIMALSTEPS = (time() - START) / optimaldelay
+                dprint(community.cid.encode("HEX"), " taking step every ", round(DELAY, 2), " sec in ", len(walker_communities), " communities.  steps: ", STEPS, "/", round(OPTIMALSTEPS, 1), " ~ ", round(STEPS / OPTIMALSTEPS, 2), ".  diff: ", round(STEPSDIFF, 1), ".  resets: ", RESETS)
+                STEPS += 1
 
             # walk
             assert community.dispersy_enable_candidate_walker
             assert community.dispersy_enable_candidate_walker_responses
             community.dispersy_take_step()
+            steps += 1
 
-            # delay will never be less than 0.1, hence we can accommodate 50 communities before the
-            # interval between each step becomes larger than 5.0 seconds
-            delay = max(0.1, 5.0 / len(walker_communities))
-            if __debug__: dprint("there are ", len(walker_communities), " walker enabled communities.  pausing ", delay, "s between each step")
+            optimaltime = start + steps * optimaldelay
+            actualtime = time()
 
-            yield delay
+            if optimaltime + 5.0 < actualtime:
+                # way out of sync!  reset start time
+                start = actualtime - 5.0
+                steps = 0
+                if __debug__:
+                    dprint("can not keep up!  resetting walker start time!", level="warning")
+                    DELAY = 0.0
+                    RESETS += 1
+
+            else:
+                if __debug__:
+                    DELAY = max(0.0, optimaltime - actualtime)
+                yield max(0.0, optimaltime - actualtime)
 
     def _periodically_cleanup_candidates(self):
         """
@@ -4729,9 +4776,10 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         # 3.2: removed address specific information from info["statistics"]["outgoing"]
         #      all info["statistics"] are now stored in info directly
         #      info["total_up"] and info["total_down"] are now always present
+        # 3.3: added info["walk_fail"] in __debug__ mode
 
         now = time()
-        info = {"version":3.2,
+        info = {"version":3.3,
                 "class":"Dispersy",
                 "lan_address":self._lan_address,
                 "wan_address":self._wan_address,

@@ -2050,6 +2050,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if vacuum:
             self.execute_read("VACUUM")
 
+
 _callback = None
 def register_task(db, *args, **kwargs):
     global _callback
@@ -2128,7 +2129,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
     def commitNow(self):
         if self.cacheCommit and self.shouldCommit:
-            self._execute("COMMIT; BEGIN;")
+            self._execute("COMMIT;")
             self.shouldCommit = False
     
     def execute_write(self, sql, args=None, commit=True):
@@ -2160,7 +2161,13 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def commit(self):
         if TRHEADING_DEBUG:
             raise DeprecationWarning('Please do not use commit')
-    
+
+    def clean_db(self, vacuum = False):
+        super(SQLiteNoCacheDB, self).clean_db(False)
+
+        if TRHEADING_DEBUG and vacuum:
+            raise DeprecationWarning('Please do not use clean_db with vacuum')
+        
     @forceAndReturnDBThread
     def fetchone(self, sql, args=None):
         return SQLiteCacheDBV5.fetchone(self, sql, args)
@@ -2173,6 +2180,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
+        # if __debug__:
+        #     # may not commit or begin transactions manually
+        #     for key in ["commit", "begin", "vacuum"]:
+        #         if key in sql or key.upper() in sql:
+        #             print >> sys.stderr, '\n-----', key, '\n', sql, '\n-----\n', args, '\n======\n'
+        
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
@@ -2196,6 +2209,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):    
         cur = self.getCursor()
 
+        # if __debug__:
+        #     # may not commit or begin transactions manually
+        #     for key in ["commit", "begin", "vacuum"]:
+        #         if key in sql or key.upper() in sql:
+        #             print >> sys.stderr, '\n-----', key, '\n', sql, '\n-----\n', args, '\n======\n'
+        
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
