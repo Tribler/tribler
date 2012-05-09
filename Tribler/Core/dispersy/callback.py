@@ -76,6 +76,7 @@ class Callback(object):
                 assert callback.is_finished
             atexit_register(must_close, self)
             self._debug_statistics = {}
+            self._debug_statistics["callback"] = [0.0, 0]
 
     @property
     def is_running(self):
@@ -300,10 +301,13 @@ class Callback(object):
         if __debug__: dprint("replace register ", call, " after ", delay, " seconds")
         with self._lock:
             # un-register
-            for index in reversed([index for index, tup in enumerate(self._requests) if tup[2] == id_]):
-                del self._requests[index]
-            for index in reversed([index for index, tup in enumerate(self._expired) if tup[1] == id_]):
-                del self._expired[index]
+            for index, tup in enumerate(self._requests):
+                if tup[2] == id_:
+                    self._requests[index] = (tup[0], tup[1], tup[2], None, None)
+                
+            for index, tup in enumerate(self._expired):
+                if tup[1] == id_:
+                    self._expired[index] = (tup[0], tup[1], tup[2], None, None)
 
             # register
             if delay <= 0.0:
@@ -336,10 +340,13 @@ class Callback(object):
         if __debug__: dprint(id_)
         with self._lock:
             # un-register
-            for index in reversed([index for index, tup in enumerate(self._requests) if tup[2] == id_]):
-                del self._requests[index]
-            for index in reversed([index for index, tup in enumerate(self._expired) if tup[1] == id_]):
-                del self._expired[index]
+            for index, tup in enumerate(self._requests):
+                if tup[2] == id_:
+                    self._requests[index] = (tup[0], tup[1], tup[2], None, None)
+                
+            for index, tup in enumerate(self._expired):
+                if tup[1] == id_:
+                    self._expired[index] = (tup[0], tup[1], tup[2], None, None)
 
     def call(self, call, args=(), kargs=None, delay=0.0, priority=0, id_="", timeout=0.0, default=None):
         """
@@ -459,7 +466,6 @@ class Callback(object):
                 if self._state != "STATE_RUNNING":
                     break
 
-                # move expired requests from REQUESTS to EXPIRED
                 while requests and requests[0][0] <= actual_time:
                     # notice that the deadline and priority entries are switched, hence, the entries in
                     # the EXPIRED list are ordered by priority instead of deadline
@@ -470,6 +476,9 @@ class Callback(object):
                     # we need to handle the next call in line
                     priority, root_id, _, call, callback = heappop(expired)
                     wait = 0.0
+                    
+                    if call is None:
+                        continue
 
                 else:
                     # there is nothing to handle
@@ -479,13 +488,23 @@ class Callback(object):
                     event_clear()
 
             if wait:
-                if __debug__: dprint("wait at most %.1fs before next call" % wait)
+                if __debug__:
+                    dprint("%d wait at most %.3fs before next call, still have %d calls in queue" % (time(), wait, len(requests)))
+                    
+                    callback_duration = time() - actual_time
+                    self._debug_statistics["callback"][0] += callback_duration
+                    self._debug_statistics["callback"][1] += 1
                 event_wait(wait)
 
             else:
                 if __debug__:
                     # 10/02/12 Boudewijn: in python 2.5 generators do not have .__name__
-                    debug_call_name = call[0].__name__ if isinstance(call, TupleType) else str(call)
+                    if isinstance(call, TupleType):
+                        debug_call_name = call[0].__name__
+                    elif isinstance(call, GeneratorType):
+                        debug_call_name = call.__name__
+                    else:
+                        debug_call_name = str(call)
                     debug_call_start = time()
 
                 # call can be either:
@@ -541,6 +560,10 @@ class Callback(object):
                         self._debug_statistics[debug_call_name] = [0.0, 0]
                     self._debug_statistics[debug_call_name][0] += debug_call_duration
                     self._debug_statistics[debug_call_name][1] += 1
+                    
+                    callback_duration = time() - actual_time - debug_call_duration
+                    self._debug_statistics["callback"][0] += callback_duration
+                    self._debug_statistics["callback"][1] += 1
 
         with lock:
             requests = requests[:]
@@ -561,14 +584,14 @@ class Callback(object):
             self._state = "STATE_FINISHED"
 
         if __debug__:
-            dprint("top ten calls, sorted by cumulative time", line=True)
+            dprint("top 20 calls, sorted by cumulative time", line=True)
             key = lambda (_, (cumulative_time, __)): cumulative_time
-            for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
+            for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 20):
                 dprint("%8.2fs %6dx" % (cumulative_time, call_count), "  - ", call_name)
 
-            dprint("top ten calls, sorted by execution count", line=True)
+            dprint("top 20 calls, sorted by execution count", line=True)
             key = lambda (_, (__, call_count)): call_count
-            for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 10):
+            for call_name, (cumulative_time, call_count) in islice(sorted(self._debug_statistics.iteritems(), key=key, reverse=True), 20):
                 dprint("%8.2fs %6dx" % (cumulative_time, call_count), "  - ", call_name)
 
 if __debug__:
