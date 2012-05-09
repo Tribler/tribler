@@ -693,6 +693,7 @@ class List(wx.BoxSizer):
     def OnFilter(self, keyword):
         self.filter = keyword
         if keyword:
+            self.filter = keyword.strip()
             try:
                 re.compile(self.filter)
                 self.header.FilterCorrect(True)
@@ -755,7 +756,8 @@ class SizeList(List):
     
     def MatchFilter(self, item):
         if self.sizefilter:
-            size = int(item[2].length/1048576.0)
+            length = item[2].get('length')
+            size = int(length/1048576.0)
             if size < self.sizefilter[0] or size > self.sizefilter[1]:
                 return False
         

@@ -1063,6 +1063,7 @@ class Bundler:
                 # Copy channel from head to bundle-dict
                 head = group[0]
                 d['channel'] = head.get('channel')
+                d['length'] = head.get('length')
                 res.append(d)
             else:
                 res.append(group[0])
