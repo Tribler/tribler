@@ -290,8 +290,7 @@ class TunnelEndpoint(Endpoint):
         return DummyDef()
 
     def get_address(self):
-        # TODO obtain the address that swift is bound to
-        return ("0.0.0.0", 7760+481)
+        return ("0.0.0.0", self._swift.listenport)
 
     def send(self, candidates, packets):
         assert isinstance(candidates, (tuple, list, set)), type(candidates)

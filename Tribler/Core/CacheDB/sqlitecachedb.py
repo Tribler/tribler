@@ -2050,7 +2050,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if vacuum:
             self.execute_read("VACUUM")
 
-
 _callback = None
 def register_task(db, *args, **kwargs):
     global _callback
@@ -2104,6 +2103,8 @@ def forceAndReturnDBThread(func):
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
     __single = None
     DEBUG = False
+    if __debug__:
+        __counter = 0
     
     @classmethod
     def getInstance(cls, *args, **kw):
@@ -2126,6 +2127,12 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         
         self.cacheCommit = False
         self.shouldCommit = False
+
+        if __debug__:
+            if self.__counter > 0:
+                print_stack()
+                raise RuntimeError("please use getInstance instead of the constructor")
+            self.__counter += 1
 
     def commitNow(self):
         if self.cacheCommit and self.shouldCommit:
@@ -2185,6 +2192,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         #     for key in ["commit", "begin", "vacuum"]:
         #         if key in sql or key.upper() in sql:
         #             print >> sys.stderr, '\n-----', key, '\n', sql, '\n-----\n', args, '\n======\n'
+        #             print_stack()
         
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
@@ -2214,6 +2222,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         #     for key in ["commit", "begin", "vacuum"]:
         #         if key in sql or key.upper() in sql:
         #             print >> sys.stderr, '\n-----', key, '\n', sql, '\n-----\n', args, '\n======\n'
+        #             print_stack()
         
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()

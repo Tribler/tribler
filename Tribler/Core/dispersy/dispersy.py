@@ -107,13 +107,19 @@ class IntroductionRequestCache(Cache):
     timeout_delay = 10.5
     # the cache remains available at most 4.5 after receiving the response.  this gives some time to
     # receive the puncture message
-    cleanup_delay = 4.5
+    if __debug__:
+        cleanup_delay = 304.5
+    else:
+        cleanup_delay = 4.5
 
     def __init__(self, community, helper_candidate):
         self.community = community
         self.helper_candidate = helper_candidate
         self.response_candidate = None
         self.puncture_candidate = None
+        if __debug__:
+            self.request_time = time()
+            self.timeout_occurred = False
 
     def on_timeout(self):
         # helper_candidate did not respond to a request message in this community.  after some time
@@ -122,6 +128,7 @@ class IntroductionRequestCache(Cache):
         if __debug__:
             dprint("timeout for ", self.helper_candidate)
             self.community.dispersy._statistics.walk_fail(self.helper_candidate.sock_addr)
+            self.timeout_occurred = True
 
         # we choose to set the entire helper to inactive instead of just the community where the
         # timeout occurred.  this will allow us to quickly respond to nodes going offline, while the
@@ -184,6 +191,7 @@ class Statistics(object):
         self._sequence_number = 0
         self._walk_attempt = 0
         self._walk_success = 0
+        self._walk_reset = 0
         if __debug__:
             self._drop = {}
             self._delay = {}
@@ -205,6 +213,7 @@ class Statistics(object):
                     "runtime":time() - self._start,
                     "walk_attempt":self._walk_attempt,
                     "walk_success":self._walk_success,
+                    "walk_reset":self._walk_reset,
                     "walk_fail":self._walk_fail}
 
         else:
@@ -212,7 +221,8 @@ class Statistics(object):
                     "start":self._start,
                     "runtime":time() - self._start,
                     "walk_attempt":self._walk_attempt,
-                    "walk_success":self._walk_success}
+                    "walk_success":self._walk_success,
+                    "walk_reset":self._walk_reset}
 
     def reset(self):
         """
@@ -225,6 +235,7 @@ class Statistics(object):
             self._sequence_number += 1
             self._walk_attempt = 0
             self._walk_success = 0
+            self._walk_reset = 0
             if __debug__:
                 self._drop = {}
                 self._delay = {}
@@ -284,6 +295,9 @@ class Statistics(object):
 
     def increment_walk_success(self):
         self._walk_success += 1
+
+    def increment_walk_reset(self):
+        self._walk_reset += 1
 
 class Dispersy(Singleton):
     """
@@ -2339,7 +2353,6 @@ class Dispersy(Singleton):
                 assert community.my_member.private_key
                 if __debug__: dprint(community.cid.encode("HEX"), " ", community.get_classification(), " taking step towards ", candidate)
                 self.create_introduction_request(community, candidate)
-                assert not candidate.is_eligible_for_walk(community, time()), [str(candidate), candidate.last_walk(community)]
                 return True
 
     def handle_missing_messages(self, messages, cls):
@@ -2697,9 +2710,18 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
     def check_introduction_response(self, messages):
         for message in messages:
-            if not self._request_cache.has(message.payload.identifier, IntroductionRequestCache):
-                yield DropMessage(message, "invalid response identifier")
-                continue
+            if __debug__:
+                cache = self._request_cache.get(message.payload.identifier, IntroductionRequestCache)
+                if cache and cache.timeout_occurred:
+                    yield DropMessage(message, "invalid response identifier from %s, timeout occurred.  requested %.2fs ago" % (str(message.candidate), time() - cache.request_time))
+                    continue
+                if not cache:
+                    yield DropMessage(message, "invalid response identifier")
+                    continue
+            else:
+                if not self._request_cache.has(message.payload.identifier, IntroductionRequestCache):
+                    yield DropMessage(message, "invalid response identifier")
+                    continue
 
             # check introduced LAN address, if given
             if not message.payload.lan_introduction_address == ("0.0.0.0", 0):
@@ -2739,42 +2761,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             yield message
 
-    def _received_introduction(self, community, now, tunnel, lan_introduction_address, wan_introduction_address, update_addresses):
-        """
-        Called when a response to an introduction-request is received.
-
-        A response can be an introduction-response, or puncture, or both.  In any case the
-        identifier will match the responses to the introduction-request.  If the responses are
-        contradictory the response from the puncture will be leading, as this should contain the
-        most recent information.
-
-        UPDATE_ADDRESSES is True when we are sure that LAN_INTRODUCTION_ADDRESS and
-        WAN_INTRODUCTION_ADDRESS are valid, i.e. we received this information from the puncture
-        message and were able to modify it based on our respective WAN addresses.
-        """
-        if not (lan_introduction_address == ("0.0.0.0", 0) or wan_introduction_address == ("0.0.0.0", 0)):
-            assert self._is_valid_lan_address(lan_introduction_address), lan_introduction_address
-            assert self._is_valid_wan_address(wan_introduction_address), wan_introduction_address
-
-            # get or create the introduced candidate
-            sock_introduction_addr = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
-            candidate = self.get_candidate(sock_introduction_addr, replace=False, lan_address=lan_introduction_address)
-            if candidate is None:
-                # create candidate but set its state to inactive to ensure that it will not be used
-                # except by yield_walk_candidates
-                candidate = self.create_candidate(sock_introduction_addr, tunnel, lan_introduction_address, wan_introduction_address, u"unknown")
-                candidate.inactive(community, now)
-
-            elif update_addresses:
-                # update candidate
-                candidate.update(tunnel, lan_introduction_address, wan_introduction_address, u"unknown")
-
-            # reset the 'I have been introduced' timer
-            candidate.intro(community, now)
-            if __debug__: dprint("received introduction to ", candidate)
-
-            return candidate
-
     def on_introduction_response(self, messages):
         community = messages[0].community
         now = time()
@@ -2811,7 +2797,27 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             cache = self._request_cache.pop(payload.identifier, IntroductionRequestCache)
 
             # handle the introduction
-            cache.response_candidate = self._received_introduction(community, now, payload.tunnel, payload.lan_introduction_address, payload.wan_introduction_address, False)
+            lan_introduction_address = payload.lan_introduction_address
+            wan_introduction_address = payload.wan_introduction_address
+            if not (lan_introduction_address == ("0.0.0.0", 0) or wan_introduction_address == ("0.0.0.0", 0)):
+                assert self._is_valid_lan_address(lan_introduction_address), lan_introduction_address
+                assert self._is_valid_wan_address(wan_introduction_address), wan_introduction_address
+
+                # get or create the introduced candidate
+                sock_introduction_addr = lan_introduction_address if wan_introduction_address[0] == self._wan_address[0] else wan_introduction_address
+                candidate = self.get_candidate(sock_introduction_addr, replace=False, lan_address=lan_introduction_address)
+                if candidate is None:
+                    # create candidate but set its state to inactive to ensure that it will not be
+                    # used.  note that we call candidate.intro to allow the candidate to be returned
+                    # by yield_walk_candidates
+                    candidate = self.create_candidate(sock_introduction_addr, payload.tunnel, lan_introduction_address, wan_introduction_address, u"unknown")
+                    candidate.inactive(community, now)
+
+                # reset the 'I have been introduced' timer
+                candidate.intro(community, now)
+                if __debug__: dprint("received introduction to ", candidate)
+
+                cache.response_candidate = candidate
 
     def check_puncture_request(self, messages):
         for message in messages:
@@ -2837,25 +2843,20 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         community = messages[0].community
         meta_puncture = community.get_meta_message(u"dispersy-puncture")
         punctures = []
-        now = time()
         for message in messages:
             lan_walker_address = message.payload.lan_walker_address
             wan_walker_address = message.payload.wan_walker_address
             assert self._is_valid_lan_address(lan_walker_address), lan_walker_address
             assert self._is_valid_wan_address(wan_walker_address), wan_walker_address
 
-            # we are asked to send a message to a -possibly- unknown node
-            # get or create the candidate
+            # we are asked to send a message to a -possibly- unknown peer get the actual candidate
+            # or create a dummy candidate
             sock_addr = lan_walker_address if wan_walker_address[0] == self._wan_address[0] else wan_walker_address
             candidate = self.get_candidate(sock_addr, replace=False, lan_address=lan_walker_address)
             if candidate is None:
-                # create candidate but set its state to inactive to ensure that it is not used
-                # except by yield_walk_candidates
-                candidate = self.create_candidate(sock_addr, False, lan_walker_address, wan_walker_address, u"unknown")
-                candidate.inactive(community, now)
-
-            # elif candidate.lan_address == ("0.0.0.0", 0) and candidate.wan_address == ("0.0.0.0", 0):
-            #     candidate.update(candidate.tunnel, lan_walker_address, wan_walker_address, candidate.connection_type)
+                # assume that tunnel is disabled
+                tunnel = False
+                candidate = Candidate(sock_addr, tunnel)
 
             punctures.append(meta_puncture.impl(authentication=(community.my_member,), distribution=(community.global_time,), destination=(candidate,), payload=(self._lan_address, self._wan_address, message.payload.identifier)))
             if __debug__: dprint(message.candidate, " asked us to send a puncture to ", candidate)
@@ -2884,8 +2885,31 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             # we can match this source address (message.candidate.sock_addr) to the candidate and
             # modify the LAN or WAN address that has been proposed.
-            lan_address, wan_address = self._estimate_lan_and_wan_addresses(message.candidate.sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
-            cache.puncture_candidate = self._received_introduction(community, now, message.candidate.tunnel, lan_address, wan_address, True)
+            sock_addr = message.candidate.sock_addr
+            lan_address, wan_address = self._estimate_lan_and_wan_addresses(sock_addr, message.payload.source_lan_address, message.payload.source_wan_address)
+
+            if not (lan_address == ("0.0.0.0", 0) or wan_address == ("0.0.0.0", 0)):
+                assert self._is_valid_lan_address(lan_address), lan_address
+                assert self._is_valid_wan_address(wan_address), wan_address
+
+                # get or create the introduced candidate
+                candidate = self.get_candidate(sock_addr, replace=True, lan_address=lan_address)
+                if candidate is None:
+                    # create candidate but set its state to inactive to ensure that it will not be
+                    # used.  note that we call candidate.intro to allow the candidate to be returned
+                    # by yield_walk_candidates
+                    candidate = self.create_candidate(sock_addr, message.candidate.tunnel, lan_address, wan_address, u"unknown")
+                    candidate.inactive(community, now)
+
+                else:
+                    # update candidate
+                    candidate.update(message.candidate.tunnel, lan_address, wan_address, u"unknown")
+
+                # reset the 'I have been introduced' timer
+                candidate.intro(community, now)
+                if __debug__: dprint("received introduction to ", candidate)
+
+                cache.puncture_candidate = candidate
 
     def store_update_forward(self, messages, store, update, forward):
         """
@@ -4607,7 +4631,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             except GeneratorExit:
                 if __debug__:
                     dprint("shutdown")
-                    dprint(self.info(), pprint=True, force=1)
+                    dprint(self.info(), pprint=True)
                 self._database.commit()
                 break
 
@@ -4630,18 +4654,19 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
             STEPS = 0
             START = start
             DELAY = 0.0
-            TOTALDELAY = 0.0
+            for community in walker_communities:
+                community.__MOST_RESENT_WALK = 0.0
 
         while True:
             community = walker_communities.pop(0)
             walker_communities.append(community)
 
             if __debug__:
-                TOTALDELAY += DELAY
-                DELAYDIFF = STEPS * optimaldelay - TOTALDELAY
-                STEPSDIFF = DELAYDIFF / optimaldelay
-                OPTIMALSTEPS = (time() - START) / optimaldelay
-                dprint(community.cid.encode("HEX"), " taking step every ", round(DELAY, 2), " sec in ", len(walker_communities), " communities.  steps: ", STEPS, "/", round(OPTIMALSTEPS, 1), " ~ ", round(STEPS / OPTIMALSTEPS, 2), ".  diff: ", round(STEPSDIFF, 1), ".  resets: ", RESETS)
+                NOW = time()
+                OPTIMALSTEPS = (NOW - START) / optimaldelay
+                STEPDIFF = NOW - community.__MOST_RESENT_WALK
+                community.__MOST_RESENT_WALK = NOW
+                dprint(community.cid.encode("HEX"), " taking step every ", "%.2f" % DELAY, " sec in ", len(walker_communities), " communities.  steps: ", STEPS, "/", int(OPTIMALSTEPS), " ~ %.2f." % (STEPS / OPTIMALSTEPS), "  diff: %.1f" % STEPDIFF, ".  resets: ", RESETS)
                 STEPS += 1
 
             # walk
@@ -4655,8 +4680,9 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             if optimaltime + 5.0 < actualtime:
                 # way out of sync!  reset start time
-                start = actualtime - 5.0
+                start = actualtime
                 steps = 0
+                self._statistics.increment_walk_reset()
                 if __debug__:
                     dprint("can not keep up!  resetting walker start time!", level="warning")
                     DELAY = 0.0
@@ -4777,6 +4803,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         #      all info["statistics"] are now stored in info directly
         #      info["total_up"] and info["total_down"] are now always present
         # 3.3: added info["walk_fail"] in __debug__ mode
+        # 3.4: added info["walk_reset"]
 
         now = time()
         info = {"version":3.3,

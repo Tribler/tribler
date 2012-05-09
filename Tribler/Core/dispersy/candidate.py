@@ -361,7 +361,6 @@ class WalkCandidate(Candidate):
         if __debug__:
             if not (self.sock_addr == self._lan_address or self.sock_addr == self._wan_address):
                 dprint("Either LAN ", self._lan_address, " or the WAN ", self._wan_address, " should be SOCK_ADDR ", self.sock_addr, level="error", stack=True)
-                assert False
 
     def __str__(self):
         if self._sock_addr == self._lan_address == self._wan_address:

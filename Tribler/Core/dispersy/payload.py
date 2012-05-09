@@ -270,6 +270,9 @@ class PunctureRequestPayload(Payload):
 
             IDENTIFIER is a number that was given in the associated introduction-request.  This
             number allows to distinguish between multiple introduction-response messages.
+
+            TODO add connection type
+            TODO add tunnel bit
             """
             assert is_address(lan_walker_address)
             assert is_address(wan_walker_address)
