@@ -579,7 +579,7 @@ class ABCApp():
                 state = ds.get_status() 
                 safename = ds.get_download().get_def().get_name()
                 
-                print >>sys.stderr,"tribler: state_callback: ACTIVE DOWNLOAD",dlstatus_strings[state],safename
+                #print >>sys.stderr,"tribler: state_callback: ACTIVE DOWNLOAD",dlstatus_strings[state],safename
                 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
