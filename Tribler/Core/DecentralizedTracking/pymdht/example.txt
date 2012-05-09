@@ -1,0 +1,18 @@
+import core.pymdht as pymdht
+import core.node as node
+import core.identifier as identifier
+import plugins.routing_nice_rtt as r_mod
+import plugins.lookup_a4 as l_mod
+import core.exp_plugin_template as e_mod
+
+my_node_info = node.Node(('127.0.0.1', 7070), identifier.RandomId())
+pymdht_node = pymdht.Pymdht(my_node_info, '/home/raul/.pymdht', r_mod, l_mod,
+e_mod, None, 1)
+
+def _got_peers(l_id, peers, node_):
+    if peers:
+        print l_id, '> got %d peers from %r' % (len(peers), node_)
+    else:
+        print l_id, '> end of lookup', 
+
+pymdht_node.get_peers('l_id-001', identifier.RandomId(), _got_peers)

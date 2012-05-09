@@ -13,17 +13,17 @@ This module intends to implement the routing policy specified in BEP5:
 
 
 import random
-import core.ptime as time
 import heapq
 
 import logging
 
+import core.ptime as time
 import core.identifier as identifier
 import core.message as message
-from core.querier import Query
 import core.node as node
 from core.node import Node, RoutingNode
 from core.routing_table import RoutingTable
+
 
 logger = logging.getLogger('dht')
 
@@ -72,11 +72,6 @@ class RoutingManager(object):
         self.bootstrap_nodes = iter(bootstrap_nodes)
         
         self.table = RoutingTable(my_node, NODES_PER_BUCKET)
-        self.ping_msg = message.OutgoingPingQuery(my_node.id)
-        self.find_closest_msg = message.OutgoingFindNodeQuery(
-            my_node.id,
-            my_node.id)
-
         # maintenance variables
         self._maintenance_mode = BOOTSTRAP_MODE
         self._pinged_q_rnodes = {} # questionable nodes which have been
@@ -100,14 +95,14 @@ class RoutingManager(object):
                 return (10, [], maintenance_lookup_target)
         else:
             maintenance_lookup_target = self._refresh_stale_bucket()
-        
+
         return (_MAINTENANCE_DELAY[self._maintenance_mode],
                 queries_to_send, maintenance_lookup_target)
     
     def _refresh_stale_bucket(self):
         maintenance_lookup_target = None
         current_time = time.time()
-        for i in xrange(self.table.lowest_index, NUM_BUCKETS):
+        for i in xrange(NUM_BUCKETS):
             sbucket = self.table.get_sbucket(i)
             m_bucket = sbucket.main
             if not m_bucket:
@@ -124,7 +119,7 @@ class RoutingManager(object):
         return None
 
     def _get_maintenance_query(self, node_):
-        return Query(self.ping_msg, node_)
+        return message.OutgoingPingQuery(node_, self.my_node.id)
          
     def on_query_received(self, node_):
         '''
@@ -152,7 +147,6 @@ class RoutingManager(object):
             # There is room in the bucket. Just add the new node.
             rnode = node_.get_rnode(log_distance)
             m_bucket.add(rnode)
-            self.table.update_lowest_index(log_distance)
             self.table.num_rnodes += 1
             self._update_rnode_on_query_received(rnode)
             return
@@ -164,24 +158,19 @@ class RoutingManager(object):
             rnode = node_.get_rnode(log_distance)
             m_bucket.add(rnode)
             self._update_rnode_on_query_received(rnode)
-            self.table.update_lowest_index(log_distance)
             self.table.num_rnodes += 0
             return
 
         # No bad nodes. Check for questionable nodes
         q_rnodes = self._get_questionable_rnodes(m_bucket)
         queries_to_send = []
-#        if q_rnodes:
-#            print time.time(), '-----pinging questionable nodes in',
-#            print log_distance
-#            print q_rnodes
         for q_rnode in q_rnodes:
             # Ping questinable nodes to check whether they are still alive.
             # (0 timeouts so far, candidate node)
             c_rnode = node_.get_rnode(log_distance)
             self._update_rnode_on_query_received(c_rnode)
             self._pinged_q_rnodes[q_rnode] = [0, c_rnode]
-            queries_to_send.append(Query(self.ping_msg, q_rnode))
+            queries_to_send.append(message.OutgoingPingQuery(node_, self.my_node.id))
         return queries_to_send
   
     def on_response_received(self, node_, rtt, nodes):
@@ -193,11 +182,14 @@ class RoutingManager(object):
         m_bucket = sbucket.main
         rnode = m_bucket.get_rnode(node_)
         if rnode:
+            logger.debug('node in main')
             # node in routing table: update
             self._update_rnode_on_response_received(rnode, rtt)
             if self._maintenance_mode == NORMAL_MODE:
                 m_bucket.last_changed_ts = time.time()
             if node_ in self._pinged_q_rnodes:
+                logger.debug('remove from questionable')
+                rnode.questionable = False
                 # This node is questionable. This response proves that it is
                 # alive. Remove it from the questionable dict.
                 del self._pinged_q_rnodes[node_]
@@ -205,9 +197,9 @@ class RoutingManager(object):
 
         # The node is not in main
         if m_bucket.there_is_room():
+            logger.debug('node not in main, there is room')
             rnode = node_.get_rnode(log_distance)
             m_bucket.add(rnode)
-            self.table.update_lowest_index(log_distance)
             self.table.num_rnodes += 1
             self._update_rnode_on_response_received(rnode, rtt)
             if self._maintenance_mode == NORMAL_MODE:
@@ -217,18 +209,21 @@ class RoutingManager(object):
 
         # if there is a bad node inside the bucket,
         # replace it with the sending node_
+        logger.debug('node not in main, no room')
         bad_rnode = self._pop_bad_rnode(m_bucket)
         if bad_rnode:
+            logger.debug('there is a bad rnode')
             rnode = node_.get_rnode(log_distance)
             m_bucket.add(rnode)
+            # No need to update table
+            self.table.num_rnodes += 0
             self._update_rnode_on_response_received(rnode, rtt)
             if self._maintenance_mode == NORMAL_MODE:
                 m_bucket.last_changed_ts = time.time()
-            self.table.update_lowest_index(log_distance)
-            self.table.num_rnodes += 0
             return
 
         # There are no bad nodes. Ping questionable nodes (if any)
+        logger.debug('no bad nodes, ping questionable nodes')
         q_rnodes = self._get_questionable_rnodes(m_bucket)
         queries_to_send = []
         for q_rnode in q_rnodes:
@@ -236,7 +231,8 @@ class RoutingManager(object):
             c_rnode = node_.get_rnode(log_distance)
             self._update_rnode_on_response_received(c_rnode, rtt)
             self._pinged_q_rnodes[q_rnode] = [0, c_rnode]
-            queries_to_send.append(Query(self.ping_msg, q_rnode))
+            queries_to_send.append(message.OutgoingPingQuery(node_,
+                                                             self.my_node.id))
         return queries_to_send
  
     def _pop_bad_rnode(self, mbucket):
@@ -249,41 +245,43 @@ class RoutingManager(object):
         q_rnodes = []
         for rnode in m_bucket.rnodes:
             inactivity_time = time.time() - rnode.last_seen
-            if inactivity_time > REFRESH_PERIOD:
-                q_rnodes.append(rnode)
-            if rnode.num_responses == 0:
-                q_rnodes.append(rnode)
+            if (inactivity_time > REFRESH_PERIOD
+                or rnode.num_responses == 0):
+                is_questionable = getattr(rnode, 'questionable', False)
+                if not is_questionable:
+                    rnode.questionable = True
+                    q_rnodes.append(rnode)
         return q_rnodes
         
-    def on_error_received(self, node_):
+    def on_error_received(self, node_addr):
         pass
     
     def on_timeout(self, node_):
         if not node_.id:
-            return # This is a bootstrap node (just addr, no id)
+            return [] # This is a bootstrap node (just addr, no id)
         log_distance = self.my_node.log_distance(node_)
         try:
             sbucket = self.table.get_sbucket(log_distance)
         except (IndexError):
-            return # Got a timeout from myself, WTF? Just ignore.
+            return [] # Got a timeout from myself, WTF? Just ignore.
         m_bucket = sbucket.main
         rnode = m_bucket.get_rnode(node_)
 
         if not rnode:
             # This node is not in the table. Nothing to do here
-            return
+            return []
 
         # The node is in the table. Update it
         self._update_rnode_on_timeout(rnode)
         t_strikes, c_rnode = self._pinged_q_rnodes.get(node_, (None, None))
         if t_strikes is None:
             # The node is not being checked by a "questinable ping".
-            return
+            return []
         elif t_strikes == 0:
             # This is the first timeout
             self._pinged_q_rnodes[node_] = (1, c_rnode)
             # Let's give it another chance
-            return [Query(self.ping_msg, rnode)]
+            return [message.OutgoingPingQuery(node_, self.my_node.id)]
         elif t_strikes == 1:
             # Second timeout. You're a bad node, replace if possible
             # check if the candidate node is in the routing table
@@ -295,8 +293,8 @@ class RoutingManager(object):
                 # replace
                 m_bucket.remove(rnode)
                 m_bucket.add(c_rnode)
-                self.table.update_lowest_index(log_distance)
-                self.table.num_rnodes += 0                    
+                self.table.num_rnodes += 0
+        return []
         
     def get_closest_rnodes(self, log_distance, num_nodes, exclude_myself):
         if not num_nodes:
@@ -329,12 +327,13 @@ class RoutingManager(object):
         You should call this method when receiving a response from this rnode.
 
         """
-        rnode.rtt = rtt
+        rnode.real_rtt = rtt
         current_time = time.time()
         #rnode._reset_refresh_task()
         if rnode.in_quarantine:
-            rnode.in_quarantine = rnode.last_action_ts < (
-                current_time - QUARANTINE_PERIOD)
+            rnode.in_quarantine = \
+                rnode.last_action_ts < current_time - QUARANTINE_PERIOD
+                
         rnode.last_action_ts = current_time
         rnode.num_responses += 1
         rnode.add_event(time.time(), node.RESPONSE)

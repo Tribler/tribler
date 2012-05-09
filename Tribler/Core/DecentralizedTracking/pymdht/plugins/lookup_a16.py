@@ -5,17 +5,17 @@
 import sys
 import threading
 import logging
-try:
-    import core.ptime as time
-    from core.querier import Query
-    import core.identifier as identifier
-    import core.message as message
-except ImportError:
-    import Tribler.Core.DecentralizedTracking.pymdht.core.ptime as time
-    from Tribler.Core.DecentralizedTracking.pymdht.core.querier import Query
-    import Tribler.Core.DecentralizedTracking.pymdht.core.identifier as identifier
-    import Tribler.Core.DecentralizedTracking.pymdht.core.message as message
 
+import os, sys
+this_dir = os.path.dirname(os.path.abspath(__file__))
+root_dir = os.path.join(this_dir, '..')
+sys.path.append(root_dir)
+
+import core.ptime as time
+import core.identifier as identifier
+import core.message as message
+
+sys.path.pop()
 
 logger = logging.getLogger('dht')
 
@@ -45,7 +45,8 @@ class _LookupQueue(object):
         self.queried_ips = set()
         self.queued_qnodes = []
         self.responded_qnodes = []
-        self.max_queued_qnodes = 16
+
+#        self.max_queued_qnodes = 16
         self.max_responded_qnodes = 16
 
         self.last_query_ts = time.time()
@@ -103,9 +104,9 @@ class _LookupQueue(object):
                 self.queued_qnodes.append(qnode)
                 self.queued_ips.add(qnode.node.ip)
         self.queued_qnodes.sort()
-        for qnode  in self.queued_qnodes[self.max_queued_qnodes:]:
-            self.queued_ips.remove(qnode.node.ip)
-        del self.queued_qnodes[self.max_queued_qnodes:]
+#        for qnode  in self.queued_qnodes[self.max_queued_qnodes:]:
+#            self.queued_ips.remove(qnode.node.ip)
+#        del self.queued_qnodes[self.max_queued_qnodes:]
 
     def _pop_nodes_to_query(self, max_nodes):
         if len(self.responded_qnodes) > MARK_INDEX:
@@ -140,18 +141,16 @@ class GetPeersLookup(object):
         self.bootstrap_alpha = 16
         self.normal_alpha = 16
         self.normal_m = 1
-        self.slowdown_alpha = 4
+        self.slowdown_alpha = 16
         self.slowdown_m = 1
         
         logger.debug('New lookup (info_hash: %r)' % info_hash)
         self._my_id = my_id
         self.lookup_id = lookup_id
-        self._get_peers_msg = message.OutgoingGetPeersQuery(
-            my_id, info_hash)
         self.callback_f = callback_f
         self._lookup_queue = _LookupQueue(info_hash, 20)
                                      
-        self._info_hash = info_hash
+        self.info_hash = info_hash
         self._bt_port = bt_port
         self._lock = threading.RLock()
 
@@ -164,7 +163,8 @@ class GetPeersLookup(object):
 
         self._running = False
         self._slow_down = False
-
+        self._msg_factory = message.OutgoingGetPeersQuery
+        
     def _get_max_nodes_to_query(self):
         if self._slow_down:
             return min(self.slowdown_alpha - self._num_parallel_queries,
@@ -232,7 +232,8 @@ class GetPeersLookup(object):
                 continue
             self._num_parallel_queries += 1
             self.num_queries += len(nodes)
-            queries.append(Query(self._get_peers_msg, node_, self))
+            queries.append(self._msg_factory(node_, self._my_id,
+                                             self.info_hash, self))
         return queries
 
     def announce(self):
@@ -246,34 +247,38 @@ class GetPeersLookup(object):
         '''
         if len(nodes_to_announce) < ANNOUNCE_REDUNDANCY:
             announce_to_myself = True
-        elif (self._my_id.log_distance(self._info_hash) <
+        elif (self._my_id.log_distance(self.info_hash) <
               nodes_to_announce[ANNOUNCE_REDUNDANCY-1].id.log_distance(
-                self._info_hash)):
+                self.info_hash)):
             nodes_to_announce = nodes_to_announce[:-1]
             announce_to_myself = True
         '''
         queries_to_send = []
         for qnode in nodes_to_announce:
             logger.debug('announcing to %r' % qnode.node)
-            msg = message.OutgoingAnnouncePeerQuery(
-                self._my_id, self._info_hash,
+            query = message.OutgoingAnnouncePeerQuery(qnode.node,
+                self._my_id, self.info_hash,
                 self._bt_port, qnode.token)
-            queries_to_send.append(Query(msg, qnode.node, self))
+            queries_to_send.append(query)
         return queries_to_send, announce_to_myself
 
+    def get_closest_responded_hexids(self):
+        return ['%r' % qnode.node.id for
+                qnode in self._lookup_queue.get_closest_responded_qnodes()]
+    
             
 class MaintenanceLookup(GetPeersLookup):
 
     def __init__(self, my_id, target):
         GetPeersLookup.__init__(self, my_id,
                                 None, target, None, 0)
+        self._target = target
         self.bootstrap_alpha = 4
         self.normal_alpha = 4
         self.normal_m = 1
         self.slowdown_alpha = 4
         self.slowdown_m = 1
-        self._get_peers_msg = message.OutgoingFindNodeQuery(my_id,
-                                                            target)
+        self._msg_factory = message.OutgoingFindNodeQuery
             
         
 class LookupManager(object):

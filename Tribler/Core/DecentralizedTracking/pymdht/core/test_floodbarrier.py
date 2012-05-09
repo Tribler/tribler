@@ -4,8 +4,8 @@
 
 import logging, logging_conf
 
+import ptime as time
 import test_const as ts
-from testing_mocks import MockTime
 
 import floodbarrier
 from floodbarrier import FloodBarrier
@@ -17,8 +17,7 @@ logger = logging.getLogger('dht')
 class TestFloodBarrier:
 
     def setup(self):
-        global time
-        time = floodbarrier.time = MockTime()
+        time.mock_mode()
 
     def test(self):
         fb = FloodBarrier(checking_period=.4,
@@ -60,5 +59,5 @@ class TestFloodBarrier:
 
         
     def teardown(self):
-        global time
-        time = floodbarrier.time = time.actual_time
+        time.normal_mode()
+

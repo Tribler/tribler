@@ -9,9 +9,11 @@ import identifier
 
 class Node(object):
 
-    def __init__(self, addr, node_id=None, ns_node=False):
+    def __init__(self, addr, node_id=None, version=1, ns_node=False):
+        #assert version != 1 # debug only
         self._addr = addr
         self._id = node_id
+        self.version = version
         self.is_ns = ns_node
         self._compact_addr = utils.compact_addr(addr)
 
@@ -37,20 +39,34 @@ class Node(object):
         return self._addr[0]
     
     def __eq__(self, other):
-        try:
-            return self.addr == other.addr and self.id == other.id
-        except AttributeError: #self.id == None
-            return self.id is None and other.id is None \
-                   and self.addr == other.addr
+        if self.addr == other.addr:
+            try:
+                return self.id == other.id
+            except AttributeError: #self.id == None (id.bin_id fails)
+                return self.id is None and other.id is None
+        else:
+            return False
 
     def __ne__(self, other):
         return not self == other
 
+    def __hash__(self):
+        if self.id:
+            return self.addr.__hash__() ^ self.id.__hash__()
+        else:
+            return self.addr.__hash__()
+
     def __repr__(self):
-        return '<node: %r %r>' % (self.addr, self.id)
+        return '<node: %26r %r (%s)>' % (self.addr,
+                                       self.id,
+                                       self.version)
+
+    def distance(self, other):
+        return self.id.distance(other.id)
 
     def log_distance(self, other):
-        return self.id.log_distance(other.id)
+        # Only for backward compatibility. It will be removed.
+        return self.distance(other).log
 
     def compact(self):
         """Return compact format"""
@@ -68,9 +84,11 @@ MAX_LAST_EVENTS = 10
 class RoutingNode(Node):
 
     def __init__(self, node_, log_distance):
-        Node.__init__(self, node_.addr, node_.id, node_.is_ns)
+        Node.__init__(self, node_.addr, node_.id, node_.version,
+                      node_.is_ns)
         self.log_distance_to_me = log_distance
         self.rtt = 99
+        self.real_rtt = 99
         self.rtt_avg = None
         self.num_queries = 0
         self.num_responses = 0
@@ -86,8 +104,8 @@ class RoutingNode(Node):
         self.last_seen = current_time
         self.bucket_insertion_ts = None
         
-    def __repr__(self):
-        return '<rnode: %r %r>' % (self.addr, self.id)
+    #def __repr__(self):
+    #    return '<rnode: %r %r>' % (self.addr, self.id)
 
     def get_rnode(self):
         return self
@@ -109,3 +127,13 @@ class RoutingNode(Node):
                      (consider_queries and event == QUERY):
                 return result
         return result # all timeouts (and queries), or empty list
+
+    
+class LookupNode(Node):
+
+    def __init__(self, node_, target):
+        Node.__init__(self, node_.addr, node_.id, node_.version,
+                      node_.is_ns)
+        self.node = node_
+        self.target = target
+        self.distance_to_target = self.id.distance(target)

@@ -49,6 +49,8 @@ def decode(bencoded, max_depth=4):
     except (DecodeError):
         raise
     except:
+        logger.exception('UNEXPECTED')
+        logger.error(bencoded)
         raise DecodeError('UNEXPECTED>>>>>>>>>>>>', bencoded)
     else:
         if next_pos != len(bencoded):
@@ -161,6 +163,10 @@ def _decode_dict(bencoded, pos, max_depth):
     result = {}
     next_pos = pos + 1 # skip 'd'
     bencoded_length = len(bencoded)
+    if bencoded_length < 2:
+        # The shortest valid bencoded dictionary is "de" (len == 2)
+        raise DecodeError("Found end of bencoded dict right after 'd'",
+                          bencoded)
     while bencoded[next_pos] != 'e':
         # Decode key
         decode_f = _get_decode_f(bencoded, next_pos)

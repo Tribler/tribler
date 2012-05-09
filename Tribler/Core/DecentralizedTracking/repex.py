@@ -773,10 +773,10 @@ class RePEXScheduler(RePEXerStatusCallback):
                 found_age = -1
                 for ds in dslist:
                     download = ds.get_download()
-                    infohash = download.tdef.get_infohash()
+                    infohash = download.get_def().get_id()
                     debug_msg = None
                     if DEBUG:
-                        print >>sys.stderr, "RePEXScheduler: network_scan: checking", `download.tdef.get_name_as_unicode()`
+                        print >>sys.stderr, "RePEXScheduler: network_scan: checking", `download.get_def().get_name()`
                     if ds.get_status() == DLSTATUS_STOPPED and ds.get_progress()==1.0:
                         # TODO: only repex finished downloads or also prematurely stopped ones?
                         age = now - (swarmcache_ts(ds.get_swarmcache()) or 0)
@@ -804,7 +804,7 @@ class RePEXScheduler(RePEXerStatusCallback):
                     return REPEX_SCAN_INTERVAL, False
                 else:
                     if DEBUG:
-                        print >>sys.stderr, "RePEXScheduler: network_scan: found %s, starting RePEX phase." % `found_download.tdef.get_name_as_unicode()`
+                        print >>sys.stderr, "RePEXScheduler: network_scan: found %s, starting RePEX phase." % `found_download.get_def().get_name()`
                     self.current_repex = found_infohash
                     self.downloads[found_infohash] = found_download
                     found_download.set_mode(DLMODE_NORMAL)
@@ -827,7 +827,7 @@ class RePEXScheduler(RePEXerStatusCallback):
             print >>sys.stderr, "RePEXScheduler: network_stop_repex:"
         for d in [ds.get_download() for ds in dslist if ds.get_status() == DLSTATUS_REPEXING]:
             if DEBUG:
-                print >>sys.stderr, "\t...",`d.tdef.get_name_as_unicode()`
+                print >>sys.stderr, "\t...",`d.get_def().get_name()`
             d.stop()
         return -1, False
         
@@ -1070,19 +1070,19 @@ class RePEXerTester(RePEXerStatusCallback):
         # register as global observer
         RePEXer.attach_observer(self)
     
-    def stopped_download(self, tdef, dcfg):
+    def stopped_download(self, cdef, dcfg):
         """
         For testing purposes, creates a stopped download given a TorrentDef 
         and config.
-        @param tdef  A finalized TorrentDef.
+        @param cdef  A finalized TorrentDef.
         @param dcfg DownloadStartupConfig or None, in which case 
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
         @return Download
         """
-        d = self.session.start_download(tdef,dcfg)
+        d = self.session.start_download(cdef,dcfg)
         d.stop()
-        self.downloads[d.tdef.get_infohash()] = d
+        self.downloads[d.cdef.get_id()] = d
         return d
     
     def test_repex(self, download, swarmcache=None):
@@ -1093,7 +1093,7 @@ class RePEXerTester(RePEXerStatusCallback):
         SwarmCache in the Download's pstate will be used.
         """
         download.stop()
-        self.downloads[download.tdef.get_infohash()] = download
+        self.downloads[download.get_def().get_id()] = download
         if swarmcache is not None:
             # Hacking into pstate must happen after network_stop!
             def hack_into_pstate(d=download,swarmcache=swarmcache):

@@ -3,10 +3,9 @@
 # See LICENSE.txt for more information
 
 from nose.tools import eq_, ok_, assert_raises
-
+import ptime as time
 import tracker
 
-from testing_mocks import MockTime
 import logging, logging_conf
 
 logging_conf.testing_setup(__name__)
@@ -22,8 +21,7 @@ PEERS = [('1.2.3.4', i) for i in range(0, 10)]
 class TestTracker(object):
 
     def setup(self):
-        global time
-        time = tracker.time = MockTime()
+        time.mock_mode()
         self.t = tracker.Tracker(VALIDITY_PERIOD, CLEANUP_COUNTER)
 
     def test_put(self):
@@ -162,7 +160,5 @@ class TestTracker(object):
 
             
     def teardown(self):
-        global time
-        time.unmock()
-        time = tracker.time = time.actual_time
+        time.normal_mode()
 

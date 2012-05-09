@@ -89,7 +89,7 @@ def uncompact_nodes(c_nodes):
         except AddrError:
             pass
         else:
-            node = Node(node_addr, node_id)
+            node = Node(node_addr, node_id, version=None)
             nodes.append(node)
     return nodes
 

@@ -10,16 +10,18 @@ import pymdht
 
 import routing_plugin_template as routing_m_mod
 import lookup_plugin_template as lookup_m_mod
+import exp_plugin_template as exp_m_mod
 
-class TestKadTracker:
+class TestPymdht:
 
     def _callback(self, *args, **kwargs):
         return
     
     def setup(self):
-        self.dht = pymdht.Pymdht(tc.CLIENT_ADDR, 'test_logs',
+        self.dht = pymdht.Pymdht(tc.CLIENT_NODE, 'test_logs',
                                  routing_m_mod,
                                  lookup_m_mod,
+                                 exp_m_mod,
                                  None, logging.DEBUG)
 
     def test_interface(self):
@@ -28,6 +30,4 @@ class TestKadTracker:
         self.dht.stop()
         self.dht.print_routing_table_stats()
 
-    def complete_coverage(self):
-        # This is only used for NSDI experiments
-        self.dht.remove_torrent(tc.INFO_HASH)
+

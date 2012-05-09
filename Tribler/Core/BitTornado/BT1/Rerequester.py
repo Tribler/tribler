@@ -504,7 +504,7 @@ class Rerequester:
         self.dht.get_peers(self.infohash, info_hash_id, self._dht_got_peers)
 
 
-    def _dht_got_peers(self, infohash, peers):
+    def _dht_got_peers(self, infohash, peers, node=None):
         if DEBUG_DHT:
             if peers:
                 print >>sys.stderr,"Rerequester: DHT: Received",len(peers),"peers",currentThread().getName()

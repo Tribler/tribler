@@ -1,0 +1,62 @@
+== 12.2.3
+
+== 12.2.2
+
+- bugfix: boostrap check crash on error message received.
+
+== 12.2.0
+
+- bootstrap_mode available to run a node as bootstrap node. It ignores some
+  queries to avoid being added to too many routing tables.
+- telnet-like API available with option --telnet-port (see ui/telnet_api.txt)
+- Module identifier simplified and cleaned up.
+- Added some crawling scripts to run experiments
+- IncomingMsg attributed listed for clarity
+- Log file is now limited in size (10 MB in nomal mode, 1 GB in debug)
+
+== 12.1.0
+
+- Message is now a factory. Now 'private_dht_name' is a parameter instead of
+  an evil global variable
+- Lookup cache
+- Security: avoid multiple routing table entries with the same IP
+- README.txt replaced by README.rst
+- Added support for experiment plugin
+- Improved graphical visualization
+
+== 11.8.2
+
+- Bugfix: there was no error msg handler in exp_plugin_template.py
+
+== 11.8.1
+
+- Moved all user interface code to ui directory
+- Integrated all user interfaces and options in interactive_dht.py
+- pymdht_daemon.py is now deprecated (functionality moved to
+  interactive_dht.py)
+- user can now choose a nodeId (node-id option) or choose a nodeId close to
+  some identifier (node-id + log-distance)
+
+== 11.8.0
+
+- Refined all code related to bootstraping.
+- Added GUI code (from Shariq)
+
+=== 11.07
+
+- Profiling toolkit integrated (profiler directory)
+
+- Many nodes to bootstrap into the overlay. boostrap.main contains nodes
+controlled by us and bootstrap.backup contains nodes we have seen alive for a
+long time.
+
+- The default path is now ~/.pymdht. Deleting that directory cleans any state
+(it would be as if the code never run before on the machine).  
+
+- TODO: some plugins do not work, need to clean up or fix them
+
+- TODO: if connectivity is lost for a long enough period (1 hour?), all nodes
+will be expelled from the routing table. Need to stop expelling nodes when n
+timeouts in a row.
+
+=== v1.0, 31 Jan 2011 -- Initial release with proper documentation

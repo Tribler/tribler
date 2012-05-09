@@ -9,6 +9,8 @@ CLEANUP_COUNTER = 100
 
 MAX_PEERS = 50 # Avoids way too long get_peers respoonses (longer than UDP
 
+#TODO: avoid tracking several ports from the same IP address!
+
 class Tracker(object):
 
     def __init__(self, validity_period=VALIDITY_PERIOD,

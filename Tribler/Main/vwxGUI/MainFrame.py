@@ -422,14 +422,14 @@ class MainFrame(wx.Frame):
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
                 defaultname = correctedFilename
-                if not correctedFilename and tdef.is_multifile_torrent():
-                    defaultname = tdef.get_name_as_unicode()
+                if not correctedFilename and cdef.get_def_type() == 'torrent' and cdef.is_multifile_torrent():
+                    defaultname = cdef.get_name_as_unicode()
                     
                 dlg = SaveAs(self, cdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
                 dlg.CenterOnParent()
                 if dlg.ShowModal() == wx.ID_OK:
                     #for multifile we enabled correctedFilenames, use split to remove the filename from the path
-                    if tdef.is_multifile_torrent():
+                    if cdef.get_def_type() == 'torrent' and cdef.is_multifile_torrent():
                         destdir, correctedFilename = os.path.split(dlg.GetPath())
                     else:
                         destdir = dlg.GetPath()
@@ -507,7 +507,7 @@ class MainFrame(wx.Frame):
 #            self.logReport(body, response.read())ownload was started, then return result
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                    mypref.addClicklogToMyPreference(tdef.get_infohash(), clicklog)
+                    mypref.addClicklogToMyPreference(cdef.get_id(), clicklog)
 
                 return result  
 
@@ -522,16 +522,28 @@ class MainFrame(wx.Frame):
             
             # If there is something on the cmdline, all other torrents start
             # in STOPPED state. Restart
-            if cmdline:
+            if cmdline and cdef.get_def_type() == 'torrent':
                 dlist = self.utility.session.get_downloads()
                 for d in dlist:
-                    if d.get_def().get_infohash() == tdef.get_infohash():
+                    if d.get_def().get_infohash() == cdef.get_infohash():
                         d.restart()
                         break
         except Exception,e:
             print_exc()
             self.onWarning(e)
         return None
+    
+    
+    def startReseedSwiftDownload(self,storagepath,sdef):
+        # Arno, 2012-05-07:
+        print >>sys.stderr,"main: frame: startReseedSwift",storagepath,sdef
+        # 4. Start swift download reseeding BitTorrent content
+        self.startDownload(destdir=storagepath,cdef=sdef)
+                
+        # 5. Checkpoint Session
+        self.utility.session.checkpoint()
+
+    
     
     def modifySelection(self, download, selectedFiles):
         tdef = download.get_def()

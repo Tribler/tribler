@@ -485,6 +485,7 @@ class DownloadImpl:
         """ We could get this from BT1Download.files (see BT1Download.saveAs()),
         but that object is the domain of the network thread.
         You can give a list of extensions to return. If None: return all dest_files
+        @return list of (torrent,disk) filename tuples.
         """
 
         def get_ext(filename):

@@ -1,13 +1,12 @@
-
-Copyright (C) 2009 Raul Jimenez, Flutra Osmani
+Copyright (C) 2009-2012 Raul Jimenez and contributors
 Written at the Royal Institute of Technology (KTH), Stockholm (Sweden)
-This work has received founding from FP7 under grant agreement No. 216217
+This work has received funding from EU FP7 under grant agreement No. 216217
 (P2P-Next).
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
+Software Foundation; in particular, version 2.1 of the License.
+
 
 This library is distributed in the hope that it will be useful, but WITHOUT
 ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS

@@ -421,8 +421,8 @@ class VideoPlayer:
 
                 for download_state in download_state_list:
                     download = download_state.get_download()
-                    torrent_def = download.get_def()
-                    infohash = torrent_def.get_infohash()
+                    content_def = download.get_def()
+                    infohash = content_def.get_id()
                     
                     from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
                     self.user_download_choice = UserDownloadChoice.get_singleton()

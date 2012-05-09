@@ -1324,10 +1324,22 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['swiftpath'] # strings immutable
 
+    def set_swift_working_dir(self,value):
+        """ Current working directory for swift binary (default = '.')
+        @param value A path name.
+        """
+        self.sessconfig['swiftworkingdir'] = value
+    
+    def get_swift_working_dir(self):
+        """ Returns the working directory for the swift binary.
+        @return A path name. """
+        return self.sessconfig['swiftworkingdir'] # strings immutable
+
     def set_swift_cmd_listen_port(self,port):
         """ Set the local TCP listen port for cmd socket communication to
         the swift processes (unused). CMD listen port of swift process itself
-        is set randomly.
+        is set via DownloadConfig.set_swift_cmdgw_listen_port() (download-to-process
+        mapping permitting)
         @param port A port number.
         """
         self.sessconfig['swiftcmdlistenport'] = port
@@ -1340,7 +1352,8 @@ class SessionConfigInterface:
 
     def set_swift_downloads_per_process(self,value):
         """ Number of downloads per swift process. When exceeded, a new swift
-        process is created.
+        process is created. Only used when the user did not specify ports
+        for the swift process via DownloadConfig.set_swift_*_port()
         @param value A number of downloads.
         """
         self.sessconfig['swiftdlsperproc'] = value
@@ -1349,6 +1362,53 @@ class SessionConfigInterface:
         """ Returns the number of downloads per swift process. 
         @return A number of downloads. """
         return self.sessconfig['swiftdlsperproc']
+
+    
+    #
+    # Config for swift tunneling e.g. dispersy traffic
+    #
+    def set_swift_tunnel_listen_port(self,port):
+        """ Set the UDP port for the swift process
+        (download-to-process mapping permitting). 
+        @param port A port number.
+        """
+        self.sessconfig['swifttunnellistenport'] = port
+
+    def get_swift_tunnel_listen_port(self):
+        """ Returns the UDP port of the swift process. 
+
+        @return Port number. """
+        return self.sessconfig['swifttunnellistenport']
+
+    def set_swift_tunnel_cmdgw_listen_port(self,port):
+        """ Set the TCP listen port for the CMDGW of the swift process
+        (download-to-process mapping permitting). 
+        @param port A port number.
+        """
+        self.sessconfig['swifttunnelcmdgwlistenport'] = port
+
+    def get_swift_tunnel_cmdgw_listen_port(self):
+        """ Returns the TCP listen port for the CMDGW of the swift process
+        (download-to-process mapping permitting). 
+
+        @return Port number. """
+        return self.sessconfig['swifttunnelcmdgwlistenport']
+    
+    def set_swift_tunnel_httpgw_listen_port(self,port):
+        """ Set the TCP listen port for the CMDGW of the swift process
+        (download-to-process mapping permitting). 
+        @param port A port number.
+        """
+        self.sessconfig['swifttunnelhttpgwlistenport'] = port
+
+    def get_swift_tunnel_httpgw_listen_port(self):
+        """ Returns the TCP listen port for the CMDGW of the swift process. 
+
+        @return Port number. """
+        return self.sessconfig['swifttunnelhttpgwlistenport']
+
+    
+    
 
 class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
     """ Class to configure a Session """

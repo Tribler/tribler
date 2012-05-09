@@ -2,6 +2,7 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
+import ptime as time
 import logging, logging_conf
 
 from nose.tools import eq_, ok_, assert_raises, assert_false, assert_not_equal
@@ -22,7 +23,7 @@ class TestBucket:
 
 
     def test_(self):
-        self.b = Bucket(NODES_PER_BUCKET)
+        self.b = Bucket(NODES_PER_BUCKET, set())
         # The bucket is empty
         eq_(len(self.b) , 0)
         ok_(not self.b)
@@ -67,7 +68,6 @@ class TestBucket:
         # RNODES[1] gets refreshed
         rnode = self.b.get_rnode(tc.NODES[1])
         #########################rnode.on_response_received()
-        import ptime as time
         rnode.last_seen = time.time()
         ##############
         eq_(self.b.get_stalest_rnode(), tc.NODES[2])
@@ -78,7 +78,7 @@ class TestBucket:
 
     
     def test(self):
-        b1 = Bucket(2)
+        b1 = Bucket(2, set())
         ok_(b1.get_rnode(tc.CLIENT_NODE) is None)
         eq_(len(b1), 0)
         assert_false(b1)
@@ -126,21 +126,21 @@ class TestBucket:
         eq_(b1.get_stalest_rnode(), tc.SERVER_NODE)
         eq_(b1.sorted_by_rtt(), [tc.SERVER_NODE])
 
-        b2 = Bucket(2)
+        b2 = Bucket(2, set())
         assert_not_equal(b1,b2)
         ok_(b1 != b2)
 
-        b3 = Bucket(2)
+        b3 = Bucket(2, set())
         b3.add(tc.CLIENT_NODE)
         assert_not_equal(b1, b3)
         ok_(b1 != b3)
         
-        b4 = Bucket(2)
+        b4 = Bucket(2, set())
         b4.add(tc.SERVER_NODE)
         eq_(b1, b4)
         assert_false(b1 != b4)
         
-        b5 = Bucket(3)
+        b5 = Bucket(3, set())
         b3.add(tc.SERVER_NODE)
         assert_not_equal(b1, b5)
         ok_(b1 != b5)
@@ -156,10 +156,10 @@ class TestRoutingTable:
                                nodes_per_bucket)
 
     def test_basics(self):
-        empty_b = Bucket(MAX_RNODES)
+        empty_b = Bucket(MAX_RNODES, set())
 
         # Get empty superbucket
-        log_distance = self.my_node.log_distance(tc.SERVER_NODE)
+        log_distance = self.my_node.distance(tc.SERVER_NODE).log
         sbucket = self.rt.get_sbucket(log_distance)
         m_bucket = sbucket.main
         r_bucket = sbucket.replacement
@@ -174,7 +174,6 @@ class TestRoutingTable:
 
         # Add server_node to main bucket
         m_bucket.add(tc.SERVER_NODE)
-        self.rt.update_lowest_index(log_distance)
         self.rt.num_rnodes += 1
         ok_(m_bucket.there_is_room())
         ok_(not m_bucket.there_is_room(MAX_RNODES))
@@ -192,7 +191,6 @@ class TestRoutingTable:
         new_node = node.Node(tc.SERVER_NODE.addr,
                              tc.SERVER_NODE.id.generate_close_id(1))
         m_bucket.add(new_node)
-        self.rt.update_lowest_index(log_distance)
         self.rt.num_rnodes += 1
         # full bucket
         ok_(not m_bucket.there_is_room())
@@ -204,7 +202,7 @@ class TestRoutingTable:
         eq_(self.rt.get_main_rnodes(),
             [tc.SERVER_NODE, new_node])
 
-        ld_to_server = tc.SERVER_ID.log_distance(tc.CLIENT_ID)
+        ld_to_server = tc.SERVER_ID.distance(tc.CLIENT_ID).log
         eq_(self.rt.get_closest_rnodes(ld_to_server, 1, True),
             [tc.SERVER_NODE])
         eq_(self.rt.get_closest_rnodes(ld_to_server, 8, False),
@@ -218,10 +216,7 @@ class TestRoutingTable:
         m_bucket = sbucket.main
         
         m_bucket.remove(new_node)
-        self.rt.update_lowest_index(log_distance)
-        print '>>>'
         print self.rt.get_main_rnodes()
-        print '>>>'
         self.rt.num_rnodes -= 1
         # there is one slot in the bucket
         ok_(m_bucket.there_is_room())
@@ -276,11 +271,10 @@ class TestRoutingTable:
         nodes = [node.Node(n.addr, tc.CLIENT_ID.generate_close_id(ld))
                            for n, ld in zip(tc.NODES, log_distances)]
         for node_ in nodes:
-            log_distance = self.my_node.log_distance(node_)
+            log_distance = self.my_node.distance(node_).log
             sbucket = self.rt.get_sbucket(log_distance)
             sbucket.main.add(node_.get_rnode(log_distance))
             self.rt.num_rnodes += 1
-            self.rt.update_lowest_index(log_distance)
 
         eq_(self.rt.get_closest_rnodes(0, 8, True),
             nodes)
@@ -306,7 +300,7 @@ class TestRoutingTable:
                                        exclude_myself=False),
             [tc.CLIENT_NODE] + nodes)
 
-        ld_to_7 = tc.CLIENT_NODE.log_distance(nodes[7])
+        ld_to_7 = tc.CLIENT_NODE.distance(nodes[7]).log
         closest_nodes = self.rt.get_closest_rnodes(ld_to_7, 8,
                                                    exclude_myself=True)
         eq_(closest_nodes[0], nodes[7])
@@ -327,23 +321,16 @@ class TestRoutingTable:
         assert_raises(IndexError, self.rt.get_sbucket, 160)
         assert_raises(IndexError, self.rt.get_sbucket, 161)
 
-    def test_update_lowest_index_when_empty_table(self):
-        sbucket = self.rt.get_sbucket(20)
-        sbucket.main.add(tc.CLIENT_NODE.get_rnode(20))
-        self.rt.update_lowest_index(20) 
-        sbucket.main.remove(tc.CLIENT_NODE)
-        self.rt.update_lowest_index(20) 
-        
     def test_complete_coverage(self):
-
+        #TODO: ips_in_table
         eq_(self.rt.get_closest_rnodes(76, 8, False), [tc.CLIENT_NODE])
-        log_distance = self.my_node.log_distance(tc.SERVER_NODE)
+        log_distance = self.my_node.distance(tc.SERVER_NODE).log
         str(self.rt.get_sbucket(log_distance).main)
         repr(self.rt)
         
-        ok_(Bucket(1) != Bucket(2))
+        ok_(Bucket(1, set()) != Bucket(2, set()))
 
-        buckets = [Bucket(2), Bucket(2)]
+        buckets = [Bucket(2, set()), Bucket(2, set())]
         buckets[0].add(tc.CLIENT_NODE.get_rnode(1))
         buckets[1].add(tc.CLIENT_NODE.get_rnode(1))
         buckets[0].add(tc.NODES[0].get_rnode(1))

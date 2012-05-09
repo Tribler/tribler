@@ -11,62 +11,99 @@ the DHT.
 Find usage examples in server_dht.py and interactive_dht.py.
 
 """
+
+import sys
+import os
 import ptime as time
 
+import minitwisted
 import controller
 import logging, logging_conf
+import swift_tracker
 
+PYMDHT_VERSION = (12, 2, 3)
+VERSION_LABEL = ''.join(
+    ['NS',
+     chr((PYMDHT_VERSION[0] - 11) * 24 + PYMDHT_VERSION[1]),
+     chr(PYMDHT_VERSION[2])
+     ])
+                         
 
 class Pymdht:
     """Pymdht is the interface for the whole package.
 
-    Setting up the DHT is as simple as creating this object.
+    Setting up the DHT node is as simple as creating this object.
     The parameters are:
     - dht_addr: a tuple containing IP address and port number.
-    - logs_path: a string containing the path to the log files.
+    - state_filename: the complete path to a file to load/store node state.
     - routing_m_mod: the module implementing routing management.
     - lookup_m_mod: the module implementing lookup management.
+    - experimental_m_mod: the module implementing experimental management.
+    - private_dht_name: name of the private DHT (use global DHT when None)
+    - debug_level: level of logs saved into pymdht.log (standard logging module).
 
     """
-    def __init__(self, dht_addr, conf_path,
+    def __init__(self, my_node, conf_path,
                  routing_m_mod, lookup_m_mod,
+                 experimental_m_mod,
                  private_dht_name,
-                 debug_level):
+                 debug_level,
+                 bootsrap_mode=False,
+                 swift_port=0):
         logging_conf.setup(conf_path, debug_level)
-        self.controller = controller.Controller(dht_addr, conf_path,
+        state_filename = os.path.join(conf_path, controller.STATE_FILENAME)
+        self.controller = controller.Controller(VERSION_LABEL,
+                                                my_node, state_filename,
                                                 routing_m_mod,
                                                 lookup_m_mod,
-                                                private_dht_name)
-        self.controller.start()
+                                                experimental_m_mod,
+                                                private_dht_name,
+                                                bootsrap_mode)
+        self.reactor = minitwisted.ThreadedReactor(
+            self.controller.main_loop,
+            my_node.addr[1], self.controller.on_datagram_received)
+        self.reactor.start()
+        if swift_port:
+            print 'Creating SwiftTracker'
+            swift_tracker.SwiftTracker(self, swift_port).start()
 
     def stop(self):
-        """Stop the DHT."""
-        self.controller.stop()
-        time.sleep(.1) # Give time for the controller (reactor) to stop
+        """Stop the DHT node."""
+        #TODO: notify controller so it can do cleanup?
+        self.reactor.stop()
+        # No need to call_asap because the minitwisted thread is dead by now
+        self.controller.on_stop()
     
-    def get_peers(self, lookup_id, info_hash, callback_f, bt_port=0):
+    def get_peers(self, lookup_id, info_hash, callback_f,
+                  bt_port=0, use_cache=False):
         """ Start a get peers lookup. Return a Lookup object.
         
         The info_hash must be an identifier.Id object.
         
-        The callback_f must expect one parameter. When peers are
-        discovered, the callback is called with a list of peers as paramenter.
-        The list of peers is a list of addresses (<IPv4, port> pairs).
+        The callback_f must expect two parameters (lookup_id and list of
+        peeers). When peers are discovered, the callback is called with a list
+        of peers as paramenter.  The list of peers is a list of addresses
+        (<IPv4, port> pairs).
 
-        The bt_port parameter is optional. When provided, ANNOUNCE messages
+        The bt_port parameter is optional. When non-zero, ANNOUNCE messages
         will be send using the provided port number.
 
+        Notice that the callback can be fired even before this call ends. Your
+        callback needs to be ready to get peers BEFORE calling this fuction.
+        
         """
-        return self.controller.get_peers(lookup_id, info_hash,
-                                         callback_f, bt_port)
+        use_cache = True
+        print 'pymdht: use_cache ON!!'
+        self.reactor.call_asap(self.controller.get_peers,
+                               lookup_id, info_hash,
+                               callback_f, bt_port,
+                               use_cache)
 
-    def remove_torrent(self, info_hash):
-        return
-            
     def print_routing_table_stats(self):
         self.controller.print_routing_table_stats()
 
-
-    #TODO2: Future Work
-    #TODO2: def add_bootstrap_node(self, node_addr, node_id=None):
-    #TODO2: def lookup.back_off()
+    def start_capture(self):
+        self.reactor.start_capture()
+        
+    def stop_and_get_capture(self):
+        return self.reactor.stop_and_get_capture()

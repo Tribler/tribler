@@ -22,6 +22,8 @@ modnames = [filename[:-3] for filename in os.listdir('.') if
             ]
 modnames.sort() # alphabetical order
 for modname in modnames:
+    if modname.startswith('DEPRECATED'):
+        continue
     print 'doctesting %s...' % modname,
     mod = __import__(modname)
     failure_count, test_count = doctest.testmod(mod)

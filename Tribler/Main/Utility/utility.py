@@ -177,7 +177,10 @@ class Utility:
             
             # WebUI
             'use_webui':0,
-            'webui_port':8080
+            'webui_port':8080,
+            
+            # swift reseed
+            'swiftreseed':1
         }
 
         if sys.platform == 'win32':

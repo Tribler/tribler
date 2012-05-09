@@ -386,7 +386,7 @@ class TriblerLaunchMany(Thread):
         endpoint = None
         if self.spm:
             try:
-                swift_process = self.spm.get_or_create_sp(".") # TODO argument will change when Arno merges new SwiftProcess code
+                swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
             except OSError:
                 print >> sys.stderr, "lmc: could not start a swift process"
                 # could not find/run swift

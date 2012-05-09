@@ -11,16 +11,15 @@ This module intends to implement the routing policy specified in NICE RTT 64:
 
 """
 
-
+from operator import attrgetter
 import random
-import core.ptime as time
 import heapq
 
 import logging
 
+import core.ptime as time
 import core.identifier as identifier
 import core.message as message
-from core.querier import Query
 import core.node as node
 from core.node import Node, RoutingNode
 from core.routing_table import RoutingTable
@@ -58,11 +57,13 @@ NUM_NODES_PER_BOOTSTRAP_STEP = 1
 
 BOOTSTRAP_MODE = 'bootstrap_mode'
 FIND_CLOSEST_MODE = 'find_closest_mode'
+FILL_BUCKETS= 'fill_buckets'
 NORMAL_MODE = 'normal_mode'
 _MAINTENANCE_DELAY = {BOOTSTRAP_MODE: .2,
-                     FIND_CLOSEST_MODE: 3,
-                     NORMAL_MODE: 4}
-
+                      FIND_CLOSEST_MODE: 3,
+                      FILL_BUCKETS: 1,
+                      NORMAL_MODE: 4}
+NUM_FILLING_LOOKUPS = 16
 
 class RoutingManager(object):
     
@@ -72,11 +73,6 @@ class RoutingManager(object):
         self.bootstrap_nodes = iter(bootstrap_nodes)
         
         self.table = RoutingTable(my_node, NODES_PER_BUCKET)
-        self.ping_msg = message.OutgoingPingQuery(my_node.id)
-        self.find_closest_msg = message.OutgoingFindNodeQuery(
-            my_node.id,
-            my_node.id)
-
         # maintenance variables
         self._next_stale_maintenance_index = 0
         self._maintenance_mode = BOOTSTRAP_MODE
@@ -88,6 +84,7 @@ class RoutingManager(object):
                                    self._ping_a_found_node,
                                    self._ping_a_replacement_node,
                                    ]
+        self._num_pending_filling_lookups = NUM_FILLING_LOOKUPS
         
     def do_maintenance(self):
         queries_to_send = []
@@ -98,6 +95,12 @@ class RoutingManager(object):
                 queries_to_send = [self._get_maintenance_query(node_)]
             except (StopIteration):
                 maintenance_lookup_target = self.my_node.id
+                self._maintenance_mode = FILL_BUCKETS
+        elif self._maintenance_mode == FILL_BUCKETS:
+            if self._num_pending_filling_lookups:
+                self._num_pending_filling_lookups -= 1
+                maintenance_lookup_target = identifier.RandomId()
+            else:
                 self._maintenance_mode = NORMAL_MODE
         elif self._maintenance_mode == NORMAL_MODE:
             for _ in range(len(self._maintenance_tasks)):
@@ -116,9 +119,6 @@ class RoutingManager(object):
                 queries_to_send, maintenance_lookup_target)
 
     def _ping_a_staled_rnode(self):
-        # Don't have self._next_stale_maintenance_index lower than
-        # lowest_bucket
-        
         starting_index = self._next_stale_maintenance_index
         result = None
         while not result:
@@ -158,23 +158,25 @@ class RoutingManager(object):
     def _get_maintenance_query(self, node_):
         if not node_.id: 
             # Bootstrap nodes don't have id
-            return Query(self.find_closest_msg, node_)
-
+            return message.OutgoingFindNodeQuery(node_,
+                                                 self.my_node.id,
+                                                 self.my_node.id, None)
         if random.choice((False, True)):
             # 50% chance to send find_node with my id as target
-            return Query(self.find_closest_msg, node_)
+            return message.OutgoingFindNodeQuery(node_,
+                                                 self.my_node.id,
+                                                 self.my_node.id, None)
 
         # 50% chance to send a find_node to fill up a non-full bucket
         target_log_distance = self.table.find_next_bucket_with_room_index(
             node_=node_)
         if target_log_distance:
             target = self.my_node.id.generate_close_id(target_log_distance)
-            return Query(
-                message.OutgoingFindNodeQuery(self.my_node.id, target),
-                node_)
+            return message.OutgoingFindNodeQuery(node_, self.my_node.id,
+                                                 target, None)
         else:
             # Every bucket is full. We send a ping instead.
-            return Query(self.ping_msg, node_)
+            return message.OutgoingPingQuery(node_, self.my_node.id)
         
     def on_query_received(self, node_):
         '''
@@ -239,7 +241,6 @@ class RoutingManager(object):
             #TODO: leave this for the maintenance task
             if m_bucket.there_is_room():
                 m_bucket.add(rnode)
-                self.table.update_lowest_index(log_distance)
                 self.table.num_rnodes += 1
                 self._update_rnode_on_response_received(rnode, rtt)
                 r_bucket.remove(rnode)
@@ -250,7 +251,6 @@ class RoutingManager(object):
         if m_bucket.there_is_room():
             rnode = node_.get_rnode(log_distance)
             m_bucket.add(rnode)
-            self.table.update_lowest_index(log_distance)
             self.table.num_rnodes += 1
             self._update_rnode_on_response_received(rnode, rtt)
             return
@@ -258,17 +258,18 @@ class RoutingManager(object):
         # Let's see whether this node's latency is good
         current_time = time.time()
         rnode_to_be_replaced = None
-        for rnode in reversed(m_bucket.rnodes):
+        m_bucket.rnodes.sort(key=attrgetter('rtt'), reverse=True)
+        for rnode in m_bucket.rnodes:
             rnode_age = current_time - rnode.bucket_insertion_ts
             if rtt < rnode.rtt * (1 - (rnode_age / 7200)):
                 # A rnode can only be replaced when the candidate node's RTT
                 # is shorter by a factor. Over time, this factor
                 # decreases. For instance, when rnode has been in the bucket
                 # for 30 mins (1800 secs), a candidate's RTT must be at most
-                # 50% of the rnode's RTT (ie. two times faster). After two
-                # hours, a rnode cannot be replaced becouse of better RTT.
+                # 25% of the rnode's RTT (ie. two times faster). After two
+                # hours, a rnode cannot be replaced by this method.
 #                print 'RTT replacement: newRTT: %f, oldRTT: %f, age: %f' % (
-#                    rtt, rnode.rtt, current_time - rnode.bucket_insertion_ts)
+#                rtt, rnode.rtt, current_time - rnode.bucket_insertion_ts)
                 rnode_to_be_replaced = rnode
                 break
         if rnode_to_be_replaced:
@@ -292,17 +293,17 @@ class RoutingManager(object):
             self._update_rnode_on_response_received(rnode, rtt)
         return
         
-    def on_error_received(self, node_):
+    def on_error_received(self, node_addr):
         pass
     
     def on_timeout(self, node_):
         if not node_.id:
-            return # This is a bootstrap node (just addr, no id)
+            return [] # This is a bootstrap node (just addr, no id)
         log_distance = self.my_node.log_distance(node_)
         try:
             sbucket = self.table.get_sbucket(log_distance)
         except (IndexError):
-            return # Got a timeout from myself, WTF? Just ignore.
+            return [] # Got a timeout from myself, WTF? Just ignore.
         m_bucket = sbucket.main
         r_bucket = sbucket.replacement
         rnode = m_bucket.get_rnode(node_)
@@ -310,7 +311,6 @@ class RoutingManager(object):
             # node in routing table: kick it out
             self._update_rnode_on_timeout(rnode)
             m_bucket.remove(rnode)
-            self.table.update_lowest_index(log_distance)
             self.table.num_rnodes -= 1
 
             for r_rnode in r_bucket.sorted_by_rtt():
@@ -328,6 +328,7 @@ class RoutingManager(object):
         if rnode:
             # Node in replacement table: just update rnode
             self._update_rnode_on_timeout(rnode)
+        return []
             
     def get_closest_rnodes(self, log_distance, num_nodes, exclude_myself):
         if not num_nodes:

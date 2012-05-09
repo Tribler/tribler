@@ -89,6 +89,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['saveas']
     
+    # LAYERVIOLATION: Core has nothing to do with GUI dialogs
     def get_show_saveas(self):
         """ Gets the boolean indicating if we should show a dialog where to save a torrent
         """
@@ -261,14 +262,17 @@ class DownloadConfigInterface:
 
     def set_selected_files(self,files):
         """ Select which files in the torrent to download. The filenames must 
-        be the names as they appear in the torrent def. Trivially, when the 
-        torrent contains a file 'sjaak.avi' the files parameter must 
-        be 'sjaak.avi'. When the torrent contains multiple files and is named 
-        'filecollection', the files parameter must be 
-            os.path.join('filecollection','sjaak.avi')  
+        be the names as they appear in the content def, including encoding.
+        Trivially, when the torrent contains a file 'sjaak.avi' the files 
+        parameter must be 'sjaak.avi'. When the content def is a torrent def 
+        and contains multiple files and is named 'filecollection', the files 
+        parameter must be 
+            os.path.join('filecollection','sjaak.avi')
+        For a swift def, the files must be following the multi-file spec encoding
+        (i.e., UTF-8 and /).  
         
         @param files Can be a single filename or a list of filenames (e.g. 
-        ['harry.avi','sjaak.avi']). 
+        ['harry.avi','sjaak.avi']). Not Unicode strings! 
         """
         # TODO: can't check if files exists, don't have tdef here.... bugger
         if type(files) == StringType: # convenience
@@ -859,6 +863,48 @@ class DownloadConfigInterface:
         @return A number
         """
         return self.dlconfig['unchoke_bias_for_internal']
+
+    # SWIFTPROC
+    def set_swift_listen_port(self,port):
+        """ Set the UDP port for the swift process
+        (download-to-process mapping permitting). 
+        @param port A port number.
+        """
+        self.dlconfig['swiftlistenport'] = port
+
+    def get_swift_listen_port(self):
+        """ Returns the UDP port of the swift process. 
+
+        @return Port number. """
+        return self.dlconfig['swiftlistenport']
+
+    def set_swift_cmdgw_listen_port(self,port):
+        """ Set the TCP listen port for the CMDGW of the swift process
+        (download-to-process mapping permitting). 
+        @param port A port number.
+        """
+        self.dlconfig['swiftcmdgwlistenport'] = port
+
+    def get_swift_cmdgw_listen_port(self):
+        """ Returns the TCP listen port for the CMDGW of the swift process
+        (download-to-process mapping permitting). 
+
+        @return Port number. """
+        return self.dlconfig['swiftcmdgwlistenport']
+    
+    def set_swift_httpgw_listen_port(self,port):
+        """ Set the TCP listen port for the CMDGW of the swift process
+        (download-to-process mapping permitting). 
+        @param port A port number.
+        """
+        self.dlconfig['swifthttpgwlistenport'] = port
+
+    def get_swift_httpgw_listen_port(self):
+        """ Returns the TCP listen port for the CMDGW of the swift process. 
+
+        @return Port number. """
+        return self.dlconfig['swifthttpgwlistenport']
+    
     
     
 class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):

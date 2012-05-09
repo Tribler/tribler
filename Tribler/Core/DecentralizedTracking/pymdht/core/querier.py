@@ -2,6 +2,21 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
+"""
+The 'querier' module contains the tools necessary to keep track of sent
+queries while waiting for responses.
+
+When a MDHT node receives a response, the response does not contain
+information regarding the query being responded. Instead, queries and
+responses carry a transaction id (tid) field to be able to match a response
+with its related query.
+
+In order to be able to recover related queries, queries need to be stored upon
+departure. Additionally, stale queries ---those which have not received a
+response for a given period of time (timeout)--- need to be detected and dealt
+with.
+
+"""
 import sys
 
 import logging
@@ -12,38 +27,19 @@ import ptime as time
 
 logger = logging.getLogger('dht')
 
-
-class Query(object):
-
-    def __init__(self, msg, dstnode, lookup_obj=None):
-        self.tid = None
-        self.query_ts = None
-        self.msg = msg
-        self.dstnode = dstnode
-        self.lookup_obj = lookup_obj
-        self.got_response = False
-        self.got_error = False
-
-    def on_response_received(self, response_msg):
-        self.rtt = time.time() - self.query_ts
-        if not self.dstnode.id:
-            self.dstnode.id = response_msg.sender_id
-        self.got_response = True
-
-    def on_error_received(self, error_msg):
-        self.rtt = time.time() - self.query_ts
-        self.got_error = True
-        
-    def matching_tid(self, response_tid):
-        return message.matching_tid(self.tid, response_tid)
+TIMEOUT_DELAY = 2
 
     
 class Querier(object):
+    """
+    A Querier object keeps a registry of sent queries while waiting for
+    responses.
 
-    def __init__(self, my_id):
-        self.my_id = my_id
-        #TODO: Shouldn't pending be protected by a lock???
-        self.pending = {} # collections.defaultdict(list)
+    """
+    def __init__(self):#, my_id):
+#        self.my_id = my_id
+        self._pending = {}
+        self._timeouts = []
         self._tid = [0, 0]
 
     def _next_tid(self):
@@ -54,55 +50,91 @@ class Querier(object):
             self._tid[1] = (self._tid[1] + 1) % 256
         return current_tid_str # raul: yield created trouble
 
-    def register_query(self, query, timeout_task):
-        query.tid = self._next_tid()
-        logger.debug('sending to node: %r\n%r' % (query.dstnode, query.msg))
-        query.timeout_task = timeout_task
-        query.query_ts = time.time()
-        # if node is not in the dictionary, it will create an empty list
-        self.pending.setdefault(query.dstnode.addr, []).append(query)
-        bencoded_msg = query.msg.encode(query.tid)
-        return bencoded_msg
+    def register_queries(self, queries):
+        """
+        A Querier object keeps a registry of sent queries while waiting for
+        responses.
 
-    def on_response_received(self, response_msg, addr):
+        """
+        assert len(queries)
+        datagrams = []
+        current_ts = time.time()
+        timeout_ts = current_ts + TIMEOUT_DELAY
+        for i, query in enumerate(queries):
+            msg = query
+            tid = self._next_tid()
+            logger.debug('registering query %d to node: %r\n%r' % (i,
+                                                                   query.dst_node,
+                                                                   msg))
+            self._timeouts.append((timeout_ts, msg))
+            # if node is not in the dictionary, it will create an empty list
+            self._pending.setdefault(query.dst_node.addr, []).append(msg)
+            datagrams.append(message.Datagram(
+                    msg.stamp(tid),
+                    query.dst_node.addr))
+        return timeout_ts, datagrams
+
+    def get_related_query(self, response_msg):
+        """
+        Return the message.OutgoingQueryBase object related to the
+        'response\_msg' provided. Return None if no related query is found.
+
+        """
         # message already sanitized by IncomingMsg
-        logger.debug('response received: %s' % repr(response_msg))
+        if response_msg.type == message.RESPONSE:
+            logger.debug('response received: %s' % repr(response_msg))
+        elif response_msg.type == message.ERROR:
+            logger.warning('Error message received:\n%s\nSource: %s',
+                           `response_msg`,
+                           `response_msg.src_addr`)
+        else:
+            raise Exception, 'response_msg must be response or error'
+        related_query = self._find_related_query(response_msg)
+        if not related_query:
+            logger.warning('No query for this response\n%s\nsource: %s' % (
+                    response_msg, response_msg.src_addr))
+        return related_query
+
+    def get_timeout_queries(self):
+        """
+        Return a tupla with two items: (1) timestamp for next timeout, (2)
+        list of message.OutgoingQueryBase objects of those queries that have
+        timed-out.
+        
+        """
+        current_ts = time.time()
+        timeout_queries = []
+        while self._timeouts:
+            timeout_ts, query = self._timeouts[0]
+            if current_ts < timeout_ts:
+                next_timeout_ts = timeout_ts
+                break
+            self._timeouts = self._timeouts[1:]
+            addr_query_list = self._pending[query.dst_node.addr]
+            assert query == addr_query_list.pop(0)
+            if not addr_query_list:
+                # The list is empty. Remove the whole list.
+                del self._pending[query.dst_node.addr]
+            if not query.got_response:
+                timeout_queries.append(query)
+        if not self._timeouts:
+            next_timeout_ts = current_ts + TIMEOUT_DELAY
+        return next_timeout_ts, timeout_queries
+
+    def _find_related_query(self, msg):
+        addr = msg.src_addr
         try:
-            addr_query_list = self.pending[addr]
+            addr_query_list = self._pending[addr]
         except (KeyError):
             logger.warning('No pending queries for %s', addr)
             return # Ignore response
-        # There are pending queries from node (let's find the right one (TID)
-        query_found = False
-        for query_index, query in enumerate(addr_query_list):
-            logger.debug('response node: %s, query:\n(%s, %s)' % (
-                `addr`,
-                `query.tid`,
-                `query.msg.query`))
-            if query.matching_tid(response_msg.tid):
-                query_found = True
-                break
-        if not query_found:
-            logger.warning('No query for this response\n%s\nsource: %s' % (
-                response_msg, addr))
-            return # ignore response 
-        # This response matches query. Notify query.
-        query.on_response_received(response_msg)
-        return query
-        # keep the query around (the timeout will delete it)
-
-    def on_error_received(self, error_msg, addr):
-        logger.warning('Error message received:\n%s\nSource: %s',
-                        `error_msg`,
-                        `addr`)
-        # TODO2: find query (with TID)
-        # and fire query.on_error_received(error_msg)
-
-    def on_timeout(self, addr):
-        addr_query_list = self.pending[addr]
-        query = addr_query_list.pop(0)
-        if not addr_query_list:
-            # The list is empty. Remove the whole list.
-            del self.pending[addr]
-        if not query.got_response and not query.got_error:
-            return query
+        for related_query in addr_query_list:
+            if related_query.match_response(msg):
+                logger.debug(
+                    'response node: %s, related query: (%s), delay %f s. %r' % (
+                        `addr`,
+                        `related_query.query`,
+                        time.time() - related_query.sending_ts,
+                        related_query.lookup_obj))
+                # Do not delete this query (the timeout will delete it)
+                return related_query

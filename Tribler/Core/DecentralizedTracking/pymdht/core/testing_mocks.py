@@ -8,7 +8,7 @@ import ptime as actual_time
 import socket as actual_socket
 import threading
 
-class MockTime(object):
+class _MockTime(object):
 
     def __init__(self):
         self.actual_time = actual_time

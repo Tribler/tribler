@@ -1,4 +1,3 @@
-# Copyright (C) 2009-2010 Raul Jimenez
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
@@ -7,8 +6,13 @@ This module provides the Id object and necessary tools.
 
 """
 
+#binascii.hexlify() bin>hex
+#int(a, 16) hex>int
+#hex() int>hex
+
 import sys
 import random
+import base64
 
 import logging
 
@@ -18,86 +22,59 @@ logger = logging.getLogger('dht')
 BITS_PER_BYTE = 8
 ID_SIZE_BYTES = 20
 ID_SIZE_BITS = ID_SIZE_BYTES * BITS_PER_BYTE
-
-
-def _bin_to_hex(bin_str):
-    """Convert a binary string to a hex string."""
-    hex_list = ['%02x' % ord(c) for c in bin_str]
-    return ''.join(hex_list)
-
-def _hex_to_bin_byte(hex_byte):
-    #TODO2: Absolutely sure there is a library function for this
-    hex_down = '0123456789abcdef'
-    hex_up =   '0123456789ABCDEF'
-    value = 0
-    for i in xrange(2):
-        value *= 16
-        try:
-            value += hex_down.index(hex_byte[i])
-        except ValueError:
-            try:
-                value += hex_up.index(hex_byte[i])
-            except ValueError:
-#                logger.info('hex_byte: %d', hex_byte)
-                raise IdError
-    return chr(value)
-    
-def _hex_to_bin(hex_str):
-    return ''.join([_hex_to_bin_byte(hex_byte) for hex_byte in zip(
-                hex_str[::2], hex_str[1::2])])
-
-
-def _byte_xor(byte1, byte2):
-    """Xor two characters as if they were bytes."""
-    return chr(ord(byte1) ^ ord(byte2))
-               
-def _first_different_byte(str1, str2):
-    """Return the position of the first different byte in the strings.
-    Raise IndexError when no difference was found (str1 == str2).
-    """
-    for i in range(len(str1)):
-        if str1[i] != str2[i]:
-            return i
-    raise IndexError
-
-def _first_different_bit(byte1, byte2):
-    """Return the position of the first different bit in the bytes.
-    The bytes must not be equal.
-
-    """
-    assert byte1 != byte2
-    byte = ord(byte1) ^ ord(byte2)
-    i = 0
-    while byte >> (BITS_PER_BYTE - 1) == 0:
-        byte <<= 1
-        i += 1
-    return i
+MAX_ID_LONG = ALL_ONES_LONG = (1 << ID_SIZE_BITS) - 1
 
 class IdError(Exception):
     pass
 
+
 class Id(object):
 
     """Convert a string to an Id object.
-    
-    The bin_id string's lenght must be ID_SIZE bytes (characters).
+    The bin_id string's lenght must be ID_SIZE bytes (characters)
+    OR an integer/long.
 
-    You can use both binary and hexadecimal strings. Example
-    #>>> Id('\x00' * ID_SIZE_BYTES) == Id('0' * ID_SIZE_BYTES * 2)
-    #True
-    #>>> Id('\xff' * ID_SIZE_BYTES) == Id('f' * ID_SIZE_BYTES * 2)
-    #True
+    You can use both binary and hexadecimal strings. Example:
+    
+    >>> Id(chr(0) * ID_SIZE_BYTES) == Id('0' * ID_SIZE_BYTES * 2)
+    True
+    
+    >>> Id(chr(255) * ID_SIZE_BYTES) == Id('f' * ID_SIZE_BYTES * 2)
+    True
+
+    >>> Id(chr(0) * ID_SIZE_BYTES) == Id(0)
+    True
+
+    >>> Id(chr(255) * ID_SIZE_BYTES) == Id(MAX_ID_LONG)
+    True
+    
     """
 
     def __init__(self, hex_or_bin_id):
-        if not isinstance(hex_or_bin_id, str):
-            raise IdError
-        if len(hex_or_bin_id) == ID_SIZE_BYTES:
-            self._bin_id = hex_or_bin_id
-        elif len(hex_or_bin_id) == ID_SIZE_BYTES*2:
-            self._bin_id = _hex_to_bin(hex_or_bin_id)
-        else:
+        self._bin_id = None
+        self._bin = None
+        self._hex = None
+        self._bin_str = None
+        self._long = None
+        self._log = None
+        if isinstance(hex_or_bin_id, str):
+            if len(hex_or_bin_id) == ID_SIZE_BYTES:
+                self._bin_id = hex_or_bin_id
+            elif len(hex_or_bin_id) == ID_SIZE_BYTES*2:
+                self._hex = hex_or_bin_id
+                try:
+                    self._bin_id = base64.b16decode(hex_or_bin_id, True)
+                except:
+                    raise IdError, 'input: %r' % hex_or_bin_id
+        elif isinstance(hex_or_bin_id, long) or isinstance(hex_or_bin_id, int):
+            if hex_or_bin_id < 0 or hex_or_bin_id > MAX_ID_LONG:
+                raise IdError, 'input: %r' % hex_or_bin_id
+            self._long = long(hex_or_bin_id)
+            self._hex = '%040x' % self._long
+            self._bin_id = base64.b16decode(self._hex, True)
+        if not self._bin_id:
             raise IdError, 'input: %r' % hex_or_bin_id
+        self._bin = self._bin_id
 
     def __hash__(self):
         return self.bin_id.__hash__()
@@ -105,10 +82,50 @@ class Id(object):
     @property
     def bin_id(self):
         """bin_id is read-only."""
-        return self._bin_id
+        return self._bin
+ 
+    @property
+    def bin(self):
+        return self._bin
 
+    @property
+    def hex(self):
+        if not self._hex:
+            self._hex = base64.b16encode(self._bin)
+        return self._hex
+
+    @property
+    def bin_str(self):
+        if not self._bin_str:
+            bin_str = bin(self.long)[2:]
+            # Need to pad to get 160 bits
+            self._bin_str = '0'*(ID_SIZE_BITS - len(bin_str)) + bin_str
+        return self._bin_str
+
+    @property
+    def long(self):
+        if not self._long:
+            self._long = long(self.hex, 16)
+        return self._long
+
+    @property
+    def log(self):
+        if not self._log:
+            if self.long == 0:
+                self._log = -1
+            else:
+                self._log = len(bin(self.long)) - 3
+        return self._log
+
+    @property
+    def prefix_len(self):
+        return ID_SIZE_BITS - self.log
+
+    def __cmp__(self, other):
+        return self.long.__cmp__(other.long)
+        
     def __eq__(self, other):
-        return self.bin_id == other.bin_id
+        return self.long == other.long
 
     def __ne__(self, other):
         return not self == other
@@ -117,7 +134,7 @@ class Id(object):
         return self.bin_id
 
     def __repr__(self):
-        return '%s' % _bin_to_hex(self.bin_id)
+        return '%s' % self.hex
 
     def distance(self, other):
         """
@@ -125,10 +142,8 @@ class Id(object):
         object.
 
         """
-        byte_list = [_byte_xor(a, b) for a, b in zip(self.bin_id,
-                                                     other.bin_id)]
-        return Id(''.join(byte_list))
-
+        return Id(self.long ^ other.long)
+    
     def log_distance(self, other):
         """Return log (base 2) of the XOR distance between two Id
         objects. Return -1 when the XOR distance is 0.
@@ -138,6 +153,7 @@ class Id(object):
         When the two identifiers are equal, the distance is 0. Therefore
         log_distance is -infinity. In this case, -1 is returned.
         Example:
+
         >>> z = Id(chr(0) * ID_SIZE_BYTES)
 
         >>> # distance = 0 [-inf, 1) -> log(0) = -infinity
@@ -175,22 +191,19 @@ class Id(object):
         159
 
         """
-        try:
-            byte_i = _first_different_byte(self.bin_id, other.bin_id)
-        except IndexError:
-            # _first_different_byte did't find differences, thus the
-            # distance is 0 and log_distance is -1 
-            return -1
-        unmatching_bytes = ID_SIZE_BYTES - byte_i - 1
-        byte1 = self.bin_id[byte_i]
-        byte2 = other.bin_id[byte_i]
-        bit_i = _first_different_bit(byte1, byte2)
-        # unmatching_bits (in byte: from least significant bit)
-        unmatching_bits = BITS_PER_BYTE - bit_i - 1
-        return unmatching_bytes * BITS_PER_BYTE + unmatching_bits
+        return self.distance(other).log
+
+    def get_prefix(self, prefix_len):
+        return self.bin_str[:prefix_len]
+
+    def get_bit(self, index):
+        if self.long & (1 << (ID_SIZE_BITS - index - 1)):
+            return 1
+        else:
+            return 0
+
     
-            
-    def order_closest(self, id_list):
+    def DD_order_closest(self, id_list):
         """Return a list with the Id objects in 'id_list' ordered
         according to the distance to self. The closest id first.
         
@@ -224,17 +237,13 @@ class Id(object):
         byte_index = len(self.bin_id) - byte_num - 1 # -1 correction
         int_byte = ord(self.bin_id[byte_index])
         import sys
-#        print >>sys.stderr, 'byte', int_byte, 'bit_num', bit_num,
         # Flip bit
         int_byte = int_byte ^ (1 << bit_num)
-#        print >>sys.stderr, 'flipped byte', int_byte,
-#        print >>sys.stderr, 'before for', int_byte,
         for i in range(bit_num):
             # Put bit to 0
             int_byte = int_byte & (255 - (1 << i))
             # Replace bit for random bit
             int_byte = int_byte + (random.randint(0, 1) << i)
-#        print >>sys.stderr, 'result', int_byte
         id_byte = chr(int_byte)
         # Produce random ending bytes
         end_bytes = ''.join([chr(random.randint(0, 255)) \
@@ -244,11 +253,24 @@ class Id(object):
         result = Id(bin_id)
         return result 
 
+    def set_bit(self, index, value):
+        if value:
+            long_id = self.long | (1 << index)
+        else:
+            long_id = self.long & (ALL_ONES_LONG ^ (1 << index))
+        return Id(long_id)
+
+MAX_ID = Id(MAX_ID_LONG)
+
     
 class RandomId(Id):
 
     """Create a random Id object."""
-    def __init__(self):
-        random_str = ''.join([chr(random.randint(0, 255)) \
-                                      for _ in xrange(ID_SIZE_BYTES)])
-        Id.__init__(self, random_str)
+    def __init__(self, bin_prefix=''):
+        padding_len = ID_SIZE_BITS - len(bin_prefix)
+        long_id = 0
+        if bin_prefix:
+            long_id = long(bin_prefix, 2)
+            long_id = long_id << padding_len
+        long_id = long_id + random.randint(0, (1 << padding_len) - 1)
+        Id.__init__(self, long_id)

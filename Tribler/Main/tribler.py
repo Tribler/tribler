@@ -36,6 +36,7 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 from random import randint
+from threading import current_thread
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
@@ -61,6 +62,8 @@ from wx import xrc
 from traceback import print_exc
 import urllib2
 import tempfile
+import shutil
+import thread
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
@@ -335,6 +338,13 @@ class ABCApp():
             
             self.sconfig.set_nat_detect(True)
             
+            # Arno, 2012-05-04: swift
+            swiftbinpath = os.path.join(self.sconfig.get_install_dir(),"swift")
+            self.sconfig.set_swift_path(swiftbinpath)
+            self.sconfig.set_swift_tunnel_listen_port(7758)
+            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
+            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
+            
             # rename old collected torrent directory
             try:
                 if not os.path.exists(destdir):
@@ -569,6 +579,8 @@ class ABCApp():
                 state = ds.get_status() 
                 safename = ds.get_download().get_def().get_name()
                 
+                print >>sys.stderr,"tribler: state_callback: ACTIVE DOWNLOAD",dlstatus_strings[state],safename
+                
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
                     
@@ -580,6 +592,10 @@ class ABCApp():
                         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash)
                         
                         doCheckpoint = True
+                        
+                        # Arno, 2012-05-04: Swift reseeding
+                        if self.utility.config.Read('swiftreseed') == 1:
+                            self.sesscb_reseed_via_swift(ds.get_download())
             
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
@@ -631,7 +647,7 @@ class ABCApp():
                     seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
                     seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
             # _Crawling Seeding Stats
-
+            
         except:
             print_exc()
         
@@ -862,6 +878,73 @@ class ABCApp():
                 self.guiUtility.ShowPage('my_files')
 
             wx.CallAfter(start_asked_download)
+
+
+    def sesscb_reseed_via_swift(self,td):
+        # Arno, 2012-05-07: root hash calculation may take long time, halting 
+        # SessionCallbackThread meaning download statuses won't be updated. 
+        # Offload to diff thread.
+        #
+        thread.start_new_thread(self.workerthread_reseed_via_swift_run,(td,))
+        # apparently daemon by default
+
+        
+    def workerthread_reseed_via_swift_run(self,td):
+        # Open issues:
+        # * how to display these "parallel" downloads in GUI?
+        # * make swift reseed user configurable (see 'swiftreseed' in utility.py
+        # * roothash calc on separate thread?
+        # * Update pymDHT to one with swift interface.
+        # * Save (infohash,roothash) pair such that when BT download is removed
+        #   the other is (kept/deleted/...) too.
+        #
+        current_thread().setName("SwiftRootHashCalculator"+current_thread().getName())
+        
+        # 1. Get torrent info
+        tdef = td.get_def()
+        
+        destdir = td.get_dest_dir()
+
+        # 2. Convert to swift def
+        sdef = SwiftDef()
+        # RESEEDTODO: set to swift inf of pymDHT
+        sdef.set_tracker("127.0.0.1:9999") 
+        iotuples = td.get_dest_files()
+        for i,o in iotuples:
+            #print >>sys.stderr,"python: add_content",i,o
+            if len(iotuples) == 1:
+                sdef.add_content(o) # single file .torrent
+            else:
+                xi = os.path.join(tdef.get_name_as_unicode(),i)
+                if sys.platform == "win32":
+                    xi = xi.replace("\\","/")
+                si = xi.encode("UTF-8") # spec format
+                sdef.add_content(o,si) # multi-file .torrent
+            
+        specpn = sdef.finalize(self.sconfig.get_swift_path(),destdir=destdir)
+                
+        # 3. Save swift multifile spec (if multifile)
+        if len(iotuples) == 1:
+            storagepath = iotuples[0][1] # Point to file on disk
+        else:
+            # Store multi-file spec as <roothashhex> alongside files
+            mfpath = os.path.join(destdir,"."+sdef.get_roothash_as_hex() )
+            storagepath = mfpath # Point to spec file
+            
+            # Reuse .mhash and .mbinmap (happens automatically for single-file)
+            try:
+                shutil.move(specpn, mfpath)
+                shutil.move(specpn+'.mhash', mfpath+'.mhash')
+                shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
+            except:
+                print_exc()
+            
+        # 4. Start Swift download via GUI Thread
+        wx.CallAfter(self.frame.startReseedSwiftDownload,storagepath,sdef)
+        
+
+
+
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 

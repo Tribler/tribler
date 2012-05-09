@@ -116,8 +116,14 @@ sessdefaults['remote_search_empty_call'] = True
 # SWIFTPROC config
 sessdefaults['swiftproc'] = True
 sessdefaults['swiftpath'] = None
+sessdefaults['swiftworkingdir'] = '.'
 sessdefaults['swiftcmdlistenport'] = DEFAULTPORT+481 
 sessdefaults['swiftdlsperproc'] = 1000
+# config for tunneling via swift, e.g. dispersy
+sessdefaults['swifttunnellistenport'] = None
+sessdefaults['swifttunnelcmdgwlistenport'] = None
+sessdefaults['swifttunnelhttpgwlistenport'] = None
+
 
 trackerdefaults = {}
 trackerdefaults['tracker_url'] = None
@@ -242,6 +248,12 @@ dldefaults['same_nat_try_internal'] = 0
 dldefaults['unchoke_bias_for_internal'] = 0
 # Version 6: add correctedfilename option
 dldefaults['correctedfilename'] = None
+
+# SWIFTPROC
+dldefaults['swiftlistenport'] = None
+dldefaults['swiftcmdgwlistenport'] = None
+dldefaults['swifthttpgwlistenport'] = None
+
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

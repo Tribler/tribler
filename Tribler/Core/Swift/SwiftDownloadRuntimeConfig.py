@@ -43,3 +43,12 @@ class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
             DownloadConfigInterface.set_max_speed(self,direct,speed)
         finally:
             self.dllock.release()
+
+    def set_mode(self,mode):
+        """ Note: this has no effect, swift currently doesn't have DL modes """
+        self.dllock.acquire()
+        try:
+            DownloadConfigInterface.set_mode(self,mode)
+        finally:
+            self.dllock.release()
+

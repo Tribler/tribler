@@ -1290,7 +1290,7 @@ class TorrentDetails(AbstractDetails):
         found = False
         
         for ds in dslist:
-            infohash = ds.get_download().get_def().get_infohash()
+            infohash = ds.get_download().get_def().get_id()
             if infohash == self.torrent.infohash:
                 self._Refresh(ds)
                 found = True

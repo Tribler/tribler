@@ -2,7 +2,7 @@
 # Released under GNU LGPL 2.1
 # See LICENSE.txt for more information
 
-from nose.tools import assert_raises, raises
+from nose.tools import assert_raises, ok_, eq_
 
 import cStringIO
 import logging, logging_conf
@@ -74,6 +74,13 @@ test_data_decode_error = [
     ('l99:abc', DecodeError), # open list with shorter string than announced
     ('d99:abc', DecodeError), # open dict with shorter string than announced
     ('d2:ab99:ab', DecodeError), # open dict with shorter string than announced
+    ('d', DecodeError), # open dict (no close)
+    ('l', DecodeError), # open list (no close)
+    ('i', DecodeError), # open int (no close)
+    ('2', DecodeError), # open srt (no close)
+    ('2:', DecodeError), # open srt (no close)
+    ('2:a', DecodeError), # open srt (no close)
+    
 #    ('i33z', DecodeError), # No ending for integer
 #    (None, DecodeError),
 #    (1, DecodeError),
@@ -150,3 +157,7 @@ class TestDecode:
             else:
                 debug_print(i, bencoded, expected, 'NO EXCEPTION RAISED')
                 assert False
+
+    def test_decode_unexpected_error(self):
+        assert_raises(DecodeError, decode, 'llee', 'z')
+

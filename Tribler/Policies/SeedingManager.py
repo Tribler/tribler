@@ -82,7 +82,12 @@ class GlobalSeedingManager:
                 del self.seeding_managers[infohash]
 
         for download_state in dslist:
-            infohash = download_state.get_download().get_def().get_infohash()
+            # Arno, 2012-05-07: ContentDef support
+            cdef = download_state.get_download().get_def()
+            if cdef.get_def_type() == 'torrent':
+                infohash = cdef.get_infohash()
+            else:
+                continue # Swift knows not of seeding managers yet
 
             if download_state.get_status() == DLSTATUS_SEEDING:
                 if infohash in self.seeding_managers:

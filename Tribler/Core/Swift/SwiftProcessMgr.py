@@ -32,13 +32,20 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         self.i2is = Instance2InstanceServer(self.i2iport,self,timeout=(24.0*3600.0)) 
         self.i2is.start()
 
-    def get_or_create_sp(self,destdir):
+    def get_or_create_sp(self,workdir,listenport,httpgwport,cmdgwport):
         """ Download needs a process """
         self.sesslock.acquire()
         print >>sys.stderr,"spm: get_or_create_sp"
         try:
             sp = None
-            if self.dlsperproc > 1:
+            if listenport is not None:
+                # Reuse the one with the same requested listen port
+                for sp2 in self.sps:
+                    if sp2.listenport == listenport:
+                        sp = sp2
+                        print >>sys.stderr,"spm: get_or_create_sp: Reusing",sp.get_pid()
+                        break
+            elif self.dlsperproc > 1:
                 # Find one with room, distribute equally
                 random.shuffle(self.sps)
                 for sp2 in self.sps:
@@ -46,9 +53,10 @@ class SwiftProcessMgr(InstanceConnectionHandler):
                         sp = sp2
                         print >>sys.stderr,"spm: get_or_create_sp: Reusing",sp.get_pid() 
                         break
+                    
             if sp is None:
                 # Create new process
-                sp = SwiftProcess(self.binpath,destdir,self)
+                sp = SwiftProcess(self.binpath,workdir,listenport,httpgwport,cmdgwport,self)
                 print >>sys.stderr,"spm: get_or_create_sp: Creating new",sp.get_pid()
                 self.sps.append(sp)
             

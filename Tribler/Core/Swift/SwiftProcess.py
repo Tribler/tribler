@@ -5,11 +5,13 @@ import sys
 import subprocess
 import random
 import binascii
+import urllib
 from threading import RLock
 from traceback import print_exc,print_stack
 
 from Tribler.Core.simpledefs import *
 from Tribler.Utilities.Instance2Instance import *
+from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 
 DEBUG = False
 
@@ -22,33 +24,46 @@ class SwiftProcess(InstanceConnection):
     A swift engine can participate in one or more swarms."""
 
 
-    def __init__(self,binpath,destdir,connhandler):
+    def __init__(self,binpath,workdir,listenport,httpgwport,cmdgwport,connhandler):
         # Called by any thread, assume sessionlock is held
         self.splock = RLock()
         self.binpath = binpath
-        self.destdir = destdir
+        self.workdir = workdir
         InstanceConnection.__init__(self, None, connhandler, self.i2ithread_readlinecallback)
         
-        self.cmdport = random.randint(11001,11999)  # NSSA control socket
-        self.httpport = random.randint(12001,12999) # content web server
+        # Main UDP listen socket
+        if listenport is None:
+            self.listenport = random.randint(10001,10999)  
+        else:
+            self.listenport = listenport
+        # NSSA control socket
+        if cmdgwport is None: 
+            self.cmdport = random.randint(11001,11999)  
+        else:
+            self.cmdport = cmdgwport
+        # content web server
+        if httpgwport is None:
+            self.httpport = random.randint(12001,12999) 
+        else:
+            self.httpport = httpgwport
         
         # Security: only accept commands from localhost, enable HTTP gw, 
         # no stats/webUI web server
         args=[]
         args.append(str(self.binpath))
+        args.append("-l") # listen port
+        args.append("0.0.0.0:"+str(self.listenport))
         args.append("-c") # command port
         args.append("127.0.0.1:"+str(self.cmdport))
         args.append("-g") # HTTP gateway port
         args.append("127.0.0.1:"+str(self.httpport))
-        args.append("-o")
-        args.append(str(destdir))
         args.append("-w")
         # args.append("-B") # DEBUG Hack        
         
         if DEBUG:
-            print >>sys.stderr,"SwiftProcess: __init__: Running",args, "in", destdir
+            print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
         
-        self.popen = subprocess.Popen(args,close_fds=True,cwd=destdir) 
+        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir) 
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
@@ -125,6 +140,12 @@ class SwiftProcess(InstanceConnection):
             self.roothash2dl[roothash] = d
             url = d.get_def().get_url()
             
+            # MULTIFILE
+            if len(d.get_selected_files()) == 1:
+                specpath = d.get_selected_files()[0]
+                qpath = urllib.quote(specpath)
+                url += "/" + qpath
+            
             # Default is unlimited, so don't send MAXSPEED then
             maxdlspeed=d.get_max_speed(DOWNLOAD)
             if maxdlspeed == 0:
@@ -133,7 +154,7 @@ class SwiftProcess(InstanceConnection):
             if maxulspeed == 0:
                 maxulspeed = None
                 
-            self.send_start(url,roothash_hex=roothash_hex,maxdlspeed=maxdlspeed,maxulspeed=maxulspeed)
+            self.send_start(url,roothash_hex=roothash_hex,maxdlspeed=maxdlspeed,maxulspeed=maxulspeed,destdir=d.get_dest_dir())
 
         finally:
             self.splock.release()
@@ -181,6 +202,11 @@ class SwiftProcess(InstanceConnection):
         self.splock.acquire()
         try:
             roothash_hex = d.get_def().get_roothash_as_hex()
+            
+            # In Tribler Core API  = unlimited. In Swift CMDGW API
+            # 0 = none.
+            if speed == 0.0:
+                speed = 4294967296.0
             
             self.send_max_speed(roothash_hex,direct,speed)
         finally:
@@ -230,11 +256,14 @@ class SwiftProcess(InstanceConnection):
     #
     # Internal methods
     #
-    def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None):
+    def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None,destdir=None):
         # assume splock is held to avoid concurrency on socket
-        print >>sys.stderr,"sp: send_start:",url
+        print >>sys.stderr,"sp: send_start:",url,"destdir",destdir
         
-        cmd = 'START '+url+'\r\n'
+        cmd = 'START '+url
+        if destdir is not None:
+            cmd += ' '+destdir.encode("UTF-8")
+        cmd += '\r\n'
         if maxdlspeed is not None:
             cmd += 'MAXSPEED '+roothash_hex+' DOWNLOAD '+str(float(maxdlspeed))+'\r\n'
         if maxulspeed is not None:
