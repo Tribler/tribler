@@ -616,5 +616,6 @@ INSERT INTO MyInfo VALUES ('version', 13);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
+INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');
 
 COMMIT TRANSACTION init_values;
