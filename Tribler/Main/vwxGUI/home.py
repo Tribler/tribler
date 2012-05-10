@@ -428,7 +428,7 @@ class DispersyPanel(HomePanel):
                                       ("Down avg", lambda info: self.utility.size_format(int(info["total_down"] / info["runtime"])) + "/s")],
                         "total_up":[("Up", lambda info: self.utility.size_format(info["total_up"])),
                                     ("Up avg", lambda info: self.utility.size_format(int(info["total_up"] / info["runtime"])) + "/s")],
-                        "drop":[("Dropped", lambda info: self.utility.size_format(int(sum(byte_count for _, byte_count in info["drop"].itervalues()))))],
+                        "drop":[("Dropped", lambda info: "%s ~%.1f%%" % (self.utility.size_format(int(sum(byte_count for _, byte_count in info["drop"].itervalues()))), (100.0 * sum(byte_count for _, byte_count in info["drop"].itervalues()) / info["total_down"]) if info["total_down"] else 0.0))],
                         "walk_success":[("Walker success", lambda info: "%d / %d ~%.1f%%" % (info["walk_success"], info["walk_attempt"], (100.0 * info["walk_success"] / info["walk_attempt"]) if info["walk_attempt"] else 0.0))],
                         "walk_reset":[("Walker resets", lambda info: str(info["walk_reset"]))],
                         "wan_address":[("Address wan", lambda info: "%s:%d" % info["wan_address"])],

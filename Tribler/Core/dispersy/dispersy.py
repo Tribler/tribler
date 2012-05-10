@@ -50,7 +50,7 @@ from authentication import NoAuthentication, MemberAuthentication, MultiMemberAu
 from bloomfilter import BloomFilter
 from bootstrap import get_bootstrap_candidates
 from callback import Callback
-from candidate import BootstrapCandidate, LoopbackCandidate, WalkCandidate
+from candidate import BootstrapCandidate, LoopbackCandidate, WalkCandidate, Candidate
 from destination import CommunityDestination, CandidateDestination, MemberDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution, FullSyncDistribution, LastSyncDistribution, DirectDistribution
@@ -849,7 +849,7 @@ class Dispersy(Singleton):
         flag for this community is True (this flag is set in the database).
 
         @param cid: The community identifier.
-        @type cid: string
+        @type cid: string, of any size
 
         @param load: When True, will load the community when available and not yet loaded.
         @type load: bool
@@ -862,35 +862,37 @@ class Dispersy(Singleton):
          cid.  This is currently not handled.
         """
         assert isinstance(cid, str)
-        assert len(cid) == 20
         assert isinstance(load, bool)
         assert isinstance(auto_load, bool)
 
-        if not cid in self._communities:
-            try:
-                # have we joined this community
-                classification, auto_load_flag, master_public_key = self._database.execute(u"SELECT community.classification, community.auto_load, member.public_key FROM community JOIN member ON member.id = community.master WHERE mid = ?",
-                                                                                           (buffer(cid),)).next()
+        if len(cid) == 20:
+            if not cid in self._communities:
+                try:
+                    # have we joined this community
+                    classification, auto_load_flag, master_public_key = self._database.execute(u"SELECT community.classification, community.auto_load, member.public_key FROM community JOIN member ON member.id = community.master WHERE mid = ?",
+                                                                                               (buffer(cid),)).next()
 
-            except StopIteration:
-                pass
-
-            else:
-                if load or (auto_load and auto_load_flag):
-
-                    if classification in self._auto_load_communities:
-                        master = Member(str(master_public_key)) if master_public_key else DummyMember(cid)
-                        cls, args, kargs = self._auto_load_communities[classification]
-                        cls.load_community(master, *args, **kargs)
-                        assert master.mid in self._communities
-
-                    else:
-                        if __debug__: dprint("unable to auto load, '", classification, "' is an undefined classification [", cid.encode("HEX"), "]", level="error")
+                except StopIteration:
+                    pass
 
                 else:
-                    if __debug__: dprint("not allowed to load '", classification, "'")
+                    if load or (auto_load and auto_load_flag):
 
-        return self._communities[cid]
+                        if classification in self._auto_load_communities:
+                            master = Member(str(master_public_key)) if master_public_key else DummyMember(cid)
+                            cls, args, kargs = self._auto_load_communities[classification]
+                            cls.load_community(master, *args, **kargs)
+                            assert master.mid in self._communities
+
+                        else:
+                            if __debug__: dprint("unable to auto load, '", classification, "' is an undefined classification [", cid.encode("HEX"), "]", level="error")
+
+                    else:
+                        if __debug__: dprint("not allowed to load '", classification, "'")
+
+            return self._communities[cid]
+
+        raise KeyError(cid)
 
     def get_communities(self):
         """
@@ -1074,7 +1076,7 @@ class Dispersy(Singleton):
             packet = str(packet)
             if packet == message.packet:
                 # exact binary duplicates, do NOT process the message
-                if __debug__: dprint(message.candidate, " received identical message [", message.name, " ", message.authentication.member.database_id, "@", message.distribution.global_time, " undone" if undone else "", "]", level="warning")
+                if __debug__: dprint(message.candidate, " received identical message [", message.name, " ", message.authentication.member.database_id, "@", message.distribution.global_time, " undone" if undone else "", "]")
 
                 if undone:
                     try:
@@ -1090,7 +1092,7 @@ class Dispersy(Singleton):
                 signature_length = message.authentication.member.signature_length
                 if packet[:signature_length] == message.packet[:signature_length]:
                     # the message payload is binary unique (only the signature is different)
-                    if __debug__: dprint("received identical message with different signature [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]", level="warning")
+                    if __debug__: dprint("received identical message with different signature [member:", message.authentication.member.database_id, "; @", message.distribution.global_time, "]")
 
                     if packet < message.packet:
                         # replace our current message with the other one
@@ -3835,43 +3837,73 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         @todo: we need to optimise this to include a bandwidth throttle.  Otherwise a node can
          easilly force us to send arbitrary large amounts of data.
         """
-        unique = set()
+        community = messages[0].community
+        requests = {}
 
+        if __debug__: dprint("received ", len(messages), " missing-sequence message for community ", community.database_id)
+
+        # we know that there are buggy clients out there that give numerous overlapping requests.
+        # we will filter these to perform as few queries on the database as possible
         for message in messages:
-            # we limit the response by byte_limit bytes per incoming message
-            byte_limit = message.community.dispersy_missing_sequence_response_limit
-            packets = []
-            payload = message.payload
+            request = requests.get(message.candidate.sock_addr)
+            if not request:
+                requests[message.candidate.sock_addr] = request = (message.candidate, set())
+            candidate, numbers = request
+
+            member_id = message.payload.member.database_id
+            message_id = message.payload.message.database_id
             if __debug__:
-                number, = self._database.execute(u"SELECT COUNT(1) FROM sync WHERE member = ? AND meta_message = ?", (payload.member.database_id, payload.message.database_id)).next()
-                dprint("Request for seq [", payload.missing_low, ":", payload.missing_high, "] community:", message.community.database_id, ", member:", payload.member.database_id, " to " , message.candidate, " (max ", byte_limit, " bytes, we have ", number, " messages)")
+                dprint(candidate, " requests member:", member_id, " message_id:", message_id, " range:[", message.payload.missing_low, ":", message.payload.missing_high, "]")
+                for sequence in xrange(message.payload.missing_low, message.payload.missing_high + 1):
+                    if (member_id, message_id, sequence) in numbers:
+                        dprint("ignoring duplicate request for ", member_id, ":", message_id, ":", sequence, " from ", candidate)
+            numbers.update((member_id, message_id, sequence) for sequence in xrange(message.payload.missing_low, message.payload.missing_high + 1))
 
-            for packet, in self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? ORDER BY global_time LIMIT ? OFFSET ?",
-                                                  (payload.member.database_id, payload.message.database_id, payload.missing_high - payload.missing_low + 1, payload.missing_low - 1)):
-                packet = str(packet)
-                packets.append(packet)
+        keyfunc = lambda tup: (tup[0], tup[1])
+        for candidate, numbers in requests.itervalues():
+            # we limit the response by byte_limit bytes per incoming candidate
+            byte_limit = community.dispersy_missing_sequence_response_limit
 
-                byte_limit -= len(packet)
+            # it is much easier to count packets... hence, to optimize we translate the byte_limit
+            # into a packet limit.  we will assume a 256 byte packet size (security packets are
+            # generally small)
+            packet_limit = max(1, int(byte_limit / 128))
+
+            packets = []
+            for (member_id, message_id), iterator in groupby(sorted(numbers), keyfunc):
+                _, _, lowest = _, _, highest = iterator.next()
+                for _, _, highest in iterator:
+                    pass
+
+                # limiter
+                highest = min(lowest + packet_limit, highest)
+                packet_limit -= (highest - lowest) + 1
+
+                if __debug__: dprint("fetching member:", member_id, " message:", message_id, ", ", highest - lowest + 1, " packets from database for ", candidate)
+                for packet, in self._database.execute(u"SELECT packet FROM sync WHERE member = ? AND meta_message = ? ORDER BY global_time LIMIT ? OFFSET ?",
+                                                      (member_id, message_id, highest - lowest + 1, lowest - 1)):
+                    packet = str(packet)
+                    packets.append(packet)
+
+                    byte_limit -= len(packet)
+                    if byte_limit <= 0:
+                        if __debug__: dprint("Bandwidth throttle")
+                        break
+
                 if byte_limit <= 0:
-                    if __debug__: dprint("Bandwidth throttle")
                     break
 
-            if packets:
-                if __debug__:
-                    # ensure we are sending the correct sequence numbers back
-                    for packet in packets:
-                        msg = self.convert_packet_to_message(packet, message.community)
-                        assert msg
-                        assert payload.missing_low <= msg.distribution.sequence_number <= payload.missing_high, [payload.missing_low, msg.distribution.sequence_number, payload.missing_high]
-                        dprint("Syncing ", len(packet), " bytes seq:", msg.distribution.sequence_number, " in [", payload.missing_low, ":", payload.missing_high, "] community:", message.community.database_id, ", member:", payload.member.database_id, " to " , message.candidate, " (ABORT:DUPLICATE)" if (message.candidate, packet) in unique else "")
+            if __debug__:
+                # ensure we are sending the correct sequence numbers back
+                for packet in packets:
+                    msg = self.convert_packet_to_message(packet, community)
+                    assert msg
+                    key = (msg.authentication.member.database_id, msg.database_id, msg.distribution.sequence_number)
+                    assert key in requests[candidate.sock_addr][1], key
+                    dprint("Syncing ", len(packet), " member:", key[0], " message:", key[1], " sequence:", key[2], " to " , candidate)
 
-                # sometimes clients will send requests covering the same range
-                filtered_packets = [packet for packet in packets if not (message.candidate, packet) in unique]
-                unique.update((message.candidate, packet) for packet in packets)
-
-                if __debug__:
-                    self._statistics.outgoing(u"-sequence-", sum(len(packet) for packet in filtered_packets), len(filtered_packets))
-                self._endpoint.send([message.candidate], filtered_packets)
+                self._statistics.outgoing(u"-sequence-", sum(len(packet) for packet in packets), len(packets))
+            self._endpoint.send([candidate], packets)
 
     def on_missing_proof(self, messages):
         community = messages[0].community

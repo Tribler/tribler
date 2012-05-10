@@ -19,7 +19,6 @@ import inspect
 import socket
 
 from bloomfilter import BloomFilter
-from candidate import BootstrapCandidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from debug import Node
 from dispersy import Dispersy
@@ -44,7 +43,7 @@ def assert_message_stored(community, member, global_time, undone="done"):
     try:
         actual_undone, = community.dispersy.database.execute(u"SELECT undone FROM sync WHERE community = ? AND member = ? AND global_time = ?", (community.database_id, member.database_id, global_time)).next()
     except StopIteration:
-        self.assert_(False, "Message must be stored in the database (", community.database_id, ", ", member.database_id, ", ", global_time, ")")
+        assert_(False, "Message must be stored in the database (", community.database_id, ", ", member.database_id, ", ", global_time, ")")
 
     assert_(isinstance(actual_undone, int), type(actual_undone))
     assert_(0 <= actual_undone, actual_undone)
