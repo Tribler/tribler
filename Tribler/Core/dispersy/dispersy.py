@@ -4698,7 +4698,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 OPTIMALSTEPS = (NOW - START) / optimaldelay
                 STEPDIFF = NOW - community.__MOST_RESENT_WALK
                 community.__MOST_RESENT_WALK = NOW
-                dprint(community.cid.encode("HEX"), " taking step every ", "%.2f" % DELAY, " sec in ", len(walker_communities), " communities.  steps: ", STEPS, "/", int(OPTIMALSTEPS), " ~ %.2f." % (STEPS / OPTIMALSTEPS), "  diff: %.1f" % STEPDIFF, ".  resets: ", RESETS)
+                dprint(community.cid.encode("HEX"), " taking step every ", "%.2f" % DELAY, " sec in ", len(walker_communities), " communities.  steps: ", STEPS, "/", int(OPTIMALSTEPS), " ~ %.2f." % (-1.0 if OPTIMALSTEPS == 0.0 else (STEPS / OPTIMALSTEPS)), "  diff: %.1f" % STEPDIFF, ".  resets: ", RESETS)
                 STEPS += 1
 
             # walk

@@ -596,9 +596,8 @@ class DispersyPanel(HomePanel):
                     updateColumn(title, func(info))
             updateColumn("in_debugmode", str(__debug__))
 
-        # right tree
-        parentNode = self.tree.AppendItem(fakeRoot, "raw info")
-        addValue(parentNode, info)
+            parentNode = self.tree.AppendItem(fakeRoot, "raw info")
+            addValue(parentNode, info)
 
         self.panel.Layout()
 
