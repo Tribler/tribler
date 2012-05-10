@@ -579,8 +579,6 @@ class ABCApp():
                 state = ds.get_status() 
                 safename = ds.get_download().get_def().get_name()
                 
-                #print >>sys.stderr,"tribler: state_callback: ACTIVE DOWNLOAD",dlstatus_strings[state],safename
-                
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
                     
@@ -632,6 +630,14 @@ class ABCApp():
             if adjustspeeds:
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
+                
+                for ds in dslist:
+                    cdef = ds.get_download().get_def()
+                    if cdef.get_def_type() == 'swift':
+                        state = ds.get_status() 
+                        safename = cdef.get_name()
+                        
+                        print >>sys.stderr,"tribler: state_callback: ACTIVE DOWNLOAD",dlstatus_strings[state], safename
             
             # Crawling Seeding Stats_
             if self.seedingstats_enabled == 1:
