@@ -340,9 +340,9 @@ class TriblerLaunchMany(Thread):
             self.dispersy_thread = self.database_thread
             # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
             # required to ensure that the BitTornado core can access the dispersy instance.
-            self.dispersy_thread.call(self.start_dispersy)
+            self.dispersy_thread.call(self.start_dispersy, (config,))
 
-    def start_dispersy(self):
+    def start_dispersy(self, config):
         def load_communities():
             if sys.argv[0].endswith("dispersy-channel-booster.py"):
                 schedule = []
@@ -384,7 +384,7 @@ class TriblerLaunchMany(Thread):
 
         # set communication endpoint
         endpoint = None
-        if self.spm:
+        if config['dispersy-tunnel-over-swift'] and self.spm:
             try:
                 swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
             except OSError:

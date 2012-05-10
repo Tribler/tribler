@@ -92,6 +92,7 @@ sessdefaults['votecast_random_votes']=25
 sessdefaults['channelcast_recent_own_subscriptions'] = 13
 sessdefaults['channelcast_random_own_subscriptions'] = 12 
 sessdefaults['dispersy'] = True
+sessdefaults['dispersy-tunnel-over-swift'] = False
 sessdefaults['dispersy_port'] = 7759
 
 # 14-04-2010, Andrea: settings to limit the results for a remote query in channels
