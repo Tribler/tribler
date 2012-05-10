@@ -134,7 +134,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.lm_network_vod_event_callback = lm_network_vod_event_callback 
             
         # Synchronous: starts process if needed
-        self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port() )
+        self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port() )
         self.sp.start_download(self)
 
         # Arno: if used, make sure to switch to network thread first!

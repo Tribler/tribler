@@ -32,7 +32,7 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         self.i2is = Instance2InstanceServer(self.i2iport,self,timeout=(24.0*3600.0)) 
         self.i2is.start()
 
-    def get_or_create_sp(self,workdir,listenport,httpgwport,cmdgwport):
+    def get_or_create_sp(self,workdir,zerostatedir,listenport,httpgwport,cmdgwport):
         """ Download needs a process """
         self.sesslock.acquire()
         print >>sys.stderr,"spm: get_or_create_sp"
@@ -56,7 +56,7 @@ class SwiftProcessMgr(InstanceConnectionHandler):
                     
             if sp is None:
                 # Create new process
-                sp = SwiftProcess(self.binpath,workdir,listenport,httpgwport,cmdgwport,self)
+                sp = SwiftProcess(self.binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,self)
                 print >>sys.stderr,"spm: get_or_create_sp: Creating new",sp.get_pid()
                 self.sps.append(sp)
             

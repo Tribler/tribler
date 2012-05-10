@@ -13,7 +13,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 
-DEBUG = False
+DEBUG = True
 
 DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
@@ -24,11 +24,12 @@ class SwiftProcess(InstanceConnection):
     A swift engine can participate in one or more swarms."""
 
 
-    def __init__(self,binpath,workdir,listenport,httpgwport,cmdgwport,connhandler):
+    def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,connhandler):
         # Called by any thread, assume sessionlock is held
         self.splock = RLock()
         self.binpath = binpath
         self.workdir = workdir
+        self.zerostatedir = zerostatedir
         InstanceConnection.__init__(self, None, connhandler, self.i2ithread_readlinecallback)
         
         # Main UDP listen socket
@@ -58,6 +59,9 @@ class SwiftProcess(InstanceConnection):
         args.append("-g") # HTTP gateway port
         args.append("127.0.0.1:"+str(self.httpport))
         args.append("-w")
+        if zerostatedir is not None:
+            args.append("-e") 
+            args.append(zerostatedir)
         # args.append("-B") # DEBUG Hack        
         
         if DEBUG:
