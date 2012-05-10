@@ -84,6 +84,32 @@ def forceWxThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+def forceAndReturnWxThread(func):
+    def invoke_func(*args,**kwargs):
+        if wx.Thread_IsMain():
+            return func(*args, **kwargs)
+        else:
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            event = Event()
+            
+            result = [None]
+            def wx_thread():
+                try:
+                    result[0] = func(*args, **kwargs)
+                finally:
+                    event.set()
+            
+            wx.CallAfter(wx_thread)
+            if event.wait(100) or event.isSet():
+                return result[0]
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
 def warnWxThread(func):
     def invoke_func(*args,**kwargs):
         if not wx.Thread_IsMain():

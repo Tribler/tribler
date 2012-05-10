@@ -375,10 +375,10 @@ class CreateTorrent(wx.Dialog):
             self.foundFilesText.SetLabel('Selected %d files'%nrFiles)
             
             if nrFiles == 1:
-                self.webSeed.SetLabel('')
                 self.webSeed.Enable(True)
+                self.webSeed.SetValue('')
             else:
-                self.webSeed.SetLabel('Webseed will only work for a single file.')
+                self.webSeed.SetValue('Webseed will only work for a single file.')
                 self.webSeed.Enable(False)
             
             self.combineRadio.Enable(nrFiles > 0)
@@ -392,13 +392,13 @@ class CreateTorrent(wx.Dialog):
             self.Layout()
     
     @forceWxThread
-    def _torrentCreated(self, path, correctedfilename, torrentfilename, root_hash):
+    def _torrentCreated(self, path, correctedfilename, torrentfilename):
         self.progressDlg.cur += 1
         keepGoing, _ = self.progressDlg.Update(self.progressDlg.cur)
         if not keepGoing:
             self.cancelEvent.Set()
         
-        self.createdTorrents.append((path, correctedfilename, torrentfilename, root_hash))
+        self.createdTorrents.append((path, correctedfilename, torrentfilename))
         
 def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfilenameCallback):
     tdef = TorrentDef()
@@ -481,11 +481,5 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         torrentfilename = os.path.join(basepath, tdef.get_name()+postfix)
     tdef.save(torrentfilename)
     
-    # Generate the roothash for swift
-    tdef.set_create_merkle_torrent(True)
-    tdef.finalize()
-    
-    root_hash = tdef.get_infohash()
-    
     # Inform higher layer we created torrent
-    torrentfilenameCallback(basepath, basedir, torrentfilename, root_hash)
+    torrentfilenameCallback(basepath, basedir, torrentfilename)

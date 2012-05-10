@@ -1018,17 +1018,16 @@ class ManageChannelFilesManager():
         except:
             return False
     
-    def startDownload(self, torrentfilename, cdef = None, *args, **kwargs):
+    def startDownload(self, torrentfilename, *args, **kwargs):
         try:
+            def swiftReady(sdef):
+                self.AddSDef(sdef, tdef)
+                
             tdef = TorrentDef.load(torrentfilename)
-            if cdef:
-                if 'fixtorrent' not in kwargs:
-                    self.guiutility.frame.startDownload(cdef = cdef, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
-                return self.AddCDef(cdef, tdef)
-            else:
-                if 'fixtorrent' not in kwargs:
-                    self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
-                return self.AddTDef(tdef)
+            if 'fixtorrent' not in kwargs:
+                download = self.guiutility.frame.startDownload(torrentfilename = torrentfilename, destdir = kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename',None))
+                self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
+            return self.AddTDef(tdef)
         except:
             return False
         
@@ -1068,11 +1067,10 @@ class ManageChannelFilesManager():
             return True
         return False
     
-    
-    def AddCDef(self, cdef, tdef):
-        if tdef and cdef:
-            torrent = self.channelsearch_manager.getTorrentFromChannel(self.channel.id, tdef.get_infohash())
-            self.channelsearch_manager.modifyTorrent(self.channel.id, torrent.channeltorrent_id, {'swift-url':cdef.get_url()})
+    def AddSDef(self, sdef, tdef):
+        if tdef and sdef:
+            torrent = self.channelsearch_manager.getTorrentFromChannel(self.channel, tdef.get_infohash())
+            self.channelsearch_manager.modifyTorrent(self.channel.id, torrent.channeltorrent_id, {'swift-url': sdef.get_url()})
             return True
         return False
 

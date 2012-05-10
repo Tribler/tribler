@@ -1044,7 +1044,7 @@ class ChannelCommunity(Community):
         assert isinstance(torrent_id, (int, long))
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db.getTorrentFromChannelTorrentId(torrent_id, ['dispersy_id'])
+        dispersy_id = self._channelcast_db.getTorrentFromChannelTorrentId(torrent_id, ['ChannelTorrents.dispersy_id'])
         
         # 2. get the message
         if dispersy_id and dispersy_id > 0:

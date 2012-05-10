@@ -30,6 +30,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
     LibraryTorrent, ChannelTorrent, CollectedTorrent
 from Tribler.community.channel.community import ChannelCommunity
+from wx.richtext import RichTextCtrl
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
@@ -576,6 +577,13 @@ class TorrentDetails(AbstractDetails):
             if column == "Status":
                 self.status = value
         sizer.Add(vSizer, 1, wx.EXPAND)
+            
+        if self.canEdit:
+            modifications = self.guiutility.channelsearch_manager.getTorrentModifications(self.torrent)
+            for modification in modifications:
+                if modification.name == 'swift-url':
+                    value = wx.TextCtrl(panel, -1, modification.value, style = wx.TE_READONLY)
+                    self._add_row(panel, vSizer, 'Swift URL', value)
         
         if self.canMark:
             self.UpdateMarkings()

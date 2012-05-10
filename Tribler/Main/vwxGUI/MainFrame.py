@@ -30,7 +30,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
 from wx.html import HtmlWindow
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 import traceback
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceAndReturnWxThread
 
 try:
     import wxversion
@@ -405,7 +405,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
         return False
 
-    @forceWxThread
+    @forceAndReturnWxThread
     def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
         if DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,cdef

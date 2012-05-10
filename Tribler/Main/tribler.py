@@ -177,7 +177,7 @@ class ABCApp():
 
             notification_init(self.utility)
             
-            self.guiUtility = GUIUtility.getInstance(self.utility, self.params)
+            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             
             self.splash.tick('Starting API')
             self.startAPI(self.splash.tick)
@@ -880,16 +880,16 @@ class ABCApp():
             wx.CallAfter(start_asked_download)
 
 
-    def sesscb_reseed_via_swift(self,td):
+    def sesscb_reseed_via_swift(self, td, callback = None):
         # Arno, 2012-05-07: root hash calculation may take long time, halting 
         # SessionCallbackThread meaning download statuses won't be updated. 
         # Offload to diff thread.
         #
-        thread.start_new_thread(self.workerthread_reseed_via_swift_run,(td,))
+        thread.start_new_thread(self.workerthread_reseed_via_swift_run,(td, callback))
         # apparently daemon by default
 
         
-    def workerthread_reseed_via_swift_run(self,td):
+    def workerthread_reseed_via_swift_run(self, td, callback = None):
         # Open issues:
         # * how to display these "parallel" downloads in GUI?
         # * make swift reseed user configurable (see 'swiftreseed' in utility.py
@@ -898,53 +898,57 @@ class ABCApp():
         # * Save (infohash,roothash) pair such that when BT download is removed
         #   the other is (kept/deleted/...) too.
         #
-        current_thread().setName("SwiftRootHashCalculator"+current_thread().getName())
-        
-        # 1. Get torrent info
-        tdef = td.get_def()
-        
-        destdir = td.get_dest_dir()
-
-        # 2. Convert to swift def
-        sdef = SwiftDef()
-        # RESEEDTODO: set to swift inf of pymDHT
-        sdef.set_tracker("127.0.0.1:9999") 
-        iotuples = td.get_dest_files()
-        for i,o in iotuples:
-            #print >>sys.stderr,"python: add_content",i,o
-            if len(iotuples) == 1:
-                sdef.add_content(o) # single file .torrent
-            else:
-                xi = os.path.join(tdef.get_name_as_unicode(),i)
-                if sys.platform == "win32":
-                    xi = xi.replace("\\","/")
-                si = xi.encode("UTF-8") # spec format
-                sdef.add_content(o,si) # multi-file .torrent
+        try:
+            current_thread().setName("SwiftRootHashCalculator"+current_thread().getName())
             
-        specpn = sdef.finalize(self.sconfig.get_swift_path(),destdir=destdir)
+            # 1. Get torrent info
+            tdef = td.get_def()
+            
+            destdir = td.get_dest_dir()
+    
+            # 2. Convert to swift def
+            sdef = SwiftDef()
+            # RESEEDTODO: set to swift inf of pymDHT
+            sdef.set_tracker("127.0.0.1:9999") 
+            iotuples = td.get_dest_files()
+            for i,o in iotuples:
+                #print >>sys.stderr,"python: add_content",i,o
+                if len(iotuples) == 1:
+                    sdef.add_content(o) # single file .torrent
+                else:
+                    xi = os.path.join(tdef.get_name_as_unicode(),i)
+                    if sys.platform == "win32":
+                        xi = xi.replace("\\","/")
+                    si = xi.encode("UTF-8") # spec format
+                    sdef.add_content(o,si) # multi-file .torrent
                 
-        # 3. Save swift multifile spec (if multifile)
-        if len(iotuples) == 1:
-            storagepath = iotuples[0][1] # Point to file on disk
-        else:
-            # Store multi-file spec as <roothashhex> alongside files
-            mfpath = os.path.join(destdir,"."+sdef.get_roothash_as_hex() )
-            storagepath = mfpath # Point to spec file
+            specpn = sdef.finalize(self.sconfig.get_swift_path(),destdir=destdir)
+                    
+            # 3. Save swift multifile spec (if multifile)
+            if len(iotuples) == 1:
+                storagepath = iotuples[0][1] # Point to file on disk
+            else:
+                # Store multi-file spec as <roothashhex> alongside files
+                mfpath = os.path.join(destdir,"."+sdef.get_roothash_as_hex() )
+                storagepath = mfpath # Point to spec file
+                
+                # Reuse .mhash and .mbinmap (happens automatically for single-file)
+                try:
+                    shutil.move(specpn, mfpath)
+                    shutil.move(specpn+'.mhash', mfpath+'.mhash')
+                    shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
+                except:
+                    print_exc()
+                
+            # 4. Start Swift download via GUI Thread
+            wx.CallAfter(self.frame.startReseedSwiftDownload,storagepath,sdef)
             
-            # Reuse .mhash and .mbinmap (happens automatically for single-file)
-            try:
-                shutil.move(specpn, mfpath)
-                shutil.move(specpn+'.mhash', mfpath+'.mhash')
-                shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
-            except:
-                print_exc()
-            
-        # 4. Start Swift download via GUI Thread
-        wx.CallAfter(self.frame.startReseedSwiftDownload,storagepath,sdef)
-        
-
-
-
+            # 5. Call the callback to notify
+            if callback:
+                callback(sdef)
+        except:
+            print_exc()
+            raise
 
 def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
 

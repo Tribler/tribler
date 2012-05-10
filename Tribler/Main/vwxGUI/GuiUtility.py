@@ -29,7 +29,7 @@ DEBUG = False
 class GUIUtility:
     __single = None
     
-    def __init__(self, utility = None, params = None):
+    def __init__(self, utility = None, params = None, app = None):
         if GUIUtility.__single:
             raise RuntimeError, "GUIUtility is singleton"
         GUIUtility.__single = self 
@@ -40,6 +40,7 @@ class GUIUtility:
         self.utility.guiUtility = self
         self.params = params
         self.frame = None
+        self.app = app
 
         # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
