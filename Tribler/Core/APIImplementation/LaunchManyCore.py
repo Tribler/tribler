@@ -207,6 +207,13 @@ class TriblerLaunchMany(Thread):
             # 13-04-2010, Andrea: rich metadata (subtitle) db
             self.richmetadataDbHandler = None
 
+        # SWIFTPROC
+        if config['swiftproc']:
+            self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.sesslock)
+        else:
+            self.spm = None
+
+
     def init(self):
         config = self.session.sessconfig # Should be safe at startup
 
@@ -325,12 +332,6 @@ class TriblerLaunchMany(Thread):
         if config["magnetlink"]:
             # initialise the first instance
             MagnetHandler.get_instance(self.rawserver)
-
-        # SWIFTPROC
-        if config['swiftproc']:
-            self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.sesslock)
-        else:
-            self.spm = None
 
         # Dispersy (depends on swift for tunneling)
         self.dispersy = None

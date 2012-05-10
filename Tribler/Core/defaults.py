@@ -175,7 +175,8 @@ sessdefaults.update(trackerdefaults)
 #  Version 3: 
 #  Version 4: allow users to specify a download directory every time
 #  Version 6: allow users to overwrite the multifile destination
-DLDEFAULTS_VERSION = 6
+#  Version 7: swift params
+DLDEFAULTS_VERSION = 7
 dldefaults = {}
 dldefaults['version'] = DLDEFAULTS_VERSION
 dldefaults['max_uploads'] = 7
@@ -250,7 +251,7 @@ dldefaults['unchoke_bias_for_internal'] = 0
 # Version 6: add correctedfilename option
 dldefaults['correctedfilename'] = None
 
-# SWIFTPROC
+# SWIFTPROC v7
 dldefaults['swiftlistenport'] = None
 dldefaults['swiftcmdgwlistenport'] = None
 dldefaults['swifthttpgwlistenport'] = None
