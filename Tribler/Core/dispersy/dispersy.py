@@ -198,6 +198,7 @@ class Statistics(object):
             self._success = {}
             self._outgoing = {}
             self._walk_fail = {}
+            self._attachment = {}
 
     def info(self):
         """
@@ -214,7 +215,8 @@ class Statistics(object):
                     "walk_attempt":self._walk_attempt,
                     "walk_success":self._walk_success,
                     "walk_reset":self._walk_reset,
-                    "walk_fail":self._walk_fail}
+                    "walk_fail":self._walk_fail,
+                    "attachment":self._attachment}
 
         else:
             return {"sequence_number":self._sequence_number,
@@ -242,6 +244,7 @@ class Statistics(object):
                 self._success = {}
                 self._outgoing = {}
                 self._walk_fail = {}
+                self._attachment = {}
 
     if __debug__:
         def drop(self, key, byte_count, amount=1):
@@ -289,6 +292,12 @@ class Statistics(object):
                 self._walk_fail[sock_addr] += 1
             else:
                 self._walk_fail[sock_addr] = 1
+
+        def increment_attachment(self, cid):
+            if cid in self._attachment:
+                self._attachment[cid] += 1
+            else:
+                self._attachment[cid] = 1
 
     def increment_walk_attempt(self):
         self._walk_attempt += 1
@@ -742,9 +751,12 @@ class Dispersy(Singleton):
             # restart walker scheduler
             self._callback.replace_register(CANDIDATE_WALKER_CALLBACK_ID, self._candidate_walker)
 
-        # schedule the sanity check... it also checks that the dispersy-identity is available and
-        # when this is a create or join this message is created only after the attach_community
         if __debug__:
+            # count the number of times that a community was attached
+            self._statistics.increment_attachment(community.cid)
+
+            # schedule the sanity check... it also checks that the dispersy-identity is available and
+            # when this is a create or join this message is created only after the attach_community
             if "--sanity-check" in sys.argv:
                 try:
                     self.sanity_check_generator(community)
@@ -4836,9 +4848,10 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         #      info["total_up"] and info["total_down"] are now always present
         # 3.3: added info["walk_fail"] in __debug__ mode
         # 3.4: added info["walk_reset"]
+        # 3.4: added info["attachment"] in __debug__ mode
 
         now = time()
-        info = {"version":3.3,
+        info = {"version":3.4,
                 "class":"Dispersy",
                 "lan_address":self._lan_address,
                 "wan_address":self._wan_address,
@@ -4850,6 +4863,27 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
         if statistics:
             info.update(self._statistics.info())
+
+            if __debug__:
+                def contribution(total, values, title):
+                    part = sum(p for _, p in values.itervalues())
+                    dprint("= %7.1f" % (part / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%5.2f%%" % (100.0 * part / total), "  ", title, force=1)
+
+                    for title, (_, part) in values.iteritems():
+                        dprint("- %7.1f" % (part / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%5.2f%%" % (100.0 * part / total), "  ", title, force=1)
+
+                dprint("--------------------------------------------------------------------------------", force=1)
+                dprint("... ", sum(info["attachment"].itervalues()), " attachments ...", force=1)
+                dprint("--------------------------------------------------------------------------------", force=1)
+                total = info["total_down"]
+                if total:
+                    contribution(total, info["delay"], "DELAY")
+                    contribution(total, info["drop"], "DROP")
+                    contribution(total, info["success"], "SUCCESS")
+
+                total = info["total_up"]
+                if total:
+                    contribution(total, info["outgoing"], "OUTGOING")
 
         info["communities"] = []
         for community in self._communities.itervalues():

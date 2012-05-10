@@ -545,7 +545,10 @@ class DispersyPanel(HomePanel):
 
         def addDict(parentNode, nodedict):
             for key, value in nodedict.items():
-                keyNode = self.tree.AppendItem(parentNode, str(key))
+                try:
+                    keyNode = self.tree.AppendItem(parentNode, str(key))
+                except UnicodeDecodeError:
+                    keyNode = self.tree.AppendItem(parentNode, key.encode("HEX"))
                 addValue(keyNode, value)
 
         def updateColumn(key, value):

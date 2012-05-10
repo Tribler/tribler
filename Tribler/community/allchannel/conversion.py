@@ -124,6 +124,6 @@ class AllChannelConversion(BinaryConversion):
 
     #     return offset, placeholder.meta.payload.implement(infohash)
 
-    def decode_message(self, address, data):
+    def decode_message(self, address, data, verify=True):
         self._address = address
-        return super(AllChannelConversion, self).decode_message(address, data)
+        return super(AllChannelConversion, self).decode_message(address, data, verify)

@@ -87,7 +87,7 @@ class Conversion(object):
         assert data[:22] == self._prefix
         raise NotImplementedError("The subclass must implement decode_message")
 
-    def decode_message(self, address, data):
+    def decode_message(self, address, data, verify=True):
         """
         DATA is a string, where the first byte is the on-the-wire Dispersy version, the second byte
         is the on-the-wire Community version and the following 20 bytes is the Community Identifier.
