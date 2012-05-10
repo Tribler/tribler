@@ -2037,6 +2037,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
             self.clean_db(True)
             
+        if fromver < 13:
+            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');")
+            
     def clean_db(self, vacuum = False):
         from time import time
         
