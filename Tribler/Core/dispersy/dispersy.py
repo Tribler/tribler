@@ -1537,7 +1537,7 @@ class Dispersy(Singleton):
                 del self._candidates[other.sock_addr]
                 self.wan_address_unvote(other)
 
-    def load_message(self, community, member, global_time):
+    def load_message(self, community, member, global_time, verify=False):
         """
         Returns the message identified by community, member, and global_time.
 
@@ -1561,7 +1561,7 @@ class Dispersy(Singleton):
 
         # attempt conversion
         try:
-            message = conversion.decode_message(LoopbackCandidate(), packet)
+            message = conversion.decode_message(LoopbackCandidate(), packet, verify)
 
         except (DropPacket, DelayPacket), exception:
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (", exception, ")", level="warning")
@@ -1604,7 +1604,7 @@ class Dispersy(Singleton):
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (", exception, ")", level="warning")
             return None
 
-    def convert_packet_to_message(self, packet, community=None, load=True, auto_load=True, candidate=None):
+    def convert_packet_to_message(self, packet, community=None, load=True, auto_load=True, candidate=None, verify=True):
         """
         Returns the Message.Implementation representing the packet or None when no conversion is
         possible.
@@ -1634,7 +1634,7 @@ class Dispersy(Singleton):
             return None
 
         try:
-            return conversion.decode_message(LoopbackCandidate() if candidate is None else candidate, packet)
+            return conversion.decode_message(LoopbackCandidate() if candidate is None else candidate, packet, verify)
 
         except (DropPacket, DelayPacket), exception:
             if __debug__: dprint("unable to convert a ", len(packet), " byte packet (", exception, ")", level="warning")
@@ -3615,7 +3615,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
     #                              meta.payload.implement(cluster, members))
 
     #     if update_locally:
-    #         assert community._timeline.check(message)
+    #         assert community.timeline.check(message)
     #         message.handle_callback(("", -1), message)
 
     #     if store_and_forward:
@@ -3733,7 +3733,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             # we can not timeline.check the submessage because it uses the MultiMemberAuthentication policy
             # # the message that we are signing must be valid according to our timeline
-            # # if not message.community._timeline.check(submsg):
+            # # if not message.community.timeline.check(submsg):
             # #     raise DropMessage("Does not fit timeline")
 
             # allow message
@@ -3917,8 +3917,8 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             else:
                 packet = str(packet)
-                msg = community.get_conversion(packet[:22]).decode_message(LoopbackCandidate(), packet)
-                allowed, proofs = community._timeline.check(msg)
+                msg = self.convert_packet_to_message(packet, community, verify=False)
+                allowed, proofs = community.timeline.check(msg)
                 if allowed and proofs:
                     if __debug__:
                         dprint(message.candidate, " found ", len(proofs), " [",", ".join("%s %d@%d" % (proof.name, proof.authentication.member.database_id, proof.distribution.global_time) for proof in proofs), "] for message ", msg.name, " ", message.payload.member.database_id, "@", message.payload.global_time)
@@ -3994,7 +3994,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         return message
 
     # def check_authorize(self, messages):
-    #     check = message.community._timeline.check
+    #     check = message.community.timeline.check
 
     #     for message in messages:
     #         allowed, proofs = check(message)
@@ -4025,7 +4025,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         """
         for message in messages:
             if __debug__: dprint(message)
-            message.community._timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
+            message.community.timeline.authorize(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_revoke(self, community, permission_triplets, sign_with_master=False, store=True, update=True, forward=True):
         """
@@ -4106,7 +4106,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
          message immediately.
         """
         for message in messages:
-            message.community._timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
+            message.community.timeline.revoke(message.authentication.member, message.distribution.global_time, message.payload.permission_triplets, message)
 
     def create_undo(self, community, message, sign_with_master=False, store=True, update=True, forward=True):
         """
@@ -4170,7 +4170,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
                 if __debug__:
                     assert msg.distribution.global_time > message.distribution.global_time
-                    allowed, _ = community._timeline.check(msg)
+                    allowed, _ = community.timeline.check(msg)
                     assert allowed, "create_undo was called without having the permission to undo"
 
                 self.store_update_forward([msg], store, update, forward)
@@ -4186,7 +4186,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 continue
 
             # check the timeline
-            allowed, _ = message.community._timeline.check(message)
+            allowed, _ = message.community.timeline.check(message)
             if not allowed:
                 yield DelayMessageByProof(message)
                 continue
@@ -4347,7 +4347,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
     def on_dynamic_settings(self, community, messages, initializing=False):
         assert all(community == message.community for message in messages)
         assert isinstance(initializing, bool)
-        timeline = community._timeline
+        timeline = community.timeline
         global_time = community.global_time
         changes = {}
 
@@ -4504,7 +4504,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                     raise ValueError("found dispersy-undo-other but the message that it refers to does not have an undo_callback")
 
                 # get the proof that undo_message is valid
-                allowed, proofs = community._timeline.check(undo_message)
+                allowed, proofs = community.timeline.check(undo_message)
 
                 if not allowed:
                     raise ValueError("found dispersy-undo-other that, according to the timeline, is not allowed")
@@ -4625,7 +4625,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
         else:
             for message in messages:
-                allowed, proofs = meta.community._timeline.check(message)
+                allowed, proofs = meta.community.timeline.check(message)
                 if allowed:
                     yield message
                 else:

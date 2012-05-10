@@ -531,19 +531,18 @@ class Message(MetaObject):
         self._undo_callback = undo_callback
         self._batch = BatchConfiguration() if batch is None else batch
 
-        # setup
-        database = community.dispersy.database
+        # use cache to avoid database queries
+        cache = community.meta_message_cache.get(name)
+        if cache:
+            self._database_id = cache["id"]
+        else:
+            # ensure that there is a database id associated to this meta message name
+            community.dispersy.database.execute(u"INSERT INTO meta_message (community, name, cluster, priority, direction) VALUES (?, ?, 0, 128, 1)",
+                                                (community.database_id, name))
+            self._database_id = community.dispersy.database.last_insert_rowid
+            community.meta_message_cache[name] = {"id":self._database_id, "cluster":0, "priority":128, "direction":1}
 
-        # ensure that there is a database id associated to this
-        # meta message name
-        try:
-            self._database_id, = database.execute(u"SELECT id FROM meta_message WHERE community = ? AND name = ?", (community.database_id, name)).next()
-        except StopIteration:
-            database.execute(u"INSERT INTO meta_message (community, name) VALUES (?, ?)", (community.database_id, name))
-            self._database_id = database.last_insert_rowid
-
-        # allow optional setup methods to initialize the specific
-        # parts of the meta message
+        # allow optional setup methods to initialize the specific parts of the meta message
         self._authentication.setup(self)
         self._resolution.setup(self)
         self._distribution.setup(self)

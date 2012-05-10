@@ -178,8 +178,13 @@ class SubjectiveDestination(Destination):
         return self._node_count
 
     def setup(self, message):
-        message.community.dispersy.database.execute(u"UPDATE meta_message SET cluster = ? WHERE id = ?",
-                                                    (self._cluster, message.database_id))
+        # use cache to avoid database queries
+        assert message.name in message.community.meta_message_cache
+        cache = message.community.meta_message_cache[message.name]
+        if not cache["cluster"] == self._cluster:
+            message.community.dispersy.database.execute(u"UPDATE meta_message SET cluster = ? WHERE id = ?",
+                                                        (self._cluster, message.database_id))
+            assert message.community.dispersy.database.changes == 1
 
     def generate_footprint(self):
         return "SubjectiveDestination:" + str(self._cluster)

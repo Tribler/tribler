@@ -21,7 +21,6 @@ from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from decorator import documentation, runtime_duration_warning
 from destination import SubjectiveDestination
 from dispersy import Dispersy
-from dispersydatabase import DispersyDatabase
 from distribution import SyncDistribution
 from math import ceil
 from member import DummyMember, Member
@@ -77,7 +76,7 @@ class Community(object):
         ec = ec_generate_key(u"high")
         master = Member(ec_to_public_bin(ec), ec_to_private_bin(ec))
 
-        database = DispersyDatabase.get_instance()
+        database = Dispersy.get_instance().database
         database.execute(u"INSERT INTO community (master, member, classification) VALUES(?, ?, ?)", (master.database_id, my_member.database_id, cls.get_classification()))
         community_database_id = database.last_insert_rowid
 
@@ -175,7 +174,7 @@ class Community(object):
         assert my_member.private_key, my_member.database_id
         if __debug__: dprint("joining ", cls.get_classification(), " ", master.mid.encode("HEX"))
 
-        database = DispersyDatabase.get_instance()
+        database = Dispersy.get_instance().database
         database.execute(u"INSERT INTO community(master, member, classification) VALUES(?, ?, ?)",
                          (master.database_id, my_member.database_id, cls.get_classification()))
         community_database_id = database.last_insert_rowid
@@ -202,7 +201,7 @@ class Community(object):
     @classmethod
     def get_master_members(cls):
         if __debug__: dprint("retrieving all master members owning ", cls.get_classification(), " communities")
-        execute = DispersyDatabase.get_instance().execute
+        execute = Dispersy.get_instance().database.execute
         return [Member(str(public_key)) if public_key else DummyMember(str(mid))
                 for mid, public_key,
                 in list(execute(u"SELECT m.mid, m.public_key FROM community AS c JOIN member AS m ON m.id = c.master WHERE c.classification = ?",
@@ -245,8 +244,8 @@ class Community(object):
             dprint("initializing:  ", self.get_classification())
             dprint("master member: ", master.mid.encode("HEX"), "" if isinstance(master, Member) else " (using DummyMember)")
 
+        # dispersy
         self._dispersy = Dispersy.get_instance()
-        self._dispersy_database = DispersyDatabase.get_instance()
 
         # _pending_callbacks contains all id's for registered calls that should be removed when the
         # community is unloaded.  most of the time this contains all the generators that are being
@@ -254,7 +253,7 @@ class Community(object):
         self._pending_callbacks = []
 
         try:
-            self._database_id, member_public_key, self._database_version = self._dispersy_database.execute(u"SELECT community.id, member.public_key, database_version FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
+            self._database_id, member_public_key, self._database_version = self._dispersy.database.execute(u"SELECT community.id, member.public_key, database_version FROM community JOIN member ON member.id = community.member WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
             raise ValueError(u"Community not found in database [" + master.mid.encode("HEX") + "]")
         if __debug__: dprint("database id:   ", self._database_id)
@@ -268,9 +267,15 @@ class Community(object):
         if not self._master_member.public_key and self.dispersy_enable_candidate_walker and self.dispersy_auto_download_master_member:
             self._pending_callbacks.append(self._dispersy.callback.register(self._download_master_member_identity))
 
+        # pre-fetch some values from the database, this allows us to only query the database once
+        self.meta_message_cache = {}
+        for database_id, name, cluster, priority, direction in self._dispersy.database.execute(u"SELECT id, name, cluster, priority, direction FROM meta_message WHERE community = ?", (self._database_id,)):
+            self.meta_message_cache[name] = {"id":database_id, "cluster":cluster, "priority":priority, "direction":direction}
         # define all available messages
         self._meta_messages = {}
         self._initialize_meta_messages()
+        # cleanup pre-fetched values
+        self.meta_message_cache = None
 
         # define all available conversions
         conversions = self.initiate_conversions()
@@ -279,9 +284,9 @@ class Community(object):
         # the last conversion in the list will be used as the default conversion
         self._conversions[None] = conversions[-1]
 
-        # the global time.  Zero indicates no messages are available, messages must have global
+        # the global time.  zero indicates no messages are available, messages must have global
         # times that are higher than zero.
-        self._global_time, = self._dispersy_database.execute(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (self._database_id,)).next()
+        self._global_time, = self._dispersy.database.execute(u"SELECT MAX(global_time) FROM sync WHERE community = ?", (self._database_id,)).next()
         if self._global_time is None:
             self._global_time = 0
         assert isinstance(self._global_time, (int, long))
@@ -326,7 +331,7 @@ class Community(object):
         delay = 2.0
         while not self._master_member.public_key:
             try:
-                public_key, = self._dispersy_database.execute(u"SELECT public_key FROM member WHERE id = ?", (self._master_member.database_id,)).next()
+                public_key, = self._dispersy.database.execute(u"SELECT public_key FROM member WHERE id = ?", (self._master_member.database_id,)).next()
             except StopIteration:
                 pass
             else:
@@ -385,7 +390,7 @@ class Community(object):
             candidate = LoopbackCandidate()
 
             # load all subjective sets by self.my_member
-            for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
+            for packet, in self._dispersy.database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
                                                            (self._database_id, self._my_member.database_id, meta.database_id)):
                 packet = str(packet)
 
@@ -436,7 +441,7 @@ class Community(object):
 
             for packet, in list(self._dispersy.database.execute(u"SELECT packet FROM sync WHERE meta_message IN (?, ?, ?) ORDER BY global_time, packet",
                                                                 (authorize.database_id, revoke.database_id, dynamic_settings.database_id))):
-                message = self._dispersy.convert_packet_to_message(str(packet), self)
+                message = self._dispersy.convert_packet_to_message(str(packet), self, verify=False)
                 if message:
                     if __debug__: dprint("processing ", message.name)
                     mapping[message.database_id]([message], initializing=True)
@@ -451,7 +456,7 @@ class Community(object):
         When True, this community will automatically be loaded when a packet is received.
         """
         # currently we grab it directly from the database, should become a property for efficiency
-        return bool(self._dispersy_database.execute(u"SELECT auto_load FROM community WHERE master = ?",
+        return bool(self._dispersy.database.execute(u"SELECT auto_load FROM community WHERE master = ?",
                                                     (self._master_member.database_id,)).next()[0])
 
     # @dispersu_auto_load.setter
@@ -460,7 +465,7 @@ class Community(object):
         Sets the auto_load flag for this community.
         """
         assert isinstance(auto_load, bool)
-        self._dispersy_database.execute(u"UPDATE community SET auto_load = ? WHERE master = ?",
+        self._dispersy.database.execute(u"UPDATE community SET auto_load = ? WHERE master = ?",
                                         (1 if auto_load else 0, self._master_member.database_id))
     # .setter was introduced in Python 2.6
     dispersy_auto_load = property(__get_dispersy_auto_load, __set_dispersy_auto_load)
@@ -600,7 +605,7 @@ class Community(object):
         else:
             db_high = time_high
 
-        bloom.add_keys(str(packet) for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?", (self._database_id, time_low, db_high)))
+        bloom.add_keys(str(packet) for packet, in self._dispersy.database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND NOT sync.undone AND global_time BETWEEN ? AND ?", (self._database_id, time_low, db_high)))
 
         import sys
         print >> sys.stderr, "Syncing %d-%d, capacity = %d, pivot = %d"%(time_low, time_high, capacity, time_low)
@@ -820,7 +825,7 @@ class Community(object):
             bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
             capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
 
-            self._nrsyncpackets = list(self._dispersy_database.execute(u"SELECT count(*) FROM sync WHERE meta_message IN (%s) AND undone = 0 LIMIT 1" % (syncable_messages)))[0][0]
+            self._nrsyncpackets = list(self._dispersy.database.execute(u"SELECT count(*) FROM sync WHERE meta_message IN (%s) AND undone = 0 LIMIT 1" % (syncable_messages)))[0][0]
             modulo = int(ceil(self._nrsyncpackets / float(capacity)))
             if modulo > 1:
                 offset = randint(0, modulo-1)
@@ -828,7 +833,7 @@ class Community(object):
                 offset = 0
                 modulo = 1
 
-            bloom.add_keys(str(packet) for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync WHERE meta_message IN (%s) AND sync.undone = 0 AND sync.global_time > 0 AND (sync.global_time + ?) %% ? = 0" % syncable_messages, (offset, modulo)))
+            bloom.add_keys(str(packet) for packet, in self._dispersy.database.execute(u"SELECT sync.packet FROM sync WHERE meta_message IN (%s) AND sync.undone = 0 AND sync.global_time > 0 AND (sync.global_time + ?) %% ? = 0" % syncable_messages, (offset, modulo)))
 
             if __debug__:
                 dprint(self.cid.encode("HEX"), " syncing %d-%d, nr_packets = %d, capacity = %d, totalnr = %d"%(modulo, offset, self._nrsyncpackets, capacity, self._nrsyncpackets))
@@ -843,10 +848,10 @@ class Community(object):
     def _select_and_fix(self, syncable_messages, global_time, to_select, higher = True):
         assert isinstance(syncable_messages, unicode)
         if higher:
-            data = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % (syncable_messages),
+            data = list(self._dispersy.database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time > ? ORDER BY global_time ASC LIMIT ?" % (syncable_messages),
                                                     (global_time, to_select + 1)))
         else:
-            data = list(self._dispersy_database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % (syncable_messages),
+            data = list(self._dispersy.database.execute(u"SELECT global_time, packet FROM sync WHERE meta_message IN (%s) AND undone = 0 AND global_time < ? ORDER BY global_time DESC LIMIT ?" % (syncable_messages),
                                                     (global_time, to_select + 1)))
 
         fixed = False
@@ -910,7 +915,7 @@ class Community(object):
     #     """
     #     Returns a (time_low, time_high, bloom_filter) tuple or None.
     #     """
-    #     count, = self._dispersy_database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32", (self._database_id,)).next()
+    #     count, = self._dispersy.database.execute(u"SELECT COUNT(1) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32", (self._database_id,)).next()
     #     if count:
     #         bloom = BloomFilter(self.dispersy_sync_bloom_filter_bits, self.dispersy_sync_bloom_filter_error_rate, prefix=chr(int(random() * 256)))
     #         capacity = bloom.get_capacity(self.dispersy_sync_bloom_filter_error_rate)
@@ -937,14 +942,14 @@ class Community(object):
 
     #         # get the time bloomfilter_range associated to the offset
     #         try:
-    #             time_low, time_high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY sync.global_time LIMIT ? OFFSET ?",
+    #             time_low, time_high = self._dispersy.database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 ORDER BY sync.global_time LIMIT ? OFFSET ?",
     #                                                                   (self._database_id, capacity, offset)).next()
     #         except:
     #             dprint("count: ", count, " capacity: ", capacity, " bloomfilter_range: ", range_, " ranges: ", ranges, " offset: ", offset, force=1)
     #             assert False
 
     #         if __debug__ and self.get_classification() == u"ChannelCommunity":
-    #             low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
+    #             low, high = self._dispersy.database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
     #                                                         (self._database_id,)).next()
     #             dprint("bloomfilter_range: ", range_, " ranges: ", ranges, " offset: ", offset, " time: [", time_low, ":", time_high, "] in-db: [", low, ":", high, "]", force=1)
 
@@ -958,7 +963,7 @@ class Community(object):
 
     #         # get all the data associated to the time bloomfilter_range
     #         counter = 0
-    #         for packet, in self._dispersy_database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ?",
+    #         for packet, in self._dispersy.database.execute(u"SELECT sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32 AND sync.global_time BETWEEN ? AND ?",
     #                                                        (self._database_id, time_low, time_high)):
     #             bloom.add(str(packet))
     #             counter += 1
@@ -974,7 +979,7 @@ class Community(object):
 
     #         # if __debug__:
     #         #     if len(data) > 1:
-    #         #         low, high = self._dispersy_database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
+    #         #         low, high = self._dispersy.database.execute(u"SELECT MIN(sync.global_time), MAX(sync.global_time) FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND meta_message.priority > 32",
     #         #                                                     (self._database_id,)).next()
     #         #         dprint(self.cid.encode("HEX"), " syncing <<", data[0][0], " <", data[1][0], "-", data[-2][0], "> ", data[-1][0], ">> sync:[", time_low, ":", time_high, "] db:[", low, ":", high, "] len:", len(data), " cap:", capacity)
 
@@ -1095,6 +1100,14 @@ class Community(object):
         @rtype: Dispersy
         """
         return self._dispersy
+
+    @property
+    def timeline(self):
+        """
+        The Timeline instance.
+        @rtype: Timeline
+        """
+        return self._timeline
 
     @property
     def subjective_set_clusters(self):
@@ -1249,7 +1262,7 @@ class Community(object):
 
             # cache fail... fetch from database.  note that we will add all clusters in the cache
             # regardless of the requested cluster
-            for packet, in self._dispersy_database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
+            for packet, in self._dispersy.database.execute(u"SELECT packet FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
                                                            (self._database_id, member.database_id, subjective_set_message_id)):
                 packet = str(packet)
 

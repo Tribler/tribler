@@ -89,19 +89,23 @@ class SyncDistribution(Distribution):
         self._synchronization_direction = synchronization_direction
         self._priority = priority
         self._current_sequence_number = 0
-        self._database_id = 0
+#        self._database_id = 0
 
     @property
     def synchronization_direction(self):
         return self._synchronization_direction
 
     @property
+    def synchronization_direction_value(self):
+        return -1 if self._synchronization_direction == u"DESC" else 1
+
+    @property
     def priority(self):
         return self._priority
 
-    @property
-    def database_id(self):
-        return self._database_id
+    # @property
+    # def database_id(self):
+    #     return self._database_id
 
     def setup(self, message):
         """
@@ -114,9 +118,13 @@ class SyncDistribution(Distribution):
             from message import Message
         assert isinstance(message, Message)
 
-        message.community.dispersy.database.execute(u"UPDATE meta_message SET priority = ?, direction = ? WHERE id = ?",
-                                                    (self._priority, -1 if self._synchronization_direction == u"DESC" else 1, message.database_id))
-        assert message.community.dispersy.database.changes == 1
+        # use cache to avoid database queries
+        assert message.name in message.community.meta_message_cache
+        cache = message.community.meta_message_cache[message.name]
+        if not (cache["priority"] == self._priority and cache["direction"] == self.synchronization_direction_value):
+            message.community.dispersy.database.execute(u"UPDATE meta_message SET priority = ?, direction = ? WHERE id = ?",
+                                                        (self._priority, self.synchronization_direction_value, message.database_id))
+            assert message.community.dispersy.database.changes == 1
 
 class FullSyncDistribution(SyncDistribution):
     """

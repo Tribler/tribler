@@ -2,6 +2,7 @@ from hashlib import sha1
 from math import ceil
 from socket import inet_ntoa, inet_aton
 from struct import pack, unpack_from, Struct
+from random import choice
 
 from authentication import NoAuthentication, MemberAuthentication, MultiMemberAuthentication
 from bloomfilter import BloomFilter
@@ -118,13 +119,15 @@ class BinaryConversion(Conversion):
     All data is encoded in a binary form.
     """
     class Placeholder(object):
-        __slots__ = ["candidate", "meta", "offset", "data", "authentication", "resolution", "first_signature_offset", "destination", "distribution", "payload"]
+        __slots__ = ["candidate", "meta", "offset", "data", "authentication", "resolution", "first_signature_offset", "destination", "distribution", "payload", "verify", "allow_empty_signature"]
 
-        def __init__(self, candidate, meta, offset, data):
+        def __init__(self, candidate, meta, offset, data, verify, allow_empty_signature):
             self.candidate = candidate
             self.meta = meta
             self.offset = offset
             self.data = data
+            self.verify = verify
+            self.allow_empty_signature = allow_empty_signature
             self.authentication = None
             self.resolution = None
             self.first_signature_offset = 0
@@ -418,7 +421,7 @@ class BinaryConversion(Conversion):
         identifier, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
-        message = self._decode_message(placeholder.candidate, data[offset:], False)
+        message = self._decode_message(placeholder.candidate, data[offset:], True, True)
         offset = len(data)
 
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier, message)
@@ -434,7 +437,7 @@ class BinaryConversion(Conversion):
         identifier, = self._struct_H.unpack_from(data, offset)
         offset += 2
 
-        message = self._decode_message(placeholder.candidate, data[offset:], False)
+        message = self._decode_message(placeholder.candidate, data[offset:], True, True)
         offset = len(data)
 
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier, message)
@@ -1223,7 +1226,7 @@ class BinaryConversion(Conversion):
             # identifier
             for member in members:
                 first_signature_offset = len(data) - member.signature_length
-                if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
+                if (not placeholder.verify and len(members) == 1) or member.verify(data, data[first_signature_offset:], length=first_signature_offset):
                     placeholder.offset = offset
                     placeholder.first_signature_offset = first_signature_offset
                     placeholder.authentication = MemberAuthentication.Implementation(authentication, member, is_signed=True)
@@ -1251,7 +1254,7 @@ class BinaryConversion(Conversion):
 
             # signatures are enabled, verify that the signature matches the member sha1
             # identifier
-            if member.verify(data, data[first_signature_offset:], length=first_signature_offset):
+            if not placeholder.verify or member.verify(data, data[first_signature_offset:], length=first_signature_offset):
                 placeholder.offset = offset
                 placeholder.first_signature_offset = first_signature_offset
                 placeholder.authentication = MemberAuthentication.Implementation(authentication, member, is_signed=True)
@@ -1296,27 +1299,32 @@ class BinaryConversion(Conversion):
             first_signature_offset = len(data) - sum([member.signature_length for member in members])
             signature_offset = first_signature_offset
             signatures = [""] * authentication.count
-            valid_or_null = True
+            found_valid_combination = True
             for index, member in zip(range(authentication.count), members):
                 signature = data[signature_offset:signature_offset+member.signature_length]
                 # dprint("INDEX: ", index, force=1)
                 # dprint(signature.encode('HEX'), force=1)
-                if not signature == "\x00" * member.signature_length:
-                    if member.verify(data, data[signature_offset:signature_offset+member.signature_length], length=first_signature_offset):
-                        signatures[index] = signature
-                    else:
-                        valid_or_null = False
-                        break
+                if placeholder.allow_empty_signature and signature == "\x00" * member.signature_length:
+                    signatures[index] = signature
+
+                elif (not placeholder.verify and len(members) == 1) or member.verify(data, data[signature_offset:signature_offset+member.signature_length], length=first_signature_offset):
+                    signatures[index] = signature
+
+                else:
+                    found_valid_combination = False
+                    break
                 signature_offset += member.signature_length
 
             # found a valid combination
-            if valid_or_null:
+            if found_valid_combination:
                 placeholder.offset = offset
                 placeholder.first_signature_offset = first_signature_offset
                 placeholder.authentication = MultiMemberAuthentication.Implementation(placeholder.meta.authentication, members, signatures=signatures)
                 return
 
-        raise DelayPacketByMissingMember(self._community, member_id)
+        # we have no idea which member we are missing, hence we request a random one.  in the future
+        # we should request all members instead
+        raise DelayPacketByMissingMember(self._community, choice(members_ids[0]))
 
     def _decode_empty_destination(self, placeholder):
         placeholder.destination = placeholder.meta.destination.Implementation(placeholder.meta.destination)
@@ -1328,18 +1336,20 @@ class BinaryConversion(Conversion):
         assert subjective_set, "We must always have subjective sets for ourself"
         placeholder.destination = meta.destination.Implementation(meta.destination, placeholder.authentication.member.public_key in subjective_set)
 
-    def _decode_message(self, candidate, data, verify_all_signatures):
+    def _decode_message(self, candidate, data, verify, allow_empty_signature):
         """
         Decode a binary string into a Message structure, with some
         Dispersy specific parameters.
 
-        When VERIFY_ALL_SIGNATURES is True, all signatures must be valid.  When
-        VERIFY_ALL_SIGNATURES is False, signatures must be either valid or \x00 bytes.
-        Message.authentication.signed_members returns information on which members had a signature
-        present.
+        When VERIFY is True the signature(s), if applicable, are verified.  Otherwise the
+        signature(s) are ignored.
+
+        Invalid signature(s) will cause DropPacket to be raised, except when ALLOW_EMPTY_SIGNATURE
+        is True and the failed signature consist of \x00 bytes.
         """
         assert isinstance(data, str)
-        assert isinstance(verify_all_signatures, bool)
+        assert isinstance(verify, bool)
+        assert isinstance(allow_empty_signature, bool)
         assert len(data) >= 22
         assert data[:22] == self._prefix, (data[:22].encode("HEX"), self._prefix.encode("HEX"))
 
@@ -1352,13 +1362,11 @@ class BinaryConversion(Conversion):
             raise DropPacket("Unknown message code %d" % ord(data[22]))
 
         # placeholder
-        placeholder = self.Placeholder(candidate, decode_functions.meta, 23, data)
+        placeholder = self.Placeholder(candidate, decode_functions.meta, 23, data, verify, allow_empty_signature)
 
         # authentication
         decode_functions.authentication(placeholder)
         assert isinstance(placeholder.authentication, Authentication.Implementation)
-        if verify_all_signatures and not placeholder.authentication.is_signed:
-            raise DropPacket("Invalid signature")
         # drop packet if the creator is blacklisted.  we would prefer to do this in dispersy.py,
         # however, decoding the payload can cause DelayPacketByMissingMessage to be raised for
         # dispersy-undo messages, and the last thing that we want is to request messages from a
@@ -1409,13 +1417,14 @@ class BinaryConversion(Conversion):
 
         return decode_functions.meta
 
-    def decode_message(self, candidate, data):
+    def decode_message(self, candidate, data, verify=True):
         """
         Decode a binary string into a Message.Implementation structure.
         """
         assert isinstance(candidate, Candidate), candidate
         assert isinstance(data, str), data
-        return self._decode_message(candidate, data, True)
+        assert isinstance(verify, bool)
+        return self._decode_message(candidate, data, verify, False)
 
 class DefaultConversion(BinaryConversion):
     """
