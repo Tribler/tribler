@@ -104,7 +104,8 @@ class Controller:
 
         """
         datagrams_to_send = []
-        logger.debug('get_peers %d %r' % (bt_port, info_hash))
+        logger.debug('get_peers %d %r %r' % (bt_port, info_hash,
+                                                callback_f))
         if use_cache:
             peers = self._get_cached_peers(info_hash)
             if peers and callback_f and callable(callback_f):
@@ -401,7 +402,7 @@ class Controller:
                         related_query.lookup_obj))
                 lookup_id = related_query.lookup_obj.lookup_id
                 if callback_f and callable(callback_f):
-                    related_query.lookup_obj.callback_f(lookup_id, None, None)
+                    callback_f(lookup_id, None, None)
         maintenance_queries_to_send = self._routing_m.on_timeout(
             related_query.dst_node)
         if maintenance_queries_to_send:
