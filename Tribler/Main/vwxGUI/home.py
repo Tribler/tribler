@@ -444,7 +444,8 @@ class DispersyPanel(HomePanel):
                         "communities":[],
                         "sequence_number":[],
                         "start":[],
-                        "walk_fail":[]}
+                        "walk_fail":[],
+                        "attachment":[]}
 
     def CreatePanel(self):
         panel = wx.Panel(self)

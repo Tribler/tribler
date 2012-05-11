@@ -2053,6 +2053,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if vacuum:
             self.execute_read("VACUUM")
 
+_cacheCommit = False
+_shouldCommit = False
 _callback = None
 def register_task(db, *args, **kwargs):
     global _callback
@@ -2062,7 +2064,8 @@ def register_task(db, *args, **kwargs):
         dispersy = Dispersy.has_instance()
         if dispersy:
             _callback = dispersy.callback
-            db.cacheCommit = True
+            global _cacheCommit
+            _cacheCommit = True
             
             print >> sys.stderr, "Using actual DB thread"
             
@@ -2102,7 +2105,7 @@ def forceAndReturnDBThread(func):
             
     invoke_func.__name__ = func.__name__
     return invoke_func
-    
+
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
     __single = None
     DEBUG = False
@@ -2128,9 +2131,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
         
-        self.cacheCommit = False
-        self.shouldCommit = False
-
         if __debug__:
             if self.__counter > 0:
                 print_stack()
@@ -2138,21 +2138,24 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             self.__counter += 1
 
     def commitNow(self):
-        if self.cacheCommit and self.shouldCommit:
+        if _cacheCommit and _shouldCommit:
             self._execute("COMMIT;")
-            self.shouldCommit = False
+            global _shouldCommit
+            _shouldCommit = False
     
     def execute_write(self, sql, args=None, commit=True):
-        if self.cacheCommit and not self.shouldCommit:
+        if _cacheCommit and not _shouldCommit:
             sql = "BEGIN;"+sql
-            self.shouldCommit = True
+            global _shouldCommit
+            _shouldCommit = True
             
         self._execute(sql, args)
     
     def executemany(self, sql, args, commit=True):
-        if self.cacheCommit and not self.shouldCommit:
+        if _cacheCommit and not _shouldCommit:
             sql = "BEGIN;"+sql
-            self.shouldCommit = True    
+            global _shouldCommit
+            _shouldCommit = True
         
         self._executemany(sql, args)
     

@@ -4866,24 +4866,24 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             if __debug__:
                 def contribution(total, values, title):
-                    part = sum(p for _, p in values.itervalues())
-                    dprint("= %7.1f" % (part / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%5.2f%%" % (100.0 * part / total), "  ", title, force=1)
+                    if total and values:
+                        c = sum(c for c, _ in values.itervalues())
+                        b = sum(b for _, b in values.itervalues())
+                        dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title, force=1)
 
-                    for title, (_, part) in values.iteritems():
-                        dprint("- %7.1f" % (part / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%5.2f%%" % (100.0 * part / total), "  ", title, force=1)
+                        for title, (c, b) in values.iteritems():
+                            dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title, force=1)
 
                 dprint("--------------------------------------------------------------------------------", force=1)
                 dprint("... ", sum(info["attachment"].itervalues()), " attachments ...", force=1)
                 dprint("--------------------------------------------------------------------------------", force=1)
                 total = info["total_down"]
-                if total:
-                    contribution(total, info["delay"], "DELAY")
-                    contribution(total, info["drop"], "DROP")
-                    contribution(total, info["success"], "SUCCESS")
+                contribution(total, info["delay"], "DELAY")
+                contribution(total, info["drop"], "DROP")
+                contribution(total, info["success"], "SUCCESS")
 
                 total = info["total_up"]
-                if total:
-                    contribution(total, info["outgoing"], "OUTGOING")
+                contribution(total, info["outgoing"], "OUTGOING")
 
         info["communities"] = []
         for community in self._communities.itervalues():

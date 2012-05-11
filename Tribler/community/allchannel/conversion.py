@@ -14,8 +14,6 @@ class AllChannelConversion(BinaryConversion):
         self.define_meta_message(chr(4), community.get_meta_message(u"channelsearch-response"), self._encode_channelsearch_response, self._decode_channelsearch_response)
         self.define_meta_message(chr(5), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
 
-        self._address = ("", -1)
-
     def _encode_channelcast(self, message):
         max_len = self._community.dispersy_sync_bloom_filter_bits/8
         
@@ -123,7 +121,3 @@ class AllChannelConversion(BinaryConversion):
     #     offset += 20
 
     #     return offset, placeholder.meta.payload.implement(infohash)
-
-    def decode_message(self, address, data, verify=True):
-        self._address = address
-        return super(AllChannelConversion, self).decode_message(address, data, verify)
