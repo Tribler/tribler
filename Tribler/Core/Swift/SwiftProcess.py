@@ -6,6 +6,7 @@ import subprocess
 import random
 import binascii
 import urllib
+import json
 from threading import RLock
 from traceback import print_exc,print_stack
 
@@ -130,6 +131,10 @@ class SwiftProcess(InstanceConnection):
             elif words[0] == "PLAY":
                 httpurl = words[2]
                 d.i2ithread_vod_event_callback(VODEVENT_START,httpurl)
+            elif words[0] == "MOREINFO":
+                jsondata = cmd[len("MOREINFO ")+40+1:]
+                midict = json.loads(jsondata)
+                d.i2ithread_moreinfo_callback(midict)
 
     #
     # Swift Mgmt interface
@@ -226,6 +231,15 @@ class SwiftProcess(InstanceConnection):
             self.splock.release()
 
 
+    def set_moreinfo_stats(self,d,enable):
+        self.splock.acquire()
+        try:
+            roothash_hex = d.get_def().get_roothash_as_hex()
+            self.send_setmoreinfo(roothash_hex,enable)
+        finally:
+            self.splock.release()
+
+
     def early_shutdown(self):
         # Called by any thread, assume sessionlock is held
         # May get called twice, once by spm.release_sp() and spm.shutdown()
@@ -309,3 +323,9 @@ class SwiftProcess(InstanceConnection):
         self.singsock.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
         self.singsock.write(data)
 
+    def send_setmoreinfo(self,roothash_hex,enable):
+        # assume splock is held to avoid concurrency on socket
+        onoff = "0"
+        if enable:
+            onoff = "1"
+        self.singsock.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')

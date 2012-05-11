@@ -19,7 +19,9 @@
 #           - Run cmdgw on separate thread(s)?
 #
 # - STATS
-#     * 
+#     *  store 2 consecutive more info dicts and calc speeds, and convert 
+#        those to DownloadState.get_peerlist() format.
+# 
 # - BUGS
 #     * Try to recv ICMP port unreach on Mac such that we can clean up Channel 
 #       (Linux done)
@@ -67,6 +69,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.numleech = 0
         self.numseeds = 0
         self.done = False
+        self.midict = {}
         
         self.lm_network_vod_event_callback = None
 
@@ -112,7 +115,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     
     
             if DEBUG:
-                print >>sys.stderr,"DownloadImpl: setup: initialdlstatus",`self.sdef.get_roothash_as_hex()`,initialdlstatus
+                print >>sys.stderr,"SwiftDownloadImpl: setup: initialdlstatus",`self.sdef.get_roothash_as_hex()`,initialdlstatus
 
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
@@ -195,6 +198,15 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         finally:
             self.dllock.release()
 
+
+    def i2ithread_moreinfo_callback(self,midict):
+        self.dllock.acquire()
+        try:
+            print >>sys.stderr,"SwiftDownloadImpl: Got moreinfo",midict.keys()
+            self.midict = midict
+        finally:
+            self.dllock.release()
+
     #
     # Retrieving DownloadState
     #
@@ -232,7 +244,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dllock.release()
 
     def get_current_speed(self,dir):
-        """ Return last resported speed in KB/s 
+        """ Return last reported speed in KB/s 
         @return float
         """
         self.dllock.acquire()
@@ -241,6 +253,15 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         finally:
             self.dllock.release()
 
+    def get_moreinfo_stats(self,dir):
+        """ Return last reported more info dict 
+        @return dict
+        """
+        self.dllock.acquire()
+        try:
+            return self.midict
+        finally:
+            self.dllock.release()
 
 
     def network_get_stats(self,getpeerlist):
@@ -510,6 +531,14 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by any thread """
         pass
 
+
+    #
+    # MOREINFO
+    #
+    def set_moreinfo_stats(self,enable):
+        """ Called by any thread """
+        if self.sp is not None:
+            self.sp.set_moreinfo_stats(self,enable)
 
     #
     # Internal methods
