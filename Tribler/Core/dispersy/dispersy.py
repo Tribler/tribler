@@ -200,22 +200,6 @@ class Statistics(object):
             self._walk_fail = {}
             self._attachment = {}
 
-    @property
-    def drop(self):
-        return self._top
-
-    @property
-    def delay(self):
-        return self._delay
-
-    @property
-    def success(self):
-        return self._success
-
-    @property
-    def outgoing(self):
-        return self._outgoing
-
     def info(self):
         """
         Returns all statistics.
@@ -4820,7 +4804,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 dprint(self._statistics.info(), pprint=True)
 
         def _stats_bandwidth(self):
-            def contribution(total, values, title):
+            def _stats_bandwidth(total, values, title):
                 if total and values:
                     c = sum(c for c, _ in values.itervalues())
                     b = sum(b for _, b in values.itervalues())
@@ -4831,13 +4815,14 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
             while True:
                 yield 10.0
+                info = self._statistics.info()
                 total = self._endpoint.total_down
-                contribution(total, self._statistics.delay, "DELAY")
-                contribution(total, self._statistics.drop, "DROP")
-                contribution(total, self._statistics.success, "SUCCESS")
+                _stats_bandwidth(total, info["delay"], "DELAY")
+                _stats_bandwidth(total, info["drop"], "DROP")
+                _stats_bandwidth(total, info["success"], "SUCCESS")
 
                 total = self._endpoint.total_up
-                contribution(total, self._statistics.outgoing, "OUTGOING")
+                _stats_bandwidth(total, info["outgoing"], "OUTGOING")
 
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
