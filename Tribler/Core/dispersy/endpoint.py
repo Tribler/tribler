@@ -239,7 +239,7 @@ class RawserverEndpoint(Endpoint):
                         data = TUNNEL_PREFIX + data
 
                     if self._sendqueue:
-                        self._sendqueue.append(data, sock_addr)
+                        self._sendqueue.append((data, sock_addr))
 
                     else:
                         try:

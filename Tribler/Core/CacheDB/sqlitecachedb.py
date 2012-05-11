@@ -2138,23 +2138,23 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             self.__counter += 1
 
     def commitNow(self):
+        global _shouldCommit
         if _cacheCommit and _shouldCommit:
             self._execute("COMMIT;")
-            global _shouldCommit
             _shouldCommit = False
     
     def execute_write(self, sql, args=None, commit=True):
+        global _shouldCommit
         if _cacheCommit and not _shouldCommit:
             sql = "BEGIN;"+sql
-            global _shouldCommit
             _shouldCommit = True
             
         self._execute(sql, args)
     
     def executemany(self, sql, args, commit=True):
+        global _shouldCommit
         if _cacheCommit and not _shouldCommit:
             sql = "BEGIN;"+sql
-            global _shouldCommit
             _shouldCommit = True
         
         self._executemany(sql, args)

@@ -200,6 +200,22 @@ class Statistics(object):
             self._walk_fail = {}
             self._attachment = {}
 
+    @property
+    def drop(self):
+        return self._top
+
+    @property
+    def delay(self):
+        return self._delay
+
+    @property
+    def success(self):
+        return self._success
+
+    @property
+    def outgoing(self):
+        return self._outgoing
+
     def info(self):
         """
         Returns all statistics.
@@ -405,6 +421,7 @@ class Dispersy(Singleton):
             self._callback.register(self._stats_detailed_candidates)
             self._callback.register(self._stats_triggers)
             self._callback.register(self._stats_info)
+            self._callback.register(self._stats_bandwidth)
 
     def _retry_bootstrap_candidates(self):
         """
@@ -4802,6 +4819,26 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 yield 10.0
                 dprint(self._statistics.info(), pprint=True)
 
+        def _stats_bandwidth(self):
+            def contribution(total, values, title):
+                if total and values:
+                    c = sum(c for c, _ in values.itervalues())
+                    b = sum(b for _, b in values.itervalues())
+                    dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title)
+
+                    for title, (c, b) in values.iteritems():
+                        dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title)
+
+            while True:
+                yield 10.0
+                total = self._endpoint.total_down
+                contribution(total, self._statistics.delay, "DELAY")
+                contribution(total, self._statistics.drop, "DROP")
+                contribution(total, self._statistics.success, "SUCCESS")
+
+                total = self._endpoint.total_up
+                contribution(total, self._statistics.outgoing, "OUTGOING")
+
     def info(self, statistics=True, transfers=True, attributes=True, sync_ranges=True, database_sync=True, candidate=True):
         """
         Returns a dictionary with runtime statistical information.
@@ -4863,27 +4900,6 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
 
         if statistics:
             info.update(self._statistics.info())
-
-            if __debug__:
-                def contribution(total, values, title):
-                    if total and values:
-                        c = sum(c for c, _ in values.itervalues())
-                        b = sum(b for _, b in values.itervalues())
-                        dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title, force=1)
-
-                        for title, (c, b) in values.iteritems():
-                            dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title, force=1)
-
-                dprint("--------------------------------------------------------------------------------", force=1)
-                dprint("... ", sum(info["attachment"].itervalues()), " attachments ...", force=1)
-                dprint("--------------------------------------------------------------------------------", force=1)
-                total = info["total_down"]
-                contribution(total, info["delay"], "DELAY")
-                contribution(total, info["drop"], "DROP")
-                contribution(total, info["success"], "SUCCESS")
-
-                total = info["total_up"]
-                contribution(total, info["outgoing"], "OUTGOING")
 
         info["communities"] = []
         for community in self._communities.itervalues():
