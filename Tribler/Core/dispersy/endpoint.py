@@ -222,32 +222,26 @@ class RawserverEndpoint(Endpoint):
         wan_address = self._dispersy.wan_address
 
         with self._sendqueue_lock:
-            if self._sendqueue:
-                for candidate in candidates:
-                    sock_addr = candidate.get_destination_address(wan_address)
-                    assert self._dispersy.is_valid_remote_address(sock_addr)
+            for candidate in candidates:
+                sock_addr = candidate.get_destination_address(wan_address)
+                assert self._dispersy.is_valid_remote_address(sock_addr)
 
-                    for data in packets:
-                        if candidate.tunnel:
-                            data = TUNNEL_PREFIX + data
-                        self._sendqueue.append((data, sock_addr))
+                for data in packets:
+                    if __debug__:
+                        if DEBUG:
+                            try:
+                                name = self._dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
+                            except:
+                                name = "???"
+                            print >> sys.stderr, "endpoint: %.1f %30s -> %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
 
-            else:
-                for candidate in candidates:
-                    sock_addr = candidate.get_destination_address(wan_address)
-                    assert self._dispersy.is_valid_remote_address(sock_addr)
+                    if candidate.tunnel:
+                        data = TUNNEL_PREFIX + data
 
-                    for data in packets:
-                        if __debug__:
-                            if DEBUG:
-                                try:
-                                    name = self._dispersy.convert_packet_to_meta_message(data, load=False, auto_load=False).name
-                                except:
-                                    name = "???"
-                                print >> sys.stderr, "endpoint: %.1f %30s -> %15s:%-5d %4d bytes" % (time(), name, sock_addr[0], sock_addr[1], len(data))
+                    if self._sendqueue:
+                        self._sendqueue.append(data, sock_addr)
 
-                        if candidate.tunnel:
-                            data = TUNNEL_PREFIX + data
+                    else:
                         try:
                             self._socket.sendto(data, sock_addr)
                         except socket.error, e:
