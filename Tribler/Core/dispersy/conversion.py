@@ -10,7 +10,7 @@ from crypto import ec_check_public_bin
 from destination import MemberDestination, CommunityDestination, CandidateDestination, SubjectiveDestination
 from dispersydatabase import DispersyDatabase
 from distribution import FullSyncDistribution, LastSyncDistribution, DirectDistribution
-from message import DelayPacketByMissingMember, DelayPacketByMissingMessage, DropPacket, Packet, Message
+from message import DelayPacketByMissingMember, DelayPacketByMissingMessageNewStyle, DropPacket, Packet, Message
 from resolution import PublicResolution, LinearResolution, DynamicResolution
 
 if __debug__:
@@ -748,7 +748,7 @@ class BinaryConversion(Conversion):
             packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, meta_message.name, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND sync.member = ? AND sync.global_time = ?",
                                                                                    (self._community.database_id, member.database_id, global_time)).next()
         except StopIteration:
-            raise DelayPacketByMissingMessage(self._community, member, [global_time])
+            raise DelayPacketByMissingMessageNewStyle(self._community, member, global_time)
 
         packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
 
@@ -790,7 +790,7 @@ class BinaryConversion(Conversion):
             packet_id, message_name, packet_data = self._dispersy_database.execute(u"SELECT sync.id, meta_message.name, sync.packet FROM sync JOIN meta_message ON meta_message.id = sync.meta_message WHERE sync.community = ? AND sync.member = ? AND sync.global_time = ?",
                                                                                    (self._community.database_id, member.database_id, global_time)).next()
         except StopIteration:
-            raise DelayPacketByMissingMessage(self._community, member, [global_time])
+            raise DelayPacketByMissingMessageNewStyle(self._community, member, global_time)
 
         packet = Packet(self._community.get_meta_message(message_name), str(packet_data), packet_id)
 

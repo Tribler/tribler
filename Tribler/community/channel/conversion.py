@@ -4,7 +4,7 @@ import zlib
 
 from Tribler.Core.dispersy.encoding import encode, decode
 from Tribler.Core.dispersy.message import DropPacket, Packet,\
-    DelayPacketByMissingMessage, DelayPacketByMissingMember
+    DelayPacketByMissingMessageNewStyle, DelayPacketByMissingMember
 from Tribler.Core.dispersy.conversion import BinaryConversion
 
 DEBUG = False
@@ -202,7 +202,7 @@ class ChannelConversion(BinaryConversion):
                     raise DelayPacketByMissingMember(self._community, playlist_mid)
 
                 member = members[0]
-                raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
+                raise DelayPacketByMissingMessageNewStyle(self._community, member, playlist_global_time)
         else:
             playlist = None
         
@@ -262,7 +262,7 @@ class ChannelConversion(BinaryConversion):
                 raise DelayPacketByMissingMember(self._community, cause_mid)
 
             member = members[0]
-            raise DelayPacketByMissingMessage(self._community, member, [cause_global_time])
+            raise DelayPacketByMissingMessageNewStyle(self._community, member, cause_global_time)
         
         return offset, placeholder.meta.payload.implement(text, timestamp, severity, cause_packet)
     
@@ -360,7 +360,7 @@ class ChannelConversion(BinaryConversion):
                 raise DelayPacketByMissingMember(self._community, modification_on_mid)
 
             member = members[0]
-            raise DelayPacketByMissingMessage(self._community, member, [modification_on_global_time])
+            raise DelayPacketByMissingMessageNewStyle(self._community, member, modification_on_global_time)
         
         prev_modification_mid = dic.get("prev-modification-mid", None)
         if prev_modification_mid and not (isinstance(prev_modification_mid, str) and len(prev_modification_mid) == 20):
@@ -396,7 +396,7 @@ class ChannelConversion(BinaryConversion):
                 raise DelayPacketByMissingMember(self._community, playlist_mid)
 
             member = members[0]
-            raise DelayPacketByMissingMessage(self._community, member, [playlist_global_time])
+            raise DelayPacketByMissingMessageNewStyle(self._community, member, playlist_global_time)
 
         playlist = Packet(self._community.get_meta_message(message_name), packet, packet_id)
         return offset + 48, placeholder.meta.payload.implement(infohash, playlist)

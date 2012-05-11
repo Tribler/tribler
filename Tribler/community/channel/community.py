@@ -5,7 +5,7 @@ from time import sleep
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
-
+from Tribler.Core.dispersy.dispersy import MissingMessageCache
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
@@ -382,6 +382,9 @@ class ChannelCommunity(Community):
         for infohash in infohashes:
             for permid in permids:
                 self._rtorrent_handler.download_torrent(permid, infohash, None , 3)
+
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
                 
     def _disp_undo_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
@@ -450,6 +453,9 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
             self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, peer_id, message.payload.name, message.payload.description)
+
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
             
     def _disp_undo_playlist(self, descriptors, redo=False):
         for _, _, packet in descriptors:
@@ -544,6 +550,9 @@ class ChannelCommunity(Community):
                 playlist_dispersy_id = message.payload.playlist_packet.packet_id
             
             self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id , reply_after_id, playlist_dispersy_id, message.payload.infohash)
+
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
 
     def _disp_undo_comment(self, descriptors, redo=False):
         for _, _, packet in descriptors:
@@ -715,6 +724,9 @@ class ChannelCommunity(Community):
         
         self._channelcast_db.commit()
 
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
+
     def _disp_undo_modification(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
@@ -806,6 +818,9 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
             self._channelcast_db.on_playlist_torrent(dispersy_id, playlist_dispersy_id, peer_id, message.payload.infohash)
+        
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
             
     def _disp_undo_playlist_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
@@ -952,6 +967,9 @@ class ChannelCommunity(Community):
                 modification_value = latest.payload.modification_value if latest else ''
                 self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
     
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
+
     def _disp_undo_moderation(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
@@ -994,6 +1012,9 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             self._channelcast_db.on_mark_torrent(self._channel_id, dispersy_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp)
             
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
+
     def _disp_undo_mark_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id

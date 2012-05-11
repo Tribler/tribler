@@ -1,4 +1,3 @@
-from candidate import LoopbackCandidate
 from member import DummyMember
 from meta import MetaObject
 
@@ -77,6 +76,21 @@ class DelayPacketByMissingLastMessage(DelayPacketUsingIdentifier):
 
     def create_request(self, candidate, delayed):
         self._community.dispersy.create_missing_last_message(self._community, candidate, self._member, self._message, self._count, self._process_delayed_packet, (candidate, delayed))
+
+class DelayPacketByMissingMessageNewStyle(DelayPacketUsingIdentifier):
+    def __init__(self, community, member, global_time):
+        if __debug__:
+            from community import Community
+            from member import Member
+        assert isinstance(community, Community)
+        assert isinstance(member, Member)
+        assert isinstance(global_time, (int, long))
+        super(DelayPacketByMissingMessageNewStyle, self).__init__("Missing message (new style)", community)
+        self._member = member
+        self._global_time = global_time
+
+    def create_request(self, candidate, delayed):
+        self._community.dispersy.create_missing_message_newstyle(self._community, candidate, self._member, self._global_time, self._process_delayed_packet, (candidate, delayed))
 
 class DelayPacketByMissingMessage(DelayPacketUsingFootprint):
     """
@@ -205,7 +219,7 @@ class DelayMessageBySequence(DelayMessage):
 
     @property
     def request(self):
-        if __debug__: dprint("delay ", self._delayed.meta.name, " message by sequence [", self._missing_low, ":", self._missing_high, "]", force=1)
+        if __debug__: dprint("delay ", self._delayed.meta.name, " message created by ", self._delayed.authentication.member.database_id, " in [", self._missing_low, ":", self._missing_high, "]")
         # the request message that asks for the message that will trigger the delayed packet
         meta = self._delayed.community.get_meta_message(u"dispersy-missing-sequence")
         return meta.impl(distribution=(self._delayed.community.global_time,), payload=(self._delayed.authentication.member, self._delayed.meta, self._missing_low, self._missing_high))
@@ -376,21 +390,7 @@ class Packet(MetaObject.Implementation):
     packet_id = property(__get_packet_id, __set_packet_id)
 
     def load_message(self):
-        # find associated conversion
-        try:
-            conversion = self._meta.community.get_conversion(self._packet[:22])
-        except KeyError:
-            if __debug__: dprint("unable to convert a ", len(self._packet), " byte packet (unknown conversion)", level="warning")
-            return None
-
-        # attempt conversion
-        try:
-            message = conversion.decode_message(LoopbackCandidate(), self._packet)
-
-        except (DropPacket, DelayPacket), exception:
-            if __debug__: dprint("unable to convert a ", len(self._packet), " byte packet (", exception, ")", exception=True, level="warning")
-            return None
-
+        message = self._meta.community.dispersy.convert_packet_to_message(self._packet, self._meta.community, verify=False)
         message.packet_id = self._packet_id
         return message
 

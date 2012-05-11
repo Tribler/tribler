@@ -2371,6 +2371,7 @@ class Dispersy(Singleton):
                 return True
 
     def handle_missing_messages(self, messages, cls):
+        assert all(isinstance(message, Message.Implementation) for message in messages)
         assert issubclass(cls, DelayedPacketCache)
         for message in messages:
             cache = self._request_cache.pop(cls.message_to_identifier(message), cls)
@@ -3082,6 +3083,11 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         untriggered_messages = self._untriggered_messages
         self._untriggered_messages = []
 
+        if __debug__:
+            BEGIN = time()
+            MESSAGES_BEFORE = len(untriggered_messages)
+            TRIGGERS_BEFORE = len(self._triggers)
+
         for trigger in self._triggers[:]:
             if not trigger.on_messages(untriggered_messages):
                 try:
@@ -3089,6 +3095,11 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 except ValueError:
                     # apparently this trigger was already removed
                     pass
+
+        if __debug__:
+            END = time()
+            TRIGGERS_AFTER = len(self._triggers)
+            dprint(round(END-BEGIN, 1), "s] checked ", MESSAGES_BEFORE, " messages on ", TRIGGERS_BEFORE, " and found ", TRIGGERS_BEFORE - TRIGGERS_AFTER, " matches")
 
     def await_message(self, footprint, response_func, response_args=(), timeout=10.0, max_responses=1):
         """
@@ -3255,7 +3266,7 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
         return request
 
     def create_missing_message_newstyle(self, community, candidate, member, global_time, response_func=None, response_args=(), timeout=10.0):
-        # ensure that the identifier is 'triggered' somewhere
+        # ensure that the identifier is 'triggered' somewhere, i.e. using handle_missing_messages(messages, MissingMessageCache)
 
         identifier = MissingMessageCache.properties_to_identifier(community, member, global_time)
         cache = self._request_cache.get(identifier, MissingMessageCache)
@@ -4808,10 +4819,10 @@ ORDER BY meta_message.priority DESC, sync.global_time * meta_message.direction""
                 if total and values:
                     c = sum(c for c, _ in values.itervalues())
                     b = sum(b for _, b in values.itervalues())
-                    dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title)
+                    dprint("= %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title)
 
                     for title, (c, b) in values.iteritems():
-                        dprint("- %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title)
+                        dprint("  %5d" % c, " %7.1f" % (b / 1024.0), "/%-7.1f" % (total / 1024.0), "  ~%6.2f%%" % (100.0 * b / total), "  %4db/p" % (b / c), "  ", title)
 
             while True:
                 yield 10.0

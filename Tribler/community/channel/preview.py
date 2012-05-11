@@ -1,4 +1,5 @@
 from Tribler.community.channel.community import ChannelCommunity
+from time import time
 from random import sample
 
 class PreviewChannelCommunity(ChannelCommunity):
@@ -6,6 +7,10 @@ class PreviewChannelCommunity(ChannelCommunity):
     The PreviewChannelCommunity extends the ChannelCommunity to allow ChannelCommunity messages to
     be decoded while not actually joining or participating in an actual ChannelCommunity.
     """
+
+    def __init__(self, *args, **kargs):
+        super(PreviewChannelCommunity, self).__init__(*args, **kargs)
+        self.init_timestamp = time()
 
     @property
     def dispersy_acceptable_global_time_range(self):

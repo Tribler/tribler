@@ -1749,7 +1749,7 @@ class ChannelManager:
         if len(dispersy_cid) == 20:
             for community in self.dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
-                    community._disp_create_votecast(dispersy_cid, vote, timestamp)
+                    community.disp_create_votecast(dispersy_cid, vote, timestamp)
                     break
                 
     @forceDispersyThread

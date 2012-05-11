@@ -207,7 +207,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             
             for community in dispersy.get_communities():
                 if isinstance(community, PreviewChannelCommunity) and community._channel_id:
-                    self._community._disp_create_votecast(community.cid, 2, int(time()))
+                    self._community.disp_create_votecast(community.cid, 2, int(time()))
                     
                     log(self._logfile, "joining-community")
                     self.joined_community = community

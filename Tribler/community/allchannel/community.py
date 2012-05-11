@@ -4,6 +4,7 @@ from time import time
 
 from conversion import AllChannelConversion
 
+from Tribler.Core.dispersy.dispersy import MissingMessageCache
 from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
@@ -246,9 +247,7 @@ class AllChannelCommunity(Community):
         for message in messages:
             requested_packets = []
             for cid, torrents in message.payload.torrents.iteritems():
-                reqmessages = self._get_messages_from_infohashes(cid, torrents)
-                for reqmessage in reqmessages:
-                    requested_packets.append(reqmessage.packet)
+                requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
 
             if requested_packets:
                 if __debug__:
@@ -338,7 +337,7 @@ class AllChannelCommunity(Community):
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no callback found"
 
-    def _disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
+    def disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         #reclassify community
         if vote == 2:
             communityclass = ChannelCommunity
@@ -406,6 +405,9 @@ class AllChannelCommunity(Community):
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
                     
             self._votecast_db.on_votes_from_dispersy(votelist)
+
+            # this might be a response to a dispersy-missing-message
+            self._dispersy.handle_missing_messages(messages, MissingMessageCache)
     
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -432,9 +434,10 @@ class AllChannelCommunity(Community):
             
     def unload_preview(self):
         while True:
-            yield 300.0
-                
-            inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity)]
+            yield 60.0
+
+            cleanpoint = time() - 60
+            inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
             if __debug__:
                 print("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
                 
@@ -469,24 +472,29 @@ class AllChannelCommunity(Community):
                     collect.append(infohashes[i])
         return collect
     
-    def _get_messages_from_infohashes(self, cid, infohashes):
+    def _get_packets_from_infohashes(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
         
-        messages = []
+        packets = []
         for infohash in infohashes:
             dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['dispersy_id'])
             
             if dispersy_id and dispersy_id > 0:
                 try:
                     # 2. get the message
-                    message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
-                    if message:
-                        messages.append(message)
+                    packets.append(self._get_packet_from_dispersy_id(dispersy_id, "torrent"))
                     
                 except RuntimeError:
                     pass
-        return messages
+        return packets
 
+    def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
+        try:
+            packet, = self._dispersy.database.execute(u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+        except StopIteration:
+            raise RuntimeError("Unknown dispersy_id")
+        return str(packet)
+    
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
@@ -495,7 +503,7 @@ class AllChannelCommunity(Community):
             raise RuntimeError("Unknown dispersy_id")
 
         # 2. convert packet into a Message instance
-        message = self._dispersy.convert_packet_to_message(str(packet))        
+        message = self._dispersy.convert_packet_to_message(str(packet), verify=False)
         if message:
             message.packet_id = packet_id
         else:
