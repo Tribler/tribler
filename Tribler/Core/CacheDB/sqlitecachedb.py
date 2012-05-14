@@ -2139,11 +2139,11 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def initialBegin(self):
         global _cacheCommit
         global _shouldCommit
-            try:
-                self._execute("BEGIN;")
-            except:
-                print >> sys.stderr, "INITIAL BEGIN FAILED"
-                raise
+        try:
+            self._execute("BEGIN;")
+        except:
+            print >> sys.stderr, "INITIAL BEGIN FAILED"
+            raise
         _cacheCommit = True
         _shouldCommit = True
             
