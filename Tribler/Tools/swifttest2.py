@@ -154,16 +154,20 @@ def main():
     # TODO
 
 
-    if False:
+    if True:
         url = 'tswift://127.0.0.1:20002/e5489c633326b9f171a8cf5eb5d4cc3723b77799'
         sdef = url2cdef(url)        
 
         storagepath = 'D:\\Build\\bt2swift-m48stb-r25811'
         d = start_download(s,sdef,storagepath,23000)
 
+
+        time.sleep(10)
+        d.add_peer(("127.0.0.1",6778))
+
         time.sleep(3600)
 
-    if True:
+    if False:
         # return
 
         output_dir = "d:\\build\\bt2swift-m48stb-r25811\\seeder"

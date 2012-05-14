@@ -131,3 +131,10 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
                 return None
         finally:
             self.dllock.release()
+
+    def add_peer(self,addr):
+        """ Add a peer address from 3rd source (not tracker, not DHT) to this 
+        Download.
+        @param (hostname_ip,port) tuple
+        """
+        raise NotYetImplementedException()

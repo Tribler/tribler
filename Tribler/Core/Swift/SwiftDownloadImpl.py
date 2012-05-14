@@ -540,6 +540,19 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.sp is not None:
             self.sp.set_moreinfo_stats(self,enable)
 
+
+    #
+    # External addresses
+    #
+    def add_peer(self,addr):
+        """ Add a peer address from 3rd source (not tracker, not DHT) to this 
+        Download.
+        @param (hostname_ip,port) tuple
+        """
+        if self.sp is not None:
+            self.sp.add_peer(self,addr)
+
+
     #
     # Internal methods
     #

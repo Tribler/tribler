@@ -63,7 +63,7 @@ class SwiftProcess(InstanceConnection):
         if zerostatedir is not None:
             args.append("-e") 
             args.append(zerostatedir)
-        # args.append("-B") # DEBUG Hack        
+        #args.append("-B") # DEBUG Hack        
         
         if DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
@@ -239,6 +239,15 @@ class SwiftProcess(InstanceConnection):
         finally:
             self.splock.release()
 
+    def add_peer(self,d,addr):
+        self.splock.acquire()
+        try:
+            addrstr = addr[0]+':'+str(addr[1])
+            roothash_hex = d.get_def().get_roothash_as_hex()
+            self.send_peer_addr(roothash_hex,addrstr)
+        finally:
+            self.splock.release()
+
 
     def early_shutdown(self):
         # Called by any thread, assume sessionlock is held
@@ -329,3 +338,8 @@ class SwiftProcess(InstanceConnection):
         if enable:
             onoff = "1"
         self.singsock.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')
+
+    def send_peer_addr(self,roothash_hex,addrstr):
+        # assume splock is held to avoid concurrency on socket
+        self.singsock.write('PEERADDR '+roothash_hex+' '+addrstr+'\r\n')
+
