@@ -2,9 +2,7 @@ from meta import MetaObject
 
 class Destination(MetaObject):
     class Implementation(MetaObject.Implementation):
-        @property
-        def footprint(self):
-            return "Destination"
+        pass
 
     def setup(self, message):
         """
@@ -13,9 +11,6 @@ class Destination(MetaObject):
         if __debug__:
             from message import Message
         assert isinstance(message, Message)
-
-    def generate_footprint(self):
-        return "Destination"
 
 class CandidateDestination(Destination):
     """
@@ -145,10 +140,6 @@ class SubjectiveDestination(Destination):
         def is_valid(self):
             return self._is_valid
 
-        @property
-        def footprint(self):
-            return "SubjectiveDestination:" + str(self._meta._cluster)
-
     def __init__(self, cluster, node_count):
         """
         Construct a SubjectiveDestination object.
@@ -185,6 +176,3 @@ class SubjectiveDestination(Destination):
             message.community.dispersy.database.execute(u"UPDATE meta_message SET cluster = ? WHERE id = ?",
                                                         (self._cluster, message.database_id))
             assert message.community.dispersy.database.changes == 1
-
-    def generate_footprint(self):
-        return "SubjectiveDestination:" + str(self._cluster)

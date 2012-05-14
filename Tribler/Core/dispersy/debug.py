@@ -1,7 +1,7 @@
 import socket
 
 from bloomfilter import BloomFilter
-from candidate import Candidate, WalkCandidate
+from candidate import Candidate
 from crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin, ec_from_private_bin
 from dprint import dprint
 from member import Member
@@ -130,7 +130,7 @@ class Node(object):
         assert isinstance(verbose, bool)
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", len(packet), " bytes")
-        candidate = self._dispersy.get_candidate(self.lan_address) or self._dispersy.create_candidate(WalkCandidate, self.lan_address, tunnel)
+        candidate = Candidate(self.lan_address, tunnel)
         self._dispersy.on_incoming_packets([(candidate, packet)], cache=cache, timestamp=time())
         return packet
 
@@ -139,7 +139,7 @@ class Node(object):
         assert isinstance(verbose, bool)
         assert isinstance(cache, bool)
         if verbose: dprint("giving ", sum(len(packet) for packet in packets), " bytes")
-        candidate = self._dispersy.get_candidate(self.lan_address) or self._dispersy.create_candidate(WalkCandidate, self.lan_address, tunnel)
+        candidate = Candidate(self.lan_address, tunnel)
         self._dispersy.on_incoming_packets([(candidate, packet) for packet in packets], cache=cache, timestamp=time())
         return packets
 
@@ -212,7 +212,7 @@ class Node(object):
             else:
                 tunnel = False
 
-            candidate = WalkCandidate(address, tunnel, address, address)
+            candidate = Candidate(address, tunnel)
             dprint(len(packet), " bytes from ", candidate)
             return candidate, packet
 
@@ -338,7 +338,7 @@ class Node(object):
 
     def create_dispersy_introduction_request_message(self, destination, source_lan, source_wan, advice, connection_type, sync, identifier, global_time):
         # TODO assert other arguments
-        assert isinstance(destination, WalkCandidate), destination
+        assert isinstance(destination, Candidate), destination
         if sync:
             assert isinstance(sync, tuple)
             assert len(sync) == 5

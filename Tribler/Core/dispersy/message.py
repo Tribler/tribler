@@ -9,38 +9,16 @@ if __debug__:
 # Exceptions
 #
 class DelayPacket(Exception):
-    pass
-
-class DelayPacketUsingFootprint(DelayPacket):
-    """
-    Uses a regular expression to scan all incoming messages.
-    """
-    def __init__(self, msg, pattern):
-        assert isinstance(msg, str)
-        assert isinstance(pattern, str)
-        assert re.compile(pattern)
-        super(DelayPacketUsingFootprint, self).__init__(msg)
-        self._pattern = pattern
-
-    @property
-    def pattern(self):
-        return self._pattern
-
-    @property
-    def request(self):
-        raise NotImplementedError()
-
-class DelayPacketUsingIdentifier(DelayPacket):
     """
     Uses an identifier to match request to response.
     """
     def __init__(self, msg, community):
-        super(DelayPacketUsingIdentifier, self).__init__(msg)
+        super(DelayPacket, self).__init__(msg)
         self._community = community
 
     def create_request(self, candidate, delayed):
-        # create and send a request.  once the response is received the _on_response can pass the
-        # (candidate, delayed) tuple to dispersy for reprocessing
+        # create and send a request.  once the response is received the _process_delayed_packet can
+        # pass the (candidate, delayed) tuple to dispersy for reprocessing
         raise NotImplementedError()
 
     def _process_delayed_packet(self, response, candidate, delayed):
@@ -52,7 +30,7 @@ class DelayPacketUsingIdentifier(DelayPacket):
             # timeout, do nothing
             pass
 
-class DelayPacketByMissingMember(DelayPacketUsingIdentifier):
+class DelayPacketByMissingMember(DelayPacket):
     def __init__(self, community, missing_member_id):
         assert isinstance(missing_member_id, str)
         assert len(missing_member_id) == 20
@@ -62,7 +40,7 @@ class DelayPacketByMissingMember(DelayPacketUsingIdentifier):
     def create_request(self, candidate, delayed):
         self._community.dispersy.create_missing_identity(self._community, candidate, DummyMember(self._missing_member_id), self._process_delayed_packet, (candidate, delayed))
 
-class DelayPacketByMissingLastMessage(DelayPacketUsingIdentifier):
+class DelayPacketByMissingLastMessage(DelayPacket):
     def __init__(self, community, member, message, count):
         if __debug__:
             from member import Member
@@ -77,7 +55,7 @@ class DelayPacketByMissingLastMessage(DelayPacketUsingIdentifier):
     def create_request(self, candidate, delayed):
         self._community.dispersy.create_missing_last_message(self._community, candidate, self._member, self._message, self._count, self._process_delayed_packet, (candidate, delayed))
 
-class DelayPacketByMissingMessageNewStyle(DelayPacketUsingIdentifier):
+class DelayPacketByMissingMessage(DelayPacket):
     def __init__(self, community, member, global_time):
         if __debug__:
             from community import Community
@@ -85,47 +63,12 @@ class DelayPacketByMissingMessageNewStyle(DelayPacketUsingIdentifier):
         assert isinstance(community, Community)
         assert isinstance(member, Member)
         assert isinstance(global_time, (int, long))
-        super(DelayPacketByMissingMessageNewStyle, self).__init__("Missing message (new style)", community)
+        super(DelayPacketByMissingMessage, self).__init__("Missing message (new style)", community)
         self._member = member
         self._global_time = global_time
 
     def create_request(self, candidate, delayed):
-        self._community.dispersy.create_missing_message_newstyle(self._community, candidate, self._member, self._global_time, self._process_delayed_packet, (candidate, delayed))
-
-class DelayPacketByMissingMessage(DelayPacketUsingFootprint):
-    """
-    Raised during Conversion.decode_message when an unknown message is required to process a packet.
-    The missing message is identified using the unique (community, member, global_time) triplet.
-    """
-    def __init__(self, community, member, global_times):
-        if __debug__:
-            from community import Community
-            from member import Member
-        assert isinstance(community, Community)
-        assert isinstance(member, Member)
-        assert isinstance(global_times, list)
-        assert len(global_times) > 0
-        assert all(isinstance(x, (int, long)) for x in global_times)
-        assert all(x > 0 for x in global_times)
-        # the footprint that will trigger the delayed packet
-        footprint = "".join(("Community:", community.cid.encode("HEX"),
-                             "\s", "(MemberAuthentication:", member.mid.encode("HEX"), "|MultiMemberAuthentication:[^\s]*", member.mid.encode("HEX"), "[^\s]*)",
-                             "\s", "Resolution",
-                             "\s", "((Relay|Direct|)Distribution:(", "|,".join(str(global_time) for global_time in global_times), ")|FullSyncDistribution:(", "|,".join(str(global_time) for global_time in global_times), "),[0-9]+)"))
-        super(DelayPacketByMissingMessage, self).__init__("Missing message", footprint)
-        self._community = community
-        self._member = member
-        self._global_times = global_times
-
-        # TODO: currently we can ask for one or more missing messages len(global_times) > 1.
-        # However, the TriggerPacket does not allow a value for min/max responses until it triggers.
-        # Hence it may trigger the packet before all missing messages are received.
-        assert len(self._global_times) == 1, "See comment above"
-
-    @property
-    def request(self):
-        meta = self._community.get_meta_message(u"dispersy-missing-message")
-        return meta.impl(distribution=(self._community.global_time,), payload=(self._member, self._global_times))
+        self._community.dispersy.create_missing_message(self._community, candidate, self._member, self._global_time, self._process_delayed_packet, (candidate, delayed))
 
 class DropPacket(Exception):
     """
@@ -137,117 +80,63 @@ class DropPacket(Exception):
 
 class DelayMessage(Exception):
     """
-    Raised during Community.on_incoming_message or
-    Community.on_incoming_message; delaying for 'some time' or until
-    'some event' occurs.
-    """
-    def __init__(self, msg, pattern, delayed):
-        assert isinstance(msg, str)
-        assert isinstance(pattern, str)
-        assert re.compile(pattern)
-        super(DelayMessage, self).__init__(msg)
-        self._pattern = pattern
-        self._delayed = delayed
+    Uses an identifier to match request to response.
 
-    @property
-    def pattern(self):
-        return self._pattern
-
-    @property
-    def delayed(self):
-        return self._delayed
-
-    @property
-    def request(self):
-        raise NotImplementedError()
-
-class DelayMessageByProof(DelayMessage):
-    """
-    Raised when a message can not be processed because of missing permissions.
-
-    Delays a message until a dispersy-authorize message is received.  With luck this
-    dispersy-authorize message will contain the missing permission.
-
-    TODO: we could extend the footprint of the dispersy-authorize to include clues as to what
-    permissions are in the message.  This would allow us to match incoming messages more accurately.
+    Ensure to call Dispersy.handle_missing_messages for each incoming message that may have been
+    requested.
     """
     def __init__(self, delayed):
         if __debug__:
             from message import Message
         assert isinstance(delayed, Message.Implementation)
-
-        # 01/11/11 Boudewijn: adding "(?MESSAGE-NAME)" too the pattern will ensure that we create
-        # different trigger object for different meta messages, note that a 'missing-proof' message
-        # is ONLY sent when a new trigger is created...
-
-        # the footprint that will trigger the delayed packet
-        footprint = "".join(("(dispersy-authorize|dispersy-dynamic-settings)",
-                             " Community:", delayed.community.cid.encode("HEX"),
-                             "(?#", delayed.name.encode("UTF-8"), ")"))
-        super(DelayMessageByProof, self).__init__("Missing proof", footprint, delayed)
+        super(DelayMessage, self).__init__("delay")
+        self._delayed = delayed
 
     @property
-    def request(self):
-        # the request message that asks for the message that will trigger the delayed packet
-        meta = self._delayed.community.get_meta_message(u"dispersy-missing-proof")
-        return meta.impl(distribution=(self._delayed.community.global_time,), payload=(self._delayed.authentication.member, self._delayed.distribution.global_time))
+    def delayed(self):
+        return self._delayed
 
+    def create_request(self):
+        # create and send a request.  once the response is received the _process_delayed_message can
+        # pass the (candidate, delayed) tuple to dispersy for reprocessing
+        raise NotImplementedError()
+
+    def _process_delayed_message(self, response):
+        if response:
+            # process the response and the delayed message
+            self._delayed.community.dispersy.on_messages([self._delayed])
+
+        else:
+            # timeout, do nothing
+            pass
+
+class DelayMessageByProof(DelayMessage):
+    def create_request(self):
+        community = self._delayed.community
+        community.dispersy.create_missing_proof(community, self._delayed.candidate, self._delayed, self._process_delayed_message)
 
 class DelayMessageBySequence(DelayMessage):
-    """
-    Raised during Community.on_incoming_message or Community.on_incoming_message.
-
-    Delaying until all missing sequence numbers have been received.
-    """
     def __init__(self, delayed, missing_low, missing_high):
-        if __debug__:
-            from message import Message
-        assert isinstance(delayed, Message.Implementation)
         assert isinstance(missing_low, (int, long))
         assert isinstance(missing_high, (int, long))
         assert 0 < missing_low <= missing_high
-        # the footprint that will trigger the delayed packet
-        footprint = "".join((delayed.name.encode("UTF-8"),
-                             " Community:", delayed.community.cid.encode("HEX"),
-                             " MemberAuthentication:", delayed.authentication.member.mid.encode("HEX"),
-                             " Resolution",
-                             " SyncDistribution:", str(missing_high),
-                             " CommunityDestination"))
-        super(DelayMessageBySequence, self).__init__("Missing sequence numbers", footprint, delayed)
+        super(DelayMessageBySequence, self).__init__(delayed)
         self._missing_low = missing_low
         self._missing_high = missing_high
 
-    @property
-    def request(self):
-        if __debug__: dprint("delay ", self._delayed.meta.name, " message created by ", self._delayed.authentication.member.database_id, " in [", self._missing_low, ":", self._missing_high, "]")
-        # the request message that asks for the message that will trigger the delayed packet
-        meta = self._delayed.community.get_meta_message(u"dispersy-missing-sequence")
-        return meta.impl(distribution=(self._delayed.community.global_time,), payload=(self._delayed.authentication.member, self._delayed.meta, self._missing_low, self._missing_high))
+    def create_request(self):
+        community = self._delayed.community
+        community.dispersy.create_missing_sequence(community, self._delayed.candidate, self._delayed.authentication.member, self._delayed.meta, self._missing_low, self._missing_high, self._process_delayed_message)
 
 class DelayMessageBySubjectiveSet(DelayMessage):
-    """
-    Raised when a message is received and a dispersy-subjective-set message is required to process
-    it.
-
-    Delaying until a dispersy-subjective-set message is received that contains the missing data or
-    until a timeout occurs.
-    """
     def __init__(self, delayed, cluster):
-        if __debug__:
-            from message import Message
-        assert isinstance(delayed, Message.Implementation)
         assert isinstance(cluster, int)
-        # the footprint that will trigger the delayed packet
-        meta = delayed.community.get_meta_message(u"dispersy-subjective-set")
-        footprint = meta.generate_footprint(authentication=([delayed.authentication.member.mid],))
-        super(DelayMessageBySubjectiveSet, self).__init__("Missing subjective set", footprint, delayed)
+        super(DelayMessageBySubjectiveSet, self).__init__(delayed)
         self._cluster = cluster
 
-    @property
-    def request(self):
-        # the request message that asks for the message that will trigger the delayed packet
-        meta = self._delayed.community.get_meta_message(u"dispersy-missing-subjective-set")
-        return meta.impl(distribution=(self._delayed.community.global_time,), payload=(self._cluster, [self._delayed.authentication.member]))
+    def create_request(self):
+        community = self._delayed.community
+        community.dispersy.create_missing_subjective_set(community, self._delayed.candidate, self._delayed.authentication.member, self._cluster, self._process_delayed_message)
 
 class DropMessage(Exception):
     """
@@ -424,7 +313,6 @@ class Message(MetaObject):
             self._destination = destination
             self._payload = payload
             self._candidate = candidate
-            self._footprint = None
 
             # allow setup parts.  used to setup callback when something changes that requires the
             # self._packet to be generated again
@@ -472,18 +360,6 @@ class Message(MetaObject):
         def candidate(self):
             return self._candidate
 
-        @property
-        def footprint(self):
-            if self._footprint is None:
-                self._footprint = " ".join((self._meta.name.encode("UTF-8"),
-                                            "Community:%s" % self._meta.community.cid.encode("HEX"),
-                                            self._authentication.footprint,
-                                            self._resolution.footprint,
-                                            self._distribution.footprint,
-                                            self._destination.footprint,
-                                            self._payload.footprint))
-            return self._footprint
-
         def load_message(self):
             return self
 
@@ -494,7 +370,7 @@ class Message(MetaObject):
                 self._packet = self._conversion.encode_message(self)
 
         def __str__(self):
-            return "<%s.%s %s %d>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
+            return "<%s.%s %s %dbytes>" % (self._meta.__class__.__name__, self.__class__.__name__, self._meta._name, len(self._packet))
 
     def __init__(self, community, name, authentication, resolution, distribution, destination, payload, check_callback, handle_callback, undo_callback=None, batch=None):
         if __debug__:
@@ -596,38 +472,6 @@ class Message(MetaObject):
     @property
     def batch(self):
         return self._batch
-
-    def generate_footprint(self, authentication=(), resolution=(), distribution=(), destination=(), payload=()):
-        if __debug__:
-            assert isinstance(authentication, tuple), type(authentication)
-            assert isinstance(resolution, tuple), type(resolution)
-            assert isinstance(distribution, tuple), type(distribution)
-            assert isinstance(destination, tuple), type(destination)
-            assert isinstance(payload, tuple), type(payload)
-            try:
-                authentication_footprint = self._authentication.generate_footprint(*authentication)
-                resolution_footprint = self._resolution.generate_footprint(*resolution)
-                distribution_footprint = self._distribution.generate_footprint(*distribution)
-                destination_footprint = self._destination.generate_footprint(*destination)
-                payload_footprint = self._payload.generate_footprint(*payload)
-            except TypeError:
-                dprint("message name:   ", self._name, level="error")
-                dprint("authentication: ", self._authentication.__class__.__name__, level="error")
-                dprint("resolution:     ", self._resolution.__class__.__name__, level="error")
-                dprint("distribution:   ", self._distribution.__class__.__name__, level="error")
-                dprint("destination:    ", self._destination.__class__.__name__, level="error")
-                dprint("payload:        ", self._payload.__class__.__name__, level="error")
-                raise
-            else:
-                return " ".join((self._name.encode("UTF-8"), "Community:%s" % self._community.cid.encode("HEX"), authentication_footprint, resolution_footprint, distribution_footprint, destination_footprint, payload_footprint))
-
-        return " ".join((self._name.encode("UTF-8"),
-                         "Community:%s" % self._community.cid.encode("HEX"),
-                         self._authentication.generate_footprint(*authentication),
-                         self._resolution.generate_footprint(*resolution),
-                         self._distribution.generate_footprint(*distribution),
-                         self._destination.generate_footprint(*destination),
-                         self._payload.generate_footprint(*payload)))
 
     def impl(self, authentication=(), resolution=(), distribution=(), destination=(), payload=(), *args, **kargs):
         if __debug__:

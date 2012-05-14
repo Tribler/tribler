@@ -35,14 +35,6 @@ class Authentication(MetaObject):
                 from message import Message
             assert isinstance(message_impl, Message.Implementation)
 
-        @property
-        def footprint(self):
-            """
-            The Authentication footprint.
-            @rtype: string
-            """
-            return "Authentication"
-
     def setup(self, message):
         """
         Setup the Authentication meta part.
@@ -59,14 +51,6 @@ class Authentication(MetaObject):
             from message import Message
         assert isinstance(message, Message)
 
-    def generate_footprint(self):
-        """
-        Generate a Authentication footprint.
-        @return The Authentication footprint.
-        @rtype: string
-        """
-        return "Authentication"
-
 class NoAuthentication(Authentication):
     """
     The NoAuthentication policy can be used when a message is not owned, i.e. signed, by anyone.
@@ -81,13 +65,6 @@ class NoAuthentication(Authentication):
         @property
         def is_signed(self):
             return True
-
-        @property
-        def footprint(self):
-            return "NoAuthentication"
-
-    def generate_footprint(self):
-        return "NoAuthentication"
 
 class MemberAuthentication(Authentication):
     """
@@ -159,10 +136,6 @@ class MemberAuthentication(Authentication):
         def set_signature(self, signature):
             self._is_signed = True
 
-        @property
-        def footprint(self):
-            return "MemberAuthentication:" + self._member.mid.encode("HEX")
-
     def __init__(self, encoding="sha1"):
         """
         Initialize a new MemberAuthentication instance.
@@ -194,19 +167,6 @@ class MemberAuthentication(Authentication):
         @rtype: string
         """
         return self._encoding
-
-    def generate_footprint(self, mids=()):
-        """
-        MIDS is a list with member identifiers that can match the footprint, when MIDS is empty any
-        mid will match
-        """
-        assert isinstance(mids, (tuple, list))
-        assert all(isinstance(mid, str) for mid in mids)
-        assert all(len(mid) == 20 for mid in mids)
-        if mids:
-            return "MemberAuthentication:(" + "|".join([mid.encode("HEX") for mid in mids]) + ")"
-        else:
-            return "MemberAuthentication:.{40}"
 
 class MultiMemberAuthentication(Authentication):
     """
@@ -356,10 +316,6 @@ class MultiMemberAuthentication(Authentication):
             assert isinstance(message_impl, Message.Implementation)
             self._regenerate_packet_func = message_impl.regenerate_packet
 
-        @property
-        def footprint(self):
-            return "MultiMemberAuthentication:" + ",".join([member.mid.encode("HEX") for member in self._members])
-
     def __init__(self, count, allow_signature_func):
         """
         Initialize a new MultiMemberAuthentication instance.
@@ -402,12 +358,3 @@ class MultiMemberAuthentication(Authentication):
         @rtype: callable function
         """
         return self._allow_signature_func
-
-    def generate_footprint(self, *midss):
-        assert isinstance(midss, (tuple, list))
-        assert len(midss) == self._count
-        if __debug__:
-            for mids in midss:
-                assert not filter(lambda x: not isinstance(x, str), mids)
-                assert not filter(lambda x: not len(x) == 20, mids)
-        return "MultiMemberAuthentication:" + ",".join(["(" + "|".join([mid.encode("HEX") for mid in mids]) + ")" for mids in midss])

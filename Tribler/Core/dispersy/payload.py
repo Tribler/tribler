@@ -16,9 +16,7 @@ if __debug__:
 
 class Payload(MetaObject):
     class Implementation(MetaObject.Implementation):
-        @property
-        def footprint(self):
-            return self._meta.__class__.__name__
+        pass
 
     def setup(self, message):
         """
@@ -27,9 +25,6 @@ class Payload(MetaObject):
         if __debug__:
             from message import Message
         assert isinstance(message, Message)
-
-    def generate_footprint(self):
-        return self.__class__.__name__
 
     def __str__(self):
         return "<{0.__class__.__name__}>".format(self)
@@ -214,10 +209,6 @@ class IntroductionResponsePayload(Payload):
             self._identifier = identifier
 
         @property
-        def footprint(self):
-            return "IntroductionResponsePayload:%d" % self._identifier
-
-        @property
         def destination_address(self):
             return self._destination_address
 
@@ -248,11 +239,6 @@ class IntroductionResponsePayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-
-    def generate_footprint(self, identifier):
-        assert isinstance(identifier, int)
-        assert 0 <= identifier < 2**16
-        return "IntroductionResponsePayload:%d" % identifier
 
 class PunctureRequestPayload(Payload):
     class Implementation(Payload.Implementation):
@@ -475,15 +461,6 @@ class SignaturePayload(Payload):
         @property
         def message(self):
             return self._message
-
-        @property
-        def footprint(self):
-            return "SignaturePayload:%d" % self._identifier
-
-    def generate_footprint(self, identifier):
-        assert isinstance(identifier, int), identifier
-        assert 0 <= identifier < 2**16, identifier
-        return "SignaturePayload:%d" % identifier
 
 class SignatureRequestPayload(SignaturePayload):
     class Implementation(SignaturePayload.Implementation):

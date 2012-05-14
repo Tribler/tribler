@@ -2,9 +2,7 @@ from meta import MetaObject
 
 class Resolution(MetaObject):
     class Implementation(MetaObject.Implementation):
-        @property
-        def footprint(self):
-            return "Resolution"
+        pass
 
     def setup(self, message):
         """
@@ -13,9 +11,6 @@ class Resolution(MetaObject):
         if __debug__:
             from message import Message
         assert isinstance(message, Message)
-
-    def generate_footprint(self):
-        return "Resolution"
 
 class PublicResolution(Resolution):
     """

@@ -31,10 +31,6 @@ class Distribution(MetaObject):
         def global_time(self):
             return self._global_time
 
-        @property
-        def footprint(self):
-            return "Distribution:" + str(self._global_time)
-
     def setup(self, message):
         """
         Setup is called after the meta message is initially created.
@@ -42,11 +38,6 @@ class Distribution(MetaObject):
         if __debug__:
             from message import Message
         assert isinstance(message, Message)
-
-    def generate_footprint(self, global_time=0):
-        assert isinstance(global_time, (int, long))
-        assert global_time >= 0
-        return "Distribution:" + (str(global_time) if global_time else "[0-9]+")
 
 class SyncDistribution(Distribution):
     """
@@ -155,10 +146,6 @@ class FullSyncDistribution(SyncDistribution):
         def sequence_number(self):
             return self._sequence_number
 
-        @property
-        def footprint(self):
-            return "".join(("FullSyncDistribution:", str(self._global_time), ",", str(self._sequence_number)))
-
     def __init__(self, synchronization_direction, priority, enable_sequence_number):
         assert isinstance(enable_sequence_number, bool)
         super(FullSyncDistribution, self).__init__(synchronization_direction, priority)
@@ -178,16 +165,6 @@ class FullSyncDistribution(SyncDistribution):
         assert self._enable_sequence_number
         self._current_sequence_number += 1
         return self._current_sequence_number
-
-    def generate_footprint(self, global_time=0, sequence_number=0):
-        assert isinstance(global_time, (int, long))
-        assert global_time >= 0
-        assert isinstance(sequence_number, (int, long))
-        assert (self._enable_sequence_number and sequence_number > 0) or (not self._enable_sequence_number and sequence_number == 0)
-        return "".join(("FullSyncDistribution:",
-                        str(global_time) if global_time else "[0-9]+",
-                        ",",
-                        str(sequence_number) if sequence_number else "[0-9]+"))
 
 class LastSyncDistribution(SyncDistribution):
     class Implementation(SyncDistribution.Implementation):
@@ -211,22 +188,8 @@ class LastSyncDistribution(SyncDistribution):
 
 class DirectDistribution(Distribution):
     class Implementation(Distribution.Implementation):
-        @property
-        def footprint(self):
-            return "DirectDistribution:" + str(self._global_time)
-
-    def generate_footprint(self, global_time=0):
-        assert isinstance(global_time, (int, long))
-        assert global_time >= 0
-        return "DirectDistribution:" + (str(global_time) if global_time else "[0-9]+")
+        pass
 
 class RelayDistribution(Distribution):
     class Implementation(Distribution.Implementation):
-        @property
-        def footprint(self):
-            return "RelayDistribution:" + str(self._global_time)
-
-    def generate_footprint(self, global_time=0):
-        assert isinstance(global_time, (int, long))
-        assert global_time >= 0
-        return "RelayDistribution:" + (str(global_time) if global_time else "[0-9]+")
+        pass

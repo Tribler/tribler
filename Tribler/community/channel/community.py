@@ -5,7 +5,7 @@ from time import sleep
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
-from Tribler.Core.dispersy.dispersy import MissingMessageCache
+from Tribler.Core.dispersy.dispersy import MissingMessageCache, MissingSomethingCache
 from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.Core.dispersy.community import Community
 from Tribler.Core.dispersy.conversion import DefaultConversion
@@ -27,6 +27,14 @@ if __debug__:
     from Tribler.Core.dispersy.dprint import dprint
     from lencoder import log
 
+class MissingChannelCache(MissingSomethingCache):
+    @staticmethod
+    def properties_to_identifier(community):
+        return "-missing-channel-%s-" % (community.cid,)
+
+    @staticmethod
+    def message_to_identifier(message):
+        return "-missing-channel-%s-" % (message.community.cid,)
 
 _register_task = None
 def register_task(*args, **kwargs):
@@ -298,6 +306,8 @@ class ChannelCommunity(Community):
             else:
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._master_member.mid, peer_id, message.payload.name, message.payload.description)
+
+        self._dispersy.handle_missing_messages(messages, MissingChannelCache)
 
     def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
         files = torrentdef.get_files_as_unicode_with_length()
@@ -829,7 +839,21 @@ class ChannelCommunity(Community):
             playlist_dispersy_id = message.payload.playlist.packet_id
             
             self._channelcast_db.on_remove_playlist_torrent(self._channel_id, playlist_dispersy_id, infohash, redo)
-            
+
+    def disp_create_missing_channel(self, candidate, includeSnapshot, response_func=None, response_args=(), timeout=10.0):
+        identifier = MissingChannelCache.properties_to_identifier(self)
+        cache = self._dispersy.request_cache.get(identifier, MissingChannelCache)
+        if not cache:
+            cache = MissingChannelCache(timeout)
+            self._dispersy.request_cache.set(identifier, cache)
+
+            meta = self._meta_messages[u"missing-channel"]
+            request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
+            self._dispersy.store_update_forward([request], False, False, True)
+
+        if response_func:
+            cache.callbacks.append((response_func, response_args))
+
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
         for message in messages:
