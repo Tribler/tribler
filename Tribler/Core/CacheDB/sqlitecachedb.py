@@ -2139,16 +2139,29 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def initialBegin(self):
         global _cacheCommit
         global _shouldCommit
-        self._execute("BEGIN;")
+            try:
+                self._execute("BEGIN;")
+            except:
+                print >> sys.stderr, "INITIAL BEGIN FAILED"
+                raise
         _cacheCommit = True
         _shouldCommit = True
             
     def commitNow(self):
         global _shouldCommit
         if _cacheCommit and _shouldCommit:
-            self._execute("COMMIT;")
+            try:
+                self._execute("COMMIT;")
+            except:
+                print >> sys.stderr, "COMMIT FAILED"
+                raise
             _shouldCommit = False
-            self._execute("BEGIN;")
+
+            try:
+                self._execute("BEGIN;")
+            except:
+                print >> sys.stderr, "BEGIN FAILED"
+                raise
     
     def execute_write(self, sql, args=None, commit=True):
         global _shouldCommit
@@ -2200,12 +2213,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        # if __debug__:
-        #     # may not commit or begin transactions manually
-        #     for key in ["commit", "begin", "vacuum"]:
-        #         if key in sql or key.upper() in sql:
-        #             print >> sys.stderr, '\n-----', key, '\n', sql, '\n-----\n', args, '\n======\n'
-        #             print_stack()
+        if __debug__:
+            # may not commit or begin transactions manually
+            thread_name = threading.currentThread().getName()
+            print >> sys.stderr, '\n-----', thread_name, '\n', sql, '\n-----\n', args, '\n======\n'
         
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
@@ -2230,12 +2241,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):    
         cur = self.getCursor()
 
-        # if __debug__:
-        #     # may not commit or begin transactions manually
-        #     for key in ["commit", "begin", "vacuum"]:
-        #         if key in sql or key.upper() in sql:
-        #             print >> sys.stderr, '\n-----', key, '\n', sql, '\n-----\n', args, '\n======\n'
-        #             print_stack()
+        if __debug__:
+            thread_name = threading.currentThread().getName()
+            print >> sys.stderr, '\n-----', thread_name, '\n', sql, '\n-----\n', args, '\n======\n'
         
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
