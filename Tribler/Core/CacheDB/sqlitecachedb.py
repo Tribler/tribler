@@ -2213,7 +2213,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if __debug__:
+        if True or __debug__:
             # may not commit or begin transactions manually
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '\n-----', thread_name, '\n', sql, '\n-----\n', args, '\n======\n'
@@ -2241,7 +2241,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):    
         cur = self.getCursor()
 
-        if __debug__:
+        if True or __debug__:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '\n-----', thread_name, '\n', sql, '\n-----\n', args, '\n======\n'
         
