@@ -2064,8 +2064,7 @@ def register_task(db, *args, **kwargs):
         dispersy = Dispersy.has_instance()
         if dispersy:
             _callback = dispersy.callback
-            global _cacheCommit
-            _cacheCommit = True
+            db.initialBegin()
             
             print >> sys.stderr, "Using actual DB thread"
             
@@ -2137,16 +2136,24 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 raise RuntimeError("please use getInstance instead of the constructor")
             self.__counter += 1
 
+    def initialBegin(self):
+        global _cacheCommit
+        global _shouldCommit
+        self._execute("BEGIN;")
+        _cacheCommit = True
+        _shouldCommit = True
+            
     def commitNow(self):
         global _shouldCommit
         if _cacheCommit and _shouldCommit:
             self._execute("COMMIT;")
             _shouldCommit = False
+            self._execute("BEGIN;")
     
     def execute_write(self, sql, args=None, commit=True):
         global _shouldCommit
         if _cacheCommit and not _shouldCommit:
-            sql = "BEGIN;"+sql
+            # sql = "BEGIN;"+sql
             _shouldCommit = True
             
         self._execute(sql, args)
@@ -2154,7 +2161,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def executemany(self, sql, args, commit=True):
         global _shouldCommit
         if _cacheCommit and not _shouldCommit:
-            sql = "BEGIN;"+sql
+            # sql = "BEGIN;"+sql
             _shouldCommit = True
         
         self._executemany(sql, args)
