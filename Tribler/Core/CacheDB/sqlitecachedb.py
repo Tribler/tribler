@@ -46,7 +46,7 @@ DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
 icon_dir = None
-SHOW_ALL_EXECUTE = False
+SHOW_ALL_EXECUTE = True
 costs = []
 cost_reads = []
 torrent_dir = None
@@ -2056,18 +2056,25 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 _cacheCommit = False
 _shouldCommit = False
 _callback = None
+_callback_lock = threading.Lock()
 def register_task(db, *args, **kwargs):
     global _callback
     if not _callback:
         from Tribler.Core.dispersy.dispersy import Dispersy
-        
+
         dispersy = Dispersy.has_instance()
         if dispersy:
-            _callback = dispersy.callback
-            db.initialBegin()
-            
-            print >> sys.stderr, "Using actual DB thread"
-            
+            _callback_lock.acquire()
+            try:
+                # check again if _callback hasn't been set, but now we are thread safe
+                if not _callback:
+                    print >> sys.stderr, "Using actual DB thread"
+                    _callback = dispersy.callback
+                    db.initialBegin()
+
+            finally:
+                _callback_lock.release()
+
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
             func()
@@ -2213,11 +2220,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _execute(self, sql, args=None):
         cur = self.getCursor()
 
-        if True or __debug__:
-            # may not commit or begin transactions manually
-            thread_name = threading.currentThread().getName()
-            print >> sys.stderr, '\n-----', thread_name, '\n', sql, '\n-----\n', args, '\n======\n'
-        
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
@@ -2241,10 +2243,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def _executemany(self, sql, args=None):    
         cur = self.getCursor()
 
-        if True or __debug__:
-            thread_name = threading.currentThread().getName()
-            print >> sys.stderr, '\n-----', thread_name, '\n', sql, '\n-----\n', args, '\n======\n'
-        
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
