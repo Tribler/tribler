@@ -54,7 +54,7 @@ BrandingText "${PRODUCT}"
 ; This is not what we want. We do want an admin-level install, in particular 
 ; for configuring the Windows firewall automatically. Alternative is the
 ; UAC plugin (http://nsis.sourceforge.net/UAC_plug-in) but that's still beta. 
-; 2012-04-13: Now using the UAC plugin.
+; Bouman, 2012-04-13: Now using the UAC plugin.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION PageFinishRun
 
@@ -103,6 +103,7 @@ Section "!Main EXE" SecMain
  File tribler.exe
  File ffmpeg.exe
  File /r vlc
+ File swift.exe
  File *.bat
  Delete "$INSTDIR\*.pyd"
  File *.pyd

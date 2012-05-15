@@ -134,6 +134,13 @@ mkdir dist\installdir\Tribler\Category
 copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 
+REM Swift
+cd Tribler\SwiftEngine
+CALL win32-build.bat
+cd ..\..
+copy swift.exe dist\installdir
+
+@echo Running NSIS
 cd dist\installdir
 
 REM Arno: Sign .EXE so MS "Block / Unblock" dialog has publisher info.
