@@ -2055,25 +2055,23 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
 _cacheCommit = False
 _shouldCommit = False
+
 _callback = None
 _callback_lock = threading.Lock()
+
 def register_task(db, *args, **kwargs):
     global _callback
     if not _callback:
-        from Tribler.dispersy.dispersy import Dispersy
-
-        dispersy = Dispersy.has_instance()
-        if dispersy:
-            _callback_lock.acquire()
-            try:
-                # check again if _callback hasn't been set, but now we are thread safe
-                if not _callback:
-                    print >> sys.stderr, "Using actual DB thread"
-                    _callback = dispersy.callback
-                    db.initialBegin()
-
-            finally:
-                _callback_lock.release()
+        with _callback_lock:
+            from Tribler.dispersy.dispersy import Dispersy
+    
+            dispersy = Dispersy.has_instance()
+            if dispersy:
+                print >> sys.stderr, "Using actual DB thread"
+                _callback = dispersy.callback
+                
+                #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
+                _callback.register(db.initialBegin)
 
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
