@@ -68,7 +68,7 @@ class SwiftProcess(InstanceConnection):
         if DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
         
-        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir) 
+        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP) 
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
@@ -142,6 +142,9 @@ class SwiftProcess(InstanceConnection):
     def start_download(self,d):
         self.splock.acquire()
         try:
+            if self.donestate != DONE_STATE_WORKING:
+                return
+            
             roothash = d.get_def().get_roothash()
             roothash_hex = d.get_def().get_roothash_as_hex()
 
@@ -182,6 +185,9 @@ class SwiftProcess(InstanceConnection):
     def remove_download(self,d,removestate,removecontent):
         self.splock.acquire()
         try:
+            if self.donestate != DONE_STATE_WORKING:
+                return
+            
             roothash_hex = d.get_def().get_roothash_as_hex()
             
             self.send_remove(roothash_hex,removestate,removecontent)
@@ -210,6 +216,9 @@ class SwiftProcess(InstanceConnection):
     def set_max_speed(self,d,direct,speed):
         self.splock.acquire()
         try:
+            if self.donestate != DONE_STATE_WORKING:
+                return
+            
             roothash_hex = d.get_def().get_roothash_as_hex()
             
             # In Tribler Core API  = unlimited. In Swift CMDGW API
@@ -225,6 +234,8 @@ class SwiftProcess(InstanceConnection):
     def checkpoint_download(self,d):
         self.splock.acquire()
         try:
+            # Arno, 2012-05-15: Allow during shutdown.
+            
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_checkpoint(roothash_hex)
         finally:

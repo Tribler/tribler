@@ -23,6 +23,7 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         # ARNOSMPTODO: Implement such that a new proc is created when needed
         self.dlsperproc = dlsperproc
         self.sesslock = sesslock
+        self.done = False
         
         self.sps = []
 
@@ -37,6 +38,9 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         self.sesslock.acquire()
         print >>sys.stderr,"spm: get_or_create_sp"
         try:
+            if self.done:
+                return None
+            
             sp = None
             if listenport is not None:
                 # Reuse the one with the same requested listen port
@@ -100,6 +104,7 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         """
         # Called by any thread, assume sessionlock is held
         print >>sys.stderr,"spm: early_shutdown"
+        self.done = False
         self.i2is.shutdown() # Calls self.shutdown() indirectly
 
     def shutdown(self): # InstanceConnectionHandler

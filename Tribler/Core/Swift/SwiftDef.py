@@ -244,7 +244,7 @@ class SwiftDef(ContentDefinition):
         args.append("-f")
         args.append(filename)
         
-        pobj = subprocess.Popen(args,stdout=subprocess.PIPE,cwd='.')
+        pobj = subprocess.Popen(args,stdout=subprocess.PIPE,cwd='.',creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
         
         if userprogresscallback is not None:
             userprogresscallback(0.6)
