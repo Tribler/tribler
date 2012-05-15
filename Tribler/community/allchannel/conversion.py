@@ -1,9 +1,9 @@
 from struct import pack, unpack_from
 from random import choice, sample
 
-from Tribler.Core.dispersy.encoding import encode, decode
-from Tribler.Core.dispersy.message import DropPacket
-from Tribler.Core.dispersy.conversion import BinaryConversion
+from Tribler.dispersy.encoding import encode, decode
+from Tribler.dispersy.message import DropPacket
+from Tribler.dispersy.conversion import BinaryConversion
 
 class AllChannelConversion(BinaryConversion):
     def __init__(self, community):

@@ -9,11 +9,11 @@ from payload import BarterRecordPayload
 from community import BarterCommunity
 from lencoder import log
 
-from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.member import Member
-from Tribler.Core.dispersy.script import ScriptBase
-from Tribler.Core.dispersy.debug import Node
-from Tribler.Core.dispersy.dprint import dprint
+from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
+from Tribler.dispersy.member import Member
+from Tribler.dispersy.script import ScriptBase
+from Tribler.dispersy.debug import Node
+from Tribler.dispersy.dprint import dprint
 
 from random import random
 

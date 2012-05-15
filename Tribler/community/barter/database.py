@@ -1,9 +1,9 @@
 from os import path
 from hashlib import sha1
 
-from Tribler.Core.dispersy.dispersy import Dispersy
-from Tribler.Core.dispersy.database import Database
-from Tribler.Core.dispersy.dprint import dprint
+from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.database import Database
+from Tribler.dispersy.dprint import dprint
 
 schema = u"""
 CREATE TABLE record(

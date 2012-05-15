@@ -6,7 +6,7 @@ from os.path import isdir
 from os import listdir, makedirs
 from sys import argv, exit
 from random import randint
-from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
+from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 
 #def get_nodes():
 #    for node in glob("peers/*"):

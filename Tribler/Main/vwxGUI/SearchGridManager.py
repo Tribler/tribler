@@ -21,7 +21,7 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.community.channel.community import ChannelCommunity,\
     forceDispersyThread, forceAndReturnDispersyThread
-from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.Session import Session

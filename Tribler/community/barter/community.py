@@ -2,18 +2,18 @@ from conversion import BarterCommunityConversion
 from database import BarterDatabase
 from payload import BarterRecordPayload
 
-from Tribler.Core.dispersy.community import Community
-from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.message import Message, DropMessage
-from Tribler.Core.dispersy.authentication import MultiMemberAuthentication
-from Tribler.Core.dispersy.resolution import PublicResolution
-from Tribler.Core.dispersy.distribution import LastSyncDistribution, FullSyncDistribution
-from Tribler.Core.dispersy.destination import CommunityDestination
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.message import Message, DropMessage
+from Tribler.dispersy.authentication import MultiMemberAuthentication
+from Tribler.dispersy.resolution import PublicResolution
+from Tribler.dispersy.distribution import LastSyncDistribution, FullSyncDistribution
+from Tribler.dispersy.destination import CommunityDestination
 
 from random import random
 
 if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
+    from Tribler.dispersy.dprint import dprint
     from lencoder import log
 
 class BarterCommunity(Community):
@@ -102,7 +102,7 @@ class BarterCommunity(Community):
         STORE_AND_FORWARD: when True, dispersy-signature-request is send to OTHER_MEMBER.
         """
         if __debug__:
-            from Tribler.Core.dispersy.member import Member
+            from Tribler.dispersy.member import Member
         assert isinstance(second_member, Member)
         assert second_member.public_key
         assert isinstance(second_member, Member)

@@ -4,17 +4,17 @@ from time import time
 
 from conversion import AllChannelConversion
 
-from Tribler.Core.dispersy.dispersy import MissingMessageCache
-from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
-from Tribler.Core.dispersy.community import Community
-from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDestination
-from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
-from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
-from Tribler.Core.dispersy.member import DummyMember, Member
-from Tribler.Core.dispersy.message import Message, DropMessage,\
+from Tribler.dispersy.dispersy import MissingMessageCache
+from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
+from Tribler.dispersy.dispersydatabase import DispersyDatabase
+from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
+from Tribler.dispersy.member import DummyMember, Member
+from Tribler.dispersy.message import Message, DropMessage,\
     BatchConfiguration
-from Tribler.Core.dispersy.resolution import PublicResolution
+from Tribler.dispersy.resolution import PublicResolution
 
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
@@ -25,7 +25,7 @@ from traceback import print_exc
 import sys
 
 if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
+    from Tribler.dispersy.dprint import dprint
     from lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0

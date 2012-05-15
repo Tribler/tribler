@@ -1,4 +1,4 @@
-from Tribler.Core.dispersy.encoding import encode
+from Tribler.dispersy.encoding import encode
 from bz2 import compress
 from time import time
 import sys

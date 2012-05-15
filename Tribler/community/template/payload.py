@@ -2,7 +2,7 @@
 Example file
 """
 
-from Tribler.Core.dispersy.payload import Payload
+from Tribler.dispersy.payload import Payload
 
 class TextPayload(Payload):
     class Implementation(Payload.Implementation):

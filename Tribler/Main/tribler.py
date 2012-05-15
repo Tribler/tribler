@@ -31,7 +31,7 @@ import urllib
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
-from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.dispersy.dispersy import Dispersy
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 

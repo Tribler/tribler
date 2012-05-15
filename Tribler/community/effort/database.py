@@ -1,7 +1,6 @@
 from os import path
 
-from Tribler.Core.dispersy.dispersy import Dispersy
-from Tribler.Core.dispersy.database import Database
+from Tribler.dispersy.database import Database
 
 LATEST_VERSION = 1
 

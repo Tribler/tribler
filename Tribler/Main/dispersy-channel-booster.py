@@ -27,8 +27,8 @@ import time
 
 from Tribler.Core.API import SessionStartupConfig, Session
 from Tribler.Core.Statistics.Logger import OverlayLogger
-from Tribler.Core.dispersy.dispersy import Dispersy
-from Tribler.Core.dispersy.message import Message
+from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.message import Message
 
 class BoosterDispersy(Dispersy):
     def __init__(self, callback, statedir):

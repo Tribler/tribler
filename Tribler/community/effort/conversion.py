@@ -2,8 +2,8 @@ from struct import pack, unpack_from
 
 from efforthistory import EffortHistory
 
-from Tribler.Core.dispersy.conversion import BinaryConversion
-from Tribler.Core.dispersy.message import DropPacket
+from Tribler.dispersy.conversion import BinaryConversion
+from Tribler.dispersy.message import DropPacket
 
 class EffortConversion(BinaryConversion):
     def __init__(self, community):

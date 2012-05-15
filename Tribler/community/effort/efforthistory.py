@@ -1,7 +1,7 @@
-from Tribler.Core.dispersy.decorator import Constructor, constructor
+from Tribler.dispersy.decorator import Constructor, constructor
 
 if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
+    from Tribler.dispersy.dprint import dprint
 
 # a cycle is defined as a N second period
 CYCLE_SIZE = 1800.0

@@ -10,7 +10,7 @@
 #
 # Use ./barter-ec-generator.py --help for help on the parameters
 #
-from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
+from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 
 if __name__ == "__main__":
     from optparse import OptionParser

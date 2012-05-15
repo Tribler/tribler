@@ -8,7 +8,7 @@ import sys
 
 from datetime import datetime
 from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker
-from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
 
 #batch size should be a nice divider of max size

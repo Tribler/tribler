@@ -5,16 +5,16 @@ Example file
 from conversion import Conversion
 from payload import TextPayload
 
-from Tribler.Core.dispersy.authentication import MemberAuthentication
-from Tribler.Core.dispersy.community import Community
-from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.destination import CommunityDestination
-from Tribler.Core.dispersy.distribution import FullSyncDistribution
-from Tribler.Core.dispersy.message import BatchConfiguration, Message, DelayMessageByProof
-from Tribler.Core.dispersy.resolution import LinearResolution
+from Tribler.dispersy.authentication import MemberAuthentication
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.destination import CommunityDestination
+from Tribler.dispersy.distribution import FullSyncDistribution
+from Tribler.dispersy.message import BatchConfiguration, Message, DelayMessageByProof
+from Tribler.dispersy.resolution import LinearResolution
 
 if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
+    from Tribler.dispersy.dprint import dprint
 
 class TemplateCommunity(Community):
     def initiate_meta_messages(self):

@@ -1,8 +1,8 @@
 from random import random
 from community import EffortCommunity
 
-from Tribler.Core.dispersy.dprint import dprint
-from Tribler.Core.dispersy.tool.scenarioscript import ScenarioScript, ScenarioExpon
+from Tribler.dispersy.dprint import dprint
+from Tribler.dispersy.tool.scenarioscript import ScenarioScript, ScenarioExpon
 
 class ScenarioScript(ScenarioScript, ScenarioExpon):
     @property

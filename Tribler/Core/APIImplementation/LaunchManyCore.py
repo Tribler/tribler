@@ -33,9 +33,9 @@ from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandl
 from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
 from Tribler.Core.Swift.SwiftDownloadImpl import SwiftDownloadImpl
 from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Core.dispersy.callback import Callback
-from Tribler.Core.dispersy.dispersy import Dispersy
-from Tribler.Core.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+from Tribler.dispersy.callback import Callback
+from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -405,7 +405,7 @@ class TriblerLaunchMany(Thread):
         from Tribler.Core.Overlay.permid import read_keypair
         keypair = read_keypair(self.session.get_permid_keypair_filename())
 
-        from Tribler.Core.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
+        from Tribler.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
         self.session.dispersy_member = self.dispersy.get_member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # define auto loads

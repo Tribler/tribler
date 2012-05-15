@@ -3,18 +3,18 @@ from database import EffortDatabase
 from payload import EffortRecordPayload
 from efforthistory import CYCLE_SIZE, EffortHistory
 
-from Tribler.Core.dispersy.candidate import BootstrapCandidate
-from Tribler.Core.dispersy.community import Community
-from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.message import BatchConfiguration, Message
-from Tribler.Core.dispersy.authentication import MultiMemberAuthentication
-from Tribler.Core.dispersy.resolution import PublicResolution
-from Tribler.Core.dispersy.distribution import LastSyncDistribution
-from Tribler.Core.dispersy.destination import CommunityDestination
+from Tribler.dispersy.candidate import BootstrapCandidate
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.message import BatchConfiguration, Message
+from Tribler.dispersy.authentication import MultiMemberAuthentication
+from Tribler.dispersy.resolution import PublicResolution
+from Tribler.dispersy.distribution import LastSyncDistribution
+from Tribler.dispersy.destination import CommunityDestination
 
 from time import time
 
-from Tribler.Core.dispersy.dprint import dprint
+from Tribler.dispersy.dprint import dprint
 from lencoder import bz2log, close
 
 class EffortCommunity(Community):

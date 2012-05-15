@@ -4,8 +4,8 @@ Example file
 python Tribler/Main/dispersy.py --script template
 """
 
-from Tribler.Core.dispersy.dprint import dprint
-from Tribler.Core.dispersy.script import ScriptBase
+from Tribler.dispersy.dprint import dprint
+from Tribler.dispersy.script import ScriptBase
 
 class TestScript(ScriptBase):
     def run(self):

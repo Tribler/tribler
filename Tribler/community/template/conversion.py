@@ -4,8 +4,8 @@ Example file
 
 from struct import pack, unpack_from
 
-from Tribler.Core.dispersy.conversion import BinaryConversion
-from Tribler.Core.dispersy.message import DropPacket
+from Tribler.dispersy.conversion import BinaryConversion
+from Tribler.dispersy.message import DropPacket
 
 class Conversion(BinaryConversion):
     def __init__(self, community):

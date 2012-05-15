@@ -6,14 +6,14 @@ from community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
-from Tribler.Core.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
-from Tribler.Core.dispersy.member import Member
-from Tribler.Core.dispersy.script import ScriptBase
-from Tribler.Core.dispersy.debug import Node
-from Tribler.Core.dispersy.dprint import dprint
+from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
+from Tribler.dispersy.member import Member
+from Tribler.dispersy.script import ScriptBase
+from Tribler.dispersy.debug import Node
+from Tribler.dispersy.dprint import dprint
 from lencoder import log  
 
-from Tribler.Core.dispersy.script import ScenarioScriptBase
+from Tribler.dispersy.script import ScenarioScriptBase
 
 class AllChannelNode(Node):
     def create_channel_propagate(self, packets, global_time):
@@ -200,7 +200,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                 self.want_to_join = True
                 
         if self.want_to_join:
-            from Tribler.Core.dispersy.dispersy import Dispersy
+            from Tribler.dispersy.dispersy import Dispersy
             dispersy = Dispersy.get_instance()
             
             log(self._logfile, "trying-to-join-community")

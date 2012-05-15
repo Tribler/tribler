@@ -1,5 +1,5 @@
-from Tribler.Core.dispersy.message import Packet
-from Tribler.Core.dispersy.payload import Payload
+from Tribler.dispersy.message import Packet
+from Tribler.dispersy.payload import Payload
 from struct import pack
 
 class ChannelPayload(Payload):

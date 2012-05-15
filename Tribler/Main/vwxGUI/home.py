@@ -25,7 +25,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.dispersy.dispersy import Dispersy
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
 from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter

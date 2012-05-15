@@ -12,7 +12,7 @@ from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_USEREVENTLOG_QUERY
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Utilities.utilities import show_permid, show_permid_short
 from Tribler.Core.Statistics.Crawler import Crawler
-from Tribler.Core.dispersy.encoding import encode, decode
+from Tribler.dispersy.encoding import encode, decode
 import cPickle
 from traceback import print_exc
 

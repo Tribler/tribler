@@ -46,7 +46,7 @@ DEFAULT_BUSY_TIMEOUT = 10000
 MAX_SQL_BATCHED_TO_TRANSACTION = 1000   # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
 icon_dir = None
-SHOW_ALL_EXECUTE = True
+SHOW_ALL_EXECUTE = False
 costs = []
 cost_reads = []
 torrent_dir = None
@@ -1905,7 +1905,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 dispersy.callback.register(insert_my_torrents, delay = 10.0)
                     
                         from Tribler.community.channel.community import ChannelCommunity
-                        from Tribler.Core.dispersy.dispersy import Dispersy
+                        from Tribler.dispersy.dispersy import Dispersy
                         from Tribler.Core.TorrentDef import TorrentDef
                         
                         dispersy = Dispersy.get_instance()
@@ -2060,7 +2060,7 @@ _callback_lock = threading.Lock()
 def register_task(db, *args, **kwargs):
     global _callback
     if not _callback:
-        from Tribler.Core.dispersy.dispersy import Dispersy
+        from Tribler.dispersy.dispersy import Dispersy
 
         dispersy = Dispersy.has_instance()
         if dispersy:

@@ -5,26 +5,26 @@ from time import sleep
 from conversion import ChannelConversion
 from payload import ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload, PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload
 
-from Tribler.Core.dispersy.dispersy import MissingMessageCache, MissingSomethingCache
-from Tribler.Core.dispersy.dispersydatabase import DispersyDatabase
-from Tribler.Core.dispersy.community import Community
-from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.message import BatchConfiguration, Message, DropMessage, DelayMessageByProof
-from Tribler.Core.dispersy.authentication import MemberAuthentication, NoAuthentication
-from Tribler.Core.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
-from Tribler.Core.dispersy.distribution import FullSyncDistribution, DirectDistribution
-from Tribler.Core.dispersy.destination import CandidateDestination, CommunityDestination
+from Tribler.dispersy.dispersy import MissingMessageCache, MissingSomethingCache
+from Tribler.dispersy.dispersydatabase import DispersyDatabase
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage, DelayMessageByProof
+from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
+from Tribler.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
+from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
+from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
 
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
 from traceback import print_stack, print_exc
 import sys
-from Tribler.Core.dispersy.dispersy import Dispersy
+from Tribler.dispersy.dispersy import Dispersy
 from time import time
 from Tribler.community.channel.payload import ModerationPayload
 
 if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
+    from Tribler.dispersy.dprint import dprint
     from lencoder import log
 
 class MissingChannelCache(MissingSomethingCache):
@@ -615,7 +615,7 @@ class ChannelCommunity(Community):
             try:
                 latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
             except:
-                from Tribler.Core.dispersy.dprint import dprint
+                from Tribler.dispersy.dprint import dprint
                 dprint(exception=1, force=1)
         
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)

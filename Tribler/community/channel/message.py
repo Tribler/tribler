@@ -1,4 +1,4 @@
-from Tribler.Core.dispersy.message import DelayMessage
+from Tribler.dispersy.message import DelayMessage
 
 class DelayMessageReqChannelMessage(DelayMessage):
     """
@@ -7,7 +7,7 @@ class DelayMessageReqChannelMessage(DelayMessage):
     def __init__(self, delayed, community = None, includeSnapshot = False):
         super(DelayMessageReqChannelMessage, self).__init__(delayed)
         if __debug__:
-            from Tribler.Core.dispersy.message import Message
+            from Tribler.dispersy.message import Message
         assert isinstance(delayed, Message.Implementation)
 
         self._community = community or delayed.community

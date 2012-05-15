@@ -6,21 +6,21 @@ from time import time
 
 from lencoder import close, bz2log
 
-from Tribler.Core.dispersy.authentication import NoAuthentication
-from Tribler.Core.dispersy.community import Community
-from Tribler.Core.dispersy.conversion import DefaultConversion
-from Tribler.Core.dispersy.destination import CandidateDestination
-from Tribler.Core.dispersy.distribution import DirectDistribution
-from Tribler.Core.dispersy.message import Message
-from Tribler.Core.dispersy.resolution import PublicResolution
+from Tribler.dispersy.authentication import NoAuthentication
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.destination import CandidateDestination
+from Tribler.dispersy.distribution import DirectDistribution
+from Tribler.dispersy.message import Message
+from Tribler.dispersy.resolution import PublicResolution
 
-from Tribler.Core.dispersy.candidate import CANDIDATE_WALK_LIFETIME, CANDIDATE_STUMBLE_LIFETIME, CANDIDATE_INTRO_LIFETIME
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, CANDIDATE_STUMBLE_LIFETIME, CANDIDATE_INTRO_LIFETIME
 
 from payload import ContactPayload
 from conversion import WalktestConversion
 
 if __debug__:
-    from Tribler.Core.dispersy.dprint import dprint
+    from Tribler.dispersy.dprint import dprint
 
 class WalktestCommunity(Community):
     def __init__(self, *args, **kargs):

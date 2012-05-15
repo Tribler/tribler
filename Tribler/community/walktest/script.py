@@ -1,6 +1,6 @@
 from community import WalktestCommunity, DAS2SCENARIO, DAS4SCENARIO
 from lencoder import close, bz2log
-from Tribler.Core.dispersy.tool.scenarioscript import ScenarioScript
+from Tribler.dispersy.tool.scenarioscript import ScenarioScript
 
 if DAS2SCENARIO:
     class ScenarioScript(ScenarioScript):
@@ -21,7 +21,7 @@ if DAS2SCENARIO:
             bz2log("walktest.log", _message, **kargs)
 
 if DAS4SCENARIO:
-    from Tribler.Core.dispersy.tool.scenarioscript import ScenarioExpon, ScenarioUniform
+    from Tribler.dispersy.tool.scenarioscript import ScenarioExpon, ScenarioUniform
 
     class ScenarioScript(ScenarioScript, ScenarioExpon, ScenarioUniform):
         @property

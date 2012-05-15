@@ -1,4 +1,4 @@
-from Tribler.Core.dispersy.payload import Payload
+from Tribler.dispersy.payload import Payload
 
 class ContactPayload(Payload):
     class Implementation(Payload.Implementation):
