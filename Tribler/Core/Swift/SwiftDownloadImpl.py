@@ -483,6 +483,13 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     # Persistence
     #
+    def checkpoint(self):
+        """ Called by any thread """
+        # Arno, 2012-05-15. Currently this is safe to call from any thread.
+        # Need this for torrent collecting via swift.
+        self.network_checkpoint()
+    
+    
     def network_checkpoint(self):
         """ Called by network thread """
         self.dllock.acquire()
