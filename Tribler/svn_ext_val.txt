@@ -1,0 +1,11 @@
+#
+# SVN externals following the description on the site below:
+# http://blog.kowalczyk.info/article/Short-tutorial-on-svn-propset-for-svnexternals-p.html
+#
+# Whenever the links change, the svn:externals property must be set
+# again:
+# > cd mainbranch/Tribler
+# > svn propset svn:externals . -F svn_ext_val.txt
+
+SwiftEngine https://svn.tribler.org/libswift/branches/arno/swift-like-ftp
+dispersy https://svn.tribler.org/dispersy/trunk
