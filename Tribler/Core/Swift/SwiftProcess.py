@@ -68,7 +68,11 @@ class SwiftProcess(InstanceConnection):
         if DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
         
-        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP) 
+        if sys.platform == "win32":
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            creationflags=0
+        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir,creationflags=creationflags) 
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
