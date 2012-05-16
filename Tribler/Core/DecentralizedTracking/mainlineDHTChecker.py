@@ -47,7 +47,7 @@ class mainlineDHTChecker:
             print >>sys.stderr,"mainlineDHTChecker: No lookup, no DHT support loaded"
 
         
-    def got_peers_callback(self,infohash,peers):
+    def got_peers_callback(self, infohash, peers, node=None):
         """ Called by network thread """
         if DEBUG:
             if peers:
