@@ -85,8 +85,8 @@ class SwiftProcess(InstanceConnection):
         self.singsock = self.connhandler.start_connection(("127.0.0.1", self.cmdport),self)
         
     def i2ithread_readlinecallback(self,ic,cmd):
-        if DEBUG:
-            print >>sys.stderr,"sp: Got command #"+cmd+"#"
+        #if DEBUG:
+        #    print >>sys.stderr,"sp: Got command #"+cmd+"#"
         words = cmd.split()
 
         if words[0] == "TUNNELRECV":
@@ -328,8 +328,6 @@ class SwiftProcess(InstanceConnection):
 
     def send_max_speed(self,roothash_hex,direct,speed):
         # assume splock is held to avoid concurrency on socket
-        print >>sys.stderr,"sp: send_max_speed:",direct,speed
-        
         cmd = 'MAXSPEED '+roothash_hex
         if direct == DOWNLOAD:
             cmd += ' DOWNLOAD '
