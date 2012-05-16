@@ -2062,17 +2062,24 @@ _callback_lock = threading.Lock()
 def register_task(db, *args, **kwargs):
     global _callback
     if not _callback:
-        with _callback_lock:
-            if not _callback:
-                from Tribler.dispersy.dispersy import Dispersy
-        
-                dispersy = Dispersy.has_instance()
-                if dispersy:
+        from Tribler.dispersy.dispersy import Dispersy
+    
+        dispersy = Dispersy.has_instance()
+        if dispersy:
+            _callback_lock.acquire()
+            try:
+                # check again if _callback hasn't been set, but now we are thread safe
+                # 16/05/12 Boudewijn: this second check within the lock is required, do not remove it
+                if not _callback:
                     print >> sys.stderr, "Using actual DB thread"
                     _callback = dispersy.callback
-                    
+
                     #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                    _callback.register(db.initialBegin)
+                    # 16/05/12 Boudewijn: using call instead of register to guarantee that no other
+                    # statements can be executed before initialBegin is done
+                    _callback.call(db.initialBegin)
+            finally:
+                _callback_lock.release()
 
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
@@ -2146,6 +2153,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _cacheCommit
         global _shouldCommit
         try:
+            print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
             self._execute("BEGIN;")
         except:
             print >> sys.stderr, "INITIAL BEGIN FAILED"
@@ -2157,6 +2165,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _shouldCommit
         if _cacheCommit and _shouldCommit:
             try:
+                print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
@@ -2164,6 +2173,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             _shouldCommit = False
 
             try:
+                print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
                 self._execute("BEGIN;")
             except:
                 print >> sys.stderr, "BEGIN FAILED"
