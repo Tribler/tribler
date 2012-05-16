@@ -389,9 +389,9 @@ class TriblerLaunchMany(Thread):
             try:
                 swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
             except OSError:
-                print >> sys.stderr, "lmc: could not start a swift process"
                 # could not find/run swift
-                pass
+                print >> sys.stderr, "lmc: could not start a swift process"
+
             else:
                 endpoint = TunnelEndpoint(swift_process, self.dispersy)
                 swift_process.add_download(endpoint)
@@ -400,6 +400,7 @@ class TriblerLaunchMany(Thread):
             endpoint = RawserverEndpoint(self.rawserver, self.dispersy, config['dispersy_port'])
 
         self.dispersy.endpoint = endpoint
+        print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1]
 
         # use the same member key as that from Tribler
         from Tribler.Core.Overlay.permid import read_keypair
