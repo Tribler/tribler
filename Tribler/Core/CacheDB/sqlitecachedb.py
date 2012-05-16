@@ -2063,15 +2063,16 @@ def register_task(db, *args, **kwargs):
     global _callback
     if not _callback:
         with _callback_lock:
-            from Tribler.dispersy.dispersy import Dispersy
-    
-            dispersy = Dispersy.has_instance()
-            if dispersy:
-                print >> sys.stderr, "Using actual DB thread"
-                _callback = dispersy.callback
-                
-                #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                _callback.register(db.initialBegin)
+            if not _callback:
+                from Tribler.dispersy.dispersy import Dispersy
+        
+                dispersy = Dispersy.has_instance()
+                if dispersy:
+                    print >> sys.stderr, "Using actual DB thread"
+                    _callback = dispersy.callback
+                    
+                    #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
+                    _callback.register(db.initialBegin)
 
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
