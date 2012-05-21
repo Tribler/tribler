@@ -21,13 +21,16 @@
 #
 # This must be done in the first python file that is started.
 #
+import urllib
+original_open_https = urllib.URLopener.open_https
+import M2Crypto # Not a useless import! See above.
+urllib.URLopener.open_https = original_open_https
 
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 
 import os,sys
-import urllib
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
@@ -37,10 +40,6 @@ import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 from random import randint
 from threading import current_thread
-
-original_open_https = urllib.URLopener.open_https
-import M2Crypto # Not a useless import! See above.
-urllib.URLopener.open_https = original_open_https
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
 # errors on Vista in "Regional and Language Settings Options" different from 
@@ -62,7 +61,6 @@ from wx import xrc
 from traceback import print_exc
 import urllib2
 import tempfile
-import shutil
 import thread
 
 from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
@@ -339,8 +337,6 @@ class ABCApp():
             self.sconfig.set_nat_detect(True)
             
             # Arno, 2012-05-04: swift
-            swiftbinpath = os.path.join(self.sconfig.get_install_dir(),"swift")
-            self.sconfig.set_swift_path(swiftbinpath)
             self.sconfig.set_swift_tunnel_listen_port(7758)
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
             self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
@@ -397,6 +393,15 @@ class ABCApp():
             self.sconfig.set_install_dir(module_path())
             
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
+
+        # Arno, 2012-05-21: Swift part II
+        if sys.platform == "darwin":
+            swiftbinpath = os.path.join(os.getcwdu(),"..","MacOS","swift")
+        else:
+            swiftbinpath = os.path.join(self.sconfig.get_install_dir(),"swift")
+        self.sconfig.set_swift_path(swiftbinpath)
+        print >>sys.stderr,"Tribler is expecting swift in",swiftbinpath
+
         
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
