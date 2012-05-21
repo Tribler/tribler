@@ -138,11 +138,7 @@ class MagnetLink:
             print >> sys.stderr, "No Infohash"
             return False
 
-<<<<<<< .mine
     def potential_peers_from_dht(self, lookup_id, peers, node=None):
-=======
-    def potential_peers_from_dht(self, lookup_id, peers, src_node):
->>>>>>> .r26525
         if peers:
             self._swarm.add_potential_peers(peers)
 
