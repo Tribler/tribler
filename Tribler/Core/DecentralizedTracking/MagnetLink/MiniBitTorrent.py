@@ -11,7 +11,7 @@ metadata is obtained.
 """
 
 from cStringIO import StringIO
-from random import getrandbits 
+from random import getrandbits
 from threading import Lock, Event, Thread
 from time import time
 from traceback import print_exc
@@ -29,7 +29,6 @@ UT_EXTEND_HANDSHAKE = chr(0)
 UT_PEX_ID = chr(1)
 UT_METADATA_ID = chr(2)
 METADATA_PIECE_SIZE = 16 * 1024
-MAX_CONNECTIONS = 30
 MAX_TIME_INACTIVE = 10 #Current default timeout is 30s, setting inactive time to 10
 
 DEBUG = False
@@ -230,7 +229,7 @@ class Connection:
         else:
             if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Received unknown extend message"
             return False
-                    
+
         return True
 
     def data_came_in(self, socket, data):
@@ -273,16 +272,16 @@ class Connection:
         if not self._closed:
             self.connection_lost(self._socket)
             self._socket.close()
-        
+
     def __str__(self):
         return 'MiniBitTorrentCON'+str(self._closed)+str(self._socket.connected)+str(self._swarm._info_hash)
-    
+
 class MiniSwarm:
     """
     A MiniSwarm instance maintains an overview of what is going on in
     a single BitTorrent swarm.
     """
-    def __init__(self, info_hash, raw_server, callback):
+    def __init__(self, info_hash, raw_server, callback, max_connections=30):
         # _info_hash is the 20 byte binary info hash that identifies
         # the swarm.
         assert isinstance(info_hash, str), str
@@ -296,6 +295,10 @@ class MiniSwarm:
         # _callback is called with the raw metadata string when it is
         # retrieved
         self._callback = callback
+
+        # _max_connections limits the number of open TCP connections
+        # while downloading
+        self._max_connections = max_connections
 
         # _peer_id contains 20 semi random bytes
         self._peer_id = "-ST0100-" + "".join([chr(getrandbits(8)) for _ in range(12)])
@@ -471,7 +474,7 @@ class MiniSwarm:
                     # quick solution... remove everything and try again
                     if DEBUG: print >> sys.stderr, "MiniBitTorrent.add_metadata_piece() Failed hashcheck! Restarting all over again :("
                     self._metadata_blocks = [[requested, piece, None] for requested, piece, data in self._metadata_blocks]
- 
+
     def add_potential_peers(self, addresses):
         if not self._closed:
             self._lock.acquire()
@@ -482,7 +485,7 @@ class MiniSwarm:
             finally:
                 self._lock.release()
 
-            if len(self._connections) < MAX_CONNECTIONS:
+            if len(self._connections) < self._max_connections:
                 self._create_connections()
 
     def _create_connections(self):
@@ -499,7 +502,7 @@ class MiniSwarm:
         addresses.sort()
 
         for timestamp, address in addresses:
-            if len(self._connections) >= MAX_CONNECTIONS:
+            if len(self._connections) >= self._max_connections:
                 break
 
             already_on_this_address = False
@@ -581,7 +584,7 @@ class MiniTracker(Thread):
                     body = bdecode(body)
                 except:
                     pass
-                
+
                 else:
                     # using low-bandwidth binary format
                     peers = []

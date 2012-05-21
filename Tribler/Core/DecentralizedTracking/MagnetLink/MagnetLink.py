@@ -77,7 +77,7 @@ class MagnetHandler(Singleton):
         return self._magnets
 
 class MagnetLink:
-    def __init__(self, url, callback, timeout):
+    def __init__(self, url, callback, timeout, max_connections=30):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and returned to CALLBACK.
@@ -104,7 +104,7 @@ class MagnetLink:
         # to peers to retrieve the metadata.
         magnet_handler = MagnetHandler.get_instance()
         magnet_handler.add_magnet(self, timeout)
-        self._swarm = MiniSwarm(self._info_hash, magnet_handler.get_raw_server(), self.metainfo_retrieved)
+        self._swarm = MiniSwarm(self._info_hash, magnet_handler.get_raw_server(), self.metainfo_retrieved, max_connections=max_connections)
 
     def get_infohash(self):
         return self._info_hash
