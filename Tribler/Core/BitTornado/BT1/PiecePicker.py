@@ -433,10 +433,6 @@ class PiecePicker:
         @param connection: the connection object on which the returned piece will be requested
         @return: a piece number or None 
         """
-        
-        if self.filepieceranges:
-            wantfunc = lambda piece, oldwantfunc = wantfunc: piece in self.filepieceranges and oldwantfunc(piece)
-        
         while True:
             # ProxyService_
             #
