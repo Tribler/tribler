@@ -2153,7 +2153,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _cacheCommit
         global _shouldCommit
         try:
-            print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
+            if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
             self._execute("BEGIN;")
         except:
             print >> sys.stderr, "INITIAL BEGIN FAILED"
@@ -2165,7 +2165,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _shouldCommit
         if _cacheCommit and _shouldCommit:
             try:
-                print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
+                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
@@ -2173,7 +2173,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             _shouldCommit = False
 
             try:
-                print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
+                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
                 self._execute("BEGIN;")
             except:
                 print >> sys.stderr, "BEGIN FAILED"
