@@ -1074,7 +1074,7 @@ class StorageWrapper:
 
     def doublecheck_data(self, pieces_to_check):
         if not self.double_check:
-            return
+            return True
         sources = []
         for p, v in self.places.iteritems():
             if pieces_to_check.has_key(v):

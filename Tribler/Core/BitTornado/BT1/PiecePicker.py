@@ -29,18 +29,11 @@ DEBUG = False
 class PiecePicker:
     def __init__(self, numpieces,
                  rarest_first_cutoff = 1, rarest_first_priority_cutoff = 3,
-                 priority_step = 20, filepieceranges = []):
+                 priority_step = 20):
         # If we have less than the cutoff pieces, choose pieces at random. Otherwise,
         # go for rarest first.
         self.rarest_first_cutoff = rarest_first_cutoff
         self.priority_step = priority_step
-        
-        if filepieceranges and len(filepieceranges) > 0:
-            self.filepieceranges = set()
-            for start, end, _ in filepieceranges:
-                self.filepieceranges.update(range(start, end+1))
-        else:
-            self.filepieceranges = None
 
         # cutoff = number of non-seeds which need to have a piece before other
         #          partials take priority over rarest first. In effect, equal to:
@@ -310,7 +303,8 @@ class PiecePicker:
         self.numhaves = [i-1 for i in self.numhaves]
         if self.superseed or not self.done:
             self.level_in_interests = [i-1 for i in self.level_in_interests]
-            del self.interests[0]
+            if self.interests:
+                del self.interests[0]
         del self.crosscount[0]
         if not self.done:
             del self.crosscount2[0]
@@ -462,9 +456,8 @@ class PiecePicker:
                     print >> sys.stderr,"PiecePicker: next: _next returned no pieces!"
                 break
 
-            # We should never get here
             if DEBUG:
-                print >> sys.stderr,"PiecePicker: next: an error occurred. Returning piece",piece
+                print >> sys.stderr,"PiecePicker: next: Returning piece", piece, "with priority", self.priority[piece-1:piece+2]
             return piece
 
         # ProxyService_
@@ -505,7 +498,6 @@ class PiecePicker:
     def set_priority(self, piece, p):
         """ Define the priority with which a piece needs to be downloaded.
             A priority of -1 means 'do not download'. """
-
         if self.superseed:
             return False    # don't muck with this if you're a superseed
         oldp = self.priority[piece]

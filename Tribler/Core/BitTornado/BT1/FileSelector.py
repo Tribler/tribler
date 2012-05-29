@@ -78,6 +78,10 @@ class FileSelector:
             if not self.init_priority(d['priority']):
                 return
         pieces = self.storage.unpickle(d)
+        # 25/05/12 Boudewijn: init_priority causes files to be disabled, this in turn must result in
+        # new Storage.ranges values (i.e. buffer files where the partial pieces of files are stored)
+        self.storage.reset_file_status()
+
         if not pieces:  # don't bother, nothing restoreable
             return
         new_piece_priority = self._get_piece_priority_list(self.new_priority)

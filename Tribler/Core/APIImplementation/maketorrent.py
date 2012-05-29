@@ -499,6 +499,28 @@ def get_bitrate_from_metainfo(file, metainfo):
             
         raise ValueError("File not found in torrent")
 
+def get_length_priority_from_metainfo(metainfo, selectedfiles):
+    if 'files' not in metainfo['info']:
+        # single-file torrent
+        return None
+    else:
+        # multi-file torrent
+        files = metainfo['info']['files']
+
+        total = 0L
+        priorities = []
+        for i in xrange(len(files)):
+            path = files[i]['path']
+            length = files[i]['length']
+            filename = pathlist2filename(path)
+
+            if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
+                priorities.append("1")
+                total += length
+            else:
+                priorities.append("-1")
+        return (total,",".join(priorities))
+
 def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
     
     if 'files' not in metainfo['info']:
@@ -508,7 +530,8 @@ def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
         # multi-file torrent
         files = metainfo['info']['files']
         piecesize = metainfo['info']['piece length']
-        
+
+        offset = 0L
         total = 0L
         filepieceranges = []
         for i in xrange(len(files)):
@@ -517,9 +540,10 @@ def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
             filename = pathlist2filename(path)
             
             if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
-                range = (offset2piece(total,piecesize, False), offset2piece(total + length,piecesize),filename)
+                range = (offset2piece(offset,piecesize, False), offset2piece(offset + length,piecesize),filename)
                 filepieceranges.append(range)
                 total += length
+            offset += length
         return (total,filepieceranges)
 
 

@@ -60,6 +60,7 @@ class DownloadState(Serializable):
         
         if stats is None:
             # No info available yet from download engine
+            if DEBUG: print >> sys.stderr, "DownloadState.__init__: stats is None"
             self.error = error # readonly access
             self.progress = progress
             if self.error is not None:
@@ -68,12 +69,14 @@ class DownloadState(Serializable):
                 self.status = status
             self.stats = None
         elif error is not None:
+            if DEBUG: print >> sys.stderr, "DownloadState.__init__: error is not None"
             self.error = error # readonly access
             self.progress = 0.0 # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
             self.stats = None
         elif status is not None and not status in [DLSTATUS_REPEXING,DLSTATUS_DOWNLOADING,DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
+            if DEBUG: print >> sys.stderr, "DownloadState.__init__: we have status and it is not repexing, downloading, or seeding"
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -83,6 +86,7 @@ class DownloadState(Serializable):
             self.stats = None
         else:
             # Copy info from stats
+            if DEBUG: print >> sys.stderr, "DownloadState.__init__: copy from stats"
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
@@ -128,7 +132,7 @@ class DownloadState(Serializable):
 
                     else:
                         self.progress = have/float(len(haveslice))
-            
+
             # RePEX: REPEXING status overrides SEEDING/DOWNLOADING status.
             if status is not None and status == DLSTATUS_REPEXING:
                 self.status = DLSTATUS_REPEXING

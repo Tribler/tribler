@@ -609,6 +609,9 @@ class DownloadImpl:
             print >>sys.stderr,"Download: set_filepieceranges:",self.dlconfig['selected_files']
         (length,self.filepieceranges) = maketorrent.get_length_filepieceranges_from_metainfo(metainfo,self.dlconfig['selected_files'])
 
+        # dlconfig['priority'] will propagate the selected files to Storage
+        (length,self.dlconfig["priority"]) = maketorrent.get_length_priority_from_metainfo(metainfo,self.dlconfig['selected_files'])
+        
     def get_content_dest(self):
         """ Returns the file (single-file torrent) or dir (multi-file torrent)
         to which the downloaded content is saved. """

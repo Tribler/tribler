@@ -2165,7 +2165,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _shouldCommit
         if _cacheCommit and _shouldCommit:
             try:
-                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
+                if DEBUG:
+                    BEGIN = time()
+                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
@@ -2173,7 +2175,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             _shouldCommit = False
 
             try:
-                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
+                if DEBUG:
+                    END = time()
+                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN (commit took %.2fs)" % (END - BEGIN)
                 self._execute("BEGIN;")
             except:
                 print >> sys.stderr, "BEGIN FAILED"

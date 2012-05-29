@@ -273,6 +273,9 @@ class Storage:
         for l in self.working_ranges:
             self.ranges.extend(l)
             self.begins = [i[0] for i in self.ranges]
+        if DEBUG:
+            for a,b in enumerate(self.ranges):
+                print >> sys.stderr, "Storage._reset_ranges", a, ":", b
 
     def _intervals(self, pos, amount):
         r = []
@@ -316,11 +319,13 @@ class Storage:
         return r
 
     def write(self, pos, s):
+        if DEBUG:
+            print >>sys.stderr, 'writing ', len(s), 'bytes at', pos
         # might raise an IOError
         total = 0
         for file, begin, end in self._intervals(pos, len(s)):
             if DEBUG:
-                print 'writing '+file+' from '+str(pos)+' to '+str(end)
+                print >>sys.stderr, 'writing '+file+' from '+str(pos)+' to '+str(end)
             self.lock.acquire()
             h = self._get_file_handle(file, True)
             h.seek(begin)
@@ -333,17 +338,21 @@ class Storage:
             l = offset + end - begin
             if l > self.tops.get(file, 0):
                 self.lock.acquire()
-                h = self._get_file_handle(file, True)
-                h.seek(l-1)
-                h.write(chr(0xFF))
-                self.lock.release()
+                try:
+                    h = self._get_file_handle(file, True)
+                    h.seek(l-1)
+                    h.write(chr(0xFF))
+                finally:
+                    self.lock.release()
 
     def flush(self):
         # may raise IOError or OSError
         for file in self.whandles.keys():
             self.lock.acquire()
-            self.handles[file].flush()
-            self.lock.release()
+            try:
+                self.handles[file].flush()
+            finally:
+                self.lock.release()
 
     def close(self):
         for file, f in self.handles.items():
@@ -451,7 +460,7 @@ class Storage:
         if not self.mtimes.has_key(file):
             self.mtimes[file] = getmtime(file)
         self.working_ranges[f] = [r]
-
+        
     def disable_file(self, f):
         if self.disabled[f]:
             return

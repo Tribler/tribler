@@ -143,7 +143,7 @@ class BT1Download:
                              config['rarest_first_priority_cutoff'], piecesize=self.piecesize)
             else:
                 self.picker = PiecePicker(self.len_pieces, config['rarest_first_cutoff'], 
-                             config['rarest_first_priority_cutoff'], filepieceranges = dlinstance.filepieceranges)
+                             config['rarest_first_priority_cutoff'])
             
         except:
             print_exc()
@@ -296,6 +296,12 @@ class BT1Download:
 
         disabled_files = None
         if self.selector_enabled:
+
+            # 25/05/12 Boudewijn: the sparse alloc mode will read files that are disabled resulting
+            # in crashes.  perhaps this is a bug that can be fixed with time and patience
+            if self.config.get('alloc_type') == 'sparse':
+                self.config['alloc_type'] = 'normal'
+
             self.priority = self.config['priority']
             if self.priority:
                 try:
@@ -329,15 +335,15 @@ class BT1Download:
             self.config, self.unpauseflag)
             
         if self.selector_enabled:
-            self.fileselector = FileSelector(self.files, self.info['piece length'], 
-                                             None, 
+            self.fileselector = FileSelector(self.files, self.info['piece length'],
+                                             os.path.join(self.config["saveas"], "bufferdir", self.infohash.encode("HEX")),
                                              self.storage, self.storagewrapper, 
                                              self.rawserver.add_task, 
                                              self._failed)
 
             if resumedata:
                 self.fileselector.unpickle(resumedata)
-                
+
         self.checking = True
         if old_style:
             return self.storagewrapper.old_style_init()
