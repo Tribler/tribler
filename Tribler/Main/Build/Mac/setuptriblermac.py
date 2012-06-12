@@ -115,6 +115,8 @@ setup(
              (LIBRARYNAME+"/Core", [LIBRARYNAME+"/Core/superpeer.txt"]),
              (LIBRARYNAME+"/Category", [LIBRARYNAME+"/Category/category.conf"]),
              (LIBRARYNAME+"/Core/Tag", [LIBRARYNAME+"/Core/Tag/stop_snowball.filter"]),
+             (LIBRARYNAME+"/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME+"/Core/DecentralizedTracking/pymdht/core/bootstrap.main"]),
+             (LIBRARYNAME+"/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME+"/Core/DecentralizedTracking/pymdht/core/bootstrap.backup"]),
              LIBRARYNAME+"/readme.txt",
              LIBRARYNAME+"/Main/Build/Mac/TriblerDoc.icns",
            ]

@@ -5,6 +5,7 @@ import sys
 import time
 from traceback import print_exc
 import threading
+from Queue import Queue
 
 class ThreadPool:
 
@@ -91,6 +92,8 @@ class ThreadPool:
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
         
+        print >> sys.stderr, len(self.__tasks)
+        
         self.__taskCond.acquire()
         try:
             while self.__tasks == [] and not self.__isJoining:
@@ -135,8 +138,31 @@ class ThreadPool:
         finally:
             self.__resizeLock.release()
 
-
+class ThreadNoPool:
+    
+    def __init__(self):
+        self.prevTask = False
+        self.__isJoiningStopQueuing = False
         
+        self.queue = Queue()
+        self.thread = ThreadPoolThread(self)
+        self.thread.start()
+        
+    def getThreadCount(self):
+        return 1
+    
+    def queueTask(self, task, args=(), taskCallback=None):
+        if not self.__isJoiningStopQueuing:
+            self.queue.put((task, args, taskCallback))
+    
+    def getNextTask(self):
+        if self.prevTask:
+            self.queue.task_done()
+        return self.queue.get()
+        
+    def joinAll(self, waitForTasks = True, waitForThreads = True):
+        self.thread.join()
+       
 class ThreadPoolThread(threading.Thread):
 
     """ Pooled thread class. """

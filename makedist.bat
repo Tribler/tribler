@@ -110,6 +110,13 @@ copy Tribler\Video\Images\*.* dist\installdir\Tribler\Video\Images
 mkdir dist\installdir\Tribler\Lang
 copy Tribler\Lang\*.lang dist\installdir\Tribler\Lang
 
+REM Arno, 2012-05-25: data files for pymdht
+mkdir dist\installdir\Tribler\Core\DecentralizedTracking
+mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht
+mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
+copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
+copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
+
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 copy vlc.py dist\installdir\vlc.py
@@ -135,6 +142,7 @@ copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 
 REM Swift
+del swift.exe
 cd Tribler\SwiftEngine
 CALL win32-build.bat
 cd ..\..
@@ -143,12 +151,16 @@ copy swift.exe dist\installdir
 @echo Running NSIS
 cd dist\installdir
 
-REM Arno: Sign .EXE so MS "Block / Unblock" dialog has publisher info.
+REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
 "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
+REM Arno: Sign swift.exe so MS "Block / Unblock" dialog has publisher info.
+"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
+
+
 :makeinstaller
-%NSIS% tribler_novlc.nsi
-move Tribler_*.exe ..
+REM %NSIS% tribler_novlc.nsi
+REM move Tribler_*.exe ..
 %NSIS% tribler.nsi
 move Tribler_*.exe ..
 cd ..

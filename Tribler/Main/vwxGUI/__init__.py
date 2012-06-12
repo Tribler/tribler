@@ -31,8 +31,7 @@ TRIBLER_RED = wx.Colour(255, 51, 0)
 LIST_RADIUS = 7
 LIST_AUTOSIZEHEADER = -2
 
-TORRENT_COLUMNS = ['infohash', 'name', 'length']
-CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.dispersy_id', 'ChannelTorrents.name', 'Torrent.name', 'description', 'time_stamp', 'inserted']
+CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', '""', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.dispersy_id', 'ChannelTorrents.name', 'Torrent.name', 'ChannelTorrents.description', 'ChannelTorrents.time_stamp', 'ChannelTorrents.inserted']
 PLAYLIST_REQ_COLUMNS = ['Playlists.id', 'Playlists.dispersy_id', 'Playlists.channel_id', 'Playlists.name', 'Playlists.description']
 LIBRARY_REQ_COLUMNS = CHANNEL_REQ_COLUMNS + ['progress']
 
@@ -49,7 +48,6 @@ MODERATION_REQ_COLUMNS = tmp
 CHANNEL_MAX_NON_FAVORITE = 50
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
-
 
 def format_time(val):
     try:
@@ -104,8 +102,12 @@ def forceAndReturnWxThread(func):
                     event.set()
             
             wx.CallAfter(wx_thread)
-            if event.wait(100) or event.isSet():
+            if event.wait(15) or event.isSet():
                 return result[0]
+            
+            from traceback import print_stack
+            print_stack()
+            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnWxThread", func.__name__
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -121,7 +123,6 @@ def warnWxThread(func):
     
     invoke_func.__name__ = func.__name__
     return invoke_func
-
 
 _register_task = None
 def register_task(*args, **kwargs):
@@ -175,7 +176,7 @@ def forceAndReturnDBThread(func):
             db_thread.__name__ = func.__name__
             register_task(db_thread, priority = 1024)
             
-            if event.wait(100) or event.isSet():
+            if event.wait(15) or event.isSet():
                 return result[0]
             
             from traceback import print_stack

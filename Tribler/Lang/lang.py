@@ -28,12 +28,10 @@ class Lang:
         self.utility = utility
         
         filename = self.utility.config.Read('language_file')
-        
-        
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME,  "Lang")
         
         sys.stdout.write("Setting up languages\n")
-        sys.stdout.write("Language file: " + str(filename) + "\n")
+        print >> sys.stderr, "Language file:", langpath, filename
         
         # Set up user language file (stored in user's config directory)
         self.user_lang = None
@@ -84,9 +82,9 @@ class Lang:
         if (label == 'version'):
             return version_id
         if (label == 'build'):
-            return "Build 25598"
+            return "Build 27013"
         if (label == 'build_date'):
-            return "Mar 28, 2012"
+            return "June 8, 2012"
         # see if it exists in 'user.lang'
         if tryuser:
             text, found = self.getFromLanguage(label, self.user_lang)
@@ -113,7 +111,7 @@ class Lang:
 
         # if we get to this point, we weren't able to read anything
         if giveerror:
-            sys.stdout.write("Language file: Got an error finding: "+label)
+            print >> sys.stderr, "Language file: Got an error finding:", label
             self.error(label)
         return ""
         

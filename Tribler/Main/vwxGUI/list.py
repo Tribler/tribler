@@ -11,7 +11,8 @@ from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.tribler_topButton import ProgressStaticText
+from Tribler.Main.vwxGUI.tribler_topButton import ProgressStaticText,\
+    HorizontalGauge
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -64,10 +65,14 @@ class RemoteSearchManager:
         if self.oldkeywords != keywords:
             self.list.Reset()
             self.oldkeywords = keywords
+    
+    def NewResult(self, keywords):
+        if self.oldkeywords == keywords:
+            self.list.NewResult()
    
     def refreshDirty(self):
         self.refresh_partial(self.dirtyset)
-        self.dirtyset.clear()   
+        self.dirtyset.clear()
    
     def refresh(self,remote=False):
         def db_callback():
@@ -122,7 +127,7 @@ class RemoteSearchManager:
                 startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True)
     
     def showSearchSuggestions(self, keywords):
-        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, wargs=(keywords, 3), retryOnBusy=True)
+        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs = (keywords, ), wargs=(keywords, 3), retryOnBusy=True)
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -151,8 +156,6 @@ class LocalSearchManager:
         self.library_manager = guiutility.library_manager
         self.prev_refresh_if = 0
     
-    def expand(self, infohash):
-        self.list.Select(infohash)
     
     def refresh(self):
         startWorker(self._on_data, self.library_manager.getHitsInCategory, uId = "LocalSearchManager_refresh", retryOnBusy=True)
@@ -166,11 +169,25 @@ class LocalSearchManager:
                 print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Library"
                 
                 self.refresh()
+            else:
+                print >> sys.stderr, long(time()), "Not scheduling a refresh"
         
         diff = time() - self.prev_refresh_if        
         if diff > 30:
             self.prev_refresh_if = time()
             startWorker(None, db_call, uId="LocalSearchManager_refresh_if_exists", retryOnBusy=True)
+        else:
+            print >> sys.stderr, long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if)
+            
+    def refresh_or_expand(self, infohash):
+        if not self.list.InList(infohash):
+            def select(delayedResult):
+                delayedResult.get()
+                self.refresh_partial(infohash)
+                
+            startWorker(select, self.refresh_partial, wargs = (infohash, ))
+        else:
+            self.list.Select(infohash)
 
     @forceWxThread
     def _on_data(self, delayedReslt):
@@ -182,6 +199,9 @@ class LocalSearchManager:
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
             self.refresh_partial(infohash)
+            
+    def downloadStarted(self, infohash):
+        self.prev_refresh_if = 0
         
 class ChannelSearchManager:
     def __init__(self, list):
@@ -209,9 +229,12 @@ class ChannelSearchManager:
             self.list.dirty = True
             
     def refreshDirty(self):
-        if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > 5:
+        if self.category != 'searchresults' and 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > 5:
             self.refresh()
         else:
+            if 'COMPLETE_REFRESH' in self.dirtyset:
+                self.dirtyset.remove('COMPLETE_REFRESH')
+            
             self.refresh_partial()
             self.list.dirty = False
         self.dirtyset.clear()
@@ -283,7 +306,7 @@ class ChannelSearchManager:
             self.dirtyset.update(ids)
         
         def do_db():
-            ids = self.dirtyset
+            ids = list(self.dirtyset)
             self.dirtyset.clear()
             
             return self.channelsearch_manager.getChannels(ids)
@@ -312,7 +335,7 @@ class ChannelSearchManager:
         else:
             self.list.DeselectAll()
            
-    def channelUpdated(self, id, votecast = False):
+    def channelUpdated(self, id, votecast = False, myvote = False):
         if self.list.isReady:
             #only update when shown
             if self.list.IsShownOnScreen():
@@ -327,18 +350,25 @@ class ChannelSearchManager:
                 elif self.category == 'Popular':
                     if len(self.list.GetItems()) < 20:
                         self.refresh()
+                        
+                elif self.category == 'Favorites' and myvote:
+                    self.refresh()
                     
             elif self.list.InList(id):
                 self.dirtyset.add(id)
                 self.list.dirty = True
                 
-            elif not votecast:
-                if self.category == 'All':
+            else:
+                if not votecast:
+                    if self.category == 'All':
+                        update = True
+                    elif self.category == 'Popular':
+                        update = len(self.list.GetItems()) < 20
+                    else:
+                        update = False
+                
+                if myvote and self.category == "Favorites":
                     update = True
-                elif self.category == 'Popular':
-                    update = len(self.list.GetItems()) < 20
-                else:
-                    update = False
                 
                 if update: 
                     self.do_or_schedule_refresh()
@@ -811,7 +841,8 @@ class GenericSearchList(SizeList):
     @warnWxThread
     def OnDownload(self, event):
         item = event.GetEventObject().item
-        self.Select(item.original_data.infohash)
+        key = self.infohash2key.get(item.original_data.infohash, item.original_data.infohash)
+        self.Select(key)
         self.StartDownload(item.original_data)
         
         button = event.GetEventObject()
@@ -895,7 +926,7 @@ class GenericSearchList(SizeList):
         if data:
             original_data = data
             if 'bundle' in data: # bundle update
-                head = data['bundle'][0] 
+                head = data['bundle'][0]
             else: # individual hit update
                 head = original_data
                 
@@ -992,7 +1023,10 @@ class GenericSearchList(SizeList):
             self.uelog.addEvent(message=relevance_msg, type = 4)
         
         startWorker(None, db_callback, retryOnBusy=True)
-        self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
+        response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
+        if response:
+            self.guiutility.Notify('.Torrent file is being downloaded %s, this could take a while.'%response, wx.ART_INFORMATION)
+        
         
     def InList(self, key):
         key = self.infohash2key.get(key, key)
@@ -1149,7 +1183,7 @@ class SearchList(GenericSearchList):
             title = 'Searching'
 
         if self.keywords != None:
-            title += ' for "%s"'%self.keywords
+            title += ' for "%s"'%" ".join(self.keywords)
         self.header.SetTitle(title)
         
         if self.total_channels != None:
@@ -1161,13 +1195,15 @@ class SearchList(GenericSearchList):
                 title = 'Additionally, got %d channels'%self.total_channels
         else:
             title = 'Searching'
+            
         if self.keywords != None:
-            title += ' for "%s"'%self.keywords
+            title += ' for "%s"'%" ".join(self.keywords)
         self.footer.SetLabel(title, self.total_channels)
         
     def SetMaxResults(self, max, keywords):
         self.sidebar.SetMaxResults(max, keywords)
-        
+    
+    @forceWxThread
     def NewResult(self):
         self.sidebar.NewResult()
     
@@ -1180,18 +1216,21 @@ class SearchList(GenericSearchList):
             startWorker(None, db_callback, wargs = (self.keywords,), retryOnBusy=True)
     
     @warnWxThread
-    def _ShowSuggestions(self, delayedResult):
-        suggestions = delayedResult.get()
-        
-        suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-        suggestionSizer.Add(StaticText(self.list.messagePanel, -1, "Alternatively, try one of the following suggestions:"))
-        for suggestion, hits in suggestions:
-            label = LinkStaticText(self.list.messagePanel, suggestion)
-            label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
-            suggestionSizer.Add(label)
+    def _ShowSuggestions(self, delayedResult, keywords):
+        if keywords == self.keywords and  self.total_results == 0 and self.nr_filtered == 0:
+            suggestions = delayedResult.get()
             
-        header, message = self.list.GetMessage()
-        self.list.ShowMessage(message, header, suggestionSizer)
+            if len(suggestions) > 0:
+                suggestionSizer = wx.BoxSizer(wx.VERTICAL)
+                suggestionSizer.Add(StaticText(self.list.messagePanel, -1, "Alternatively, try one of the following suggestions:"))
+                for suggestion, hits in suggestions:
+                    label = LinkStaticText(self.list.messagePanel, suggestion)
+                    label.Bind(wx.EVT_LEFT_UP, self.OnSearchSuggestion)
+                    suggestionSizer.Add(label)
+                    
+                header, message = self.list.GetMessage()
+                self.list.ShowMessage(message, header, suggestionSizer)
+                
         
     def OnSearchSuggestion(self, event):
         label = event.GetEventObject()
@@ -1247,18 +1286,26 @@ class LibraryList(SizeList):
         self.newfilter = False
         self.prevStates = {}
 
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree'}, \
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'icon': 'tree', 'icon_right': self.__swift_icon}, \
                    {'type':'method', 'name':'Completion', 'width': 250, 'method': self.CreateProgress}, \
                    {'type':'method', 'name':'Connections', 'width': wx.LIST_AUTOSIZE_USEHEADER, 'method': self.CreateConnections, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Down', 'width': 70, 'method': self.CreateDown, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}, \
                    {'type':'method', 'name':'Up', 'width': 70, 'method': self.CreateUp, 'fmt': self.utility.speed_format_new, 'footer_style': wx.ALIGN_RIGHT}]
      
+        self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
+        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         List.__init__(self, columns, LIST_GREY, [10,10], True, parent = parent)
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
             self.manager = LocalSearchManager(self) 
         return self.manager
+    
+    def __swift_icon(self, item):
+        torrent = item.original_data
+        if torrent.swift_hash:
+            return self.hasSwift, "This torrent is Swift-enabled"
+        return self.noSwift
     
     @warnWxThread
     def CreateHeader(self, parent):
@@ -1443,29 +1490,28 @@ class LibraryList(SizeList):
             for ds in dslist:
                 id = ds.get_download().get_def().get_id()
                 dsdict[id] = ds
-                        
+            
             curStates = {}
             didStateChange = False
             if self.list.raw_data: 
                 for values in self.list.raw_data:
-                    infohash = values[0]
                     original_data = values[2]
-                    old_dsdict[infohash] = original_data.ds
                     
-                    if infohash in dsdict:
-                        original_data.ds = dsdict[infohash]
+                    infohash = original_data.infohash
+                    old_dsdict[infohash] = original_data.ds
+                    original_data.clearDs()
+                    
+                    removekeys = [key for key, ds in dsdict.iteritems() if original_data.addDs(ds)]
+                    for key in removekeys:
+                        del dsdict[key]
                         
-                        if infohash in self.list.items: #torrents in raw_data and items are not equal
-                            self.list.items[infohash].original_data.ds = dsdict[infohash]
-                        
-                        del dsdict[infohash]
-                    else:
-                        original_data.ds = None
-                        
+                    if infohash in self.list.items: #torrents in raw_data and items are not equal
+                        self.list.items[infohash].original_data.dslist = original_data.dslist
+
                     curStates[infohash] = original_data.state
                     if curStates[infohash] != self.prevStates.get(infohash, None):
                         didStateChange = True
-                            
+
             self.prevStates = curStates
 
             if len(dsdict) > 0:
@@ -1591,6 +1637,13 @@ class LibraryList(SizeList):
             message = "Torrents can be found using our integrated search or using channels.\n"
             message += "Additionally you could add any torrent file downloaded from an external source by using the '+ Add' button or dropping it here."
             self.list.ShowMessage(message, header = header)
+        
+    @warnWxThread   
+    def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+        
+        data = (data.infohash, [data.name, [0,0], None, None, None], data)
+        self.list.RefreshData(key, data)
     
     @warnWxThread
     def OnFilter(self, keyword):
@@ -1699,10 +1752,10 @@ class ChannelList(List):
         cur = log(pop+1)
         ratio = min(1, cur/max)
         
-        control = ChannelPopularity(parent, self.normal, self.favorite)
-        control.SetMinSize((self.columns[2]['width'],15))
+        control = HorizontalGauge(parent, self.normal, self.favorite, 5)
         control.SetBackgroundColour(DEFAULT_BACKGROUND)
-        control.SetVotes(ratio)
+        control.SetMinSize((self.columns[2]['width'],15))
+        control.SetPercentage(ratio)
         control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
         return control
     

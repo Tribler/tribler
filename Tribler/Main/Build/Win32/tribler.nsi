@@ -1,5 +1,5 @@
 !define PRODUCT "Tribler"
-!define VERSION "5.5.24"
+!define VERSION "5.9.15"
 
 !include "MUI.nsh"
 !include "UAC.nsh"
@@ -102,6 +102,7 @@ Section "!Main EXE" SecMain
  ; File tribler.exe.manifest
  File tribler.exe
  File ffmpeg.exe
+ File swift.exe
  File /r vlc
  File swift.exe
  File *.bat
@@ -163,6 +164,15 @@ Section "!Main EXE" SecMain
  SetOutPath "$INSTDIR\Tribler\Category"
  File Tribler\Category\*.conf
  File Tribler\Category\*.filter
+ 
+ ; Arno, 2012-05-25: data files for pymdht
+ CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking"
+ CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht"
+ CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
+ SetOutPath "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht\core"
+ File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main
+ File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup
+ 
  ; End
  SetOutPath "$INSTDIR"
  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT}"
@@ -189,6 +199,7 @@ Section "!Main EXE" SecMain
 
  ; Add an application to the firewall exception list - All Networks - All IP Version - Enabled
  SimpleFC::AddApplication "Tribler" "$INSTDIR\${PRODUCT}.exe" 0 2 "" 1
+ SimpleFC::AddApplication "TriblerSwift" "$INSTDIR\swift.exe" 0 2 "" 1
  ; Pop $0 ; return error(1)/success(0)
 
 SectionEnd
@@ -281,6 +292,7 @@ Section "Uninstall"
 
  ; Remove an application from the firewall exception list
  SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
+ SimpleFC::RemoveApplication "$INSTDIR\swift.exe"
  ; Pop $0 ; return error(1)/success(0)
 
 SectionEnd
@@ -329,6 +341,7 @@ Function .onInit
 
   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
   StrCmp $R0 "" done
+  IfFileExists $R0 +1 done
 
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDOK IDOK uninst
   Abort

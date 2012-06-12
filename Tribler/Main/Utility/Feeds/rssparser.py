@@ -15,6 +15,8 @@ from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 import re
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.BitTornado.bencode import bdecode, bencode
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from urlparse import urlparse
 
 URLHIST_TIMEOUT = 7*24*3600.0   # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30*60    # reload a rss source every n seconds
@@ -52,6 +54,7 @@ class RssParser(Thread):
         if not self.isRegistered:
             self.session = session
             self.defaultkey = defaultkey
+            self.remote_th = RemoteTorrentHandler.getInstance()
             
             dirname = self.getdir()
             if not os.path.exists(dirname):
@@ -82,11 +85,6 @@ class RssParser(Thread):
                 copyfile(oldhistfile, histfile)
         
         return histfile
-    
-    def gettorrentfilename(self, tdef):
-        tor_dir = self.session.get_torrent_collecting_dir()
-        tor_filename = get_collected_torrent_filename(tdef.get_infohash())
-        return os.path.join(tor_dir, tor_filename)
     
     def readfile(self):
         try:
@@ -226,25 +224,32 @@ class RssParser(Thread):
                                     if DEBUG:
                                         print >> sys.stderr, "RssParser: trying", new_url
                                     
-                                    stream = urlOpenTimeout(new_url)
+                                    referer = urlparse(new_url)
+                                    referer = referer.scheme+"://"+referer.netloc+"/"
+                                    stream = urlOpenTimeout(new_url, referer=referer)
                                     bdata = stream.read()
                                     stream.close()
                                     
                                     bddata = bdecode(bdata, 1)
                                     torrent = TorrentDef._create(bddata)
-                                    torrent.save(self.gettorrentfilename(torrent))
-                                    for callback in self.key_callbacks[key]:
-                                        try:
-                                            callback(key, torrent, extraInfo = {'title':title, 'description': description, 'thumbnail': thumbnail})
-                                        except:
-                                            print_exc()
-                                            
-                                    break
+                                    
+                                    def processCallbacks(key):  
+                                        for callback in self.key_callbacks[key]:
+                                            try:
+                                                callback(key, torrent, extraInfo = {'title':title, 'description': description, 'thumbnail': thumbnail})
+                                            except:
+                                                print_exc()
+                                    
+                                    if self.remote_th.is_registered():
+                                        callback = lambda key=key: processCallbacks(key)
+                                        self.remote_th.save_torrent(torrent, callback)
+                                    else:
+                                        processCallbacks(key)
+                                        
                                 except:
                                     if DEBUG:
                                         print >> sys.stderr, "RssParser: could not download", new_url
                                     pass
-                                
                                 
                                 time.sleep(RSS_CHECK_FREQUENCY)
                                 

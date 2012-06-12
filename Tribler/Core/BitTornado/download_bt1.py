@@ -391,7 +391,10 @@ class BT1Download:
         self.downloader.cancel_piece_download(pieces)
         self.ghttpdownloader.cancel_piece_download(pieces)
         self.hhttpdownloader.cancel_piece_download(pieces)
-        self.proxydownloader.cancel_piece_download(pieces)
+        
+        if self.proxydownloader:
+            self.proxydownloader.cancel_piece_download(pieces)
+        
     def _reqmorefunc(self, pieces):
         self.downloader.requeue_piece_download(pieces)
 
@@ -472,12 +475,15 @@ class BT1Download:
 
         # ProxyService_
         #
-        self.proxydownloader = ProxyDownloader(self, self.storagewrapper, self.picker, 
-            self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
-            self.config['max_rate_period'], self.infohash, self._received_proxy_data, 
-            self.connecter.got_piece, self.dlinstance, scheduler = self.rawserver.add_task)
-        self.picker.set_proxydownloader(self.proxydownloader)
-        self.downloader.set_proxydownloader(self.proxydownloader)
+        if self.config['overlay']:
+            self.proxydownloader = ProxyDownloader(self, self.storagewrapper, self.picker, 
+                self.rawserver, self.finflag, self.logerrorfunc, self.downloader, 
+                self.config['max_rate_period'], self.infohash, self._received_proxy_data, 
+                self.connecter.got_piece, self.dlinstance, scheduler = self.rawserver.add_task)
+            self.picker.set_proxydownloader(self.proxydownloader)
+            self.downloader.set_proxydownloader(self.proxydownloader)
+        else:
+            self.proxydownloader = None 
         #
         # _ProxyService
 

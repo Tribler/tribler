@@ -20,6 +20,10 @@ import os,sys
 import signal
 import commands
 import pickle
+import traceback
+
+from wx.html import HtmlWindow
+
 from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel,\
     TopSearchPanelStub
 from Tribler.Main.vwxGUI.home import Home, Stats
@@ -27,10 +31,11 @@ from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
     ChannelCategoriesList, LibraryList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
     ManageChannel
-from wx.html import HtmlWindow
+
+
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-import traceback
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceAndReturnWxThread
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     import wxversion
@@ -74,7 +79,6 @@ from Tribler.Core.API import *
 from Tribler.Core.Utilities.utilities import show_permid
 
 DEBUG = False
-
 
 ################################################################
 #
@@ -320,13 +324,15 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnNext, id = nextId)
         self.Bind(wx.EVT_MENU, self.OnPrev, id = prevId)
         
-        accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
-        accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
-        accelerators.append((wx.ACCEL_CTRL|wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
-        if sys.platform == 'linux2':
-            accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
-            accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
-        self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
+        #SEEING WIDGET_REALIZED_FOR_EVENT assert for linux, when I press ctrl+f
+        if sys.platform != 'linux2':
+            accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
+            accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
+            accelerators.append((wx.ACCEL_CTRL|wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
+            if sys.platform == 'linux2':
+                accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
+                accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
+            self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         # Init video player
         sys.stdout.write('GUI Complete.\n')
@@ -407,14 +413,28 @@ class MainFrame(wx.Frame):
 
     @forceAndReturnWxThread
     def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
-        if DEBUG:
-            print >>sys.stderr,"mainframe: startDownload:",torrentfilename,destdir,cdef
+        if True or DEBUG:
+            print >>sys.stderr,"mainframe: startDownload:",torrentfilename, destdir,cdef,vodmode,selectedFiles
         
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
+            
+        #Niels: if you call startdownload with both a Swift cdef and a torrentfilename, we allow Swift to download the file in the first X seconds
+        if cdef and cdef.get_def_type() == 'swift' and torrentfilename:
+            monitorSwiftProgress = True
+        else:
+            monitorSwiftProgress = False
+            
         try:
             if cdef is None:
-                cdef = TorrentDef.load(torrentfilename)
+                cdef = tdef = TorrentDef.load(torrentfilename)
+            elif cdef.get_def_type() == 'torrent':
+                tdef = cdef
+            elif torrentfilename:
+                tdef = TorrentDef.load(torrentfilename)
+            else:
+                tdef = None
+                
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             
@@ -422,15 +442,17 @@ class MainFrame(wx.Frame):
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
                 defaultname = correctedFilename
-                if not correctedFilename and cdef.get_def_type() == 'torrent' and cdef.is_multifile_torrent():
-                    defaultname = cdef.get_name_as_unicode()
+                if not correctedFilename and tdef:
+                    defaultname = tdef.get_name_as_unicode()
                     
-                dlg = SaveAs(self, cdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'))
+                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
                 dlg.CenterOnParent()
+                
                 if dlg.ShowModal() == wx.ID_OK:
                     #for multifile we enabled correctedFilenames, use split to remove the filename from the path
-                    if cdef.get_def_type() == 'torrent' and cdef.is_multifile_torrent():
+                    if tdef and tdef.is_multifile_torrent():
                         destdir, correctedFilename = os.path.split(dlg.GetPath())
+                        selectedFiles = dlg.GetSelectedFiles()
                     else:
                         destdir = dlg.GetPath()
                 else:
@@ -443,35 +465,61 @@ class MainFrame(wx.Frame):
                     
                 if correctedFilename:
                     dscfg.set_corrected_filename(correctedFilename)
-            
-                # ProxyService 90s Test_
-#                if doemode is not None:
-#                    dscfg.set_doe_mode(doemode)
-#                    dscfg.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
-                # _ProxyService 90s Test
-            
-                if cdef.get_def_type() == 'torrent':
-                    videofiles = cdef.get_files(exts=videoextdefaults)
+                
+                if selectedFiles and len(selectedFiles) == 1:
+                    #we should filter files to see if they are all playable
+                    videofiles = selectedFiles
+                    
+                elif tdef and not selectedFiles:
+                    videofiles = tdef.get_files(exts=videoextdefaults)
+                    
                 else:
                     videofiles = []
-                    
+                
+                #disable vodmode if no videofiles
                 if vodmode and len(videofiles) == 0:
                     vodmode = False
-    
-                if vodmode or cdef.get_live():
+                
+                vodmode = vodmode or cdef.get_live()
+                
+                selectedFile = None
+                if vodmode:
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
+                    if len(videofiles) == 1:
+                        selectedFile = videofiles[0]
+                    else:
+                        selectedFile = None
+                    
+                    #Swift requires swarmname to be part of the selectedfile
+                    if cdef.get_def_type() == 'swift' and tdef:
+                        swift_selectedFile = tdef.get_name_as_unicode()+"/"+selectedFile
+                    else:
+                        swift_selectedFile = selectedFile
+                    
                     videoplayer = VideoPlayer.getInstance()
-                    result = videoplayer.start_and_play(cdef,dscfg)
+                    result = videoplayer.start_and_play(cdef, dscfg, swift_selectedFile)
                     
                 else:
                     if selectedFiles:
-                        dscfg.set_selected_files(selectedFiles)
+                        if cdef.get_def_type() == 'swift' and tdef:
+                            swift_selectedFiles = []
+                            for selectedFile in selectedFiles:
+                                swift_selectedFiles.append(tdef.get_name_as_unicode()+"/"+selectedFile)
+                            dscfg.set_selected_files(swift_selectedFiles)
+                            
+                        else:
+                            dscfg.set_selected_files(selectedFiles)
                     
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
-                    result = self.utility.session.start_download(cdef,dscfg)
+                    result = self.utility.session.start_download(cdef, dscfg)
                 
                 if result:
                     self.show_saved()
+                    
+                    if monitorSwiftProgress:
+                        state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile)
+                        result.set_state_callback(state_lambda, getpeerlist=False, delay=15.0)
+                        
                 
                 # store result because we want to store clicklog data
                 # right after d#        self.frame.sendButton.Disable()
@@ -505,6 +553,7 @@ class MainFrame(wx.Frame):
 #        else:
 #            self.frame.sendButton.SetLabel(_(u'Sent'))
 #            self.logReport(body, response.read())ownload was started, then return result
+
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                     mypref.addClicklogToMyPreference(cdef.get_id(), clicklog)
@@ -534,16 +583,18 @@ class MainFrame(wx.Frame):
         return None
     
     
-    def startReseedSwiftDownload(self,storagepath,sdef):
+    def startReseedSwiftDownload(self, tdef, storagepath, sdef):
         # Arno, 2012-05-07:
-        print >>sys.stderr,"main: frame: startReseedSwift",storagepath,sdef
-        # 4. Start swift download reseeding BitTorrent content
+        print >>sys.stderr,"main: frame: startReseedSwift",tdef, storagepath, sdef
+        
+        # 1. Tell library_manager that we have a 'swift_hash' for this infohash
+        self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
+        
+        # 2. Start swift download reseeding BitTorrent content
         self.startDownload(destdir=storagepath,cdef=sdef)
                 
-        # 5. Checkpoint Session
+        # 3. Checkpoint Session
         self.utility.session.checkpoint()
-
-    
     
     def modifySelection(self, download, selectedFiles):
         tdef = download.get_def()
@@ -579,12 +630,34 @@ class MainFrame(wx.Frame):
                 return False
         
         return True
-
+    
+    def monitorSwiftProgress(self, ds, vodmode, torrentfilename, dscfg, selectedFile):
+        if ds.get_progress() == 0:
+            if ds.get_status() == DLSTATUS_ALLOCATING_DISKSPACE:
+                return (5.0, True)
+            
+            download = ds.get_download()
+            self.utility.session.remove_download(download)
+            
+            #pause for swift file release
+            time.sleep(1)
+            
+            print >> sys.stderr, "Switching to Bittorrent"
+            cdef = TorrentDef.load(torrentfilename)
+            if vodmode:
+                videoplayer = VideoPlayer.getInstance()
+                wx.CallAfter(videoplayer.start_and_play, cdef, dscfg, selectedFile)
+            else:
+                self.utility.session.start_download(cdef, dscfg)
+        return (0, False)
+                
     @forceWxThread
     def show_saved(self):
         if self.ready and self.librarylist.isReady:
             self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
-            self.librarylist.GetManager().refresh()
+            
+            print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
+            self.librarylist.GetManager().prev_refresh_if = time.time() - 27
 
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
@@ -807,8 +880,10 @@ class MainFrame(wx.Frame):
     
     def OnFind(self, event):
         self.top_bg.SearchFocus()
+    
     def OnNext(self, event):
         self.top_bg.NextPage()
+    
     def OnPrev(self, event):
         self.top_bg.PrevPage()
 

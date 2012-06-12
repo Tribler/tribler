@@ -8,6 +8,7 @@ from traceback import print_exc,print_stack
 import tempfile
 import subprocess
 import random
+import time
 
 from Tribler.Core.Base import *
 from Tribler.Core.simpledefs import *
@@ -116,7 +117,11 @@ class SwiftDef(ContentDefinition):
         """ Return the basic URL representation of this SwiftDef.
         @return URL
         """
-        return SWIFT_URL_SCHEME+'://'+self.tracker+'/'+binascii.hexlify(self.roothash)
+        url = SWIFT_URL_SCHEME+':'
+        if self.tracker is not None:
+            url += '//'+self.tracker
+        url += '/'+binascii.hexlify(self.roothash)
+        return url
       
     def get_url_with_meta(self):
         """ Return the URL representation of this SwiftDef with extra 
@@ -234,15 +239,24 @@ class SwiftDef(ContentDefinition):
         else:
             filename = self.files[0]['inpath']
 
+        urlfn = "swifturl-p"+str(os.getpid())+"-r"+str(random.random())+".txt"
+        urlpn = os.path.join(destdir,urlfn)
+
         args=[]
         args.append(str(binpath))
         
+        # Arno, 2012-05-29: Hack. Win32 getopt code eats first arg when Windows app
+        # instead of CONSOLE app.
+        args.append("-j")
         if self.tracker is not None:
             args.append("-t")
             args.append(self.tracker)
         args.append("--printurl")
+        args.append("-r")
+        args.append(urlpn)
         args.append("-f")
         args.append(filename)
+        #args.append("-B") # DEBUG Hack
         
         if sys.platform == "win32":
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
@@ -252,12 +266,32 @@ class SwiftDef(ContentDefinition):
         
         if userprogresscallback is not None:
             userprogresscallback(0.6)
+
+        # Arno, 2012-05-25: When running in binary on windows, swift is a 
+        # windows app, so no console output. Hence, write swift URL to disk.
+        count = 0.0
+        while count < 600.0: # 10 minutes
+            pobj.poll()
+            if pobj.returncode is not None:
+                break
+            time.sleep(1)
+            count += 1.0
+            if userprogresscallback is not None:
+                userprogresscallback(0.6 + count/1000.0)
+            
+        f = open(urlpn,"rb")
+        url = f.read()
+        f.close()
         
-        url = pobj.stdout.read()
         try:
-            pobj.kill()
+            os.remove(urlpn)
         except:
             pass
+
+        if url is None or len(url) == 0:
+             self.roothash = '0' * 20
+             print >>sys.stderr,"swift: finalize: Error calculating roothash"
+             return None 
 
         if userprogresscallback is not None:
             userprogresscallback(0.9)

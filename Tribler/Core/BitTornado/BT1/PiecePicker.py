@@ -79,6 +79,9 @@ class PiecePicker:
         # number of (complete) pieces we got
         self.numgot = 0
 
+        # number of pieces that we are not downloading, i.e. priority -1
+        self.numignore = 0
+
         # whether we're done downloading
         self.done = False
 
@@ -341,7 +344,7 @@ class PiecePicker:
         self.has[piece] = 1
         self.numgot += 1
         
-        if self.numgot == self.numpieces:
+        if self.numgot == (self.numpieces - self.numignore):
             self.done = True
             self.crosscount2 = self.crosscount
         else:
@@ -431,7 +434,7 @@ class PiecePicker:
             # ProxyService_
             #
             # Check DownloadRuntimeConfig
-            if self.proxydownloader.dlinstance.get_proxyservice_role() == PROXYSERVICE_ROLE_PROXY:
+            if self.proxydownloader and self.proxydownloader.dlinstance.get_proxyservice_role() == PROXYSERVICE_ROLE_PROXY:
                 # The node is a proxy for the current download
                 requested_piece = self.proxydownloader.proxy.next_request()
                 if requested_piece is not None:
@@ -509,6 +512,11 @@ class PiecePicker:
             # make sure to cancel any downloads for this piece
             if not self.has[piece]:
                 self._remove_from_interests(piece, True)
+
+            self.numignore += 1
+            if self.numgot == (self.numpieces - self.numignore):
+                self.done = True
+
             return True
         if oldp == -1:
             level = self.numhaves[piece] + (self.priority_step * p)

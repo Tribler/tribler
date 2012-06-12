@@ -190,11 +190,15 @@ class VideoPlayer:
                 # Play using direct callbacks from the VLC C-code
                 self.launch_video_player(None,streaminfo=streaminfo)
             else:
-                # Play via internal HTTP server
-                self.videohttpserv.set_inputstream(streaminfo,'/')
-                url = self.create_url(self.videohttpserv,'/')
-
-                self.launch_video_player(url,streaminfo=streaminfo)
+                if 'url' in streaminfo:
+                    url = streaminfo['url']
+                    self.launch_video_player(url,streaminfo=streaminfo)
+                else:
+                    # Play via internal HTTP server
+                    self.videohttpserv.set_inputstream(streaminfo,'/')
+                    url = self.create_url(self.videohttpserv,'/')
+    
+                    self.launch_video_player(url,streaminfo=streaminfo)
         else:
             # External player, play stream via internal HTTP server
             path = '/'
@@ -258,120 +262,100 @@ class VideoPlayer:
         self.determine_playbackmode()
         
         d = ds.get_download()
-        tdef = d.get_def()
-        videofiles = d.get_dest_files(exts=videoextdefaults)
-        
-        if len(videofiles) == 0:
-            print >>sys.stderr,"videoplay: play: No video files found! Let user select"
-            # Let user choose any file
-            videofiles = d.get_dest_files(exts=None)
+        cdef = d.get_def()
             
-            
-        selectedoutfilename= None
         if selectedinfilename is None:
             # User didn't select file to play, select if there is a single, or ask
+            videofiles = d.get_dest_files(exts=videoextdefaults)
+            if len(videofiles) == 0:
+                print >>sys.stderr,"videoplay: play: No video files found! Let user select"
+                # Let user choose any file
+                videofiles = d.get_dest_files(exts=None)
+            
             if len(videofiles) > 1:
                 infilenames = []
                 for infilename,diskfilename in videofiles:
                     infilenames.append(infilename)
+                    
                 selectedinfilename = self.ask_user_to_select_video(infilenames)
                 print >> sys.stderr , "selectedinfilename == None" , selectedinfilename , len(selectedinfilename)
+                
                 if selectedinfilename is None:
                     print >>sys.stderr,"videoplay: play: User selected no video"
                     return
-                for infilename,diskfilename in videofiles:
-                    if infilename == selectedinfilename:
-                        selectedoutfilename = diskfilename
             else:
                 selectedinfilename = videofiles[0][0]
-                selectedoutfilename = videofiles[0][1]
-        else:
-            #print >> sys.stderr , "videoplay: play: selectedinfilename not None" , selectedinfilename , len(selectedinfilename)
-            for infilename,diskfilename in videofiles:
-                if infilename == selectedinfilename:
-                    selectedoutfilename = diskfilename
+                
         if self.videoframe is not None:
             self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
-                
-        # 23/02/10 Boudewijn: This Download does not contain the
-        # selectedinfilename in the available files.  It is likely
-        # that this is a multifile torrent and that another file was
-        # previously selected for download.
-        if selectedoutfilename is None:
-            return self.play_vod(ds, selectedinfilename)
-
+        
         print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
-
-        bitrate = tdef.get_bitrate(selectedinfilename)
-        if bitrate is None and not complete:
-            video_analyser_path = self.utility.config.Read('videoanalyserpath')
-            if not os.access(video_analyser_path,os.F_OK):
-                self.onError(self.utility.lang.get('videoanalysernotfound'),video_analyser_path,self.utility.lang.get('videoanalyserwhereset'))
-                return
-
-        # The VLC MediaControl API's playlist_add_item() doesn't accept unicode filenames.
-        # So if the file to play is unicode we play it via HTTP. The alternative is to make
-        # Tribler save the data in non-unicode filenames.
-        #
-        flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
         
-        if complete:
+        if cdef.get_def_type() == 'swift' or not complete:
+            print >> sys.stderr, 'videoplay: play: not complete'
+            self.play_vod(ds,selectedinfilename)
+            
+        else:
+            videofiles = d.get_dest_files(exts=videoextdefaults)
+            if len(videofiles) == 0:
+                print >>sys.stderr,"videoplay: play: No video files found! Let user select"
+                # Let user choose any file
+                videofiles = d.get_dest_files(exts=None)
+            
+            selectedoutfilename= None
+            for infilename,diskfilename in videofiles:
+                if infilename == selectedinfilename:
+                    selectedoutfilename = diskfilename        
+                
+            # 23/02/10 Boudewijn: This Download does not contain the
+            # selectedinfilename in the available files.  It is likely
+            # that this is a multifile torrent and that another file was
+            # previously selected for download.
+            if selectedoutfilename is None:
+                return self.play_vod(ds, selectedinfilename)
+            
             print >> sys.stderr, 'videoplay: play: complete'
+            flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
             if flag:
                 self.play_file_via_httpserv(selectedoutfilename)
             else:
                 self.play_file(selectedoutfilename)
             
             self.manage_others_when_playing_from_file(d)
-            # Fake it, to get DL status reporting for right Download
             self.set_vod_download(d)
-        else:
-            print >> sys.stderr, 'videoplay: play: not complete'
-            self.play_vod(ds,selectedinfilename)
 
-
-    def play_vod(self,ds,infilename):
+    def play_vod(self, ds, infilename):
         """ Called by GUI thread when clicking "Play ASAP" button """
-
         d = ds.get_download()
-        tdef = d.get_def()
+        cdef = d.get_def()
+        
         # For multi-file torrent: when the user selects a different file, play that
         oldselectedfile = None
-        if not tdef.get_live() and ds.is_vod() and tdef.is_multifile_torrent():
+        if not cdef.get_live() and ds.is_vod() and (cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent()):
             oldselectedfiles = d.get_selected_files()
-            oldselectedfile = oldselectedfiles[0] # Should be just one
+            oldselectedfile = oldselectedfiles[0]
         
         # 1. (Re)Start torrent in VOD mode
         switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
-
-        print >> sys.stderr, ds.is_vod() , switchfile , tdef.get_live()
-        if not ds.is_vod() or switchfile or tdef.get_live():
-
-            
+        if not ds.is_vod() or switchfile or cdef.get_live():
             if switchfile:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
                     self.videoframe.get_videopanel().Reset()
-            
-            #[proceed,othertorrentspolicy] = self.warn_user(ds,infilename)
-            proceed = True
-            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
-            
-            if not proceed:
-                # User bailing out
-                return
 
             if DEBUG:
-                print >>sys.stderr,"videoplay: play_vod: Enabling VOD on torrent",`d.get_def().get_name()`
-
-            self.manage_other_downloads(othertorrentspolicy,targetd = d)
+                print >>sys.stderr,"videoplay: play_vod: Enabling VOD on torrent", cdef.get_name()
+            
+            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
+            self.manage_other_downloads(othertorrentspolicy, targetd = d)
 
             # Restart download
             d.set_video_event_callback(self.sesscb_vod_event_callback)
             d.set_video_events(self.get_supported_vod_events())
-            if d.get_def().is_multifile_torrent():
+            if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
-            print >>sys.stderr,"videoplay: play_vod: Restarting existing Download",`ds.get_download().get_def().get_infohash()`
+
+            print >>sys.stderr,"videoplay: play_vod: Restarting existing Download", cdef.get_id()
             self.set_vod_download(d)
             d.restart()
 
@@ -480,22 +464,21 @@ class VideoPlayer:
 
 
 
-    def start_and_play(self,tdef,dscfg, selectedinfilename = None):
+    def start_and_play(self, cdef, dscfg, selectedinfilename = None):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
 
         # ARNO50: > Preview1: TODO: make sure this works better when Download already existed.
-        
-
-        if selectedinfilename == None:
-            if not tdef.get_live():
-                videofiles = tdef.get_files(exts=videoextdefaults)
+        if selectedinfilename == None and cdef.get_def_type() == "torrent":
+            if not cdef.get_live():
+                videofiles = cdef.get_files(exts=videoextdefaults)
                 if len(videofiles) == 1:
                     selectedinfilename = videofiles[0]
+                    
                 elif len(videofiles) > 1:
                     selectedinfilename = self.ask_user_to_select_video(videofiles)
-
-        if selectedinfilename or tdef.get_live():
-            if tdef.is_multifile_torrent():
+        
+        if selectedinfilename or cdef.get_live():
+            if cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent():
                 dscfg.set_selected_files([selectedinfilename])
 
             othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
@@ -504,13 +487,12 @@ class VideoPlayer:
             # Restart download
             dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
             dscfg.set_video_events(self.get_supported_vod_events())
-            print >>sys.stderr,"videoplay: Starting new VOD/live Download",`tdef.get_name()`
+            print >>sys.stderr,"videoplay: Starting new VOD/live Download",`cdef.get_name()`
 
-            download = self.utility.session.start_download(tdef,dscfg)
+            download = self.utility.session.start_download(cdef,dscfg)
    
             if self.videoframe is not None:         
                 self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
-            
 
             self.set_vod_download(download)
             return download
@@ -543,7 +525,11 @@ class VideoPlayer:
                     cachestream = stream
                     blocksize = d.get_def().get_piece_length()
                 else:
-                    piecelen = d.get_def().get_piece_length()
+                    if d.get_def().get_def_type() == "swift":
+                        piecelen = 2 ** 16
+                    else:
+                        piecelen = d.get_def().get_piece_length()
+                        
                     if piecelen > 2 ** 17:
                         # Arno, 2010-01-21:
                         # Workaround for streams with really large piece
@@ -575,29 +561,33 @@ class VideoPlayer:
                 # Estimate duration. Video player (e.g. VLC) often can't tell
                 # when streaming.
                 estduration = None
-                if d.get_def().get_live():
-                    # Set correct Ogg MIME type
-                    if is_ogg(d.get_def().get_name_as_unicode()):
-                        params['mimetype'] = 'application/ogg'
-                else:
-                    file = None
-                    if d.get_def().is_multifile_torrent():
-                        file = d.get_selected_files()[0]
-                    bitrate = d.get_def().get_bitrate(file)
-                    if bitrate is not None:
-                        estduration = float(length) / float(bitrate)
-                    
-                    # Set correct Ogg MIME type
-                    if file is None:
+                if d.get_def().get_def_type() == "torrent":
+                    if d.get_def().get_live():
+                        # Set correct Ogg MIME type
                         if is_ogg(d.get_def().get_name_as_unicode()):
-                            params['mimetype'] = 'application/ogg'
+                            mimetype = 'application/ogg'
                     else:
-                        if is_ogg(file):
-                            params['mimetype'] = 'application/ogg'
+                        file = None
+                        if d.get_def().is_multifile_torrent():
+                            file = d.get_selected_files()[0]
+                        bitrate = d.get_def().get_bitrate(file)
+                        if bitrate is not None:
+                            estduration = float(length) / float(bitrate)
                         
+                        # Set correct Ogg MIME type
+                        if file is None:
+                            if is_ogg(d.get_def().get_name_as_unicode()):
+                                mimetype = 'application/ogg'
+                        else:
+                            if is_ogg(file):
+                                mimetype = 'application/ogg'
 
                     
                 streaminfo = {'mimetype':mimetype,'stream':cachestream,'length':length,'blocksize':blocksize,'estduration':estduration}
+                
+                if d.get_def().get_def_type() == "swift":
+                    streaminfo['url'] = params['url']
+                
                 self.play_stream(streaminfo)
                 
         elif event == VODEVENT_PAUSE:

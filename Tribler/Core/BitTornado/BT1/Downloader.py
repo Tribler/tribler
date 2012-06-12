@@ -316,12 +316,13 @@ class SingleDownload():
             
             # ProxyService_
             #
-            if DEBUG:
-                print >>sys.stderr, "downloader: got_piece. Searching if piece", index, "was requested by a doe node."
-            if index in self.downloader.proxydownloader.proxy.currently_downloading_pieces:
-                # get_piece(index, 0, -1) returns the complete piece data
-                [piece_data, hash_list] = self.downloader.storage.get_piece(index, 0, -1)
-                self.downloader.proxydownloader.proxy.retrieved_piece(index, piece_data)
+            if self.downloader.proxydownloader:
+                if DEBUG:
+                    print >>sys.stderr, "downloader: got_piece. Searching if piece", index, "was requested by a doe node."
+                if index in self.downloader.proxydownloader.proxy.currently_downloading_pieces:
+                    # get_piece(index, 0, -1) returns the complete piece data
+                    [piece_data, hash_list] = self.downloader.storage.get_piece(index, 0, -1)
+                    self.downloader.proxydownloader.proxy.retrieved_piece(index, piece_data)
             #
             # _ProxyService
 
@@ -521,6 +522,7 @@ class SingleDownload():
         
         self.have[index] = True
         self.downloader.picker.got_have(index,self.connection)
+        
         # ProxyService_
         #
         # Aggregate the haves bitfields and send them to the doe nodes
@@ -1137,33 +1139,34 @@ class Downloader:
         then calls the proxy class to send the aggregated information as a PROXY_HAVE message 
         """
         DEBUG=False
-        proxyservice_role = self.proxydownloader.dlinstance.get_proxyservice_role()
-        if proxyservice_role == PROXYSERVICE_ROLE_PROXY:
-            # The current node is a proxy
-            if DEBUG:
-                print >> sys.stderr,"Downloader: aggregate_and_send_haves"
-            
-            # haves_vector is a matrix, having on each line a Bitfield
-            # len(self.downloads) = the number of connections to swarm peers
-            # +1 = me (the pieces i have locally)
-            haves_vector = [None] * (len(self.downloads)+1)
-            for i in range(0, len(self.downloads)):
-                haves_vector[i] = self.downloads[i].have
-            
-            haves_vector[len(self.downloads)] = self.storage.get_have_copy()
-            
-            #Calculate the aggregated haves
-            aggregated_haves = Bitfield(self.numpieces)
-            for piece in range (0, self.numpieces):
-                aggregated_value = False
-                # For every column in the haves_vector matrix
-                for d in range(0, len(self.downloads)+1):
-                    # For every active connection
-                    aggregated_value = aggregated_value or haves_vector[d][piece] # Logical OR operation 
-                aggregated_haves[piece] = aggregated_value
-            
-            if DEBUG:
-                print >> sys.stderr, "Downloader: aggregate_and_send_haves" #, len(self.downloads), aggregated_haves.toboollist()
-            self.proxydownloader.proxy.send_proxy_have(aggregated_haves)
+        if self.proxydownloader:
+            proxyservice_role = self.proxydownloader.dlinstance.get_proxyservice_role()
+            if proxyservice_role == PROXYSERVICE_ROLE_PROXY:
+                # The current node is a proxy
+                if DEBUG:
+                    print >> sys.stderr,"Downloader: aggregate_and_send_haves"
+                
+                # haves_vector is a matrix, having on each line a Bitfield
+                # len(self.downloads) = the number of connections to swarm peers
+                # +1 = me (the pieces i have locally)
+                haves_vector = [None] * (len(self.downloads)+1)
+                for i in range(0, len(self.downloads)):
+                    haves_vector[i] = self.downloads[i].have
+                
+                haves_vector[len(self.downloads)] = self.storage.get_have_copy()
+                
+                #Calculate the aggregated haves
+                aggregated_haves = Bitfield(self.numpieces)
+                for piece in range (0, self.numpieces):
+                    aggregated_value = False
+                    # For every column in the haves_vector matrix
+                    for d in range(0, len(self.downloads)+1):
+                        # For every active connection
+                        aggregated_value = aggregated_value or haves_vector[d][piece] # Logical OR operation 
+                    aggregated_haves[piece] = aggregated_value
+                
+                if DEBUG:
+                    print >> sys.stderr, "Downloader: aggregate_and_send_haves" #, len(self.downloads), aggregated_haves.toboollist()
+                self.proxydownloader.proxy.send_proxy_have(aggregated_haves)
     #
     # _ProxyService

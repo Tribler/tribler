@@ -54,6 +54,9 @@ class DownloadState(Serializable):
         else:
             self.swarmcache = None
         self.time = time.time()
+        
+        self.haveslice = None
+        self.stats = None
 
         # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
         # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
@@ -67,13 +70,13 @@ class DownloadState(Serializable):
                 self.status = DLSTATUS_STOPPED_ON_ERROR
             else:
                 self.status = status
-            self.stats = None
+                
         elif error is not None:
             if DEBUG: print >> sys.stderr, "DownloadState.__init__: error is not None"
             self.error = error # readonly access
             self.progress = 0.0 # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
-            self.stats = None
+            
         elif status is not None and not status in [DLSTATUS_REPEXING,DLSTATUS_DOWNLOADING,DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
             if DEBUG: print >> sys.stderr, "DownloadState.__init__: we have status and it is not repexing, downloading, or seeding"
@@ -83,7 +86,7 @@ class DownloadState(Serializable):
                 self.progress = 0.0
             else:
                 self.progress = stats['frac']
-            self.stats = None
+                
         else:
             # Copy info from stats
             if DEBUG: print >> sys.stderr, "DownloadState.__init__: copy from stats"
@@ -274,8 +277,10 @@ class DownloadState(Serializable):
         parameter set to True, otherwise returns (None,None)  
         @return A tuple (num seeds, num peers)
         """
-        if self.stats is None or self.stats['spew'] is None:
-            return (None,None)
+        if self.stats is None or self.stats.get('spew', None) is None:
+            total = self.get_num_peers()
+            seeds = self.get_num_nonseeds()
+            return (seeds, total-seeds)
         
         total = len(self.stats['spew'])
         seeds = len([i for i in self.stats['spew'] if i['completed'] == 1.0])
@@ -288,7 +293,7 @@ class DownloadState(Serializable):
         using DownloadStartupConfig.set_selected_files().
         @return A list of booleans
         """
-        if self.stats is None:
+        if self.haveslice is None:
             return []
         else:
             return self.haveslice
@@ -297,7 +302,7 @@ class DownloadState(Serializable):
         """ Returns the number of total and completed pieces
         @return A tuple containing two integers, total and completed nr of pieces
         """
-        if self.stats is None:
+        if self.haveslice is None:
             return (0,0)
         else:
             return (len(self.haveslice), sum(self.haveslice))
@@ -334,7 +339,7 @@ class DownloadState(Serializable):
                         completion.append((f, 0.0))
         return completion
     
-    def gef_selected_files(self):
+    def get_selected_files(self):
         if self.filepieceranges:
             files = []
             for _, _, f in self.filepieceranges:
@@ -342,12 +347,15 @@ class DownloadState(Serializable):
             return files
         
     def get_length(self):
-        tdef = self.download.get_def()
         if len(self.download.get_selected_files()) > 0:
             files = self.download.get_selected_files()
         else:
             files = None
-        return tdef.get_length(files)
+        cdef = self.download.get_def()
+        if cdef.get_def_type() == "torrent":
+            return cdef.get_length(files)
+        else:
+            return self.download.get_dynasize()
         
     def get_availability(self):
         """ Return overall the availability of all pieces, using connected peers

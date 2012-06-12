@@ -45,7 +45,7 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         return DownloadImpl.get_def(self)
 
     
-    def set_state_callback(self,usercallback,getpeerlist=False):
+    def set_state_callback(self,usercallback,getpeerlist=False,delay=0.0):
         """ 
         Set a callback for retrieving the state of the download. This callback
         will be called immediately with a DownloadState object as first parameter.
@@ -62,7 +62,7 @@ class Download(DownloadRuntimeConfig,DownloadImpl):
         @param usercallback Function that accepts DownloadState as parameter and 
         returns a (float,boolean) tuple.
         """
-        DownloadImpl.set_state_callback(self,usercallback,getpeerlist=getpeerlist)
+        DownloadImpl.set_state_callback(self,usercallback,getpeerlist=getpeerlist,delay=delay)
         
 
     def stop(self):

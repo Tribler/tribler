@@ -31,6 +31,7 @@ import sys
 import copy
 from traceback import print_exc,print_stack
 from threading import RLock,currentThread
+from Tribler.Core import NoDispersyRLock
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import *
@@ -49,7 +50,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     """
     
     def __init__(self,session,sdef):
-        self.dllock = RLock()
+        self.dllock = NoDispersyRLock()
         self.session = session
         self.sdef = sdef
 
@@ -127,8 +128,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.set_error(e)
             self.dllock.release()
 
-
     def create_engine_wrapper(self,lm_network_engine_wrapper_created_callback,pstate,lm_network_vod_event_callback,initialdlstatus=None):
+        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback,pstate,lm_network_vod_event_callback,initialdlstatus)
+        self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda) 
+    
+    def network_create_engine_wrapper(self,lm_network_engine_wrapper_created_callback,pstate,lm_network_vod_event_callback,initialdlstatus=None):
         """ Called by any thread, assume dllock already acquired """
         if DEBUG:
             print >>sys.stderr,"SwiftDownloadImpl: create_engine_wrapper()"
@@ -139,6 +143,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         # Synchronous: starts process if needed
         self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port() )
         self.sp.start_download(self)
+        
+        # Arno, 2012-05-23: At Niels' request to get total transferred stats
+        # Causes MOREINFO message to be sent from swift proc for every initiated
+        # dl.
+        self.set_moreinfo_stats(True)
 
         # Arno: if used, make sure to switch to network thread first!
         #if lm_network_engine_wrapper_created_callback is not None:
@@ -163,9 +172,14 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dllock.release()
     
     def i2ithread_vod_event_callback(self,event,httpurl):
+        
+        print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER",event,httpurl
+        
         self.dllock.acquire()
         try:
             if event == VODEVENT_START:
+                
+                print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback: MODE",self.get_mode()
                 
                 if self.get_mode() != DLMODE_VOD:
                     return
@@ -185,6 +199,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 # via new "url" param.
                 # 
                 
+                print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback",event,httpurl
+                
                 # Arno: No threading violation, lm_network_* is safe at the moment
                 self.lm_network_vod_event_callback( videoinfo, VODEVENT_START, {
                     "complete":  False,
@@ -202,7 +218,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     def i2ithread_moreinfo_callback(self,midict):
         self.dllock.acquire()
         try:
-            print >>sys.stderr,"SwiftDownloadImpl: Got moreinfo",midict.keys()
+            #print >>sys.stderr,"SwiftDownloadImpl: Got moreinfo",midict.keys()
             self.midict = midict
         finally:
             self.dllock.release()
@@ -296,7 +312,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
 
     def network_create_statistics_reponse(self):
-        return SwiftStatisticsResponse(self.numleech,self.numseeds)
+        return SwiftStatisticsResponse(self.numleech,self.numseeds,self.midict)
     
     def network_calc_eta(self):
         bytestogof = (1.0-self.progress) * float(self.dynasize)
@@ -330,13 +346,13 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     # Retrieving DownloadState
     #
-    def set_state_callback(self,usercallback,getpeerlist=False):
+    def set_state_callback(self,usercallback,getpeerlist=False,delay=0.0):
         """ Called by any thread """
         self.dllock.acquire()
         try:
             network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
             # First time on general rawserver
-            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
+            self.session.lm.rawserver.add_task(network_get_state_lambda,delay)
         finally:
             self.dllock.release()
 
@@ -489,7 +505,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         # Need this for torrent collecting via swift.
         self.network_checkpoint()
     
-    
     def network_checkpoint(self):
         """ Called by network thread """
         self.dllock.acquire()
@@ -571,14 +586,20 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         
 class SwiftStatisticsResponse:
     
-    def __init__(self,numleech,numseeds):
+    def __init__(self,numleech,numseeds,midict):
         # More would have to be sent from swift process to set these correctly
-        self.upTotal = None
-        self.downTotal = None
-        self.numConCandidates = None
-        self.numConInitiated = None
+        self.numConCandidates = 0
+        self.numConInitiated = 0
         self.have = None
         self.numSeeds = numseeds
         self.numPeers = numleech
         
-    
+        # Arno, 2012-05-23: At Niels' request
+        self.upTotal = 0
+        self.downTotal = 0
+        try:
+            self.upTotal = midict['bytes_up']
+            self.downTotal = midict['bytes_down']
+        except:
+            pass
+

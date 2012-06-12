@@ -129,7 +129,9 @@ def validTorrentFile(metainfo):
                 raise ValueError('node port not int, but '+`type(port)`)
 
     if not ('announce' in metainfo or 'nodes' in metainfo):
-        raise ValueError('announce and nodes missing')
+        #Niels: 07/06/2012, disabling this check, modifying metainfo to allow for ill-formatted torrents
+        metainfo['nodes'] = []
+        #raise ValueError('announce and nodes missing')
 
     # 04/05/10 boudewijn: with the introduction of magnet links we
     # also allow for peer addresses to be (temporarily) stored in the

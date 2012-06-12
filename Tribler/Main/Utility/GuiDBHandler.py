@@ -52,7 +52,7 @@ class GUIDBProducer():
     
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
-        if type == "dbthread" or onDBThread:
+        if type == "dbThread" or onDBThread:
             return onDBThread
         
         return threading.currentThread().getName().startswith('GUITaskQueue')
@@ -143,7 +143,7 @@ class GUIDBProducer():
                 self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
                 
             elif workerType == "guiTaskQueue":
-                self.guitaskqueue.add_task(wrapper, t = delay, )
+                self.guitaskqueue.add_task(wrapper, t = delay)
         else:
             if __debug__:
                 print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately"%name

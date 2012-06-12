@@ -19,6 +19,7 @@ from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Swift.SwiftDef import SwiftDef
 
 DEBUG = False
 
@@ -59,7 +60,6 @@ class RemoteTorrentHandler:
             # Arno, 2011-02-25: Thread safety: Only OverlayThread can touch data structs
             olthread_remote_torrent_download_lambda = lambda:self.olthread_download_torrent_callback(permid,infohash,usercallback,prio)
             self.overlay_bridge.add_task(olthread_remote_torrent_download_lambda,0)
-    
     
     def olthread_download_torrent_callback(self,permid,infohash,usercallback, prio = 1):
         """ The user has selected a torrent referred to by a peer in a query 
@@ -182,7 +182,7 @@ class TorrentRequester():
                         print >>sys.stderr,"rtorrent: requesting", bin2str(infohash), bin2str(permid)
                     
                     #metadatahandler will only do actual request if torrentfile is not on disk
-                    self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
+                    #self.metadatahandler.send_metadata_request(permid, infohash, caller="rquery")
                     
                 else:
                     if DEBUG:
@@ -219,6 +219,7 @@ class MagnetRequester():
         self.remoteTorrentHandler = remoteTorrentHandler
         self.overlay_bridge = overlay_bridge
         self.torrent_db = session.open_dbhandler('torrents')
+        self.session = session
         
         self.list = []
         self.requestedInfohashes = set()
@@ -302,8 +303,13 @@ class MagnetRequester():
                 torrent_filename = os.path.join(self.metadatahandler.torrent_dir, get_collected_torrent_filename(infohash))
             tdef.save(torrent_filename)
             
+            #calculate root-hash
+            sdef = SwiftDef()
+            sdef.add_content(torrent_filename)
+            sdef.finalize(self.session.get_swift_path())
+            
             #add this new torrent to db
-            self.torrent_db.addExternalTorrent(tdef)
+            self.torrent_db.addExternalTorrent(tdef, extra_info = {'swift_torrent_hash':bin2str(sdef.get_roothash())})
             
             #notify all
             self.remoteTorrentHandler.metadatahandler_got_torrent(infohash, tdef, torrent_filename)

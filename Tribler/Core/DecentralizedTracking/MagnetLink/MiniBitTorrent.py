@@ -563,8 +563,13 @@ class MiniTracker(Thread):
         Thread.__init__(self)
         self.setName("MiniTracker_%s"%swarm)
         self._swarm = swarm
-        #for now use first tracker only
-        self._tracker = trackers[0]
+        #for now use first http tracker only
+        for tracker in trackers:
+            if tracker.startswith("http"):
+                self._tracker = tracker
+                break
+        else:
+            raise ValueError("Unable to find a http tracker")
         self.start()
 
     def run(self):
@@ -576,24 +581,32 @@ class MiniTracker(Thread):
                                                     "downloaded":"0",
                                                     "left":"-1",
                                                     "event":"started"})
-        handle = urlopen(announce)
-        if handle:
-            body = handle.read()
-            if body:
-                try:
-                    body = bdecode(body)
-                except:
-                    pass
 
-                else:
-                    # using low-bandwidth binary format
-                    peers = []
-                    peer_data = body["peers"]
-                    for x in range(0, len(peer_data), 6):
-                        key = peer_data[x:x+6]
-                        ip = ".".join([str(ord(i)) for i in peer_data[x:x+4]])
-                        port = (ord(peer_data[x+4]) << 8) | ord(peer_data[x+5])
-                        peers.append((ip, port))
+        try:
+            body = bdecode(urlopen(announce).read())
 
-                    if DEBUG: print >> sys.stderr, "MiniTracker.run() received", len(peers), "peer addresses from tracker"
-                    self._swarm.add_potential_peers(peers)
+        except:
+            pass
+
+        else:
+            if "failure reason" in body:
+                return
+
+            if not "peers" in body:
+                return
+
+            # using low-bandwidth binary format
+            peers = []
+            peer_data = body["peers"]
+
+            if not isinstance(peer_data, str):
+                return
+
+            for x in range(0, len(peer_data), 6):
+                # key = peer_data[x:x+6]
+                ip = ".".join([str(ord(i)) for i in peer_data[x:x+4]])
+                port = (ord(peer_data[x+4]) << 8) | ord(peer_data[x+5])
+                peers.append((ip, port))
+
+            if DEBUG: print >> sys.stderr, "MiniTracker.run() received", len(peers), "peer addresses from tracker"
+            self._swarm.add_potential_peers(peers)

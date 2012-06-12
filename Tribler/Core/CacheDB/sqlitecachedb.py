@@ -1,5 +1,4 @@
 # Written by Jie Yang
-# Modified by George Milescu
 # see LICENSE.txt for license information
 
 import sys
@@ -16,8 +15,9 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 # ONLY USE APSW >= 3.5.9-r1
 import apsw
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
-from threading import currentThread, Event, RLock
+from threading import currentThread, Event, RLock, Lock
 import inspect
+from Tribler.Core.Swift.SwiftDef import SwiftDef
 
 #support_version = (3,5,9)
 #support_version = (3,3,13)
@@ -35,7 +35,8 @@ import inspect
 ##Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
 ##Changed from 11 to 12 imposing some limits on the Tribler database
 ##Changed from 12 to 13 introduced swift-url modification type
-CURRENT_MAIN_DB_VERSION = 13
+##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
+CURRENT_MAIN_DB_VERSION = 14
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -57,6 +58,9 @@ DEBUG = False
 DEBUG_THREAD = False
 DEBUG_TIME = True
 TRHEADING_DEBUG = False
+
+TRHEADING_DEBUG = False
+DEPRECATION_DEBUG = False
 
 class Warning(Exception):
     pass
@@ -426,7 +430,7 @@ class SQLiteCacheDBBase:
         curr_ver = int(curr_ver)
         #print "check db", db_ver, curr_ver
         if db_ver != curr_ver or \
-               (not config_dir is None and (os.path.exists(os.path.join(config_dir, "upgradingdb.txt")) or os.path.exists(os.path.join(config_dir, "upgradingdb2.txt")))): 
+               (not config_dir is None and (os.path.exists(os.path.join(config_dir, "upgradingdb.txt")) or os.path.exists(os.path.join(config_dir, "upgradingdb2.txt")) or os.path.exists(os.path.join(config_dir, "upgradingdb3.txt")))): 
             self.updateDB(db_ver,curr_ver)
             
     def updateDB(self,db_ver,curr_ver):
@@ -872,14 +876,14 @@ class SQLiteCacheDBBase:
             assert isinstance(permid, str), permid
             
             if permid not in self.permid_id:
-                to_select.append(permid)
+                to_select.append(bin2str(permid))
         
         if len(to_select) > 0:
-            parameters = '?,'*len(to_select)
-            sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN ("+parameters[:-1]+")"
+            parameters = ", ".join('?'*len(to_select))
+            sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN ("+parameters+")"
             peerids = self.fetchall(sql_get_peer_ids, to_select)
             for peer_id, permid in peerids:
-                self.permid_id[permid] = peer_id
+                self.permid_id[str2bin(permid)] = peer_id
         
         to_return = []
         for permid in permids:
@@ -965,12 +969,21 @@ class SQLiteCacheDBBase:
             else:
                 to_return.append(None)
         return to_return
+    
+    def getTorrentIDRoot(self, roothash):
+        assert isinstance(roothash, str), "roothash has invalid type: %s" % type(roothash)
+        assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
+        
+        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE swift_hash==?"
+        tid = self.fetchone(sql_get_torrent_id, (bin2str(roothash),))
+        return tid
         
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
         arg = (torrent_id,)
         ret = self.fetchone(sql_get_infohash, arg)
-        ret = str2bin(ret)
+        if ret:
+            ret = str2bin(ret)
         return ret
     
     def getTorrentStatusTable(self):
@@ -2038,7 +2051,81 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.clean_db(True)
             
         if fromver < 13:
-            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');")
+            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');", commit = False)
+        
+        tmpfilename = os.path.join(state_dir,"upgradingdb3.txt")
+        if fromver < 14 or os.path.exists(tmpfilename):
+            if fromver < 14:
+                self.execute_write("ALTER TABLE Torrent ADD COLUMN dispersy_id integer;", commit = False)
+                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_hash text;", commit = False)
+                self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_torrent_hash text;", commit = False)
+                self.execute_write("CREATE INDEX Torrent_insert_idx ON Torrent (insert_time, swift_torrent_hash);", commit = False)
+                self.execute_write("CREATE INDEX Torrent_info_roothash_idx ON Torrent (infohash, swift_torrent_hash);")
+            
+            # Create an empty file to mark the process of upgradation.
+            # In case this process is terminated before completion of upgradation,
+            # this file remains even though fromver >= 14 and hence indicating that 
+            # rest of the collected torrents need to be swiftroothashed!
+            
+            from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+            from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+            
+            # ensure the temp-file is created, if it is not already
+            try:
+                open(tmpfilename, "w")
+                print >> sys.stderr, "DB Upgradation: temp-file successfully created"
+            except:
+                print >> sys.stderr, "DB Upgradation: failed to create temp-file"
+            session = Session.get_instance()            
+            
+            def upgradeTorrents():
+                print >> sys.stderr, "Upgrading DB .. hashing torrents"
+                
+                rth = RemoteTorrentHandler.getInstance()
+                if rth.registered:
+                
+                    sql = "SELECT infohash, torrent_file_name FROM CollectedTorrent WHERE swift_torrent_hash IS NULL or swift_torrent_hash = '' LIMIT 100"
+                    records = self.fetchall(sql)
+                    
+                    found = []
+                    not_found = []
+                    
+                    if len(records) == 0:
+                        os.remove(tmpfilename) 
+                        print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
+                        return
+                    
+                    torrent_dir = session.get_torrent_collecting_dir()
+                    for infohash, torrent_filename in records:
+                        if not os.path.isfile(torrent_filename):
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+                
+                        #.torrent found, return complete filename
+                        if not os.path.isfile(torrent_filename):
+                            #.torrent not found, use default collected_torrent_filename
+                            torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
+                        
+                        if not os.path.isfile(torrent_filename):
+                            not_found.append((infohash, ))
+                        else:
+                            sdef, swiftpath = rth._write_to_collected(torrent_filename)
+                            found.append((bin2str(sdef.get_roothash()), swiftpath, infohash))
+                            
+                            os.remove(torrent_filename)
+                
+                    update = "UPDATE Torrent SET swift_torrent_hash = ?, torrent_file_name = ? WHERE infohash = ?"
+                    self.executemany(update, found)
+                    
+                    remove = "UPDATE Torrent SET torrent_file_name = NULL WHERE infohash = ?"
+                    self.executemany(remove, not_found)
+                
+                # upgradation not yet complete; comeback after 5 sec
+                tqueue.add_task(upgradeTorrents, 5)
+            
+            # start the upgradation after 10 seconds
+            tqueue = TimedTaskQueue("UpgradeDB")
+            tqueue.add_task(upgradeTorrents, 30)
             
     def clean_db(self, vacuum = False):
         from time import time
@@ -2057,30 +2144,39 @@ _cacheCommit = False
 _shouldCommit = False
 
 _callback = None
-_callback_lock = threading.Lock()
+_callback_lock = RLock()
 
+def try_register(db, callback = None):
+    global _callback, _callback_lock
+    
+    if not _callback:
+        _callback_lock.acquire()
+        try:
+            # check again if _callback hasn't been set, but now we are thread safe
+            if not _callback:
+                if not callback:
+                    from Tribler.dispersy.dispersy import Dispersy
+                    dispersy = Dispersy.has_instance()
+                    if dispersy:
+                        callback = dispersy.callback
+                    
+                if callback:
+                    print >> sys.stderr, "Using actual DB thread"
+                    _callback = callback
+                    if currentThread().getName()== 'Dispersy':
+                        db.initialBegin()
+                    else:
+                        #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
+                        # 16/05/12 Boudewijn: using call instead of register to guarantee that no other
+                        # statements can be executed before initialBegin is done
+                        _callback.register(db.initialBegin, priority = 1024)
+        finally:
+            _callback_lock.release()
+    
 def register_task(db, *args, **kwargs):
     global _callback
-    if not _callback:
-        from Tribler.dispersy.dispersy import Dispersy
-    
-        dispersy = Dispersy.has_instance()
-        if dispersy:
-            _callback_lock.acquire()
-            try:
-                # check again if _callback hasn't been set, but now we are thread safe
-                # 16/05/12 Boudewijn: this second check within the lock is required, do not remove it
-                if not _callback:
-                    print >> sys.stderr, "Using actual DB thread"
-                    _callback = dispersy.callback
-
-                    #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                    # 16/05/12 Boudewijn: using call instead of register to guarantee that no other
-                    # statements can be executed before initialBegin is done
-                    _callback.call(db.initialBegin)
-            finally:
-                _callback_lock.release()
-
+    try_register(db)
+                
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
             func()
@@ -2089,10 +2185,15 @@ def register_task(db, *args, **kwargs):
 
 def forceAndReturnDBThread(func):
     def invoke_func(*args,**kwargs):
+        global _callback
+        
         if not currentThread().getName()== 'Dispersy':
             if TRHEADING_DEBUG:
-                caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                stack = inspect.stack()
+                callerstr = ""
+                for i in range(1, min(4, len(stack))):
+                    caller = stack[i]
+                    callerstr += "%s %s:%s"%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             
             event = Event()
@@ -2101,19 +2202,43 @@ def forceAndReturnDBThread(func):
             def dispersy_thread():
                 try:
                     result[0] = func(*args, **kwargs)
+                except Exception, exception:
+                    result[0] = exception
                 finally:
                     event.set()
             
             dispersy_thread.__name__ = func.__name__
-            register_task(args[0], dispersy_thread)
+            register_task(args[0], dispersy_thread, priority=1024)
             
-            if event.wait(100) or event.isSet():
-                return result[0]
+            if event.wait(15) or event.isSet():
+                if isinstance(result[0], Exception):
+                    raise result[0]
+                else:
+                    return result[0]
             
             print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDispersyThread", func.__name__
+            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDBThread", func.__name__
         else:
+            try_register(args[0])
             return func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forceDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if not currentThread().getName()== 'Dispersy':
+            if TRHEADING_DEBUG:
+                stack = inspect.stack()
+                callerstr = ""
+                for i in range(1, min(4, len(stack))):
+                    caller = stack[i]
+                    callerstr += "%s %s:%s "%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            register_task(func, args, kwargs)
+        else:
+            func(*args, **kwargs)
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -2149,25 +2274,24 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 raise RuntimeError("please use getInstance instead of the constructor")
             self.__counter += 1
 
+    @forceDBThread
     def initialBegin(self):
-        global _cacheCommit
-        global _shouldCommit
+        global _cacheCommit, _shouldCommit
         try:
-            if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
+            print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
             self._execute("BEGIN;")
         except:
             print >> sys.stderr, "INITIAL BEGIN FAILED"
             raise
         _cacheCommit = True
         _shouldCommit = True
-            
+    
+    @forceDBThread
     def commitNow(self):
-        global _shouldCommit
+        global _shouldCommit, _cacheCommit
         if _cacheCommit and _shouldCommit:
             try:
-                if DEBUG:
-                    BEGIN = time()
-                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
+                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
@@ -2175,16 +2299,14 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             _shouldCommit = False
 
             try:
-                if DEBUG:
-                    END = time()
-                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN (commit took %.2fs)" % (END - BEGIN)
+                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
                 self._execute("BEGIN;")
             except:
                 print >> sys.stderr, "BEGIN FAILED"
                 raise
     
     def execute_write(self, sql, args=None, commit=True):
-        global _shouldCommit
+        global _shouldCommit, _cacheCommit
         if _cacheCommit and not _shouldCommit:
             # sql = "BEGIN;"+sql
             _shouldCommit = True
@@ -2192,33 +2314,33 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         self._execute(sql, args)
     
     def executemany(self, sql, args, commit=True):
-        global _shouldCommit
+        global _shouldCommit, _cacheCommit
         if _cacheCommit and not _shouldCommit:
             # sql = "BEGIN;"+sql
             _shouldCommit = True
         
-        self._executemany(sql, args)
+        return self._executemany(sql, args)
     
     def cache_transaction(self, sql, args=None):
-        if TRHEADING_DEBUG:
+        if DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use cache_transaction')
     
     def transaction(self, sql=None, args=None):
-        if TRHEADING_DEBUG:
+        if DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use transaction')
             
     def _transaction(self, sql, args=None):
-        if TRHEADING_DEBUG:
+        if DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use _transaction')
     
     def commit(self):
-        if TRHEADING_DEBUG:
+        if DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use commit')
 
     def clean_db(self, vacuum = False):
         SQLiteCacheDBV5.clean_db(self, False)
 
-        if TRHEADING_DEBUG and vacuum:
+        if DEPRECATION_DEBUG and vacuum:
             raise DeprecationWarning('Please do not use clean_db with vacuum')
         
     @forceAndReturnDBThread

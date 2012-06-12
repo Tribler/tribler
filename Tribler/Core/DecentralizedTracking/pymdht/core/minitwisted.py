@@ -38,7 +38,7 @@ class ThreadedReactor(threading.Thread):
                  port, on_datagram_received_f,
                  task_interval=0.1,
                  floodbarrier_active=True):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name = "DHT")
         self.daemon = True
         
         self._lock = threading.RLock()

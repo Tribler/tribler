@@ -166,12 +166,13 @@ class GUIUtility:
                 self.frame.playlist.Reset()
                 
             if page == 'my_files':
-                #Open infohash
-                if args:
-                    self.frame.librarylist.GetManager().expand(args[0])
-                
                 #Show list
                 self.frame.librarylist.Show()
+                
+                #Open infohash
+                if args:
+                    self.frame.librarylist.GetManager().refresh_or_expand(args[0])
+                    
             elif self.guiPage == 'my_files':
                 #Hide list
                 self.frame.librarylist.Show(False)
@@ -275,28 +276,25 @@ class GUIUtility:
                 self.ShowPage('my_files')
                 
         else:
-            fts3feaures, old_keywords = fts3_preprocess(input)
-            remotekeywords = split_into_keywords(old_keywords)
-            remotekeywords = [keyword for keyword in remotekeywords if len(keyword) > 1]
+            keywords = split_into_keywords(input)
+            keywords = [keyword for keyword in keywords if len(keyword) > 1]
             
-            safekeywords = ' '.join(remotekeywords + fts3feaures)
-            
-            if len(safekeywords)  == 0:
+            if len(keywords)  == 0:
                 self.Notify('Please enter a search term', wx.ART_INFORMATION)
                 
             else:
                 self.frame.top_bg.StartSearch()
-                self.current_search_query = remotekeywords
+                self.current_search_query = keywords
                 if DEBUG:
-                    print >>sys.stderr,"GUIUtil: searchFiles:", remotekeywords, time()
+                    print >>sys.stderr,"GUIUtil: searchFiles:", keywords, time()
                 
                 self.frame.searchlist.Freeze()         
                
-                self.torrentsearch_manager.setSearchKeywords(remotekeywords, fts3feaures)
-                self.channelsearch_manager.setSearchKeywords(remotekeywords)
+                self.torrentsearch_manager.setSearchKeywords(keywords)
+                self.channelsearch_manager.setSearchKeywords(keywords)
                 
                 self.frame.searchlist.Reset()
-                self.ShowPage('search_results', safekeywords)
+                self.ShowPage('search_results', keywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
                 self.frame.searchlist.Thaw()
@@ -305,27 +303,24 @@ class GUIUtility:
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 
-                startWorker(None, self.torrentsearch_manager.refreshGrid, priority = 1)
+                def db_thread():
+                    self.torrentsearch_manager.refreshGrid()
+                    
+                    nr_peers_connected = self.torrentsearch_manager.searchDispersy()
+                    self.channelsearch_manager.searchDispersy()
+                    return nr_peers_connected
                 
-                if len(remotekeywords) > 0:
-                    #Start remote search
-                    #Arno, 2010-02-03: Query starts as Unicode
-                    q = u'SIMPLE '
-                    for kw in remotekeywords:
-                        q += kw+u' '
-                    q = q.strip()
+                def wx_thread(delayedResult):
+                    nr_peers_connected = delayedResult.get()
                     
-                    nr_peers_connected = self.utility.session.query_connected_peers(q, self.sesscb_got_remote_hits, self.max_remote_queries)
-                    
-                    #Indicate expected nr replies in gui, use local result as first
-                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1, remotekeywords)
+                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1, keywords)
                     self.frame.searchlist.NewResult()
-                    
-                    if len(input) > 1: #do not perform remote channel search for single character inputs
-                        q = 'CHANNEL k '
-                        for kw in remotekeywords:
-                            q += kw+' '
-                        self.utility.session.query_connected_peers(q,self.sesscb_got_channel_hits)
+                
+                startWorker(wx_thread, db_thread, priority = 1024)
+    
+    @forceWxThread
+    def NewResult(self):
+        self.frame.searchlist.NewResult()
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):
@@ -425,49 +420,7 @@ class GUIUtility:
             lists[self.guiPage].ScrollToId(id)
             
     def Notify(self, msg, icon= -1):
-        self.frame.top_bg.Notify(msg, icon)
-     
-    def sesscb_got_remote_hits(self,permid,query,hits):
-        # Called by SessionCallback thread 
-
-        if DEBUG:
-            print >>sys.stderr,"GUIUtil: sesscb_got_remote_hits",len(hits)
-
-        # 22/01/10 boudewijn: use the split_into_keywords function to split.  This will ensure
-        # that kws is unicode and splits on all 'splittable' characters
-        if len(hits) > 0:
-            kwstr = query[len('SIMPLE '):]
-            kws = split_into_keywords(kwstr)
-            self.torrentsearch_manager.gotRemoteHits(permid, kws, hits)
-        self.frame.searchlist.NewResult()
-        
-    def sesscb_got_channel_hits(self, permid, query, hits):
-        '''
-        Called by SessionCallback thread from RemoteQueryMsgHandler.process_query_reply.
-
-        @param permid: the peer who returnd the answer to the query
-        @param query: the keywords of the query that originated the answer
-        @param hits: the complete answer retruned by the peer
-        '''
-        # Called by SessionCallback thread 
-        if DEBUG:
-            print >>sys.stderr,"GUIUtil: sesscb_got_channel_hits",len(hits)
-
-        def callback(delayedResult, permid, query):
-            dictOfAdditions = delayedResult.get()
-            
-            if len(dictOfAdditions) > 0:
-                # 22/01/10 boudewijn: use the split_into_keywords function to
-                # split.  This will ensure that kws is unicode and splits on
-                # all 'splittable' characters
-                kwstr = query[len("CHANNEL x "):]
-                kws = split_into_keywords(kwstr)
-
-                self.channelsearch_manager.gotRemoteHits(permid, kws, dictOfAdditions)
-            
-        # Let channelcast handle inserting items etc.
-        channelcast = BuddyCastFactory.getInstance().channelcast_core
-        channelcast.updateChannel(permid, query, hits, callback)
+        self.frame.top_bg.Notify(msg, icon)       
 
     def ShouldGuiUpdate(self):
         if self.frame.ready:

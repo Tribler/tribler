@@ -9,7 +9,7 @@ from threading import currentThread
 from traceback import print_exc
 
 from Tribler.Core.simpledefs import *
-from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
+from Tribler.Core.APIImplementation.ThreadPool import ThreadNoPool
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = False
@@ -22,7 +22,8 @@ class UserCallbackHandler:
         self.sessconfig = session.sessconfig
 
         # Notifier for callbacks to API user
-        self.threadpool = ThreadPool(2)
+        self.threadpool = ThreadNoPool()
+        
         self.notifier = Notifier.getInstance(self.threadpool)
 
     def shutdown(self):

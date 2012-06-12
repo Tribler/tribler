@@ -179,7 +179,9 @@ class SettingsDialog(wx.Dialog):
         else:
             self.elements['minimize_to_tray'].Enabled(False)
         
+        print >> sys.stderr, self.utility.lang.get('no_leeching')
         self.elements['t4t0'].SetLabel(self.utility.lang.get('no_leeching'))
+        self.elements['t4t0'].Refresh()
         self.elements['t4t1'].SetLabel(self.utility.lang.get('unlimited_seeding'))
         self.elements['t4t2'].SetLabel(self.utility.lang.get('seed_sometime'))
         self.elements['t4t3'].SetLabel(self.utility.lang.get('no_seeding'))

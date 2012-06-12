@@ -8,6 +8,7 @@ from Tribler.dispersy.dispersy import MissingMessageCache
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.database import IgnoreCommits
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
@@ -109,7 +110,7 @@ class AllChannelCommunity(Community):
         self._searchCallbacks = {}
 
     def initiate_meta_messages(self):
-        batch_delay = 3.0
+        batch_delay = 1.0
         
         return [Message(self, u"channelcast", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
                 Message(self, u"channelcast-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
@@ -314,8 +315,16 @@ class AllChannelCommunity(Community):
             print >> sys.stderr, "AllChannelCommunity: sending",nr_requests,"results"
     
     def check_channelsearch_response(self, messages):
-        #no timeline check because PublicResolution policy is used
-        return messages
+        with self._dispersy.database:
+            for message in messages:
+                for cid in message.payload.torrents.keys():
+                    channel_id = self._get_channel_id(cid)
+                    if not channel_id:
+                        community = self._get_channel_community(cid)
+                        yield DelayMessageReqChannelMessage(message, community, includeSnapshot = True)
+                        break
+                else:
+                    yield message
         
     def on_channelsearch_response(self, messages):
         #request missing torrents
@@ -368,15 +377,23 @@ class AllChannelCommunity(Community):
                     
     def check_votecast(self, messages):
         with self._dispersy.database:
+            communities = {}
+            for cid in set([message.payload.cid for message in messages]):
+                channel_id = self._get_channel_id(cid)
+                if not channel_id:
+                    communities[cid] = self._get_channel_community(message.payload.cid)
+            
             for message in messages:
                 if __debug__: dprint(message)
-
-                channel_id = self._get_channel_id(message.payload.cid)
-                if not channel_id:
-                    community = self._get_channel_community(message.payload.cid)
+                
+                community = communities.get(message.payload.cid)
+                if community:
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
                 else:
                     yield message
+
+            # ensure that no commits occur
+            raise IgnoreCommits()
                 
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
@@ -436,7 +453,7 @@ class AllChannelCommunity(Community):
         while True:
             yield 60.0
 
-            cleanpoint = time() - 60
+            cleanpoint = time() - 300
             inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
             if __debug__:
                 print("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
@@ -477,7 +494,7 @@ class AllChannelCommunity(Community):
         
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['dispersy_id'])
+            dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
             
             if dispersy_id and dispersy_id > 0:
                 try:

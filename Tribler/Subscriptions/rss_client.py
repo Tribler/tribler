@@ -43,7 +43,6 @@ from Tribler.Core.BitTornado.bencode import bdecode,bencode
 from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
-from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
 
 from urllib2 import Request, urlopen, URLError, HTTPError
 
@@ -91,8 +90,6 @@ class TorrentFeedThread(Thread):
         self.torrent_dir = self.session.get_torrent_collecting_dir()
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        
-        self.rtorrent_handler = RemoteTorrentHandler.getInstance()
         
         filename = self.getfilename()
         dirname = os.path.dirname(filename)

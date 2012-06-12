@@ -101,7 +101,7 @@ class SearchSideBar(wx.Panel):
         self.vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 3)
             
         self.bundleSizer = wx.FlexGridSizer(0, 2, 0, 0)
-        self.SetBundleState(None)
+        self.SetBundleState(None, reset = True)
         self.vSizer.Add(self.bundleSizer, 0, wx.EXPAND|wx.LEFT, SearchSideBar.INDENT)
         
         self.vSizer.AddSpacer((-1,15))
@@ -225,8 +225,9 @@ class SearchSideBar(wx.Panel):
         self.Thaw()
     
     def Reset(self):
-        self.SetBundleState(None,refresh=False)
+        self.SetBundleState(None,refresh=False,reset=True)
         self.nochannels.Show()
+        self.searchState.SetLabel(' in progress')
         
         for channel in self.channels:
             channel.SetLabel('')
@@ -259,26 +260,28 @@ class SearchSideBar(wx.Panel):
         
         self.guiutility.frame.guiserver.add_task(db_callback)
         
-    def SetBundleState(self, newstate,refresh=True):
+    def SetBundleState(self, newstate, refresh=True, reset=False):
         if newstate is None:
             auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
             
             newstate = Bundler.ALG_OFF # default
-            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
-            if keywords != '':
-                try:
-                    stored_state = self.bundle_db.getPreference(keywords)
-                except:
-                    #if db interaction fails, ignore
-                    stored_state = None
-                
-                local_override = stored_state is not None
-                
-                if local_override:
-                    newstate = stored_state
+            stored_state = None
+            
+            if not reset:
+                keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+                if keywords != '':
+                    try:
+                        stored_state = self.bundle_db.getPreference(keywords)
+                    except:
+                        pass
+                        #if db interaction fails, ignore
                     
-                elif auto_guess:
-                    newstate = Bundler.ALG_MAGIC
+            local_override = stored_state is not None
+            if local_override:
+                newstate = stored_state
+                
+            elif auto_guess:
+                newstate = Bundler.ALG_MAGIC
         
         self.bundlestate = newstate
         self.selected_bundle_mode = None
@@ -288,7 +291,7 @@ class SearchSideBar(wx.Panel):
             self.bundlestatetext.SetLabel(' by %s' % self.bundlestates_str[newstate])
         else:
             self.bundlestatetext.SetLabel(' is %s' % self.bundlestates_str[newstate])
-        self.torrentsearch_manager.setBundleMode(newstate,refresh)
+        self.torrentsearch_manager.setBundleMode(newstate, refresh)
         
         self.bundleSizer.ShowItems(False)
         self.bundleSizer.Clear(deleteWindows = True)

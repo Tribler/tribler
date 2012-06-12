@@ -43,7 +43,7 @@ STATE_FILENAME = 'pymdht.state'
 #TIMEOUT_DELAY = 2
 
 CACHE_VALID_PERIOD = 5 * 60 # 5 minutes
-
+MAX_PENDING_LOOKUPS = 5
 
 class Controller:
 
@@ -103,9 +103,10 @@ class Controller:
         This method is designed to be used as minitwisted's external handler.
 
         """
+        if len(self._pending_lookups) >= MAX_PENDING_LOOKUPS:
+            del self._pending_lookups[0]
         datagrams_to_send = []
-        logger.debug('get_peers %d %r %r' % (bt_port, info_hash,
-                                                callback_f))
+        logger.debug('get_peers %d %r' % (bt_port, info_hash))
         if use_cache:
             peers = self._get_cached_peers(info_hash)
             if peers and callback_f and callable(callback_f):
@@ -333,7 +334,7 @@ class Controller:
                 (lookup_queries_to_send,
                  num_parallel_queries,
                  lookup_done
-                 ) = related_query.lookup_obj.on_error_received(msg)
+                 ) = related_query.lookup_obj.on_error_received(msg, addr)
                 datagrams = self._register_queries(lookup_queries_to_send)
                 datagrams_to_send.extend(datagrams)
 
@@ -402,7 +403,7 @@ class Controller:
                         related_query.lookup_obj))
                 lookup_id = related_query.lookup_obj.lookup_id
                 if callback_f and callable(callback_f):
-                    callback_f(lookup_id, None, None)
+                    related_query.lookup_obj.callback_f(lookup_id, None, None)
         maintenance_queries_to_send = self._routing_m.on_timeout(
             related_query.dst_node)
         if maintenance_queries_to_send:

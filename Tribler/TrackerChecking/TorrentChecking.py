@@ -167,7 +167,7 @@ class TorrentChecking(Thread):
     #add a torrent to the queue, this will schedule a call to update the status etc. for this torrent
     #if the queue is currently full, it will not!
     def addToQueue(self, infohash):
-        if infohash not in self.queueset and len(self.queueset) < QUEUE_SIZE_LIMIT:
+        if True or infohash not in self.queueset and len(self.queueset) < QUEUE_SIZE_LIMIT:
             torrent = self.torrentdb.selectTorrentToCheck(infohash=infohash)
             
             self.queueLock.acquire()
@@ -237,16 +237,17 @@ class TorrentChecking(Thread):
                             print >> sys.stderr, "Torrent Checking: get value from QUEUE:", torrent
                             
                         break
+                    
+                    self.queueLock.release()
                 
                 except:
+                    self.queueLock.release()
+                    
                     policy = self.selectPolicy()
                     torrent = self.torrentdb.selectTorrentToCheck(policy=policy)
                     
                     if DEBUG:
                         print >> sys.stderr, "Torrent Checking: get value from DB:", torrent
-                        
-                finally:
-                    self.queueLock.release()
                     
                 if torrent:
                     notify = []
@@ -366,18 +367,23 @@ class TorrentChecking(Thread):
         return not emptyAnnounceList or not emptyAnnounce
     
     def GetInfoHashesForTracker(self, tracker):
+        isLocked = False
         try:
-            tracker = str(tracker)
+            tracker = unicode(tracker)
             
             #see if any other torrents in queue have this tracker
             infohashes = []
             
             self.queueLock.acquire()
+            isLocked = True
             for torrent in self.queue:
                 if torrent and 'trackers' in torrent:
                     if tracker in torrent['trackers']:
                         infohashes.append(torrent['infohash'])
-                        
+            
+            self.queueLock.release()
+            isLocked = False
+            
             if DEBUG:
                 print >> sys.stderr, "Torrent Checking: Found %d additional infohashes for tracker %s in QUEUE"%(len(infohashes), tracker)
             
@@ -390,10 +396,10 @@ class TorrentChecking(Thread):
             return infohashes
         
         except UnicodeDecodeError:
+            if isLocked:
+                self.queueLock.release()
+            
             return []
-        
-        finally:
-            self.queueLock.release()
 
 if __name__ == '__main__':
     from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, str2bin

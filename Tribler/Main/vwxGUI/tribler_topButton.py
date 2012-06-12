@@ -761,6 +761,55 @@ class VerticalGauge(wx.Panel):
         
     def OnEraseBackground(self, event):
         pass
+    
+class HorizontalGauge(wx.Control):
+    def __init__(self, parent, background, bitmap, repeat = 1, bordersize = 0, size = wx.DefaultSize):
+        wx.Control.__init__(self, parent, size = size, style = wx.NO_BORDER)
+        self.background = background
+        self.bitmap = bitmap
+        self.repeat = repeat
+        self.bordersize = bordersize
+        self.percentage = 0
+        self.hasBGColour = False
+        
+        size = background.GetSize()
+        self.SetMinSize((size.width * repeat, size.height))
+        
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+    
+    def SetPercentage(self, percentage):
+        self.percentage = percentage
+        self.Refresh()
+    
+    def SetBackgroundColour(self, colour):
+        self.hasBGColour = True
+        return wx.Control.SetBackgroundColour(self, colour)
+        
+    def OnPaint(self, event):
+        dc = wx.PaintDC(self)
+        if self.hasBGColour:
+            dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+            dc.Clear()
+        
+        bitmapWidth, bitmapHeight = self.bitmap.GetSize()
+        
+        width, height = self.GetClientSize()
+        width -= self.bordersize * 2
+        width = min(width, self.repeat * bitmapWidth)
+        
+        xpos = self.bordersize
+        ypos = (height - bitmapHeight) / 2
+        
+        for i in range(self.repeat):
+            dc.DrawBitmap(self.background, xpos + (i * bitmapWidth), ypos, True)
+
+        dc.SetClippingRegion(xpos, ypos, width * self.percentage, bitmapHeight)
+        for i in range(self.repeat):
+            dc.DrawBitmap(self.bitmap, xpos + (i * bitmapWidth), ypos, True)
+        
+    def OnEraseBackground(self, event):
+        pass
             
 class EditText(wx.TextCtrl):
     def __init__(self, parent, text, multiLine = False):
@@ -929,6 +978,13 @@ class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
         
     def IsSelected(self, index):
         return self.IsChecked(index)
+    
+    def GetSelectedItems(self):
+        selected = []
+        for index in xrange(self.GetItemCount()):
+            if self.IsChecked(index):
+                selected.append(index)
+        return selected
     
     def doSelectAll(self):
         for index in xrange(self.GetItemCount()):

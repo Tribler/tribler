@@ -81,9 +81,9 @@ if sys.platform == 'win32':
         MAX_INCOMPLETE = 8 # safety margin. Even 9 gives video socket timeout, 10 is official limit
     else:
         #Niels: Opening 1024 connections will cause problems with all kinds of firewalls etc, reducing to 48
-        MAX_INCOMPLETE = 48
+        MAX_INCOMPLETE = 12
 else:
-    MAX_INCOMPLETE = 32
+    MAX_INCOMPLETE = 12
 MAX_HISTORY_INCOMPLETE = max(MAX_INCOMPLETE*10, 320)  # allow X connections to be initiated every 60s
 
 AUTOCLOSE_TIMEOUT = 15 # secs. Setting this to e.g. 7 causes Video HTTP timeouts
@@ -185,8 +185,8 @@ class Connection:
         self.na_want_internal_conn_from = None
         self.na_address_distance = None
         
-        if self.connecter.overlay_bridge and not incompletecounter.taskQueue:
-            incompletecounter.taskQueue = self.connecter.overlay_bridge  
+        if self.Encoder.raw_server and not incompletecounter.taskQueue:
+            incompletecounter.taskQueue = self.Encoder.raw_server  
         
         if self.locally_initiated:
             incompletecounter.increment()

@@ -526,7 +526,7 @@ class SocketHandler:
             if s:
                 if (event & (POLLHUP | POLLERR)):
                     if DEBUG:
-                        print >> sys.stderr,"SocketHandler: Got event, connect socket got error"
+                        print >> sys.stderr,"SocketHandler: Got event, connect socket got error",sock
                         print >> sys.stderr,"SocketHandler: Got event, connect socket got error",s.ip,s.port
                     self._close_socket(s)
                     continue

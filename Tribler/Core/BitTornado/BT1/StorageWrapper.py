@@ -1278,6 +1278,9 @@ class StorageWrapper:
                     amount_inactive -= length
                     amount_left -= length
                     inactive_requests[index] = None
+                    # Arno, 2012-05-30: Fix checkpointing.
+                    self.pieces_on_disk_at_startup.append(index)
+
 
             for index, plist in _partials:
                 assert not dirty.has_key(index)

@@ -364,7 +364,7 @@ class VideoStatus:
 
 def range2set(range,maxrange):    
     if range[0] <= range[1]:
-        set = set(xrange(range[0],range[1]+1))
+        returnset = set(xrange(range[0],range[1]+1))
     else:
-        set = set(xrange(range[0],maxrange)) | set(xrange(0,range[1]+1))
-    return set
+        returnset = set(xrange(range[0],maxrange)) | set(xrange(0,range[1]+1))
+    return returnset

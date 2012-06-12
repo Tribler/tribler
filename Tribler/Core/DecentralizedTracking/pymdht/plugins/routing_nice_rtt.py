@@ -20,7 +20,15 @@ import logging
 import os, sys
 this_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.join(this_dir, '..')
+
+# Arno, 2012-05-25: Apparently .. stuff don't work in py2exe where all
+# code is in library.zip and the this_dir is e.g
+# D:\pkgs\t599c\library.zip\Tribler\Core\DecentralizedTracking\pymdht\plugins
+parent_dir = os.path.dirname(this_dir)
+
+sys.path.append(parent_dir)
 sys.path.append(root_dir)
+
 
 import core.ptime as time
 import core.identifier as identifier

@@ -8,7 +8,7 @@
 #
 import sys
 
-from threading import Thread,Condition
+from threading import Thread,Condition, RLock
 from traceback import print_exc,print_stack,format_stack
 from time import time
 
@@ -21,7 +21,7 @@ class TimedTaskQueue:
     def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True, inDEBUG = DEBUG):
         self.inDEBUG = inDEBUG
         
-        self.cond = Condition()
+        self.cond = Condition(RLock())
         self.queue = []
         self.count = 0.0 # serves to keep task that were scheduled at the same time in FIFO order
         self.thread = Thread(target = self.run)

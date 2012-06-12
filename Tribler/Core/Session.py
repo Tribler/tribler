@@ -22,6 +22,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
+from Tribler.Core import NoDispersyRLock
 
 # ProxyService 90s Test_
 #import time
@@ -73,7 +74,7 @@ class Session(SessionRuntimeConfig):
                 raise RuntimeError, "Session is singleton"
             Session.__single = self
         
-        self.sesslock = RLock()
+        self.sesslock = NoDispersyRLock()
 
         # Determine startup config to use
         if scfg is None: # If no override
@@ -90,6 +91,10 @@ class Session(SessionRuntimeConfig):
         else: # overrides any saved config
             # Work from copy
             self.sessconfig = copy.copy(scfg.sessconfig)
+            
+        #Niels: 11/05/2012, turning off overlay
+        self.sessconfig['overlay'] = 0
+        self.sessconfig['crawler'] = 0
         
         # Create dir for session state, if not exist    
         state_dir = self.sessconfig['state_dir']
@@ -230,16 +235,6 @@ class Session(SessionRuntimeConfig):
         self.lm.register(self,self.sesslock)
         self.lm.start()
         
-        # ProxyService 90s Test_
- #       sscfg = self.get_current_startup_config_copy()
- #       if os.path.isfile(os.path.join(sscfg.get_state_dir(),"Proxy90secondsTestV2")):
- #           # The 90s test was already executed
- #           self.proxytest_state = False
- #       else:
- #           # The 90s test was not executed yet
- #           self.proxytest_state = True
-        # _ProxyService 90s Test
-
     #
     # Class methods
     #
@@ -274,7 +269,7 @@ class Session(SessionRuntimeConfig):
     #
     # Public methods
     #
-    def start_download(self,cdef,dcfg=None,initialdlstatus=None):
+    def start_download(self, cdef, dcfg=None, initialdlstatus=None, hidden=False):
         """ 
         Creates a Download object and adds it to the session. The passed 
         ContentDef and DownloadStartupConfig are copied into the new Download 
@@ -294,10 +289,10 @@ class Session(SessionRuntimeConfig):
         """
         # locking by lm
         if cdef.get_def_type() == "torrent":
-            return self.lm.add(cdef,dcfg,initialdlstatus=initialdlstatus)
+            return self.lm.add(cdef,dcfg,initialdlstatus=initialdlstatus,hidden=hidden)
         else:
             # SWIFTPROC
-            return self.lm.swift_add(cdef,dcfg,initialdlstatus=initialdlstatus)
+            return self.lm.swift_add(cdef,dcfg,initialdlstatus=initialdlstatus,hidden=hidden)
 
 
     def resume_download_from_file(self,filename):
@@ -319,6 +314,13 @@ class Session(SessionRuntimeConfig):
         # locking by lm
         return self.lm.get_downloads()
     
+    def get_download(self, hash):
+        """
+        Returns the Download object for this hash.
+        @return A Donwload Object.
+        """
+        # locking by lm
+        return self.lm.get_download(hash)
     
     def remove_download(self,d,removecontent=False, removestate=True):  
         """
@@ -334,7 +336,7 @@ class Session(SessionRuntimeConfig):
             # SWIFTPROC
             self.lm.swift_remove(d,removecontent=removecontent,removestate=removestate)
         
-    def remove_download_by_infohash(self, infohash, removecontent=False, removestate=True):
+    def remove_download_by_id(self, id, removecontent=False, removestate=True):
         """
         @param infohash The Download to remove
         @param removecontent Whether to delete the already downloaded content
@@ -345,11 +347,13 @@ class Session(SessionRuntimeConfig):
         """
         downloadList = self.get_downloads()
         for download in downloadList:
-            if download.get_def().get_infohash() == infohash:
+            if download.get_def().get_id() == id:
                 self.remove_download(download,removecontent,removestate)
                 return
+
+        self.lm.remove_id(id)        
+        self.uch.perform_removestate_callback(id, [], False)
         
-        self.uch.perform_removestate_callback(infohash, [], False)
 
     def set_download_states_callback(self,usercallback,getpeerlist=False):
         """
@@ -407,7 +411,6 @@ class Session(SessionRuntimeConfig):
         
         return DialbackMsgHandler.getInstance().isConnectable()
 
-
     def get_current_startup_config_copy(self):
         """ Returns a SessionStartupConfig that is a copy of the current runtime 
         SessionConfig.
@@ -441,7 +444,6 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
 
-
     def get_internal_tracker_dir(self):
         """ Returns the directory containing the torrents tracked by the internal 
         tracker (and associated databases).
@@ -455,7 +457,6 @@ class Session(SessionRuntimeConfig):
                 return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
         finally:
             self.sesslock.release()
-
 
     def add_to_internal_tracker(self,tdef):
         """ Add a torrent def to the list of torrents tracked by the internal
@@ -484,7 +485,7 @@ class Session(SessionRuntimeConfig):
         """
         infohash = tdef.get_infohash()
         self.remove_from_internal_tracker_by_infohash(infohash)
-        
+    
     def remove_from_internal_tracker_by_infohash(self,infohash):
         """ Remove a torrent def from the list of torrents tracked by the 
         internal tracker. Use this method to use the Session as a standalone 
@@ -669,7 +670,7 @@ class Session(SessionRuntimeConfig):
         @return A Boolean.
         """
         return self.lm.sessdoneflag.isSet()
-        
+    
     def get_downloads_pstate_dir(self):
         """ Returns the directory in which to checkpoint the Downloads in this
         Session. """
@@ -800,8 +801,8 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
-            
-    def download_torrentfile(self,infohash,usercallback, prio = 0):
+    
+    def download_torrentfile(self, infohash = None, roothash = None, usercallback = None, prio = 0):
         """ Try to download the torrentfile without a known source.
         A possible source could be the DHT.
         If the torrent is succesfully 
@@ -813,21 +814,12 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['overlay']:
-                from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-                
-                rtorrent_handler = RemoteTorrentHandler.getInstance()
-                rtorrent_handler.download_torrent(None,infohash,usercallback,prio)
-            else:
-                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
-        finally:
-            self.sesslock.release()
-         
+        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+            
+        rtorrent_handler = RemoteTorrentHandler.getInstance()
+        rtorrent_handler.download_torrent(None,infohash,roothash,usercallback,prio)
     
-    def download_torrentfile_from_peer(self,permid,infohash,usercallback, prio = 0):
+    def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio = 0):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully 
         received, the usercallback method is called with the infohash as first
@@ -840,19 +832,28 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        # ARNOCOMMENT: Perhaps make save to database optional.
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['overlay']:
-                from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
-                
-                rtorrent_handler = RemoteTorrentHandler.getInstance()
-                rtorrent_handler.download_torrent(permid,infohash,usercallback,prio)
-            else:
-                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
-        finally:
-            self.sesslock.release()
+        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+            
+        rtorrent_handler = RemoteTorrentHandler.getInstance()
+        rtorrent_handler.download_torrent(candidate,infohash,roothash,usercallback,prio)
+            
+    def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio = 0):
+        """ Ask the designated peer to send us the torrentfile for the torrent
+        identified by the passed infohash. If the torrent is succesfully 
+        received, the usercallback method is called with the infohash as first
+        and the contents of the torrentfile (bencoded dict) as second parameter.
+        If the torrent could not be obtained, the callback is not called.
+        The torrent will have been added to the TorrentDBHandler (if enabled)
+        at the time of the call.
         
+        @param permid The PermID of the peer to query.
+        @param infohash The infohash of the torrent.
+        @param usercallback A function adhering to the above spec.
+        """
+        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+            
+        rtorrent_handler = RemoteTorrentHandler.getInstance()
+        rtorrent_handler.download_torrentmessages(candidate,infohashes,usercallback,prio)
 
     #
     # Internal persistence methods

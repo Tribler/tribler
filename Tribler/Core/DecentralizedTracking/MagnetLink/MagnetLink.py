@@ -128,7 +128,7 @@ class MagnetLink:
             dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
 
             try:
-                if self._trackers:
+                if self._trackers and any(tracker.startswith("http") for tracker in self._trackers):
                     MiniTracker(self._swarm, self._trackers)
             except:
                 print_exc()
@@ -219,8 +219,7 @@ class MagnetLink:
                         xt = unhexlify(encoded_infohash)
 
                 elif key == "tr":
-                    if not value.startswith('udp:'): #Niels: ignoring udp trackers                    
-                        trs.append(value)
+                    trs.append(value)
 
             if DEBUG: print >> sys.stderr, "Magnet.parse_url() NAME:", dn
             if DEBUG: print >> sys.stderr, "Magnet.parse_url() HASH:", xt

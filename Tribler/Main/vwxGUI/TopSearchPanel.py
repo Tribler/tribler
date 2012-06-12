@@ -50,7 +50,7 @@ class TopSearchPanel(bgPanel):
         self.utility = self.guiUtility.utility 
         self.installdir = self.utility.getPath()
         self.uelog = UserEventLogDBHandler.getInstance()
-        self.nbdb = NetworkBuzzDBHandler.getInstance()
+        self.nbdb = None
          
         bgPanel.__init__(self, parent, 'top_search')
         
@@ -161,6 +161,8 @@ class TopSearchPanel(bgPanel):
     def complete(self, term):
         """autocompletes term."""
         if len(term) > 1:
+            if self.nbdb == None:
+                self.nbdb = NetworkBuzzDBHandler.getInstance()
             return self.nbdb.getTermsStartingWith(term, num=7)
         return []
 

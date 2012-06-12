@@ -13,7 +13,7 @@ import urlparse
 
 DEBUG = False
 
-def urlOpenTimeout(url,timeout=30,*data):
+def urlOpenTimeout(url,timeout=30,referer='',*data):
     class TimeoutHTTPConnection(httplib.HTTPConnection):
         def connect(self):
             """Connect to the host and port specified in __init__."""
@@ -64,6 +64,8 @@ def urlOpenTimeout(url,timeout=30,*data):
                                   TimeoutHTTPHandler,
                                   urllib2.HTTPDefaultErrorHandler,
                                   urllib2.HTTPRedirectHandler,)
+    if referer:
+        opener.addheaders = [('Referer', referer)]
     return opener.open(url,*data)
 
 

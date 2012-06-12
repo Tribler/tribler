@@ -81,7 +81,6 @@ class ListItem(wx.Panel):
                 control.icon_right = self._get_icon(i, 'icon_right')
                 self.controls.append(control)
                 
-                
                 if i != 0:
                     self.hSizer.AddSpacer((3, -1))
                     
@@ -110,11 +109,16 @@ class ListItem(wx.Panel):
         
         self.AddEvents(self)
         
-    def _get_icon(self, column, name="icon"):
+    def _get_icon(self, column, name="icon", staticbitmap = None):
         icon = None
         if self.columns[column].get(name, False):
             if self.columns[column][name] == 'checkbox' or self.columns[column][name] == 'tree':
-                icon = wx.StaticBitmap(self, -1, self.GetIcon(self.columns[column][name], LIST_DESELECTED, 0))
+                if staticbitmap:
+                    staticbitmap.SetBitmap(self.GetIcon(self.columns[column][name], LIST_DESELECTED, 0))
+                    staticbitmap.Refresh()
+                    icon = staticbitmap
+                else:
+                    icon = wx.StaticBitmap(self, -1, self.GetIcon(self.columns[column][name], LIST_DESELECTED, 0))
                 icon.type = self.columns[column][name]
                 
             else:
@@ -124,7 +128,12 @@ class ListItem(wx.Panel):
                     if isinstance(icon, tuple):
                         icon, tooltip = icon
                     
-                    icon = wx.StaticBitmap(self, -1, icon)
+                    if staticbitmap:
+                        staticbitmap.SetBitmap(icon)
+                        staticbitmap.Refresh()
+                        icon = staticbitmap
+                    else:
+                        icon = wx.StaticBitmap(self, -1, icon)
                     icon.type = None
                     
                     if tooltip:
@@ -161,6 +170,9 @@ class ListItem(wx.Panel):
         else:
             self.original_data = data[2]
         
+        prevData = self.data
+        self.data = data[1]
+        
         control_index = 0
         
         new_controls = False
@@ -168,11 +180,8 @@ class ListItem(wx.Panel):
         
         self.Freeze()
         for i in xrange(len(self.columns)):
-            if self.columns[i].get('icon', False) and not isinstance(self.columns[i]['icon'], basestring):
-                icon = self.columns[i]['icon'](self)
-                if icon:
-                    self.controls[control_index].icon.SetBitmap(icon)
-                    self.controls[control_index].icon.Refresh() 
+            self.controls[control_index].icon = self._get_icon(i, 'icon', self.controls[control_index].icon)
+            self.controls[control_index].icon_right = self._get_icon(i, 'icon_right', self.controls[control_index].icon_right)
             
             type = self.columns[i].get('type','label')
             if type == 'label':
@@ -187,26 +196,32 @@ class ListItem(wx.Panel):
                 control_index += 1
             
             elif type == 'method':
-                if self.data[i] != data[1][i]:
+                if prevData[i] != data[1][i]:
                     control = self.columns[i]['method'](self, self)
                     if control:
                         control.icon = self.controls[control_index].icon
                         control.icon_right = self.controls[control_index].icon_right
                         
-                        if isinstance(control, wx.Panel):
+                        if isinstance(control, wx.Window):
                             control.SetBackgroundColour(self.GetBackgroundColour())
                         
                         cur_sizeritem_index = 0
                         for child in self.hSizer.GetChildren():
-                            if child.GetWindow() == self.controls[control_index]:
+                            if child.GetSizer() == self.controls[control_index] or child.GetWindow() == self.controls[control_index]:
                                 break
                             else:
                                 cur_sizeritem_index += 1
                         self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
                         
                         self.hSizer.Detach(self.controls[control_index])
-                        self.controls[control_index].Hide()
-                        self.controls[control_index].Destroy()
+                        
+                        if isinstance(self.controls[control_index], wx.Sizer):
+                            self.controls[control_index].ShowItems(False)
+                            self.controls[control_index].DeleteWindows()
+                            self.controls[control_index].Destroy()
+                        else:
+                            self.controls[control_index].Show(False)
+                            self.controls[control_index].Destroy()
                         self.controls[control_index] = control
                         new_controls = True
                         has_changed = True
@@ -224,7 +239,6 @@ class ListItem(wx.Panel):
             self.ShowSelected()
         
         self.Thaw()
-        self.data = data[1]
     
     @warnWxThread
     def Highlight(self, timeout = 3.0, revert = True):
@@ -282,7 +296,7 @@ class ListItem(wx.Panel):
             for sizeritem in self.hSizer.GetChildren():
                 if sizeritem.IsWindow():
                     child = sizeritem.GetWindow()
-                    if isinstance(child, wx.Panel):
+                    if isinstance(child, wx.Window):
                         child.SetBackgroundColour(color)
             
             
@@ -863,7 +877,7 @@ class AbstractListBody():
     
     @warnWxThread
     def CreateItem(self, key):
-        if not key in self.items:
+        if not key in self.items and self.data:
             for curdata in self.data:
                 if len(curdata) > 3:
                     thiskey, item_data, original_data, create_method = curdata

@@ -5,7 +5,8 @@ import os
 from time import time as ts_now
 from random import shuffle
 from traceback import print_exc,print_stack
-from threading import RLock,Condition,Event,Thread,currentThread
+from threading import Condition,Event,Thread,currentThread
+from Tribler.Core import NoDispersyRLock as RLock
 from binascii import b2a_hex
 
 from Tribler.Core.simpledefs import *
@@ -754,7 +755,7 @@ class RePEXScheduler(RePEXerStatusCallback):
         
     def network_scan(self, dslist):
         """
-        Called by network thread. Scans for stopped downloads and stores
+        Called by session thread. Scans for stopped downloads and stores
         them in a queue.
         @param dslist List of DownloadStates"""
         # TODO: only repex last X Downloads instead of all.

@@ -12,6 +12,7 @@ from thread import get_ident
 from clock import clock
 import sys
 import time
+from Tribler.Core import NoDispersyRLock
 
 try:
     True
@@ -88,12 +89,14 @@ class RawServer:
         #    print >>sys.stderr,"rawserver: add_task(",func,delay,")"
         if delay < 0:
             delay = 0
+            
         self.lock.acquire()
         self.externally_added.append((func, delay, id))
+        self.lock.release()
+        
         if self.thread_ident != get_ident():
             self.interrupt_socket.interrupt()
-        self.lock.release()
-
+        
     def scan_for_timeouts(self):
         self.add_task(self.scan_for_timeouts, self.timeout_check_interval)
         self.sockethandler.scan_for_timeouts()
@@ -156,7 +159,7 @@ class RawServer:
                     #print >>sys.stderr,"RawServer: funcs is",`self.funcs`
                     
                     
-                    while self.funcs and self.funcs[0][0] <= clock():
+                    while self.funcs and self.funcs[0][0] <= clock() and not self.doneflag.isSet():
                         garbage1, func, id = self.funcs.pop(0)
                         if id in self.tasks_to_kill:
                             pass
@@ -194,27 +197,25 @@ class RawServer:
                                 print_exc()
                             if self.noisy:
                                 self.exception(e)
+                                
                     self.sockethandler.close_dead()
                     self.sockethandler.handle_events(events)
-                    if self.doneflag.isSet():
-                        if DEBUG:
-                            print >> sys.stderr,"rawserver: stopping because done flag set2"
-                        return
-                    self.sockethandler.close_dead()
+                    
                 except (SystemError, MemoryError), e:
                     if DEBUG:
                         print >> sys.stderr,"rawserver: SYS/MEM exception",e
                     self.failfunc(e)
                     return
+                
                 except error:
                     if DEBUG:
                         print >> sys.stderr,"rawserver: ERROR exception"
                         print_exc()
-                    if self.doneflag.isSet():
-                        return
+                    
                 except KeyboardInterrupt,e:
                     self.failfunc(e)
                     return
+                
                 except Exception,e:
                     # # boudewijn: someone made a big mistake, the code
                     # # will not function as expected.  notify someone

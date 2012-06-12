@@ -79,7 +79,7 @@ def forceAndReturnDispersyThread(func):
             dispersy_thread.__name__ = func.__name__
             register_task(dispersy_thread, priority = 1024)
             
-            if event.wait(100) or event.isSet():
+            if event.wait(15) or event.isSet():
                 return result[0]
             
             print_stack()
@@ -362,9 +362,6 @@ class ChannelCommunity(Community):
 
     def _disp_on_torrent(self, messages):
         torrentlist = []
-        infohashes = set()
-        candidates = set()
-        
         for message in messages:
             if __debug__: dprint(message)
             
@@ -376,22 +373,12 @@ class ChannelCommunity(Community):
                 peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
             
             torrentlist.append((self._channel_id, dispersy_id, peer_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
-            infohashes.add(message.payload.infohash)
-
-            # 14/11/11 Boudewijn: message.candidate is None when the torrent is created by us.  (the
-            # _disp_create_torrent method does not supply a candidate)
-            if message.candidate:
-                candidates.add(message.candidate)
-        
-        permids = set()
-        for candidate in candidates:
-            for member in candidate.get_members(self):
-                permids.add(member.public_key)
-        
+            
+            #TODO: schedule a request for roothashes
         self._channelcast_db.on_torrents_from_dispersy(torrentlist)
-        for infohash in infohashes:
-            for permid in permids:
-                self._rtorrent_handler.download_torrent(permid, infohash, None , 3)
+
+        # this might be a response to a dispersy-missing-message
+        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
 
         # this might be a response to a dispersy-missing-message
         self._dispersy.handle_missing_messages(messages, MissingMessageCache)
@@ -1101,7 +1088,7 @@ class ChannelCommunity(Community):
         assert len(torrent_infohash) == 20, 'infohash has length %d'%len(torrent_infohash)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id, torrent_infohash, ['dispersy_id'])
+        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id, torrent_infohash, ['ChannelTorrents.dispersy_id'])
         
         if dispersy_id and dispersy_id > 0:
             # 2. get the message

@@ -15,13 +15,14 @@ from Tribler.Core.exceptions import *
 from Tribler.Core.osutils import *
 from Tribler.Core.APIImplementation.SingleDownload import SingleDownload
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
+from Tribler.Core import NoDispersyRLock
 
 DEBUG = False
 
 class DownloadImpl:
     
     def __init__(self,session,tdef):
-        self.dllock = RLock()
+        self.dllock = NoDispersyRLock()
         # just enough so error saving and get_state() works
         self.error = None
         self.sd = None # hack
@@ -93,9 +94,11 @@ class DownloadImpl:
                 cdcfg = dcfg
                 cdcfg.updateToCurrentVersion()
             self.dlconfig = copy.copy(cdcfg.dlconfig)
+            self.dlconfig['overlay'] = 0
             
             # H4xor this so the 'name' field is safe
             self.correctedinfoname = fix_filebasename(torrentdef.get_name_as_unicode())
+            
             
             # Allow correctinfoname to be overwritten for multifile torrents only
             if 'files' in metainfo['info'] and dcfg.get_corrected_filename() and dcfg.get_corrected_filename() != '':
@@ -262,7 +265,6 @@ class DownloadImpl:
         network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcreatedcallback,pstate,lmvodeventcallback)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda,wrapperDelay) 
         
-
     def network_create_engine_wrapper(self,infohash,metainfo,kvconfig,multihandler,listenport,vapath,vodfileindex,lmcallback,pstate,lmvodeventcallback):
         """ Called by network thread """
         self.dllock.acquire()
@@ -285,17 +287,16 @@ class DownloadImpl:
     #
     # Retrieving DownloadState
     #
-    def set_state_callback(self,usercallback,getpeerlist=False):
+    def set_state_callback(self,usercallback,getpeerlist=False,delay=0.0):
         """ Called by any thread """
         self.dllock.acquire()
         try:
             network_get_state_lambda = lambda:self.network_get_state(usercallback,getpeerlist)
             # First time on general rawserver
-            self.session.lm.rawserver.add_task(network_get_state_lambda,0.0)
+            self.session.lm.rawserver.add_task(network_get_state_lambda,delay)
         finally:
             self.dllock.release()
-
-
+    
     def network_get_state(self,usercallback,getpeerlist,sessioncalling=False):
         """ Called by network thread """
         self.dllock.acquire()
@@ -326,7 +327,6 @@ class DownloadImpl:
             self.session.uch.perform_getstate_usercallback(usercallback,ds,self.sesscb_get_state_returncallback)
         finally:
             self.dllock.release()
-
 
     def sesscb_get_state_returncallback(self,usercallback,when,newgetpeerlist):
         """ Called by SessionCallbackThread """
@@ -404,7 +404,6 @@ class DownloadImpl:
         finally:
             self.dllock.release()
 
-        
     def restart(self, initialdlstatus=None):
         """ Restart the Download. Technically this action does not need to be
         delegated to the network thread, but does so removes some concurrency

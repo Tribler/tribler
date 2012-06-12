@@ -1503,7 +1503,7 @@ class Connecter:
             except Exception,e:
                 if DEBUG:
                     print >>sys.stderr,"Close on bad PIECE: exception",str(e)
-                    print_exc()
+                print_exc()
                 connection.close()
                 return
             
@@ -1684,38 +1684,41 @@ def olthread_bartercast_conn_lost(ip,port,down_kb,up_kb):
     bartercastdb = BarterCastDBHandler.getInstance()
     
     if bartercastdb:
-    
-        permid = peerdb.getPermIDByIP(ip)
-        my_permid = bartercastdb.my_permid
-    
-        if DEBUG:
-            print >> sys.stderr, "bartercast: (Connecter): Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, `permid`)
-    
-        # Save exchanged KBs in BarterCastDB
-        changed = False
-        if permid is not None:
-            #name = bartercastdb.getName(permid)
-            
-            if down_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb, commit=False)
-                changed = True
-     
-            if up_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb, commit=False)
-                changed = True
-     
-        # For the record: save KBs exchanged with non-tribler peers
-        else:
-            if down_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb, commit=False)
-                changed = True
-     
-            if up_kb > 0:
-                new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb, commit=False)
-                changed = True
+        if down_kb or up_kb:
+            permid = peerdb.getPermIDByIP(ip)
+            my_permid = bartercastdb.my_permid
+        
+            if DEBUG:
+                print >> sys.stderr, "bartercast: (Connecter): Up %d down %d peer %s:%s (PermID = %s)" % (up_kb, down_kb, ip, port, `permid`)
+        
+            # Save exchanged KBs in BarterCastDB
+            changed = False
+            if permid is not None:
+                #name = bartercastdb.getName(permid)
                 
-        if changed:
-            bartercastdb.commit()
+                if down_kb > 0:
+                    new_value = bartercastdb.incrementItem((my_permid, permid), 'downloaded', down_kb, commit=False)
+                    changed = True
+         
+                if up_kb > 0:
+                    new_value = bartercastdb.incrementItem((my_permid, permid), 'uploaded', up_kb, commit=False)
+                    changed = True
+         
+            # For the record: save KBs exchanged with non-tribler peers
+            else:
+                if down_kb > 0:
+                    new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'downloaded', down_kb, commit=False)
+                    changed = True
+         
+                if up_kb > 0:
+                    new_value = bartercastdb.incrementItem((my_permid, 'non-tribler'), 'uploaded', up_kb, commit=False)
+                    changed = True
+                    
+            if changed:
+                bartercastdb.commit()
+                
+        elif DEBUG:
+            print >> sys.stderr, "Both up and down values are 0, ignoring"
 
     else:
         if DEBUG:

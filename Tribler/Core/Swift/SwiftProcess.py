@@ -13,8 +13,9 @@ from traceback import print_exc,print_stack
 from Tribler.Core.simpledefs import *
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
+from Tribler.Core import NoDispersyRLock
 
-DEBUG = True
+DEBUG = False
 
 DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
@@ -27,7 +28,7 @@ class SwiftProcess(InstanceConnection):
 
     def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,connhandler):
         # Called by any thread, assume sessionlock is held
-        self.splock = RLock()
+        self.splock = NoDispersyRLock()
         self.binpath = binpath
         self.workdir = workdir
         self.zerostatedir = zerostatedir
@@ -53,6 +54,10 @@ class SwiftProcess(InstanceConnection):
         # no stats/webUI web server
         args=[]
         args.append(str(self.binpath))
+
+        # Arno, 2012-05-29: Hack. Win32 getopt code eats first arg when Windows app
+        # instead of CONSOLE app.
+        args.append("-j")
         args.append("-l") # listen port
         args.append("0.0.0.0:"+str(self.listenport))
         args.append("-c") # command port
@@ -82,8 +87,13 @@ class SwiftProcess(InstanceConnection):
     #   
     def start_cmd_connection(self):
         # Called by any thread, assume sessionlock is held
-        self.singsock = self.connhandler.start_connection(("127.0.0.1", self.cmdport),self)
         
+        if self.is_alive():
+            self.singsock = self.connhandler.start_connection(("127.0.0.1", self.cmdport),self)
+        else:
+            print >>sys.stderr,"sp: start_cmd_connection: Process dead? returncode",self.popen.returncode,"pid",self.popen.pid
+          
+            
     def i2ithread_readlinecallback(self,ic,cmd):
         #if DEBUG:
         #    print >>sys.stderr,"sp: Got command #"+cmd+"#"
@@ -108,12 +118,19 @@ class SwiftProcess(InstanceConnection):
         else:
             roothash = binascii.unhexlify(words[1])
 
+            if words[0] == "ERROR":
+                print >>sys.stderr,"sp: i2ithread_readlinecallback:",cmd
+
             self.splock.acquire()
             try:
+                if roothash not in self.roothash2dl.keys():
+                    print >>sys.stderr,"sp: i2ithread_readlinecallback: unknown roothash",words[1]
+                    return
+                
                 d = self.roothash2dl[roothash]
             except:
-                print "GOT", words
-                print "HAVE", [key.encode("HEX") for key in self.roothash2dl.keys()]
+                #print >>sys.stderr,"GOT", words
+                #print >>sys.stderr,"HAVE", [key.encode("HEX") for key in self.roothash2dl.keys()]
                 raise
             finally:
                 self.splock.release()
@@ -133,6 +150,7 @@ class SwiftProcess(InstanceConnection):
                 numseeds = int(words[7])
                 d.i2ithread_info_callback(dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds)
             elif words[0] == "PLAY":
+                #print >>sys.stderr,"sp: i2ithread_readlinecallback: Got PLAY",cmd
                 httpurl = words[2]
                 d.i2ithread_vod_event_callback(VODEVENT_START,httpurl)
             elif words[0] == "MOREINFO":
@@ -146,7 +164,7 @@ class SwiftProcess(InstanceConnection):
     def start_download(self,d):
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING:
+            if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
             
             roothash = d.get_def().get_roothash()
@@ -189,7 +207,7 @@ class SwiftProcess(InstanceConnection):
     def remove_download(self,d,removestate,removecontent):
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING:
+            if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
             
             roothash_hex = d.get_def().get_roothash_as_hex()
@@ -217,10 +235,15 @@ class SwiftProcess(InstanceConnection):
         else:
             return -1
 
+
+    def get_listen_port(self):
+        return self.listenport
+    
+
     def set_max_speed(self,d,direct,speed):
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING:
+            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
                 return
             
             roothash_hex = d.get_def().get_roothash_as_hex()
@@ -239,6 +262,8 @@ class SwiftProcess(InstanceConnection):
         self.splock.acquire()
         try:
             # Arno, 2012-05-15: Allow during shutdown.
+            if not self.is_alive():
+                return
             
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_checkpoint(roothash_hex)
@@ -249,6 +274,9 @@ class SwiftProcess(InstanceConnection):
     def set_moreinfo_stats(self,d,enable):
         self.splock.acquire()
         try:
+            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+                return
+            
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_setmoreinfo(roothash_hex,enable)
         finally:
@@ -257,6 +285,9 @@ class SwiftProcess(InstanceConnection):
     def add_peer(self,d,addr):
         self.splock.acquire()
         try:
+            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+                return
+            
             addrstr = addr[0]+':'+str(addr[1])
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_peer_addr(roothash_hex,addrstr)
@@ -356,3 +387,8 @@ class SwiftProcess(InstanceConnection):
         # assume splock is held to avoid concurrency on socket
         self.singsock.write('PEERADDR '+roothash_hex+' '+addrstr+'\r\n')
 
+    def is_alive(self):
+        if self.popen:
+            self.popen.poll()
+            return self.popen.returncode is None
+        return False

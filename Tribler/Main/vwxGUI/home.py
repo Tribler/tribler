@@ -15,7 +15,7 @@ from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl,\
     TextCtrlAutoComplete, BetterText as StaticText, _set_font
 from Tribler.Category.Category import Category
-from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 
 from __init__ import LIST_GREY, LIST_BLUE
@@ -29,6 +29,7 @@ from Tribler.dispersy.dispersy import Dispersy
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
 from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter
+from Tribler.Core.Tag.Extraction import TermExtraction
 
 # ProxyService 90s Test_
 #from Tribler.Core.simpledefs import *
@@ -149,7 +150,7 @@ class Stats(XRCPanel):
         dowserButton = wx.Button(self, -1, 'Start dowser')
         dowserButton.Bind(wx.EVT_BUTTON, self.OnDowser)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL)
+        hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         hSizer.Add(dowserButton)
         vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, 10)
         
@@ -340,7 +341,6 @@ class NetworkPanel(HomePanel):
         self.totalSize = StaticText(panel)
         self.queueSize = StaticText(panel)
         self.nrChannels = StaticText(panel)
-        self.nrConnected = StaticText(panel)
         self.incomplete = StaticText(panel)
 
         self.freeMem = None
@@ -363,8 +363,6 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.queueSize, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Channels found'))
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
-        gridSizer.Add(StaticText(panel, -1, 'Connected peers'))
-        gridSizer.Add(self.nrConnected, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Incomplete limit (cur, max, history, maxhistory)'))
         gridSizer.Add(self.incomplete, 0, wx.EXPAND)
         if self.freeMem:
@@ -400,7 +398,6 @@ class NetworkPanel(HomePanel):
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
         self.nrChannels.SetLabel(str(nr_channels))
-        self.nrConnected.SetLabel('%d peers'%len(self.remotequerymsghandler.get_connected_peers()))
         self.incomplete.SetLabel(", ".join(map(str, self.incompleteCounter.getstats())))
         
         if self.freeMem:
@@ -562,7 +559,15 @@ class DispersyPanel(HomePanel):
             self.summary_tree.DeleteAllItems()
             if "communities" in info:
                 root = self.summary_tree.AddRoot("fake")
-                for community in sorted(info["communities"], key=lambda community: (community["classification"], community["hex_cid"])):
+                def communitykey(community):
+                    hasCandidates = 1
+                    if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
+                        hasCandidates = 0
+                    elif community["candidates"]:
+                        hasCandidates = 0
+                    return (hasCandidates, community["classification"], community["hex_cid"])
+                
+                for community in sorted(info["communities"], key=communitykey):
                     if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
                         candidates = "%d " % len(community["candidates"])
                     elif community["candidates"]:
@@ -756,7 +761,9 @@ class BuzzPanel(HomePanel):
     REFRESH_EVERY = 5
 
     def __init__(self, parent):
-        self.nbdb = NetworkBuzzDBHandler.getInstance()
+        #Niels 04-06-2012: termextraction needs a session variable, create instance from mainthread
+        TermExtraction.getInstance()
+        self.nbdb = None
         self.xxx_filter = Category.getInstance().xxx_filter
 
         HomePanel.__init__(self, parent, "Click below to explore what's hot", LIST_GREY)
@@ -818,6 +825,9 @@ class BuzzPanel(HomePanel):
     
     def GetBuzzFromDB(self, doRefresh=False, samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
         def do_db():
+            if self.nbdb == None:
+                self.nbdb = NetworkBuzzDBHandler.getInstance()
+            
             self.buzz_cache = [[],[],[]]
             buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
             for i in range(len(buzz)):
@@ -976,6 +986,8 @@ class BuzzPanel(HomePanel):
         term = evtobj.GetLabel()
         if term <> '...collecting buzz information...':
             self.guiutility.dosearch(term)
+            
+            evtobj.enter = False
             self.DoPauseResume()
 
             # 29/06/11 boudewijn: do not perform database inserts on the GUI thread

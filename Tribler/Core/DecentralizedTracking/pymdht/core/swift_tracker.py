@@ -54,7 +54,7 @@ TOAST_EACH = 20
 class SwiftTracker(threading.Thread):
 
     def __init__(self, pymdht, swift_port):
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self, name = "SwiftTracker")
         self.daemon = True
 
         self.pymdht = pymdht
@@ -188,6 +188,7 @@ class Channel(object):
 class ChannelManager(object):
 
     def __init__(self):
+        self.max_num_channels = 10
         self.channels = []
 
     def get(self, local_cid, remote_addr):
@@ -199,6 +200,8 @@ class ChannelManager(object):
             for c in self.channels:
                 if c.local_cid == local_cid:
                     channel = c
+        if len(self.channels) > self.max_num_channels:
+            del self.channels[0]
         return channel
 
     def remove(self, channel):

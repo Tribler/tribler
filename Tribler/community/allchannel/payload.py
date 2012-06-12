@@ -1,31 +1,11 @@
 from Tribler.dispersy.payload import Payload
 
-class PropagateTorrentsPayload(Payload):
-    """
-    Propagate a list a infohashes for wich the sender has the .torrent files, and possibly metadata.
-    """
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, infohashes):
-            assert isinstance(infohashes, (tuple, list))
-            assert not filter(lambda x: not isinstance(x, str), infohashes)
-            assert not filter(lambda x: not len(x) == 20, infohashes)
-            assert len(infohashes) > 0
-            super(PropagateTorrentsPayload.Implementation, self).__init__(meta)
-            self._infohashes = infohashes
-
-        @property
-        def infohashes(self):
-            return self._infohashes
-
 class ChannelCastPayload(Payload):
     """
     Propagate semi random channel data.
 
     One channel-propagate message could contain a list with the following ChannelCommunity packets:
-     - channel
      - torrent
-     - comment
-     - modify
     """
     class Implementation(Payload.Implementation):
         def __init__(self, meta, torrents):

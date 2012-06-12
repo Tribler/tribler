@@ -502,7 +502,7 @@ def get_bitrate_from_metainfo(file, metainfo):
 def get_length_priority_from_metainfo(metainfo, selectedfiles):
     if 'files' not in metainfo['info']:
         # single-file torrent
-        return None
+        return (metainfo['info']['length'], "")
     else:
         # multi-file torrent
         files = metainfo['info']['files']

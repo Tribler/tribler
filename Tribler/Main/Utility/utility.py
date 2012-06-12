@@ -173,7 +173,7 @@ class Utility:
             'window_x': "",
             'window_y': "",
             'popup_player': 0,
-            'use_bundle_magic': 1,
+            'use_bundle_magic': 0,
             
             # WebUI
             'use_webui':0,
