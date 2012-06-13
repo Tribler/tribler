@@ -649,10 +649,6 @@ class ABCApp():
                                 self.sesscb_reseed_via_swift(download)
                                 
                             doCheckpoint = True
-                        
-                        # Arno, 2012-05-04: Swift reseeding
-                        if self.utility.config.Read('swiftreseed') == 1:
-                            self.sesscb_reseed_via_swift(ds.get_download())
             
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
