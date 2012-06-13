@@ -527,7 +527,7 @@ class ABCApp():
             manager.downloadStarted(objectID)
 
     def set_reputation(self):
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        bc_db = self.utility.session.lm.bartercast_db
         def do_db():
             nr_connections = 0
             if Dispersy.has_instance():
