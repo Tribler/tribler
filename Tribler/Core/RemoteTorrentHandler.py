@@ -154,9 +154,10 @@ class RemoteTorrentHandler:
                 print >>sys.stderr,'rtorrent: adding torrent messages request:', map(bin2str, infohashes), candidate, prio
    
     def has_torrent(self, infohash, callback):
-        startWorker(None, self._has_torrent, wargs = (infohash, callback))
+        tor_col_dir = self.session.get_torrent_collecting_dir()
+        startWorker(None, self._has_torrent, wargs = (infohash, tor_col_dir, callback))
         
-    def _has_torrent(self, infohash, callback):
+    def _has_torrent(self, infohash, tor_col_dir, callback):
         #save torrent
         result = False
         torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref = False)
@@ -166,7 +167,7 @@ class RemoteTorrentHandler:
             
             elif torrent.get('swift_torrent_hash', False):
                 sdef = SwiftDef(torrent['swift_torrent_hash'])
-                torrent_filename = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
+                torrent_filename = os.path.join(tor_col_dir, sdef.get_roothash_as_hex())
                 
                 if os.path.isfile(torrent_filename):
                     self.torrent_db.updateTorrent(infohash, notify=False, torrent_file_name=torrent_filename)
@@ -180,7 +181,7 @@ class RemoteTorrentHandler:
             def do_schedule(filename):
                 if not filename:
                     self._save_torrent(tdef, callback)
-                else:
+                elif callback:
                     startWorker(None, callback)
             
             infohash = tdef.get_infohash()
