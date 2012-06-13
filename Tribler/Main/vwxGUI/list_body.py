@@ -296,7 +296,7 @@ class ListItem(wx.Panel):
             for sizeritem in self.hSizer.GetChildren():
                 if sizeritem.IsWindow():
                     child = sizeritem.GetWindow()
-                    if isinstance(child, wx.Window):
+                    if isinstance(child, wx.Window) and not isinstance(child, wx.Button):
                         child.SetBackgroundColour(color)
             
             
