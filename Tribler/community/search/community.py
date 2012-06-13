@@ -483,15 +483,15 @@ class SearchCommunity(Community):
         shuffle(torrents)
         
         #fix leechers, seeders to max 2**16 (shift values +2 to accomodate -2 and -1 values)
+        max_value = (2 ** 16) - 1
         for torrent in torrents:
-            torrent[2] = min((2 ** 16) - 1, (torrent[2] or -1) + 2)
-            torrent[3] = min((2 ** 16) - 1, (torrent[3] or -1) + 2)
+            torrent[2] = min(max_value, (torrent[2] or -1) + 2)
+            torrent[3] = min(max_value, (torrent[3] or -1) + 2)
             
             #convert to minutes
             torrent[4] /= 60
-            if torrent[4] > ((2 ** 16) - 1):
-                torrent[4] = 0
-            
+            if torrent[4] > max_value or torrent[4] < 0:
+                torrent[4] = max_value
         
         for index, candidate in enumerate(candidates):
             if identifiers:
