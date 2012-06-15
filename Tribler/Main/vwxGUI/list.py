@@ -220,10 +220,14 @@ class ChannelSearchManager:
 
         self.category = ''
         self.dirtyset.clear()
+        self.prev_refresh_if = 0
     
     def do_or_schedule_refresh(self, force_refresh = False):
         if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
-            self.refresh()
+            diff = time() - self.prev_refresh_if        
+            if diff > 5:
+                self.prev_refresh_if = time()
+                self.refresh()
         else:
             self.dirtyset.add('COMPLETE_REFRESH')
             self.list.dirty = True
@@ -338,25 +342,23 @@ class ChannelSearchManager:
     def channelUpdated(self, id, votecast = False, myvote = False):
         if self.list.isReady:
             #only update when shown
-            if self.list.IsShownOnScreen():
-                if self.list.InList(id):
-                    self.dirtyset.add(id)
-                    self.refresh_partial()
-                    
-                elif self.category in ['All', 'New']:
-                    #Show new channel, but only if we are not showing search results
-                    self.refresh()
-                
-                elif self.category == 'Popular':
-                    if len(self.list.GetItems()) < 20:
-                        self.refresh()
-                        
-                elif self.category == 'Favorites' and myvote:
-                    self.refresh()
-                    
-            elif self.list.InList(id):
+            if self.list.InList(id):
                 self.dirtyset.add(id)
-                self.list.dirty = True
+                if self.list.ShouldGuiUpdate():
+                    self.refresh_partial()
+                else:
+                    self.list.dirty = True 
+                
+            elif self.category in ['All', 'New']:
+                #Show new channel, but only if we are not showing search results
+                self.do_or_schedule_refresh()
+            
+            elif self.category == 'Popular':
+                if len(self.list.GetItems()) < 20:
+                    self.do_or_schedule_refresh()
+                    
+            elif self.category == 'Favorites' and myvote:
+                self.do_or_schedule_refresh()
                 
             else:
                 if not votecast:
@@ -1751,13 +1753,18 @@ class ChannelList(List):
         max = log(self.max_votes)
         cur = log(pop+1)
         ratio = min(1, cur/max)
+        ratio = int(self.columns[2]['width'] * ratio) / float(self.columns[2]['width'])
+        prev_ratio = getattr(item, 'prev_ratio', None)
         
-        control = HorizontalGauge(parent, self.normal, self.favorite, 5)
-        control.SetBackgroundColour(DEFAULT_BACKGROUND)
-        control.SetMinSize((self.columns[2]['width'],15))
-        control.SetPercentage(ratio)
-        control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
-        return control
+        if ratio != prev_ratio: #if not enough difference don't return the control
+            item.prev_ratio = ratio
+            
+            control = HorizontalGauge(parent, self.normal, self.favorite, 5)
+            control.SetBackgroundColour(DEFAULT_BACKGROUND)
+            control.SetMinSize((self.columns[2]['width'],15))
+            control.SetPercentage(ratio)
+            control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
+            return control
     
     @warnWxThread
     def CreateTorrents(self, parent, item):
