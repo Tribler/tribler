@@ -840,6 +840,7 @@ class TriblerLaunchMany(Thread):
             self.udppuncture_handler.shutdown()
         if self.dispersy_thread:
             self.dispersy_thread.stop(timeout=2.0)
+        
         # SWIFTPROC
         if self.spm is not None:
             self.spm.early_shutdown()
@@ -847,14 +848,6 @@ class TriblerLaunchMany(Thread):
     def network_shutdown(self):
         try:
             print >>sys.stderr,"tlm: network_shutdown"
-            
-            # Detect if megacache is enabled
-            if self.peer_db is not None:
-                from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-
-                db = SQLiteCacheDB.getInstance()
-                db.commit()
-
             mainlineDHT.deinit()
 
             # SWIFTPROC
@@ -867,9 +860,10 @@ class TriblerLaunchMany(Thread):
                 print >>sys.stderr,"tlm: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
         except:
             print_exc()
-
+        
         # Stop network thread
         self.sessdoneflag.set()
+         
         # Arno, 2010-08-09: Stop Session pool threads only after gracetime
         self.session.uch.shutdown()
 

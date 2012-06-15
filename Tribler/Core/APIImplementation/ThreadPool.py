@@ -160,8 +160,10 @@ class ThreadNoPool:
             self.queue.task_done()
         return self.queue.get()
         
-    def joinAll(self, waitForTasks = True, waitForThreads = True):
-        self.thread.join()
+    def joinAll(self, waitForTasks = False, waitForThreads = True):
+        self.__isJoiningStopQueuing = True
+        if waitForTasks:
+            self.thread.join()
        
 class ThreadPoolThread(threading.Thread):
 
