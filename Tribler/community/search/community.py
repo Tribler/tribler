@@ -452,7 +452,8 @@ class SearchCommunity(Community):
                     toPopularity[infohash] = [seeders, leechers, time() - (ago * 60)]
                     toCollect.setdefault(infohash, []).append(message.candidate)
 
-        self._torrent_db.on_torrent_collect_response(toInsert.values())
+        if len(toInsert) > 0:
+            self._torrent_db.on_torrent_collect_response(toInsert.values())
         
         hashesToCollect = self._torrent_db.selectSwiftTorrentsToCollect(toCollect.keys())
         for infohash, roothash in hashesToCollect[:5]:

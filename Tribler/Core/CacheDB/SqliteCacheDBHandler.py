@@ -1509,34 +1509,29 @@ class TorrentDBHandler(BasicDBHandler):
         values = [infohash for infohash, _ in torrents] + [roothash for _,roothash in torrents]
         results = self._db.fetchall(sql, values)
         
-        found_both = set()
-        found_only_infohash = set()
-        found_only_roothash = set()
-        
+        info_dict = {}
+        root_dict = {}       
         for torrent_id, infohash, roothash in results:
             if infohash.startswith('swift'):
                 infohash = ''
             
-            if infohash and roothash:
-                found_both.add((infohash, roothash))
-                
-            elif infohash:
-                found_only_infohash.add(infohash)
-                
-            else:
-                found_only_roothash.add(roothash)
+            if infohash:
+                info_dict[infohash] = torrent_id
+            if roothash:
+                root_dict[roothash] = torrent_id
+            
         
         to_be_inserted = []
         update_infohash = []
         update_roothash = []
         for infohash, roothash in torrents:
-            if infohash in found_only_infohash:
-                update_roothash.append((roothash, infohash))
-                
-            elif roothash in found_only_roothash:
-                update_infohash.append((infohash, roothash))
-                
-            elif (infohash, roothash) not in found_both:
+            if infohash in info_dict and roothash in root_dict:
+                continue
+            elif infohash in info_dict:
+                update_roothash.append((roothash, info_dict[infohash]))
+            elif roothash in root_dict:
+                update_infohash.append((infohash, root_dict[roothash]))
+            else:
                 to_be_inserted.append((infohash, roothash))
        
         if len(to_be_inserted) > 0:
@@ -1544,11 +1539,11 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, to_be_inserted)
         
         if len(update_infohash) > 0:
-            sql = "UPDATE Torrent SET infohash = ? WHERE swift_torrent_hash = ?"
+            sql = "UPDATE Torrent SET infohash = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update_infohash)
             
         if len(update_roothash) > 0:
-            sql = "UPDATE Torrent SET swift_torrent_hash = ? WHERE infohash = ?"
+            sql = "UPDATE Torrent SET swift_torrent_hash = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update_roothash)
     
     def on_search_response(self, torrents):
