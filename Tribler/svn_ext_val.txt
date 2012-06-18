@@ -8,4 +8,4 @@
 # > svn propset svn:externals . -F svn_ext_val.txt
 
 SwiftEngine https://svn.tribler.org/libswift/branches/arno/swift-like-ftp
-dispersy https://svn.tribler.org/dispersy/branches/20120612-27046-mainbranch
+dispersy https://svn.tribler.org/dispersy/trunk
