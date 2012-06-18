@@ -1,4 +1,18 @@
-== 12.2.3
+== 12.6.2
+
+- clean up boostrap data structure when bootstrap is done
+
+== 12.6.0
+
+- bugfix: a call to on_error in controller.py
+- limitation of pending get_peers lookups (controller)
+- limitation of number of channels in swift_tracker.py
+- off-line mode: routing table will stop expelling nodes when connection is lost
+- major bugfix: memory leak in core/querier.py in optimization mode (python -O)
+
+== 12.5.0
+
+- removed telnet API. Replaced with swift/ppsp API (see core/swift_tracker.py)
 
 == 12.2.2
 

@@ -20,6 +20,7 @@ from Tribler.Core.API import *
 from Tribler.Main.vwxGUI import forceDBThread
 from Tribler.Main.Dialogs.MoveTorrents import MoveTorrents
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
+from Tribler.Main.Utility.GuiDBTuples import MergedDs
 
 class SettingsDialog(wx.Dialog):
     def __init__(self):
@@ -544,12 +545,22 @@ class SettingsDialog(wx.Dialog):
                     for selection in selections:
                         if start:
                             if dstates[selection]:
-                                dstates[selection].get_download().restart()
+                                if isinstance(dstates[selection], MergedDs):
+                                    for ds in dstates[selection].dslist:
+                                        ds.get_download().restart()
+                                else:
+                                    dstates[selection].get_download().restart()
+                                
+                                
                             user_download_choice.set_download_state(infohashes[selection], "restart")
                             
                         else:
                             if dstates[selection]:
-                                dstates[selection].get_download().stop()
+                                if isinstance(dstates[selection], MergedDs):
+                                    for ds in dstates[selection].dslist:
+                                        ds.get_download().stop()
+                                else:
+                                    dstates[selection].get_download().stop()
                             
                             user_download_choice.set_download_state(infohashes[selection], "stop")
                             
@@ -586,7 +597,7 @@ class SettingsDialog(wx.Dialog):
             for item in downloads:
                 if item.ds:
                     choices.append(item.name)
-                    dstates.append(item.ds.get_download())
+                    dstates.append(item.ds)
             
             return choices, dstates
         
@@ -690,23 +701,15 @@ class SettingsDialog(wx.Dialog):
         
         busyDlg.Destroy()
         
-    def moveDownload(self, download, new_dir, movefiles, ignore):
-        destdirs = download.get_dest_files()
-        if len(destdirs) > 1:
-            old = os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
-            _, old_dir = new = os.path.split(old)
-            new = os.path.join(new_dir, old_dir)
-        else:
-            old = destdirs[0][1]
-            _, old_file = os.path.split(old)
-            new = os.path.join(new_dir, old_file)
-        
-        print >> sys.stderr, "Creating new donwloadconfig"
-        tdef = download.get_def()
-        dscfg = DownloadStartupConfig(download.dlconfig)
-        dscfg.set_dest_dir(new_dir)
-        
-        self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+    def moveDownload(self, download_state, new_dir, movefiles, ignore):
+        def modify_config(download):
+            self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+            
+            cdef = download.get_def()
+            dscfg = DownloadStartupConfig(download.dlconfig)
+            dscfg.set_dest_dir(new_dir)
+            
+            return cdef, dscfg
         
         def rename_or_merge(old, new, ignore = True):
             if os.path.exists(old):
@@ -727,16 +730,38 @@ class SettingsDialog(wx.Dialog):
                             os.rename(oldfile, newfile)
                 else:
                     os.renames(old, new)
+                
+        destdirs = download_state.get_download().get_dest_files()
+        if len(destdirs) > 1:
+            old = os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
+            _, old_dir = new = os.path.split(old)
+            new = os.path.join(new_dir, old_dir)
+        else:
+            old = destdirs[0][1]
+            _, old_file = os.path.split(old)
+            new = os.path.join(new_dir, old_file)
         
-        def after_stop():
+        print >> sys.stderr, "Creating new donwloadconfig"
+        dslist = []
+        if isinstance(download_state, MergedDs):
+            dslist = download_state.dslist
+        else:
+            dslist.append(download_state)
+        
+        to_start = []
+        for ds in dslist:
+            download = ds.get_download()
+            to_start.append(modify_config(download))
+        
+        if movefiles:
             print >> sys.stderr, "Moving from",old,"to",new,"newdir",new_dir
-            if movefiles:
-                rename_or_merge(old, new, ignore)
-        
-            self.utility.session.start_download(tdef, dscfg)
-        
-        #use rawserver as remove is scheduled on rawserver 
-        self.utility.session.lm.rawserver.add_task(after_stop,0.0)
+            
+            movelambda = lambda: rename_or_merge(old, new, ignore)
+            self.utility.session.lm.rawserver.add_task(movelambda, 0.0)
+            
+        for cdef, dscfg in to_start:
+            startlambda = lambda cdef=cdef, dscfg=dscfg: self.utility.session.start_download(cdef, dscfg)
+            self.utility.session.lm.rawserver.add_task(startlambda, 0.0)
         
     def process_input(self):
         try:

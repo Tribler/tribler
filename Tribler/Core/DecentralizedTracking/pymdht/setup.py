@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='Pymdht',
-    version='12.2.1',
+    version='12.6.2',
     author='Raul Jimenez and contributors',
     author_email='rauljc@gkth.se',
     packages=['pymdht', 'pymdht.core', 'pymdht.plugins', 'pymdht.ui'],

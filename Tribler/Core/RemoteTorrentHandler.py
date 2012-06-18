@@ -13,7 +13,7 @@ from traceback import print_exc
 from random import choice
 from binascii import hexlify
 from tempfile import mkstemp
-from time import sleep
+from time import sleep, time
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -489,20 +489,22 @@ class MagnetRequester(Requester):
         
         if prio == 1 and not sys.platform == 'darwin':
             self.MAX_CONCURRENT = 3
-            
         self.canrequest = lambda: len(self.requestedInfohashes) < self.MAX_CONCURRENT
-    
+        
     def doFetch(self, infohash, candidate):
-        raw_lambda = lambda filename, infohash=infohash, candidate=candidate: self._doFetch(filename, infohash, candidate)
-        self.remote_th.has_torrent(infohash, raw_lambda)
+        if infohash not in self.requestedInfohashes:
+            self.requestedInfohashes.add(infohash)
+        
+            raw_lambda = lambda filename, infohash=infohash, candidate=candidate: self._doFetch(filename, infohash, candidate)
+            self.remote_th.has_torrent(infohash, raw_lambda)
     
     def _doFetch(self, filename, infohash, candidate):
         if filename:
+            if infohash in self.requestedInfohashes: 
+                self.requestedInfohashes.remove(infohash)
             self.remote_th.notify_possible_torrent_infohash(infohash, True)
             
-        elif infohash not in self.requestedInfohashes:
-            self.requestedInfohashes.add(infohash)
-            
+        else:
             #try magnet link
             magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
             
@@ -512,7 +514,7 @@ class MagnetRequester(Requester):
                 magnetlink += "&tr="+urllib.quote_plus(tracker)
             
             if DEBUG:
-                print >> sys.stderr, 'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink
+                print >> sys.stderr, long(time()),'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes)
         
             TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections = 30 if self.prio == 0 else 10)
             

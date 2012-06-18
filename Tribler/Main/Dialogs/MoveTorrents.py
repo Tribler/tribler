@@ -9,10 +9,10 @@ from Tribler.Main.vwxGUI.tribler_topButton import CheckSelectableListCtrl,\
     _set_font
 
 class MoveTorrents(wx.Dialog):
-    def __init__(self, parent, labels, downloads):
+    def __init__(self, parent, labels, download_states):
         wx.Dialog.__init__(self, parent, -1, 'Please select the torrents you want to move', size=(750,450))
         
-        self.downloads = downloads
+        self.download_states = download_states
         vSizer = wx.BoxSizer(wx.VERTICAL)
         message = 'Please select all torrents which should be moved'
         message += "\nUse ctrl+a to select all/deselect all."
@@ -30,7 +30,7 @@ class MoveTorrents(wx.Dialog):
         for i, label in enumerate(labels):
             row = self.listCtrl.InsertStringItem(sys.maxint, label)
             
-            download = downloads[i]
+            download = download_states[i].get_download()
             self.listCtrl.SetStringItem(row, 1, download.get_dest_dir())
 
         self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)
@@ -83,7 +83,7 @@ class MoveTorrents(wx.Dialog):
         selectedDownloads = []
         for i in range(self.listCtrl.GetItemCount()):
             if self.listCtrl.IsSelected(i):
-                selectedDownloads.append(self.downloads[i])
+                selectedDownloads.append(self.download_states[i])
          
         new_dir = self.destTextCtrl.GetValue()
         moveFiles = self.moveFiles.GetValue()

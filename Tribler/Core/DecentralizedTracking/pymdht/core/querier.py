@@ -111,7 +111,8 @@ class Querier(object):
                 break
             self._timeouts = self._timeouts[1:]
             addr_query_list = self._pending[query.dst_node.addr]
-            assert query == addr_query_list.pop(0)
+            popped_query = addr_query_list.pop(0)
+            assert query == popped_query
             if not addr_query_list:
                 # The list is empty. Remove the whole list.
                 del self._pending[query.dst_node.addr]
