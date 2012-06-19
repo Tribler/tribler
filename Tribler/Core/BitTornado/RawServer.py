@@ -14,6 +14,8 @@ import sys
 import time
 from Tribler.Core import NoDispersyRLock
 
+from Tribler.dispersy.decorator import attach_profiler
+
 try:
     True
 except:
@@ -129,6 +131,7 @@ class RawServer:
             self._add_task(a, b, c)
         self.lock.release()
 
+    @attach_profiler
     def listen_forever(self, handler):
         if DEBUG:
             print >>sys.stderr,"rawserver: listen forever()"
