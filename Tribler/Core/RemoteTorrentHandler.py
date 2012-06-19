@@ -13,7 +13,7 @@ from traceback import print_exc
 from random import choice
 from binascii import hexlify
 from tempfile import mkstemp
-from time import sleep
+from time import sleep, time
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -154,9 +154,10 @@ class RemoteTorrentHandler:
                 print >>sys.stderr,'rtorrent: adding torrent messages request:', map(bin2str, infohashes), candidate, prio
    
     def has_torrent(self, infohash, callback):
-        startWorker(None, self._has_torrent, wargs = (infohash, callback))
+        tor_col_dir = self.session.get_torrent_collecting_dir()
+        startWorker(None, self._has_torrent, wargs = (infohash, tor_col_dir, callback))
         
-    def _has_torrent(self, infohash, callback):
+    def _has_torrent(self, infohash, tor_col_dir, callback):
         #save torrent
         result = False
         torrent = self.torrent_db.getTorrent(infohash, ['torrent_file_name', 'swift_torrent_hash'], include_mypref = False)
@@ -166,7 +167,7 @@ class RemoteTorrentHandler:
             
             elif torrent.get('swift_torrent_hash', False):
                 sdef = SwiftDef(torrent['swift_torrent_hash'])
-                torrent_filename = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
+                torrent_filename = os.path.join(tor_col_dir, sdef.get_roothash_as_hex())
                 
                 if os.path.isfile(torrent_filename):
                     self.torrent_db.updateTorrent(infohash, notify=False, torrent_file_name=torrent_filename)
@@ -180,7 +181,7 @@ class RemoteTorrentHandler:
             def do_schedule(filename):
                 if not filename:
                     self._save_torrent(tdef, callback)
-                else:
+                elif callback:
                     startWorker(None, callback)
             
             infohash = tdef.get_infohash()
@@ -245,16 +246,18 @@ class RemoteTorrentHandler:
             if key[1] == roothash:
                 handle_lambda = lambda key=key: self._handleCallback(key, True)
                 self.scheduletask(handle_lambda)
+                
+        def do_db(tdef):
+            if self.torrent_db.hasTorrent(tdef.get_infohash()):
+                self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash = sdef.get_roothash(), torrent_file_name = swiftpath)
+            else:
+                self.torrent_db._addTorrentToDB(tdef, source = "SWIFT", extra_info = {'filename': swiftpath, 'swift_torrent_hash':roothash, 'status':'good'}, commit = True)
         
         sdef = SwiftDef(roothash)
         swiftpath = os.path.join(self.session.get_torrent_collecting_dir(),sdef.get_roothash_as_hex())
         if os.path.exists(swiftpath):
             tdef = TorrentDef.load(swiftpath)
-        
-            if self.torrent_db.hasTorrent(tdef.get_infohash()):
-                self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash = sdef.get_roothash(), torrent_file_name = swiftpath)
-            else:
-                self.torrent_db._addTorrentToDB(tdef, source = "SWIFT", extra_info = {'filename': swiftpath, 'swift_torrent_hash':roothash, 'status':'good'}, commit = True)
+            startWorker(None, do_db, wargs = (tdef, ))
     
     def notify_possible_torrent_infohash(self, infohash, actualTorrent = False):
         keys = self.callbacks.keys()
@@ -486,20 +489,22 @@ class MagnetRequester(Requester):
         
         if prio == 1 and not sys.platform == 'darwin':
             self.MAX_CONCURRENT = 3
-            
         self.canrequest = lambda: len(self.requestedInfohashes) < self.MAX_CONCURRENT
-    
+        
     def doFetch(self, infohash, candidate):
-        raw_lambda = lambda filename, infohash=infohash, candidate=candidate: self._doFetch(filename, infohash, candidate)
-        self.remote_th.has_torrent(infohash, raw_lambda)
+        if infohash not in self.requestedInfohashes:
+            self.requestedInfohashes.add(infohash)
+        
+            raw_lambda = lambda filename, infohash=infohash, candidate=candidate: self._doFetch(filename, infohash, candidate)
+            self.remote_th.has_torrent(infohash, raw_lambda)
     
     def _doFetch(self, filename, infohash, candidate):
         if filename:
+            if infohash in self.requestedInfohashes: 
+                self.requestedInfohashes.remove(infohash)
             self.remote_th.notify_possible_torrent_infohash(infohash, True)
             
-        elif infohash not in self.requestedInfohashes:
-            self.requestedInfohashes.add(infohash)
-            
+        else:
             #try magnet link
             magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
             
@@ -509,7 +514,7 @@ class MagnetRequester(Requester):
                 magnetlink += "&tr="+urllib.quote_plus(tracker)
             
             if DEBUG:
-                print >> sys.stderr, 'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink
+                print >> sys.stderr, long(time()),'rtorrent: requesting magnet', bin2str(infohash), self.prio, magnetlink, len(self.requestedInfohashes)
         
             TorrentDef.retrieve_from_magnet(magnetlink, self.__torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT, max_connections = 30 if self.prio == 0 else 10)
             

@@ -79,6 +79,12 @@ class OverlayBootstrapper(object):
 #            print '>> using bootstrap nodes', len(nodes)
         return queries_to_send, maintenance_lookup, delay
 
+    def bootstrap_done(self):
+        #clean up stuff that will never be used
+        self.saved_bootstrap_nodes = []
+        self.main_bootstrap_nodes = []
+        self.backup_bootstrap_nodes = []
+    
     def is_bootstrap_node(self, node_):
         return node_.ip in self.bootstrap_ips
 

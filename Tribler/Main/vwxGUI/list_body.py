@@ -296,7 +296,7 @@ class ListItem(wx.Panel):
             for sizeritem in self.hSizer.GetChildren():
                 if sizeritem.IsWindow():
                     child = sizeritem.GetWindow()
-                    if isinstance(child, wx.Window):
+                    if isinstance(child, wx.Window) and not isinstance(child, wx.Button):
                         child.SetBackgroundColour(color)
             
             
@@ -416,7 +416,7 @@ class ListItem(wx.Panel):
         return False
         
     def __str__( self ):
-        return "ListItem" + " ".join(map(str, self.data))
+        return "ListItem " + " ".join(map(str, self.data))
         
 class AbstractListBody():
     
@@ -597,6 +597,8 @@ class AbstractListBody():
     
     @warnWxThread
     def OnChange(self, scrollToTop = False):
+        if DEBUG:
+            print >> sys.stderr, "ListBody: OnChange"
         self.Freeze()
         
         self.vSizer.Layout()
@@ -907,6 +909,7 @@ class AbstractListBody():
         
         initial_nr_items_to_add = nr_items_to_add    
         done = True
+        didAdd = False
         
         if len(self.data) > 0:
             t1 = time()
@@ -944,6 +947,7 @@ class AbstractListBody():
                     if not sizer:
                         self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
                         item.Show()
+                        didAdd = True
 
                         if key in self.highlightSet:
                             self.highlightSet.remove(key)
@@ -975,8 +979,9 @@ class AbstractListBody():
                 self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
                 self.messagePanel.Layout()
                 self.messagePanel.Show()
-                
-            self.OnChange()
+            
+            if didAdd:
+                self.OnChange()
             self.Thaw()
             
             if len(revertList) > 0:

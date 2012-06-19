@@ -21,7 +21,9 @@ import controller
 import logging, logging_conf
 import swift_tracker
 
-PYMDHT_VERSION = (12, 2, 3)
+logger = logging.getLogger('dht')
+
+PYMDHT_VERSION = (12, 6, 2)
 VERSION_LABEL = ''.join(
     ['NS',
      chr((PYMDHT_VERSION[0] - 11) * 24 + PYMDHT_VERSION[1]),
@@ -66,7 +68,11 @@ class Pymdht:
         if swift_port:
             print 'Creating SwiftTracker'
             swift_tracker.SwiftTracker(self, swift_port).start()
-
+        self.timestamps = []
+        self.max_num_sec = 0
+        self.max_num_min = 0
+        self.max_num_10min = 0
+            
     def stop(self):
         """Stop the DHT node."""
         #TODO: notify controller so it can do cleanup?
@@ -92,6 +98,29 @@ class Pymdht:
         callback needs to be ready to get peers BEFORE calling this fuction.
         
         """
+        #logger.critical("pymdht.get_peers: callback: %r" % (callback_f))
+        current_time = time.time()
+        self.timestamps.append(current_time)
+        num_sec = 0
+        num_min = 0
+        num_10min = 0
+        for ts in self.timestamps:
+            if current_time < ts + 10 * 60:
+                num_10min += 1
+                if current_time < ts + 60:
+                    num_min += 1
+                    if current_time < ts + 1:
+                        num_sec += 1
+        self.max_num_sec = max(self.max_num_sec, num_sec)
+        self.max_num_min = max(self.max_num_min, num_min)
+        self.max_num_10min = max(self.max_num_10min, num_10min)
+        self.timestamps = self.timestamps[-num_10min:]
+        logger.info("%d(%d) %d(%d) %d(%d) --- %r callback: %r" % (
+                num_sec, self.max_num_sec,
+                num_min, self.max_num_min,
+                num_10min, self.max_num_10min,
+                info_hash, callback_f))
+        
         use_cache = True
         print 'pymdht: use_cache ON!!'
         self.reactor.call_asap(self.controller.get_peers,

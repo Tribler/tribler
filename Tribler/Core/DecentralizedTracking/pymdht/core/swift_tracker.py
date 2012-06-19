@@ -51,6 +51,8 @@ MAX_BT_PORT = 2**16
 
 TOAST_EACH = 20
 
+#TODO: agree on a clear protocol between swift and pymdht
+
 class SwiftTracker(threading.Thread):
 
     def __init__(self, pymdht, swift_port):

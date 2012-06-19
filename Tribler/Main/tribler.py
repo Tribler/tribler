@@ -527,7 +527,7 @@ class ABCApp():
             manager.downloadStarted(objectID)
 
     def set_reputation(self):
-        bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
+        bc_db = self.utility.session.lm.bartercast_db
         def do_db():
             nr_connections = 0
             if Dispersy.has_instance():
@@ -649,10 +649,6 @@ class ABCApp():
                                 self.sesscb_reseed_via_swift(download)
                                 
                             doCheckpoint = True
-                        
-                        # Arno, 2012-05-04: Swift reseeding
-                        if self.utility.config.Read('swiftreseed') == 1:
-                            self.sesscb_reseed_via_swift(ds.get_download())
             
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:

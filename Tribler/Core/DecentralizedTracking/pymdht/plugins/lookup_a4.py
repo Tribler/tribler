@@ -154,6 +154,7 @@ class GetPeersLookup(object):
         self.slowdown_alpha = 4
         self.slowdown_m = 1
         
+        self.start_ts = time.time()
         logger.debug('New lookup (info_hash: %r) %d' % (info_hash, bt_port))
         self._my_id = my_id
         self.lookup_id = lookup_id
