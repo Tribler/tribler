@@ -2208,11 +2208,10 @@ class TorrentDBHandler(BasicDBHandler):
             torrent['matches'] = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
             
             #Matchinfo is documented at: http://www.sqlite.org/fts3.html#matchinfo
-            matchinfo = result[-1]
-            nrfields = len(matchinfo)/4
-            matchinfo = unpack_from('I'*nrfields, matchinfo)
-            num_phrases = matchinfo[0]
-            num_cols = matchinfo[1]
+            matchinfo = str(result[-1])
+            num_phrases, num_cols = unpack_from('II', matchinfo)
+            unpack_str = 'I'*(3*num_cols*num_phrases)
+            matchinfo = unpack_from('II'+unpack_str, matchinfo)
             
             swarmnames, filenames, fileextensions  = [
                 [matchinfo[3 * (i + p*num_cols) + 2] for p in range(num_phrases)]
