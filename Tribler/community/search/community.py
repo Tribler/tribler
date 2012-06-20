@@ -291,12 +291,10 @@ class SearchCommunity(Community):
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     results.append((dbresult['infohash'], dbresult['name'], dbresult['length'], dbresult['num_files'], dbresult['category'], dbresult['creation_date'], dbresult['num_seeders'], dbresult['num_leechers'], dbresult['swift_hash'], dbresult['swift_torrent_hash'], dbresult['channel_cid']))
-                
-                self._create_search_response(message.payload.identifier, results, message.candidate)
-                
             elif DEBUG:
-                self._create_search_response(message.payload.identifier, results, message.candidate)
                 print >> sys.stderr, "SearchCommunity: no results"
+            
+            self._create_search_response(message.payload.identifier, results, message.candidate)
     
     def _create_search_response(self, identifier, results, candidate):
         #create search-response message
