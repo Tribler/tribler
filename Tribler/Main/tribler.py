@@ -91,11 +91,13 @@ from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import SimpleServer
 
-# Arno, 2012-05-25: h4x0t DHT import for py2...
+# Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
+import Tribler.Core.DecentralizedTracking.pymdht.core.identifier
+import Tribler.Core.DecentralizedTracking.pymdht.core.message
+import Tribler.Core.DecentralizedTracking.pymdht.core.node
+import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
 import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
-# Raul, 2012-06-05: file doesn't exist any longer
-# import Tribler.Core.DecentralizedTracking.pymdht.core.routing_plugin_template
 import Tribler.Core.DecentralizedTracking.pymdht.core.bootstrap
 
 

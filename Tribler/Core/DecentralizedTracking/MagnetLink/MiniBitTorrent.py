@@ -108,6 +108,9 @@ class Connection:
         return 20, self.read_peer_id
 
     def read_peer_id(self, s):
+        # Arno, 2012-06-20: Avoid talking to oneself
+        if s == self._swarm.get_peer_id():
+            return None
         self._swarm.add_good_peer(self._address)
         return 4, self.read_len
 
