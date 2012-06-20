@@ -18,7 +18,7 @@ from traceback import print_exc
 from urllib import urlopen, urlencode
 import sys
 
-from Tribler.Core.BitTornado.BT1.MessageID import protocol_name, EXTEND
+from Tribler.Core.BitTornado.BT1.MessageID import protocol_name, EXTEND 
 from Tribler.Core.BitTornado.BT1.convert import toint, tobinary
 from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.SocketHandler import SocketHandler
@@ -128,8 +128,13 @@ class Connection:
         return 4, self.read_len
 
     def got_message(self, data):
+        # Arno, 2012-06-20: Safety catch for concurrency between
+        # MiniSwarm close and DHT reporting new peers.
+        if self._swarm._closed:
+            self._closed = True
+            self.close()
+            
         if data[0] == EXTEND and len(data) > 2:
-
             # we only care about EXTEND messages.  So all other
             # messages will NOT reset the _last_activity timestamp.
             self._last_activity = time()
