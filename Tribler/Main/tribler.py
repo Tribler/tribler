@@ -1250,8 +1250,6 @@ def run(params = None):
     #    tribler_done(configpath)
     #os._exit(0)
 
-import yappi
-
 if __name__ == '__main__':
     run()
 
