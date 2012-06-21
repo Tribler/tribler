@@ -380,9 +380,6 @@ class ChannelCommunity(Community):
         # this might be a response to a dispersy-missing-message
         self._dispersy.handle_missing_messages(messages, MissingMessageCache)
 
-        # this might be a response to a dispersy-missing-message
-        self._dispersy.handle_missing_messages(messages, MissingMessageCache)
-                
     def _disp_undo_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
             dispersy_id = packet.packet_id
