@@ -130,6 +130,7 @@ class ABCApp():
         self.error = None
         self.last_update = 0
         self.ready = False
+        self.done = False
         self.frame = None
 
         self.guiserver = GUITaskQueue.getInstance()
@@ -749,6 +750,8 @@ class ABCApp():
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
+        if self.done:
+            return
         try:
             print >>sys.stderr,"main: Checkpointing Session"
             self.utility.session.checkpoint()
@@ -889,6 +892,7 @@ class ABCApp():
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
         self.ready = False
+        self.done = True
 
         # write all persistent data to disk
         self.seedingmanager.write_all_storage()
@@ -1246,5 +1250,9 @@ def run(params = None):
     #    tribler_done(configpath)
     #os._exit(0)
 
+import yappi
+
 if __name__ == '__main__':
     run()
+
+    
