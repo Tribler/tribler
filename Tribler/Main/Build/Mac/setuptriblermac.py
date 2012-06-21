@@ -11,7 +11,7 @@ from setuptools import setup
 from Tribler.__init__ import LIBRARYNAME
 
 # modules to include into bundle
-includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml.sax", "email.iterators"]
+includeModules=["encodings.hex_codec","encodings.utf_8","encodings.latin_1","xml.sax", "email.iterators", "netifaces"]
 
 # gui panels to include
 includePanels=[
