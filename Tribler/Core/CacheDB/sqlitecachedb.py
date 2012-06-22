@@ -2175,7 +2175,8 @@ def try_register(db, callback = None):
     
 def register_task(db, *args, **kwargs):
     global _callback
-    try_register(db)
+    if not _callback:
+        try_register(db)
                 
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
@@ -2219,7 +2220,6 @@ def forceAndReturnDBThread(func):
             print_stack()
             print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDBThread", func.__name__
         else:
-            try_register(args[0])
             return func(*args, **kwargs)
             
     invoke_func.__name__ = func.__name__
