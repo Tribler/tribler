@@ -442,7 +442,8 @@ class DispersyPanel(HomePanel):
                         "sequence_number":[],
                         "start":[],
                         "walk_fail":[],
-                        "attachment":[]}
+                        "attachment":[],
+                        "revision":[("Version", lambda info: str(max(info["revision"].itervalues())))]}
 
     def CreatePanel(self):
         panel = wx.Panel(self)
