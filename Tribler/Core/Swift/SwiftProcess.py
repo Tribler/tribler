@@ -124,7 +124,8 @@ class SwiftProcess(InstanceConnection):
             self.splock.acquire()
             try:
                 if roothash not in self.roothash2dl.keys():
-                    print >>sys.stderr,"sp: i2ithread_readlinecallback: unknown roothash",words[1]
+                    if DEBUG:
+                        print >>sys.stderr,"sp: i2ithread_readlinecallback: unknown roothash",words[1]
                     return
                 
                 d = self.roothash2dl[roothash]
