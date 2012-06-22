@@ -173,7 +173,6 @@ class InstanceConnection:
         self.singsock = singsock
         self.connhandler = connhandler
         self.readlinecallback = readlinecallback
-        self.rflag = False
         self.buffer = ''
 
     
@@ -188,26 +187,29 @@ class InstanceConnection:
         self.read_lines()
         
     def read_lines(self):
-        self.rflag = False
+        rflag = False
         cmd = None
-        for i in range(0,len(self.buffer)):
-            if not self.rflag:
-                if self.buffer[i]=='\r':
-                    self.rflag = True
-            else:
-                if self.buffer[i] == '\n':
-                    cmd = self.buffer[0:i+1] 
-                    self.buffer = self.buffer[i+1:]
-                    if self.readlinecallback(self,cmd[:-2]): # strip off \r\n
-                        # 01/05/12 Boudewijn: when a positive value is returned we immediately
-                        # return to allow more bytes to be pushed into the buffer
-                        self.buffer = cmd + self.buffer # undo 'cmd'
-                        return
-                    break
-                    
-                self.rflag = False
-        if cmd is not None and len(self.buffer) > 0:
-            self.read_lines()
+        while True:
+            for i in range(0,len(self.buffer)):
+                if not rflag:
+                    if self.buffer[i]=='\r':
+                        rflag = True
+
+                else:
+                    if self.buffer[i] == '\n':
+                        cmd = self.buffer[0:i+1] 
+                        self.buffer = self.buffer[i+1:]
+                        if self.readlinecallback(self,cmd[:-2]): # strip off \r\n
+                            # 01/05/12 Boudewijn: when a positive value is returned we immediately
+                            # return to allow more bytes to be pushed into the buffer
+                            self.buffer = cmd + self.buffer # undo 'cmd'
+                            return
+                        break
+
+                    rflag = False
+
+            if not (cmd is not None and len(self.buffer) > 0):
+                break
     
     def write(self,data):
         if self.singsock is not None:
