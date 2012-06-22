@@ -335,7 +335,7 @@ class SwiftProcess(InstanceConnection):
     #
     def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None,destdir=None):
         # assume splock is held to avoid concurrency on socket
-        print >>sys.stderr,"sp: send_start:",url,"destdir",destdir
+        if DEBUG: print >>sys.stderr,"sp: send_start:",url,"destdir",destdir
         
         cmd = 'START '+url
         if destdir is not None:
