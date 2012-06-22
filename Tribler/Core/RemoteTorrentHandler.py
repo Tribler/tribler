@@ -15,7 +15,7 @@ from binascii import hexlify
 from tempfile import mkstemp
 from time import sleep, time
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -447,7 +447,7 @@ class TorrentRequester(Requester):
     def check_progress(self, ds, infohash, roothash, didMagnet):
         d = ds.get_download()
         cdef = d.get_def()
-        if ds.get_progress() == 0:
+        if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
             remove_lambda = lambda d=d: self._remove_donwload(d)
             self.scheduletask(remove_lambda)
             
