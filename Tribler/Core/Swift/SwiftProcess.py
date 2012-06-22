@@ -157,6 +157,9 @@ class SwiftProcess(InstanceConnection):
                 jsondata = cmd[len("MOREINFO ")+40+1:]
                 midict = json.loads(jsondata)
                 d.i2ithread_moreinfo_callback(midict)
+            elif words[0] == "ERROR":
+                d.i2ithread_info_callback(DLSTATUS_STOPPED_ON_ERROR,0.0,0,0.0,0.0,0,0)
+
 
     #
     # Swift Mgmt interface
