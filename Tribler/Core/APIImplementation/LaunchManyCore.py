@@ -367,7 +367,7 @@ class TriblerLaunchMany(Thread):
                     pass
             
             self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-            self.rtorrent_handler.register(self.dispersy, self.session)
+            self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
             
 
     def start_dispersy(self, config, keypair):

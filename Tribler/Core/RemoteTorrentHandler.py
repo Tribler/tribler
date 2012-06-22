@@ -51,9 +51,10 @@ class RemoteTorrentHandler:
         return RemoteTorrentHandler.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, dispersy, session):
+    def register(self, dispersy, session, max_num_torrents):
         self.session = session
         self.dispersy = dispersy
+        self.max_num_torrents = max_num_torrents
         self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue 
@@ -65,8 +66,23 @@ class RemoteTorrentHandler:
         self.drequesters[1] = MagnetRequester(self, 1)
         self.registered = True
         
+        startWorker(None, self.__check_overflow)
+        
     def is_registered(self):
         return self.registered
+
+    def __check_overflow(self):
+        while True:
+            num_torrents = self.torrent_db.getNumberCollectedTorrents()
+            if DEBUG:
+                print >>sys.stderr,"rtorrent: check overflow: current", self.num_torrents, "max", self.max_num_torrents
+            
+            if num_torrents > self.max_num_torrents:
+                num_delete = int(num_torrents - self.max_num_torrents*0.95)
+                print >> sys.stderr, "rtorrent: ** limit space::", num_torrents, self.max_num_torrents, num_delete
+                self.torrent_db.freeSpace(num_delete)
+                
+            yield 30 * 60 * 60.0 #run every 30 minutes
         
     @property
     def searchcommunity(self):

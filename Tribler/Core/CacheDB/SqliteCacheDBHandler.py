@@ -2073,6 +2073,9 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_path = os.path.join(torrent_dir, torrent_file_name)
             try:
                 os.remove(torrent_path)
+                os.remove(os.path.join(torrent_path, '.mhash'))
+                os.remove(os.path.join(torrent_path, '.mbinmap'))
+                
                 print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)
                 deleted += 1
             except Exception, msg:
@@ -2080,7 +2083,6 @@ class TorrentDBHandler(BasicDBHandler):
                 pass
         
         self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash)) # refresh gui
-        
         return deleted
 
     def hasMetaData(self, infohash):
