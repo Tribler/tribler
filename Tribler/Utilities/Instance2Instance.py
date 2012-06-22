@@ -187,29 +187,15 @@ class InstanceConnection:
         self.read_lines()
         
     def read_lines(self):
-        rflag = False
-        cmd = None
-        while True:
-            for i in range(0,len(self.buffer)):
-                if not rflag:
-                    if self.buffer[i]=='\r':
-                        rflag = True
+        cmd, separator, self.buffer = self.buffer.partition("\r\n")
+        if separator:
+            if self.readlinecallback(self, cmd):
+                # 01/05/12 Boudewijn: when a positive value is returned we immediately return to
+                # allow more bytes to be pushed into the buffer
+                self.buffer = "".join((cmd, separator, self.buffer))
 
-                else:
-                    if self.buffer[i] == '\n':
-                        cmd = self.buffer[0:i+1] 
-                        self.buffer = self.buffer[i+1:]
-                        if self.readlinecallback(self,cmd[:-2]): # strip off \r\n
-                            # 01/05/12 Boudewijn: when a positive value is returned we immediately
-                            # return to allow more bytes to be pushed into the buffer
-                            self.buffer = cmd + self.buffer # undo 'cmd'
-                            return
-                        break
-
-                    rflag = False
-
-            if not (cmd is not None and len(self.buffer) > 0):
-                break
+        else:
+            self.buffer = cmd
     
     def write(self,data):
         if self.singsock is not None:
