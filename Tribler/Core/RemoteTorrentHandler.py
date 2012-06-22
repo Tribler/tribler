@@ -54,6 +54,7 @@ class RemoteTorrentHandler:
     def register(self, dispersy, session):
         self.session = session
         self.dispersy = dispersy
+        self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue 
         tqueue = TimedTaskQueue("RemoteTorrentHandler")
@@ -154,8 +155,7 @@ class RemoteTorrentHandler:
                 print >>sys.stderr,'rtorrent: adding torrent messages request:', map(bin2str, infohashes), candidate, prio
    
     def has_torrent(self, infohash, callback):
-        tor_col_dir = self.session.get_torrent_collecting_dir()
-        startWorker(None, self._has_torrent, wargs = (infohash, tor_col_dir, callback))
+        startWorker(None, self._has_torrent, wargs = (infohash, self.tor_col_dir, callback))
         
     def _has_torrent(self, infohash, tor_col_dir, callback):
         #save torrent
