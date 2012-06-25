@@ -410,7 +410,6 @@ class AllChannelCommunity(Community):
                 authentication_member = message.authentication.member
                 if authentication_member == self._my_member:
                     peer_id = None
-                    # channel_id = self._get_channel_id(message.payload.cid)
                     
                     #if channel_id is not found, then this is a manual join
                     #insert placeholder into database which will be replaced after channelmessage has been received
@@ -419,7 +418,6 @@ class AllChannelCommunity(Community):
                         channel_id = self._channelcast_db._db.fetchone(insert_channel, (buffer(message.payload.cid), -1, ''))
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                    # channel_id = self._get_channel_id(message.payload.cid)
                 
                 votelist.append((channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp))
                 
