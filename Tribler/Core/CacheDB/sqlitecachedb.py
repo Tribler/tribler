@@ -2343,13 +2343,13 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         if DEPRECATION_DEBUG and vacuum:
             raise DeprecationWarning('Please do not use clean_db with vacuum')
         
-    # @forceAndReturnDBThread
-    # def fetchone(self, sql, args=None):
-    #     return SQLiteCacheDBV5.fetchone(self, sql, args)
+    @forceAndReturnDBThread
+    def fetchone(self, sql, args=None):
+        return SQLiteCacheDBV5.fetchone(self, sql, args)
     
-    # @forceAndReturnDBThread
-    # def fetchall(self, sql, args=None, retry=0):
-    #     return SQLiteCacheDBV5.fetchall(self, sql, args, retry)
+    @forceAndReturnDBThread
+    def fetchall(self, sql, args=None, retry=0):
+        return SQLiteCacheDBV5.fetchall(self, sql, args, retry)
                 
     @forceAndReturnDBThread
     def _execute(self, sql, args=None):
@@ -2361,9 +2361,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             
         try:
             if args is None:
-                return list(cur.execute(sql))
+                return cur.execute(sql)
             else:
-                return list(cur.execute(sql, args))
+                return cur.execute(sql, args)
             
         except Exception, msg:
             if DEBUG:
@@ -2384,9 +2384,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             
         try:
             if args is None:
-                return list(cur.executemany(sql))
+                return cur.executemany(sql)
             else:
-                return list(cur.executemany(sql, args))
+                return cur.executemany(sql, args)
             
         except Exception, msg:
             if DEBUG:

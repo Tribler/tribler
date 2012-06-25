@@ -174,10 +174,10 @@ class ChannelManager():
                 self.list.dirty = True
              
     def channelUpdated(self, channel_id, stateChanged = False, modified = False):
-        if self.list.channel == channel_id:
-            if self.list.channel.isFavorite() or self.list.channel.isMyChannel():
+        _channel = self.list.channel
+        if _channel and _channel == channel_id:
+            if _channel.isFavorite() or _channel.isMyChannel():
                 #only update favorite or mychannel
-            
                 if modified:
                     self.reload(channel_id)
                 else:
