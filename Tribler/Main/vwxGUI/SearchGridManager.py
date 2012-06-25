@@ -600,12 +600,15 @@ class TorrentManager:
 
         if len(results) > 0:
             def create_channel(a):
-                if a['channel_id'] and a['channel_name'] != '':
-                    return Channel(a['channel_id'], a['channel_cid'], a['channel_name'], a['channel_description'], a['channel_nr_torrents'], a['subscriptions'], a['neg_votes'], a['channel_vote'], a['channel_modified'], a['channel_id'] == self.channelcast_db._channel_id)
-                return False
+                return Channel(a['channel_id'], a['channel_cid'], a['channel_name'], a['channel_description'], a['channel_nr_torrents'], a['subscriptions'], a['neg_votes'], a['channel_vote'], a['channel_modified'], a['channel_id'] == self.channelcast_db._channel_id)
+            
+            channels = {}
+            for a in results:
+                if a['channel_id'] and a['channel_name'] != '' and a['channel_id'] not in channels:
+                    channels[a['channel_id']] = create_channel(a)
             
             def create_torrent(a):
-                a['channel'] = create_channel(a)
+                a['channel'] = channels.get(a['channel_id'], False)
                 a['playlist'] = None
                 a['colt_name'] = a['name']
                 

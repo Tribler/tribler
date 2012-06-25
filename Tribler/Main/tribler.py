@@ -551,12 +551,10 @@ class ABCApp():
             percentage = min(1.0, (nr_connections + 1) / 16.0)
             self.frame.SRstatusbar.SetConnections(percentage, nr_connections)
         
-        
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
             startWorker(do_wx, do_db, uId = "tribler.set_reputation")
-        
-        wx.CallLater(5000, self.set_reputation)
+        startWorker(None, self.set_reputation, delay = 5.0, workerType="guiTaskQueue")
     
     def sesscb_states_callback(self, dslist):
         if not self.ready:
