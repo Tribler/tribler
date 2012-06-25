@@ -378,9 +378,12 @@ class AllChannelCommunity(Community):
     def check_votecast(self, messages):
         with self._dispersy.database:
             communities = {}
+            channel_ids = {}
             for cid in set([message.payload.cid for message in messages]):
                 channel_id = self._get_channel_id(cid)
-                if not channel_id:
+                if channel_id:
+                    channel_ids[cid] = channel_id
+                else:
                     communities[cid] = self._get_channel_community(message.payload.cid)
             
             for message in messages:
@@ -390,6 +393,7 @@ class AllChannelCommunity(Community):
                 if community:
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
                 else:
+                    message.__channel_id = channel_id
                     yield message
 
             # ensure that no commits occur
@@ -401,20 +405,21 @@ class AllChannelCommunity(Community):
             for message in messages:
                 if __debug__: dprint(message)
                 dispersy_id = message.packet_id
+                channel_id = message.__channel_id
                 
                 authentication_member = message.authentication.member
                 if authentication_member == self._my_member:
                     peer_id = None
-                    channel_id = self._get_channel_id(message.payload.cid)
+                    # channel_id = self._get_channel_id(message.payload.cid)
                     
                     #if channel_id is not found, then this is a manual join
                     #insert placeholder into database which will be replaced after channelmessage has been received
-                    if not channel_id:
-                        insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) VALUES (?, ?, ?); SELECT last_insert_rowid();"
-                        channel_id = self._channelcast_db._db.fetchone(insert_channel, (buffer(message.payload.cid), -1, ''))
+                    # if not channel_id:
+                    #     insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) VALUES (?, ?, ?); SELECT last_insert_rowid();"
+                    #     channel_id = self._channelcast_db._db.fetchone(insert_channel, (buffer(message.payload.cid), -1, ''))
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                    channel_id = self._get_channel_id(message.payload.cid)
+                    # channel_id = self._get_channel_id(message.payload.cid)
                 
                 votelist.append((channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp))
                 
