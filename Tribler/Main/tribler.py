@@ -35,6 +35,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.decorator import attach_profiler
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
@@ -1188,6 +1189,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 # Main Program Start Here
 #
 ##############################################################
+@attach_profiler
 def run(params = None):
     if params is None:
         params = [""]
