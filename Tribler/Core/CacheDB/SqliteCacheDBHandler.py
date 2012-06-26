@@ -39,6 +39,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
 from threading import currentThread, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler 
+import binascii
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -2027,7 +2028,7 @@ class TorrentDBHandler(BasicDBHandler):
 #            torrents2del = 100
         if self.channelcast_db._channel_id:
             sql = """
-                select torrent_file_name, torrent_id, infohash, relevance,
+                select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
                 from CollectedTorrent
                 where torrent_id not in (select torrent_id from MyPreference)
@@ -2037,7 +2038,7 @@ class TorrentDBHandler(BasicDBHandler):
             """ % (int(time()), self.channelcast_db._channel_id, torrents2del)
         else:
             sql = """
-                select torrent_file_name, torrent_id, infohash, relevance,
+                select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
                 from CollectedTorrent
                 where  torrent_id not in (select torrent_id from MyPreference)
@@ -2054,7 +2055,7 @@ class TorrentDBHandler(BasicDBHandler):
         sql_del_torrent = "update Torrent set torrent_file_name = null where torrent_id=?"
         # sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         sql_del_pref = "delete from Preference where torrent_id=?"
-        tids = [(torrent_id,) for torrent_file_name, torrent_id, infohash, relevance, weight in res_list]
+        tids = [(torrent_id,) for torrent_file_name, torrent_id, swift_torrent_hash, relevance, weight in res_list]
 
         self._db.executemany(sql_del_torrent, tids, commit=False)
         # self._db.executemany(sql_del_tracker, tids, commit=False)
@@ -2069,20 +2070,31 @@ class TorrentDBHandler(BasicDBHandler):
         
         torrent_dir = self.getTorrentDir()
         deleted = 0 # deleted any file?
-        for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
+        for torrent_file_name, torrent_id, swift_torrent_hash, relevance, weight in res_list:
+            
             torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            try:
-                os.remove(torrent_path)
-                os.remove(os.path.join(torrent_path, '.mhash'))
-                os.remove(os.path.join(torrent_path, '.mbinmap'))
+            if not os.path.exists(torrent_path):
+                roothash_as_hex = binascii.hexlify(swift_torrent_hash)
+                torrent_path = os.path.join(torrent_dir, roothash_as_hex)
                 
-                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)
+            mhash_path = torrent_path + '.mhash'
+            mbinmap_path = torrent_path + '.mbinmap'
+            try:
+                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)                
+                if os.path.exists(torrent_path):
+                    os.remove(torrent_path)
+                
+                if os.path.exists(mhash_path):
+                    os.remove(mhash_path)
+                
+                if os.path.exists(mbinmap_path):
+                    os.remove(mbinmap_path)
+                
                 deleted += 1
             except Exception, msg:
+                print_exc()
                 #print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
-        
-        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash)) # refresh gui
         return deleted
 
     def hasMetaData(self, infohash):
