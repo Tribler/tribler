@@ -16,6 +16,7 @@ from traceback import format_stack, extract_stack, format_exc, print_exc,\
     print_stack
 import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from inspect import isgeneratorfunction
 
 
 DEBUG = False
@@ -140,7 +141,10 @@ class GUIDBProducer():
         
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
-                self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
+                if isgeneratorfunction(workerFn):
+                    self.database_thread.register(workerFn, delay=delay, priority=priority, id_=callbackId)
+                else:
+                    self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
                 
             elif workerType == "guiTaskQueue":
                 self.guitaskqueue.add_task(wrapper, t = delay)
@@ -276,6 +280,10 @@ def startWorker(
         sender = MySenderWxEvent(consumer, eventClass, result, jobID=jobID, **ckwargs)
     else:
         sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs)
+        
+    if isgeneratorfunction(workerFn):
+        assert consumer == None, "Cannot have consumer and yielding task"
+        consumer = None
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
