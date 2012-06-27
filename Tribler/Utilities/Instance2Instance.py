@@ -183,19 +183,21 @@ class InstanceConnection:
         if DEBUG:
             print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data)
 
-        self.buffer = self.buffer + data
+        self.buffer += data
         self.read_lines()
         
     def read_lines(self):
-        cmd, separator, self.buffer = self.buffer.partition("\r\n")
-        if separator:
-            if self.readlinecallback(self, cmd):
-                # 01/05/12 Boudewijn: when a positive value is returned we immediately return to
-                # allow more bytes to be pushed into the buffer
-                self.buffer = "".join((cmd, separator, self.buffer))
+        while True:
+            cmd, separator, self.buffer = self.buffer.partition("\r\n")
+            if separator:
+                if self.readlinecallback(self, cmd):
+                    # 01/05/12 Boudewijn: when a positive value is returned we immediately return to
+                    # allow more bytes to be pushed into the buffer
+                    self.buffer = "".join((cmd, separator, self.buffer))
 
-        else:
-            self.buffer = cmd
+            else:
+                self.buffer = cmd
+                break
     
     def write(self,data):
         if self.singsock is not None:
