@@ -47,6 +47,7 @@ touch dist/installdir
 # Swift
 rm swift
 cd Tribler/SwiftEngine
+make -f Makefile.mac clean
 make -f Makefile.mac
 cp swift ../..
 cd ../..
