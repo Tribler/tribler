@@ -1116,13 +1116,13 @@ class SearchList(GenericSearchList):
     
     def __special_icon(self, item):
         torrent = item.original_data
-        if torrent.swift_hash:
-            return self.hasSwift, "This torrent is Swift-enabled"
-        return self.noSwift
+#        if torrent.swift_hash:
+#            return self.hasSwift, "This torrent is Swift-enabled"
+#        return self.noSwift
         
-#        torrent = item.original_data
-#        if torrent.hasChannel() and torrent.channel.isFavorite():
-#            return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
+        torrent = item.original_data
+        if torrent.hasChannel() and torrent.channel.isFavorite():
+            return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
         
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
