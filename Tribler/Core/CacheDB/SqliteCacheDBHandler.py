@@ -1610,7 +1610,7 @@ class TorrentDBHandler(BasicDBHandler):
                 to_be_indexed = to_be_indexed + list(self._db.executemany(sql, to_be_inserted))
             except:
                 print_exc()
-                print >> sys.stderr, "infohashes:", to_be_inserted.keys()
+                print >> sys.stderr, "infohashes:", to_be_inserted
         
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
