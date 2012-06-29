@@ -78,6 +78,8 @@ class SearchCommunity(Community):
         
         self.integrate_with_tribler = integrate_with_tribler
         self.taste_buddies = []
+        #To always connect to a peer uncomment/modify the following line
+        #self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
         
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler

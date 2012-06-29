@@ -443,7 +443,7 @@ class TorrentManager:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
             
             # 2. Add remote hits that may apply.
-            new_remote_hits = self.addStoredRemoteResults()
+            new_remote_hits, modified_hits = self.addStoredRemoteResults()
     
             if DEBUG:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
@@ -484,7 +484,7 @@ class TorrentManager:
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
 
-        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits]
+        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits, modified_hits]
 
     def prefetch_hits(self):
         """
@@ -632,6 +632,7 @@ class TorrentManager:
             self.remoteLock.acquire()
             
             hitsUpdated = False
+            hitsModified = set()
             for remoteItem in self.remoteHits:
                 known = False
                 
@@ -640,6 +641,14 @@ class TorrentManager:
                         if item.query_candidates == None:
                             item.query_candidates = set()
                         item.query_candidates.update(remoteItem.query_candidates)
+                        
+                        if item.swift_hash == None:
+                            item.swift_hash = remoteItem.swift_hash
+                            hitsModified.add(item.infohash)
+                            
+                        if item.swift_torrent_hash == None:
+                            item.swift_torrent_hash = remoteItem.swift_torrent_hash
+                            hitsModified.add(item.infohash)
                         
                         if remoteItem.hasChannel():
                             if isinstance(item, RemoteTorrent):
@@ -658,7 +667,7 @@ class TorrentManager:
                                 if this_rating > current_rating:
                                     item.updateChannel(remoteItem.channel)
                             
-                                hitsUpdated = True
+                                hitsModified.add(item.infohash)
                         known = True
                         break
             
@@ -667,7 +676,7 @@ class TorrentManager:
                     hitsUpdated = True
                     
                 self.remoteHits = []
-                return hitsUpdated
+                return hitsUpdated, hitsModified
         except:
             raise
         
@@ -675,7 +684,7 @@ class TorrentManager:
             self.remoteRefresh = False
             self.remoteLock.release()
         
-        return False
+        return False, []
     
     def gotDispersyRemoteHits(self, keywords, results, candidate):
         refreshGrid = False

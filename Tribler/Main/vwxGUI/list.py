@@ -81,17 +81,17 @@ class RemoteSearchManager:
                 
             keywords = self.oldkeywords
             
-            total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
+            total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             if DEBUG:
                 print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
             
-            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
+            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
         startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue")
 
     def _on_refresh(self, delayedResult):
-        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
+        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
         
         if keywords == self.oldkeywords:
             if new_items or new_channels:
@@ -99,6 +99,9 @@ class RemoteSearchManager:
                 
             self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
             self.list.SetSelectedBundleMode(selected_bundle_mode)
+            
+            if modified_hits:
+                self.list.RemoteItems(modified_hits)
             
             if new_items:
                 self.list.SetData(data_files)
@@ -579,6 +582,10 @@ class List(wx.BoxSizer):
     def RemoveItem(self, key):
         assert self.isReady, "List not ready"
         self.list.RemoveKey(key)
+        
+    def RemoteItems(self, keys):
+        assert self.isReady, "List not ready"
+        self.list.RemoveKeys(keys)
 
     @warnWxThread        
     def SetNrResults(self, nr):
