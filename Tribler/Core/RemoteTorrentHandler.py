@@ -80,7 +80,12 @@ class RemoteTorrentHandler:
             if num_torrents > self.max_num_torrents:
                 num_delete = int(num_torrents - self.max_num_torrents*0.95)
                 print >> sys.stderr, "rtorrent: ** limit space::", num_torrents, self.max_num_torrents, num_delete
-                self.torrent_db.freeSpace(num_delete)
+                
+                while num_delete > 0:
+                    to_remove = min(num_delete, 25)
+                    num_delete -= to_remove
+                    self.torrent_db.freeSpace(to_remove)
+                    yield 5.0
                 
             yield 30 * 60 * 60.0 #run every 30 minutes
         
