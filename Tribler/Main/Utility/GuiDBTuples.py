@@ -151,6 +151,7 @@ class Torrent(Helper):
         self.dslist = None
         self.relevance_score = None
         self.query_candidates = None
+        self.progress = None
    
     @cacheProperty
     def categories(self):
@@ -408,7 +409,7 @@ class ChannelTorrent(Torrent):
         
     # @property
     def __get_name(self):
-        return self.chant_name or self.colt_name
+        return self.chant_name or self.colt_name or self.swift_hash or ''
     # @property
     def __set_name(self, name):
         pass
