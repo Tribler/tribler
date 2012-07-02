@@ -144,6 +144,7 @@ copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 REM Swift
 del swift.exe
 cd Tribler\SwiftEngine
+CALL c:\Python273\Scripts\scons -c
 CALL win32-build.bat
 cd ..\..
 copy swift.exe dist\installdir
