@@ -88,7 +88,7 @@ def init(config, db_exception_handler = None):
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE)  # the first place to create db in Tribler
     return sqlitedb
         
-def done(config_dir):
+def done():
     SQLiteCacheDB.getInstance().close()
 
 def make_filename(config_dir,filename):
