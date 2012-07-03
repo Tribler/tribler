@@ -435,6 +435,7 @@ class Connection:
             try:
                 x = self.next_func(m)
             except:
+                print >> sys.stderr, "encoder: exception in data_came_in", long(time())
                 print_exc()
                 self.next_len, self.next_func = 1, self.read_dead
                 raise
