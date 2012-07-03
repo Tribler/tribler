@@ -260,6 +260,10 @@ def startWorker(
     used to check if such a task is already scheduled, ignores it if it is.
     Returns the delayedResult created, in case caller needs join/etc.
     """
+    if isgeneratorfunction(workerFn):
+        assert consumer == None, "Cannot have consumer and yielding task"
+        consumer = None
+    
     if not consumer:
         consumer = exceptionConsumer
     
@@ -280,10 +284,6 @@ def startWorker(
         sender = MySenderWxEvent(consumer, eventClass, result, jobID=jobID, **ckwargs)
     else:
         sender = MySenderCallAfter(consumer, result, jobID, args=cargs, kwargs=ckwargs)
-        
-    if isgeneratorfunction(workerFn):
-        assert consumer == None, "Cannot have consumer and yielding task"
-        consumer = None
     
     thread = GUIDBProducer.getInstance()
     thread.Add(sender, workerFn, args=wargs, kwargs=wkwargs, 
