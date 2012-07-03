@@ -116,7 +116,7 @@ class TriblerLaunchMany(Thread):
 
         # new database stuff will run on only one thread
         self.database_thread = Callback()
-        self.database_thread.start("Dispersy")
+        self.database_thread.start("Dispersy") # WARNING NAME SIGNIFICANT
 
         # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
@@ -849,6 +849,11 @@ class TriblerLaunchMany(Thread):
         try:
             print >>sys.stderr,"tlm: network_shutdown"
             mainlineDHT.deinit()
+
+            if self.peer_db is not None:
+                print >>sys.stderr,"tlm: network_shutdown: db close"
+                import Tribler.Core.CacheDB.cachedb as cachedb
+                cachedb.done()
 
             # SWIFTPROC
             if self.spm is not None:
