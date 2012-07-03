@@ -183,7 +183,10 @@ class InstanceConnection:
         if DEBUG:
             print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data)
 
-        self.buffer += data
+        if len(self.buffer) == 0:
+            self.buffer = data
+        else:
+            self.buffer = self.buffer + data
         self.read_lines()
         
     def read_lines(self):
