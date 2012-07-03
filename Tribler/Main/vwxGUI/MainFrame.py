@@ -412,7 +412,7 @@ class MainFrame(wx.Frame):
         return False
 
     @forceAndReturnWxThread
-    def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None):
+    def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None,hidden=False):
         if True or DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename, destdir,cdef,vodmode,selectedFiles
         
@@ -511,9 +511,9 @@ class MainFrame(wx.Frame):
                             dscfg.set_selected_files(selectedFiles)
                     
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
-                    result = self.utility.session.start_download(cdef, dscfg)
+                    result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
                 
-                if result:
+                if result and not hidden:
                     self.show_saved()
                     
                     if monitorSwiftProgress:
@@ -591,7 +591,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
         
         # 2. Start swift download reseeding BitTorrent content
-        self.startDownload(destdir=storagepath,cdef=sdef)
+        self.startDownload(destdir=storagepath,cdef=sdef,hidden=True)
                 
         # 3. Checkpoint Session
         self.utility.session.checkpoint()
