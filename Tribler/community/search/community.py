@@ -295,7 +295,19 @@ class SearchCommunity(Community):
                     channel_details = dbresult[-10:]
                     
                     dbresult = list(dbresult[:10])
-                    dbresult[4] = self._torrent_db.id2category[dbresult[4]]
+                    dbresult[2] = long(dbresult[2])
+                    dbresult[3] = int(dbresult[3])
+                    dbresult[4] = [self._torrent_db.id2category[dbresult[4]],]
+                    dbresult[5] = long(dbresult[5])
+                    dbresult[6] = int(dbresult[6] or 0)
+                    dbresult[7] = int(dbresult[7] or 0)
+                    if dbresult[8]:
+                        dbresult[8] = str(dbresult[8])
+                    if dbresult[9]:
+                        dbresult[9] = str(dbresult[9])
+                    
+                    if channel_details[1]:
+                        channel_details[1] = str(channel_details[1])
                     dbresult.append(channel_details[1])
                     
                     results.append(tuple(dbresult))
