@@ -116,7 +116,7 @@ class GUIDBProducer():
                 
             t3 = time()
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
+                print >> sys.stderr, "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s"%(name, t2 - t1, delay, t3 - t2, workerType)
                 
             if uId:
                 try:
