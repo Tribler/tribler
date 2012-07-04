@@ -635,6 +635,8 @@ class TorrentManager:
 
     def addStoredRemoteResults(self):
         """ Called by GetHitsInCategory() to add remote results to self.hits """
+        if DEBUG:
+            begintime = time()
         try:
             self.remoteLock.acquire()
             
@@ -690,6 +692,9 @@ class TorrentManager:
         finally:
             self.remoteRefresh = False
             self.remoteLock.release()
+            
+            if DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: addStoredRemoteResults: ", time() - begintime
         
         return False, []
     
@@ -753,7 +758,11 @@ class TorrentManager:
                 self.gridmgr.NewResult(keywords)
             
             if refreshGrid:
+                if DEBUG:
+                    print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: scheduling refresh"
                 self.refreshGrid(remote=True)
+            elif DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: not scheduling refresh", self.remoteRefresh
     
     def refreshGrid(self, remote=False):
         if self.gridmgr:
