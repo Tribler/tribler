@@ -216,6 +216,7 @@ class TorrentDetails(AbstractDetails):
             
                 self.Freeze()
                 self.messagePanel.Show(False)
+                self.details.Clear(deleteWindows = True)
             
                 self.notebook = wx.Notebook(self, style = wx.NB_NOPAGETHEME, name = "TorrentDetailsNotebook")
                 self._addTabs(ds, showTab)

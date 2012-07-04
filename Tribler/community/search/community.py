@@ -289,10 +289,16 @@ class SearchCommunity(Community):
                 print >> sys.stderr, "SearchCommunity: got search request for",keywords
             
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local = False)
+            dbresults = self._torrent_db.searchNames(keywords, local = False, keys = ['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'T.swift_hash', 'T.swift_torrent_hash'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
-                    results.append((dbresult['infohash'], dbresult['name'], dbresult['length'], dbresult['num_files'], dbresult['category'], dbresult['creation_date'], dbresult['num_seeders'], dbresult['num_leechers'], dbresult['swift_hash'], dbresult['swift_torrent_hash'], dbresult['channel_cid']))
+                    channel_details = dbresult[-10:]
+                    
+                    dbresult = list(dbresult[:10])
+                    dbresult[4] = self._torrent_db.id2category[dbresult[4]]
+                    dbresult.append(channel_details[1])
+                    
+                    results.append(tuple(dbresult))
             elif DEBUG:
                 print >> sys.stderr, "SearchCommunity: no results"
             

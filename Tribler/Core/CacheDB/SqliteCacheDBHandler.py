@@ -2122,57 +2122,46 @@ class TorrentDBHandler(BasicDBHandler):
             sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
             self._db.executemany(sql_update_sims, tid_rel_pairs, commit=commit)
     
-    def searchNames(self, kws, local=True):
+    def searchNames(self, kws, local=True, keys = ['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id', 'swift_hash','swift_torrent_hash'], doSort = True):
+        #        if local:
+#            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
+#            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
+#
+        assert 'infohash' in keys
+        assert not doSort or 'num_seeders' in keys
+        
+        infohash_index = keys.index('infohash')
+        swift_hash_index = keys.index('swift_hash') if 'swift_hash' in keys else -1
+        swift_torrent_hash_index = keys.index('swift_torrent_hash') if 'swift_torrent_hash' in keys else -1
+        num_seeders_index = keys.index('num_seeders') if 'num_seeders' in keys else -1
+        
+        if num_seeders_index == -1:
+            doSort = False
+        
+        
         t1 = time()
-        value_name = ['torrent_id',
-                      'infohash',
-                      'name',
-                       'torrent_file_name',                        
-                       'length', 
-                       'creation_date', 
-                       'num_files',
-                       'thumbnail',                       
-                      'insert_time', 
-                      'secret', 
-                      'relevance',  
-                      'source_id', 
-                      'category_id', 
-                       'status_id',
-                       'num_seeders',
-                      'num_leechers', 
-                      'comment',
-                      'dispersy_id',
-                      'swift_hash',
-                      'swift_torrent_hash']
-                
-        mainsql = "SELECT T.*, "
-        if local:
-            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
-            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
-        
-        mainsql +=  "C.channel_id, Matchinfo(FullTextIndex) FROM"
-        
+        values = ", ".join(keys)
+        mainsql = "SELECT "+values+", C.channel_id, Matchinfo(FullTextIndex) FROM"
         if local:
             mainsql += " Torrent T"
         else:
             mainsql += " CollectedTorrent T"
-            
+           
         mainsql += """, FullTextIndex        
                     LEFT OUTER JOIN _ChannelTorrents C ON T.torrent_id = C.torrent_id
                     WHERE t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
                     """
         
         if not local:
-            mainsql += " LIMIT 250"
-        
-        value_name.append('channel_id')
+            mainsql += " LIMIT 250" 
         
         query = " ".join(filter_keywords(kws))
         not_negated = [kw for kw in filter_keywords(kws) if kw[0] != '-']
         
         results = self._db.fetchall(mainsql, (query, ))
-
+        
         t2 = time()
+        
         channels = set()
         channel_dict = {}
         for result in results:
@@ -2188,48 +2177,53 @@ class TorrentDBHandler(BasicDBHandler):
         t3 = time()
         myChannelId = self.channelcast_db._channel_id or 0
         
-        torrents_dict = {}
+        result_dict = {}
+        
         #step 1, merge torrents keep one with best channel
         for result in results:
-            torrent = dict(zip(value_name,result[:-1]))
-            channel = channel_dict.get(torrent['channel_id'], (torrent['channel_id'], None, '', '', 0, 0, 0, 0, 0))
+            channel_id = result[-2]
+            channel = channel_dict.get(channel_id, False)
             
             #ignoring spam channels
-            if channel[7] < 0:
+            if channel and channel[7] < 0:
                 continue
             
+            infohash = result[infohash_index]
             #see if we have a better channel in torrents_dict
-            if torrent['infohash'] in torrents_dict:
-                if channel[2] != '':
-                    old_record = torrents_dict[torrent['infohash']]
-                    if old_record['channel_name'] != '':
-                        
-                        # allways prefer my channel
-                        myChannel = torrent['channel_id'] == myChannelId
-                        myHigherVote = channel[7] > old_record['channel_vote']
-                        
-                        sub = channel[5] or 0
-                        spam = channel[6] or 0
-                        higherVotes = (sub-spam) > old_record['channel_votes']
-                        
-                        if not (myChannel or myHigherVote or higherVotes):
-                            #previous one is better
-                            continue
+            if infohash in result_dict:
+                old_channel = channel_dict.get(result_dict[infohash][-2], False)
+                
+                # allways prefer my channel
+                if old_channel[0] == myChannelId:
+                    continue
+                
+                # allways prefer channel with higher vote
+                if channel[7] < old_channel[7]:
+                    continue
+                
+                votes = (channel[5] or 0) - (channel[6] or 0)
+                oldvotes = (old_channel[5] or 0) - (old_channel[6] or 0)
+                if votes < oldvotes:
+                    continue
+                
             
-            torrent['channel_cid'] = channel[1]
-            torrent['channel_name'] = channel[2]
-            torrent['channel_description'] = channel[3]
-            torrent['channel_nr_torrents'] = channel[4]
-            torrent['subscriptions'] = channel[5] or 0
-            torrent['neg_votes'] = channel[6] or 0
-            torrent['channel_vote'] = channel[7]
-            torrent['channel_modified'] = channel[8]
-            torrent['channel_votes'] = torrent['subscriptions'] - torrent['neg_votes']
+            result_dict[infohash] = result
+        
+        t4 = time()
+        
+        #step 2, fix all dict fields
+        dont_sort_list = []
+        results = [list(result) for result in result_dict.values()]
+        for i in xrange(len(results) - 1, -1, -1):
+            result = results[i]
             
-            torrent['creation_date'] = long(torrent['creation_date'] or 0)
-            torrent['length'] = long(torrent['length'] or 0)
+            result[infohash_index] = str2bin(result[infohash_index])
+            if swift_hash_index >= 0 and result[swift_hash_index] :
+                result[swift_hash_index] = str2bin(result[swift_hash_index])
+            if swift_torrent_hash_index >= 0 and result[swift_torrent_hash_index]:
+                result[swift_torrent_hash_index] = str2bin(result[swift_torrent_hash_index])
             
-            torrent['matches'] = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
+            matches = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
             
             #Matchinfo is documented at: http://www.sqlite.org/fts3.html#matchinfo
             matchinfo = str(result[-1])
@@ -2244,61 +2238,33 @@ class TorrentDBHandler(BasicDBHandler):
             
             for i, keyword in enumerate(not_negated):
                 if swarmnames[i]:
-                    torrent['matches']['swarmname'].add(keyword)
+                    matches['swarmname'].add(keyword)
                 if filenames[i]:
-                    torrent['matches']['filenames'].add(keyword)
+                    matches['filenames'].add(keyword)
                 if fileextensions[i]:
-                    torrent['matches']['fileextensions'].add(keyword)
+                    matches['fileextensions'].add(keyword)
+            result[-1] = matches
             
-            torrents_dict[torrent['infohash']] = torrent
-        
-        t4 = time()
-        
-        #step 2, fix all dict fields
-        torrent_list = []
-        
-        #Niels: small optimization, for larger resultlists this will result in a 0.3s speedup
-        dont_sort_torrent_list = [] 
-        for torrent in torrents_dict.itervalues():
-            try:
-                torrent['source'] = self.id2src[torrent['source_id']]
-            except:
-                print_exc()
-                # Arno: RSS subscription and id2src issue
-                torrent['source'] = 'http://some/RSS/feed'
+            channel = channel_dict.get(result[-2], (result[-2], None, '', '', 0, 0, 0, 0, 0, False))
+            result.extend(channel)
             
-            torrent['category'] = [self.id2category[torrent['category_id']]]
-            torrent['status'] = self.id2status[torrent['status_id']]
-            torrent['simRank'] = -1
-            torrent['infohash'] = str2bin(torrent['infohash'])
-            torrent['last_check_time'] = 0 #torrent['last_check']
-            
-            del torrent['source_id']
-
-            if torrent['num_seeders'] > 0:
-                torrent_list.append(torrent)
-            else:
-                dont_sort_torrent_list.append(torrent)
-            
-            if torrent['swift_hash']:
-                torrent['swift_hash'] = str2bin(torrent['swift_hash'])
-            if torrent['swift_torrent_hash']:
-                torrent['swift_torrent_hash'] = str2bin(torrent['swift_torrent_hash'])
+            if doSort and result[num_seeders_index] <= 0:
+                dont_sort_list.append(result)
+                results.pop(i)
             
         t5 = time()
         
-        def compare(a,b):
-            return cmp(a['num_seeders'], b['num_seeders'])
-        
-        torrent_list.sort(compare, reverse = True)
-        torrent_list.extend(dont_sort_torrent_list)
+        if doSort:
+            def compare(a,b):
+                return cmp(a[num_seeders_index], b[num_seeders_index])
+            results.sort(compare, reverse = True)
+        results.extend(dont_sort_list)
         
         if not local:
-            torrent_list = torrent_list[:25]
+            results = results[:25]
         
-        #print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
-        return torrent_list
-    
+        print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
+        return results
 
     def getSearchSuggestion(self, keywords, limit = 1):
         match = [keyword.lower() for keyword in keywords]

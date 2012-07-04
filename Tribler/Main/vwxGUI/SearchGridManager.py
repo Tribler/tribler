@@ -596,34 +596,41 @@ class TorrentManager:
         
     @forceAndReturnDBThread
     def _doSearchLocalDatabase(self):
-        results = self.torrent_db.searchNames(self.searchkeywords)
-
+        if DEBUG:
+            begintime = time()
+            
+        results = self.torrent_db.searchNames(self.searchkeywords, doSort = False, keys = TORRENT_REQ_COLUMNS)
+        
+        if DEBUG:
+            begintuples = time()
+            
         if len(results) > 0:
             def create_channel(a):
-                return Channel(a['channel_id'], a['channel_cid'], a['channel_name'], a['channel_description'], a['channel_nr_torrents'], a['subscriptions'], a['neg_votes'], a['channel_vote'], a['channel_modified'], a['channel_id'] == self.channelcast_db._channel_id)
+                return Channel(*a)
             
             channels = {}
             for a in results:
-                if a['channel_id'] and a['channel_name'] != '' and a['channel_id'] not in channels:
-                    channels[a['channel_id']] = create_channel(a)
+                channel_details = a[-10:]
+                if channel_details[0] and channel_details[0] not in channels:
+                    channels[channel_details[0]] = create_channel(channel_details)
             
             def create_torrent(a):
-                a['channel'] = channels.get(a['channel_id'], False)
-                a['playlist'] = None
-                a['colt_name'] = a['name']
-                
-                if a['channel'] and (a['channel'].isFavorite() or a['channel'].isMyChannel()):
-                    t = ChannelTorrent(**getValidArgs(ChannelTorrent.__init__, a))
+                channel = channels.get(a[-9], False)
+                if channel and (channel.isFavorite() or channel.isMyChannel()):
+                    t = ChannelTorrent(*a[:-11]+[channel, None])
                 else:
-                    t = Torrent(**getValidArgs(Torrent.__init__, a))
+                    t = Torrent(*a[:11]+[False])
                     
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
-                t.assignRelevance(a['matches'])
+                t.assignRelevance(a[-11])
                 return t
             
             results = map(create_torrent, results)
         self.hits = results
+        
+        if DEBUG:
+            print >> sys.stderr, 'TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s'%(time() - begintime, time() - begintuples)
         return True
 
     def addStoredRemoteResults(self):
@@ -1071,7 +1078,7 @@ class LibraryManager:
                     channelDict[channel.id] = channel
             
             def create_torrent(a):
-                t = ChannelTorrent(*a[1:-1]+[channelDict.get(a[0], None),None])
+                t = ChannelTorrent(*a[1:-1]+[channelDict.get(a[0], False),None])
                 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
