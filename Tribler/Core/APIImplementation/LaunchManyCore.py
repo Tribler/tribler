@@ -850,10 +850,11 @@ class TriblerLaunchMany(Thread):
             print >>sys.stderr,"tlm: network_shutdown"
             mainlineDHT.deinit()
 
-            if self.peer_db is not None:
-                print >>sys.stderr,"tlm: network_shutdown: db close"
-                import Tribler.Core.CacheDB.cachedb as cachedb
-                cachedb.done()
+            # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler 
+            # it uses in its own shutdown procedure. There is no global close 
+            # of all per-thread cursors/connections.
+            #
+            # cachedb.done()
 
             # SWIFTPROC
             if self.spm is not None:

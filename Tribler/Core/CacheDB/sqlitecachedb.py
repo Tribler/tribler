@@ -89,6 +89,10 @@ def init(config, db_exception_handler = None):
     return sqlitedb
         
 def done():
+    # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler it uses
+    # in its own shutdown procedure. There is no global close of all per-thread
+    # cursors/connections.
+    #
     SQLiteCacheDB.getInstance().close()
 
 def make_filename(config_dir,filename):
