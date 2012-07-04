@@ -438,6 +438,7 @@ class TorrentRequester(Requester):
                 
                 state_lambda = lambda ds, infohash=infohash, roothash=roothash, doMagnet=doMagnet: self.check_progress(ds, infohash, roothash, doMagnet)
                 download.set_state_callback(state_lambda, getpeerlist=False, delay=self.SWIFT_CANCEL)
+                download.started_downloading = time()
             
             except DuplicateDownloadException:
                 download = self.session.get_download(roothash)
@@ -452,7 +453,7 @@ class TorrentRequester(Requester):
     def check_progress(self, ds, infohash, roothash, didMagnet):
         d = ds.get_download()
         cdef = d.get_def()
-        if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+        if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR or time() - getattr(d, 'started_downloading', time()) > 45:
             remove_lambda = lambda d=d: self._remove_donwload(d)
             self.scheduletask(remove_lambda)
             
