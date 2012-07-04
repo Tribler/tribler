@@ -5637,20 +5637,44 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             keywords = split_into_keywords(torrent_name)
             terms = set(self.extractor.extractTerms(keywords))
             phrase = self.extractor.extractBiTermPhrase(keywords)
+
+            parameters = '?,'*len(terms)
+            sql = "SELECT * FROM TermFrequency WHERE term IN ("+parameters[:-1]+")"
+            results = self._db.fetchall(sql, terms)
             
-            update_terms_sql = u"""
-                INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
-                UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
+            newterms = terms.copy()            
+            for term_id,term,freq in results:
+                newterms.remove(term)
+
+            newtermtuples = []
+            for term in newterms:
+                newtermtuples.append((term,))
+
+            existtermtuples = [(term_id,term,freq+1) for term_id,term,freq in results]
+
+            add_new_terms_sql = u"""
+                INSERT INTO TermFrequency (term, freq) VALUES (?, 1);
                 """
+
+            update_exist_terms_sql = u"""
+                REPLACE INTO TermFrequency (term_id, term, freq) VALUES (?, ?, ?);
+                """
+
+            self._db.executemany(add_new_terms_sql, newtermtuples, commit=False)
+            self._db.executemany(update_exist_terms_sql, existtermtuples, commit=False)
+
+
+            results = self._db.fetchall(sql, terms)
+            
             ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
                                         SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
                                         FROM TermFrequency TF1, TermFrequency TF2
                                         WHERE TF1.term = ? AND TF2.term = ?"""
                 
             
-            self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
             if phrase is not None:
                 self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
+            
             
             if commit:
                 self.commit()
