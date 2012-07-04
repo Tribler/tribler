@@ -289,7 +289,7 @@ class SearchCommunity(Community):
                 print >> sys.stderr, "SearchCommunity: got search request for",keywords
             
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local = False, keys = ['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'T.swift_hash', 'T.swift_torrent_hash'])
+            dbresults = self._torrent_db.searchNames(keywords, local = False, keys = ['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
