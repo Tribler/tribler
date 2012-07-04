@@ -525,10 +525,16 @@ class TriblerLaunchMany(Thread):
         
         self.remove_id(infohash)
     
-    def remove_id(self, infohash):
+    def remove_id(self, hash):
+        #this is a bit tricky, as we do not know if this "id" is a roothash or infohash
+        #however a restart will re-add the preference to mypreference if we remove the wrong one
         if self.torrent_db != None and self.mypref_db != None:
-            torrent_id = self.torrent_db.getTorrentID(infohash)
-            if torrent_id:
+            torrent_id = self.torrent_db.getTorrentID(hash)
+            if torrent_id:    
+                self.mypref_db.updateDestDir(torrent_id,"")
+                
+            torrent_id = self.torrent_db.getTorrentIDRoot(hash)
+            if torrent_id:    
                 self.mypref_db.updateDestDir(torrent_id,"")
 
     def get_downloads(self):
