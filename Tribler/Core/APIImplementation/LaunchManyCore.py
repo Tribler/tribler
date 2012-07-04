@@ -1166,15 +1166,15 @@ class TriblerLaunchMany(Thread):
                 del self.downloads[roothash]
 
             d.stop_remove(removestate=removestate,removecontent=removecontent)
-            
-            if self.torrent_db != None and self.mypref_db != None:
-                torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
-                
-                if torrent_id:
-                    self.mypref_db.updateDestDir(torrent_id, "")
                 
         finally:
             self.sesslock.release()
+        
+        if self.torrent_db != None and self.mypref_db != None:
+            torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
+            
+            if torrent_id:
+                self.mypref_db.updateDestDir(torrent_id, "")
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the
