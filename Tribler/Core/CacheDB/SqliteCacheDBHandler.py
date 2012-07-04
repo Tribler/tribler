@@ -1554,63 +1554,73 @@ class TorrentDBHandler(BasicDBHandler):
         torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.category_table.get(torrent[4][0], 0), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
         info_root = [(torrent[0], torrent[6] or '--') for torrent in torrents]
         
-        sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name FROM Torrent WHERE infohash = ? or swift_hash = ?"
+        sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
         results = self._db.executemany(sql, info_root) or []
         
-        found_both = {}
-        found_only_infohash = {}
-        found_only_roothash = {}
+        infohash_tid = {}
+        roothash_tid = {}
         
-        for torrent_id, infohash, roothash, torrent_filename in results:
+        tid_collected = set()
+        tid_name = {}
+        for torrent_id, infohash, roothash, torrent_filename, name in results:
+            infohash = str(infohash)
+            roothash = str(roothash)
+            
             if infohash.startswith('swift'):
                 infohash = ''
             
-            if infohash and roothash and torrent_filename:
-                found_both[(infohash, roothash)] = torrent_id
-                
-            elif infohash:
-                found_only_infohash[infohash] = torrent_id
-                
-            else:
-                found_only_roothash[roothash] = torrent_id
+            if infohash:
+                infohash_tid[infohash] = torrent_id
+            if roothash:    
+                roothash_tid[roothash] = torrent_id
+            if torrent_filename:
+                tid_collected.add(torrent_id)
+            tid_name[torrent_id] = name
         
-        update_infohash = []
+        insert = []
+        update = []
         update_roothash = []
-        to_be_inserted = {}
+        update_infohash = []
         to_be_indexed = []
         for infohash, swarmname, length, nrfiles, categoryid, creation_date, swift_hash, swift_torrent_hash in torrents:
+            tid = infohash_tid.get(infohash, None) or roothash_tid.get(swift_hash, None)
             
-            if infohash in found_only_infohash:
-                update_infohash.append((swarmname, length, nrfiles, categoryid, creation_date, swift_hash, swift_torrent_hash, source_id, status_id, infohash))
-                to_be_indexed.append((found_only_infohash[infohash], swarmname))
-                
-            elif swift_hash in found_only_roothash:
-                update_roothash.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_torrent_hash, source_id, status_id, swift_hash))
-                to_be_indexed.append((found_only_roothash[swift_hash], swarmname))
-                
-            elif (infohash, swift_hash) not in found_both:
-                to_be_inserted[infohash] = (swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_torrent_hash, swift_hash, source_id, status_id)
+            if tid: #we know this torrent
+                if tid not in tid_collected and swarmname != tid_name.get(tid, ''): #if not collected and name not equal then do fullupdate
+                    update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id, tid))
+                    to_be_indexed.append((tid, swarmname))
+                    
+                elif swift_hash and swift_hash not in roothash_tid: #else check if we need to update swift
+                    update_roothash.append((roothash, tid))
+                    
+                elif infohash and infohash not in infohash_tid: #or infohash
+                    update_infohash.append((infohash, tid))
+            else:
+                insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id))
         
-        if len(update_infohash) > 0:
-            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, swift_hash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ? WHERE infohash = ?"
-            self._db.executemany(sql, update_infohash)
+        if len(update) > 0:
+            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, infohash = ?, swift_hash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ? WHERE torrent_id = ?"
+            self._db.executemany(sql, update)
             
         if len(update_roothash) > 0:
-            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, infohash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ?  WHERE swift_hash = ?"
+            sql = "UPDATE Torrent SET swift_hash = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update_roothash)
         
-        to_be_inserted = to_be_inserted.values()
-        if len(to_be_inserted) > 0:
-            sql = "INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, swift_torrent_hash, swift_hash, source_id, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        if len(update_infohash) > 0:
+            sql = "UPDATE Torrent SET infohash = ? WHERE torrent_id = ?"
+            self._db.executemany(sql, update_infohash)
+            
+        if len(insert) > 0:
+            sql = "INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             try:
-                self._db.executemany(sql, to_be_inserted)
+                self._db.executemany(sql, insert)
                 
-                to_be_inserted = [(inserted[5], inserted[7]) for inserted in to_be_inserted]
+                were_inserted = [(inserted[5], inserted[7]) for inserted in insert]
                 sql = "SELECT torrent_id, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
-                to_be_indexed = to_be_indexed + list(self._db.executemany(sql, to_be_inserted))
+                to_be_indexed = to_be_indexed + list(self._db.executemany(sql, were_inserted))
             except:
                 print_exc()
-                print >> sys.stderr, "infohashes:", to_be_inserted
+                print >> sys.stderr, "infohashes:", insert
         
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
