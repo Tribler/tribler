@@ -985,7 +985,7 @@ class LibraryManager:
                 destdir = destdirs.get(torrent.torrent_id, None)
                 if destdir:
                     destdir = destdir[-1]
-                self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
+                self.guiUtility.frame.startDownload(cdef=tdef, destdir=destdir)
             else:
                 callback = lambda: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
