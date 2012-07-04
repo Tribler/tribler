@@ -68,7 +68,6 @@ class TorrentManager:
         # Remote results for current keywords
         self.remoteHits = []
         self.remoteLock = threading.Lock()
-        self.remoteRefresh = False
         
         # Requests for torrents
         self.requestedTorrents = set()
@@ -521,7 +520,7 @@ class TorrentManager:
         to_be_prefetched = {}
 
         for i, hit in enumerate(self.hits):
-            torrent_filename = self.getCollectedFilename(hit)
+            torrent_filename = self.getCollectedFilename(hit, retried = True)
             if not torrent_filename:
                 #this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
@@ -566,7 +565,6 @@ class TorrentManager:
                 self.remoteHits = []
                 
                 self.oldsearchkeywords = None
-                self.remoteRefresh = False
             finally:
                 self.hitsLock.release()
                 self.remoteLock.release()
@@ -746,12 +744,6 @@ class TorrentManager:
                     self.remoteHits.append(remoteHit)
                     refreshGrid = True
         finally:
-            if refreshGrid:
-                #if already scheduled, dont schedule another
-                if self.remoteRefresh:
-                    refreshGrid = False
-                else:
-                    self.remoteRefresh = True
             self.remoteLock.release()
             
             if self.gridmgr:
@@ -762,7 +754,7 @@ class TorrentManager:
                     print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: scheduling refresh"
                 self.refreshGrid(remote=True)
             elif DEBUG:
-                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: not scheduling refresh", self.remoteRefresh
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: not scheduling refresh"
     
     def refreshGrid(self, remote=False):
         if self.gridmgr:
