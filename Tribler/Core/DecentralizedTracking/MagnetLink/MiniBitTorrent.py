@@ -12,7 +12,7 @@ metadata is obtained.
 
 from cStringIO import StringIO
 from random import getrandbits
-from threading import Lock, Event, Thread
+from threading import RLock, Event, Thread
 from time import time
 from traceback import print_exc
 from urllib import urlopen, urlencode
@@ -55,7 +55,7 @@ class Connection:
         # outstanding requests for pieces in piece-id:piece-length pairs
         self._metadata_requests = {}
 
-        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent: New connection"
+        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent: New connection",self._swarm._info_hash
         self._socket = raw_server.start_connection(address, self)
         self.write_handshake()
 
@@ -131,8 +131,8 @@ class Connection:
         # Arno, 2012-06-20: Safety catch for concurrency between
         # MiniSwarm close and DHT reporting new peers.
         if self._swarm._closed:
-            self._closed = True
             self.close()
+            return True
             
         if data[0] == EXTEND and len(data) > 2:
             # we only care about EXTEND messages.  So all other
@@ -259,7 +259,7 @@ class Connection:
             self._next_len, self._next_func = next_
 
     def connection_lost(self, socket):
-        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.connection_lost()"
+        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.connection_lost()",self._swarm._info_hash
         if not self._closed:
             self._closed = True
             self._swarm.connection_lost(self)
@@ -271,18 +271,19 @@ class Connection:
         """
         Close when no activity since DEADLINE
         """
+        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.check_for_timeout()",self._swarm._info_hash
         if self._last_activity < deadline:
             if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.check_for_timeout() Timeout!"
             self.close()
 
     def close(self):
-        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.close()"
+        if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.close()",self._swarm._info_hash
         if not self._closed:
             self.connection_lost(self._socket)
             self._socket.close()
 
     def __str__(self):
-        return 'MiniBitTorrentCON'+str(self._closed)+str(self._socket.connected)+str(self._swarm._info_hash)
+        return 'MiniBitTorrentCON--Closed'+str(self._closed)+str(self._socket.connected)+'-'+str(self._swarm._info_hash)
 
 class MiniSwarm:
     """
@@ -315,7 +316,7 @@ class MiniSwarm:
 
         # _lock protects several member variables that are accessed
         # from our RawServer and other threads.
-        self._lock = Lock()
+        self._lock = RLock()
 
         # _connections contains all open socket connections.  This
         # variable is protected by _lock.
@@ -484,29 +485,31 @@ class MiniSwarm:
                     self._metadata_blocks = [[requested, piece, None] for requested, piece, data in self._metadata_blocks]
 
     def add_potential_peers(self, addresses):
+        """ Called by mainlineDHT Thread """
         if not self._closed:
             self._lock.acquire()
             try:
                 for address in addresses:
                     if not address in self._potential_peers:
                         self._potential_peers[address] = 0
+
+                # Arno, _connections under lock
+                if len(self._connections) < self._max_connections:
+                    self._create_connections()
             finally:
                 self._lock.release()
 
-            if len(self._connections) < self._max_connections:
-                self._create_connections()
 
     def _create_connections(self):
+        """ Arno, 2012-07-05: Assumption: lock held """
         now = time()
 
         # order by last connection attempt
-        self._lock.acquire()
-        try:
-            addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
-            if DEBUG:
-                print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
-        finally:
-            self._lock.release()
+
+        addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
+        if DEBUG:
+            print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
+        
         addresses.sort()
 
         for timestamp, address in addresses:
@@ -529,38 +532,60 @@ class MiniSwarm:
                 if DEBUG: print >> sys.stderr, "MiniBitTorrent.add_potential_peers() ERROR"
                 print_exc()
 
-            self._lock.acquire()
-            try:
-                self._potential_peers[address] = now
-                if connection:
-                    self._connections.append(connection)
-            finally:
-                self._lock.release()
+            self._potential_peers[address] = now
+            if connection:
+                self._connections.append(connection)
 
     def _timeout_connections(self):
-        deadline = time() - MAX_TIME_INACTIVE
-        for connection in self._connections:
-            connection.check_for_timeout(deadline)
+        self._lock.acquire()
+        try:
+            deadline = time() - MAX_TIME_INACTIVE
 
-        if not self._closed:
-            self._raw_server.add_task(self._timeout_connections, 1)
+            # Arno, 2012-07-05: check_timeout() may call close(), which  calls 
+            # connection_lost which removes the conn from self._connections, 
+            # thus altering the self._connections and messing up this loop.
+            conns2check = self._connections[:]
+            for connection in conns2check:
+                connection.check_for_timeout(deadline)
+    
+            if not self._closed:
+                self._raw_server.add_task(self._timeout_connections, 1)
+        finally:
+            self._lock.release()
+
 
     def connection_lost(self, connection):
+        self._lock.acquire()
         try:
-            self._connections.remove(connection)
-        except:
-            # it is possible that a connection timout occurs followed
-            # by another connection close from the socket handler when
-            # the connection can not be established.
-            pass
-        if not self._closed:
-            self._create_connections()
+            try:
+                self._connections.remove(connection)
+            except:
+                # it is possible that a connection timout occurs followed
+                # by another connection close from the socket handler when
+                # the connection can not be established.
+                pass
+            if not self._closed:
+                self._create_connections()
+        finally:
+            self._lock.release()
+
 
     def close(self):
-        if not self._closed:
-            self._closed = True
-            for connection in self._connections:
-                connection.close()
+        self._lock.acquire()
+        try:
+            if not self._closed:
+                self._closed = True
+                # Arno, 2012-07-05: close() calls connection_lost which
+                # removes the conn from self._connections, thus altering
+                # the self._connections and messing up this loop
+                conns2kill = self._connections[:]
+                for connection in conns2kill:
+                    connection.close()
+
+        finally:
+            self._lock.release()
+
+
 
 class MiniTracker(Thread):
     """
