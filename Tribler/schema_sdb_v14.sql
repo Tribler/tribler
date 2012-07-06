@@ -203,6 +203,12 @@ CREATE INDEX Torrent_info_roothash_idx
   ON Torrent
   (infohash, swift_torrent_hash);
 
+ -- Arno, 2012-07-05: speed up
+CREATE UNIQUE INDEX swift_hash_idx
+  ON Torrent
+  (swift_hash);
+
+
 ----------------------------------------
 
 CREATE TABLE TorrentSource (
