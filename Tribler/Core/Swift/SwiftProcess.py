@@ -7,6 +7,7 @@ import random
 import binascii
 import urllib
 import json
+import binascii
 from threading import RLock
 from traceback import print_exc,print_stack
 
@@ -53,7 +54,8 @@ class SwiftProcess(InstanceConnection):
         # Security: only accept commands from localhost, enable HTTP gw, 
         # no stats/webUI web server
         args=[]
-        args.append(str(self.binpath))
+        # Arno, 2012-07-09: Unicode problems with popen
+        args.append(self.binpath.encode(sys.getfilesystemencoding()))
 
         # Arno, 2012-05-29: Hack. Win32 getopt code eats first arg when Windows app
         # instead of CONSOLE app.
@@ -66,8 +68,16 @@ class SwiftProcess(InstanceConnection):
         args.append("127.0.0.1:"+str(self.httpport))
         args.append("-w")
         if zerostatedir is not None:
-            args.append("-e") 
-            args.append(zerostatedir)
+            if sys.platform == "win32":
+                # Swift on Windows expects command line arguments as UTF-16.
+                # popen doesn't allow us to pass params in UTF-16, hence workaround.
+                # Format = hex encoded UTF-8
+                args.append("-3")    
+                zssafe = binascii.hexlify(zerostatedir.encode("UTF-8"))
+                args.append(zssafe)  # encoding that swift expects
+            else:
+                args.append("-e") 
+                args.append(zerostatedir) 
         #args.append("-B") # DEBUG Hack        
         
         if DEBUG:
@@ -77,6 +87,8 @@ class SwiftProcess(InstanceConnection):
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             creationflags=0
+
+        # See also SwiftDef::finalize popen
         self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir,creationflags=creationflags) 
 
         self.roothash2dl = {}
