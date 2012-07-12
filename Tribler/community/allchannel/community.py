@@ -129,7 +129,7 @@ class AllChannelCommunity(Community):
     
     @property
     def dispersy_sync_response_limit(self):
-        return 50 * 1024
+        return 25 * 1024
 
     def create_channelcast(self):
         try:
