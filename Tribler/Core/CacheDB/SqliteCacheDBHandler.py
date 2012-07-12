@@ -1583,6 +1583,11 @@ class TorrentDBHandler(BasicDBHandler):
         update_infohash = []
         to_be_indexed = []
         for infohash, swarmname, length, nrfiles, categoryid, creation_date, swift_hash, swift_torrent_hash in torrents:
+            # 12/07/12 Boudewijn: swift_hash must be unique in the database, hence empty strings
+            # must be stored as None
+            if swift_hash == "":
+                swift_hash = None
+
             tid = infohash_tid.get(infohash, None) or roothash_tid.get(swift_hash, None)
             
             if tid: #we know this torrent
