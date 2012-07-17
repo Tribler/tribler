@@ -328,6 +328,8 @@ class Session(SessionRuntimeConfig):
         @param d The Download to remove
         @param removecontent Whether to delete the already downloaded content
         from disk.
+        @param removestate    Whether to delete the metadata files of the downloaded
+        content from disk.
         """
         # locking by lm
         if d.get_def().get_def_type() == "torrent":
