@@ -787,7 +787,10 @@ class Encoder:
             print >>sys.stderr,"encoder: closing all connections"
         copy = self.connections.values()[:]
         for c in copy:
-            c.close(closeall=True)
+            try:
+                c.close(closeall=True)
+            except:
+                print_exc()
         self.connections = {}
 
     def ban(self, ip):
