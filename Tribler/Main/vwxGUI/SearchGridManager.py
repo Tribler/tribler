@@ -851,6 +851,7 @@ class LibraryManager:
         # Gui callbacks
         self.gui_callback = []
         self.user_download_choice = UserDownloadChoice.get_singleton()
+        self.wantpeerdownloadstates = False
 
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:
@@ -885,6 +886,8 @@ class LibraryManager:
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
             startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
+    
+        return self.wantpeerdownloadstates
     
     @forceWxThread
     def _do_gui_callback(self):
@@ -922,6 +925,9 @@ class LibraryManager:
     def remove_download_state_callback(self, callback):
         if callback in self.gui_callback:
             self.gui_callback.remove(callback)
+    
+    def set_want_peers(self,b):
+        self.wantpeerdownloadstates = b
     
     def addDownloadState(self, torrent):
         # Add downloadstate data to a torrent instance

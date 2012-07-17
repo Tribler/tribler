@@ -559,7 +559,9 @@ class ABCApp():
     
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return (5.0, True)
+            return (5.0, False)
+        
+        wantpeers = False
         
         if DEBUG: 
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -676,7 +678,9 @@ class ABCApp():
                     destdir = os.path.basename(ds.get_download().get_dest_dir())
                     if destdir != coldir:
                         no_collected_list.append(ds)
-                self.guiUtility.library_manager.download_state_callback(no_collected_list)
+                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
+                # so only do it when needed for display.
+                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
             except:
                 print_exc()
             
@@ -723,7 +727,7 @@ class ABCApp():
         except:
             print_exc()
         
-        return (1.0, True)
+        return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
         #Niels: first remove all "swift" torrent collect checkpoints
@@ -1252,5 +1256,6 @@ def run(params = None):
 
 if __name__ == '__main__':
     run()
+    
 
     

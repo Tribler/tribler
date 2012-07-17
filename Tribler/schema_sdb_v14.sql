@@ -204,7 +204,7 @@ CREATE INDEX Torrent_info_roothash_idx
   (infohash, swift_torrent_hash);
 
  -- Arno, 2012-07-05: speed up
-CREATE UNIQUE INDEX swift_hash_idx
+CREATE UNIQUE INDEX Torrent_swift_hash_idx
   ON Torrent
   (swift_hash);
 
@@ -245,7 +245,7 @@ CREATE UNIQUE INDEX torrent_tracker_idx
   (torrent_id, tracker);
 
 CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check );
-  
+
 ----------------------------------------
 
 CREATE VIEW SuperPeer AS SELECT * FROM Peer WHERE superpeer=1;

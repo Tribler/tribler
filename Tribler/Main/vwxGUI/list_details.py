@@ -1467,6 +1467,14 @@ class LibraryDetails(TorrentDetails):
         self.startstop = None
         TorrentDetails.__init__(self, parent, torrent)
         
+        # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
+        # so only do it when needed for display.
+        self.guiutility.library_manager.set_want_peers(True)
+        
+    def __del__(self):
+        TorrentDetails.__del__(self)
+        self.guiutility.library_manager.set_want_peers(False)
+        
     def _doLoad(self):
         if DEBUG:
             print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']

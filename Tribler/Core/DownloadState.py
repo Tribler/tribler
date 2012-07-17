@@ -493,7 +493,7 @@ class DownloadState(Serializable):
         'speed' = The peer's current total download speed (estimated)
         </pre>
         """
-        if self.stats is None or 'spew' not in self.stats:
+        if self.stats is None or 'spew' not in self.stats or self.stats['spew'] is None:
             return []
         else:
             return self.stats['spew']
