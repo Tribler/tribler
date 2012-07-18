@@ -1,3 +1,9 @@
+tribler (5.9.22-1ubuntu1) quantal; urgency=low
+
+  * Release 5.9.22
+
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 18 Jul 2012 16:23:14 +0200
+
 tribler (5.9.21-1ubuntu1) quantal; urgency=low
 
   * Release 5.9.21
