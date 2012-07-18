@@ -35,7 +35,6 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceAndReturnWxThread
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     import wxversion

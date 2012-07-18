@@ -17,7 +17,10 @@ from traceback import format_stack, extract_stack, format_exc, print_exc,\
 import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from inspect import isgeneratorfunction
+from random import randint
 
+# Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
+GUI_PRI_DISPERSY = 99
 
 DEBUG = False
 
@@ -268,12 +271,15 @@ def startWorker(
         consumer = exceptionConsumer
     
     if jobID is None:
-        try:
-            filename, line, function, text = extract_stack(limit = 2)[0]
-            _, filename = os.path.split(filename)
-            jobID = "%s:%s (%s)"%(filename, line, function) 
-        except:
-            pass 
+        if __debug__:
+            try:
+                filename, line, function, text = extract_stack(limit = 2)[0]
+                _, filename = os.path.split(filename)
+                jobID = "%s:%s (%s)"%(filename, line, function) 
+            except:
+                pass
+        else:
+            jobID = str(randint(1,10000000))
         
     result = ASyncDelayedResult(jobID)
     app = wx.GetApp()
@@ -298,4 +304,3 @@ def cancelWorker(uId):
 def onWorkerThread(type):
     dbProducer = GUIDBProducer.getInstance()
     return dbProducer.onSameThread(type)
-

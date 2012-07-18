@@ -913,9 +913,11 @@ class ABCApp():
         # see Tribler/Main/Dialogs/abcoption.py
         self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
-        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
+        # Arno, 2012-07-12: Shutdown should be quick
+        waittime = 5
+        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < waittime:
             diff = time() - session_shutdown_start
-            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
+            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
             sleep(3)
         print >>sys.stderr,"main: ONEXIT Session is shutdown"
         
@@ -1253,9 +1255,6 @@ def run(params = None):
     #if sys.platform != 'linux2':
     #    tribler_done(configpath)
     #os._exit(0)
-
+    
 if __name__ == '__main__':
     run()
-    
-
-    

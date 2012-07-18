@@ -15,7 +15,7 @@ from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords,\
     fts3_preprocess
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Video.VideoPlayer import VideoPlayer
 from time import time
@@ -343,21 +343,21 @@ class GUIUtility:
             channel = self.channelsearch_manager.getChannel(channel_id)
             self.showChannel(channel)
             
-        startWorker(None, db_callback)
+        startWorker(None, db_callback,priority=GUI_PRI_DISPERSY)
     
     def showChannelFromDispCid(self, channel_cid):
         def db_callback():
             channel = self.channelsearch_manager.getChannelByCid(channel_cid)
             self.showChannel(channel)
             
-        startWorker(None, db_callback)
+        startWorker(None, db_callback,priority=GUI_PRI_DISPERSY)
         
     def showChannelFromPermid(self, channel_permid):
         def db_callback():
             channel = self.channelsearch_manager.getChannelByPermid(channel_permid)
             self.showChannel(channel)
             
-        startWorker(None, db_callback)
+        startWorker(None, db_callback,priority=GUI_PRI_DISPERSY)
         
     @forceWxThread
     def showChannel(self, channel):

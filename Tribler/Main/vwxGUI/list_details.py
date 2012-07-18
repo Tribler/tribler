@@ -26,7 +26,7 @@ from list_header import ListHeader
 from list_body import ListBody
 from __init__ import *
 from Tribler.Core.simpledefs import DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
     LibraryTorrent, ChannelTorrent, CollectedTorrent
 from Tribler.community.channel.community import ChannelCommunity
@@ -1297,7 +1297,7 @@ class TorrentDetails(AbstractDetails):
     
     def UpdateMarkings(self):
         if self.torrent.get('channeltorrent_id', False):
-            startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
+            startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ),priority=GUI_PRI_DISPERSY)
      
     @warnWxThread
     def ShowMarkings(self, delayedResult):
@@ -1480,7 +1480,7 @@ class LibraryDetails(TorrentDetails):
             print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']
         
         self.showRequestType('')
-        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent})
+        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent},priority=GUI_PRI_DISPERSY)
         
         wx.CallLater(10000, self._timeout)
         
