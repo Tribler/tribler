@@ -170,7 +170,7 @@ class SearchCommunity(Community):
                 sock_addresses.add(candidate.sock_addr)
         return candidates
     
-    def create_introduction_request(self, destination):
+    def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         
         if DEBUG:
