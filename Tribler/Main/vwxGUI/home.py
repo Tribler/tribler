@@ -428,7 +428,10 @@ class NetworkPanel(HomePanel):
 class DispersyPanel(HomePanel):
     def __init__(self, parent):
         self.buildColumns = False
-        self.dispersy = Dispersy.get_instance()
+        self.dispersy = Dispersy.has_instance()
+        if not self.dispersy:
+            raise RuntimeError("Dispersy has not started yet")
+
         HomePanel.__init__(self, parent, 'Dispersy info' , LIST_BLUE)
 
         self.SetMinSize((-1, 200))
