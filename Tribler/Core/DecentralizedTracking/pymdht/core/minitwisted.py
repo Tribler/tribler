@@ -20,6 +20,8 @@ from message import Datagram
 import ptime as time
 from floodbarrier import FloodBarrier
 
+from Tribler.dispersy.decorator import attach_profiler
+
 logger = logging.getLogger('dht')
 
 BUFFER_SIZE = 3000
@@ -86,7 +88,8 @@ class ThreadedReactor(threading.Thread):
                 self._captured.append(capture)
         finally:
             self._lock.release()
-     
+
+    @attach_profiler
     def run(self):
         self.run2()
     
