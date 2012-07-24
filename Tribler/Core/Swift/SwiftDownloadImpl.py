@@ -172,14 +172,12 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dllock.release()
     
     def i2ithread_vod_event_callback(self,event,httpurl):
-        
-        print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER",event,httpurl
+        if DEBUG:
+            print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback: ENTER",event,httpurl,"mode",self.get_mode()
         
         self.dllock.acquire()
         try:
             if event == VODEVENT_START:
-                
-                print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback: MODE",self.get_mode()
                 
                 if self.get_mode() != DLMODE_VOD:
                     return
@@ -198,8 +196,9 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 # Allow direct connection of video renderer with swift HTTP server
                 # via new "url" param.
                 # 
-                
-                print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback",event,httpurl
+            
+                if DEBUG:    
+                    print >>sys.stderr,"SwiftDownloadImpl: i2ithread_vod_event_callback",event,httpurl
                 
                 # Arno: No threading violation, lm_network_* is safe at the moment
                 self.lm_network_vod_event_callback( videoinfo, VODEVENT_START, {

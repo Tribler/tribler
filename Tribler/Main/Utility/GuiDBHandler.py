@@ -16,7 +16,11 @@ from traceback import format_stack, extract_stack, format_exc, print_exc,\
     print_stack
 import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from inspect import isgeneratorfunction
+from random import randint
 
+# Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
+GUI_PRI_DISPERSY = 99
 
 DEBUG = False
 
@@ -115,7 +119,7 @@ class GUIDBProducer():
                 
             t3 = time()
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: Task(%s) took %.1f to complete, actual task took %.1f"%(name, t3 - t1, t3 - t2)
+                print >> sys.stderr, "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s"%(name, t2 - t1, delay, t3 - t2, workerType)
                 
             if uId:
                 try:
@@ -140,7 +144,10 @@ class GUIDBProducer():
         
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
-                self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
+                if isgeneratorfunction(workerFn):
+                    self.database_thread.register(workerFn, delay=delay, priority=priority, id_=callbackId)
+                else:
+                    self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
                 
             elif workerType == "guiTaskQueue":
                 self.guitaskqueue.add_task(wrapper, t = delay)
@@ -256,16 +263,23 @@ def startWorker(
     used to check if such a task is already scheduled, ignores it if it is.
     Returns the delayedResult created, in case caller needs join/etc.
     """
+    if isgeneratorfunction(workerFn):
+        assert consumer == None, "Cannot have consumer and yielding task"
+        consumer = None
+    
     if not consumer:
         consumer = exceptionConsumer
     
     if jobID is None:
-        try:
-            filename, line, function, text = extract_stack(limit = 2)[0]
-            _, filename = os.path.split(filename)
-            jobID = "%s:%s (%s)"%(filename, line, function) 
-        except:
-            pass 
+        if __debug__:
+            try:
+                filename, line, function, text = extract_stack(limit = 2)[0]
+                _, filename = os.path.split(filename)
+                jobID = "%s:%s (%s)"%(filename, line, function) 
+            except:
+                pass
+        else:
+            jobID = str(randint(1,10000000))
         
     result = ASyncDelayedResult(jobID)
     app = wx.GetApp()
@@ -290,4 +304,3 @@ def cancelWorker(uId):
 def onWorkerThread(type):
     dbProducer = GUIDBProducer.getInstance()
     return dbProducer.onSameThread(type)
-

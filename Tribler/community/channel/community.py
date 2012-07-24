@@ -215,7 +215,7 @@ class ChannelCommunity(Community):
     
     @property
     def dispersy_sync_response_limit(self):
-        return 50 * 1024
+        return 25 * 1024
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]

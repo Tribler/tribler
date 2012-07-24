@@ -3,12 +3,3 @@ if [ "$1" = "configure" ] && [ -x "`which update-menus 2>/dev/null`" ]; then
 	update-menus
 fi
 # End automatically added section
-# Automatically added by dh_python
-PYTHON=python2.4
-if which $PYTHON >/dev/null 2>&1 && [ -e /usr/lib/$PYTHON/compileall.py ]; then
-	DIRLIST=" /usr/share/tribler"
-	for i in $DIRLIST ; do
-		$PYTHON /usr/lib/$PYTHON/compileall.py -q $i
-	done
-fi
-# End automatically added section

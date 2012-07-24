@@ -164,7 +164,12 @@ class SingleSocket:
         self.socket = None
         self.buffer = []
         del self.socket_handler.single_sockets[self.fileno]
-        self.socket_handler.poll.unregister(sock)
+        
+        try:
+            self.socket_handler.poll.unregister(sock)
+        except Exception, e:
+            print >>sys.stderr,"SocketHandler: close: sock is",sock
+            print_exc() 
         sock.close()
 
     def shutdown(self, val):

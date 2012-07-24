@@ -19,7 +19,8 @@ from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
 from Tribler.Main.vwxGUI import forceDBThread
 from Tribler.Main.Dialogs.MoveTorrents import MoveTorrents
-from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBTuples import MergedDs
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 
 class SettingsDialog(wx.Dialog):
@@ -576,7 +577,7 @@ class SettingsDialog(wx.Dialog):
             dlg.Destroy()
         
         cancelWorker("OnMultiple")
-        startWorker(do_gui, do_db, uId = "OnMultiple")
+        startWorker(do_gui, do_db, uId = "OnMultiple",priority=GUI_PRI_DISPERSY)
         
     def OnMultipleMove(self, event):
         button = event.GetEventObject()
@@ -611,7 +612,7 @@ class SettingsDialog(wx.Dialog):
                     self.moveDownload(download, new_dir, moveFiles, ignoreIfExists)
             dlg.Destroy()
         
-        startWorker(do_gui, do_db, uId="OnMultipleMove")
+        startWorker(do_gui, do_db, uId="OnMultipleMove",priority=GUI_PRI_DISPERSY)
         
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():

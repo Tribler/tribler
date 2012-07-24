@@ -17,7 +17,7 @@ PYTHON=/Library/Frameworks/Python.framework/Versions/2.7/bin/python$PYVER
 # export PYTHONPATH=${PWD}:${PYTHONPATH}:$HOME/pkgs/M2Crypto-0.20.2-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/apsw-3.7.8-r1-fts3-py2.7/lib/python$PYVER/site-packages/:/Users/tribler/pkgs/modulegraph-hg-20101109-py2.7/lib/python$PYVER/site-packages/:/Users/tribler/pkgs/py2app-hg-20101109-py2.7/lib/python$PYVER/site-packages
 
 # Niels 2012-01-03 removed py2app, installed 0.6.5 in python 2.7 site-packages. py2app 0.6.5 fixes actual -O running of Tribler
-export PYTHONPATH=${PWD}:${PYTHONPATH}:$HOME/pkgs/M2Crypto-0.20.2-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/apsw-3.7.8-r1-fts3-py2.7/lib/python$PYVER/site-packages/
+export PYTHONPATH=${PWD}:${PYTHONPATH}:$HOME/pkgs/M2Crypto-0.20.2-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/apsw-3.7.8-r1-fts3-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/netifaces-0.8-install/lib/python$PYVER/site-packages/
 
 # Force 32-bit:
 export VERSIONER_PYTHON_PREFER_32_BIT=yes
@@ -47,6 +47,7 @@ touch dist/installdir
 # Swift
 rm swift
 cd Tribler/SwiftEngine
+make -f Makefile.mac clean
 make -f Makefile.mac
 cp swift ../..
 cd ../..

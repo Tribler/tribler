@@ -11,7 +11,7 @@ from __init__ import LIST_GREY, LIST_BLUE, TRIBLER_RED, LIST_HIGHTLIGHT
 from wx.lib.stattext import GenStaticText
 from wx.lib.stattext import GenStaticText
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 DEBUG = False
 
@@ -1083,7 +1083,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
                 def db_callback(text):
                     if text == self.text:
                         return self.entrycallback(text)
-                startWorker(wx_callback, db_callback, cargs = (text,), wargs = (text, ))
+                startWorker(wx_callback, db_callback, cargs = (text,), wargs = (text, ),priority=GUI_PRI_DISPERSY)
 
     def KeyDown(self, event): 
         skip = True 

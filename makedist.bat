@@ -1,7 +1,7 @@
 REM @echo off
 REM No LIBRARYNAME here as this is not distributed with Tribler as BaseLib
 
-set PYTHONHOME=c:\Python271
+set PYTHONHOME=c:\Python273
 REM Arno: Add . to find our core
 set PYTHONPATH=.;%PYTHONHOME%
 echo PYTHONPATH SET TO %PYTHONPATH%
@@ -144,6 +144,7 @@ copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
 REM Swift
 del swift.exe
 cd Tribler\SwiftEngine
+CALL c:\Python273\Scripts\scons -c
 CALL win32-build.bat
 cd ..\..
 copy swift.exe dist\installdir
@@ -151,11 +152,14 @@ copy swift.exe dist\installdir
 @echo Running NSIS
 cd dist\installdir
 
+REM get password for swarmplayerprivatekey.pfx
+set /p PASSWORD="Enter the PFX password:"
+
 REM Arno: Sign Tribler.exe so MS "Block / Unblock" dialog has publisher info.
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
+"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" tribler.exe
 
 REM Arno: Sign swift.exe so MS "Block / Unblock" dialog has publisher info.
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
+"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" swift.exe
 
 
 :makeinstaller
@@ -165,5 +169,5 @@ REM move Tribler_*.exe ..
 move Tribler_*.exe ..
 cd ..
 REM Arno: Sign installer
-"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" Tribler_*.exe
+"C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Bin\signtool.exe" sign /f c:\build\certs\swarmplayerprivatekey.pfx /p "%PASSWORD%" /d "Tribler" /du "http://www.pds.ewi.tudelft.nl/code.html" /t "http://timestamp.verisign.com/scripts/timestamp.dll" Tribler_*.exe
 cd ..

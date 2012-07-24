@@ -181,10 +181,10 @@ class SearchConversion(BinaryConversion):
                 raise DropPacket("Invalid creation_date type")
             
             if not isinstance(seeders, int):
-                raise DropPacket("Invalid seeders type")
+                raise DropPacket("Invalid seeders type '%s'"%type(seeders))
                 
             if not isinstance(leechers, int):
-                raise DropPacket("Invalid leechers type")
+                raise DropPacket("Invalid leechers type '%s'"%type(leechers))
                 
             if swift_hash:
                 if not isinstance(swift_hash, str):

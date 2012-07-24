@@ -180,6 +180,9 @@ class PiecePicker:
 
     def lost_have(self, piece):
         """ We lost a peer owning the given piece. """
+        if self.am_I_complete():
+            return
+        
         self.totalcount-=1
         numint = self.numhaves[piece]
         self.numhaves[piece] -= 1
@@ -340,7 +343,10 @@ class PiecePicker:
 
     def complete(self, piece):
         """ Succesfully received the given piece. """
-        assert not self.has[piece]
+        # Arno, 2012-07-17: handle corrupt on-disk checkpoint
+        if self.has[piece]:
+            return
+        
         self.has[piece] = 1
         self.numgot += 1
         
@@ -602,7 +608,7 @@ class PiecePicker:
     def lost_peer(self, connection):
         if connection.download.have.complete():
             self.lost_seed()
-        else:
+        elif not self.am_I_complete():
             has = connection.download.have
             for i in xrange(0, self.numpieces):
                 if has[i]:

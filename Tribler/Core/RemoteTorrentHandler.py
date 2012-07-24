@@ -15,7 +15,7 @@ from binascii import hexlify
 from tempfile import mkstemp
 from time import sleep, time
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -51,9 +51,11 @@ class RemoteTorrentHandler:
         return RemoteTorrentHandler.__single
     getInstance = staticmethod(getInstance)
 
-    def register(self, dispersy, session):
+    def register(self, dispersy, session, max_num_torrents):
         self.session = session
         self.dispersy = dispersy
+        self.max_num_torrents = max_num_torrents
+        self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue 
         tqueue = TimedTaskQueue("RemoteTorrentHandler")
@@ -64,8 +66,28 @@ class RemoteTorrentHandler:
         self.drequesters[1] = MagnetRequester(self, 1)
         self.registered = True
         
+        startWorker(None, self.__check_overflow)
+        
     def is_registered(self):
         return self.registered
+
+    def __check_overflow(self):
+        while True:
+            num_torrents = self.torrent_db.getNumberCollectedTorrents()
+            if DEBUG:
+                print >>sys.stderr,"rtorrent: check overflow: current", self.num_torrents, "max", self.max_num_torrents
+            
+            if num_torrents > self.max_num_torrents:
+                num_delete = int(num_torrents - self.max_num_torrents*0.95)
+                print >> sys.stderr, "rtorrent: ** limit space::", num_torrents, self.max_num_torrents, num_delete
+                
+                while num_delete > 0:
+                    to_remove = min(num_delete, 25)
+                    num_delete -= to_remove
+                    self.torrent_db.freeSpace(to_remove)
+                    yield 5.0
+                
+            yield 30 * 60 * 60.0 #run every 30 minutes
         
     @property
     def searchcommunity(self):
@@ -154,8 +176,7 @@ class RemoteTorrentHandler:
                 print >>sys.stderr,'rtorrent: adding torrent messages request:', map(bin2str, infohashes), candidate, prio
    
     def has_torrent(self, infohash, callback):
-        tor_col_dir = self.session.get_torrent_collecting_dir()
-        startWorker(None, self._has_torrent, wargs = (infohash, tor_col_dir, callback))
+        startWorker(None, self._has_torrent, wargs = (infohash, self.tor_col_dir, callback))
         
     def _has_torrent(self, infohash, tor_col_dir, callback):
         #save torrent
@@ -417,6 +438,7 @@ class TorrentRequester(Requester):
                 
                 state_lambda = lambda ds, infohash=infohash, roothash=roothash, doMagnet=doMagnet: self.check_progress(ds, infohash, roothash, doMagnet)
                 download.set_state_callback(state_lambda, getpeerlist=False, delay=self.SWIFT_CANCEL)
+                download.started_downloading = time()
             
             except DuplicateDownloadException:
                 download = self.session.get_download(roothash)
@@ -431,7 +453,7 @@ class TorrentRequester(Requester):
     def check_progress(self, ds, infohash, roothash, didMagnet):
         d = ds.get_download()
         cdef = d.get_def()
-        if ds.get_progress() == 0:
+        if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR or time() - getattr(d, 'started_downloading', time()) > 45:
             remove_lambda = lambda d=d: self._remove_donwload(d)
             self.scheduletask(remove_lambda)
             

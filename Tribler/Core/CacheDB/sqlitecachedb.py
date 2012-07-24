@@ -88,7 +88,11 @@ def init(config, db_exception_handler = None):
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE)  # the first place to create db in Tribler
     return sqlitedb
         
-def done(config_dir):
+def done():
+    # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler it uses
+    # in its own shutdown procedure. There is no global close of all per-thread
+    # cursors/connections.
+    #
     SQLiteCacheDB.getInstance().close()
 
 def make_filename(config_dir,filename):
@@ -2175,7 +2179,8 @@ def try_register(db, callback = None):
     
 def register_task(db, *args, **kwargs):
     global _callback
-    try_register(db)
+    if not _callback:
+        try_register(db)
                 
     if not _callback or not _callback.is_running:
         def fakeDispersy(func):
@@ -2219,7 +2224,6 @@ def forceAndReturnDBThread(func):
             print_stack()
             print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDBThread", func.__name__
         else:
-            try_register(args[0])
             return func(*args, **kwargs)
             
     invoke_func.__name__ = func.__name__

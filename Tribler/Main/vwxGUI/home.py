@@ -24,7 +24,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, User
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
 from Tribler.Core.Utilities.utilities import show_permid_short
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from traceback import print_exc
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
@@ -147,12 +147,12 @@ class Stats(XRCPanel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.dowserStatus = StaticText(self, -1, 'Dowser is not running')
-        dowserButton = wx.Button(self, -1, 'Start dowser')
-        dowserButton.Bind(wx.EVT_BUTTON, self.OnDowser)
+        self.dowserButton = wx.Button(self, -1, 'Start dowser')
+        self.dowserButton.Bind(wx.EVT_BUTTON, self.OnDowser)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-        hSizer.Add(dowserButton)
-        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, 10)
+        hSizer.Add(self.dowserButton)
+        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.BOTTOM, 10)
         
         vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 10)
 
@@ -173,7 +173,7 @@ class Stats(XRCPanel):
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
-        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
+        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 10)
         # boudewijn: disabled TopContributorsPanel, getTopNPeers is a very expensive call
         # hSizer.Add(TopContributorsPanel(self), 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
@@ -212,13 +212,16 @@ class Stats(XRCPanel):
             event.Skip()
             
     def OnDowser(self, event):
-        if not self._startDowser():
-            dlg = wx.DirDialog(None, "Please select your dowser installation directory", style = wx.wx.DD_DIR_MUST_EXIST)
-            if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
-                sys.path.append(dlg.GetPath())
-                self._startDowser()
-                 
-            dlg.Destroy()
+        if self.dowserStatus.GetLabel() == 'Dowser is running':
+            self._stopDowser()
+        else:
+            if not self._startDowser():
+                dlg = wx.DirDialog(None, "Please select your dowser installation directory", style = wx.wx.DD_DIR_MUST_EXIST)
+                if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
+                    sys.path.append(dlg.GetPath())
+                    self._startDowser()
+                     
+                dlg.Destroy()
     
     def _startDowser(self):
         try:
@@ -228,7 +231,21 @@ class Stats(XRCPanel):
             cherrypy.tree.mount(dowser.Root())
             cherrypy.engine.start()
             
+            self.dowserButton.SetLabel('Stop dowser')
             self.dowserStatus.SetLabel('Dowser is running')
+            return True
+        
+        except:
+            print_exc()
+            return False
+        
+    def _stopDowser(self):
+        try:
+            import cherrypy
+            cherrypy.engine.stop()
+            
+            self.dowserButton.SetLabel('Start dowser')
+            self.dowserStatus.SetLabel('Dowser is not running')
             return True
         
         except:
@@ -386,7 +403,7 @@ class NetworkPanel(HomePanel):
             nr_channels = self.channelcastdb.getNrChannels()
             self._UpdateStats(stats, nr_channels)
 
-        startWorker(None, db_callback, uId ="NetworkPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="NetworkPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, stats, nr_channels):
@@ -411,7 +428,10 @@ class NetworkPanel(HomePanel):
 class DispersyPanel(HomePanel):
     def __init__(self, parent):
         self.buildColumns = False
-        self.dispersy = Dispersy.get_instance()
+        self.dispersy = Dispersy.has_instance()
+        if not self.dispersy:
+            raise RuntimeError("Dispersy has not started yet")
+
         HomePanel.__init__(self, parent, 'Dispersy info' , LIST_BLUE)
 
         self.SetMinSize((-1, 200))
@@ -442,7 +462,8 @@ class DispersyPanel(HomePanel):
                         "sequence_number":[],
                         "start":[],
                         "walk_fail":[],
-                        "attachment":[]}
+                        "attachment":[],
+                        "revision":[("Version", lambda info: str(max(info["revision"].itervalues())))]}
 
     def CreatePanel(self):
         panel = wx.Panel(self)
@@ -521,7 +542,7 @@ class DispersyPanel(HomePanel):
             info = self.dispersy.info(database_sync=includeStuffs)
             self._UpdateStats(info)
 
-        startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, info):
@@ -640,7 +661,7 @@ class NewTorrentPanel(HomePanel):
             if torrent:
                 self._UpdateStats(torrent)
 
-        startWorker(None, db_callback, uId ="NewTorrentPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="NewTorrentPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, torrent):
@@ -680,7 +701,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
             self._RefreshList(topTen)
 
-        startWorker(None, db_callback, uId ="PopularTorrentPanel_RefreshList")
+        startWorker(None, db_callback, uId ="PopularTorrentPanel_RefreshList",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -721,7 +742,7 @@ class TopContributorsPanel(HomePanel):
             topTen = self.barterdb.getTopNPeers(10)
             self._RefreshList(topTen)
 
-        startWorker(None, db_callback, uId ="TopContributorsPanel_RefreshList")
+        startWorker(None, db_callback, uId ="TopContributorsPanel_RefreshList",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -836,7 +857,7 @@ class BuzzPanel(HomePanel):
     
             if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
                 self.OnRefreshTimer(force = True, fromDBThread = True)
-        startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB")
+        startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):

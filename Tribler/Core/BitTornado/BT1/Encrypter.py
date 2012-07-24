@@ -435,6 +435,7 @@ class Connection:
             try:
                 x = self.next_func(m)
             except:
+                print >> sys.stderr, "encoder: exception in data_came_in", long(time())
                 print_exc()
                 self.next_len, self.next_func = 1, self.read_dead
                 raise
@@ -786,7 +787,10 @@ class Encoder:
             print >>sys.stderr,"encoder: closing all connections"
         copy = self.connections.values()[:]
         for c in copy:
-            c.close(closeall=True)
+            try:
+                c.close(closeall=True)
+            except:
+                print_exc()
         self.connections = {}
 
     def ban(self, ip):

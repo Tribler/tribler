@@ -521,6 +521,12 @@ class SingleDownload():
             return
         
         self.have[index] = True
+        
+        if self.downloader.picker.am_I_complete():
+            # Arno, 2012-07-16: I am a seed, don't care much about passing his info to
+            # PiecePicker
+            return
+        
         self.downloader.picker.got_have(index,self.connection)
         
         # ProxyService_
@@ -569,6 +575,11 @@ class SingleDownload():
                 self.connection.close()
                 self.downloader.add_disconnected_seed(self.connection.get_readable_id())
             self.downloader.scheduler(auto_close, REPEX_LISTEN_TIME)
+            return
+        elif self.downloader.picker.am_I_complete():
+            # Arno, 2012-07-16: I am a seed, don't care much about passing his info to
+            # PiecePicker
+            self.have = have
             return
 
         if DEBUGBF:

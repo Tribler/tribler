@@ -17,6 +17,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity,\
     forceDispersyThread, forceAndReturnDispersyThread
@@ -68,7 +69,6 @@ class TorrentManager:
         # Remote results for current keywords
         self.remoteHits = []
         self.remoteLock = threading.Lock()
-        self.remoteRefresh = False
         
         # Requests for torrents
         self.requestedTorrents = set()
@@ -443,7 +443,7 @@ class TorrentManager:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s' % (len(self.hits), time() - beginlocalsearch)
             
             # 2. Add remote hits that may apply.
-            new_remote_hits = self.addStoredRemoteResults()
+            new_remote_hits, modified_hits = self.addStoredRemoteResults()
     
             if DEBUG:
                 print >>sys.stderr,'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items' % len(self.hits)
@@ -484,7 +484,7 @@ class TorrentManager:
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
 
-        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits]
+        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits, modified_hits]
 
     def prefetch_hits(self):
         """
@@ -521,7 +521,7 @@ class TorrentManager:
         to_be_prefetched = {}
 
         for i, hit in enumerate(self.hits):
-            torrent_filename = self.getCollectedFilename(hit)
+            torrent_filename = self.getCollectedFilename(hit, retried = True)
             if not torrent_filename:
                 #this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
@@ -566,7 +566,6 @@ class TorrentManager:
                 self.remoteHits = []
                 
                 self.oldsearchkeywords = None
-                self.remoteRefresh = False
             finally:
                 self.hitsLock.release()
                 self.remoteLock.release()
@@ -596,39 +595,52 @@ class TorrentManager:
         
     @forceAndReturnDBThread
     def _doSearchLocalDatabase(self):
-        results = self.torrent_db.searchNames(self.searchkeywords)
-
+        if DEBUG:
+            begintime = time()
+            
+        results = self.torrent_db.searchNames(self.searchkeywords, doSort = False, keys = TORRENT_REQ_COLUMNS)
+        
+        if DEBUG:
+            begintuples = time()
+            
         if len(results) > 0:
             def create_channel(a):
-                if a['channel_id'] and a['channel_name'] != '':
-                    return Channel(a['channel_id'], a['channel_cid'], a['channel_name'], a['channel_description'], a['channel_nr_torrents'], a['subscriptions'], a['neg_votes'], a['channel_vote'], a['channel_modified'], a['channel_id'] == self.channelcast_db._channel_id)
-                return False
+                return Channel(*a)
+            
+            channels = {}
+            for a in results:
+                channel_details = a[-10:]
+                if channel_details[0] and channel_details[0] not in channels:
+                    channels[channel_details[0]] = create_channel(channel_details)
             
             def create_torrent(a):
-                a['channel'] = create_channel(a)
-                a['playlist'] = None
-                a['colt_name'] = a['name']
-                
-                if a['channel'] and (a['channel'].isFavorite() or a['channel'].isMyChannel()):
-                    t = ChannelTorrent(**getValidArgs(ChannelTorrent.__init__, a))
+                channel = channels.get(a[-9], False)
+                if channel and (channel.isFavorite() or channel.isMyChannel()):
+                    t = ChannelTorrent(*a[:-11]+[channel, None])
                 else:
-                    t = Torrent(**getValidArgs(Torrent.__init__, a))
+                    t = Torrent(*a[:11]+[False])
                     
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
-                t.assignRelevance(a['matches'])
+                t.assignRelevance(a[-11])
                 return t
             
             results = map(create_torrent, results)
         self.hits = results
+        
+        if DEBUG:
+            print >> sys.stderr, 'TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s'%(time() - begintime, time() - begintuples)
         return True
 
     def addStoredRemoteResults(self):
         """ Called by GetHitsInCategory() to add remote results to self.hits """
+        if DEBUG:
+            begintime = time()
         try:
             self.remoteLock.acquire()
             
             hitsUpdated = False
+            hitsModified = set()
             for remoteItem in self.remoteHits:
                 known = False
                 
@@ -637,6 +649,14 @@ class TorrentManager:
                         if item.query_candidates == None:
                             item.query_candidates = set()
                         item.query_candidates.update(remoteItem.query_candidates)
+                        
+                        if item.swift_hash == None:
+                            item.swift_hash = remoteItem.swift_hash
+                            hitsModified.add(item.infohash)
+                            
+                        if item.swift_torrent_hash == None:
+                            item.swift_torrent_hash = remoteItem.swift_torrent_hash
+                            hitsModified.add(item.infohash)
                         
                         if remoteItem.hasChannel():
                             if isinstance(item, RemoteTorrent):
@@ -655,7 +675,7 @@ class TorrentManager:
                                 if this_rating > current_rating:
                                     item.updateChannel(remoteItem.channel)
                             
-                                hitsUpdated = True
+                                hitsModified.add(item.infohash)
                         known = True
                         break
             
@@ -664,15 +684,18 @@ class TorrentManager:
                     hitsUpdated = True
                     
                 self.remoteHits = []
-                return hitsUpdated
+                return hitsUpdated, hitsModified
         except:
             raise
         
         finally:
             self.remoteRefresh = False
             self.remoteLock.release()
+            
+            if DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: addStoredRemoteResults: ", time() - begintime
         
-        return False
+        return False, []
     
     def gotDispersyRemoteHits(self, keywords, results, candidate):
         refreshGrid = False
@@ -722,19 +745,17 @@ class TorrentManager:
                     self.remoteHits.append(remoteHit)
                     refreshGrid = True
         finally:
-            if refreshGrid:
-                #if already scheduled, dont schedule another
-                if self.remoteRefresh:
-                    refreshGrid = False
-                else:
-                    self.remoteRefresh = True
             self.remoteLock.release()
             
             if self.gridmgr:
                 self.gridmgr.NewResult(keywords)
             
             if refreshGrid:
+                if DEBUG:
+                    print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: scheduling refresh"
                 self.refreshGrid(remote=True)
+            elif DEBUG:
+                print >>sys.stderr,"TorrentSearchGridManager: gotRemoteHist: not scheduling refresh"
     
     def refreshGrid(self, remote=False):
         if self.gridmgr:
@@ -831,6 +852,7 @@ class LibraryManager:
         # Gui callbacks
         self.gui_callback = []
         self.user_download_choice = UserDownloadChoice.get_singleton()
+        self.wantpeerdownloadstates = False
 
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:
@@ -864,7 +886,9 @@ class LibraryManager:
         
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
-            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
+            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+    
+        return self.wantpeerdownloadstates
     
     @forceWxThread
     def _do_gui_callback(self):
@@ -902,6 +926,9 @@ class LibraryManager:
     def remove_download_state_callback(self, callback):
         if callback in self.gui_callback:
             self.gui_callback.remove(callback)
+    
+    def set_want_peers(self,b):
+        self.wantpeerdownloadstates = b
     
     def addDownloadState(self, torrent):
         # Add downloadstate data to a torrent instance
@@ -973,7 +1000,7 @@ class LibraryManager:
                 destdir = destdirs.get(torrent.torrent_id, None)
                 if destdir:
                     destdir = destdir[-1]
-                self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
+                self.guiUtility.frame.startDownload(cdef=tdef, destdir=destdir)
             else:
                 callback = lambda: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
@@ -1059,7 +1086,7 @@ class LibraryManager:
                     channelDict[channel.id] = channel
             
             def create_torrent(a):
-                t = ChannelTorrent(*a[1:-1]+[channelDict.get(a[0], None),None])
+                t = ChannelTorrent(*a[1:-1]+[channelDict.get(a[0], False),None])
                 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db

@@ -550,7 +550,8 @@ class Connection:
         ver = version_short.replace('-',' ',1)
         d['v'] = ver
         d['e'] = 0  # Apparently this means we don't like uTorrent encryption
-        d['yourip'] = compact_ip(hisip)
+        if hisip != 'unknown':
+            d['yourip'] = compact_ip(hisip)
         if ipv4 is not None:
             # Only send IPv4 when necessary, we prefer this peer to use this addr.
             d['ipv4'] = compact_ip(ipv4) 

@@ -29,7 +29,7 @@ from list_footer import *
 from list_header import *
 from list_sidebar import *
 
-from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.list_header import LibraryOnlyHeader
 from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
@@ -81,17 +81,17 @@ class RemoteSearchManager:
                 
             keywords = self.oldkeywords
             
-            total_items, nrfiltered, new_items, selected_bundle_mode, data_files = self.torrentsearch_manager.getHitsInCategory()
+            total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             if DEBUG:
                 print >> sys.stderr, 'RemoteSearchManager: refresh returning results took', time() - begintime, time()
             
-            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode
+            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
-        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue")
+        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue",priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
-        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode = delayedResult.get()
+        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
         
         if keywords == self.oldkeywords:
             if new_items or new_channels:
@@ -99,6 +99,9 @@ class RemoteSearchManager:
                 
             self.list.SetFF(self.guiutility.getFamilyFilter(), nrfiltered)
             self.list.SetSelectedBundleMode(selected_bundle_mode)
+            
+            if modified_hits:
+                self.list.RemoteItems(modified_hits)
             
             if new_items:
                 self.list.SetData(data_files)
@@ -113,7 +116,7 @@ class RemoteSearchManager:
             [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return total_channels
         
-        startWorker(self._on_refresh_channel, db_callback, uId = "RemoteSearchManager_refresh_channel_%s"%self.oldkeywords, retryOnBusy=True)
+        startWorker(self._on_refresh_channel, db_callback, uId = "RemoteSearchManager_refresh_channel_%s"%self.oldkeywords, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
@@ -122,12 +125,12 @@ class RemoteSearchManager:
         for infohash in ids:
             curTorrent = self.list.GetItem(infohash).original_data
             if isinstance(curTorrent, ChannelTorrent):
-                startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel,curTorrent.channeltorrent_id), retryOnBusy=True)
+                startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel,curTorrent.channeltorrent_id), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
             else:
-                startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True)
+                startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     def showSearchSuggestions(self, keywords):
-        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs = (keywords, ), wargs=(keywords, 3), retryOnBusy=True)
+        startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs = (keywords, ), wargs=(keywords, 3), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     def downloadStarted(self, infohash):
         if self.list.InList(infohash):
@@ -158,10 +161,10 @@ class LocalSearchManager:
     
     
     def refresh(self):
-        startWorker(self._on_data, self.library_manager.getHitsInCategory, uId = "LocalSearchManager_refresh", retryOnBusy=True)
+        startWorker(self._on_data, self.library_manager.getHitsInCategory, uId = "LocalSearchManager_refresh", retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     def refresh_partial(self, infohash):
-        startWorker(self.list.RefreshDelayedData, self.library_manager.getTorrentFromInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True)
+        startWorker(self.list.RefreshDelayedData, self.library_manager.getTorrentFromInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         
     def refresh_if_exists(self, infohashes):
         def db_call():
@@ -175,7 +178,7 @@ class LocalSearchManager:
         diff = time() - self.prev_refresh_if        
         if diff > 30:
             self.prev_refresh_if = time()
-            startWorker(None, db_call, uId="LocalSearchManager_refresh_if_exists", retryOnBusy=True)
+            startWorker(None, db_call, uId="LocalSearchManager_refresh_if_exists", retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         else:
             print >> sys.stderr, long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if)
             
@@ -185,7 +188,7 @@ class LocalSearchManager:
                 delayedResult.get()
                 self.refresh_partial(infohash)
                 
-            startWorker(select, self.refresh_partial, wargs = (infohash, ))
+            startWorker(select, self.refresh_partial, wargs = (infohash, ),priority=GUI_PRI_DISPERSY)
         else:
             self.list.Select(infohash)
 
@@ -281,7 +284,7 @@ class ChannelSearchManager:
                     total_items, nrfiltered, data = self.channelsearch_manager.getMySubscriptions()
                 return data, nrfiltered, category
             
-            startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True)
+            startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
 
         else:
             if search_results:
@@ -327,7 +330,7 @@ class ChannelSearchManager:
                         channel.torrents = oldChannel.torrents
             
                 self.list.RefreshData(id, channel)
-        startWorker(do_gui, do_db, uId = "ChannelSearchManager_refresh_partial", retryOnBusy=True)
+        startWorker(do_gui, do_db, uId = "ChannelSearchManager_refresh_partial", retryOnBusy=True,priority=GUI_PRI_DISPERSY)
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:
@@ -579,6 +582,10 @@ class List(wx.BoxSizer):
     def RemoveItem(self, key):
         assert self.isReady, "List not ready"
         self.list.RemoveKey(key)
+        
+    def RemoteItems(self, keys):
+        assert self.isReady, "List not ready"
+        self.list.RemoveKeys(keys)
 
     @warnWxThread        
     def SetNrResults(self, nr):
@@ -857,7 +864,7 @@ class GenericSearchList(SizeList):
 
         def db_callback():
             self.uelog.addEvent(message="SearchList: user toggled family filter", type = 2)
-        startWorker(None, db_callback, retryOnBusy=True)
+        startWorker(None, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     @warnWxThread
     def SetFF(self, family_filter, nr_filtered):
@@ -1024,7 +1031,7 @@ class GenericSearchList(SizeList):
             
             self.uelog.addEvent(message=relevance_msg, type = 4)
         
-        startWorker(None, db_callback, retryOnBusy=True)
+        startWorker(None, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         if response:
             self.guiutility.Notify('.Torrent file is being downloaded %s, this could take a while.'%response, wx.ART_INFORMATION)
@@ -1063,6 +1070,8 @@ class SearchList(GenericSearchList):
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
+        self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
+        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
         
     def _PostInit(self):
@@ -1106,6 +1115,11 @@ class SearchList(GenericSearchList):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
     def __special_icon(self, item):
+        torrent = item.original_data
+#        if torrent.swift_hash:
+#            return self.hasSwift, "This torrent is Swift-enabled"
+#        return self.noSwift
+        
         torrent = item.original_data
         if torrent.hasChannel() and torrent.channel.isFavorite():
             return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
@@ -1215,7 +1229,7 @@ class SearchList(GenericSearchList):
             self.GetManager().showSearchSuggestions(keywords)
         
         if self.total_results == 0 and self.nr_filtered == 0:
-            startWorker(None, db_callback, wargs = (self.keywords,), retryOnBusy=True)
+            startWorker(None, db_callback, wargs = (self.keywords,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     @warnWxThread
     def _ShowSuggestions(self, delayedResult, keywords):
@@ -1265,7 +1279,7 @@ class SearchList(GenericSearchList):
         
         def db_callback():
             self.uelog.addEvent(message="SearchList: user clicked to view channel results", type = 2)
-        startWorker(None, db_callback, retryOnBusy=True)
+        startWorker(None, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         
     def OnSize(self, event):
         diff = self.subheader.GetClientSize()[0] - self.list.GetClientSize()[0]
@@ -1803,7 +1817,7 @@ class ChannelList(List):
 
         def db_callback():
             self.uelog.addEvent(message="Channellist: user toggled family filter", type = 2)
-        startWorker(None, db_callback, retryOnBusy=True)
+        startWorker(None, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     @warnWxThread  
     def SetFilteredResults(self, nr):

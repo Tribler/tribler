@@ -78,6 +78,8 @@ class SearchCommunity(Community):
         
         self.integrate_with_tribler = integrate_with_tribler
         self.taste_buddies = []
+        #To always connect to a peer uncomment/modify the following line
+        #self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
         
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
@@ -287,16 +289,32 @@ class SearchCommunity(Community):
                 print >> sys.stderr, "SearchCommunity: got search request for",keywords
             
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local = False)
+            dbresults = self._torrent_db.searchNames(keywords, local = False, keys = ['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
-                    results.append((dbresult['infohash'], dbresult['name'], dbresult['length'], dbresult['num_files'], dbresult['category'], dbresult['creation_date'], dbresult['num_seeders'], dbresult['num_leechers'], dbresult['swift_hash'], dbresult['swift_torrent_hash'], dbresult['channel_cid']))
-                
-                self._create_search_response(message.payload.identifier, results, message.candidate)
-                
+                    channel_details = dbresult[-10:]
+                    
+                    dbresult = list(dbresult[:10])
+                    dbresult[2] = long(dbresult[2])
+                    dbresult[3] = int(dbresult[3])
+                    dbresult[4] = [self._torrent_db.id2category[dbresult[4]],]
+                    dbresult[5] = long(dbresult[5])
+                    dbresult[6] = int(dbresult[6] or 0)
+                    dbresult[7] = int(dbresult[7] or 0)
+                    if dbresult[8]:
+                        dbresult[8] = str(dbresult[8])
+                    if dbresult[9]:
+                        dbresult[9] = str(dbresult[9])
+                    
+                    if channel_details[1]:
+                        channel_details[1] = str(channel_details[1])
+                    dbresult.append(channel_details[1])
+                    
+                    results.append(tuple(dbresult))
             elif DEBUG:
-                self._create_search_response(message.payload.identifier, results, message.candidate)
                 print >> sys.stderr, "SearchCommunity: no results"
+            
+            self._create_search_response(message.payload.identifier, results, message.candidate)
     
     def _create_search_response(self, identifier, results, candidate):
         #create search-response message
@@ -323,20 +341,21 @@ class SearchCommunity(Community):
                 
                 if len(message.payload.results)> 0:
                     self._torrent_db.on_search_response(message.payload.results)
-                    
-                    #see if we need to join some channels
-                    channels = set([result[10] for result in message.payload.results if result[10]])
-                    if channels:
-                        channels = self._get_unknown_channels(channels)
-                    
-                        if DEBUG:
-                            print >> sys.stderr, "SearchCommunity: joining %d preview communities"%len(channels)
-                        
-                        for cid in channels:
-                            community = self._get_channel_community(cid)
-                            community.disp_create_missing_channel(message.candidate, includeSnapshot = False)
+                
                 
                 search_request.callback(search_request.keywords, message.payload.results, message.candidate)
+                
+                #see if we need to join some channels
+                channels = set([result[10] for result in message.payload.results if result[10]])
+                if channels:
+                    channels = self._get_unknown_channels(channels)
+                
+                    if DEBUG:
+                        print >> sys.stderr, "SearchCommunity: joining %d preview communities"%len(channels)
+                    
+                    for cid in channels:
+                        community = self._get_channel_community(cid)
+                        community.disp_create_missing_channel(message.candidate, includeSnapshot = False)
             else:
                 if DEBUG:
                     print >> sys.stderr, "SearchCommunity: got search response identifier not found", message.payload.identifier

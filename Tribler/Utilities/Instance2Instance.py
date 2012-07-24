@@ -173,7 +173,6 @@ class InstanceConnection:
         self.singsock = singsock
         self.connhandler = connhandler
         self.readlinecallback = readlinecallback
-        self.rflag = False
         self.buffer = ''
 
     
@@ -184,30 +183,24 @@ class InstanceConnection:
         if DEBUG:
             print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data)
 
-        self.buffer = self.buffer + data
+        if len(self.buffer) == 0:
+            self.buffer = data
+        else:
+            self.buffer = self.buffer + data
         self.read_lines()
         
     def read_lines(self):
-        self.rflag = False
-        cmd = None
-        for i in range(0,len(self.buffer)):
-            if not self.rflag:
-                if self.buffer[i]=='\r':
-                    self.rflag = True
+        while True:
+            cmd, separator, self.buffer = self.buffer.partition("\r\n")
+            if separator:
+                if self.readlinecallback(self, cmd):
+                    # 01/05/12 Boudewijn: when a positive value is returned we immediately return to
+                    # allow more bytes to be pushed into the buffer
+                    self.buffer = "".join((cmd, separator, self.buffer))
+
             else:
-                if self.buffer[i] == '\n':
-                    cmd = self.buffer[0:i+1] 
-                    self.buffer = self.buffer[i+1:]
-                    if self.readlinecallback(self,cmd[:-2]): # strip off \r\n
-                        # 01/05/12 Boudewijn: when a positive value is returned we immediately
-                        # return to allow more bytes to be pushed into the buffer
-                        self.buffer = cmd + self.buffer # undo 'cmd'
-                        return
-                    break
-                    
-                self.rflag = False
-        if cmd is not None and len(self.buffer) > 0:
-            self.read_lines()
+                self.buffer = cmd
+                break
     
     def write(self,data):
         if self.singsock is not None:

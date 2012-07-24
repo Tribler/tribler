@@ -1,140 +1,84 @@
-tribler (5.3.8-1ubuntu2) lucid; urgency=low
+tribler (5.9.22-1ubuntu1) quantal; urgency=low
 
-  * Bugfixes
+  * Release 5.9.22
 
- -- Tribler <tribler@tribler.org>  Mon, 30 May 2011 18:18:12 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 18 Jul 2012 16:23:14 +0200
 
-tribler (5.3.0-1ubuntu2) lucid; urgency=low
+tribler (5.9.21-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.21
 
- -- Tribler <tribler@tribler.org>  Tue, 16 Nov 2010 14:13:44 +0100
+ -- tribler <tribler@tribler-virtual-machine>  Thu, 12 Jul 2012 11:25:46 +0200
 
-tribler (4.1.9-1ubuntu1) gutsy; urgency=low
+tribler (5.9.20-1ubuntu1) quantal; urgency=low
 
-  * New release 
+  * Release 5.9.20
 
- -- Tribler <tribler@tribler.org>  Wed, 27 Feb 2008 14:59:40 +0100
+ -- tribler <tribler@tribler-virtual-machine>  Fri, 06 Jul 2012 11:31:41 +0200
 
-tribler (4.1.8-1ubuntu1) gutsy; urgency=low
+tribler (5.9.19-1ubuntu1) quantal; urgency=low
 
-  * New release 
+  * Release 5.9.19
 
- -- Tribler <tribler@tribler.org>  Tue, 12 Feb 2008 09:12:17 +0100
+ -- tribler <tribler@tribler-virtual-machine>  Mon, 02 Jul 2012 15:27:34 +0200
 
-tribler (4.1.7-1ubuntu1) feisty; urgency=low
+tribler (5.9.18-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.18
 
- -- Tribler <tribler@tribler.org>  Thu, 11 Oct 2007 14:56:08 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Thu, 28 Jun 2012 14:30:41 +0200
 
-tribler (4.1.6-1ubuntu1) feisty; urgency=low
+tribler (5.9.17-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.17
 
- -- Tribler <tribler@tribler.org>  Fri,  5 Oct 2007 11:00:26 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 27 Jun 2012 10:36:41 +0200
 
-tribler (4.1.5-1ubuntu3) feisty; urgency=low
+tribler (5.9.16-1ubuntu1) quantal; urgency=low
 
-  * changelog
+  * Release 5.9.16
 
- -- Tribler <tribler@tribler.org>  Fri,  5 Oct 2007 11:00:22 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Thu, 21 Jun 2012 10:33:58 +0200
 
-tribler (4.1.5-1ubuntu2) feisty; urgency=low
+tribler (5.9.15-1ubuntu1) quantal; urgency=low
 
-  * Removed -x from tribler startup script. 
+  * Release 5.9.15
 
- -- Tribler Team <tribler@tribler.org>  Mon, 24 Sep 2007 16:08:16 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Fri, 08 Jun 2012 15:27:28 +0200
 
-tribler (4.1.5-1ubuntu1) feisty; urgency=low
+tribler (5.9.14-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.14
 
- -- Tribler Team <tribler@tribler.org>  Mon, 24 Sep 2007 15:58:13 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 06 Jun 2012 16:13:56 +0200
 
-tribler (4.1.4-1ubuntu4) feisty; urgency=low
+tribler (5.9.13-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.13
 
- -- Tribler Team <tribler@tribler.org>  Thu, 20 Sep 2007 15:00:21 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Mon, 04 Jun 2012 13:46:10 +0200
 
-tribler (4.1.4-1ubuntu2) feisty; urgency=low
+tribler (5.9.12-1ubuntu1) quantal; urgency=low
 
-  * Changed dependency to wx2.8-unicode, font enum problem
+  * Release 5.9.12
 
- -- Tribler Team <tribler@tribler.org>  Tue, 18 Sep 2007 14:31:06 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Fri, 01 Jun 2012 11:55:47 +0200
 
-tribler (4.1.4-1ubuntu1) feisty; urgency=low
+tribler (5.9.11-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.11
 
- -- Tribler Team <tribler@tribler.org>  Tue, 18 Sep 2007 14:21:21 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Thu, 31 May 2012 10:28:30 +0200
 
-tribler (4.0.2-1ubuntu1) feisty; urgency=low
+tribler (5.9.10-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.10
 
- -- Arno Bakker <arno@cs.vu.nl>  Wed, 11 Jun 2007 16:21:01 +0200
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 30 May 2012 20:47:36 +0200
 
-tribler (3.4.1-1) unstable; urgency=low
+tribler (5.9.9-1ubuntu1) quantal; urgency=low
 
-  * New release
+  * Release 5.9.9
 
- -- Arno Bakker <arno@cs.vu.nl>  Mon, 29 May 2006 11:53:04 +0200
-
-tribler (3.4.0-1) unstable; urgency=low
-
-  * New release
-
- -- Arno Bakker <arno@cs.vu.nl>  Wed, 24 May 2006 13:27:04 +0200
-
-tribler (3.3.6-1) unstable; urgency=low
-
-  * New release 
-
- -- Arno Bakker <arno@cs.vu.nl>  Mon,  3 Apr 2006 10:44:32 +0200
-
-tribler (3.3.4-1) unstable; urgency=low
-
-  * First public release.
-
- -- Arno Bakker <arno@cs.vu.nl>  Thu, 16 Mar 2006 08:56:42 +0100
-
-tribler (3.3.3-2) unstable; urgency=low
-
-  * Forgot to add joe24.bmp
-  * Adjusted tribler script to ignore unicode earlier.
-
- -- Arno Bakker <arno@cs.vu.nl>  Fri, 10 Mar 2006 13:34:12 +0100
-
-tribler (3.3.3-1) unstable; urgency=low
-
-  * Fixes to work in Linux environment. 
-
- -- Arno Bakker <arno@cs.vu.nl>  Fri, 10 Mar 2006 12:49:51 +0100
-
-tribler (3.3.2-1) unstable; urgency=low
-
-  * Now depends on the wxpython2.6-gtk2-ansi that I built.
-
- -- Arno Bakker <arno@cs.vu.nl>  Fri, 10 Mar 2006 11:45:39 +0100
-
-tribler (3.3.1-3) unstable; urgency=low
-
-  * Attempt to build cleaner installer
-
- -- Arno Bakker <arno@localhost.localdomain>  Tue,  7 Mar 2006 13:10:29 +0100
-
-tribler (3.3.1-2) unstable; urgency=low
-
-  * Moved all python files to /usr/share/tribler/python
-  * /usr/bin/tribler is now a script that adapts PYTHONPATH and calls python
-
- -- Otto Visser <o.w.visser@tudelft.nl>  Mon,  6 Mar 2006 16:10:42 +0100
-
-tribler (3.3.1-1) unstable; urgency=low
-
-  * Initial packaging
-
- -- Otto Visser <o.w.visser@tudelft.nl>  Fri, 24 Feb 2006 11:10:47 -0100
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 30 May 2012 13:41:18 +0200
 

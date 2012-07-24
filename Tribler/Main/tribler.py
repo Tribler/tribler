@@ -35,6 +35,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.decorator import attach_profiler
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
@@ -91,7 +92,7 @@ from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer,return_feasible_playback_modes,PLAYBACKMODE_INTERNAL
 from Tribler.Video.VideoServer import SimpleServer
 
-# Arno, 2012-05-25: h4x0t DHT import for py2...
+# Arno, 2012-06-20: h4x0t DHT import for py2...
 import Tribler.Core.DecentralizedTracking.pymdht.core
 import Tribler.Core.DecentralizedTracking.pymdht.core.identifier
 import Tribler.Core.DecentralizedTracking.pymdht.core.message
@@ -130,6 +131,7 @@ class ABCApp():
         self.error = None
         self.last_update = 0
         self.ready = False
+        self.done = False
         self.frame = None
 
         self.guiserver = GUITaskQueue.getInstance()
@@ -550,16 +552,16 @@ class ABCApp():
             percentage = min(1.0, (nr_connections + 1) / 16.0)
             self.frame.SRstatusbar.SetConnections(percentage, nr_connections)
         
-        
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
             startWorker(do_wx, do_db, uId = "tribler.set_reputation")
-        
-        wx.CallLater(5000, self.set_reputation)
+        startWorker(None, self.set_reputation, delay = 5.0, workerType="guiTaskQueue")
     
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return (5.0, True)
+            return (5.0, False)
+        
+        wantpeers = False
         
         if DEBUG: 
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -676,7 +678,9 @@ class ABCApp():
                     destdir = os.path.basename(ds.get_download().get_dest_dir())
                     if destdir != coldir:
                         no_collected_list.append(ds)
-                self.guiUtility.library_manager.download_state_callback(no_collected_list)
+                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
+                # so only do it when needed for display.
+                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
             except:
                 print_exc()
             
@@ -723,7 +727,7 @@ class ABCApp():
         except:
             print_exc()
         
-        return (1.0, True)
+        return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
         #Niels: first remove all "swift" torrent collect checkpoints
@@ -749,6 +753,8 @@ class ABCApp():
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
+        if self.done:
+            return
         try:
             print >>sys.stderr,"main: Checkpointing Session"
             self.utility.session.checkpoint()
@@ -889,6 +895,7 @@ class ABCApp():
     def OnExit(self):
         print >>sys.stderr,"main: ONEXIT"
         self.ready = False
+        self.done = True
 
         # write all persistent data to disk
         self.seedingmanager.write_all_storage()
@@ -906,9 +913,11 @@ class ABCApp():
         # see Tribler/Main/Dialogs/abcoption.py
         self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
-        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < 180:
+        # Arno, 2012-07-12: Shutdown should be quick
+        waittime = 5
+        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < waittime:
             diff = time() - session_shutdown_start
-            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(180-diff)
+            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
             sleep(3)
         print >>sys.stderr,"main: ONEXIT Session is shutdown"
         
@@ -1186,6 +1195,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 # Main Program Start Here
 #
 ##############################################################
+@attach_profiler
 def run(params = None):
     if params is None:
         params = [""]
@@ -1245,6 +1255,6 @@ def run(params = None):
     #if sys.platform != 'linux2':
     #    tribler_done(configpath)
     #os._exit(0)
-
+    
 if __name__ == '__main__':
     run()

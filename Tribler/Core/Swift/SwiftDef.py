@@ -243,7 +243,11 @@ class SwiftDef(ContentDefinition):
         urlpn = os.path.join(destdir,urlfn)
 
         args=[]
-        args.append(str(binpath))
+        # Arno, 2012-07-09: Unicode problems with popen
+        if sys.platform == "win32":
+            args.append(binpath.encode(sys.getfilesystemencoding()))
+        else:
+            args.append(binpath)
         
         # Arno, 2012-05-29: Hack. Win32 getopt code eats first arg when Windows app
         # instead of CONSOLE app.
@@ -252,12 +256,30 @@ class SwiftDef(ContentDefinition):
             args.append("-t")
             args.append(self.tracker)
         args.append("--printurl")
-        args.append("-r")
-        args.append(urlpn)
-        args.append("-f")
-        args.append(filename)
+        
+        if sys.platform == "win32":
+            # Swift on Windows expects command line arguments as UTF-16.
+            # popen doesn't allow us to pass params in UTF-16, hence workaround.
+            # Format = hex encoded UTF-8
+            urlpnsafe = binascii.hexlify(urlpn.encode("UTF-8"))
+            args.append("-2")
+            args.append(urlpnsafe) # encoding that swift expects
+        else:
+            args.append("-r")
+            args.append(urlpn)
+        
+        if sys.platform == "win32":
+            args.append("-1")    
+            fnsafe = binascii.hexlify(filename.encode("UTF-8"))
+            args.append(fnsafe)  # encoding that swift expects
+        else:
+            args.append("-f")
+            args.append(filename)
         #args.append("-B") # DEBUG Hack
         
+        if DEBUG:
+            print >>sys.stderr,"SwiftDef: finalize: Running",args
+
         if sys.platform == "win32":
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         else:

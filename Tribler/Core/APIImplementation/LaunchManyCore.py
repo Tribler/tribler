@@ -116,7 +116,7 @@ class TriblerLaunchMany(Thread):
 
         # new database stuff will run on only one thread
         self.database_thread = Callback()
-        self.database_thread.start("Dispersy")
+        self.database_thread.start("Dispersy") # WARNING NAME SIGNIFICANT
 
         # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
@@ -367,7 +367,7 @@ class TriblerLaunchMany(Thread):
                     pass
             
             self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-            self.rtorrent_handler.register(self.dispersy, self.session)
+            self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
             
 
     def start_dispersy(self, config, keypair):
@@ -525,10 +525,16 @@ class TriblerLaunchMany(Thread):
         
         self.remove_id(infohash)
     
-    def remove_id(self, infohash):
+    def remove_id(self, hash):
+        #this is a bit tricky, as we do not know if this "id" is a roothash or infohash
+        #however a restart will re-add the preference to mypreference if we remove the wrong one
         if self.torrent_db != None and self.mypref_db != None:
-            torrent_id = self.torrent_db.getTorrentID(infohash)
-            if torrent_id:
+            torrent_id = self.torrent_db.getTorrentID(hash)
+            if torrent_id:    
+                self.mypref_db.updateDestDir(torrent_id,"")
+                
+            torrent_id = self.torrent_db.getTorrentIDRoot(hash)
+            if torrent_id:    
                 self.mypref_db.updateDestDir(torrent_id,"")
 
     def get_downloads(self):
@@ -850,6 +856,11 @@ class TriblerLaunchMany(Thread):
             print >>sys.stderr,"tlm: network_shutdown"
             mainlineDHT.deinit()
 
+            # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler 
+            # it uses in its own shutdown procedure. There is no global close 
+            # of all per-thread cursors/connections.
+            #
+            # cachedb.done()
             # SWIFTPROC
             if self.spm is not None:
                 self.spm.network_shutdown()
@@ -1154,15 +1165,15 @@ class TriblerLaunchMany(Thread):
                 del self.downloads[roothash]
 
             d.stop_remove(removestate=removestate,removecontent=removecontent)
-            
-            if self.torrent_db != None and self.mypref_db != None:
-                torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
-                
-                if torrent_id:
-                    self.mypref_db.updateDestDir(torrent_id, "")
                 
         finally:
             self.sesslock.release()
+        
+        if self.torrent_db != None and self.mypref_db != None:
+            torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
+            
+            if torrent_id:
+                self.mypref_db.updateDestDir(torrent_id, "")
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the

@@ -1,1 +1,1 @@
-misc:Depends=gconf2 (>= 2.12.1-1)
+misc:Depends=gconf2 (>= 2.28.1-2)

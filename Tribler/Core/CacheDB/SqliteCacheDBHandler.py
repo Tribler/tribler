@@ -39,6 +39,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
 from threading import currentThread, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler 
+import binascii
 
 # maxflow constants
 MAXFLOW_DISTANCE = 2
@@ -1553,63 +1554,78 @@ class TorrentDBHandler(BasicDBHandler):
         torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.category_table.get(torrent[4][0], 0), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
         info_root = [(torrent[0], torrent[6] or '--') for torrent in torrents]
         
-        sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name FROM Torrent WHERE infohash = ? or swift_hash = ?"
+        sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
         results = self._db.executemany(sql, info_root) or []
         
-        found_both = {}
-        found_only_infohash = {}
-        found_only_roothash = {}
+        infohash_tid = {}
+        roothash_tid = {}
         
-        for torrent_id, infohash, roothash, torrent_filename in results:
+        tid_collected = set()
+        tid_name = {}
+        for torrent_id, infohash, roothash, torrent_filename, name in results:
+            infohash = str(infohash)
+            roothash = str(roothash)
+            
             if infohash.startswith('swift'):
                 infohash = ''
             
-            if infohash and roothash and torrent_filename:
-                found_both[(infohash, roothash)] = torrent_id
-                
-            elif infohash:
-                found_only_infohash[infohash] = torrent_id
-                
-            else:
-                found_only_roothash[roothash] = torrent_id
+            if infohash:
+                infohash_tid[infohash] = torrent_id
+            if roothash:    
+                roothash_tid[roothash] = torrent_id
+            if torrent_filename:
+                tid_collected.add(torrent_id)
+            tid_name[torrent_id] = name
         
-        update_infohash = []
+        insert = []
+        update = []
         update_roothash = []
-        to_be_inserted = {}
+        update_infohash = []
         to_be_indexed = []
         for infohash, swarmname, length, nrfiles, categoryid, creation_date, swift_hash, swift_torrent_hash in torrents:
+            # 12/07/12 Boudewijn: swift_hash must be unique in the database, hence empty strings
+            # must be stored as None
+            if swift_hash == "":
+                swift_hash = None
+
+            tid = infohash_tid.get(infohash, None) or roothash_tid.get(swift_hash, None)
             
-            if infohash in found_only_infohash:
-                update_infohash.append((swarmname, length, nrfiles, categoryid, creation_date, swift_hash, swift_torrent_hash, source_id, status_id, infohash))
-                to_be_indexed.append((found_only_infohash[infohash], swarmname))
-                
-            elif swift_hash in found_only_roothash:
-                update_roothash.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_torrent_hash, source_id, status_id, swift_hash))
-                to_be_indexed.append((found_only_roothash[swift_hash], swarmname))
-                
-            elif (infohash, swift_hash) not in found_both:
-                to_be_inserted[infohash] = (swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_torrent_hash, swift_hash, source_id, status_id)
+            if tid: #we know this torrent
+                if tid not in tid_collected and swarmname != tid_name.get(tid, ''): #if not collected and name not equal then do fullupdate
+                    update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id, tid))
+                    to_be_indexed.append((tid, swarmname))
+                    
+                elif swift_hash and swift_hash not in roothash_tid: #else check if we need to update swift
+                    update_roothash.append((roothash, tid))
+                    
+                elif infohash and infohash not in infohash_tid: #or infohash
+                    update_infohash.append((infohash, tid))
+            else:
+                insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id))
         
-        if len(update_infohash) > 0:
-            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, swift_hash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ? WHERE infohash = ?"
-            self._db.executemany(sql, update_infohash)
+        if len(update) > 0:
+            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, infohash = ?, swift_hash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ? WHERE torrent_id = ?"
+            self._db.executemany(sql, update)
             
         if len(update_roothash) > 0:
-            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, infohash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ?  WHERE swift_hash = ?"
+            sql = "UPDATE Torrent SET swift_hash = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update_roothash)
         
-        to_be_inserted = to_be_inserted.values()
-        if len(to_be_inserted) > 0:
-            sql = "INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, swift_torrent_hash, swift_hash, source_id, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        if len(update_infohash) > 0:
+            sql = "UPDATE Torrent SET infohash = ? WHERE torrent_id = ?"
+            self._db.executemany(sql, update_infohash)
+            
+        if len(insert) > 0:
+            sql = "INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             try:
-                self._db.executemany(sql, to_be_inserted)
+                self._db.executemany(sql, insert)
                 
-                to_be_inserted = [(inserted[5], inserted[7]) for inserted in to_be_inserted]
+                were_inserted = [(inserted[5], inserted[7]) for inserted in insert]
                 sql = "SELECT torrent_id, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
-                to_be_indexed = to_be_indexed + list(self._db.executemany(sql, to_be_inserted))
+                to_be_indexed = to_be_indexed + list(self._db.executemany(sql, were_inserted))
             except:
                 print_exc()
-                print >> sys.stderr, "infohashes:", to_be_inserted.keys()
+                print >> sys.stderr, "infohashes:", insert
         
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
@@ -2005,7 +2021,9 @@ class TorrentDBHandler(BasicDBHandler):
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
         
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit = 50):
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' ORDER BY RANDOM() DESC LIMIT ?"
+        # 19/07/12 Boudewijn: sacrifice randomness to improve performance (i.e. use random() instead of ORDER BY RANDOM)
+        # sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' ORDER BY RANDOM() DESC LIMIT ?"
+        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.torrent_id >= (abs(random()) % (SELECT MAX(torrent_id) FROM CollectedTorrent)) LIMIT ?"
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
         
@@ -2027,7 +2045,7 @@ class TorrentDBHandler(BasicDBHandler):
 #            torrents2del = 100
         if self.channelcast_db._channel_id:
             sql = """
-                select torrent_file_name, torrent_id, infohash, relevance,
+                select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
                 from CollectedTorrent
                 where torrent_id not in (select torrent_id from MyPreference)
@@ -2037,7 +2055,7 @@ class TorrentDBHandler(BasicDBHandler):
             """ % (int(time()), self.channelcast_db._channel_id, torrents2del)
         else:
             sql = """
-                select torrent_file_name, torrent_id, infohash, relevance,
+                select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
                 from CollectedTorrent
                 where  torrent_id not in (select torrent_id from MyPreference)
@@ -2054,7 +2072,7 @@ class TorrentDBHandler(BasicDBHandler):
         sql_del_torrent = "update Torrent set torrent_file_name = null where torrent_id=?"
         # sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         sql_del_pref = "delete from Preference where torrent_id=?"
-        tids = [(torrent_id,) for torrent_file_name, torrent_id, infohash, relevance, weight in res_list]
+        tids = [(torrent_id,) for torrent_file_name, torrent_id, swift_torrent_hash, relevance, weight in res_list]
 
         self._db.executemany(sql_del_torrent, tids, commit=False)
         # self._db.executemany(sql_del_tracker, tids, commit=False)
@@ -2069,18 +2087,31 @@ class TorrentDBHandler(BasicDBHandler):
         
         torrent_dir = self.getTorrentDir()
         deleted = 0 # deleted any file?
-        for torrent_file_name, torrent_id, infohash, relevance, weight in res_list:
+        for torrent_file_name, torrent_id, swift_torrent_hash, relevance, weight in res_list:
+            
             torrent_path = os.path.join(torrent_dir, torrent_file_name)
+            if not os.path.exists(torrent_path):
+                roothash_as_hex = binascii.hexlify(swift_torrent_hash)
+                torrent_path = os.path.join(torrent_dir, roothash_as_hex)
+                
+            mhash_path = torrent_path + '.mhash'
+            mbinmap_path = torrent_path + '.mbinmap'
             try:
-                os.remove(torrent_path)
-                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)
+                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)                
+                if os.path.exists(torrent_path):
+                    os.remove(torrent_path)
+                
+                if os.path.exists(mhash_path):
+                    os.remove(mhash_path)
+                
+                if os.path.exists(mbinmap_path):
+                    os.remove(mbinmap_path)
+                
                 deleted += 1
             except Exception, msg:
+                print_exc()
                 #print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
-        
-        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, str2bin(infohash)) # refresh gui
-        
         return deleted
 
     def hasMetaData(self, infohash):
@@ -2098,57 +2129,46 @@ class TorrentDBHandler(BasicDBHandler):
             sql_update_sims = 'UPDATE Torrent SET relevance=? WHERE torrent_id=?'
             self._db.executemany(sql_update_sims, tid_rel_pairs, commit=commit)
     
-    def searchNames(self, kws, local=True):
+    def searchNames(self, kws, local=True, keys = ['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id', 'swift_hash','swift_torrent_hash'], doSort = True):
+        #        if local:
+#            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
+#            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
+#
+        assert 'infohash' in keys
+        assert not doSort or 'num_seeders' in keys
+        
+        infohash_index = keys.index('infohash')
+        swift_hash_index = keys.index('swift_hash') if 'swift_hash' in keys else -1
+        swift_torrent_hash_index = keys.index('swift_torrent_hash') if 'swift_torrent_hash' in keys else -1
+        num_seeders_index = keys.index('num_seeders') if 'num_seeders' in keys else -1
+        
+        if num_seeders_index == -1:
+            doSort = False
+        
+        
         t1 = time()
-        value_name = ['torrent_id',
-                      'infohash',
-                      'name',
-                       'torrent_file_name',                        
-                       'length', 
-                       'creation_date', 
-                       'num_files',
-                       'thumbnail',                       
-                      'insert_time', 
-                      'secret', 
-                      'relevance',  
-                      'source_id', 
-                      'category_id', 
-                       'status_id',
-                       'num_seeders',
-                      'num_leechers', 
-                      'comment',
-                      'dispersy_id',
-                      'swift_hash',
-                      'swift_torrent_hash']
-                
-        mainsql = "SELECT T.*, "
-        if local:
-            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
-            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
-        
-        mainsql +=  "C.channel_id, Matchinfo(FullTextIndex) FROM"
-        
+        values = ", ".join(keys)
+        mainsql = "SELECT "+values+", C.channel_id, Matchinfo(FullTextIndex) FROM"
         if local:
             mainsql += " Torrent T"
         else:
             mainsql += " CollectedTorrent T"
-            
+           
         mainsql += """, FullTextIndex        
                     LEFT OUTER JOIN _ChannelTorrents C ON T.torrent_id = C.torrent_id
                     WHERE t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
                     """
         
         if not local:
-            mainsql += " LIMIT 250"
-        
-        value_name.append('channel_id')
+            mainsql += " LIMIT 250" 
         
         query = " ".join(filter_keywords(kws))
         not_negated = [kw for kw in filter_keywords(kws) if kw[0] != '-']
         
         results = self._db.fetchall(mainsql, (query, ))
-
+        
         t2 = time()
+        
         channels = set()
         channel_dict = {}
         for result in results:
@@ -2164,55 +2184,59 @@ class TorrentDBHandler(BasicDBHandler):
         t3 = time()
         myChannelId = self.channelcast_db._channel_id or 0
         
-        torrents_dict = {}
+        result_dict = {}
+        
         #step 1, merge torrents keep one with best channel
         for result in results:
-            torrent = dict(zip(value_name,result[:-1]))
-            channel = channel_dict.get(torrent['channel_id'], (torrent['channel_id'], None, '', '', 0, 0, 0, 0, 0))
+            channel_id = result[-2]
+            channel = channel_dict.get(channel_id, False)
             
             #ignoring spam channels
-            if channel[7] < 0:
+            if channel and channel[7] < 0:
                 continue
             
+            infohash = result[infohash_index]
             #see if we have a better channel in torrents_dict
-            if torrent['infohash'] in torrents_dict:
-                if channel[2] != '':
-                    old_record = torrents_dict[torrent['infohash']]
-                    if old_record['channel_name'] != '':
-                        
-                        # allways prefer my channel
-                        myChannel = torrent['channel_id'] == myChannelId
-                        myHigherVote = channel[7] > old_record['channel_vote']
-                        
-                        sub = channel[5] or 0
-                        spam = channel[6] or 0
-                        higherVotes = (sub-spam) > old_record['channel_votes']
-                        
-                        if not (myChannel or myHigherVote or higherVotes):
-                            #previous one is better
-                            continue
+            if infohash in result_dict:
+                old_channel = channel_dict.get(result_dict[infohash][-2], False)
+                
+                # allways prefer my channel
+                if old_channel[0] == myChannelId:
+                    continue
+                
+                # allways prefer channel with higher vote
+                if channel[7] < old_channel[7]:
+                    continue
+                
+                votes = (channel[5] or 0) - (channel[6] or 0)
+                oldvotes = (old_channel[5] or 0) - (old_channel[6] or 0)
+                if votes < oldvotes:
+                    continue
+                
             
-            torrent['channel_cid'] = channel[1]
-            torrent['channel_name'] = channel[2]
-            torrent['channel_description'] = channel[3]
-            torrent['channel_nr_torrents'] = channel[4]
-            torrent['subscriptions'] = channel[5] or 0
-            torrent['neg_votes'] = channel[6] or 0
-            torrent['channel_vote'] = channel[7]
-            torrent['channel_modified'] = channel[8]
-            torrent['channel_votes'] = torrent['subscriptions'] - torrent['neg_votes']
+            result_dict[infohash] = result
+        
+        t4 = time()
+        
+        #step 2, fix all dict fields
+        dont_sort_list = []
+        results = [list(result) for result in result_dict.values()]
+        for i in xrange(len(results) - 1, -1, -1):
+            result = results[i]
             
-            torrent['creation_date'] = long(torrent['creation_date'] or 0)
-            torrent['length'] = long(torrent['length'] or 0)
+            result[infohash_index] = str2bin(result[infohash_index])
+            if swift_hash_index >= 0 and result[swift_hash_index] :
+                result[swift_hash_index] = str2bin(result[swift_hash_index])
+            if swift_torrent_hash_index >= 0 and result[swift_torrent_hash_index]:
+                result[swift_torrent_hash_index] = str2bin(result[swift_torrent_hash_index])
             
-            torrent['matches'] = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
+            matches = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
             
             #Matchinfo is documented at: http://www.sqlite.org/fts3.html#matchinfo
-            matchinfo = result[-1]
-            nrfields = len(matchinfo)/4
-            matchinfo = unpack_from('I'*nrfields, matchinfo)
-            num_phrases = matchinfo[0]
-            num_cols = matchinfo[1]
+            matchinfo = str(result[-1])
+            num_phrases, num_cols = unpack_from('II', matchinfo)
+            unpack_str = 'I'*(3*num_cols*num_phrases)
+            matchinfo = unpack_from('II'+unpack_str, matchinfo)
             
             swarmnames, filenames, fileextensions  = [
                 [matchinfo[3 * (i + p*num_cols) + 2] for p in range(num_phrases)]
@@ -2221,61 +2245,33 @@ class TorrentDBHandler(BasicDBHandler):
             
             for i, keyword in enumerate(not_negated):
                 if swarmnames[i]:
-                    torrent['matches']['swarmname'].add(keyword)
+                    matches['swarmname'].add(keyword)
                 if filenames[i]:
-                    torrent['matches']['filenames'].add(keyword)
+                    matches['filenames'].add(keyword)
                 if fileextensions[i]:
-                    torrent['matches']['fileextensions'].add(keyword)
+                    matches['fileextensions'].add(keyword)
+            result[-1] = matches
             
-            torrents_dict[torrent['infohash']] = torrent
-        
-        t4 = time()
-        
-        #step 2, fix all dict fields
-        torrent_list = []
-        
-        #Niels: small optimization, for larger resultlists this will result in a 0.3s speedup
-        dont_sort_torrent_list = [] 
-        for torrent in torrents_dict.itervalues():
-            try:
-                torrent['source'] = self.id2src[torrent['source_id']]
-            except:
-                print_exc()
-                # Arno: RSS subscription and id2src issue
-                torrent['source'] = 'http://some/RSS/feed'
+            channel = channel_dict.get(result[-2], (result[-2], None, '', '', 0, 0, 0, 0, 0, False))
+            result.extend(channel)
             
-            torrent['category'] = [self.id2category[torrent['category_id']]]
-            torrent['status'] = self.id2status[torrent['status_id']]
-            torrent['simRank'] = -1
-            torrent['infohash'] = str2bin(torrent['infohash'])
-            torrent['last_check_time'] = 0 #torrent['last_check']
-            
-            del torrent['source_id']
-
-            if torrent['num_seeders'] > 0:
-                torrent_list.append(torrent)
-            else:
-                dont_sort_torrent_list.append(torrent)
-            
-            if torrent['swift_hash']:
-                torrent['swift_hash'] = str2bin(torrent['swift_hash'])
-            if torrent['swift_torrent_hash']:
-                torrent['swift_torrent_hash'] = str2bin(torrent['swift_torrent_hash'])
+            if doSort and result[num_seeders_index] <= 0:
+                dont_sort_list.append(result)
+                results.pop(i)
             
         t5 = time()
         
-        def compare(a,b):
-            return cmp(a['num_seeders'], b['num_seeders'])
-        
-        torrent_list.sort(compare, reverse = True)
-        torrent_list.extend(dont_sort_torrent_list)
+        if doSort:
+            def compare(a,b):
+                return cmp(a[num_seeders_index], b[num_seeders_index])
+            results.sort(compare, reverse = True)
+        results.extend(dont_sort_list)
         
         if not local:
-            torrent_list = torrent_list[:25]
+            results = results[:25]
         
-        #print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(torrent_list),len(results),len(dont_sort_torrent_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
-        return torrent_list
-    
+        print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
+        return results
 
     def getSearchSuggestion(self, keywords, limit = 1):
         match = [keyword.lower() for keyword in keywords]
@@ -5624,20 +5620,44 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             keywords = split_into_keywords(torrent_name)
             terms = set(self.extractor.extractTerms(keywords))
             phrase = self.extractor.extractBiTermPhrase(keywords)
+
+            parameters = '?,'*len(terms)
+            sql = "SELECT * FROM TermFrequency WHERE term IN ("+parameters[:-1]+")"
+            results = self._db.fetchall(sql, terms)
             
-            update_terms_sql = u"""
-                INSERT OR IGNORE INTO TermFrequency (term, freq) VALUES (?, 0);
-                UPDATE TermFrequency SET freq = freq+1 WHERE term = ?;
+            newterms = terms.copy()            
+            for term_id,term,freq in results:
+                newterms.remove(term)
+
+            newtermtuples = []
+            for term in newterms:
+                newtermtuples.append((term,))
+
+            existtermtuples = [(term_id,term,freq+1) for term_id,term,freq in results]
+
+            add_new_terms_sql = u"""
+                INSERT INTO TermFrequency (term, freq) VALUES (?, 1);
                 """
+
+            update_exist_terms_sql = u"""
+                REPLACE INTO TermFrequency (term_id, term, freq) VALUES (?, ?, ?);
+                """
+
+            self._db.executemany(add_new_terms_sql, newtermtuples, commit=False)
+            self._db.executemany(update_exist_terms_sql, existtermtuples, commit=False)
+
+
+            results = self._db.fetchall(sql, terms)
+            
             ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
                                         SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
                                         FROM TermFrequency TF1, TermFrequency TF2
                                         WHERE TF1.term = ? AND TF2.term = ?"""
                 
             
-            self._db.executemany(update_terms_sql, [(term,term) for term in terms], commit=False)
             if phrase is not None:
                 self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
+            
             
             if commit:
                 self.commit()

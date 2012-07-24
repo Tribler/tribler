@@ -1010,21 +1010,33 @@ class AbstractListBody():
                 self.RemoveKey(key)
                 break
             
-    @warnWxThread          
     def RemoveKey(self, key):
-        item = self.items.get(key, None)
-        if item:
-            self.items.pop(key)
-            
-            self.vSizer.Detach(item)
-            item.Destroy()
-                
+        self.RemoveKeys([key])
+     
+    @warnWxThread   
+    def RemoveKeys(self, keys):
+        _keys = set(keys)
+        
+        updated = False
+        for key in _keys:
+            item = self.items.get(key, None)
+            if item:
+                self.items.pop(key)
+
+                self.vSizer.Detach(item)
+                item.Destroy()
+                updated = True
+
+        if updated:
             self.OnChange()
-            
-            for i, curdata in enumerate(self.raw_data):
-                if curdata[0] == key:
-                    self.raw_data.pop(i)
-                    break
+        
+        for i, curdata in enumerate(self.raw_data):
+            if curdata[0] in _keys:
+                self.raw_data.pop(i)
+                _keys.discard(curdata[0])
+        
+            if len(_keys) == 0:
+                break
             
     def GetExpandedItem(self):
         return self.cur_expanded
