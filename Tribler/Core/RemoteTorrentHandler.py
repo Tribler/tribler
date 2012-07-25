@@ -484,6 +484,10 @@ class TorrentRequester(Requester):
 class TorrentMessageRequester(Requester):
     
     def __init__(self, remote_th, searchcommunity, prio):
+        if sys.platform == 'darwin':
+            # Arno, 2012-07-25: Mac has just 256 fds per process, be less aggressive
+            self.REQUEST_INTERVAL = 1.0
+        
         Requester.__init__(self, remote_th.scheduletask, prio)
         self.searchcommunity = searchcommunity
     
