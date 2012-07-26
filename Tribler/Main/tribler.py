@@ -581,6 +581,21 @@ class ABCApp():
                             print >>sys.stderr,"main: Error:",`ds.get_error()`
                 self.rateprintcount += 1
 
+            # Pass DownloadStates to libaryView
+            try:
+                no_collected_list = []
+                
+                coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
+                for ds in dslist:
+                    destdir = os.path.basename(ds.get_download().get_dest_dir())
+                    if destdir != coldir:
+                        no_collected_list.append(ds)
+                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
+                # so only do it when needed for display.
+                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
+            except:
+                print_exc()
+
             # Find State of currently playing video
             playds = None
             d = self.videoplayer.get_vod_download()
@@ -668,21 +683,6 @@ class ABCApp():
             # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(dslist)
             # _SelectiveSeeding
-            
-            # Pass DownloadStates to libaryView
-            try:
-                no_collected_list = []
-                
-                coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
-                for ds in dslist:
-                    destdir = os.path.basename(ds.get_download().get_dest_dir())
-                    if destdir != coldir:
-                        no_collected_list.append(ds)
-                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
-                # so only do it when needed for display.
-                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
-            except:
-                print_exc()
             
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
@@ -1255,6 +1255,7 @@ def run(params = None):
     #if sys.platform != 'linux2':
     #    tribler_done(configpath)
     #os._exit(0)
-    
+
 if __name__ == '__main__':
     run()
+
