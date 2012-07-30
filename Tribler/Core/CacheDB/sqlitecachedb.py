@@ -2135,7 +2135,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         # Arno, 2012-07-30: Speed up 
         if fromver < 15:
             print >>sys.stderr,"ARNO UPGRADING DB SCHEMA"
+            self.execute_write("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' or swift_hash = 'None'")
             self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_hash_idx ON Torrent(swift_hash)")
+
+            self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' or swift_hash = 'None'")
             self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
 
 
