@@ -473,15 +473,17 @@ class SearchCommunity(Community):
 
         if len(toInsert) > 0:
             self._torrent_db.on_torrent_collect_response(toInsert.values())
-        
-        hashesToCollect = self._torrent_db.selectSwiftTorrentsToCollect(toCollect.keys())
-        for infohash, roothash in hashesToCollect[:5]:
-            for candidate in toCollect[infohash]:
-                if DEBUG:
-                    from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-                    print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
 
-                self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio = 2)
+        hashes = [hash_ for hash_ in toCollect.keys() if hash_]
+        if hashes:
+            hashesToCollect = self._torrent_db.selectSwiftTorrentsToCollect(hashes)
+            for infohash, roothash in hashesToCollect[:5]:
+                for candidate in toCollect[infohash]:
+                    if DEBUG:
+                        from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+                        print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
+
+                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio = 2)
     
     def _create_pingpong(self, meta_name, candidates, identifiers = None):
         max_len = self.dispersy_sync_bloom_filter_bits/8
