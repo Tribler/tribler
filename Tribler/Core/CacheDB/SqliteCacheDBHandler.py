@@ -2190,31 +2190,32 @@ class TorrentDBHandler(BasicDBHandler):
         for result in results:
             channel_id = result[-2]
             channel = channel_dict.get(channel_id, False)
-            
-            #ignoring spam channels
-            if channel and channel[7] < 0:
-                continue
-            
-            infohash = result[infohash_index]
-            #see if we have a better channel in torrents_dict
-            if infohash in result_dict:
-                old_channel = channel_dict.get(result_dict[infohash][-2], False)
-                
-                # allways prefer my channel
-                if old_channel[0] == myChannelId:
+            if channel:
+
+                #ignoring spam channels
+                if channel[7] < 0:
                     continue
-                
-                # allways prefer channel with higher vote
-                if channel[7] < old_channel[7]:
-                    continue
-                
-                votes = (channel[5] or 0) - (channel[6] or 0)
-                oldvotes = (old_channel[5] or 0) - (old_channel[6] or 0)
-                if votes < oldvotes:
-                    continue
-                
-            
-            result_dict[infohash] = result
+
+                infohash = result[infohash_index]
+                #see if we have a better channel in torrents_dict
+                if infohash in result_dict:
+                    old_channel = channel_dict.get(result_dict[infohash][-2], False)
+                    if old_channel:
+
+                        # allways prefer my channel
+                        if old_channel[0] == myChannelId:
+                            continue
+
+                        # allways prefer channel with higher vote
+                        if channel[7] < old_channel[7]:
+                            continue
+
+                        votes = (channel[5] or 0) - (channel[6] or 0)
+                        oldvotes = (old_channel[5] or 0) - (old_channel[6] or 0)
+                        if votes < oldvotes:
+                            continue
+
+                result_dict[infohash] = result
         
         t4 = time()
         
