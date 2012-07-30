@@ -36,7 +36,8 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 ##Changed from 11 to 12 imposing some limits on the Tribler database
 ##Changed from 12 to 13 introduced swift-url modification type
 ##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
-CURRENT_MAIN_DB_VERSION = 14
+##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent 
+CURRENT_MAIN_DB_VERSION = 15
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -2130,6 +2131,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 30)
+
+        # Arno, 2012-07-30: Speed up 
+        if fromver < 15:
+            print >>sys.stderr,"ARNO UPGRADING DB SCHEMA"
+            self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_hash_idx ON Torrent(swift_hash)")
+            self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
+
+
             
     def clean_db(self, vacuum = False):
         from time import time
