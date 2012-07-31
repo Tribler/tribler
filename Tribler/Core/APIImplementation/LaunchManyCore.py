@@ -647,6 +647,25 @@ class TriblerLaunchMany(Thread):
     #
     def set_download_states_callback(self,usercallback,getpeerlist,when=0.0):
         """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            # Even if the list of Downloads changes in the mean time this is
+            # no problem. For removals, dllist will still hold a pointer to the
+            # Download, and additions are no problem (just won't be included
+            # in list of states returned via callback.
+            #
+            dllist = self.downloads.values()
+        finally:
+            self.sesslock.release()
+
+        for d in dllist:
+            if d.get_def().get_def_type() == "swift":
+                # Arno, 2012-05-23: At Niels' request to get total transferred 
+                # stats. Causes MOREINFO message to be sent from swift proc 
+                # for every initiated dl.
+                # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
+                d.set_moreinfo_stats(getpeerlist)
+        
         network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback,getpeerlist)
         self.rawserver.add_task(network_set_download_states_callback_lambda,when)
 

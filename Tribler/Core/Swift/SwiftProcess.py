@@ -12,7 +12,8 @@ from threading import RLock
 from traceback import print_exc,print_stack
 
 from Tribler.Core.simpledefs import *
-from Tribler.Utilities.Instance2Instance import *
+#from Tribler.Utilities.Instance2Instance import *
+from Tribler.Utilities.FastI2I import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 from Tribler.Core import NoDispersyRLock
 
@@ -22,19 +23,18 @@ DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
 DONE_STATE_SHUTDOWN = 2
 
-class SwiftProcess(InstanceConnection):
+class SwiftProcess:
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
 
 
-    def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,connhandler):
+    def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,spmgr):
         # Called by any thread, assume sessionlock is held
         self.splock = NoDispersyRLock()
         self.binpath = binpath
         self.workdir = workdir
         self.zerostatedir = zerostatedir
-        self.spmgr = connhandler
-        InstanceConnection.__init__(self, None, connhandler, self.i2ithread_readlinecallback)
+        self.spmgr = spmgr
         
         # Main UDP listen socket
         if listenport is None:
@@ -96,7 +96,7 @@ class SwiftProcess(InstanceConnection):
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
-        self.singsock = None
+        self.fastconn = None
 
     #
     # Instance2Instance
@@ -105,7 +105,7 @@ class SwiftProcess(InstanceConnection):
         # Called by any thread, assume sessionlock is held
         
         if self.is_alive():
-            self.singsock = self.connhandler.start_connection(("127.0.0.1", self.cmdport),self)
+            self.fastconn = FastI2IConnection(self.cmdport,self.i2ithread_readlinecallback,self.connection_lost)
         else:
             print >>sys.stderr,"sp: start_cmd_connection: Process dead? returncode",self.popen.returncode,"pid",self.popen.pid
           
@@ -113,6 +113,10 @@ class SwiftProcess(InstanceConnection):
     def i2ithread_readlinecallback(self,ic,cmd):
         #if DEBUG:
         #    print >>sys.stderr,"sp: Got command #"+cmd+"#"
+        
+        if self.donestate != DONE_STATE_WORKING:
+            return
+            
         words = cmd.split()
 
         if words[0] == "TUNNELRECV":
@@ -336,6 +340,8 @@ class SwiftProcess(InstanceConnection):
         else:
             return
 
+        # could do fastconn.close() here
+
         if self.popen is not None:
             try:
                 print >>sys.stderr,"sp: Terminating process"
@@ -344,7 +350,7 @@ class SwiftProcess(InstanceConnection):
                 self.popen = None
             except:
                 print_exc()
-        # self.singsock auto closed by killing proc.
+        # self.fastconn auto closed by killing proc.
     
     #
     # Internal methods
@@ -413,10 +419,12 @@ class SwiftProcess(InstanceConnection):
             return self.popen.returncode is None
         return False
 
-    # Arno, 2012-07-31: Overlooked concurrency between Instance2InstanceThread and
-    # threads writing to SingleSocket    
     def write(self,msg):
-        print >>sys.stderr,"WRITE",msg
-        write_lambda = lambda:self.singsock.write(msg)
-        self.spmgr.add_task(write_lambda)
+        self.fastconn.write(msg)
+        
+    def get_cmdport(self):
+        return self.cmdport
+
+    def connection_lost(self,port):
+        self.spmgr.connection_lost(port)
         
