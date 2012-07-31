@@ -162,5 +162,5 @@ class SwiftProcessMgr(InstanceConnectionHandler):
     # Arno, 2012-07-31: Overlooked concurrency between Instance2InstanceThread and
     # threads writing to SingleSocket    
     def add_task(self,func,t=0):
-        self.i2is.add_task(func,t=t)
+        self.i2is.add_task(func,t)
         

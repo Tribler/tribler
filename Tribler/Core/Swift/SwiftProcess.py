@@ -416,6 +416,7 @@ class SwiftProcess(InstanceConnection):
     # Arno, 2012-07-31: Overlooked concurrency between Instance2InstanceThread and
     # threads writing to SingleSocket    
     def write(self,msg):
+        print >>sys.stderr,"WRITE",msg
         write_lambda = lambda:self.singsock.write(msg)
         self.spmgr.add_task(write_lambda)
         

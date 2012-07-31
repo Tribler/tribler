@@ -36,7 +36,12 @@ class SwiftDownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
             # Don't need to throw an exception when stopped, we then just 
             # save the new value and use it at (re)startup.
             if self.sp is not None:
-                self.sp.set_max_speed(self,direct,speed)
+                
+                cur = self.get_max_speed(direct)
+                # Arno, 2012-07-31: Don't send message when no change, i2i comm
+                # non-zero cost.
+                if cur != speed:
+                    self.sp.set_max_speed(self,direct,speed)
                 
             # At the moment we can't catch any errors in the engine that this 
             # causes, so just assume it always works.
