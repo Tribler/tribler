@@ -16,6 +16,8 @@ class FastI2IConnection(Thread):
     
     def __init__(self,port,readlinecallback,closecallback):
         Thread.__init__(self)
+        self.setName("FastI2I"+self.getName())
+        self.setDaemon(True)
 
         self.port = port
         self.readlinecallback = readlinecallback
