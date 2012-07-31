@@ -33,6 +33,7 @@ class SwiftProcess(InstanceConnection):
         self.binpath = binpath
         self.workdir = workdir
         self.zerostatedir = zerostatedir
+        self.spmgr = connhandler
         InstanceConnection.__init__(self, None, connhandler, self.i2ithread_readlinecallback)
         
         # Main UDP listen socket
@@ -95,6 +96,7 @@ class SwiftProcess(InstanceConnection):
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
+        self.singsock = None
 
     #
     # Instance2Instance
@@ -360,20 +362,20 @@ class SwiftProcess(InstanceConnection):
         if maxulspeed is not None:
             cmd += 'MAXSPEED '+roothash_hex+' UPLOAD '+str(float(maxulspeed))+'\r\n'
         
-        self.singsock.write(cmd)
+        self.write(cmd)
         
     def send_remove(self,roothash_hex,removestate,removecontent):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('REMOVE '+roothash_hex+' '+str(int(removestate))+' '+str(int(removecontent))+'\r\n')
+        self.write('REMOVE '+roothash_hex+' '+str(int(removestate))+' '+str(int(removecontent))+'\r\n')
 
     def send_checkpoint(self,roothash_hex):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('CHECKPOINT '+roothash_hex+'\r\n')
+        self.write('CHECKPOINT '+roothash_hex+'\r\n')
 
 
     def send_shutdown(self):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('SHUTDOWN\r\n')
+        self.write('SHUTDOWN\r\n')
 
     def send_max_speed(self,roothash_hex,direct,speed):
         # assume splock is held to avoid concurrency on socket
@@ -384,29 +386,36 @@ class SwiftProcess(InstanceConnection):
             cmd += ' UPLOAD '
         cmd += str(float(speed))+'\r\n'
         
-        self.singsock.write(cmd)
+        self.write(cmd)
         
     def send_tunnel(self,session,address,data):
         # assume splock is held to avoid concurrency on socket
         if DEBUG:
             print >>sys.stderr,"sp: send_tunnel:",len(data),"bytes -> %s:%d" % address
 
-        self.singsock.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
-        self.singsock.write(data)
+        self.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
+        self.write(data)
 
     def send_setmoreinfo(self,roothash_hex,enable):
         # assume splock is held to avoid concurrency on socket
         onoff = "0"
         if enable:
             onoff = "1"
-        self.singsock.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')
+        self.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')
 
     def send_peer_addr(self,roothash_hex,addrstr):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('PEERADDR '+roothash_hex+' '+addrstr+'\r\n')
+        self.write('PEERADDR '+roothash_hex+' '+addrstr+'\r\n')
 
     def is_alive(self):
         if self.popen:
             self.popen.poll()
             return self.popen.returncode is None
         return False
+
+    # Arno, 2012-07-31: Overlooked concurrency between Instance2InstanceThread and
+    # threads writing to SingleSocket    
+    def write(self,msg):
+        write_lambda = lambda:self.singsock.write(msg)
+        self.spmgr.add_task(write_lambda)
+        
