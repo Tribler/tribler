@@ -3393,16 +3393,25 @@ class VoteCastDBHandler(BasicDBHandler):
     
     def on_votes_from_dispersy(self, votes):
         removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
-        self.removeVotes(removeVotes, updateVotes = False)
+        self.removeVotes(removeVotes, updateVotes = False, commit = False)
 
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(insert_vote, votes)
         
-        channel_ids = set((channel_id,voter_id) for channel_id, voter_id, _, _, _ in votes)
-        self._updateChannelsVotes([channel_id for channel_id,_ in channel_ids])
+        # Arno, 2012-08-01: _updateChannelsVotes would be executed one for every
+        # pair, instead of once for every channel. And in many cases there would
+        # be just 1 channel :-(
+        channel_voter_ids = set((channel_id,voter_id) for channel_id, voter_id, _, _, _ in votes)
+        just_channel_ids = set([channel_id for channel_id,_ in channel_voter_ids])
+        
+        if len(just_channel_ids) == 1:
+            # WARNING: pop removes element
+            self._updateChannelVotes(just_channel_ids.pop(), commit=False)
+        else:
+            self._updateChannelsVotes(just_channel_ids)
         self._db.commit()
         
-        for channel_id,voter_id in channel_ids:  
+        for channel_id,voter_id in channel_voter_ids:  
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id, voter_id==None)
         
     def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
@@ -3464,6 +3473,7 @@ class VoteCastDBHandler(BasicDBHandler):
             channels.add(vote[0])
         self._updateChannelsVotes(channels)
         
+        
     def removeVote(self, channel_id, voter_id, commit = True):
         if voter_id:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
@@ -3476,16 +3486,19 @@ class VoteCastDBHandler(BasicDBHandler):
         if commit:
             self._updateChannelVotes(channel_id)
         
-    def removeVotes(self, votes, updateVotes = True):
+    def removeVotes(self, votes, updateVotes = True, commit = True):
         for channel_id, voter_id in votes:
             self.removeVote(channel_id, voter_id, commit=False)
-        self._db.commit()
+        if commit:
+            self._db.commit()
         
         if updateVotes:
+            # Arno: why not use _updateCHannelsVotes here?
             channel_ids = set([channel_id for channel_id, _ in votes])        
             for channel_id in channel_ids:
                 self._updateChannelVotes(channel_id)
-            self._db.commit()
+            if commit:
+                self._db.commit()
             
     def _updateChannelVotes(self, channel_id, commit = True):
         nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id, ))
@@ -3586,6 +3599,7 @@ class VoteCastDBHandler(BasicDBHandler):
             for channel_id, vote in self._db.fetchall(sql):
                 self.my_votes[channel_id] = vote
         return self.my_votes
+
                         
 #end votes
 
