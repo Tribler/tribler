@@ -2138,15 +2138,15 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         # Arno, 2012-07-30: Speed up 
         if fromver < 15:
             self.execute_write("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' OR swift_hash = 'None'")
-            duplicates = [(id_,) for id_, count in self.execute_read("SELECT id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
+            duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
             if duplicates:
-                self.executemany("UPDATE Torrent SET swift_hash = NULL WHERE id = ?", duplicates)
+                self.executemany("UPDATE Torrent SET swift_hash = NULL WHERE torrent_id = ?", duplicates)
             self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_hash_idx ON Torrent(swift_hash)")
 
             self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
-            duplicates = [(id_,) for id_, count in self.execute_read("SELECT id, count(*) FROM Torrent WHERE swift_torrent_hash NOT NULL GROUP BY swift_torrent_hash") if count > 1]
+            duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_torrent_hash NOT NULL GROUP BY swift_torrent_hash") if count > 1]
             if duplicates:
-                self.executemany("UPDATE Torrent SET swift_torrent_hash = NULL WHERE id = ?", duplicates)
+                self.executemany("UPDATE Torrent SET swift_torrent_hash = NULL WHERE torrent_id = ?", duplicates)
             self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
 
 
