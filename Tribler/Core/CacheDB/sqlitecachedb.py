@@ -37,6 +37,9 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 ##Changed from 12 to 13 introduced swift-url modification type
 ##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
 ##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent 
+
+# Arno, 2012-08-01: WARNING You must also update the version number that is 
+# written to the DB in the schema_sdb_v*.sql file!!!
 CURRENT_MAIN_DB_VERSION = 15
 
 TEST_SQLITECACHEDB_UPGRADE = False
@@ -2134,7 +2137,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
         # Arno, 2012-07-30: Speed up 
         if fromver < 15:
-            print >>sys.stderr,"ARNO UPGRADING DB SCHEMA"
             self.execute_write("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' OR swift_hash = 'None'")
             duplicates = [(id_,) for id_, count in self.execute_read("SELECT id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
             if duplicates:
