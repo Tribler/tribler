@@ -2559,7 +2559,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return [p[0] for p in res]
 
     def getMyPrefListInfohash(self, returnDeleted = True, limit = None):
-        sql = 'select infohash, swift_hash from Torrent, MyPreference where Torrent.torrent_id == MyPreference.torrent_id'
+        # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
+        # this faster.
+        sql = 'select infohash, swift_hash from MyPreference, Torrent where Torrent.torrent_id == MyPreference.torrent_id'
         if not returnDeleted:
             sql += ' AND destination_path != ""'
         
