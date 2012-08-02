@@ -1587,6 +1587,9 @@ class TorrentDBHandler(BasicDBHandler):
             # must be stored as None
             if swift_hash == "":
                 swift_hash = None
+            # 02/08/12 Boudewijn: swift_torrent_hash has the same issue as swift_hash above
+            if swift_torrent_hash == "":
+                swift_torrent_hash = None
 
             tid = infohash_tid.get(infohash, None) or roothash_tid.get(swift_hash, None)
             
