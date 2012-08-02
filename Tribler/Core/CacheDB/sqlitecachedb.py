@@ -36,11 +36,12 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 ##Changed from 11 to 12 imposing some limits on the Tribler database
 ##Changed from 12 to 13 introduced swift-url modification type
 ##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
-##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent 
+##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
+##Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is 
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 15
+CURRENT_MAIN_DB_VERSION = 16
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -2149,6 +2150,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.executemany("UPDATE Torrent SET swift_torrent_hash = NULL WHERE torrent_id = ?", duplicates)
             self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
 
+        # 02/08/2012 Boudewijn: the code allowed swift_torrent_hash to be an empty string
+        if fromver < 16:
+            self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
 
             
     def clean_db(self, vacuum = False):
