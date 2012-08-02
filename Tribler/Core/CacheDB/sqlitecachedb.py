@@ -212,8 +212,10 @@ class SQLiteCacheDBBase:
         self.cache_transaction_table = safe_dict()   # {thread_name:[sql]
         self.class_variables = safe_dict({'db_path':None,'busytimeout':None})  # busytimeout is in milliseconds
         
-        self.permid_id = safe_dict()    
-        self.infohash_id = safe_dict()
+        # Arno, 2012-08-02: As there is just Dispersy thread here, removing
+        # safe_dict() here
+        self.permid_id = {}  # safe_dict()  
+        self.infohash_id = {} # safe_dict()
         self.show_execute = False
         
         #TODO: All global variables must be protected to be thread safe?
@@ -243,8 +245,10 @@ class SQLiteCacheDBBase:
             except:
                 print_exc()
         if clean:    # used for test suite
-            self.permid_id = safe_dict()
-            self.infohash_id = safe_dict()
+            # Arno, 2012-08-02: As there is just Dispery thread here, removing
+            # safe_dict() here
+            self.permid_id = {} # safe_dict()
+            self.infohash_id = {} # safe_dict()
             self.exception_handler = None
             self.class_variables = safe_dict({'db_path':None,'busytimeout':None})
             self.cursor_table = safe_dict()
@@ -868,8 +872,9 @@ class SQLiteCacheDBBase:
     def getPeerID(self, permid):
         assert isinstance(permid, str), permid
         # permid must be binary
-        if permid in self.permid_id:
-            return self.permid_id[permid]
+        peer_id = self.permid_id.get(permid,None)
+        if peer_id is not None:
+            return peer_id
         
         sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
         peer_id = self.fetchone(sql_get_peer_id, (bin2str(permid),))
@@ -941,8 +946,10 @@ class SQLiteCacheDBBase:
     def getTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if infohash in self.infohash_id:
-            return self.infohash_id[infohash]
+        
+        tid = self.infohash_id.get(infohash,None)
+        if tid is not None:
+            return tid
         
         sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
         tid = self.fetchone(sql_get_torrent_id, (bin2str(infohash),))
@@ -2426,6 +2433,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
             raise msg
             
+# Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches            
 class SQLiteCacheDB(SQLiteNoCacheDB):
     __single = None    # used for multithreaded singletons pattern
 
