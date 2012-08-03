@@ -112,6 +112,7 @@ SESSION_CHECKPOINT_INTERVAL = 900.0 # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
 DEBUG = False
+DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = False
 
 ##############################################################
@@ -699,7 +700,7 @@ class ABCApp():
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
                 
-                if __debug__:
+                if DEBUG_DOWNLOADS:
                     for ds in dslist:
                         cdef = ds.get_download().get_def()
                         state = ds.get_status()
