@@ -840,8 +840,7 @@ class ChannelCommunity(Community):
 
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
-        for message in messages:
-            yield message
+        return messages
 
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()
