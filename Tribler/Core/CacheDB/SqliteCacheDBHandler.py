@@ -2138,7 +2138,7 @@ class TorrentDBHandler(BasicDBHandler):
 #            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
 #
         assert 'infohash' in keys
-        assert not doSort or 'num_seeders' in keys
+        assert not doSort or ('num_seeders' in keys or 'T.num_seeders' in keys)
         
         infohash_index = keys.index('infohash')
         swift_hash_index = keys.index('swift_hash') if 'swift_hash' in keys else -1
