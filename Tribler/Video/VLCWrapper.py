@@ -276,7 +276,10 @@ class VLCWrapper:
                 print >>sys.stderr,"VLCWrapper: load: calling playlist_add_item"
                 
             if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
-                meditem = self.vlc.libvlc_media_new_location(self.media,url)
+                if os.path.exists(url):
+                    meditem = self.vlc.libvlc_media_new_path(self.media,url)
+                else:
+                    meditem = self.vlc.libvlc_media_new_location(self.media,url)
                 self.vlc.libvlc_media_player_set_media(self.player,meditem)
             elif self.VLC_MEDIACONTROL_API_VERSION == "0.2":
                 self.media.set_mrl(url)
