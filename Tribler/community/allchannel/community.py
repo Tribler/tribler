@@ -391,7 +391,6 @@ class AllChannelCommunity(Community):
                 
                 community = communities.get(message.payload.cid)
                 if community:
-                    assert channel_ids[message.payload.cid] == None
                     assert community.cid == message.payload.cid
                     # at this point we should NOT have the channel message for this community
                     if __debug__:
