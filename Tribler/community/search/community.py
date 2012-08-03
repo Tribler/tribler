@@ -460,7 +460,7 @@ class SearchCommunity(Community):
         for message in messages:
             if verifyRequest:
                 pong_request = self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.PingRequestCache)
-                if __debug__: dprint("pop", pong_request.helper_candidate)
+                if __debug__: dprint("pop", pong_request.helper_candidate if pong_request else " (unknown)")
             else:
                 if __debug__: dprint("no-pop")
                 pong_request = True
