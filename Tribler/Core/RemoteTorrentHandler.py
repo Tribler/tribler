@@ -21,7 +21,8 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 import shutil
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.exceptions import DuplicateDownloadException,\
+    OperationNotEnabledByConfigurationException
 import atexit
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 import urllib
@@ -87,7 +88,7 @@ class RemoteTorrentHandler:
                     self.torrent_db.freeSpace(to_remove)
                     yield 5.0
                 
-            yield 30 * 60 * 60.0 #run every 30 minutes
+            yield 30 * 60.0 #run every 30 minutes
         
     @property
     def searchcommunity(self):
@@ -443,6 +444,9 @@ class TorrentRequester(Requester):
             except DuplicateDownloadException:
                 download = self.session.get_download(roothash)
                 download.add_peer((ip,port))
+                
+            except OperationNotEnabledByConfigurationException:
+                doMagnet = True
         
             #schedule a magnet lookup after X seconds
             if doMagnet:
