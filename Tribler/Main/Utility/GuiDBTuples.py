@@ -265,7 +265,14 @@ class Torrent(Helper):
                     break
         
         self.relevance_score = [len(matches['swarmname']), pos_score, len(matches['filenames']), len(matches['fileextensions']), 0]
-            
+    
+    def exactCopy(self, other):
+        if other and isinstance(other, Torrent):
+            hashes = self.infohash == other.infohash and (other.swift_hash and (self.swift_hash == other.swift_hash))
+            readableProps = self.name == other.name and self.length == other.length and self.category_id == other.category_id
+            return hashes and readableProps 
+        return False
+                
     def __eq__(self, other):
         if other and isinstance(other, Torrent):
             return self.infohash == other.infohash
