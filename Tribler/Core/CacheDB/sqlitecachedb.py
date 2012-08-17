@@ -62,9 +62,7 @@ TEST_OVERRIDE = False
 DEBUG = False
 DEBUG_THREAD = False
 DEBUG_TIME = True
-TRHEADING_DEBUG = False
-
-TRHEADING_DEBUG = False
+TRHEADING_DEBUG = True
 DEPRECATION_DEBUG = False
 
 class Warning(Exception):
@@ -2208,16 +2206,17 @@ def try_register(db, callback = None):
         finally:
             _callback_lock.release()
     
-def register_task(db, *args, **kwargs):
+def register_task(db, func, *args, **kwargs):
     global _callback
     if not _callback:
         try_register(db)
                 
     if not _callback or not _callback.is_running:
-        def fakeDispersy(func):
+        def fakeDispersy():
             func()
-        return fakeDispersy(*args)
-    return _callback.register(*args, **kwargs)
+        return fakeDispersy()
+    
+    return _callback.register(func, *args, **kwargs)
 
 def forceAndReturnDBThread(func):
     def invoke_func(*args,**kwargs):
@@ -2271,7 +2270,7 @@ def forceDBThread(func):
                     callerstr += "%s %s:%s "%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             
-            register_task(func, args, kwargs)
+            register_task(args[0], func, args, kwargs)
         else:
             func(*args, **kwargs)
             

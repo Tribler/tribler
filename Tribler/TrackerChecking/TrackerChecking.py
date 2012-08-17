@@ -57,7 +57,6 @@ def single_no_thread(torrent, multiscrapeCallback = None):
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
         
         for key, values in announce_dict.iteritems():
-            
             #merge results
             if key in multi_announce_dict:
                 cur_values = list(multi_announce_dict[key])
@@ -70,30 +69,7 @@ def single_no_thread(torrent, multiscrapeCallback = None):
         (seeder, _) = multi_announce_dict[torrent["infohash"]]
         if seeder > 0:
             break
-    
-    #modify original torrent
-    (seeder, leecher) = multi_announce_dict[torrent["infohash"]]
-    if (seeder == -3 and leecher == -3):
-        pass        # if interval problem, just keep the last status
-    else:
-        torrent["seeder"] = seeder
-        torrent["leecher"] = leecher
-        if torrent["seeder"] > 0 or torrent["leecher"] > 0:
-            torrent["status"] = "good"
-            
-        elif torrent["seeder"] == 0 and torrent["leecher"] == 0:
-            torrent["status"] = "unknown"
-            
-        elif torrent["seeder"] == -1 and torrent["leecher"] == -1:
-            torrent["status"] = "unknown"
-            
-        else:
-            torrent["status"] = "dead"
-            torrent["seeder"] = -2
-            torrent["leecher"] = -2
-            
-    torrent["last_check_time"] = long(time())
-    
+
     return multi_announce_dict
 
 def singleTrackerStatus(torrent, announce, multiscrapeCallback):

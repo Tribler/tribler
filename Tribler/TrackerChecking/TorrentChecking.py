@@ -42,7 +42,8 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Core.CacheDB.Notifier import Notifier
 from bisect import insort
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Core.CacheDB.sqlitecachedb import forceAndReturnDBThread, bin2str
+from Tribler.Core.CacheDB.sqlitecachedb import forceAndReturnDBThread, bin2str,\
+    forceDBThread
 
 QUEUE_SIZE_LIMIT = 250
 DEBUG = False
@@ -199,19 +200,22 @@ class TorrentChecking(Thread):
                         
     def doCheck(self, torrent):
         if torrent:
-            didTrackerCheck = False
-            
             diff = time() - (torrent['last_check'] or 0)
             if diff < 1800:
-                return
+                pass
             
-            if torrent['ignored_times'] > 0:
+            elif torrent['ignored_times'] > 0:
                 #ignoring this torrent
                 if DEBUG:
                     print >> sys.stderr, 'TorrentChecking: ignoring torrent:', torrent
-                kw = { 'ignored_times': torrent['ignored_times'] -1 }
+                    
+                kw = { 'ignored_times': torrent['ignored_times'] - 1 }
+                self.torrentdb.updateTorrent(torrent['infohash'], **kw)
                 
             else:
+                multi_announce_dict = {}
+                multi_announce_dict[torrent['infohash']] = (-2, -2)
+                
                 # read the torrent from disk / use other sources to specify trackers
                 torrent = self.readTrackers(torrent)
                 if self.hasTrackers(torrent):
@@ -219,53 +223,17 @@ class TorrentChecking(Thread):
                         print >> sys.stderr, "TorrentChecking: tracker checking", torrent["info"].get("announce", ""), torrent["info"].get("announce-list", "")
                         trackerStart = time()
                     
-                    multidict = multiTrackerChecking(torrent, self.GetInfoHashesForTracker)
-                    didTrackerCheck = True
+                    multi_announce_dict = multiTrackerChecking(torrent, self.GetInfoHashesForTracker)
                     if DEBUG:
                         print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
-                    
-                    for key, values in multidict.iteritems():
-                        if key != torrent['infohash']:
-                            seeder, leecher = values
-                            
-                            if seeder > 0 or leecher > 0:
-                                #store result
-                                curkw = {'seeder':seeder, 'leecher':leecher, 'ignored_times': 0, 'last_check_time': long(time()), 'status':'good', 'retried_times':0}
-                                self.torrentdb.updateTorrent(key, **curkw)
-                                
-                                if DEBUG:
-                                    print >> sys.stderr, "TorrentChecking: new status:", curkw
-                            
-                            for tor in self.queue:
-                                if tor and tor['infohash'] == key:
-                                    tor['last_check'] = time()
                 
-                if not didTrackerCheck:
-                    torrent["seeder"] = -2
-                    torrent["leecher"] = -2
-                    
-                # Update torrent with new status
-                self.updateTorrentInfo(torrent)
+                # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
+                for tor in self.queue:
+                    if tor['infohash'] in multi_announce_dict:
+                        tor['last_check'] = time()
 
-                # Save in DB                    
-                kw = {
-                    'last_check_time': int(time()),
-                    'seeder': torrent['seeder'],
-                    'leecher': torrent['leecher'],
-                    'status': torrent['status'],
-                    'ignored_times': torrent['ignored_times'],
-                    'retried_times': torrent['retried_times']
-                }
-                
-            # Must come after tracker check, such that if tracker dead and DHT still alive, the
-            # status is still set to good
-            if torrent['status'] == 'dead':
-                self.mldhtchecker.lookup(torrent['infohash'])
-        
-            if DEBUG:
-                print >> sys.stderr, "TorrentChecking: new status:", kw
-        
-            self.torrentdb.updateTorrent(torrent['infohash'], **kw)
+                # Update torrent with new status
+                self.updateTorrents(torrent, multi_announce_dict)
     
     def readTrackers(self, torrent):
         torrent = self.readTorrent(torrent)
@@ -345,21 +313,43 @@ class TorrentChecking(Thread):
             
         return torrent
     
-    def updateTorrentInfo(self,torrent):
-        if torrent["status"] == "good":
-            torrent["ignored_times"] = 0
+    @forceDBThread
+    def updateTorrents(self, torrent, announce_dict):
+        for key, values in announce_dict.iteritems():
+            seeders, leechers = values
+            seeders = max(-2, seeders)
+            leechers = max(-2, leechers)
             
-        elif torrent["status"] == "unknown":
-            if torrent["retried_times"] > self.retryThreshold:    # set to dead
-                torrent["ignored_times"] = 0
-                torrent["status"] = "dead"
-            else:
-                torrent["retried_times"] += 1 
-                torrent["ignored_times"] = torrent["retried_times"]
+            status = "unknown"
+            if seeders > 0 or leechers > 0:
+                status = "good"
+            elif seeders < -1 and leechers < -1:
+                status = "dead"
                 
-        elif torrent["status"] == "dead": # dead
-            if torrent["retried_times"] < self.retryThreshold:
-                torrent["retried_times"] += 1 
+            retried_times = 0
+            ignored_times = 0
+            if key == torrent['infohash']:
+                if status == "unknown":
+                    if torrent["retried_times"] > self.retryThreshold:    # set to dead
+                        status = "dead"
+                    else:
+                        retried_times = torrent["retried_times"] + 1 
+                        ignored_times = retried_times
+                
+                elif status == "dead": # dead
+                    if torrent["retried_times"] < self.retryThreshold:
+                        retried_times = torrent["retried_times"] + 1
+            
+            #store result
+            curkw = {'seeder':seeders, 'leecher':leechers, 'ignored_times': ignored_times, 'last_check_time': long(time()), 'status': status, 'retried_times':retried_times}
+            self.torrentdb.updateTorrent(key, **curkw)
+                    
+            if DEBUG:
+                print >> sys.stderr, "TorrentChecking: new status:", curkw
+            
+            if key == torrent['infohash']:
+                if status == 'dead':
+                    self.mldhtchecker.lookup(torrent['infohash'])
                     
     def hasTrackers(self, torrent):
         emptyAnnounceList = emptyAnnounce = True
