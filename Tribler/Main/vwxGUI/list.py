@@ -1072,6 +1072,8 @@ class SearchList(GenericSearchList):
                    {'type':'method', 'width': LIST_AUTOSIZEHEADER, 'method': self.CreateDownloadButton}]
         
         self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
+        self.noFavorite = wx.EmptyBitmapRGBA(self.inFavoriteChannel.GetWidth(), self.inFavoriteChannel.GetHeight(), alpha=1)
+        
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         GenericSearchList.__init__(self, columns, LIST_GREY, [7,7], True, parent=parent)
@@ -1125,6 +1127,7 @@ class SearchList(GenericSearchList):
         torrent = item.original_data
         if torrent.hasChannel() and torrent.channel.isFavorite():
             return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
+        return self.noFavorite
         
     def GetManager(self):
         if getattr(self, 'manager', None) == None:

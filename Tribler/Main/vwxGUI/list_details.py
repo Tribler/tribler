@@ -324,10 +324,11 @@ class TorrentDetails(AbstractDetails):
             self.notebook.AddPage(self.commentList, 'Comments')
             commentManager.refresh()
         
-        if self.canEdit:
+        hasDescription = self.torrent.get('description', '')
+        if self.canEdit or hasDescription:
             from channel import ModificationList
             self.modificationList = NotebookPanel(self.notebook)
-            self.modificationList.SetList(ModificationList(self.modificationList))
+            self.modificationList.SetList(ModificationList(self.modificationList, self.canEdit))
             modificationManager = self.modificationList.GetManager()
             modificationManager.SetIds(self.torrent)
             
@@ -602,7 +603,7 @@ class TorrentDetails(AbstractDetails):
                     value = wx.TextCtrl(panel, -1, modification.value, style = wx.TE_READONLY)
                     self._add_row(panel, vSizer, 'Swift URL', value)
         
-        if self.canMark:
+        if self.canComment:
             self.UpdateMarkings()
         
         self.UpdateStatus()

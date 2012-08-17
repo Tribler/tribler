@@ -313,7 +313,7 @@ class TorrentChecking(Thread):
             
         return torrent
     
-    @forceDBThread
+    @forceAndReturnDBThread
     def updateTorrents(self, torrent, announce_dict):
         for key, values in announce_dict.iteritems():
             seeders, leechers = values

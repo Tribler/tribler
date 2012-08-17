@@ -2233,7 +2233,7 @@ class ModificationItem(AvantarItem):
         if isinstance(parent, wx.Dialog):
             self.noButton = True
         else:
-            self.noButton = False
+            self.noButton = not getattr(parent_list.parent_list, 'canModify', True)
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -2675,9 +2675,10 @@ class ModificationManager:
         self.channelsearch_manager.revertModification(self.torrent.channel, modification, reason, severity, None)
 
 class ModificationList(List):
-    def __init__(self, parent):
+    def __init__(self, parent, canModify = True):
         List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
         self.header.SetTitle('Modifications of this torrent')
+        self.canModify = canModify
     
     def CreateHeader(self, parent):
         return TitleHeader(parent, self, [], 0, radius = 0, spacers = [4,7])

@@ -614,9 +614,9 @@ class TorrentManager:
                     channels[channel_details[0]] = create_channel(channel_details)
             
             def create_torrent(a):
-                channel = channels.get(a[-9], False)
+                channel = channels.get(a[-10], False)
                 if channel and (channel.isFavorite() or channel.isMyChannel()):
-                    t = ChannelTorrent(*a[:-11]+[channel, None])
+                    t = ChannelTorrent(*a[:-12]+[channel, None])
                 else:
                     t = Torrent(*a[:11]+[False])
                     
