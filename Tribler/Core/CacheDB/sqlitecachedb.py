@@ -62,7 +62,7 @@ TEST_OVERRIDE = False
 DEBUG = False
 DEBUG_THREAD = False
 DEBUG_TIME = True
-TRHEADING_DEBUG = True
+TRHEADING_DEBUG = False
 DEPRECATION_DEBUG = False
 
 class Warning(Exception):
