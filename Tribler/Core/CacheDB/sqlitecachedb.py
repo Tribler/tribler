@@ -2171,8 +2171,6 @@ def try_register(db, callback = None):
                         db.initialBegin()
                     else:
                         #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                        # 16/05/12 Boudewijn: using call instead of register to guarantee that no other
-                        # statements can be executed before initialBegin is done
                         _callback.register(db.initialBegin, priority = 1024)
         finally:
             _callback_lock.release()
