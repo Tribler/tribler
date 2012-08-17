@@ -199,8 +199,6 @@ class TorrentChecking(Thread):
                         
     def doCheck(self, torrent):
         if torrent:
-            print >> sys.stderr, "checking", bin2str(torrent['infohash'])
-            
             didTrackerCheck = False
             
             diff = time() - (torrent['last_check'] or 0)
