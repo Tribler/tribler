@@ -214,7 +214,8 @@ class TriblerLaunchMany(Thread):
             self.richmetadataDbHandler = None
 
         # SWIFTPROC
-        if config['swiftproc']:
+        swift_exists = config['swiftproc'] and (os.path.exists(config['swiftpath']) or os.path.exists(config['swiftpath'] + '.exe'))
+        if swift_exists:
             self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.session.get_swift_tunnel_listen_port(),self.sesslock)
         else:
             self.spm = None
