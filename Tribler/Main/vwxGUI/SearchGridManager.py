@@ -17,7 +17,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 from Tribler.community.channel.community import ChannelCommunity,\
     forceDispersyThread, forceAndReturnDispersyThread

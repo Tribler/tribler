@@ -1226,31 +1226,47 @@ class TorrentDetails(AbstractDetails):
     @warnWxThread
     def RefreshData(self, data):
         if self.isReady:
+            rebuild = False
+            
             if isinstance(self.torrent, Torrent):
-                #replace current torrent
-                self.torrent.name = data[2].name
-                self.torrent.length = data[2].length
-                self.torrent.category_id = data[2].category_id
-                self.torrent.status_id = data[2].status_id
-                self.torrent.num_seeders = data[2].num_seeders
-                self.torrent.num_leechers = data[2].num_leechers
-                
-            elif isinstance(data[2], Torrent):
-                self.torrent.torrent = data[2]
+                curTorrent = self.torrent
             else:
-                self.torrent.torrent = data[2]['bundle'][0] 
+                curTorrent = self.torrent.torrent
+            
+            if hasattr(data[2], "bundle"):
+                newTorrent = data[2]['bundle'][0]
+            else:
+                newTorrent = data[2]
             
             #remove cached swarminfo
             del self.torrent.swarminfo
+            del self.torrent.status
             
-            self._addOverview(self.overview, self.torrentSizer)
-            if self.canEdit:
-                if not self.isEditable['name'].IsChanged():
-                    self.isEditable['name'].SetValue(self.torrent.name)
-                    
-                if not self.isEditable['description'].IsChanged():
-                    self.isEditable['description'].SetValue(self.torrent.description or '')
+            if not curTorrent.exactCopy(newTorrent):
+                #replace current torrent
+                curTorrent.swift_hash = newTorrent.swift_hash
+                curTorrent.swift_torrent_hash = newTorrent.swift_torrent_hash
+                curTorrent.torrent_file_name = newTorrent.torrent_file_name
+                
+                curTorrent.name = newTorrent.name
+                curTorrent.length = newTorrent.length
+                curTorrent.category_id = newTorrent.category_id
+                curTorrent.status_id = newTorrent.status_id
+                curTorrent.num_seeders = newTorrent.num_seeders
+                curTorrent.num_leechers = newTorrent.num_leechers
             
+                self._addOverview(self.overview, self.torrentSizer)
+                if self.canEdit:
+                    if not self.isEditable['name'].IsChanged():
+                        self.isEditable['name'].SetValue(curTorrent.name)
+                        
+                    if not self.isEditable['description'].IsChanged():
+                        self.isEditable['description'].SetValue(curTorrent.description or '')
+            
+            elif curTorrent.num_seeders != newTorrent.num_seeders or curTorrent.num_leechers != newTorrent.num_leechers:
+                curTorrent.num_seeders = newTorrent.num_seeders
+                curTorrent.num_leechers = newTorrent.num_leechers
+                self.ShowStatus(False)
     
     @forceDBThread
     def UpdateStatus(self):
@@ -1264,8 +1280,8 @@ class TorrentDetails(AbstractDetails):
                 diff = 1801
                 
             if diff > 1800:
-                TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
-                self.ShowStatus(True)
+                updating = TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
+                self.ShowStatus(updating)
             else:
                 self.ShowStatus(False)
         else:
@@ -1278,7 +1294,10 @@ class TorrentDetails(AbstractDetails):
             
             diff = time() - self.torrent.last_check
             if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
-                self.status.SetLabel("Unknown"+updating)
+                if self.torrent.status == 'good':
+                    self.status.SetLabel("Unknown, but found peers in the DHT")
+                else:
+                    self.status.SetLabel("Unknown"+updating)
             else:
                 if diff < 5:
                     self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent.num_seeders, self.torrent.num_leechers))
@@ -1297,7 +1316,7 @@ class TorrentDetails(AbstractDetails):
     
     def UpdateMarkings(self):
         if self.torrent.get('channeltorrent_id', False):
-            startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ),priority=GUI_PRI_DISPERSY)
+            startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
      
     @warnWxThread
     def ShowMarkings(self, delayedResult):
@@ -1480,7 +1499,7 @@ class LibraryDetails(TorrentDetails):
             print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']
         
         self.showRequestType('')
-        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent},priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent}, priority=GUI_PRI_DISPERSY)
         
         wx.CallLater(10000, self._timeout)
         
@@ -2318,10 +2337,13 @@ class SwarmHealth(wx.Panel):
             self.green = 0
             self.red = 0
         else:
-            if leechers == 0:
+            if leechers == 0 and seeders:
                 ratio = sys.maxint
             elif seeders == 0:
-                ratio = 0
+                if leechers:
+                    ratio = 0.01
+                else:
+                    ratio = 0
             else:
                 ratio = seeders/(leechers*1.0)
             
