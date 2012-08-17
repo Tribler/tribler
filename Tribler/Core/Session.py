@@ -285,6 +285,7 @@ class Session(SessionRuntimeConfig):
         @param initialdlstatus The initial download status of this Download 
         or None. This enables the caller to create a Download in e.g. 
         DLSTATUS_REPEXING state instead.
+        @param hidden Whether this torrent should be added to the mypreference table 
         @return Download
         """
         # locking by lm
@@ -322,7 +323,7 @@ class Session(SessionRuntimeConfig):
         # locking by lm
         return self.lm.get_download(hash)
     
-    def remove_download(self,d,removecontent=False, removestate=True):  
+    def remove_download(self,d,removecontent=False, removestate=True, hidden=False):  
         """
         Stops the download and removes it from the session.
         @param d The Download to remove
@@ -330,13 +331,15 @@ class Session(SessionRuntimeConfig):
         from disk.
         @param removestate    Whether to delete the metadata files of the downloaded
         content from disk.
+        @param hidden Whether this torrent is added to the mypreference table and this entry should be
+        removed
         """
         # locking by lm
         if d.get_def().get_def_type() == "torrent":
-            self.lm.remove(d,removecontent=removecontent,removestate=removestate)
+            self.lm.remove(d,removecontent=removecontent,removestate=removestate, hidden=hidden)
         else:
             # SWIFTPROC
-            self.lm.swift_remove(d,removecontent=removecontent,removestate=removestate)
+            self.lm.swift_remove(d,removecontent=removecontent,removestate=removestate, hidden=hidden)
         
     def remove_download_by_id(self, id, removecontent=False, removestate=True):
         """

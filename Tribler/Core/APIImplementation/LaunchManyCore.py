@@ -513,7 +513,7 @@ class TriblerLaunchMany(Thread):
                 print_exc()
                 d.set_error(e)
 
-    def remove(self,d,removecontent=False,removestate=True):
+    def remove(self,d,removecontent=False,removestate=True, hidden=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -524,7 +524,8 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
         
-        self.remove_id(infohash)
+        if not hidden:
+            self.remove_id(infohash)
     
     def remove_id(self, hash):
         #this is a bit tricky, as we do not know if this "id" is a roothash or infohash
@@ -1174,7 +1175,7 @@ class TriblerLaunchMany(Thread):
 
         return d
             
-    def swift_remove(self,d,removecontent=False,removestate=True):
+    def swift_remove(self,d,removecontent=False,removestate=True,hidden=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -1190,7 +1191,7 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
         
-        if self.torrent_db != None and self.mypref_db != None:
+        if not hidden and self.torrent_db != None and self.mypref_db != None:
             torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
             
             if torrent_id:

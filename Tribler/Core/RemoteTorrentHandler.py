@@ -3,7 +3,6 @@
 #
 # Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download. 
-#
 
 import sys
 import Queue
@@ -483,7 +482,7 @@ class TorrentRequester(Requester):
         # Arno, 2012-05-30: Make sure .mbinmap is written
         if not removestate and d.get_def().get_def_type() == 'swift':
             d.checkpoint()
-        self.session.remove_download(d, removestate = removestate)
+        self.session.remove_download(d, removestate = removestate, hidden = True)
             
 class TorrentMessageRequester(Requester):
     
