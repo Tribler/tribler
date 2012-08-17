@@ -53,8 +53,6 @@ def single_no_thread(torrent, multiscrapeCallback = None):
 
     trackers = [(-ioErrors.get(tracker, 0), tracker) for tracker in trackers if tracker.startswith('http') or tracker.startswith('udp')]
     trackers.sort(reverse = True) #sorting reverse will prefer udp over http trackers
-    print >> sys.stderr, trackers
-    
     for _, announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
         
