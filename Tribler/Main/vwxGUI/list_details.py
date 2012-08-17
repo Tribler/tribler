@@ -149,6 +149,7 @@ class TorrentDetails(AbstractDetails):
         self.canEdit = False
         self.canComment = False
         self.canMark = False
+        self.showDetails = False
         self.markWindow = None
         
         self.isEditable = {}
@@ -255,6 +256,7 @@ class TorrentDetails(AbstractDetails):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         
         self.overview = wx.Panel(self.notebook)
+        self.overview.Bind(wx.EVT_LEFT_DCLICK, self.OnOverviewToggle)
         def OnChange():
             self.overview.Layout()
 
@@ -589,11 +591,16 @@ class TorrentDetails(AbstractDetails):
             else:
                 del overviewColumns['Description']
                 overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
-
+                
         for column in overviewColumnsOrder:
             _, value = self._add_row(panel, vSizer, column, overviewColumns[column])
             if column == "Status":
                 self.status = value
+        
+        if self.showDetails:
+            textCtrl = wx.TextCtrl(panel, -1, self.torrent.infohash_as_hex)
+            textCtrl.SetEditable(False)
+            self._add_row(panel, vSizer, "Infohash", textCtrl)
         sizer.Add(vSizer, 1, wx.EXPAND)
             
         if self.canEdit:
@@ -1464,6 +1471,10 @@ class TorrentDetails(AbstractDetails):
             return True
         
         return False
+    
+    def OnOverviewToggle(self, event):
+        self.showDetails = not self.showDetails
+        self._addOverview(self.overview, self.torrentSizer)
     
     @warnWxThread               
     def __del__(self):

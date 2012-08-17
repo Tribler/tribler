@@ -1302,15 +1302,15 @@ class ChannelManager:
     
     def getTorrentFromChannel(self, channel, infohash, collectedOnly = True):
         data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
-        return self._createTorrent(data, channel, collectedOnly)
+        return self._createTorrent(data, channel, collectedOnly = collectedOnly)
     
     def getChannnelTorrents(self, infohash, filterTorrents = False):
         hits = self.channelcast_db.getChannelTorrents(infohash, CHANNEL_REQ_COLUMNS)
         return self._createTorrents(hits, filterTorrents)
     
-    def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id):
+    def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id, collectedOnly = True):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)
-        return self._createTorrent(data, channel)
+        return self._createTorrent(data, channel, collectedOnly = collectedOnly)
     
     def getTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
