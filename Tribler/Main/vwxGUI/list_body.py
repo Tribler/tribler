@@ -745,6 +745,10 @@ class AbstractListBody():
                     print >> sys.stderr, "ListBody: refresh item (Calling expandedPanel refreshdata)", self.items[key]
                 
                 panel.RefreshData(data)
+                
+        else:
+            self.data.append(data)
+            self.CreateItem(key)
     
     @warnWxThread
     def SetData(self, data = None, highlight = None, force = False):
