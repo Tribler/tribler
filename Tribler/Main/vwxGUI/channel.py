@@ -563,7 +563,7 @@ class SelectedChannelList(GenericSearchList):
     
             self._DoFavorite(channel)
         
-    @forceDBThread    
+    @forcePrioDBThread    
     def _DoFavorite(self, channel):
         id = channel.id
         #Request all items from connected peers
@@ -596,7 +596,7 @@ class SelectedChannelList(GenericSearchList):
             
             dialog.Destroy()
         
-    @forceDBThread
+    @forcePrioDBThread
     def _DoSpam(self, channel):
         #Set self.channel to None to prevent updating twice
         id = channel.id

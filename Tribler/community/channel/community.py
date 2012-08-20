@@ -63,6 +63,19 @@ def forceDispersyThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+def forcePrioDispersyThread(func):
+    def invoke_func(*args,**kwargs):
+        if not currentThread().getName()== 'Dispersy':
+            def dispersy_thread():
+                func(*args, **kwargs)
+            dispersy_thread.__name__ = func.__name__
+            register_task(dispersy_thread, priority = 1024)
+        else:
+            return func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
 def forceAndReturnDispersyThread(func):
     def invoke_func(*args,**kwargs):
         if not currentThread().getName()== 'Dispersy':

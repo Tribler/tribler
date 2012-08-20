@@ -20,7 +20,7 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 from Tribler.community.channel.community import ChannelCommunity,\
-    forceDispersyThread, forceAndReturnDispersyThread
+    forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
 from Tribler.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -1590,18 +1590,18 @@ class ChannelManager:
         except (KeyError, AttributeError):
             return None
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def createChannel(self, name, description):
         community = ChannelCommunity.create_community(self.session.dispersy_member)
         community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def createPlaylist(self, channel_id, name, description, infohashes = []):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.create_playlist(name, description, infohashes)
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         #detect changesmodification
         to_be_created = set(infohashes)
@@ -1625,7 +1625,7 @@ class ChannelManager:
             if len(to_be_removed) > 0:
                 community.remove_playlist_torrents(playlist_id, to_be_removed)
                
-    @forceDispersyThread 
+    @forcePrioDispersyThread 
     def addPlaylistTorrent(self, playlist, torrent):
         if not self.channelcast_db.playlistHasTorrent(playlist.id, torrent.channeltorrent_id):
             community = self._disp_get_community_from_channel_id(playlist.channel.id)
@@ -1798,7 +1798,7 @@ class ChannelManager:
         else:
             self.votecastdb.unsubscribe(channel_id)
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def do_vote_cid(self, dispersy_cid, vote, timestamp = None):
         if not timestamp:
             timestamp = int(time())
@@ -1809,12 +1809,12 @@ class ChannelManager:
                     community.disp_create_votecast(dispersy_cid, vote, timestamp)
                     break
                 
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def markTorrent(self, channel_id, infohash, type):
         community = self._disp_get_community_from_channel_id(channel_id)
         community._disp_create_mark_torrent(infohash, type, long(time()))
         
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def revertModification(self, channel, moderation, text, severity, revert_to):
         cause = moderation.dispersy_id
         
