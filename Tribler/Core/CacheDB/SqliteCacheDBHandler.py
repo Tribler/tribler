@@ -2098,7 +2098,6 @@ class TorrentDBHandler(BasicDBHandler):
             mhash_path = torrent_path + '.mhash'
             mbinmap_path = torrent_path + '.mbinmap'
             try:
-                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)                
                 if os.path.exists(torrent_path):
                     os.remove(torrent_path)
                 
@@ -2113,6 +2112,7 @@ class TorrentDBHandler(BasicDBHandler):
                 print_exc()
                 #print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
+        print >> sys.stderr, "Erased %d torrents"%deleted  
         return deleted
 
     def hasMetaData(self, infohash):
