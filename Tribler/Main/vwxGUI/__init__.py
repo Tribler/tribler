@@ -14,7 +14,7 @@ from threading import Event
 
 #batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
-LIST_ITEM_MAX_SIZE = 250
+LIST_ITEM_MAX_SIZE = 50
 LIST_RATE_LIMIT = 1
 
 DEFAULT_BACKGROUND = wx.Colour(255,255,255)

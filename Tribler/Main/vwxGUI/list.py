@@ -708,8 +708,9 @@ class List(wx.BoxSizer):
                 manager = self.GetManager()
                 if manager:
                     manager.refreshDirty()
-                    
+            
             self.list.Layout()
+        self.list.Show(show)
             
     def ShowFooter(self, show = True):
         self.footer.Show(show)
