@@ -286,7 +286,8 @@ class SearchCommunity(Community):
     def on_taste_intro(self, messages):
         if USE_XOR_PREF:
             boot_messages = [message for message in messages if isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
-            self._disp_intro_handler(boot_messages)
+            if boot_messages:
+                self._disp_intro_handler(boot_messages)
             
             messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
             

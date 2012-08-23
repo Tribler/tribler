@@ -23,7 +23,7 @@ class SearchConversion(BinaryConversion):
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        if isinstance(message.payload, TasteIntroPayload):
+        if isinstance(message.payload._meta, TasteIntroPayload):
             if message.payload.taste_bloom_filter:
                 data.extend((pack('!IBH', message.payload.num_preferences, message.payload.taste_bloom_filter.functions, message.payload.taste_bloom_filter.size), message.payload.taste_bloom_filter.prefix, message.payload.taste_bloom_filter.bytes))
         elif message.payload.preference_list:
@@ -37,7 +37,7 @@ class SearchConversion(BinaryConversion):
         #if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
-            if isinstance(payload, TasteIntroPayload):
+            if isinstance(payload._meta, TasteIntroPayload):
                 if len(data) < offset + 8:
                     raise DropPacket("Insufficient packet size")
                 
