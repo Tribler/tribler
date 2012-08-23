@@ -65,6 +65,8 @@ class SearchCommunity(Community):
 #OACmKXT1V0kQ11Fm1lKduvAW54CQr7+vg3M=
 #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373".decode("HEX")
+        if USE_XOR_PREF:
+            master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404a041c3a8415021f193ef0614360b4d99ac8f985eff2259f88f1f64070ae2bcc21c473c9c0b958b39da9ae58d6d0aec316341f65bd7daa42ffd73f5eeee53aa6199793f98afc47f008a601cd659479f801157e7dd69525649d8eec7885bd0d832746c46d067c60341a6d84b12a6e5d3ce25e20352ed8e0ff311e74b801c06286a852976bdba67dfe62dfb75a5b9c0d2".decode("HEX")
         master = Member(master_key)
         return [master]
 
@@ -116,8 +118,8 @@ class SearchCommunity(Community):
                 Message(self, u"torrent-collect-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentCollectRequestPayload(), self.check_torrent_collect_request, self.on_torrent_collect_request),
                 Message(self, u"torrent-collect-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentCollectResponsePayload(), self.check_torrent_collect_response, self.on_torrent_collect_response),
                 Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self.check_torrent, self.on_torrent),
-                Message(self, u"xor-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), XorRequestPayload(), self.check_xor, self.on_xor_request),
-                Message(self, u"xor-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), XorResponsePayload(), self.check_xor, self.on_xor_response)
+                Message(self, u"xor-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), XorRequestPayload(), self.check_search_response, self.on_xor_request),
+                Message(self, u"xor-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), XorResponsePayload(), self.check_search_response, self.on_xor_response)
                 ]
         
     def _initialize_meta_messages(self):
@@ -240,7 +242,7 @@ class SearchCommunity(Community):
                 max_len = self.dispersy_sync_bloom_filter_bits/8
                 limit = int(max_len/20)
                 
-                myPreferences = self._mypref_db.getMyPrefListInfohash(limit = limit)
+                myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(limit = limit) if preference]
                 myPreferences = self.__doXOR(myPreferences, XOR_FMT, xor)
                 
                 identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(None, xor, None, None))
@@ -262,9 +264,15 @@ class SearchCommunity(Community):
                     self.taste_bloom_filter_key = myPref_key
     
                 taste_bloom_filter = self.taste_bloom_filter
+
+                identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
                 payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, num_preferences, taste_bloom_filter)
         else:
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, 0, None)
+            identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+            if USE_XOR_PREF:
+                payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, None)
+            else:
+                payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, 0, None)
                 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -280,10 +288,12 @@ class SearchCommunity(Community):
             boot_messages = [message for message in messages if isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
             self._disp_intro_handler(boot_messages)
             
+            messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+            
             #1. fetch my preferences
             max_len = self.dispersy_sync_bloom_filter_bits/8
             limit = int(max_len/20)
-            myPreferences = self._mypref_db.getMyPrefListInfohash(limit = limit)
+            myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(limit = limit) if preference]
             
             for message in messages:
                 #2. generate random xor-key with the same length as an infohash

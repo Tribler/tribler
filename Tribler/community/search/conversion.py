@@ -26,7 +26,7 @@ class SearchConversion(BinaryConversion):
         if isinstance(message.payload, TasteIntroPayload):
             if message.payload.taste_bloom_filter:
                 data.extend((pack('!IBH', message.payload.num_preferences, message.payload.taste_bloom_filter.functions, message.payload.taste_bloom_filter.size), message.payload.taste_bloom_filter.prefix, message.payload.taste_bloom_filter.bytes))
-        else:
+        elif message.payload.preference_list:
             fmt = '20s'*len(message.payload.preference_list)
             data.append(pack('!'+fmt, *message.payload.preference_list))
         return data
