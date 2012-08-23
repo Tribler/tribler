@@ -197,9 +197,9 @@ class SearchCommunity(Community):
         if myPrefs > 0 and hisPrefs > 0:
             myRoot = 1.0/(myPrefs ** .5)
             sim = overlap * (myRoot * (1.0/(hisPrefs ** .5)))
-            return sim, time(), candidate
+            return [sim, time(), candidate]
         
-        return 0, time(), candidate
+        return [0, time(), candidate]
             
     class SimilarityRequest(Cache):
         timeout_delay = 30.0
