@@ -221,7 +221,7 @@ class SearchCommunity(Community):
             overlap = 0
             for pref in self.myList:
                 if pref in self.hisList:
-                    pref += 1
+                    overlap += 1
                     
             return len(self.myList), len(self.hisList), overlap
     
