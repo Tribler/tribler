@@ -55,7 +55,7 @@ class XorRequestPayload(Payload):
                     assert isinstance(preference, str), type(preference)
                     assert len(preference) == 20
                     
-            super(SearchRequestPayload.Implementation, self).__init__(meta)
+            super(XorRequestPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._preference_list = preference_list
 
