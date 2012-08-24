@@ -205,11 +205,13 @@ class SearchCommunity(Community):
         timeout_delay = 30.0
         cleanup_delay = 0.0
 
-        def __init__(self, intro_request, xor, myList, hisList):
+        def __init__(self, intro_request, xor, myList, hisList, myPref):
             self.intro_request = intro_request
             self.xor = xor
             self.myList = myList
             self.hisList = hisList
+            
+            self.myPref = myPref
 
         def on_timeout(self):
             pass
@@ -224,6 +226,21 @@ class SearchCommunity(Community):
                     overlap += 1
                     
             return len(self.myList), len(self.hisList), overlap
+        
+        def guess_xor(self, community):
+            #1. remove my xor
+            hisWithoutMy = community.__doXOR(self.hisList, XOR_FMT, self.xor)
+            
+            #2. xor every infohash
+            possibles = {}
+            for infohash in self.myPref:
+                xor = unpack(XOR_FMT, infohash)
+                for possible in community.__doXOR(hisWithoutMy, XOR_FMT, xor):
+                    possibles[possible] = possibles.get(possible, 0) + 1
+            
+            #3. check for possibles which occur for every infohash
+            possibles = [key for key, value in possibles.iteritems() if value == len(self.myPref)]
+            print >> sys.stderr, "guessed xor", possibles
     
     def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
@@ -238,14 +255,15 @@ class SearchCommunity(Community):
         if not isinstance(destination, BootstrapCandidate):
             if USE_XOR_PREF:
                 xor = unpack(XOR_FMT, urandom(20))
+                print >> sys.stderr, "choosing xor", xor
                 
                 max_len = self.dispersy_sync_bloom_filter_bits/8
                 limit = int(max_len/20)
                 
                 myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(limit = limit) if preference]
-                myPreferences = self.__doXOR(myPreferences, XOR_FMT, xor)
+                identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(None, xor, None, None, myPreferences))
                 
-                identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(None, xor, None, None))
+                myPreferences = self.__doXOR(myPreferences, XOR_FMT, xor)
                 payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences)
             else:
                 myPreferences = self._mypref_db.getMyPrefListInfohash(limit = 500)
@@ -299,13 +317,14 @@ class SearchCommunity(Community):
             for message in messages:
                 #2. generate random xor-key with the same length as an infohash
                 xor = unpack(XOR_FMT, urandom(20))
+                print >> sys.stderr, "choosing xor", xor
                 
                 #3. use the xor key to "encrypt" mypreferences, and his
                 myList = self.__doXOR(myPreferences[:], XOR_FMT, xor)
                 hisList = self.__doXOR(message.payload.preference_list, XOR_FMT, xor)
     
                 #4. claim an identifier to remember hislist
-                self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SimilarityRequest(message, xor, None, hisList))
+                self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SimilarityRequest(message, xor, None, hisList, myPreferences))
                 
                 #5. create two messages, one containing hislist encrypted with my xor-key, the other mylist only encrypted by my xor-key
                 meta = self.get_meta_message(u"xor-response")
@@ -361,6 +380,7 @@ class SearchCommunity(Community):
             if my_request:
                 my_request.hisList = self.__doXOR(message.payload.preference_list, XOR_FMT, my_request.xor)
                 if my_request.is_complete():
+                    my_request.guess_xor(self)
                     self.__process(message.candidate, my_request)
             
     def on_xor_response(self, messages):
@@ -369,6 +389,7 @@ class SearchCommunity(Community):
             if my_request:
                 my_request.myList = message.payload.preference_list
                 if my_request.is_complete():
+                    my_request.guess_xor(self)
                     self.__process(message.candidate, my_request)
             
     class SearchRequest(Cache):
