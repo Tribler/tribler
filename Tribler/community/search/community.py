@@ -182,7 +182,7 @@ class SearchCommunity(Community):
                 sock_addresses.add(candidate.sock_addr)
         return candidates
     
-    def __doXOR(self, preferences, fmt, xor):
+    def _doXOR(self, preferences, fmt, xor):
         returnList = []
         for preference in preferences:
             parts = []
@@ -229,13 +229,13 @@ class SearchCommunity(Community):
         
         def guess_xor(self, community):
             #1. remove my xor
-            hisWithoutMy = community.__doXOR(self.hisList, XOR_FMT, self.xor)
+            hisWithoutMy = community._doXOR(self.hisList, XOR_FMT, self.xor)
             
             #2. xor every infohash
             possibles = {}
             for infohash in self.myPref:
                 xor = unpack(XOR_FMT, infohash)
-                for possible in community.__doXOR(hisWithoutMy, XOR_FMT, xor):
+                for possible in community._doXOR(hisWithoutMy, XOR_FMT, xor):
                     possibles[possible] = possibles.get(possible, 0) + 1
             
             #3. check for possibles which occur for every infohash
@@ -263,7 +263,7 @@ class SearchCommunity(Community):
                 myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(limit = limit) if preference]
                 identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(None, xor, None, None, myPreferences))
                 
-                myPreferences = self.__doXOR(myPreferences, XOR_FMT, xor)
+                myPreferences = self._doXOR(myPreferences, XOR_FMT, xor)
                 payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences)
             else:
                 myPreferences = self._mypref_db.getMyPrefListInfohash(limit = 500)
@@ -320,8 +320,8 @@ class SearchCommunity(Community):
                 print >> sys.stderr, "choosing xor", xor
                 
                 #3. use the xor key to "encrypt" mypreferences, and his
-                myList = self.__doXOR(myPreferences[:], XOR_FMT, xor)
-                hisList = self.__doXOR(message.payload.preference_list, XOR_FMT, xor)
+                myList = self._doXOR(myPreferences[:], XOR_FMT, xor)
+                hisList = self._doXOR(message.payload.preference_list, XOR_FMT, xor)
     
                 #4. claim an identifier to remember hislist
                 self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SimilarityRequest(message, xor, None, hisList, myPreferences))
@@ -378,7 +378,7 @@ class SearchCommunity(Community):
         for message in messages:
             my_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SimilarityRequest)
             if my_request:
-                my_request.hisList = self.__doXOR(message.payload.preference_list, XOR_FMT, my_request.xor)
+                my_request.hisList = self._doXOR(message.payload.preference_list, XOR_FMT, my_request.xor)
                 if my_request.is_complete():
                     my_request.guess_xor(self)
                     self.__process(message.candidate, my_request)
