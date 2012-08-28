@@ -498,6 +498,22 @@ def get_bitrate_from_metainfo(file, metainfo):
                 return bitrate
             
         raise ValueError("File not found in torrent")
+    
+def get_length_from_metainfo(metainfo, selectedfiles):
+    if 'files' not in metainfo['info']:
+        # single-file torrent
+        return metainfo['info']['length']
+    else:
+        # multi-file torrent
+        files = metainfo['info']['files']
+
+        total = 0L
+        for i in xrange(len(files)):
+            path = files[i]['path']
+            length = files[i]['length']
+            if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
+                total += length
+        return total
 
 def get_length_priority_from_metainfo(metainfo, selectedfiles):
     if 'files' not in metainfo['info']:
@@ -512,9 +528,8 @@ def get_length_priority_from_metainfo(metainfo, selectedfiles):
         for i in xrange(len(files)):
             path = files[i]['path']
             length = files[i]['length']
-            filename = pathlist2filename(path)
 
-            if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
+            if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
                 priorities.append("1")
                 total += length
             else:

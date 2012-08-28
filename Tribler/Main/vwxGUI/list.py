@@ -1475,7 +1475,9 @@ class LibraryList(SizeList):
         if peers1 != peers2:
             return False
         
-        if ds1.get_progress() != ds2.get_progress():
+        ds1progress = long(ds1.get_progress() * 1000)/ 1000.0
+        ds2progress = long(ds2.get_progress() * 1000)/ 1000.0 
+        if ds1progress != ds2progress:
             return False
         
         #Compare size

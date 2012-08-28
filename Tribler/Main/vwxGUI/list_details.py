@@ -370,21 +370,21 @@ class TorrentDetails(AbstractDetails):
             #Add files
             files = self.torrent.files
             if isinstance(self, LibraryDetails):
-                if ds and ds.get_selected_files():
+                if ds:
                     selected_files = ds.get_selected_files()
-                     
-                    def sort_by_selected_name(a, b):
-                        aSelected = a[0] in selected_files
-                        bSelected = b[0] in selected_files
+                    if selected_files:
+                        def sort_by_selected_name(a, b):
+                            aSelected = a[0] in selected_files
+                            bSelected = b[0] in selected_files
+                            
+                            if aSelected != bSelected:
+                                if aSelected:
+                                    return -1
+                                return 1
+                            
+                            return cmp(a[0],b[0])
                         
-                        if aSelected != bSelected:
-                            if aSelected:
-                                return -1
-                            return 1
-                        
-                        return cmp(a[0],b[0])
-                    
-                    files.sort(sort_by_selected_name)
+                        files.sort(sort_by_selected_name)
             else:
                 keywords = ' | '.join(self.guiutility.current_search_query)
                 def sort_by_keywords(a, b):
@@ -1895,33 +1895,33 @@ class LibraryDetails(TorrentDetails):
                 self.availability.sizer.Layout()
 
             dsprogress = ds.get_progress()
+            #Niels: 28-08-2012 rounding to prevent updating too many times
+            dsprogress = long(dsprogress * 1000) / 1000.0
             if self.old_progress != dsprogress:
-                if ds.get_download().get_def().get_def_type() == 'swift':
-                    completion = []
-                    
+                completion = {}
+                
+                useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
+                if useSimple:
                     selected_files = ds.get_download().get_selected_files()
                     if selected_files:
                         for i in range(self.listCtrl.GetItemCount()):
                             file = self.listCtrl.GetItem(i, 0).GetText()
                             if file in selected_files:
-                                completion.append([file, dsprogress])
+                                completion[file] = dsprogress
                     else:
                         for i in range(self.listCtrl.GetItemCount()):
-                            completion.append([self.listCtrl.GetItem(i, 0).GetText(), dsprogress])
+                            completion[self.listCtrl.GetItem(i, 0).GetText()] =  dsprogress
                 else:
-                    completion = ds.get_files_completion()
-                
+                    for file, progress in ds.get_files_completion():
+                        completion[file] = progress
+
                 for i in range(self.listCtrl.GetItemCount()):
                     listfile = self.listCtrl.GetItem(i, 0).GetText()
                     
-                    found = False
-                    for file, progress in completion:
-                        if file == listfile:
-                            self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
-                            found = True
-                            break
-                        
-                    if not found:
+                    progress = completion.get(listfile, None)
+                    if progress:
+                        self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
+                    else:
                         self.listCtrl.SetStringItem(i, 2, 'Excluded')
                 
                 self.old_progress = dsprogress

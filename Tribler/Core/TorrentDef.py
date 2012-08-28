@@ -1093,8 +1093,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
         
-        (length,filepieceranges) = maketorrent.get_length_filepieceranges_from_metainfo(self.metainfo,selectedfiles)
-        return length
+        return maketorrent.get_length_from_metainfo(self.metainfo,selectedfiles)
 
     def get_creation_date(self,default=0):
         if not self.metainfo_valid:

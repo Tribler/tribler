@@ -10,6 +10,7 @@ from Tribler.Main.vwxGUI.tribler_topButton import _set_font
 from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Swift import SwiftDef
+from Tribler.Core.TorrentDef import TorrentDef
 
 class AddTorrent(wx.Dialog):
     def __init__(self, parent, frame, libraryTorrents = None):
@@ -126,7 +127,37 @@ class AddTorrent(wx.Dialog):
             
             if self.frame.startDownloadFromTorrent(torrent):
                 self.EndModal(wx.ID_OK)
+
+    def __processPaths(self, paths):
+        filenames = []
+        for file in paths:
+            if file.endswith('.torrent'):
+                filenames.append(file)
         
+        cancel = len(filenames) == 0
+        if len(filenames) > 10:
+            warning = wx.MessageDialog(self, "This will add %d .torrents, are you sure?"%len(filenames), "Please confirm Add", wx.OK|wx.CANCEL|wx.ICON_WARNING)
+            if warning.ShowModal() != wx.ID_OK:
+                cancel = True
+                
+            warning.Destroy()
+        
+        if not cancel:
+            destdir = self.defaultDLConfig.get_dest_dir()
+            if self.choose and self.choose.IsChecked():
+                torrentfilename = None
+                if len(filenames) == 1:
+                    torrentfilename = filenames[0]
+                destdir = self._GetDestPath(torrentfilename)
+                if not destdir:
+                    return
+                
+            if getattr(self.frame, 'startDownloads', False):
+                self.frame.startDownloads(filenames, fixtorrent = True, destdir = destdir)
+            else:
+                for filename in filenames:
+                    self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
+
     def OnBrowse(self, event):
         dlg = wx.FileDialog(None, "Please select the .torrent file(s).", wildcard = "torrent (*.torrent)|*.torrent", style = wx.FD_OPEN|wx.FD_MULTIPLE)
         
@@ -137,18 +168,7 @@ class AddTorrent(wx.Dialog):
             filenames = dlg.GetPaths()
             dlg.Destroy()
             
-            destdir = self.defaultDLConfig.get_dest_dir()
-            if self.choose and self.choose.IsChecked():
-                destdir = self._GetDestPath()
-                if not destdir:
-                    return
-            
-            if getattr(self.frame, 'startDownloads', False):
-                self.frame.startDownloads(filenames, fixtorrent = True, destdir = destdir)
-            else:
-                for filename in filenames:
-                    self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
-                
+            self.__processPaths(filenames)
             self.EndModal(wx.ID_OK)
         else:
             dlg.Destroy()
@@ -160,35 +180,10 @@ class AddTorrent(wx.Dialog):
         dlg.SetPath(path)
         
         if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
-            filenames = []
-            files = os.listdir(dlg.GetPath())
-            
-            for file in files:
-                if file.endswith('.torrent'):
-                    filenames.append(os.path.join(dlg.GetPath(), file))
-            
-            cancel = False
-            if len(filenames) > 10:
-                warning = wx.MessageDialog(self, "This will add %d .torrents, are you sure?"%len(filenames), "Please confirm Add", wx.OK|wx.CANCEL|wx.ICON_WARNING)
-                if warning.ShowModal() != wx.ID_OK:
-                    cancel = True
-                    
-                warning.Destroy()
-                
-            if not cancel:
-                destdir = self.defaultDLConfig.get_dest_dir()
-                if self.choose and self.choose.IsChecked():
-                    destdir = self._GetDestPath()
-                    if not destdir:
-                        return
-                    
-                if getattr(self.frame, 'startDownloads', False):
-                    self.frame.startDownloads(filenames, fixtorrent = True, destdir = destdir)
-                else:
-                    for filename in filenames:
-                        self.frame.startDownload(filename, fixtorrent = True, destdir = destdir)
-            
+            filenames = [os.path.join(dlg.GetPath(), file) for file in os.listdir(dlg.GetPath())]
             dlg.Destroy()
+            
+            self.__processPaths(filenames)
             self.EndModal(wx.ID_OK)
             
         dlg.Destroy()
@@ -209,8 +204,11 @@ class AddTorrent(wx.Dialog):
             
         dlg.Destroy()
     
-    def _GetDestPath(self):
-        dlg = SaveAs(self, None, self.defaultDLConfig.get_dest_dir(), None, os.path.join(self.frame.utility.session.get_state_dir(), 'recent_download_history'))
+    def _GetDestPath(self, torrentfilename = None):
+        tdef = None
+        if torrentfilename:
+            tdef = TorrentDef.load(torrentfilename)
+        dlg = SaveAs(self, tdef, self.defaultDLConfig.get_dest_dir(), None, os.path.join(self.frame.utility.session.get_state_dir(), 'recent_download_history'))
         id = dlg.ShowModal()
         
         if id == wx.ID_OK:

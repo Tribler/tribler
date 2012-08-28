@@ -57,6 +57,7 @@ class DownloadState(Serializable):
         
         self.haveslice = None
         self.stats = None
+        self.length = None
 
         # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
         # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
@@ -86,6 +87,8 @@ class DownloadState(Serializable):
                 self.progress = 0.0
             else:
                 self.progress = stats['frac']
+                if 'wanted' in stats:
+                    self.length = stats['wanted']
                 
         else:
             # Copy info from stats
@@ -279,8 +282,8 @@ class DownloadState(Serializable):
         """
         if self.stats is None or self.stats.get('spew', None) is None:
             total = self.get_num_peers()
-            seeds = self.get_num_nonseeds()
-            return (seeds, total-seeds)
+            non_seeds = self.get_num_nonseeds()
+            return (total- non_seeds, non_seeds)
         
         total = len(self.stats['spew'])
         seeds = len([i for i in self.stats['spew'] if i['completed'] == 1.0])
@@ -340,22 +343,21 @@ class DownloadState(Serializable):
         return completion
     
     def get_selected_files(self):
-        if self.filepieceranges:
-            files = []
-            for _, _, f in self.filepieceranges:
-                files.append(f)
-            return files
+        selected_files = self.download.get_selected_files()
+        if len(selected_files) > 0:
+            return selected_files
         
     def get_length(self):
-        if len(self.download.get_selected_files()) > 0:
-            files = self.download.get_selected_files()
-        else:
-            files = None
-        cdef = self.download.get_def()
-        if cdef.get_def_type() == "torrent":
-            return cdef.get_length(files)
-        else:
-            return self.download.get_dynasize()
+        #Niels: 28/08/2012 for larger .torrent this methods gets quite expensive, cache the result to prevent us calculating this unnecessarily.
+        if not self.length:
+            files = self.get_selected_files()
+            
+            cdef = self.download.get_def()
+            if cdef.get_def_type() == "torrent":
+                self.length = cdef.get_length(files)
+            else:
+                self.length = self.download.get_dynasize()
+        return self.length
         
     def get_availability(self):
         """ Return overall the availability of all pieces, using connected peers
