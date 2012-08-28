@@ -1505,7 +1505,7 @@ class TorrentDBHandler(BasicDBHandler):
         parameters = parameters[:-1]
         
         sql = "SELECT torrent_id, infohash, swift_torrent_hash FROM Torrent WHERE infohash in ("+parameters+") or swift_torrent_hash in ("+parameters+")"
-        values = [infohash for infohash, _ in torrents] + [roothash for _,roothash in torrents]
+        values = [infohash for infohash,_ in torrents] + [roothash for _,roothash in torrents]
         results = self._db.fetchall(sql, values)
         
         info_dict = {}
@@ -2108,7 +2108,9 @@ class TorrentDBHandler(BasicDBHandler):
                     os.remove(mbinmap_path)
                 
                 deleted += 1
-            except Exception, msg:
+            except WindowsError:
+                pass
+            except Exception:
                 print_exc()
                 #print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
