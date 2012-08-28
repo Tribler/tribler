@@ -148,6 +148,7 @@ CALL c:\Python273\Scripts\scons -c
 CALL win32-build.bat
 cd ..\..
 copy swift.exe dist\installdir
+svn ci swift.exe -m "auto-commit during build"
 
 @echo Running NSIS
 cd dist\installdir
