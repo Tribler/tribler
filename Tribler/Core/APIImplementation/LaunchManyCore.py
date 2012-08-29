@@ -530,7 +530,7 @@ class TriblerLaunchMany(Thread):
     def remove_id(self, hash):
         #this is a bit tricky, as we do not know if this "id" is a roothash or infohash
         #however a restart will re-add the preference to mypreference if we remove the wrong one
-        if self.torrent_db != None and self.mypref_db != None:
+        def do_db(torrent_db, mypref_db, hash):
             torrent_id = self.torrent_db.getTorrentID(hash)
             if torrent_id:    
                 self.mypref_db.updateDestDir(torrent_id,"")
@@ -538,6 +538,9 @@ class TriblerLaunchMany(Thread):
             torrent_id = self.torrent_db.getTorrentIDRoot(hash)
             if torrent_id:    
                 self.mypref_db.updateDestDir(torrent_id,"")
+        
+        if self.torrent_db != None and self.mypref_db != None:
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, hash))
 
     def get_downloads(self):
         """ Called by any thread """
@@ -1165,13 +1168,16 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
             
-        if d and not hidden and self.torrent_db != None and self.mypref_db != None:
-            torrent_id = self.torrent_db.addOrGetTorrentIDRoot(roothash, sdef.get_name())
+        def do_db(torrent_db, mypref_db, roothash, sdef, d):
+            torrent_id = torrent_db.addOrGetTorrentIDRoot(roothash, sdef.get_name())
             
             # TODO: if user renamed the dest_path for single-file-torrent
             dest_path = d.get_dest_dir()
             data = {'destination_path':dest_path}
-            self.mypref_db.addMyPreference(torrent_id, data)
+            mypref_db.addMyPreference(torrent_id, data)
+        
+        if d and not hidden and self.torrent_db != None and self.mypref_db != None:
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash, sdef, d))
 
         return d
             
@@ -1191,11 +1197,14 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
         
-        if not hidden and self.torrent_db != None and self.mypref_db != None:
+        def do_db(torrent_db, my_prefdb, roothash):
             torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
             
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")
+        
+        if not hidden and self.torrent_db != None and self.mypref_db != None:
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash))
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the
