@@ -222,7 +222,7 @@ class SQLiteCacheDBBase:
         self.status_table = None
         self.category_table = None
         self.src_table = None
-        self.applied_pragma_sync_norm = False
+        self.applied_pragma = False
         
     def __del__(self):
         self.close()
@@ -295,7 +295,19 @@ class SQLiteCacheDBBase:
         cur = con.cursor()
         self.cursor_table[thread_name] = cur
         
-        if not self.applied_pragma_sync_norm:
+        if not self.applied_pragma:
+            self.applied_pragma = True 
+            page_size, = next(cur.execute("PRAGMA page_size"))
+            if page_size < 8192:
+                # journal_mode and page_size only need to be set once.  because of the VACUUM this
+                # is very expensive
+                print >> sys.stderr, "begin page_size upgrade..."
+                cur.execute("PRAGMA journal_mode = DELETE;")
+                cur.execute("PRAGMA page_size = 8192;")
+                cur.execute("VACUUM;")
+                cur.execute("PRAGMA journal_mode = WAL;")
+                print >> sys.stderr, "...end page_size upgrade"
+
             # http://www.sqlite.org/pragma.html
             # When synchronous is NORMAL, the SQLite database engine will still
             # pause at the most critical moments, but less often than in FULL 
@@ -305,7 +317,6 @@ class SQLiteCacheDBBase:
             # catastrophic disk failure or some other unrecoverable hardware 
             # fault.
             #
-            self.applied_pragma_sync_norm = True 
             cur.execute("PRAGMA synchronous = NORMAL;")
             cur.execute("PRAGMA cache_size = 10000;")
             
@@ -2161,7 +2172,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if fromver < 16:
             self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
 
-            
     def clean_db(self, vacuum = False):
         from time import time
         
