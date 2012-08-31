@@ -1501,12 +1501,18 @@ class TorrentDBHandler(BasicDBHandler):
     def on_torrent_collect_response(self, torrents):
         torrents = [(bin2str(torrent[0]), bin2str(torrent[1])) for torrent in torrents] 
                  
-        parameters = '?,'*len(torrents)
-        parameters = parameters[:-1]
         
-        sql = "SELECT torrent_id, infohash, swift_torrent_hash FROM Torrent WHERE infohash in ("+parameters+") or swift_torrent_hash in ("+parameters+")"
-        values = [infohash for infohash,_ in torrents] + [roothash for _,roothash in torrents]
-        results = self._db.fetchall(sql, values)
+        infohashes = [infohash for infohash,_ in torrents if infohash]
+        roothashes = [roothash for _,roothash in torrents if roothash]
+        
+        i_parameters = '?,'*len(infohashes)
+        i_parameters = i_parameters[:-1]
+        
+        r_parameters = '?,'*len(roothashes)
+        r_parameters = r_parameters[:-1]
+        
+        sql = "SELECT torrent_id, infohash, swift_torrent_hash FROM Torrent WHERE infohash in ("+i_parameters+") or swift_torrent_hash in ("+r_parameters+")"
+        results = self._db.fetchall(sql, infohashes + roothashes)
         
         info_dict = {}
         root_dict = {}       
