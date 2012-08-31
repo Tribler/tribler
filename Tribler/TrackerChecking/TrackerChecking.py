@@ -124,11 +124,15 @@ def getUrl(announce, info_hashes):
         host = url.netloc
         try:
             port = int(url.port)
+            
         except:
             port = 80
         
         if host.find(':') > 0:
-            port = int(host[host.find(':')+1:])
+            try:
+                port = int(host[host.find(':')+1:])
+            except:
+                port = 80
             host = host[:host.find(':')]
         
         return (host, port)
