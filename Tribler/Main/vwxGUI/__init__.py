@@ -68,6 +68,17 @@ def format_size(val):
     size = (val/1048576.0)
     return "%.0f MB"%size
 
+def showError(textCtrl):
+    def setColours(ctrl, fore, back):
+        ctrl.SetForegroundColour(fore)
+        ctrl.SetBackgroundColour(back)
+        ctrl.Refresh()
+    
+    curFore = textCtrl.GetForegroundColour()
+    curBack = textCtrl.GetBackgroundColour()
+    setColours(textCtrl, wx.WHITE, wx.RED)
+    wx.CallLater(2000, setColours, textCtrl, curFore, curBack)
+
 TRHEADING_DEBUG = False
 
 def forceWxThread(func):

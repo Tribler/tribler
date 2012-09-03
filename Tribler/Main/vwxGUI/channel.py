@@ -1647,24 +1647,28 @@ class ManageChannel(XRCPanel, AbstractDetails):
         XRCPanel.Show(self, show)
     
     def Save(self, event = None):
-        if self.channel:
-            changes = {}
-            if self.name.IsChanged():
-                changes['name'] = self.name.GetValue()
-            if self.description.IsChanged():
-                changes['description'] = self.description.GetValue()
+        if self.name.GetValue():
+            if self.channel:
+                changes = {}
+                if self.name.IsChanged():
+                    changes['name'] = self.name.GetValue()
+                if self.description.IsChanged():
+                    changes['description'] = self.description.GetValue()
+                
+                self.channelsearch_manager.modifyChannel(self.channel.id, changes)
+            else:
+                self.channelsearch_manager.createChannel(self.name.GetValue(), self.description.GetValue())
             
-            self.channelsearch_manager.modifyChannel(self.channel.id, changes)
-        else:
-            self.channelsearch_manager.createChannel(self.name.GetValue(), self.description.GetValue())
+            self.name.Saved()
+            self.description.Saved()
         
-        self.name.Saved()
-        self.description.Saved()
-        
-        if event:
-            button = event.GetEventObject()
-            button.Enable(False)
-            wx.CallLater(5000, button.Enable, True)
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                wx.CallLater(5000, button.Enable, True)
+                
+        elif sys.platform != 'darwin':
+            showError(self.name)
         
     def SaveSettings(self, event):
         state = self.statebox.GetSelection()
