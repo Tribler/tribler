@@ -24,6 +24,51 @@ class TasteIntroPayload(IntroductionRequestPayload):
         @property
         def taste_bloom_filter(self):
             return self._taste_bloom_filter
+        
+class XorTasteIntroPayload(IntroductionRequestPayload):
+    class Implementation(IntroductionRequestPayload.Implementation):
+        
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, preference_list = None):
+            IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+            assert not preference_list or isinstance(preference_list, list), 'preferencelist should be list'
+            if preference_list:
+                for preference in preference_list:
+                    assert isinstance(preference, str), type(preference)
+                    assert len(preference) == 20
+            
+            self._preference_list = preference_list
+        
+        def set_preference_list(self, preference_list):
+            self._preference_list = preference_list
+        
+        @property
+        def preference_list(self):
+            return self._preference_list
+        
+class XorRequestPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, preference_list):
+            if __debug__:
+                assert isinstance(identifier, int), type(identifier)
+                assert isinstance(preference_list, list), 'preferencelist should be list'
+                for preference in preference_list:
+                    assert isinstance(preference, str), type(preference)
+                    assert len(preference) == 20
+                    
+            super(XorRequestPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._preference_list = preference_list
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def preference_list(self):
+            return self._preference_list
+        
+class XorResponsePayload(XorRequestPayload):
+    pass
 
 class SearchRequestPayload(Payload):
     class Implementation(Payload.Implementation):

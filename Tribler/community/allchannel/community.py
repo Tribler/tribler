@@ -384,16 +384,26 @@ class AllChannelCommunity(Community):
                 if channel_id:
                     channel_ids[cid] = channel_id
                 else:
-                    communities[cid] = self._get_channel_community(message.payload.cid)
+                    communities[cid] = self._get_channel_community(cid)
             
             for message in messages:
                 if __debug__: dprint(message)
                 
                 community = communities.get(message.payload.cid)
                 if community:
+                    assert community.cid == message.payload.cid
+                    # at this point we should NOT have the channel message for this community
+                    if __debug__:
+                        try:
+                            self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ?", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                        except StopIteration:
+                            pass
+                        else:
+                            import thread
+                            assert False, ["We already have the channel message... no need to wait for it", community.cid.encode("HEX"), thread.get_ident()]
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
                 else:
-                    message.channel_id = channel_id
+                    message.channel_id = channel_ids[message.payload.cid]
                     yield message
 
             # ensure that no commits occur

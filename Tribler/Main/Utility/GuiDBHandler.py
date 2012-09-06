@@ -21,6 +21,7 @@ from random import randint
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
 GUI_PRI_DISPERSY = 99
+DEFAULT_PRI_DISPERSY = 0
 
 DEBUG = False
 
@@ -252,7 +253,7 @@ def startWorker(
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
     uId=None, retryOnBusy=False, 
-    priority=0, workerType="dbThread"):
+    priority=DEFAULT_PRI_DISPERSY, workerType="dbThread"):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs) 
     running in separate thread, to a consumer(*cargs, **ckwargs) running in

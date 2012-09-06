@@ -105,7 +105,7 @@ class ChannelManager():
                 self._on_data(total_items, nrfiltered, torrentList, playlists)
         
         if self.list.channel:
-            startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -350,7 +350,7 @@ class SelectedChannelList(GenericSearchList):
             self.SetNrResults(nr_torrents)
             
             if channel.isDispersy():
-                startWorker(self.SetState, self.channel.getState, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+                startWorker(self.SetState, self.channel.getState, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
             else:
                 self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
         else:
@@ -563,7 +563,7 @@ class SelectedChannelList(GenericSearchList):
     
             self._DoFavorite(channel)
         
-    @forceDBThread    
+    @forcePrioDBThread    
     def _DoFavorite(self, channel):
         id = channel.id
         #Request all items from connected peers
@@ -596,7 +596,7 @@ class SelectedChannelList(GenericSearchList):
             
             dialog.Destroy()
         
-    @forceDBThread
+    @forcePrioDBThread
     def _DoSpam(self, channel):
         #Set self.channel to None to prevent updating twice
         id = channel.id
@@ -727,17 +727,24 @@ class SelectedChannelList(GenericSearchList):
                 return self.channelsearch_manager.getNrTorrentsDownloaded(channel.id) + 1
         
         if not self.channel.isFavorite():
-            startWorker(do_gui, do_db, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(do_gui, do_db, retryOnBusy=True)
         else:
             GenericSearchList.StartDownload(self, torrent, files)
         
     def _ShowFavoriteDialog(self, nrdownloaded):
+        def do_db(favorite):
+            if favorite:
+                self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
+            else:
+                self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
+        
         dial = wx.MessageDialog(None, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?"%nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
         if dial.ShowModal() == wx.ID_YES:
             self.OnFavorite()
-            self.uelog.addEvent(message="ChannelList: user clicked yes to mark as favorite", type = 2)
+            startWorker(None, do_db, wargs = (True, ))
         else:
-            self.uelog.addEvent(message="ChannelList: user clicked no to mark as favorite", type = 2)  
+            startWorker(None, do_db, wargs = (False, ))
+            
         dial.Destroy()
         
 class DragItem(ListItem):
@@ -818,7 +825,7 @@ class PlaylistManager():
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
             
         if self.list.playlist:            
-            startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         
     @forceDBThread
     def _refresh_partial(self, ids):
@@ -1005,7 +1012,7 @@ class ManageChannelFilesManager():
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents = False)
         
-        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh_%d"%self.channel.id, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh_%d"%self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -1159,10 +1166,10 @@ class ManageChannelPlaylistsManager():
             _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.channel)
             return playlistList
         
-        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh_%d"%self.channel.id, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh_%d"%self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
        
     def _refresh_partial(self, playlist_id):
-        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def SetChannel(self, channel):
         if channel != self.channel:
@@ -1177,28 +1184,28 @@ class ManageChannelPlaylistsManager():
         self.channelsearch_manager.removeAllPlaylists(self.channel)
     
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
     
     def GetTorrentsNotInPlaylist(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs = (self.channel,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
         
     def GetTorrentsFromPlaylist(self, playlist):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs = (playlist,), wkwargs = {'filterTorrents' : False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
     
     def createPlaylist(self, name, description, infohashes):
-        startWorker(None, self.channelsearch_manager.createPlaylist, wargs = (self.channel.id, name, description, infohashes), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.createPlaylist, wargs = (self.channel.id, name, description, infohashes), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def savePlaylist(self, playlist_id, name, description):
-        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs = (self.channel.id, playlist_id, name, description), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs = (self.channel.id, playlist_id, name, description), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def savePlaylistTorrents(self, playlist_id, infohashes):
-        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.channel.id, playlist_id, infohashes), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs = (self.channel.id, playlist_id, infohashes), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def playlistUpdated(self, playlist_id, modified = False):
         if self.list.InList(playlist_id):
@@ -1459,9 +1466,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             def update_panel(delayedResult):
                 try:
                     channel_state, iamModerator = delayedResult.get()
-                    
                 except:
-                    startWorker(update_panel, db_call, delay=1.0, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+                    startWorker(update_panel, db_call, delay=1.0, retryOnBusy=True)
                     return
                 
                 if iamModerator:
@@ -1502,7 +1508,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
                 self.Refresh()
                 #self.CreateJoinChannelFile()
                     
-            startWorker(update_panel, db_call, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(update_panel, db_call, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
             
         else:
             self.overviewheader.SetLabel('Welcome to the management interface for your channel. You currently do not yet have a channel, create one now.')
@@ -1641,24 +1647,28 @@ class ManageChannel(XRCPanel, AbstractDetails):
         XRCPanel.Show(self, show)
     
     def Save(self, event = None):
-        if self.channel:
-            changes = {}
-            if self.name.IsChanged():
-                changes['name'] = self.name.GetValue()
-            if self.description.IsChanged():
-                changes['description'] = self.description.GetValue()
+        if self.name.GetValue():
+            if self.channel:
+                changes = {}
+                if self.name.IsChanged():
+                    changes['name'] = self.name.GetValue()
+                if self.description.IsChanged():
+                    changes['description'] = self.description.GetValue()
+                
+                self.channelsearch_manager.modifyChannel(self.channel.id, changes)
+            else:
+                self.channelsearch_manager.createChannel(self.name.GetValue(), self.description.GetValue())
             
-            self.channelsearch_manager.modifyChannel(self.channel.id, changes)
-        else:
-            self.channelsearch_manager.createChannel(self.name.GetValue(), self.description.GetValue())
+            self.name.Saved()
+            self.description.Saved()
         
-        self.name.Saved()
-        self.description.Saved()
-        
-        if event:
-            button = event.GetEventObject()
-            button.Enable(False)
-            wx.CallLater(5000, button.Enable, True)
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                wx.CallLater(5000, button.Enable, True)
+                
+        elif sys.platform != 'darwin':
+            showError(self.name)
         
     def SaveSettings(self, event):
         state = self.statebox.GetSelection()
@@ -1666,7 +1676,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             state = 2
         elif state == 2:
             state = 0
-        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel.id, state), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel.id, state), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         
         button = event.GetEventObject()
         button.Enable(False)
@@ -2227,7 +2237,7 @@ class ModificationItem(AvantarItem):
         if isinstance(parent, wx.Dialog):
             self.noButton = True
         else:
-            self.noButton = False
+            self.noButton = not getattr(parent_list.parent_list, 'canModify', True)
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):
@@ -2380,7 +2390,7 @@ class CommentManager:
             return self.channelsearch_manager.getCommentsFromChannel(self.channel)
         
         if self.channel.isFavorite():
-            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
             self.list.dirty = False
@@ -2409,7 +2419,7 @@ class CommentManager:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash = self.channeltorrent.infohash)
             else:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
-        startWorker(None, workerFn=db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(None, workerFn=db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
             
     def removeComment(self, comment):
         self.channelsearch_manager.removeComment(comment, self.channel)
@@ -2656,7 +2666,7 @@ class ModificationManager:
             return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
         if self.torrent.channel.isFavorite():
-            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
             self.list.dirty = False
@@ -2669,9 +2679,10 @@ class ModificationManager:
         self.channelsearch_manager.revertModification(self.torrent.channel, modification, reason, severity, None)
 
 class ModificationList(List):
-    def __init__(self, parent):
+    def __init__(self, parent, canModify = True):
         List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
         self.header.SetTitle('Modifications of this torrent')
+        self.canModify = canModify
     
     def CreateHeader(self, parent):
         return TitleHeader(parent, self, [], 0, radius = 0, spacers = [4,7])
@@ -2796,7 +2807,7 @@ class ModerationManager:
             return self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         
         if self.channel.isFavorite():
-            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
             self.list.dirty = False

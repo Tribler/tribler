@@ -17,10 +17,10 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 from Tribler.community.channel.community import ChannelCommunity,\
-    forceDispersyThread, forceAndReturnDispersyThread
+    forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
 from Tribler.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -318,15 +318,16 @@ class TorrentManager:
             else:
                 try:
                     tdef = TorrentDef.load(torrent_filename)
+                    
                 except ValueError:
                     #we should move fixTorrent to this object
                     if self.guiUtility.frame.fixTorrent(torrent_filename):
                         tdef = TorrentDef.load(torrent_filename)
+                        
                     else:
                         #cannot repair torrent, removing
                         os.remove(torrent_filename)
-                        self.loadTorrent(torrent, callback)
-                        
+                        return self.loadTorrent(torrent, callback)
                 torrent = CollectedTorrent(torrent, tdef)
             
         if not callback is None:
@@ -614,9 +615,9 @@ class TorrentManager:
                     channels[channel_details[0]] = create_channel(channel_details)
             
             def create_torrent(a):
-                channel = channels.get(a[-9], False)
+                channel = channels.get(a[-10], False)
                 if channel and (channel.isFavorite() or channel.isMyChannel()):
-                    t = ChannelTorrent(*a[:-11]+[channel, None])
+                    t = ChannelTorrent(*a[:-12]+[channel, None])
                 else:
                     t = Torrent(*a[:11]+[False])
                     
@@ -886,7 +887,7 @@ class LibraryManager:
         
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
-            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
     
         return self.wantpeerdownloadstates
     
@@ -1302,15 +1303,15 @@ class ChannelManager:
     
     def getTorrentFromChannel(self, channel, infohash, collectedOnly = True):
         data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
-        return self._createTorrent(data, channel, collectedOnly)
+        return self._createTorrent(data, channel, collectedOnly = collectedOnly)
     
     def getChannnelTorrents(self, infohash, filterTorrents = False):
         hits = self.channelcast_db.getChannelTorrents(infohash, CHANNEL_REQ_COLUMNS)
         return self._createTorrents(hits, filterTorrents)
     
-    def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id):
+    def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id, collectedOnly = True):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)
-        return self._createTorrent(data, channel)
+        return self._createTorrent(data, channel, collectedOnly = collectedOnly)
     
     def getTorrentsFromChannel(self, channel, filterTorrents = True, limit = None):
         hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
@@ -1590,18 +1591,18 @@ class ChannelManager:
         except (KeyError, AttributeError):
             return None
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def createChannel(self, name, description):
         community = ChannelCommunity.create_community(self.session.dispersy_member)
         community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def createPlaylist(self, channel_id, name, description, infohashes = []):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.create_playlist(name, description, infohashes)
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         #detect changesmodification
         to_be_created = set(infohashes)
@@ -1625,7 +1626,7 @@ class ChannelManager:
             if len(to_be_removed) > 0:
                 community.remove_playlist_torrents(playlist_id, to_be_removed)
                
-    @forceDispersyThread 
+    @forcePrioDispersyThread 
     def addPlaylistTorrent(self, playlist, torrent):
         if not self.channelcast_db.playlistHasTorrent(playlist.id, torrent.channeltorrent_id):
             community = self._disp_get_community_from_channel_id(playlist.channel.id)
@@ -1798,7 +1799,7 @@ class ChannelManager:
         else:
             self.votecastdb.unsubscribe(channel_id)
     
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def do_vote_cid(self, dispersy_cid, vote, timestamp = None):
         if not timestamp:
             timestamp = int(time())
@@ -1809,12 +1810,12 @@ class ChannelManager:
                     community.disp_create_votecast(dispersy_cid, vote, timestamp)
                     break
                 
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def markTorrent(self, channel_id, infohash, type):
         community = self._disp_get_community_from_channel_id(channel_id)
         community._disp_create_mark_torrent(infohash, type, long(time()))
         
-    @forceDispersyThread
+    @forcePrioDispersyThread
     def revertModification(self, channel, moderation, text, severity, revert_to):
         cause = moderation.dispersy_id
         

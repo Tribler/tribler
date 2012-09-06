@@ -15,7 +15,7 @@ from Tribler.Utilities.Instance2Instance import *
 
 DEBUG = False
 
-class SwiftProcessMgr(InstanceConnectionHandler):
+class SwiftProcessMgr:
     """ Class that manages a number of SwiftProcesses """
 
     def __init__(self,binpath,i2iport,dlsperproc,tunnellistenport,sesslock):
@@ -29,11 +29,6 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         
         self.sps = []
 
-        InstanceConnectionHandler.__init__(self,None)
-
-        # Start server for cmd socket communication to swift processes
-        self.i2is = Instance2InstanceServer(self.i2iport,self,timeout=(24.0*3600.0)) 
-        self.i2is.start()
 
     def get_or_create_sp(self,workdir,zerostatedir,listenport,httpgwport,cmdgwport):
         """ Download needs a process """
@@ -124,7 +119,6 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         # Called by any thread, assume sessionlock is held
         print >>sys.stderr,"spm: early_shutdown"
         self.done = True
-        self.i2is.shutdown() # Calls self.shutdown() indirectly
 
     def shutdown(self): # InstanceConnectionHandler
         """ Gets called when i2is.shutdown is called. Do not call directly """
@@ -143,9 +137,7 @@ class SwiftProcessMgr(InstanceConnectionHandler):
             except:
                 print_exc()
 
-    def connection_lost(self,singsock):
-        # Call superclass
-        InstanceConnectionHandler.connection_lost(self,singsock)
+    def connection_lost(self,port):
         
         if self.done:
             return
@@ -153,8 +145,9 @@ class SwiftProcessMgr(InstanceConnectionHandler):
         self.sesslock.acquire()
         try:
             for sp in self.sps:
-                if sp.singsock == singsock:
+                if sp.get_cmdport() == port:
                     print >>sys.stderr,"spm: connection_lost: Restart",sp.get_pid()
                     sp.start_cmd_connection()
         finally:
             self.sesslock.release()
+        

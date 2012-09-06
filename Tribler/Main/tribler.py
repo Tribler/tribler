@@ -112,6 +112,7 @@ SESSION_CHECKPOINT_INTERVAL = 900.0 # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
 
 DEBUG = False
+DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = False
 
 ##############################################################
@@ -581,6 +582,21 @@ class ABCApp():
                             print >>sys.stderr,"main: Error:",`ds.get_error()`
                 self.rateprintcount += 1
 
+            # Pass DownloadStates to libaryView
+            try:
+                no_collected_list = []
+                
+                coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
+                for ds in dslist:
+                    destdir = os.path.basename(ds.get_download().get_dest_dir())
+                    if destdir != coldir:
+                        no_collected_list.append(ds)
+                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
+                # so only do it when needed for display.
+                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
+            except:
+                print_exc()
+
             # Find State of currently playing video
             playds = None
             d = self.videoplayer.get_vod_download()
@@ -669,21 +685,6 @@ class ABCApp():
             self.seedingmanager.apply_seeding_policy(dslist)
             # _SelectiveSeeding
             
-            # Pass DownloadStates to libaryView
-            try:
-                no_collected_list = []
-                
-                coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
-                for ds in dslist:
-                    destdir = os.path.basename(ds.get_download().get_dest_dir())
-                    if destdir != coldir:
-                        no_collected_list.append(ds)
-                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
-                # so only do it when needed for display.
-                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
-            except:
-                print_exc()
-            
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
             # occurs.
@@ -699,7 +700,7 @@ class ABCApp():
                 self.ratelimiter.add_downloadstatelist(dslist)
                 self.ratelimiter.adjust_speeds()
                 
-                if __debug__:
+                if DEBUG_DOWNLOADS:
                     for ds in dslist:
                         cdef = ds.get_download().get_def()
                         state = ds.get_status()
@@ -1255,6 +1256,7 @@ def run(params = None):
     #if sys.platform != 'linux2':
     #    tribler_done(configpath)
     #os._exit(0)
-    
+
 if __name__ == '__main__':
     run()
+

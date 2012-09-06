@@ -63,6 +63,19 @@ def forceDispersyThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+def forcePrioDispersyThread(func):
+    def invoke_func(*args,**kwargs):
+        if not currentThread().getName()== 'Dispersy':
+            def dispersy_thread():
+                func(*args, **kwargs)
+            dispersy_thread.__name__ = func.__name__
+            register_task(dispersy_thread, priority = 1024)
+        else:
+            return func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
 def forceAndReturnDispersyThread(func):
     def invoke_func(*args,**kwargs):
         if not currentThread().getName()== 'Dispersy':
@@ -298,7 +311,9 @@ class ChannelCommunity(Community):
 
     def _disp_on_channel(self, messages):
         for message in messages:
-            if __debug__: dprint(message)
+            if __debug__:
+                assert self._cid == self._master_member.mid
+                dprint(message.candidate, " ", self._cid.encode("HEX"))
 
             authentication_member = message.authentication.member
             if authentication_member == self._my_member:
@@ -831,6 +846,7 @@ class ChannelCommunity(Community):
             cache = MissingChannelCache(timeout)
             self._dispersy.request_cache.set(identifier, cache)
 
+            if __debug__: dprint(candidate, " sending missing-channel ", self._cid.encode("HEX"))
             meta = self._meta_messages[u"missing-channel"]
             request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
             self._dispersy.store_update_forward([request], False, False, True)
@@ -840,8 +856,7 @@ class ChannelCommunity(Community):
 
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
-        for message in messages:
-            yield message
+        return messages
 
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()

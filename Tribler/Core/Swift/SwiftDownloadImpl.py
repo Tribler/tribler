@@ -73,6 +73,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.midict = {}
         
         self.lm_network_vod_event_callback = None
+        self.askmoreinfo = False
 
     #
     # Download Interface
@@ -144,11 +145,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port() )
         self.sp.start_download(self)
         
-        # Arno, 2012-05-23: At Niels' request to get total transferred stats
-        # Causes MOREINFO message to be sent from swift proc for every initiated
-        # dl.
-        self.set_moreinfo_stats(True)
-
         # Arno: if used, make sure to switch to network thread first!
         #if lm_network_engine_wrapper_created_callback is not None:
         #    sp = self.sp
@@ -558,6 +554,12 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     def set_moreinfo_stats(self,enable):
         """ Called by any thread """
+        
+        # Arno, 2012-07-31: slight risk if process killed in between
+        if self.askmoreinfo == enable:
+            return
+        self.askmoreinfo = enable
+        
         if self.sp is not None:
             self.sp.set_moreinfo_stats(self,enable)
 

@@ -12,7 +12,8 @@ from threading import RLock
 from traceback import print_exc,print_stack
 
 from Tribler.Core.simpledefs import *
-from Tribler.Utilities.Instance2Instance import *
+#from Tribler.Utilities.Instance2Instance import *
+from Tribler.Utilities.FastI2I import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 from Tribler.Core import NoDispersyRLock
 
@@ -22,18 +23,18 @@ DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
 DONE_STATE_SHUTDOWN = 2
 
-class SwiftProcess(InstanceConnection):
+class SwiftProcess:
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
 
 
-    def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,connhandler):
+    def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,spmgr):
         # Called by any thread, assume sessionlock is held
         self.splock = NoDispersyRLock()
         self.binpath = binpath
         self.workdir = workdir
         self.zerostatedir = zerostatedir
-        InstanceConnection.__init__(self, None, connhandler, self.i2ithread_readlinecallback)
+        self.spmgr = spmgr
         
         # Main UDP listen socket
         if listenport is None:
@@ -78,7 +79,9 @@ class SwiftProcess(InstanceConnection):
             else:
                 args.append("-e") 
                 args.append(zerostatedir) 
-        #args.append("-B") # DEBUG Hack        
+            args.append("-T") # zero state connection timeout
+            args.append("180") # seconds
+        #args.append("-B") # Enable debugging on swift        
         
         if DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
@@ -93,6 +96,7 @@ class SwiftProcess(InstanceConnection):
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
+        self.fastconn = None
 
     #
     # Instance2Instance
@@ -101,7 +105,7 @@ class SwiftProcess(InstanceConnection):
         # Called by any thread, assume sessionlock is held
         
         if self.is_alive():
-            self.singsock = self.connhandler.start_connection(("127.0.0.1", self.cmdport),self)
+            self.fastconn = FastI2IConnection(self.cmdport,self.i2ithread_readlinecallback,self.connection_lost)
         else:
             print >>sys.stderr,"sp: start_cmd_connection: Process dead? returncode",self.popen.returncode,"pid",self.popen.pid
           
@@ -109,6 +113,10 @@ class SwiftProcess(InstanceConnection):
     def i2ithread_readlinecallback(self,ic,cmd):
         #if DEBUG:
         #    print >>sys.stderr,"sp: Got command #"+cmd+"#"
+        
+        if self.donestate != DONE_STATE_WORKING:
+            return
+            
         words = cmd.split()
 
         if words[0] == "TUNNELRECV":
@@ -332,6 +340,8 @@ class SwiftProcess(InstanceConnection):
         else:
             return
 
+        # could do fastconn.close() here
+
         if self.popen is not None:
             try:
                 print >>sys.stderr,"sp: Terminating process"
@@ -340,7 +350,7 @@ class SwiftProcess(InstanceConnection):
                 self.popen = None
             except:
                 print_exc()
-        # self.singsock auto closed by killing proc.
+        # self.fastconn auto closed by killing proc.
     
     #
     # Internal methods
@@ -358,20 +368,20 @@ class SwiftProcess(InstanceConnection):
         if maxulspeed is not None:
             cmd += 'MAXSPEED '+roothash_hex+' UPLOAD '+str(float(maxulspeed))+'\r\n'
         
-        self.singsock.write(cmd)
+        self.write(cmd)
         
     def send_remove(self,roothash_hex,removestate,removecontent):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('REMOVE '+roothash_hex+' '+str(int(removestate))+' '+str(int(removecontent))+'\r\n')
+        self.write('REMOVE '+roothash_hex+' '+str(int(removestate))+' '+str(int(removecontent))+'\r\n')
 
     def send_checkpoint(self,roothash_hex):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('CHECKPOINT '+roothash_hex+'\r\n')
+        self.write('CHECKPOINT '+roothash_hex+'\r\n')
 
 
     def send_shutdown(self):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('SHUTDOWN\r\n')
+        self.write('SHUTDOWN\r\n')
 
     def send_max_speed(self,roothash_hex,direct,speed):
         # assume splock is held to avoid concurrency on socket
@@ -382,29 +392,39 @@ class SwiftProcess(InstanceConnection):
             cmd += ' UPLOAD '
         cmd += str(float(speed))+'\r\n'
         
-        self.singsock.write(cmd)
+        self.write(cmd)
         
     def send_tunnel(self,session,address,data):
         # assume splock is held to avoid concurrency on socket
         if DEBUG:
             print >>sys.stderr,"sp: send_tunnel:",len(data),"bytes -> %s:%d" % address
 
-        self.singsock.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
-        self.singsock.write(data)
+        self.write("TUNNELSEND %s:%d/%s %d\r\n" % (address[0], address[1], session.encode("HEX"), len(data)))
+        self.write(data)
 
     def send_setmoreinfo(self,roothash_hex,enable):
         # assume splock is held to avoid concurrency on socket
         onoff = "0"
         if enable:
             onoff = "1"
-        self.singsock.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')
+        self.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')
 
     def send_peer_addr(self,roothash_hex,addrstr):
         # assume splock is held to avoid concurrency on socket
-        self.singsock.write('PEERADDR '+roothash_hex+' '+addrstr+'\r\n')
+        self.write('PEERADDR '+roothash_hex+' '+addrstr+'\r\n')
 
     def is_alive(self):
         if self.popen:
             self.popen.poll()
             return self.popen.returncode is None
         return False
+
+    def write(self,msg):
+        self.fastconn.write(msg)
+        
+    def get_cmdport(self):
+        return self.cmdport
+
+    def connection_lost(self,port):
+        self.spmgr.connection_lost(port)
+        

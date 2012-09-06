@@ -1,3 +1,33 @@
+tribler (5.9.27-1ubuntu1) precise; urgency=low
+
+  * Release 5.9.27
+
+ -- tribler <tribler@tribler-virtual-machine>  Fri, 03 Aug 2012 16:23:50 +0200
+
+tribler (5.9.26-1ubuntu1) precise; urgency=low
+
+  * Release 5.9.26
+
+ -- tribler <tribler@tribler-virtual-machine>  Thu, 02 Aug 2012 15:08:57 +0200
+
+tribler (5.9.25-1ubuntu1) quantal; urgency=low
+
+  * Release 5.9.25
+
+ -- tribler <tribler@tribler-virtual-machine>  Wed, 01 Aug 2012 11:23:14 +0200
+
+tribler (5.9.24-1ubuntu1) quantal; urgency=low
+
+  * Release 5.9.24
+
+ -- tribler <tribler@tribler-virtual-machine>  Mon, 30 Jul 2012 14:39:02 +0200
+
+tribler (5.9.23-1ubuntu1) quantal; urgency=low
+
+  * Release 5.9.23
+
+ -- tribler <tribler@tribler-virtual-machine>  Mon, 30 Jul 2012 10:27:05 +0200
+
 tribler (5.9.22-1ubuntu1) quantal; urgency=low
 
   * Release 5.9.22

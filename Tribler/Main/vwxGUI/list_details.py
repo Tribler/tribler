@@ -149,6 +149,7 @@ class TorrentDetails(AbstractDetails):
         self.canEdit = False
         self.canComment = False
         self.canMark = False
+        self.showDetails = False
         self.markWindow = None
         
         self.isEditable = {}
@@ -255,6 +256,7 @@ class TorrentDetails(AbstractDetails):
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
         
         self.overview = wx.Panel(self.notebook)
+        self.overview.Bind(wx.EVT_LEFT_DCLICK, self.OnOverviewToggle)
         def OnChange():
             self.overview.Layout()
 
@@ -324,10 +326,11 @@ class TorrentDetails(AbstractDetails):
             self.notebook.AddPage(self.commentList, 'Comments')
             commentManager.refresh()
         
-        if self.canEdit:
+        hasDescription = self.torrent.get('description', '')
+        if self.canEdit or hasDescription:
             from channel import ModificationList
             self.modificationList = NotebookPanel(self.notebook)
-            self.modificationList.SetList(ModificationList(self.modificationList))
+            self.modificationList.SetList(ModificationList(self.modificationList, self.canEdit))
             modificationManager = self.modificationList.GetManager()
             modificationManager.SetIds(self.torrent)
             
@@ -367,21 +370,21 @@ class TorrentDetails(AbstractDetails):
             #Add files
             files = self.torrent.files
             if isinstance(self, LibraryDetails):
-                if ds and ds.get_selected_files():
+                if ds:
                     selected_files = ds.get_selected_files()
-                     
-                    def sort_by_selected_name(a, b):
-                        aSelected = a[0] in selected_files
-                        bSelected = b[0] in selected_files
+                    if selected_files:
+                        def sort_by_selected_name(a, b):
+                            aSelected = a[0] in selected_files
+                            bSelected = b[0] in selected_files
+                            
+                            if aSelected != bSelected:
+                                if aSelected:
+                                    return -1
+                                return 1
+                            
+                            return cmp(a[0],b[0])
                         
-                        if aSelected != bSelected:
-                            if aSelected:
-                                return -1
-                            return 1
-                        
-                        return cmp(a[0],b[0])
-                    
-                    files.sort(sort_by_selected_name)
+                        files.sort(sort_by_selected_name)
             else:
                 keywords = ' | '.join(self.guiutility.current_search_query)
                 def sort_by_keywords(a, b):
@@ -588,11 +591,16 @@ class TorrentDetails(AbstractDetails):
             else:
                 del overviewColumns['Description']
                 overviewColumnsOrder = ["Name", "Type", "Uploaded", "Filesize", "Status"]
-
+                
         for column in overviewColumnsOrder:
             _, value = self._add_row(panel, vSizer, column, overviewColumns[column])
             if column == "Status":
                 self.status = value
+        
+        if self.showDetails:
+            textCtrl = wx.TextCtrl(panel, -1, self.torrent.infohash_as_hex)
+            textCtrl.SetEditable(False)
+            self._add_row(panel, vSizer, "Infohash", textCtrl)
         sizer.Add(vSizer, 1, wx.EXPAND)
             
         if self.canEdit:
@@ -602,7 +610,7 @@ class TorrentDetails(AbstractDetails):
                     value = wx.TextCtrl(panel, -1, modification.value, style = wx.TE_READONLY)
                     self._add_row(panel, vSizer, 'Swift URL', value)
         
-        if self.canMark:
+        if self.canComment:
             self.UpdateMarkings()
         
         self.UpdateStatus()
@@ -1226,31 +1234,47 @@ class TorrentDetails(AbstractDetails):
     @warnWxThread
     def RefreshData(self, data):
         if self.isReady:
+            rebuild = False
+            
             if isinstance(self.torrent, Torrent):
-                #replace current torrent
-                self.torrent.name = data[2].name
-                self.torrent.length = data[2].length
-                self.torrent.category_id = data[2].category_id
-                self.torrent.status_id = data[2].status_id
-                self.torrent.num_seeders = data[2].num_seeders
-                self.torrent.num_leechers = data[2].num_leechers
-                
-            elif isinstance(data[2], Torrent):
-                self.torrent.torrent = data[2]
+                curTorrent = self.torrent
             else:
-                self.torrent.torrent = data[2]['bundle'][0] 
+                curTorrent = self.torrent.torrent
+            
+            if hasattr(data[2], "bundle"):
+                newTorrent = data[2]['bundle'][0]
+            else:
+                newTorrent = data[2]
             
             #remove cached swarminfo
             del self.torrent.swarminfo
+            del self.torrent.status
             
-            self._addOverview(self.overview, self.torrentSizer)
-            if self.canEdit:
-                if not self.isEditable['name'].IsChanged():
-                    self.isEditable['name'].SetValue(self.torrent.name)
-                    
-                if not self.isEditable['description'].IsChanged():
-                    self.isEditable['description'].SetValue(self.torrent.description or '')
+            if not curTorrent.exactCopy(newTorrent):
+                #replace current torrent
+                curTorrent.swift_hash = newTorrent.swift_hash
+                curTorrent.swift_torrent_hash = newTorrent.swift_torrent_hash
+                curTorrent.torrent_file_name = newTorrent.torrent_file_name
+                
+                curTorrent.name = newTorrent.name
+                curTorrent.length = newTorrent.length
+                curTorrent.category_id = newTorrent.category_id
+                curTorrent.status_id = newTorrent.status_id
+                curTorrent.num_seeders = newTorrent.num_seeders
+                curTorrent.num_leechers = newTorrent.num_leechers
             
+                self._addOverview(self.overview, self.torrentSizer)
+                if self.canEdit:
+                    if not self.isEditable['name'].IsChanged():
+                        self.isEditable['name'].SetValue(curTorrent.name)
+                        
+                    if not self.isEditable['description'].IsChanged():
+                        self.isEditable['description'].SetValue(curTorrent.description or '')
+            
+            elif curTorrent.num_seeders != newTorrent.num_seeders or curTorrent.num_leechers != newTorrent.num_leechers:
+                curTorrent.num_seeders = newTorrent.num_seeders
+                curTorrent.num_leechers = newTorrent.num_leechers
+                self.ShowStatus(False)
     
     @forceDBThread
     def UpdateStatus(self):
@@ -1264,8 +1288,8 @@ class TorrentDetails(AbstractDetails):
                 diff = 1801
                 
             if diff > 1800:
-                TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
-                self.ShowStatus(True)
+                updating = TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
+                self.ShowStatus(updating)
             else:
                 self.ShowStatus(False)
         else:
@@ -1278,7 +1302,10 @@ class TorrentDetails(AbstractDetails):
             
             diff = time() - self.torrent.last_check
             if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
-                self.status.SetLabel("Unknown"+updating)
+                if self.torrent.status == 'good':
+                    self.status.SetLabel("Unknown, but found peers in the DHT")
+                else:
+                    self.status.SetLabel("Unknown"+updating)
             else:
                 if diff < 5:
                     self.status.SetLabel("%s seeders, %s leechers (current)"%(self.torrent.num_seeders, self.torrent.num_leechers))
@@ -1297,7 +1324,7 @@ class TorrentDetails(AbstractDetails):
     
     def UpdateMarkings(self):
         if self.torrent.get('channeltorrent_id', False):
-            startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ),priority=GUI_PRI_DISPERSY)
+            startWorker(self.ShowMarkings, self.guiutility.channelsearch_manager.getTorrentMarkings, wargs= (self.torrent.channeltorrent_id, ))
      
     @warnWxThread
     def ShowMarkings(self, delayedResult):
@@ -1445,6 +1472,10 @@ class TorrentDetails(AbstractDetails):
         
         return False
     
+    def OnOverviewToggle(self, event):
+        self.showDetails = not self.showDetails
+        self._addOverview(self.overview, self.torrentSizer)
+    
     @warnWxThread               
     def __del__(self):
         if DEBUG:
@@ -1480,7 +1511,7 @@ class LibraryDetails(TorrentDetails):
             print >> sys.stderr, "LibraryDetails: loading", self.torrent['name']
         
         self.showRequestType('')
-        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent},priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback': self.showTorrent}, priority=GUI_PRI_DISPERSY)
         
         wx.CallLater(10000, self._timeout)
         
@@ -1864,33 +1895,33 @@ class LibraryDetails(TorrentDetails):
                 self.availability.sizer.Layout()
 
             dsprogress = ds.get_progress()
+            #Niels: 28-08-2012 rounding to prevent updating too many times
+            dsprogress = long(dsprogress * 1000) / 1000.0
             if self.old_progress != dsprogress:
-                if ds.get_download().get_def().get_def_type() == 'swift':
-                    completion = []
-                    
+                completion = {}
+                
+                useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
+                if useSimple:
                     selected_files = ds.get_download().get_selected_files()
                     if selected_files:
                         for i in range(self.listCtrl.GetItemCount()):
                             file = self.listCtrl.GetItem(i, 0).GetText()
                             if file in selected_files:
-                                completion.append([file, dsprogress])
+                                completion[file] = dsprogress
                     else:
                         for i in range(self.listCtrl.GetItemCount()):
-                            completion.append([self.listCtrl.GetItem(i, 0).GetText(), dsprogress])
+                            completion[self.listCtrl.GetItem(i, 0).GetText()] =  dsprogress
                 else:
-                    completion = ds.get_files_completion()
-                
+                    for file, progress in ds.get_files_completion():
+                        completion[file] = progress
+
                 for i in range(self.listCtrl.GetItemCount()):
                     listfile = self.listCtrl.GetItem(i, 0).GetText()
                     
-                    found = False
-                    for file, progress in completion:
-                        if file == listfile:
-                            self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
-                            found = True
-                            break
-                        
-                    if not found:
+                    progress = completion.get(listfile, None)
+                    if progress:
+                        self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
+                    else:
                         self.listCtrl.SetStringItem(i, 2, 'Excluded')
                 
                 self.old_progress = dsprogress
@@ -2318,10 +2349,13 @@ class SwarmHealth(wx.Panel):
             self.green = 0
             self.red = 0
         else:
-            if leechers == 0:
+            if leechers == 0 and seeders:
                 ratio = sys.maxint
             elif seeders == 0:
-                ratio = 0
+                if leechers:
+                    ratio = 0.01
+                else:
+                    ratio = 0
             else:
                 ratio = seeders/(leechers*1.0)
             

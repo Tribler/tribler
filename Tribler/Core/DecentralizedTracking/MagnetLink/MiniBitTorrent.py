@@ -40,6 +40,10 @@ DEBUG = False
 class Connection:
     """
     A single BitTorrent connection.
+    
+    Arno: WARNING the RawServer functions (except add_task) may only be called
+    from the thread running the RawServer code, i.e., the NetworkThread! 
+    
     """
     def __init__(self, swarm, raw_server, address):
         self._swarm = swarm
@@ -55,8 +59,17 @@ class Connection:
         # outstanding requests for pieces in piece-id:piece-length pairs
         self._metadata_requests = {}
 
+        self._socket = None
+
+    # Arno, 2012-08-01: RawServer is not thread safe!        
+    def start_on_network_thread(self):
+        """ Called by any thread, e.g. mainline DHT thread """
+        self._swarm._raw_server.add_task(self.network_start_connection)
+
+    def network_start_connection(self):
+        """ Called by NetworkThread """
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent: New connection",self._swarm._info_hash
-        self._socket = raw_server.start_connection(address, self)
+        self._socket = self._swarm._raw_server.start_connection(self._address, self)
         self.write_handshake()
 
     @property
@@ -210,6 +223,7 @@ class Connection:
                         return False
 
                     if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Received metadata piece", message["piece"]
+                    
                     length = self._metadata_requests[message["piece"]]
                     self._swarm.add_metadata_piece(message["piece"], data[-length:])
                     del self._metadata_requests[message["piece"]]
@@ -280,15 +294,22 @@ class Connection:
         if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.close()",self._swarm._info_hash
         if not self._closed:
             self.connection_lost(self._socket)
-            self._socket.close()
+            if self._socket is not None:
+                self._socket.close()
 
     def __str__(self):
         return 'MiniBitTorrentCON--Closed'+str(self._closed)+str(self._socket.connected)+'-'+str(self._swarm._info_hash)
+
+
+
 
 class MiniSwarm:
     """
     A MiniSwarm instance maintains an overview of what is going on in
     a single BitTorrent swarm.
+
+    Arno: WARNING the RawServer functions (except add_task) may only be called
+    from the NetworkThread! 
     """
     def __init__(self, info_hash, raw_server, callback, max_connections=30):
         # _info_hash is the 20 byte binary info hash that identifies
@@ -526,7 +547,8 @@ class MiniSwarm:
 
             try:
                 connection = Connection(self, self._raw_server, address)
-
+                # Arno, 2012-08-01: RawServer is not thread safe!
+                connection.start_on_network_thread()
             except:
                 connection = None
                 if DEBUG: print >> sys.stderr, "MiniBitTorrent.add_potential_peers() ERROR"

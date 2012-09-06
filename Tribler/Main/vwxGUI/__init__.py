@@ -7,13 +7,14 @@ import inspect
 import sys
 
 from datetime import datetime
-from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker
+from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker,\
+    GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
 
 #batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
-LIST_ITEM_MAX_SIZE = 250
+LIST_ITEM_MAX_SIZE = 50
 LIST_RATE_LIMIT = 1
 
 DEFAULT_BACKGROUND = wx.Colour(255,255,255)
@@ -66,6 +67,17 @@ def format_time(val):
 def format_size(val):
     size = (val/1048576.0)
     return "%.0f MB"%size
+
+def showError(textCtrl):
+    def setColours(ctrl, fore, back):
+        ctrl.SetForegroundColour(fore)
+        ctrl.SetBackgroundColour(back)
+        ctrl.Refresh()
+    
+    curFore = textCtrl.GetForegroundColour()
+    curBack = textCtrl.GetBackgroundColour()
+    setColours(textCtrl, wx.WHITE, wx.RED)
+    wx.CallLater(2000, setColours, textCtrl, curFore, curBack)
 
 TRHEADING_DEBUG = False
 
@@ -137,6 +149,7 @@ def register_task(*args, **kwargs):
             sleep(0.1)
             dispersy = Dispersy.has_instance()
         _register_task = dispersy.callback.register
+        
     return _register_task(*args, **kwargs)
 
 def forceDBThread(func):
@@ -149,7 +162,26 @@ def forceDBThread(func):
                 callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             
-            register_task(func, args, kwargs)
+            def db_thread():
+                func(*args, **kwargs)
+            register_task(db_thread)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forcePrioDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if onWorkerThread('dbThread'):
+            func(*args, **kwargs)
+        else:
+            if TRHEADING_DEBUG:
+                caller = inspect.stack()[1]
+                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            def db_thread():
+                func(*args, **kwargs)
+            register_task(db_thread, priority = GUI_PRI_DISPERSY)
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -175,7 +207,7 @@ def forceAndReturnDBThread(func):
             
             #Niels: 10-03-2012, setting prio to 1024 because we are actively waiting for this
             db_thread.__name__ = func.__name__
-            register_task(db_thread, priority = 1024)
+            register_task(db_thread, priority = GUI_PRI_DISPERSY)
             
             if event.wait(15) or event.isSet():
                 return result[0]

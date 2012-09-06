@@ -829,7 +829,7 @@ class PreferenceDBHandler(BasicDBHandler):
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self,db, 'Preference') ## self,db,'Preference'
         
-        self.popularity_db = PopularityDBHandler.getInstance()
+        #self.popularity_db = PopularityDBHandler.getInstance()
         
             
     def _getTorrentOwnersID(self, torrent_id):
@@ -881,141 +881,139 @@ class PreferenceDBHandler(BasicDBHandler):
             self._db.execute_write(sql_insert_peer_torrent, (peer_id, torrent_id), commit=commit)
         except Exception, msg:    # duplicated
             print_exc()
-            
-            
 
-    def addPreferences(self, peer_permid, prefs, recvTime=0.0, is_torrent_id=False, commit=True):
-        # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
-        # boudewijn: for buddycast version >= OLPROTO_VER_EIGTH the
-        # prefs list may contain both strings (indicating an infohash)
-        # or dictionaries (indicating an infohash with metadata)
-        peer_id = self._db.getPeerID(peer_permid)
-        if peer_id is None:
-            print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `peer_permid`
-            return
-
-        prefs = [type(pref) is str and {"infohash":pref} or pref
-                 for pref
-                 in prefs]
-
-        if __debug__:
-            for pref in prefs:
-                assert isinstance(pref["infohash"], str), "INFOHASH has invalid type: %s" % type(pref["infohash"])
-                assert len(pref["infohash"]) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(pref["infohash"])
-
-        torrent_id_swarm_size =[]
-        torrent_id_prefs =[]
-        if is_torrent_id:
-            for pref in prefs:
-                torrent_id_prefs.append((peer_id, 
-                                 pref['torrent_id'], 
-                                 pref.get('position', -1), 
-                                 pref.get('reranking_strategy', -1)) 
-                                )
-                #Rahim : Since overlay version 11 swarm size information is 
-                # appended and should be added to the database . The code below 
-                # does this. torrent_id, recv_time, calc_age, num_seeders, 
-                # num_leechers, num_sources
-                #
-                #torrent_id_swarm_size =[]
-                if pref.get('calc_age') is not None:
-                    tempAge= pref.get('calc_age')
-                    tempSeeders = pref.get('num_seeders')
-                    tempLeechers = pref.get('num_leechers') 
-                    if tempAge > 0 and tempSeeders >= 0 and tempLeechers >= 0:
-                        torrent_id_swarm_size.append([pref['torrent_id'],
-                                         recvTime, 
-                                         tempAge,  
-                                         tempSeeders, 
-                                         tempLeechers,
-                                         pref.get('num_sources_seen', -1)])# -1 means invalud value 
-        else:
-            # Nicolas: do not know why this would be called, but let's handle 
-            # it smoothly
-            torrent_id_prefs = []
-            #Rahim: I also don't know when this part is run, I just follow the 
-            # way that Nicolas has done.
-            #torrent_id_swarm_size = []
-            for pref in prefs:
-                infohash = pref["infohash"]
-                torrent_id = self._db.getTorrentID(infohash)
-                if not torrent_id:
-                    self._db.insertInfohash(infohash)
-                    torrent_id = self._db.getTorrentID(infohash)
-                torrent_id_prefs.append((peer_id, torrent_id, -1, -1))
-                #Rahim: Amended for handling and adding swarm size info.
-                #torrent_id_swarm_size.append((torrent_id, recvTime,0, -1, -1, -1))
-                
-            
-        sql_insert_peer_torrent = u"INSERT INTO Preference (peer_id, torrent_id, click_position, reranking_strategy) VALUES (?,?,?,?)"        
-        if len(prefs) > 0:
-            try:
-                self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs, commit=commit)
-                popularity_db = PopularityDBHandler.getInstance()
-                if len(torrent_id_swarm_size) > 0:
-                    popularity_db.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
-            except Exception, msg:    # duplicated
-                print_exc()
-                print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
-                
-        # now, store search terms
-        
-        # Nicolas: if maximum number of search terms is exceeded, abort storing them.
-        # Although this may seem a bit strict, this means that something different than a genuine Tribler client
-        # is on the other side, so we might rather err on the side of caution here and simply let clicklog go.
-        nums_of_search_terms = [len(pref.get('search_terms',[])) for pref in prefs]
-        if max(nums_of_search_terms)>MAX_KEYWORDS_STORED:
-            if DEBUG:
-                print >>sys.stderr, "peer %d exceeds max number %d of keywords per torrent, aborting storing keywords"  % \
-                                    (peer_id, MAX_KEYWORDS_STORED)
-            return  
-        
-        all_terms_unclean = set()
-        for pref in prefs:
-            newterms = set(pref.get('search_terms',[]))
-            all_terms_unclean = all_terms_unclean.union(newterms)        
-            
-        all_terms = [] 
-        for term in all_terms_unclean:
-            cleanterm = ''
-            for i in range(0,len(term)):
-                c = term[i]
-                if c.isalnum():
-                    cleanterm += c
-            if len(cleanterm)>0:
-                all_terms.append(cleanterm)
-        # maybe we haven't received a single key word, no need to loop again over prefs then
-        if len(all_terms)==0:
-            return
-           
-        termdb = TermDBHandler.getInstance()
-        searchdb = SearchDBHandler.getInstance()
-                
-        # insert all unknown terms NOW so we can rebuild the index at once
-        termdb.bulkInsertTerms(all_terms)         
-        
-        # get local term ids for terms.
-        foreign2local = dict([(str(foreign_term), termdb.getTermID(foreign_term))
-                              for foreign_term
-                              in all_terms])        
-        
-        # process torrent data
-        for pref in prefs:
-            torrent_id = pref.get('torrent_id', None)
-            search_terms = pref.get('search_terms', [])
-            
-            if search_terms==[]:
-                continue
-            if not torrent_id:
-                if DEBUG:
-                    print >> sys.stderr, "torrent_id not set, retrieving manually!"
-                torrent_id = TorrentDBHandler.getInstance().getTorrentID(infohash)
-                
-            term_ids = [foreign2local[str(foreign)] for foreign in search_terms if str(foreign) in foreign2local]
-            searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=False)
-        if commit:
-            searchdb.commit()
-    
+#    def addPreferences(self, peer_permid, prefs, recvTime=0.0, is_torrent_id=False, commit=True):
+#        # peer_permid and prefs are binaries, the peer must have been inserted in Peer table
+#        # boudewijn: for buddycast version >= OLPROTO_VER_EIGTH the
+#        # prefs list may contain both strings (indicating an infohash)
+#        # or dictionaries (indicating an infohash with metadata)
+#        peer_id = self._db.getPeerID(peer_permid)
+#        if peer_id is None:
+#            print >> sys.stderr, 'PreferenceDBHandler: add preference of a peer which is not existed in Peer table', `peer_permid`
+#            return
+#
+#        prefs = [type(pref) is str and {"infohash":pref} or pref
+#                 for pref
+#                 in prefs]
+#
+#        if __debug__:
+#            for pref in prefs:
+#                assert isinstance(pref["infohash"], str), "INFOHASH has invalid type: %s" % type(pref["infohash"])
+#                assert len(pref["infohash"]) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(pref["infohash"])
+#
+#        torrent_id_swarm_size =[]
+#        torrent_id_prefs =[]
+#        if is_torrent_id:
+#            for pref in prefs:
+#                torrent_id_prefs.append((peer_id, 
+#                                 pref['torrent_id'], 
+#                                 pref.get('position', -1), 
+#                                 pref.get('reranking_strategy', -1)) 
+#                                )
+#                #Rahim : Since overlay version 11 swarm size information is 
+#                # appended and should be added to the database . The code below 
+#                # does this. torrent_id, recv_time, calc_age, num_seeders, 
+#                # num_leechers, num_sources
+#                #
+#                #torrent_id_swarm_size =[]
+#                if pref.get('calc_age') is not None:
+#                    tempAge= pref.get('calc_age')
+#                    tempSeeders = pref.get('num_seeders')
+#                    tempLeechers = pref.get('num_leechers') 
+#                    if tempAge > 0 and tempSeeders >= 0 and tempLeechers >= 0:
+#                        torrent_id_swarm_size.append([pref['torrent_id'],
+#                                         recvTime, 
+#                                         tempAge,  
+#                                         tempSeeders, 
+#                                         tempLeechers,
+#                                         pref.get('num_sources_seen', -1)])# -1 means invalud value 
+#        else:
+#            # Nicolas: do not know why this would be called, but let's handle 
+#            # it smoothly
+#            torrent_id_prefs = []
+#            #Rahim: I also don't know when this part is run, I just follow the 
+#            # way that Nicolas has done.
+#            #torrent_id_swarm_size = []
+#            for pref in prefs:
+#                infohash = pref["infohash"]
+#                torrent_id = self._db.getTorrentID(infohash)
+#                if not torrent_id:
+#                    self._db.insertInfohash(infohash)
+#                    torrent_id = self._db.getTorrentID(infohash)
+#                torrent_id_prefs.append((peer_id, torrent_id, -1, -1))
+#                #Rahim: Amended for handling and adding swarm size info.
+#                #torrent_id_swarm_size.append((torrent_id, recvTime,0, -1, -1, -1))
+#                
+#            
+#        sql_insert_peer_torrent = u"INSERT INTO Preference (peer_id, torrent_id, click_position, reranking_strategy) VALUES (?,?,?,?)"        
+#        if len(prefs) > 0:
+#            try:
+#                self._db.executemany(sql_insert_peer_torrent, torrent_id_prefs, commit=commit)
+#                popularity_db = PopularityDBHandler.getInstance()
+#                if len(torrent_id_swarm_size) > 0:
+#                    popularity_db.storePeerPopularity(peer_id, torrent_id_swarm_size, commit=commit)
+#            except Exception, msg:    # duplicated
+#                print_exc()
+#                print >> sys.stderr, 'dbhandler: addPreferences:', Exception, msg
+#                
+#        # now, store search terms
+#        
+#        # Nicolas: if maximum number of search terms is exceeded, abort storing them.
+#        # Although this may seem a bit strict, this means that something different than a genuine Tribler client
+#        # is on the other side, so we might rather err on the side of caution here and simply let clicklog go.
+#        nums_of_search_terms = [len(pref.get('search_terms',[])) for pref in prefs]
+#        if max(nums_of_search_terms)>MAX_KEYWORDS_STORED:
+#            if DEBUG:
+#                print >>sys.stderr, "peer %d exceeds max number %d of keywords per torrent, aborting storing keywords"  % \
+#                                    (peer_id, MAX_KEYWORDS_STORED)
+#            return  
+#        
+#        all_terms_unclean = set()
+#        for pref in prefs:
+#            newterms = set(pref.get('search_terms',[]))
+#            all_terms_unclean = all_terms_unclean.union(newterms)        
+#            
+#        all_terms = [] 
+#        for term in all_terms_unclean:
+#            cleanterm = ''
+#            for i in range(0,len(term)):
+#                c = term[i]
+#                if c.isalnum():
+#                    cleanterm += c
+#            if len(cleanterm)>0:
+#                all_terms.append(cleanterm)
+#        # maybe we haven't received a single key word, no need to loop again over prefs then
+#        if len(all_terms)==0:
+#            return
+#           
+#        termdb = TermDBHandler.getInstance()
+#        searchdb = SearchDBHandler.getInstance()
+#                
+#        # insert all unknown terms NOW so we can rebuild the index at once
+#        termdb.bulkInsertTerms(all_terms)         
+#        
+#        # get local term ids for terms.
+#        foreign2local = dict([(str(foreign_term), termdb.getTermID(foreign_term))
+#                              for foreign_term
+#                              in all_terms])        
+#        
+#        # process torrent data
+#        for pref in prefs:
+#            torrent_id = pref.get('torrent_id', None)
+#            search_terms = pref.get('search_terms', [])
+#            
+#            if search_terms==[]:
+#                continue
+#            if not torrent_id:
+#                if DEBUG:
+#                    print >> sys.stderr, "torrent_id not set, retrieving manually!"
+#                torrent_id = TorrentDBHandler.getInstance().getTorrentID(infohash)
+#                
+#            term_ids = [foreign2local[str(foreign)] for foreign in search_terms if str(foreign) in foreign2local]
+#            searchdb.storeKeywordsByID(peer_id, torrent_id, term_ids, commit=False)
+#        if commit:
+#            searchdb.commit()
+#    
     def getAllEntries(self):
         """use with caution,- for testing purposes"""
         return self.getAll("rowid, peer_id, torrent_id, click_position,reranking_strategy", order_by="peer_id, torrent_id")
@@ -1503,12 +1501,18 @@ class TorrentDBHandler(BasicDBHandler):
     def on_torrent_collect_response(self, torrents):
         torrents = [(bin2str(torrent[0]), bin2str(torrent[1])) for torrent in torrents] 
                  
-        parameters = '?,'*len(torrents)
-        parameters = parameters[:-1]
         
-        sql = "SELECT torrent_id, infohash, swift_torrent_hash FROM Torrent WHERE infohash in ("+parameters+") or swift_torrent_hash in ("+parameters+")"
-        values = [infohash for infohash, _ in torrents] + [roothash for _,roothash in torrents]
-        results = self._db.fetchall(sql, values)
+        infohashes = [infohash for infohash,_ in torrents if infohash]
+        roothashes = [roothash for _,roothash in torrents if roothash]
+        
+        i_parameters = '?,'*len(infohashes)
+        i_parameters = i_parameters[:-1]
+        
+        r_parameters = '?,'*len(roothashes)
+        r_parameters = r_parameters[:-1]
+        
+        sql = "SELECT torrent_id, infohash, swift_torrent_hash FROM Torrent WHERE infohash in ("+i_parameters+") or swift_torrent_hash in ("+r_parameters+")"
+        results = self._db.fetchall(sql, infohashes + roothashes)
         
         info_dict = {}
         root_dict = {}       
@@ -1587,6 +1591,9 @@ class TorrentDBHandler(BasicDBHandler):
             # must be stored as None
             if swift_hash == "":
                 swift_hash = None
+            # 02/08/12 Boudewijn: swift_torrent_hash has the same issue as swift_hash above
+            if swift_torrent_hash == "":
+                swift_torrent_hash = None
 
             tid = infohash_tid.get(infohash, None) or roothash_tid.get(swift_hash, None)
             
@@ -1821,7 +1828,7 @@ class TorrentDBHandler(BasicDBHandler):
             # 'relevance', 'infohash', 'torrent_id')
         else:
             keys = list(keys)
-        res = self._db.getOne('CollectedTorrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
+        res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
         if not res:
             return None
         torrent = dict(zip(keys, res))
@@ -2097,7 +2104,6 @@ class TorrentDBHandler(BasicDBHandler):
             mhash_path = torrent_path + '.mhash'
             mbinmap_path = torrent_path + '.mbinmap'
             try:
-                print >> sys.stderr, "Erase torrent:", os.path.basename(torrent_path)                
                 if os.path.exists(torrent_path):
                     os.remove(torrent_path)
                 
@@ -2108,10 +2114,13 @@ class TorrentDBHandler(BasicDBHandler):
                     os.remove(mbinmap_path)
                 
                 deleted += 1
-            except Exception, msg:
+            except WindowsError:
+                pass
+            except Exception:
                 print_exc()
                 #print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
+        print >> sys.stderr, "Erased %d torrents"%deleted  
         return deleted
 
     def hasMetaData(self, infohash):
@@ -2135,7 +2144,7 @@ class TorrentDBHandler(BasicDBHandler):
 #            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
 #
         assert 'infohash' in keys
-        assert not doSort or 'num_seeders' in keys
+        assert not doSort or ('num_seeders' in keys or 'T.num_seeders' in keys)
         
         infohash_index = keys.index('infohash')
         swift_hash_index = keys.index('swift_hash') if 'swift_hash' in keys else -1
@@ -2190,31 +2199,32 @@ class TorrentDBHandler(BasicDBHandler):
         for result in results:
             channel_id = result[-2]
             channel = channel_dict.get(channel_id, False)
-            
-            #ignoring spam channels
-            if channel and channel[7] < 0:
-                continue
-            
-            infohash = result[infohash_index]
-            #see if we have a better channel in torrents_dict
-            if infohash in result_dict:
-                old_channel = channel_dict.get(result_dict[infohash][-2], False)
-                
-                # allways prefer my channel
-                if old_channel[0] == myChannelId:
+            if channel:
+
+                #ignoring spam channels
+                if channel[7] < 0:
                     continue
-                
-                # allways prefer channel with higher vote
-                if channel[7] < old_channel[7]:
-                    continue
-                
-                votes = (channel[5] or 0) - (channel[6] or 0)
-                oldvotes = (old_channel[5] or 0) - (old_channel[6] or 0)
-                if votes < oldvotes:
-                    continue
-                
-            
-            result_dict[infohash] = result
+
+                infohash = result[infohash_index]
+                #see if we have a better channel in torrents_dict
+                if infohash in result_dict:
+                    old_channel = channel_dict.get(result_dict[infohash][-2], False)
+                    if old_channel:
+
+                        # allways prefer my channel
+                        if old_channel[0] == myChannelId:
+                            continue
+
+                        # allways prefer channel with higher vote
+                        if channel[7] < old_channel[7]:
+                            continue
+
+                        votes = (channel[5] or 0) - (channel[6] or 0)
+                        oldvotes = (old_channel[5] or 0) - (old_channel[6] or 0)
+                        if votes < oldvotes:
+                            continue
+
+                result_dict[infohash] = result
         
         t4 = time()
         
@@ -2270,7 +2280,7 @@ class TorrentDBHandler(BasicDBHandler):
         if not local:
             results = results[:25]
         
-        print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
+        #print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return results
 
     def getSearchSuggestion(self, keywords, limit = 1):
@@ -2532,12 +2542,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_good = self.status_table['good']
         # Arno, 2010-02-04: ARNOCOMMENT ARNOTODO Get rid of this g*dd*mn caching
         # or keep it consistent with the DB!
-        self.recent_preflist = None
-        self.recent_preflist_with_clicklog = None
-        self.recent_preflist_with_swarmsize = None
+#        self.recent_preflist = None
+#        self.recent_preflist_with_clicklog = None
+#        self.recent_preflist_with_swarmsize = None
         self.rlock = threading.RLock()
         
-        self.popularity_db = PopularityDBHandler.getInstance()
+        #self.popularity_db = PopularityDBHandler.getInstance()
         
         
     def loadData(self):
@@ -2545,20 +2555,23 @@ class MyPreferenceDBHandler(BasicDBHandler):
         caches, because people don't seem to understand that caches need
         to be kept consistent with the database. Caches are evil in the first place.
         """
-        self.rlock.acquire()
-        try:
-            self.recent_preflist = self._getRecentLivePrefList()
-            self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
-            self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL11()
-        finally:
-            self.rlock.release()
+#        self.rlock.acquire()
+#        try:
+#            self.recent_preflist = self._getRecentLivePrefList()
+#            self.recent_preflist_with_clicklog = self._getRecentLivePrefListWithClicklog()
+#            self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL11()
+#        finally:
+#            self.rlock.release()
+        pass
                 
     def getMyPrefList(self, order_by=None):
         res = self.getAll('torrent_id', order_by=order_by)
         return [p[0] for p in res]
 
     def getMyPrefListInfohash(self, returnDeleted = True, limit = None):
-        sql = 'select infohash, swift_hash from Torrent, MyPreference where Torrent.torrent_id == MyPreference.torrent_id'
+        # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
+        # this faster.
+        sql = 'select infohash, swift_hash from MyPreference, Torrent where Torrent.torrent_id == MyPreference.torrent_id'
         if not returnDeleted:
             sql += ' AND destination_path != ""'
         
@@ -2724,57 +2737,57 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return eterms
     
     
-    def _getRecentLivePrefListOL11(self, num=0): 
-        """
-        first calls the previous method to get a list of torrents and related info from MyPreference db 
-        (_getRecentLivePrefListWithClicklog) and then appendes it with swarm size info or ( num_seeders, num_leechers, calc_age, num_seeders).
-        @author: Rahim
-        @param num: if num=0 it returns all items otherwise it restricts the return result to num.
-        @return: a list that each item conatins below info:
-        [infohash, [seach terms], click position, reranking strategy, num_seeders, num_leechers, calc_age, num_of_sources] 
-        """
-        
-        sql = """
-        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t 
-        where m.torrent_id == t.torrent_id 
-        and status_id == %d
-        order by creation_time desc
-        """ % self.status_good
-        
-        recent_preflist_with_swarmsize = self._db.fetchall(sql)
-        if recent_preflist_with_swarmsize is None:
-            recent_preflist_with_swarmsize = []
-        else:
-            recent_preflist_with_swarmsize = [[str2bin(t[0]),
-                                              t[3],   # insert search terms in next step, only for those actually required, store torrent id for now
-                                              t[1], # click position
-                                              t[2]]  # reranking strategy
-                                             for t in recent_preflist_with_swarmsize]
-
-        if num != 0:
-            recent_preflist_with_swarmsize = recent_preflist_with_swarmsize[:num]
-
-        # now that we only have those torrents left in which we are actually interested, 
-        # replace torrent id by user's search terms for torrent id
-        searchdb = SearchDBHandler.getInstance()
-        
-        tempTorrentList = [pref[1] for pref in recent_preflist_with_swarmsize]
-        terms_dict = searchdb.getMyTorrentsSearchTermsStr(tempTorrentList)
-        
-        for pref in recent_preflist_with_swarmsize:
-            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
-            pref[1] = search_terms
-        
-        #Step 3: appending swarm size info to the end of the inner lists
-        swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
-
-        index = 0
-        for index in range(0,len(swarmSizeInfoList)):
-            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][1]) # number of seeders
-            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][2])# number of leechers
-            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][3])  # age of the report 
-            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][4]) # number of sources seen this torrent 
-        return recent_preflist_with_swarmsize
+#    def _getRecentLivePrefListOL11(self, num=0): 
+#        """
+#        first calls the previous method to get a list of torrents and related info from MyPreference db 
+#        (_getRecentLivePrefListWithClicklog) and then appendes it with swarm size info or ( num_seeders, num_leechers, calc_age, num_seeders).
+#        @author: Rahim
+#        @param num: if num=0 it returns all items otherwise it restricts the return result to num.
+#        @return: a list that each item conatins below info:
+#        [infohash, [seach terms], click position, reranking strategy, num_seeders, num_leechers, calc_age, num_of_sources] 
+#        """
+#        
+#        sql = """
+#        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t 
+#        where m.torrent_id == t.torrent_id 
+#        and status_id == %d
+#        order by creation_time desc
+#        """ % self.status_good
+#        
+#        recent_preflist_with_swarmsize = self._db.fetchall(sql)
+#        if recent_preflist_with_swarmsize is None:
+#            recent_preflist_with_swarmsize = []
+#        else:
+#            recent_preflist_with_swarmsize = [[str2bin(t[0]),
+#                                              t[3],   # insert search terms in next step, only for those actually required, store torrent id for now
+#                                              t[1], # click position
+#                                              t[2]]  # reranking strategy
+#                                             for t in recent_preflist_with_swarmsize]
+#
+#        if num != 0:
+#            recent_preflist_with_swarmsize = recent_preflist_with_swarmsize[:num]
+#
+#        # now that we only have those torrents left in which we are actually interested, 
+#        # replace torrent id by user's search terms for torrent id
+#        searchdb = SearchDBHandler.getInstance()
+#        
+#        tempTorrentList = [pref[1] for pref in recent_preflist_with_swarmsize]
+#        terms_dict = searchdb.getMyTorrentsSearchTermsStr(tempTorrentList)
+#        
+#        for pref in recent_preflist_with_swarmsize:
+#            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
+#            pref[1] = search_terms
+#        
+#        #Step 3: appending swarm size info to the end of the inner lists
+#        swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
+#
+#        index = 0
+#        for index in range(0,len(swarmSizeInfoList)):
+#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][1]) # number of seeders
+#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][2])# number of leechers
+#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][3])  # age of the report 
+#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][4]) # number of sources seen this torrent 
+#        return recent_preflist_with_swarmsize
         
     def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
@@ -2829,7 +2842,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
         
         # Arno, 2010-02-04: Update self.recent_ caches :-(
-        self.loadData()
+        #self.loadData()
         return True
 
     def deletePreference(self, torrent_id, commit=True):
@@ -2840,7 +2853,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
 
         # Arno, 2010-02-04: Update self.recent_ caches :-(
-        self.loadData()
+        #self.loadData()
             
     def updateProgress(self, torrent_id, progress, commit=True):
         self._db.update(self.table_name, 'torrent_id=%d'%torrent_id, commit=commit, progress=progress)
@@ -3392,16 +3405,25 @@ class VoteCastDBHandler(BasicDBHandler):
     
     def on_votes_from_dispersy(self, votes):
         removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
-        self.removeVotes(removeVotes, updateVotes = False)
+        self.removeVotes(removeVotes, updateVotes = False, commit = False)
 
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
         self._db.executemany(insert_vote, votes)
         
-        channel_ids = set((channel_id,voter_id) for channel_id, voter_id, _, _, _ in votes)
-        self._updateChannelsVotes([channel_id for channel_id,_ in channel_ids])
+        # Arno, 2012-08-01: _updateChannelsVotes would be executed one for every
+        # pair, instead of once for every channel. And in many cases there would
+        # be just 1 channel :-(
+        channel_voter_ids = set((channel_id,voter_id) for channel_id, voter_id, _, _, _ in votes)
+        just_channel_ids = set([channel_id for channel_id,_ in channel_voter_ids])
+        
+        if len(just_channel_ids) == 1:
+            # WARNING: pop removes element
+            self._updateChannelVotes(just_channel_ids.pop(), commit=False)
+        else:
+            self._updateChannelsVotes(just_channel_ids)
         self._db.commit()
         
-        for channel_id,voter_id in channel_ids:  
+        for channel_id,voter_id in channel_voter_ids:  
             self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id, voter_id==None)
         
     def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
@@ -3463,6 +3485,7 @@ class VoteCastDBHandler(BasicDBHandler):
             channels.add(vote[0])
         self._updateChannelsVotes(channels)
         
+        
     def removeVote(self, channel_id, voter_id, commit = True):
         if voter_id:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
@@ -3475,16 +3498,19 @@ class VoteCastDBHandler(BasicDBHandler):
         if commit:
             self._updateChannelVotes(channel_id)
         
-    def removeVotes(self, votes, updateVotes = True):
+    def removeVotes(self, votes, updateVotes = True, commit = True):
         for channel_id, voter_id in votes:
             self.removeVote(channel_id, voter_id, commit=False)
-        self._db.commit()
+        if commit:
+            self._db.commit()
         
         if updateVotes:
+            # Arno: why not use _updateCHannelsVotes here?
             channel_ids = set([channel_id for channel_id, _ in votes])        
             for channel_id in channel_ids:
                 self._updateChannelVotes(channel_id)
-            self._db.commit()
+            if commit:
+                self._db.commit()
             
     def _updateChannelVotes(self, channel_id, commit = True):
         nr_favorites = self._db.fetchone("SELECT count(*) FROM ChannelVotes WHERE vote == 2 AND channel_id = ?", (channel_id, ))
@@ -3585,6 +3611,7 @@ class VoteCastDBHandler(BasicDBHandler):
             for channel_id, vote in self._db.fetchall(sql):
                 self.my_votes[channel_id] = vote
         return self.my_votes
+
                         
 #end votes
 

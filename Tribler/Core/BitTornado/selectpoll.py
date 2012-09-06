@@ -25,11 +25,11 @@ class poll:
             f = f.fileno()
         if (t & POLLIN):
             insert(self.rlist, f)
-        else:
+        elif f in self.rlist: # Arno, 2012-07-31: Safety catch
             remove(self.rlist, f)
         if (t & POLLOUT):
             insert(self.wlist, f)
-        else:
+        elif f in self.wlist: # Arno, 2012-07-31: Safety catch
             remove(self.wlist, f)
 
     def unregister(self, f):

@@ -36,7 +36,12 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 ##Changed from 11 to 12 imposing some limits on the Tribler database
 ##Changed from 12 to 13 introduced swift-url modification type
 ##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
-CURRENT_MAIN_DB_VERSION = 14
+##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
+##Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
+
+# Arno, 2012-08-01: WARNING You must also update the version number that is 
+# written to the DB in the schema_sdb_v*.sql file!!!
+CURRENT_MAIN_DB_VERSION = 16
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -207,15 +212,17 @@ class SQLiteCacheDBBase:
         self.cache_transaction_table = safe_dict()   # {thread_name:[sql]
         self.class_variables = safe_dict({'db_path':None,'busytimeout':None})  # busytimeout is in milliseconds
         
-        self.permid_id = safe_dict()    
-        self.infohash_id = safe_dict()
+        # Arno, 2012-08-02: As there is just Dispersy thread here, removing
+        # safe_dict() here
+        self.permid_id = {}  # safe_dict()  
+        self.infohash_id = {} # safe_dict()
         self.show_execute = False
         
         #TODO: All global variables must be protected to be thread safe?
         self.status_table = None
         self.category_table = None
         self.src_table = None
-        self.applied_pragma_sync_norm = False
+        self.applied_pragma = False
         
     def __del__(self):
         self.close()
@@ -238,8 +245,10 @@ class SQLiteCacheDBBase:
             except:
                 print_exc()
         if clean:    # used for test suite
-            self.permid_id = safe_dict()
-            self.infohash_id = safe_dict()
+            # Arno, 2012-08-02: As there is just Dispery thread here, removing
+            # safe_dict() here
+            self.permid_id = {} # safe_dict()
+            self.infohash_id = {} # safe_dict()
             self.exception_handler = None
             self.class_variables = safe_dict({'db_path':None,'busytimeout':None})
             self.cursor_table = safe_dict()
@@ -286,7 +295,19 @@ class SQLiteCacheDBBase:
         cur = con.cursor()
         self.cursor_table[thread_name] = cur
         
-        if not self.applied_pragma_sync_norm:
+        if not self.applied_pragma:
+            self.applied_pragma = True 
+            page_size, = next(cur.execute("PRAGMA page_size"))
+            if page_size < 8192:
+                # journal_mode and page_size only need to be set once.  because of the VACUUM this
+                # is very expensive
+                print >> sys.stderr, "begin page_size upgrade..."
+                cur.execute("PRAGMA journal_mode = DELETE;")
+                cur.execute("PRAGMA page_size = 8192;")
+                cur.execute("VACUUM;")
+                cur.execute("PRAGMA journal_mode = WAL;")
+                print >> sys.stderr, "...end page_size upgrade"
+
             # http://www.sqlite.org/pragma.html
             # When synchronous is NORMAL, the SQLite database engine will still
             # pause at the most critical moments, but less often than in FULL 
@@ -296,7 +317,6 @@ class SQLiteCacheDBBase:
             # catastrophic disk failure or some other unrecoverable hardware 
             # fault.
             #
-            self.applied_pragma_sync_norm = True 
             cur.execute("PRAGMA synchronous = NORMAL;")
             cur.execute("PRAGMA cache_size = 10000;")
             
@@ -863,8 +883,9 @@ class SQLiteCacheDBBase:
     def getPeerID(self, permid):
         assert isinstance(permid, str), permid
         # permid must be binary
-        if permid in self.permid_id:
-            return self.permid_id[permid]
+        peer_id = self.permid_id.get(permid,None)
+        if peer_id is not None:
+            return peer_id
         
         sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
         peer_id = self.fetchone(sql_get_peer_id, (bin2str(permid),))
@@ -936,8 +957,10 @@ class SQLiteCacheDBBase:
     def getTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if infohash in self.infohash_id:
-            return self.infohash_id[infohash]
+        
+        tid = self.infohash_id.get(infohash,None)
+        if tid is not None:
+            return tid
         
         sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE infohash==?"
         tid = self.fetchone(sql_get_torrent_id, (bin2str(infohash),))
@@ -2130,7 +2153,25 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             tqueue = TimedTaskQueue("UpgradeDB")
             tqueue.add_task(upgradeTorrents, 30)
-            
+
+        # Arno, 2012-07-30: Speed up 
+        if fromver < 15:
+            self.execute_write("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' OR swift_hash = 'None'")
+            duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
+            if duplicates:
+                self.executemany("UPDATE Torrent SET swift_hash = NULL WHERE torrent_id = ?", duplicates)
+            self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_hash_idx ON Torrent(swift_hash)")
+
+            self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
+            duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_torrent_hash NOT NULL GROUP BY swift_torrent_hash") if count > 1]
+            if duplicates:
+                self.executemany("UPDATE Torrent SET swift_torrent_hash = NULL WHERE torrent_id = ?", duplicates)
+            self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
+
+        # 02/08/2012 Boudewijn: the code allowed swift_torrent_hash to be an empty string
+        if fromver < 16:
+            self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
+
     def clean_db(self, vacuum = False):
         from time import time
         
@@ -2400,6 +2441,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
             raise msg
             
+# Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches            
 class SQLiteCacheDB(SQLiteNoCacheDB):
     __single = None    # used for multithreaded singletons pattern
 

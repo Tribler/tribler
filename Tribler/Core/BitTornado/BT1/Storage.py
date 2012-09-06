@@ -272,7 +272,7 @@ class Storage:
         self.ranges = []
         for l in self.working_ranges:
             self.ranges.extend(l)
-            self.begins = [i[0] for i in self.ranges]
+        self.begins = [i[0] for i in self.ranges]
         if DEBUG:
             for a,b in enumerate(self.ranges):
                 print >> sys.stderr, "Storage._reset_ranges", a, ":", b

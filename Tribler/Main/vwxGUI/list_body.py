@@ -745,6 +745,10 @@ class AbstractListBody():
                     print >> sys.stderr, "ListBody: refresh item (Calling expandedPanel refreshdata)", self.items[key]
                 
                 panel.RefreshData(data)
+                
+        else:
+            self.data.append(data)
+            self.CreateItem(key)
     
     @warnWxThread
     def SetData(self, data = None, highlight = None, force = False):
@@ -863,12 +867,13 @@ class AbstractListBody():
             if self.done:
                 self.Unbind(wx.EVT_IDLE)
 
-    def OnLoadMore(self, event):
-        self.loadNext.Disable()
-        self.list_cur_max += LIST_ITEM_MAX_SIZE
-        
-        wx.CallAfter(self.CreateItems)
-        self.Bind(wx.EVT_IDLE, self.OnIdle)
+    def OnLoadMore(self, event = None):
+        if self.loadNext.IsShown():
+            self.loadNext.Disable()
+            self.list_cur_max += LIST_ITEM_MAX_SIZE
+            
+            wx.CallAfter(self.CreateItems)
+            self.Bind(wx.EVT_IDLE, self.OnIdle)
         
     def OnLoadAll(self):
         self.loadNext.Disable()
@@ -1105,12 +1110,33 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         
         self.SetForegroundColour(parent.GetForegroundColour())
         self.SetupScrolling()
+        
+        TIMER_ID = wx.NewId()
+        self.scrollTimer = wx.Timer(self, TIMER_ID)
+        self.Bind(wx.EVT_TIMER, self.checkScroll)
                 
     def OnChildFocus(self, event):
         event.Skip()
         
     def SetFocus(self):
         self.SetFocusIgnoringChildren()
+        
+    def Show(self, show = True):
+        scrolled.ScrolledPanel.Show(self, show)
+        if show:
+            self.scrollTimer.Start(1000)
+        else:
+            self.scrollTimer.Stop()
+            
+    def checkScroll(self, event):
+        maxY = self.vSizer.GetSize()[1]
+        doMore = maxY * 0.8
+        
+        height = self.GetClientSize()[1]
+        viewY = self.CalcUnscrolledPosition(list(self.GetViewStart()))[1] + height
+        
+        if viewY > doMore:
+            self.OnLoadMore()
     
 class FixedListBody(wx.Panel, AbstractListBody):
     def __init__(self, parent, parent_list, columns, leftSpacer = 0, rightSpacer = 0, singleExpanded = False, showChange = False, list_item_max = LIST_ITEM_MAX_SIZE):

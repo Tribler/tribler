@@ -214,7 +214,8 @@ class TriblerLaunchMany(Thread):
             self.richmetadataDbHandler = None
 
         # SWIFTPROC
-        if config['swiftproc']:
+        swift_exists = config['swiftproc'] and (os.path.exists(config['swiftpath']) or os.path.exists(config['swiftpath'] + '.exe'))
+        if swift_exists:
             self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.session.get_swift_tunnel_listen_port(),self.sesslock)
         else:
             self.spm = None
@@ -512,7 +513,7 @@ class TriblerLaunchMany(Thread):
                 print_exc()
                 d.set_error(e)
 
-    def remove(self,d,removecontent=False,removestate=True):
+    def remove(self,d,removecontent=False,removestate=True, hidden=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -523,12 +524,13 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
         
-        self.remove_id(infohash)
+        if not hidden:
+            self.remove_id(infohash)
     
     def remove_id(self, hash):
         #this is a bit tricky, as we do not know if this "id" is a roothash or infohash
         #however a restart will re-add the preference to mypreference if we remove the wrong one
-        if self.torrent_db != None and self.mypref_db != None:
+        def do_db(torrent_db, mypref_db, hash):
             torrent_id = self.torrent_db.getTorrentID(hash)
             if torrent_id:    
                 self.mypref_db.updateDestDir(torrent_id,"")
@@ -536,6 +538,9 @@ class TriblerLaunchMany(Thread):
             torrent_id = self.torrent_db.getTorrentIDRoot(hash)
             if torrent_id:    
                 self.mypref_db.updateDestDir(torrent_id,"")
+        
+        if self.torrent_db != None and self.mypref_db != None:
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, hash))
 
     def get_downloads(self):
         """ Called by any thread """
@@ -647,6 +652,25 @@ class TriblerLaunchMany(Thread):
     #
     def set_download_states_callback(self,usercallback,getpeerlist,when=0.0):
         """ Called by any thread """
+        self.sesslock.acquire()
+        try:
+            # Even if the list of Downloads changes in the mean time this is
+            # no problem. For removals, dllist will still hold a pointer to the
+            # Download, and additions are no problem (just won't be included
+            # in list of states returned via callback.
+            #
+            dllist = self.downloads.values()
+        finally:
+            self.sesslock.release()
+
+        for d in dllist:
+            if d.get_def().get_def_type() == "swift":
+                # Arno, 2012-05-23: At Niels' request to get total transferred 
+                # stats. Causes MOREINFO message to be sent from swift proc 
+                # for every initiated dl.
+                # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
+                d.set_moreinfo_stats(getpeerlist)
+        
         network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback,getpeerlist)
         self.rawserver.add_task(network_set_download_states_callback_lambda,when)
 
@@ -1143,17 +1167,20 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
             
-        if d and not hidden and self.torrent_db != None and self.mypref_db != None:
-            torrent_id = self.torrent_db.addOrGetTorrentIDRoot(roothash, sdef.get_name())
+        def do_db(torrent_db, mypref_db, roothash, sdef, d):
+            torrent_id = torrent_db.addOrGetTorrentIDRoot(roothash, sdef.get_name())
             
             # TODO: if user renamed the dest_path for single-file-torrent
             dest_path = d.get_dest_dir()
             data = {'destination_path':dest_path}
-            self.mypref_db.addMyPreference(torrent_id, data)
+            mypref_db.addMyPreference(torrent_id, data)
+        
+        if d and not hidden and self.torrent_db != None and self.mypref_db != None:
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash, sdef, d))
 
         return d
             
-    def swift_remove(self,d,removecontent=False,removestate=True):
+    def swift_remove(self,d,removecontent=False,removestate=True,hidden=False):
         """ Called by any thread """
         self.sesslock.acquire()
         try:
@@ -1169,11 +1196,14 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
         
-        if self.torrent_db != None and self.mypref_db != None:
+        def do_db(torrent_db, my_prefdb, roothash):
             torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
             
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")
+        
+        if not hidden and self.torrent_db != None and self.mypref_db != None:
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash))
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the

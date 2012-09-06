@@ -564,6 +564,13 @@ class SocketHandler:
                     s.try_write()
                     if s.is_flushed():
                         s.handler.connection_flushed(s)
+            else:
+                # Arno, 2012-08-1: Extra protection.
+                print >>sys.stderr,"SocketHandler: got event on unregistered sock",sock
+                try:
+                    self.poll.unregister(sock)
+                except:
+                    pass
 
     def close_dead(self):
         while self.dead_from_write:

@@ -3,7 +3,6 @@
 #
 # Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download. 
-#
 
 import sys
 import Queue
@@ -21,7 +20,8 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 import shutil
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.exceptions import DuplicateDownloadException,\
+    OperationNotEnabledByConfigurationException
 import atexit
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 import urllib
@@ -79,15 +79,17 @@ class RemoteTorrentHandler:
             
             if num_torrents > self.max_num_torrents:
                 num_delete = int(num_torrents - self.max_num_torrents*0.95)
+                num_per_step = max(25, num_delete / 180)
+                
                 print >> sys.stderr, "rtorrent: ** limit space::", num_torrents, self.max_num_torrents, num_delete
                 
                 while num_delete > 0:
-                    to_remove = min(num_delete, 25)
+                    to_remove = min(num_delete, num_per_step)
                     num_delete -= to_remove
                     self.torrent_db.freeSpace(to_remove)
                     yield 5.0
                 
-            yield 30 * 60 * 60.0 #run every 30 minutes
+            yield 30 * 60.0 #run every 30 minutes
         
     @property
     def searchcommunity(self):
@@ -443,6 +445,9 @@ class TorrentRequester(Requester):
             except DuplicateDownloadException:
                 download = self.session.get_download(roothash)
                 download.add_peer((ip,port))
+                
+            except OperationNotEnabledByConfigurationException:
+                doMagnet = True
         
             #schedule a magnet lookup after X seconds
             if doMagnet:
@@ -479,11 +484,15 @@ class TorrentRequester(Requester):
         # Arno, 2012-05-30: Make sure .mbinmap is written
         if not removestate and d.get_def().get_def_type() == 'swift':
             d.checkpoint()
-        self.session.remove_download(d, removestate = removestate)
+        self.session.remove_download(d, removestate = removestate, hidden = True)
             
 class TorrentMessageRequester(Requester):
     
     def __init__(self, remote_th, searchcommunity, prio):
+        if sys.platform == 'darwin':
+            # Arno, 2012-07-25: Mac has just 256 fds per process, be less aggressive
+            self.REQUEST_INTERVAL = 1.0
+        
         Requester.__init__(self, remote_th.scheduletask, prio)
         self.searchcommunity = searchcommunity
     

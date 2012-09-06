@@ -1,9 +1,11 @@
 #Written by Niels Zeilemaker
 import sys
+from os import urandom
 from time import time
 from itertools import islice
-from random import random, shuffle
+from random import random, shuffle, sample
 from traceback import print_exc
+from struct import unpack, pack
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
@@ -17,11 +19,11 @@ from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
-
 from Tribler.community.search.conversion import SearchConversion
 from Tribler.community.search.payload import SearchRequestPayload,\
     SearchResponsePayload, TorrentRequestPayload, TorrentCollectRequestPayload,\
-    TorrentCollectResponsePayload, TasteIntroPayload
+    TorrentCollectResponsePayload, TasteIntroPayload, XorTasteIntroPayload,\
+    XorRequestPayload, XorResponsePayload
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.channel.payload import TorrentPayload
@@ -34,12 +36,15 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from string import printable
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
     from lencoder import log
 
 DEBUG = False
+USE_XOR_PREF = False
+XOR_FMT = "!qql"
 SWIFT_INFOHASHES = 0
 
 class SearchCommunity(Community):
@@ -60,6 +65,8 @@ class SearchCommunity(Community):
 #OACmKXT1V0kQ11Fm1lKduvAW54CQr7+vg3M=
 #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373".decode("HEX")
+        if USE_XOR_PREF:
+            master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404a041c3a8415021f193ef0614360b4d99ac8f985eff2259f88f1f64070ae2bcc21c473c9c0b958b39da9ae58d6d0aec316341f65bd7daa42ffd73f5eeee53aa6199793f98afc47f008a601cd659479f801157e7dd69525649d8eec7885bd0d832746c46d067c60341a6d84b12a6e5d3ce25e20352ed8e0ff311e74b801c06286a852976bdba67dfe62dfb75a5b9c0d2".decode("HEX")
         master = Member(master_key)
         return [master]
 
@@ -110,7 +117,9 @@ class SearchCommunity(Community):
                 Message(self, u"torrent-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentRequestPayload(), self.check_torrent_request, self.on_torrent_request),
                 Message(self, u"torrent-collect-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentCollectRequestPayload(), self.check_torrent_collect_request, self.on_torrent_collect_request),
                 Message(self, u"torrent-collect-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentCollectResponsePayload(), self.check_torrent_collect_response, self.on_torrent_collect_response),
-                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self.check_torrent, self.on_torrent)
+                Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self.check_torrent, self.on_torrent),
+                Message(self, u"xor-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), XorRequestPayload(), self.check_search_response, self.on_xor_request),
+                Message(self, u"xor-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), XorResponsePayload(), self.check_search_response, self.on_xor_response)
                 ]
         
     def _initialize_meta_messages(self):
@@ -119,7 +128,10 @@ class SearchCommunity(Community):
         ori = self._meta_messages[u"dispersy-introduction-request"]
         self._disp_intro_handler = ori.handle_callback
         
-        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, self.on_taste_intro)
+        if USE_XOR_PREF:
+            new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, XorTasteIntroPayload(), ori.check_callback, self.on_taste_intro)
+        else:
+            new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, self.on_taste_intro)
         self._meta_messages[u"dispersy-introduction-request"] = new
         
     def initiate_conversions(self):
@@ -170,6 +182,66 @@ class SearchCommunity(Community):
                 sock_addresses.add(candidate.sock_addr)
         return candidates
     
+    def _doXOR(self, preferences, fmt, xor):
+        returnList = []
+        for preference in preferences:
+            parts = []
+            for i, part in enumerate(unpack(fmt, preference)):
+                parts.append(part ^ xor[i])
+                
+            returnList.append(pack(fmt, *parts))
+        shuffle(returnList)
+        return returnList
+    
+    def __calc_similarity(self, candidate, myPrefs, hisPrefs, overlap):
+        if myPrefs > 0 and hisPrefs > 0:
+            myRoot = 1.0/(myPrefs ** .5)
+            sim = overlap * (myRoot * (1.0/(hisPrefs ** .5)))
+            return [sim, time(), candidate]
+        
+        return [0, time(), candidate]
+            
+    class SimilarityRequest(Cache):
+        timeout_delay = 30.0
+        cleanup_delay = 0.0
+
+        def __init__(self, intro_request, xor, myList, hisList, myPref):
+            self.intro_request = intro_request
+            self.xor = xor
+            self.myList = myList
+            self.hisList = hisList
+            
+            self.myPref = myPref
+
+        def on_timeout(self):
+            pass
+        
+        def is_complete(self):
+            return self.myList and self.hisList
+        
+        def get_overlap(self):
+            overlap = 0
+            for pref in self.myList:
+                if pref in self.hisList:
+                    overlap += 1
+                    
+            return len(self.myList), len(self.hisList), overlap
+        
+        def guess_xor(self, community):
+            #1. remove my xor
+            hisWithoutMy = community._doXOR(self.hisList, XOR_FMT, self.xor)
+            
+            #2. xor every infohash
+            possibles = {}
+            for infohash in self.myPref:
+                xor = unpack(XOR_FMT, infohash)
+                for possible in community._doXOR(hisWithoutMy, XOR_FMT, xor):
+                    possibles[possible] = possibles.get(possible, 0) + 1
+            
+            #3. check for possibles which occur for every infohash
+            possibles = [key for key, value in possibles.iteritems() if value == len(self.myPref)]
+            print >> sys.stderr, "guessed xor", possibles
+    
     def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
         
@@ -179,74 +251,147 @@ class SearchCommunity(Community):
         self._dispersy._statistics.increment_walk_attempt()
         destination.walk(self, time())
 
-        # temporary cache object
-        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
         advice = True
-
-        taste_bloom_filter = None
-
-        num_preferences = 0
         if not isinstance(destination, BootstrapCandidate):
-            myPreferences = self._mypref_db.getMyPrefListInfohash(limit = 500)
-            myPreferences.sort()
-            num_preferences = len(myPreferences)
-            
-            myPref_key = ",".join(map(bin2str, myPreferences))
-            if myPref_key != self.taste_bloom_filter_key:
-                if num_preferences > 0:
-                    #no prefix changing, we want false positives (make sure it is a single char)
-                    self.taste_bloom_filter = BloomFilter(0.005, len(myPreferences), prefix=' ')
-                    self.taste_bloom_filter.add_keys(myPreferences)
-                else:
-                    self.taste_bloom_filter = None
+            if USE_XOR_PREF:
+                xor = unpack(XOR_FMT, urandom(20))
+                print >> sys.stderr, "choosing xor", xor
                 
-                self.taste_bloom_filter_key = myPref_key
+                max_len = self.dispersy_sync_bloom_filter_bits/8
+                limit = int(max_len/20)
+                
+                myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(limit = limit) if preference]
+                identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(None, xor, None, None, myPreferences))
+                
+                myPreferences = self._doXOR(myPreferences, XOR_FMT, xor)
+                payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences)
+            else:
+                myPreferences = self._mypref_db.getMyPrefListInfohash(limit = 500)
+                myPreferences.sort()
+                num_preferences = len(myPreferences)
+                
+                myPref_key = ",".join(map(bin2str, myPreferences))
+                if myPref_key != self.taste_bloom_filter_key:
+                    if num_preferences > 0:
+                        #no prefix changing, we want false positives (make sure it is a single char)
+                        self.taste_bloom_filter = BloomFilter(0.005, len(myPreferences), prefix=' ')
+                        self.taste_bloom_filter.add_keys(myPreferences)
+                    else:
+                        self.taste_bloom_filter = None
+                    
+                    self.taste_bloom_filter_key = myPref_key
+    
+                taste_bloom_filter = self.taste_bloom_filter
 
-            taste_bloom_filter = self.taste_bloom_filter
-        
+                identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+                payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, num_preferences, taste_bloom_filter)
+        else:
+            identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+            if USE_XOR_PREF:
+                payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, None)
+            else:
+                payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, 0, None)
+                
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
-                                    distribution=(self.global_time,),
-                                    destination=(destination,),
-                                    payload=(destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, num_preferences, taste_bloom_filter))
-        
+                                distribution=(self.global_time,),
+                                destination=(destination,),
+                                payload=payload)
+
         self._dispersy.store_update_forward([request], False, False, True)
         return request
     
     def on_taste_intro(self, messages):
-        self._disp_intro_handler(messages)
-        
-        messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
-        if any(message.payload.taste_bloom_filter for message in messages):
-            myPreferences = self._mypref_db.getMyPrefListInfohash(limit = 500)
-        else:
-            myPreferences = []
-        
-        newTasteBuddies = []
-        if len(myPreferences) > 0:
-            myRoot = 1.0/(len(myPreferences) ** .5)
+        if USE_XOR_PREF:
+            boot_messages = [message for message in messages if isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+            if boot_messages:
+                self._disp_intro_handler(boot_messages)
             
+            messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+            
+            #1. fetch my preferences
+            max_len = self.dispersy_sync_bloom_filter_bits/8
+            limit = int(max_len/20)
+            myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(limit = limit) if preference]
+            
+            for message in messages:
+                #2. generate random xor-key with the same length as an infohash
+                xor = unpack(XOR_FMT, urandom(20))
+                print >> sys.stderr, "choosing xor", xor
+                
+                #3. use the xor key to "encrypt" mypreferences, and his
+                myList = self._doXOR(myPreferences[:], XOR_FMT, xor)
+                hisList = self._doXOR(message.payload.preference_list, XOR_FMT, xor)
+    
+                #4. claim an identifier to remember hislist
+                self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SimilarityRequest(message, xor, None, hisList, myPreferences))
+                
+                #5. create two messages, one containing hislist encrypted with my xor-key, the other mylist only encrypted by my xor-key
+                meta = self.get_meta_message(u"xor-response")
+                resp_message = meta.impl(authentication=(self._my_member,),
+                                    distribution=(self.global_time,), payload=(message.payload.identifier, hisList))
+                
+                meta = self.get_meta_message(u"xor-request")
+                requ_message = meta.impl(authentication=(self._my_member,),
+                                    distribution=(self.global_time,), payload=(message.payload.identifier, myList))
+                
+                if __debug__:
+                    self._dispersy.statistics.outgoing(u"xor-response", len(resp_message.packet))
+                    self._dispersy.statistics.outgoing(u"xor-request", len(requ_message.packet))
+                    
+                self._dispersy.endpoint.send([message.candidate, message.candidate], [resp_message.packet, requ_message.packet])
+            
+        else:
+            self._disp_intro_handler(messages)
+            messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+            
+            if any(message.payload.taste_bloom_filter for message in messages):
+                myPreferences = self._mypref_db.getMyPrefListInfohash(limit = 500)
+            else:
+                myPreferences = []
+            
+            newTasteBuddies = []
             for message in messages:
                 taste_bloom_filter = message.payload.taste_bloom_filter
                 num_preferences = message.payload.num_preferences
-                
-                if taste_bloom_filter:    
+                if taste_bloom_filter:
                     overlap = sum(infohash in taste_bloom_filter for infohash in myPreferences)
-                    sim = overlap * (myRoot * (1.0/(num_preferences ** .5)))
-                
-                    newTasteBuddies.append([sim, time(), message.candidate])
-        else:
-            for message in messages:
-                newTasteBuddies.append([0, time(), message.candidate])
-        
-        if len(newTasteBuddies) > 0:
-            self.add_taste_buddies(newTasteBuddies)
+                else:
+                    overlap = 0
+
+                newTasteBuddies.append(self.__calc_similarity(message.candidate, len(myPreferences), num_preferences, overlap))
             
+            if len(newTasteBuddies) > 0:
+                self.add_taste_buddies(newTasteBuddies)
+                
         if self._notifier:
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
-        
+    
+    def __process(self, candidate, similarity_request):
+        self.add_taste_buddies([self.__calc_similarity(candidate, *similarity_request.get_overlap())])
+        if similarity_request.intro_request:
+            self._disp_intro_handler([similarity_request.intro_request])
+    
+    def on_xor_request(self, messages):
+        for message in messages:
+            my_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SimilarityRequest)
+            if my_request:
+                my_request.hisList = self._doXOR(message.payload.preference_list, XOR_FMT, my_request.xor)
+                if my_request.is_complete():
+                    my_request.guess_xor(self)
+                    self.__process(message.candidate, my_request)
+            
+    def on_xor_response(self, messages):
+        for message in messages:
+            my_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SimilarityRequest)
+            if my_request:
+                my_request.myList = message.payload.preference_list
+                if my_request.is_complete():
+                    my_request.guess_xor(self)
+                    self.__process(message.candidate, my_request)
+            
     class SearchRequest(Cache):
         timeout_delay = 30.0
         cleanup_delay = 0.0
@@ -460,7 +605,7 @@ class SearchCommunity(Community):
         for message in messages:
             if verifyRequest:
                 pong_request = self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.PingRequestCache)
-                if __debug__: dprint("pop", pong_request.helper_candidate)
+                if __debug__: dprint("pop", pong_request.helper_candidate if pong_request else " (unknown)")
             else:
                 if __debug__: dprint("no-pop")
                 pong_request = True
@@ -473,15 +618,17 @@ class SearchCommunity(Community):
 
         if len(toInsert) > 0:
             self._torrent_db.on_torrent_collect_response(toInsert.values())
-        
-        hashesToCollect = self._torrent_db.selectSwiftTorrentsToCollect(toCollect.keys())
-        for infohash, roothash in hashesToCollect[:5]:
-            for candidate in toCollect[infohash]:
-                if DEBUG:
-                    from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-                    print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
 
-                self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio = 2)
+        hashes = [hash_ for hash_ in toCollect.keys() if hash_]
+        if hashes:
+            hashesToCollect = self._torrent_db.selectSwiftTorrentsToCollect(hashes)
+            for infohash, roothash in hashesToCollect[:5]:
+                for candidate in toCollect[infohash]:
+                    if DEBUG:
+                        from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+                        print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
+
+                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio = 2)
     
     def _create_pingpong(self, meta_name, candidates, identifiers = None):
         max_len = self.dispersy_sync_bloom_filter_bits/8
