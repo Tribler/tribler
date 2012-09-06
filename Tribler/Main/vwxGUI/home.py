@@ -448,8 +448,8 @@ class DispersyPanel(HomePanel):
                         "drop":[("Dropped", lambda info: "%s ~%.1f%%" % (self.utility.size_format(int(sum(byte_count for _, byte_count in info["drop"].itervalues()))), (100.0 * sum(byte_count for _, byte_count in info["drop"].itervalues()) / info["total_down"]) if info["total_down"] else 0.0))],
                         "walk_success":[("Walker success", lambda info: "%d / %d ~%.1f%%" % (info["walk_success"], info["walk_attempt"], (100.0 * info["walk_success"] / info["walk_attempt"]) if info["walk_attempt"] else 0.0))],
                         "walk_reset":[("Walker resets", lambda info: str(info["walk_reset"]))],
-                        "wan_address":[("Address wan", lambda info: "%s:%d" % info["wan_address"])],
-                        "lan_address":[("Address lan", lambda info: "%s:%d" % info["lan_address"])],
+                        "wan_address":[("Address WAN", lambda info: "%s:%d" % info["wan_address"])],
+                        "lan_address":[("Address LAN", lambda info: "%s:%d" % info["lan_address"])],
                         "runtime":[("Runtime", lambda info: self.utility.eta_value(info["runtime"]))],
                         "walk_attempt":[],
                         "outgoing":[],
@@ -463,7 +463,9 @@ class DispersyPanel(HomePanel):
                         "start":[],
                         "walk_fail":[],
                         "attachment":[],
-                        "revision":[("Version", lambda info: str(max(info["revision"].itervalues())))]}
+                        "revision":[("Version", lambda info: str(max(info["revision"].itervalues())))],
+                        "drop_count":[],
+                        "success_count":[("Packet success", lambda info: "%d / %d ~%.1f%%" % (info["success_count"] - info["drop_count"], info["success_count"], 100.0 * (info["success_count"] - info["drop_count"]) / info["success_count"] if info["success_count"] else 0.0))]}
 
     def CreatePanel(self):
         panel = wx.Panel(self)
