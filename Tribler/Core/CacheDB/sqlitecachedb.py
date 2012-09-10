@@ -2214,11 +2214,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         from time import time
         
         oneweekago = long(time() - 604800)
-        self.execute_write("DELETE FROM Popularity WHERE msg_receive_time < ?", (oneweekago, ), commit = False)
         self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit = False)
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
         self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
-               
         if vacuum:
             self.execute_read("VACUUM")
 
