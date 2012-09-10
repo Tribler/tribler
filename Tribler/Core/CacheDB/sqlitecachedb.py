@@ -38,10 +38,11 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 ##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
 ##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
 ##Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
+##Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables 
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is 
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 16
+CURRENT_MAIN_DB_VERSION = 17
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -2171,6 +2172,40 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         # 02/08/2012 Boudewijn: the code allowed swift_torrent_hash to be an empty string
         if fromver < 16:
             self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
+        
+        if fromver < 17:
+            self.execute_write("DROP TABLE IF EXISTS PREFERENCE")
+            self.execute_write("DROP INDEX IF EXISTS Preference_peer_id_idx")
+            self.execute_write("DROP INDEX IF EXISTS Preference_torrent_id_idx")
+            self.execute_write("DROP INDEX IF EXISTS pref_idx")
+            
+            self.execute_write("DROP TABLE IF EXISTS Popularity")
+            self.execute_write("DROP INDEX IF EXISTS Popularity_idx")
+            
+            self.execute_write("DROP TABLE IF EXISTS Metadata")
+            self.execute_write("DROP INDEX IF EXISTS infohash_md_idx")
+            self.execute_write("DROP INDEX IF EXISTS pub_md_idx")
+            
+            self.execute_write("DROP TABLE IF EXISTS Subtitles")
+            self.execute_write("DROP INDEX IF EXISTS metadata_sub_idx")
+            
+            self.execute_write("DROP TABLE IF EXISTS SubtitlesHave")
+            self.execute_write("DROP INDEX IF EXISTS subtitles_have_idx")
+            self.execute_write("DROP INDEX IF EXISTS subtitles_have_ts", commit = True)
+            
+            update = list(self.execute_read("SELECT peer_id, torrent_id, term_id, term_order FROM ClicklogSearch"))
+            results = self.execute_read("SELECT ClicklogTerm.term_id, TermFrequency.term_id FROM TermFrequency, ClicklogTerm WHERE TermFrequency.term == ClicklogTerm.term")
+            updateDict = {}
+            for old_termid, new_termid in results:
+                updateDict[old_termid] = new_termid
+                
+            self.execute_write("DELETE FROM ClicklogSearch")
+            for peer_id, torrent_id, term_id, term_order in update:
+                if term_id in updateDict:
+                    self.execute_write("INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) VALUES (?,?,?,?)", (peer_id, torrent_id, updateDict[term_id], term_order))
+            
+            self.execute_write("DROP TABLE IF EXISTS ClicklogTerm")
+            self.execute_write("DROP INDEX IF EXISTS idx_terms_term", commit = True)
 
     def clean_db(self, vacuum = False):
         from time import time
@@ -2179,7 +2214,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         self.execute_write("DELETE FROM Popularity WHERE msg_receive_time < ?", (oneweekago, ), commit = False)
         self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit = False)
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
-        self.execute_write("DELETE FROM Preference where peer_id not in (Select peer_id From Peer where num_prefs > 5 or similarity > 0)", commit = False)
         self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
                
         if vacuum:

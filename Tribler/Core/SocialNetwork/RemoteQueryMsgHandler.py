@@ -24,7 +24,6 @@ from Tribler.Core.BitTornado.bencode import bencode,bdecode
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.CacheDBHandler import ChannelCastDBHandler,PeerDBHandler
 from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.BuddyCast.moderationcast_util import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH, OLPROTO_VER_NINETH, OLPROTO_VER_ELEVENTH, OLPROTO_VER_TWELFTH, OLPROTO_VER_THIRTEENTH, OLPROTO_VER_FOURTEENTH
 from Tribler.Core.Utilities.utilities import show_permid_short,show_permid

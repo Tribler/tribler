@@ -1231,43 +1231,6 @@ class SessionConfigInterface:
         """
         return self.sessconfig['channelcast_random_own_subscriptions']
     #
-    # Subtitle collection via Andrea Reale's extension
-    #
-    def set_subtitles_collecting(self,value):
-        """ Automatically collect subtitles from peers in the network (default = 
-        False).
-        @param value Boolean. 
-        """
-        self.sessconfig['subtitles_collecting'] = value
-
-    def get_subtitles_collecting(self):
-        """ Returns whether to automatically collect subtitles.
-        @return Boolean. """
-        return self.sessconfig['subtitles_collecting']
-
-    def set_subtitles_collecting_dir(self,value):
-        """
-        Where to place collected subtitles? (default is state_dir + 'collected_subtitles_files')
-        @param value An absolute path.
-        """
-        self.sessconfig['subtitles_collecting_dir'] = value
-        
-    def get_subtitles_collecting_dir(self):
-        """ Returns the directory to save collected subtitles.
-        @return An absolute path name. """
-        return self.sessconfig['subtitles_collecting_dir']
-        
-    def set_subtitles_upload_rate(self,value):
-        """ Maximum upload rate to use for subtitles collecting.
-        @param value A rate in KB/s. """
-        self.sessconfig['subtitles_upload_rate'] = value
-    
-    def get_subtitles_upload_rate(self):
-        """ Returns the upload rate to use for subtitle collecting.
-        @return A rate in KB/s. """
-        return self.sessconfig['subtitles_upload_rate']
-
-    #
     # Dispersy
     #
     def set_dispersy(self, value):

@@ -5,7 +5,6 @@ from GuiUtility import GUIUtility
 from Tribler.Main.Utility.utility import Utility
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
-from Tribler.Core.simpledefs import NTFY_TERM
 from Tribler.Core.APIImplementation.miscutils import NamedTimer
 from Tribler.Core.Session import Session
 

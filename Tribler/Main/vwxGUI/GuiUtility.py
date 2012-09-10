@@ -11,7 +11,6 @@ from wx import xrc
 from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Category.Category import Category
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords,\
     fts3_preprocess

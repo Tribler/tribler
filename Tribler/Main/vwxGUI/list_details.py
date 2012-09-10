@@ -17,8 +17,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
 from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel
 
@@ -452,18 +450,6 @@ class TorrentDetails(AbstractDetails):
         if self.torrent.isPlayable():
             curlang = []
             strlang = []
-            
-            subsupport = SubtitlesSupport.getInstance()
-            if subsupport._registered:
-                subs = subsupport.getSubtileInfosForInfohash(self.torrent.infohash)
-                if len(subs) > 0:
-                    supportedLang = subsupport.langUtility.getLangSupported()
-
-                    for channelid, dict in subs.iteritems():
-                        for lang in dict.keys():
-                            curlang.append((supportedLang[lang], channelid, dict[lang]))
-                    curlang.sort()
-                    strlang = [lang[0] for lang in curlang]
             
             internalSubs = self.torrent.subtitlefiles
             internalSubs.sort()
@@ -1097,15 +1083,12 @@ class TorrentDetails(AbstractDetails):
             self.OnSubtitleBrowse(event)
             
         else:
-            if len(self.subtitleChoice.items[selected]) > 1:
+            if False and len(self.subtitleChoice.items[selected]) > 1:
                 (lang, channelid, subtitleinfo) = self.subtitleChoice.items[selected]
                 
                 self.requestingSub.SetLabel('Requesting subtitle from peers...')
                 self._ToggleSubtitleChoice(False)
                                 
-                subsupport = SubtitlesSupport.getInstance()
-                subsupport.retrieveSubtitleContent(channelid, self.torrent['infohash'], subtitleinfo, self.OnRetrieveSubtitle)
-                
                 def subTimeout():
                     if self.requestingSub.IsShown():
                         self.requestingSub.SetLabel('Request failed, no peer responded with subtitle')
@@ -2138,11 +2121,6 @@ class MyChannelDetails(wx.Panel):
         self.uelog = UserEventLogDBHandler.getInstance()
         self.guiutility = GUIUtility.getInstance()
 
-        self.subsupport = SubtitlesSupport.getInstance()
-        self.supportedLang = self.subsupport.langUtility.getLangSupported()
-        self.supportedLangFull = self.supportedLang.values()
-        self.supportedLangFull.sort()
-        
         wx.Panel.__init__(self, parent)
         
         self.borderSizer = wx.BoxSizer()

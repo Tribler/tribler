@@ -59,7 +59,6 @@ NTFY_COMMENTS = 'comments'
 NTFY_MODIFICATIONS = 'modifications'
 NTFY_MARKINGS = 'markings'
 NTFY_MODERATIONS = 'moderations'
-NTFY_PREFERENCES = 'preferences'
 NTFY_SUPERPEERS = 'superpeers' # use NTFY_PEERS !!
 NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!
 NTFY_MYPREFERENCES = 'mypreferences' # currently not observable
@@ -69,16 +68,6 @@ NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
 NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
-# this corresponds to the event of a peer advertising
-# new rich metadata available (for now just subtitles)
-NTFY_RICH_METADATA = 'rich_metadata'
-
-# this corresponds to the event of a subtitle file (the actual .srt)
-# received from a remote peer
-NTFY_SUBTITLE_CONTENTS = 'subtitles_in'
-NTFY_SEARCH = 'clicklogsearch' # BuddyCast 4
-NTFY_TERM= 'clicklogterm'
-
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)

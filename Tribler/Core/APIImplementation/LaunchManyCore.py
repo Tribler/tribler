@@ -121,15 +121,12 @@ class TriblerLaunchMany(Thread):
         # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
         if config['megacache']:
             import Tribler.Core.CacheDB.cachedb as cachedb
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MyDBHandler, PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, PreferenceDBHandler, SuperPeerDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler, SearchDBHandler,TermDBHandler, CrawlerDBHandler, ChannelCastDBHandler, SimilarityDBHandler, PopularityDBHandler
+            from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, FriendDBHandler, BarterCastDBHandler, VoteCastDBHandler,  CrawlerDBHandler, ChannelCastDBHandler
             from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import SeedingStatsDBHandler, SeedingStatsSettingsDBHandler
             from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler
             from Tribler.Category.Category import Category
             from Tribler.Core.CacheDB.sqlitecachedb import try_register
 
-            # 13-04-2010, Andrea: rich metadata (subtitle) db
-            from Tribler.Core.CacheDB.MetadataDBHandler import MetadataDBHandler
-            
             # init cache db
             if config['nickname'] == '__default_name__':
                 config['nickname'] = socket.gethostname()
@@ -140,8 +137,6 @@ class TriblerLaunchMany(Thread):
             nocachedb = cachedb.init(config, self.rawserver_fatalerrorfunc)
             try_register(nocachedb, self.database_thread)
             
-            self.pops_db = PopularityDBHandler.getInstance(self.rawserver)
-            self.my_db          = MyDBHandler.getInstance()
             self.peer_db        = PeerDBHandler.getInstance()
             # Register observer to update connection opened/closed to peer_db_handler
             self.peer_db.registerConnectionUpdater(self.session)
@@ -149,8 +144,6 @@ class TriblerLaunchMany(Thread):
             torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
             self.torrent_db.register(Category.getInstance(),torrent_collecting_dir)
             self.mypref_db      = MyPreferenceDBHandler.getInstance()
-            self.pref_db        = PreferenceDBHandler.getInstance()
-            self.superpeer_db   = SuperPeerDBHandler.getInstance()
             self.friend_db      = FriendDBHandler.getInstance()
             self.bartercast_db  = BarterCastDBHandler.getInstance()
             self.bartercast_db.registerSession(self.session)
@@ -158,12 +151,6 @@ class TriblerLaunchMany(Thread):
             self.votecast_db.registerSession(self.session)
             self.channelcast_db = ChannelCastDBHandler.getInstance()
             self.channelcast_db.registerSession(self.session)
-            self.search_db      = SearchDBHandler.getInstance()
-            self.term_db        = TermDBHandler.getInstance()
-            self.simi_db        = SimilarityDBHandler.getInstance()
-
-            # 13-04-2010, Andrea: rich metadata (subtitle) db
-            self.richmetadataDbHandler = MetadataDBHandler.getInstance()
 
             # Crawling
             if config['crawler']:
@@ -195,12 +182,10 @@ class TriblerLaunchMany(Thread):
         else:
             config['overlay'] = 0    # turn overlay off
             config['torrent_checking'] = 0
-            self.my_db          = None
             self.peer_db        = None
             self.torrent_db     = None
             self.mypref_db      = None
             self.pref_db        = None
-            self.superpeer_db   = None
             self.crawler_db     = None
             self.seedingstats_db = None
             self.seedingstatssettings_db = None
@@ -210,8 +195,6 @@ class TriblerLaunchMany(Thread):
             self.votecast_db = None
             self.channelcast_db = None
             self.mm = None
-            # 13-04-2010, Andrea: rich metadata (subtitle) db
-            self.richmetadataDbHandler = None
 
         # SWIFTPROC
         swift_exists = config['swiftproc'] and (os.path.exists(config['swiftpath']) or os.path.exists(config['swiftpath'] + '.exe'))
@@ -224,62 +207,24 @@ class TriblerLaunchMany(Thread):
     def init(self):
         config = self.session.sessconfig # Should be safe at startup
 
-        if config['megacache'] and config['overlay'] and self.superpeer_db:
-            try:
-                self.superpeer_db.loadSuperPeers(config)
-            except:
-                #Niels: if seen busylock error causing LMC to fail loading Tribler.
+        self.secure_overlay = None
+        self.overlay_apps = None
+        config['buddycast'] = 0
+        # ProxyService_
+        config['proxyservice_status'] = PROXYSERVICE_OFF
+        # _ProxyService
+        config['socnet'] = 0
+        config['rquery'] = 0
+
+        try:
+            # Minimal to allow yourip external-IP address detection
+            from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
+            some_dialback_handler = DialbackMsgHandler.getInstance()
+            some_dialback_handler.register_yourip(self)
+        except:
+            if DEBUG:
                 print_exc()
-
-        if config['overlay']:
-            from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
-            from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-            from Tribler.Core.Overlay.OverlayApps import OverlayApps
-            from Tribler.Core.RequestPolicy import FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy
-
-            self.secure_overlay = SecureOverlay.getInstance()
-            self.secure_overlay.register(self, config['overlay_max_message_length'])
-
-            # Set policy for which peer requests (proxy relay request, rquery) to answer and which to ignore
-
-            self.overlay_apps = OverlayApps.getInstance()
-            # Default policy, override with Session.set_overlay_request_policy()
-            policy = FriendsCoopDLOtherRQueryQuotumCrawlerAllowAllRequestPolicy(self.session)
-
-            # For the new DB layer we need to run all overlay apps in a
-            # separate thread instead of the NetworkThread as before.
-
-            self.overlay_bridge = OverlayThreadingBridge.getInstance()
-
-            self.overlay_bridge.register_bridge(self.secure_overlay,self.overlay_apps)
-
-            self.overlay_apps.register(self.overlay_bridge,self.session,self,config,policy)
-            # It's important we don't start listening to the network until
-            # all higher protocol-handling layers are properly configured.
-            self.overlay_bridge.start_listening()
-
-            if config['multicast_local_peer_discovery']:
-                self.setup_multicast_discovery()
-
-        else:
-            self.secure_overlay = None
-            self.overlay_apps = None
-            config['buddycast'] = 0
-            # ProxyService_
-            config['proxyservice_status'] = PROXYSERVICE_OFF
-            # _ProxyService
-            config['socnet'] = 0
-            config['rquery'] = 0
-
-            try:
-                # Minimal to allow yourip external-IP address detection
-                from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-                some_dialback_handler = DialbackMsgHandler.getInstance()
-                some_dialback_handler.register_yourip(self)
-            except:
-                if DEBUG:
-                    print_exc()
-                pass
+            pass
 
 
         if config['megacache'] or config['overlay']:

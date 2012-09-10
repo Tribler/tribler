@@ -7,7 +7,6 @@ import base64
 from traceback import print_exc
 
 from Tribler.Core.Utilities.utilities import validIP, validPort, validPermid, validName, show_permid
-from CacheDBHandler import FriendDBHandler
 from Tribler.Core.simpledefs import NTFY_FRIENDS,NTFY_PEERS
 
 default_friend_file = 'friends.txt'

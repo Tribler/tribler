@@ -20,7 +20,6 @@ from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Subscriptions.rss_client import TorrentFeedThread
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from Tribler.Core.Overlay.OverlayApps import OverlayApps
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 
 from Tribler.Core.Overlay.permid import permid_for_user
@@ -60,17 +59,6 @@ def main():
 
     print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())    
 
-    # 22/10/08. Boudewijn: connect to a specific peer
-    # connect to a specific peer using the overlay
-    # def after_connect(*args):
-    #     print "CONNECTED", args
-    # from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
-    # overlay = SecureOverlay.getInstance()
-    # overlay.connect_dns(("130.161.158.24", 7762), after_connect)
-
-    # condition variable would be prettier, but that don't listen to 
-    # KeyboardInterrupt
-    #time.sleep(sys.maxint/2048)
     try:
         while True:
             x = sys.stdin.read()

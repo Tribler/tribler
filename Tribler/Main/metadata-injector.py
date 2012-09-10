@@ -20,9 +20,6 @@ import time
 
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-from Tribler.Core.Overlay.OverlayApps import OverlayApps
-
 from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread

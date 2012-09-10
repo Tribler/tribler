@@ -33,9 +33,6 @@ from Tribler.Core.Statistics.ChannelCrawler import ChannelCrawler
 from Tribler.Core.Statistics.UserEventLogCrawler import UserEventLogCrawler
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Subtitles.SubtitlesHandler import SubtitlesHandler
-from Tribler.Core.Subtitles.SubtitlesSupport import SubtitlesSupport
-from Tribler.Core.Subtitles.PeerHaveManager import PeersHaveManager
 
 DEBUG = False
 
@@ -179,54 +176,12 @@ class OverlayApps:
         #
         # _ProxyService
         
-        # 09-02-2011 Niels: disabling subtitles (no more channelcast
-        config['subtitles_collecting'] = False
-        
-        # 13-04-2010 Andrea: subtitles collecting
-        if not config['subtitles_collecting'] : 
-            self.subtitles_handler = None
-        else:
-            self.subtitles_handler = SubtitlesHandler.getInstance()
-            self.subtitles_handler.register(self.overlay_bridge, self.launchmany.richmetadataDbHandler, self.launchmany.session)
-            
-            self.peersHaveManger = PeersHaveManager.getInstance()
-            if not self.peersHaveManger.isRegistered():
-                self.peersHaveManger.register(self.launchmany.richmetadataDbHandler, self.overlay_bridge)
-            # I'm not sure if this is the best place to init this
-            self.subtitle_support = SubtitlesSupport.getInstance()
-                                                           
-            keypair = self.launchmany.session.keypair
-            permid = self.launchmany.session.get_permid()
-            self.subtitle_support._register(self.launchmany.richmetadataDbHandler,
-                                           self.subtitles_handler, 
-                                           self.launchmany.channelcast_db, permid, 
-                                           keypair, self.peersHaveManger,
-                                           self.overlay_bridge)
-            
-            # cleanup the subtitles database at the first launch  
-            self.subtitle_support.runDBConsinstencyRoutine()
-            
-        
         
         if not config['torrent_collecting']:
             self.torrent_collecting_solution = 0
         else:
             self.torrent_collecting_solution = config['buddycast_collecting_solution']
-        
-        if config['buddycast']:
-            # Create handler for Buddycast messages
-            
-            self.buddycast = BuddyCastFactory.getInstance(superpeer=config['superpeer'], log=config['overlay_log'])
-            # Using buddycast to handle torrent collecting since they are dependent
-            self.buddycast.register(overlay_bridge, launchmany, 
-                                    launchmany.rawserver_fatalerrorfunc,
-                                    self.metadata_handler, 
-                                    self.torrent_collecting_solution,
-                                    config['start_recommender'],config['buddycast_max_peers'],i_am_crawler)
-            
-            self.register_msg_handler(BuddyCastMessages, self.buddycast.handleMessage)
-            self.register_connection_handler(self.buddycast.handleConnection)
-            
+               
         if config['dialback']:
             self.dialback_handler = DialbackMsgHandler.getInstance()
             # The Dialback mechanism needs the real rawserver, not the overlay_bridge
@@ -254,10 +209,6 @@ class OverlayApps:
             self.register_msg_handler(RemoteQueryMessages,self.rquery_handler.handleMessage)
             self.register_connection_handler(self.rquery_handler.handleConnection)
         
-        if config['subtitles_collecting']:
-            hndl = self.subtitles_handler.getMessageHandler()
-            self.register_msg_handler(SubtitleMessages, hndl)
-        
         if config['torrent_collecting']:
             self.rtorrent_handler = RemoteTorrentHandler.getInstance()
             self.rtorrent_handler.register(overlay_bridge,self.metadata_handler,session)
@@ -265,24 +216,7 @@ class OverlayApps:
 
         # Add notifier as connection handler
         self.register_connection_handler(self.notifier_handles_connection)
-        
-        if config['buddycast']:
-            # Arno: to prevent concurrency between mainthread and overlay
-            # thread where BuddyCast schedules tasks
-            self.buddycast.register2()
-
-            # ProxyService_
-            #
-            # Register the ProxyPeerManager with BuddyCast
-            # The ProxyPeerManager has to register after the BuddyCastCore object is created by the BuddyCastFactory.
-            # The BuddyCastCore object is created in a method scheduled by the overlay_bridge.
-            # If the ProxyPeerManager.register is also scheduled by the overlay_bridge, it will be executed after the
-            # BuddyCastCore is created (overlay_bridge executes the scheduled tasks in the order of their execution)
-            if self.proxy_peer_manager:
-                self.overlay_bridge.add_task(self.proxy_peer_manager.register, 0)
-            #
-            # _ProxyService
-
+    
     
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start

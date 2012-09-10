@@ -556,16 +556,12 @@ class Session(SessionRuntimeConfig):
         None when the Session was not started with megacaches enabled. 
         <pre> NTFY_PEERS -> PeerDBHandler
         NTFY_TORRENTS -> TorrentDBHandler
-        NTFY_PREFERENCES -> PreferenceDBHandler
         NTFY_SUPERPEERS -> SuperpeerDBHandler
         NTFY_FRIENDS -> FriendsDBHandler
         NTFY_MYPREFERENCES -> MyPreferenceDBHandler
         NTFY_BARTERCAST -> BartercastDBHandler
-        NTFY_SEARCH -> SearchDBHandler
-        NTFY_TERM -> TermDBHandler
         NTFY_VOTECAST -> VotecastDBHandler
         NTFY_CHANNELCAST -> ChannelCastDBHandler
-        NTFY_RICH_METADATA -> MetadataDBHandler
         </pre>
         """ 
         # Called by any thread
@@ -575,10 +571,6 @@ class Session(SessionRuntimeConfig):
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
                 return self.lm.torrent_db
-            elif subject == NTFY_PREFERENCES:
-                return self.lm.pref_db
-            elif subject == NTFY_SUPERPEERS:
-                return self.lm.superpeer_db
             elif subject == NTFY_FRIENDS:
                 return self.lm.friend_db
             elif subject == NTFY_MYPREFERENCES:
@@ -591,14 +583,8 @@ class Session(SessionRuntimeConfig):
                 return self.lm.seedingstatssettings_db
             elif subject == NTFY_VOTECAST:
                 return self.lm.votecast_db
-            elif subject == NTFY_SEARCH:
-                return self.lm.search_db
-            elif subject == NTFY_TERM:
-                return self.lm.term_db
             elif subject == NTFY_CHANNELCAST:
                 return self.lm.channelcast_db
-            elif subject == NTFY_RICH_METADATA:
-                return self.lm.richmetadataDbHandler
             else:
                 raise ValueError('Cannot open DB subject: '+subject)
         finally:
@@ -1004,23 +990,6 @@ class Session(SessionRuntimeConfig):
                 raise OperationNotEnabledByConfigurationException("Overlay not enabled")
         finally:
             self.sesslock.release()
-            
-            
-    # 02-06-2010 Andrea: returns a reference to SubtitleSupport instance, which
-    # is the facade (i.e. acts as the entry point) of the Subtitles subsystem
-    def get_subtitles_support_facade(self):
-        '''
-        Returns an instance of SubtitleSupport, which is intended to be used
-        by clients to interact with the subtitles subsystem.
-        
-        Subsequent calls to this method should always return the same instance.
-        
-        If the instance is not available, None will be returned
-        '''
-        try:
-            return self.lm.overlay_apps.subtitle_support
-        except:
-            return None
         
     # ProxyService_
     #

@@ -74,7 +74,6 @@ class DialbackMsgHandler:
         self.rawserver = None
         self.launchmany = None
         self.peer_db = None
-        self.superpeer_db = None
         self.trust_superpeers = None
         self.old_ext_ip = None
         self.myips_according_to_yourip = []
@@ -93,7 +92,6 @@ class DialbackMsgHandler:
         self.rawserver = rawserver
         self.launchmany = launchmany
         self.peer_db = launchmany.peer_db 
-        self.superpeer_db = launchmany.superpeer_db 
         self.active = config['dialback_active'],
         self.trust_superpeers = config['dialback_trust_superpeers']
         self.returnconnhand.register(self.rawserver,launchmany.multihandler,launchmany.listen_port,config['overlay_max_message_length'])
@@ -329,21 +327,12 @@ class DialbackMsgHandler:
             return False
 
 
-        # 4. See if superpeer, then we're done, trusted source 
-        if self.trust_superpeers:
-            superpeers = self.superpeer_db.getSuperPeers()
-            if permid in superpeers:
-                if DEBUG:
-                    print >> sys.stderr,"dialback: DIALBACK_REPLY: superpeer said my IP address is",myip,"setting it to that"
-                self.consensusip = myip
-                self.fromsuperpeer = True
-        else:
-            # 5, 6. 7, 8. Record this peers opinion and see if we get a 
-            # majority vote.
-            #
-            self.myips,consensusip = tally_opinion(myip,self.myips,PEERS_TO_AGREE)
-            if self.consensusip is None:
-                self.consensusip = consensusip 
+        # 4, 5, 6. 7, 8. Record this peers opinion and see if we get a 
+        # majority vote.
+        #
+        self.myips,consensusip = tally_opinion(myip,self.myips,PEERS_TO_AGREE)
+        if self.consensusip is None:
+            self.consensusip = consensusip 
 
         # 8. Change IP address if different
         if self.consensusip is not None:

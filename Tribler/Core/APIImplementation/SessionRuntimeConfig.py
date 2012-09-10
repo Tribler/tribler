@@ -8,7 +8,6 @@ from traceback import print_exc
 
 from Tribler.Core.exceptions import *
 from Tribler.Core.SessionConfig import SessionConfigInterface
-from Tribler.Core.Subtitles.SubtitlesHandler import SubtitlesHandler
 
 # 10/02/10 Boudewijn: pylint points out that member variables used in
 # SessionRuntimeConfig do not exist.  This is because they are set in
@@ -239,21 +238,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
             
-    def get_subtitles_collecting_dir(self):
-        with self.sesslock:
-            return SessionConfigInterface.get_subtitles_collecting_dir(self)
-    
-    def set_subtitles_upload_rate(self, value):
-        with self.sesslock:
-            SubtitlesHandler.getInstance().setUploadRate(value)
-            SessionConfigInterface.set_subtitles_uploade_rate(self, value)
-    
-    def get_subtitles_upload_rate(self):
-        with self.sesslock:
-            return SessionConfigInterface.get_subtitles_upload_rate(self)
-    
-
-
     def set_superpeer(self,value):
         raise OperationNotPossibleAtRuntimeException()
 

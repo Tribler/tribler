@@ -262,17 +262,8 @@ class Stats(XRCPanel):
             import Tribler
             frame.locals['Tribler'] = Tribler
 
-            from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
-            overlay = SecureOverlay.getInstance()
-            frame.locals['overlay'] = overlay
-
             session = Session.get_instance()
             frame.locals['session'] = session
-
-            from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
-            channelcast = BuddyCastFactory.getInstance().channelcast_core
-            frame.locals['channelcast'] = channelcast
-
             frame.locals['dispersy'] = Dispersy.get_instance()
 
         except Exception:

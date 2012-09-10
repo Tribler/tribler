@@ -356,9 +356,7 @@ class TorrentManager:
         self.col_torrent_dir = self.session.get_torrent_collecting_dir()
         
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
-        self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
-        self.search_db = session.open_dbhandler(NTFY_SEARCH)
         self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
         
@@ -462,7 +460,7 @@ class TorrentManager:
                     self.fulltextSort()
     
                 self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db, 
-                                                            self.pref_db, self.mypref_db, self.search_db)
+                                                            None, self.mypref_db, None)
                 
                 self.hits = self.library_manager.addDownloadStates(self.hits)
                 
@@ -1066,9 +1064,7 @@ class LibraryManager:
         self.session = session
         self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
-        self.pref_db = session.open_dbhandler(NTFY_PREFERENCES)
         self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
-        self.search_db = session.open_dbhandler(NTFY_SEARCH)
         
         self.torrentsearch_manager = torrentsearch_manager
         self.channelsearch_manager = channelsearch_manager
