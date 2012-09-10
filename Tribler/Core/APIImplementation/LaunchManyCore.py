@@ -230,11 +230,6 @@ class TriblerLaunchMany(Thread):
         if config['megacache'] or config['overlay']:
             # Arno: THINK! whoever added this should at least have made the
             # config files configurable via SessionConfigInterface.
-            #
-            # TODO: see if we can move this out of the core. We could make the
-            # category a parameter to TorrentDB.addExternalTorrent(), but that
-            # will not work directly for MetadataHandler, which is part of the
-            # core.
 
             # Some author: First Category instantiation requires install_dir, so do it now
             from Tribler.Category.Category import Category
