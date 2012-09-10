@@ -110,6 +110,26 @@ class SearchCommunity(Community):
         self.taste_bloom_filter_key = None
         
         self.dispersy.callback.register(self.create_torrent_collect_requests, delay = CANDIDATE_WALK_LIFETIME)
+        self.dispersy.callback.register(self.fast_walker)
+
+    def fast_walker(self):
+        for cycle in xrange(10):
+            if cycle < 2:
+                # poke bootstrap peers
+                for candidate in self._dispersy._bootstrap_candidates.itervalues():
+                    if __debug__: dprint("extra walk to ", candidate)
+                    self.create_introduction_request(candidate, allow_sync=False)
+
+            # request -everyone- that is eligible
+            candidates = [candidate for candidate in self._dispersy.yield_walk_candidates(self) if not isinstance(candidate, BootstrapCandidate)]
+            for candidate in candidates:
+                if __debug__: dprint("extra walk to ", candidate)
+                self.create_introduction_request(candidate, allow_sync=False)
+
+            # wait for NAT hole punching
+            yield 1.0
+
+        if __debug__: dprint("finished")
 
     def initiate_meta_messages(self):
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self.check_search, self.on_search),
