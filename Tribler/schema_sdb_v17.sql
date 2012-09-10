@@ -231,12 +231,9 @@ CREATE INDEX torrent_tracker_last_idx ON TorrentTracker (tracker, last_check );
 
 ----------------------------------------
 
-CREATE VIEW SuperPeer AS SELECT * FROM Peer WHERE superpeer=1;
-
 CREATE VIEW Friend AS SELECT * FROM Peer WHERE friend=1;
 
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
-
 
 -- V2: Patch for BuddyCast 4
 
