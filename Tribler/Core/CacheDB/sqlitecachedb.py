@@ -2205,7 +2205,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     self.execute_write("INSERT INTO ClicklogSearch (peer_id, torrent_id, term_id, term_order) VALUES (?,?,?,?)", (peer_id, torrent_id, updateDict[term_id], term_order))
             
             self.execute_write("DROP TABLE IF EXISTS ClicklogTerm")
-            self.execute_write("DROP INDEX IF EXISTS idx_terms_term", commit = True)
+            self.execute_write("DROP INDEX IF EXISTS idx_terms_term")
+            
+            self.execute_write("DELETE FROM Peer WHERE superpeer = 1")
+            self.execute_write("DROP VIEW IF EXISTS SuperPeer", commit = True)
 
     def clean_db(self, vacuum = False):
         from time import time
