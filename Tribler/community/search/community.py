@@ -269,7 +269,8 @@ class SearchCommunity(Community):
             print >> sys.stderr, "SearchCommunity: sending introduction request to",destination
 
         self._dispersy._statistics.increment_walk_attempt()
-        destination.walk(self, time())
+        timeout = SearchCommunity.SimilarityRequest.timeout_delay if USE_XOR_PREF else IntroductionRequestCache.timeout_delay
+        destination.walk(self, time(), timeout)
 
         advice = True
         if not isinstance(destination, BootstrapCandidate):
