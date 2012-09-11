@@ -2216,7 +2216,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         oneweekago = long(time() - 604800)
         self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit = False)
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
-        self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)")
+        self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)", commit = False)
+        self.execute_write("DELETE FROM Torrent where name is NULL")
+        
         if vacuum:
             self.execute_read("VACUUM")
 
@@ -2243,7 +2245,7 @@ def try_register(db, callback = None):
                 if callback:
                     print >> sys.stderr, "Using actual DB thread"
                     _callback = callback
-                    if currentThread().getName()== 'Dispersy':
+                    if currentThread().getName()== 'Dispersy' and db:
                         db.initialBegin()
                     else:
                         #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
@@ -2257,16 +2259,19 @@ def register_task(db, *args, **kwargs):
         try_register(db)
                 
     if not _callback or not _callback.is_running:
-        def fakeDispersy(func):
-            func()
+        def fakeDispersy(call, args=(), kwargs = {}):
+            call(*args, **kwargs)
         return fakeDispersy(*args)
     return _callback.register(*args, **kwargs)
+
+def onDBThread():
+    return currentThread().getName()== 'Dispersy'
 
 def forceAndReturnDBThread(func):
     def invoke_func(*args,**kwargs):
         global _callback
         
-        if not currentThread().getName()== 'Dispersy':
+        if not onDBThread():
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
@@ -2305,7 +2310,7 @@ def forceAndReturnDBThread(func):
 
 def forceDBThread(func):
     def invoke_func(*args,**kwargs):
-        if not currentThread().getName()== 'Dispersy':
+        if not onDBThread():
             if TRHEADING_DEBUG:
                 stack = inspect.stack()
                 callerstr = ""
@@ -2314,7 +2319,7 @@ def forceDBThread(func):
                     callerstr += "%s %s:%s "%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             
-            register_task(func, args, kwargs)
+            register_task(None, func, args, kwargs)
         else:
             func(*args, **kwargs)
             
@@ -2365,9 +2370,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         _shouldCommit = True
     
     @forceDBThread
-    def commitNow(self):
+    def commitNow(self, vacuum = False):
         global _shouldCommit, _cacheCommit
-        if _cacheCommit and _shouldCommit:
+        if _cacheCommit and _shouldCommit and onDBThread():
             try:
                 if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
                 self._execute("COMMIT;")
@@ -2375,6 +2380,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 print >> sys.stderr, "COMMIT FAILED"
                 raise
             _shouldCommit = False
+            
+            if vacuum:
+                self._execute("VACUUM;")
 
             try:
                 if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
@@ -2382,6 +2390,9 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             except:
                 print >> sys.stderr, "BEGIN FAILED"
                 raise
+            
+        elif vacuum:
+            self._execute("VACUUM;")
     
     def execute_write(self, sql, args=None, commit=True):
         global _shouldCommit, _cacheCommit
@@ -2418,8 +2429,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def clean_db(self, vacuum = False):
         SQLiteCacheDBV5.clean_db(self, False)
 
-        if DEPRECATION_DEBUG and vacuum:
-            raise DeprecationWarning('Please do not use clean_db with vacuum')
+        if vacuum:
+            self.commitNow(vacuum)
         
     @forceAndReturnDBThread
     def fetchone(self, sql, args=None):

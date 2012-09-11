@@ -18,7 +18,7 @@ import socket
 import threading
 import base64
 import urllib
-from random import randint, sample
+from random import randint, sample, choice
 import math
 import re
 from sets import Set
@@ -1389,7 +1389,14 @@ class TorrentDBHandler(BasicDBHandler):
             # 'relevance', 'infohash', 'torrent_id')
         else:
             keys = list(keys)
-        res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
+        
+        tracker_keys = ['tracker','announce_tier','ignored_times', 'retried_times', 'last_check']
+        tracker_keys = [key for key in tracker_keys if key in keys]
+        if len(tracker_keys) > 0:
+            res = self._db.getOne('Torrent C LEFT JOIN TorrentTracker T ON C.torrent_id = T.torrent_id', keys, infohash=bin2str(infohash))
+        else:
+            res = self._db.getOne('Torrent C', keys, infohash=bin2str(infohash))
+            
         if not res:
             return None
         torrent = dict(zip(keys, res))
@@ -1666,7 +1673,9 @@ class TorrentDBHandler(BasicDBHandler):
             if os.path.exists(torrent_path):
                 try:
                     tdef = TorrentDef.load(torrent_path)
-                    insert_files.extend([(torrent_id, unicode(path), length) for path, length in tdef.get_files_as_unicode_with_length()])
+                    files = [(torrent_id, unicode(path), length) for path, length in tdef.get_files_as_unicode_with_length()]
+                    files = sample(files, 25)
+                    insert_files.extend(files)
                 except:
                     pass
                 
@@ -4449,9 +4458,33 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         from Tribler.Core.Tag.Extraction import TermExtraction
         self.extractor = TermExtraction.getInstance()
         
+        self.updateBiPhraseCount()
+        
+        self.new_terms = {}
+        self.update_terms = {}
+        
+        self.termLock = Lock()
+        self.extractor.session.lm.database_thread.register(self.__flush_to_database, delay = 20.0)
+        
+    def __flush_to_database(self):
+        with self.termLock:
+            add_new_terms_sql = "INSERT INTO TermFrequency (term, freq) VALUES (?, ?);"
+            update_exist_terms_sql = "UPDATE OR REPLACE TermFrequency SET freq = ? WHERE term_id = ?;"
+            
+            self._db.executemany(add_new_terms_sql, self.new_terms.values(), commit=False)
+            self._db.executemany(update_exist_terms_sql, self.update_terms.values(), commit=False)
+            
+            self.new_terms.clear()
+            self.update_terms.clear()
+            
+        if self.nr_bi_phrases < self.MAX_UNCOLLECTED:
+            self.updateBiPhraseCount()
+            
+        yield 20.0
+            
+    def updateBiPhraseCount(self):
         count_sql = "SELECT COUNT(*) FROM TorrentBiTermPhrase"
         self.nr_bi_phrases = self._db.fetchone(count_sql)
-        
         
     # Default sampling size (per freq category)
     # With an update period of 5s, there will be at most 12 updates per minute.
@@ -4515,39 +4548,30 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             sql = "SELECT * FROM TermFrequency WHERE term IN ("+parameters[:-1]+")"
             results = self._db.fetchall(sql, terms)
             
-            newterms = terms.copy()            
+            newterms = terms.copy()
             for term_id,term,freq in results:
                 newterms.remove(term)
 
-            newtermtuples = []
-            for term in newterms:
-                newtermtuples.append((term,))
-
-            existtermtuples = [(term_id,term,freq+1) for term_id,term,freq in results]
-
-            add_new_terms_sql = u"""
-                INSERT INTO TermFrequency (term, freq) VALUES (?, 1);
-                """
-
-            update_exist_terms_sql = u"""
-                REPLACE INTO TermFrequency (term_id, term, freq) VALUES (?, ?, ?);
-                """
-
-            self._db.executemany(add_new_terms_sql, newtermtuples, commit=False)
-            self._db.executemany(update_exist_terms_sql, existtermtuples, commit=False)
-
-
-            results = self._db.fetchall(sql, terms)
+            with self.termLock:
+                for term in newterms:
+                    if term in self.new_terms:
+                        self.new_terms[term][1] += 1
+                    else:
+                        self.new_terms[term] = [term, 1]
+                    
+                for term_id, term, freq in results:
+                    if term_id in self.update_terms:
+                        self.update_terms[term_id][0] += 1
+                    else:
+                        self.update_terms[term_id] = [freq+1, term_id]
             
             ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
                                         SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
                                         FROM TermFrequency TF1, TermFrequency TF2
                                         WHERE TF1.term = ? AND TF2.term = ?"""
-                
             
             if phrase is not None:
                 self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
-            
             
             if commit:
                 self.commit()

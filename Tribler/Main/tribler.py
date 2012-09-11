@@ -319,8 +319,6 @@ class ABCApp():
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
                        
         startWorker(wx_thread, db_thread, delay = 5.0)
-        startWorker(None, self.loadSessionCheckpoint, delay = 5.0, workerType="guiTaskQueue")
-
 
     def startAPI(self, progress):
         
@@ -874,6 +872,8 @@ class ABCApp():
         disp = Dispersy.get_instance()
         disp.attach_progress_handler(self.frame.progressHandler)
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
+        
+        startWorker(None, self.loadSessionCheckpoint, delay = 5.0, workerType="guiTaskQueue")
                
     @forceWxThread     
     def onError(self, e):

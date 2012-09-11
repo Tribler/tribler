@@ -33,9 +33,9 @@ class TermExtraction:
         TermExtraction.__single = self
         
         from Tribler.Core.Session import Session
-        session = Session.get_instance()
+        self.session = Session.get_instance()
         
-        filterfn = os.path.join(session.get_install_dir(),LIBRARYNAME,'Core','Tag','stop_snowball.filter')
+        filterfn = os.path.join(self.session.get_install_dir(),LIBRARYNAME,'Core','Tag','stop_snowball.filter')
         self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
         
         self.containsdigits_filter = re.compile(r'\d',re.UNICODE)
