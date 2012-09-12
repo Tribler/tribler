@@ -24,6 +24,9 @@ from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.SocketHandler import SocketHandler
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Utilities.Crypto import sha
+from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MAGNET_STARTED,\
+    NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_CLOSE
 
 UT_EXTEND_HANDSHAKE = chr(0)
 UT_PEX_ID = chr(1)
@@ -223,7 +226,6 @@ class Connection:
                         return False
 
                     if DEBUG: print >> sys.stderr, self._address, "MiniBitTorrent.got_extend_message() Received metadata piece", message["piece"]
-                    
                     length = self._metadata_requests[message["piece"]]
                     self._swarm.add_metadata_piece(message["piece"], data[-length:])
                     del self._metadata_requests[message["piece"]]
@@ -300,14 +302,11 @@ class Connection:
     def __str__(self):
         return 'MiniBitTorrentCON--Closed'+str(self._closed)+str(self._socket.connected)+'-'+str(self._swarm._info_hash)
 
-
-
-
 class MiniSwarm:
     """
     A MiniSwarm instance maintains an overview of what is going on in
     a single BitTorrent swarm.
-
+    
     Arno: WARNING the RawServer functions (except add_task) may only be called
     from the NetworkThread! 
     """
@@ -367,6 +366,10 @@ class MiniSwarm:
 
         # scan for old connections
         self._raw_server.add_task(self._timeout_connections, 5)
+        
+        # notify gui that torrent is being collected using dht
+        self._notifier = Notifier.getInstance()
+        self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, self._info_hash)
 
     def add_good_peer(self, address):
         assert isinstance(address, tuple)
@@ -467,10 +470,12 @@ class MiniSwarm:
                     self._metadata_blocks.sort()
                     break
 
-            # def p(s):
-            #     if s is None: return 0
-            #     return len(s)
-            # if DEBUG: print >> sys.stderr, "Progress:", [p(t[2]) for t in self._metadata_blocks]
+#            def p(s):
+#                if s is None: return 0
+#                return len(s)
+#            if DEBUG: print >> sys.stderr, "Progress:", [p(t[2]) for t in self._metadata_blocks]
+            progress = sum([1 if t[2] else 0 for t in self._metadata_blocks])/float(len(self._metadata_blocks))
+            self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_PROGRESS, self._info_hash, progress)
 
             # see if we are done
             for requested, piece, data in self._metadata_blocks:
@@ -517,9 +522,11 @@ class MiniSwarm:
                 # Arno, _connections under lock
                 if len(self._connections) < self._max_connections:
                     self._create_connections()
+            
             finally:
                 self._lock.release()
-
+                
+            self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, self._info_hash, len(self._potential_peers))
 
     def _create_connections(self):
         """ Arno, 2012-07-05: Assumption: lock held """
@@ -606,7 +613,9 @@ class MiniSwarm:
 
         finally:
             self._lock.release()
-
+        
+        
+        self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, self._info_hash)
 
 
 class MiniTracker(Thread):
