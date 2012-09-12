@@ -28,13 +28,14 @@ from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel,\
     TopSearchPanelStub
 from Tribler.Main.vwxGUI.home import Home, Stats
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
-    ChannelCategoriesList, LibraryList
+    LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
     ManageChannel
 
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceAndReturnWxThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY, forceAndReturnWxThread
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     import wxversion
@@ -149,8 +150,8 @@ class MainFrame(wx.Frame):
                 " " + \
                 self.utility.lang.get('version')
         
-        # Get window size and position from config file
-        size, position = self.getWindowSettings()
+        # Get window size and (sash) position from config file
+        size, position, sashpos = self.getWindowSettings()
         style = wx.DEFAULT_DIALOG_STYLE|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.RESIZE_BORDER|wx.NO_FULL_REPAINT_ON_RESIZE|wx.CLIP_CHILDREN
             
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, position, size, style)
@@ -168,58 +169,64 @@ class MainFrame(wx.Frame):
         r, g, b = themeColour.Get(False)
         if r > 190 or g > 190 or b > 190: #Grey == 190,190,190
             self.SetForegroundColour(wx.BLACK)
-            
-        #Create all components        
-        progress('Creating panels')
-        if not channelonly:
-            self.top_bg = TopSearchPanel(self)
-            
-            self.home = Home(self)
-        
-            #build channelselector panel
-            self.channelselector = wx.BoxSizer(wx.VERTICAL)
-            self.channelcategories = ChannelCategoriesList(self)
-            quicktip = HtmlWindow(self)
-            quicktip.SetBorders(2)
-            self.channelcategories.SetQuicktip(quicktip)
 
-            self.channelselector.Add(self.channelcategories, 0, wx.EXPAND)
-            self.channelselector.Add(quicktip, 1, wx.EXPAND)
-            self.channelselector.AddStretchSpacer()
-            self.channelselector.ShowItems(False)
-        
-            self.searchlist = SearchList(self)
-            self.searchlist.Show(False)
-            
-            self.channellist = ChannelList(self)
-            self.channellist.Show(False)
-        else:
-            self.top_bg = None
-            
-            self.guiUtility.guiPage = 'selectedchannel'
-            self.home = None
-            self.channelselector = None
-            self.channelcategories = None
-            self.searchlist = None
-            self.channellist = None
-        
-        self.stats = Stats(self)
-        self.stats.Show(False)
-        self.selectedchannellist = SelectedChannelList(self)
-        self.selectedchannellist.Show(bool(channelonly))
-        self.playlist = Playlist(self)
-        self.playlist.Show(False)
-        
-        self.managechannel = ManageChannel(self)
-        self.managechannel.Show(False)
-        self.librarylist = LibraryList(self)
-        self.librarylist.Show(False)
-        
         if internalvideo:
             self.videoparentpanel = wx.Panel(self)
             self.videoparentpanel.Hide()
         else:
             self.videoparentpanel = None
+            
+        #Create all components        
+        progress('Creating panels')
+        if not channelonly:
+            self.actlist = ActivitiesList(self)
+            self.top_bg = TopSearchPanel(self)
+            self.home = Home(self)
+
+            self.splitter = wx.SplitterWindow(self, style=wx.SP_NOBORDER)
+            self.splitter.SetMinimumPaneSize(1)
+            self.splitter_top_window = wx.Panel(self.splitter, style=wx.NO_BORDER)
+            self.splitter_top = wx.BoxSizer(wx.HORIZONTAL)
+            self.splitter_top_window.SetSizer(self.splitter_top)
+            
+            self.splitter_bottom_window = wx.Panel(self.splitter)
+            self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
+            self.splitter_bottom_window.parent_list = self.splitter_bottom_window
+            self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
+            self.splitter_bottom_window.SetSizer(self.splitter_bottom)
+            self.splitter.SetSashGravity(0.8)
+            self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
+            self.splitter.Show(False)
+
+            self.searchlist = SearchList(self.splitter_top_window)
+            self.searchlist.Show(False)
+            self.librarylist = LibraryList(self.splitter_top_window)
+            self.librarylist.Show(False)
+            self.channellist = ChannelList(self.splitter_top_window)
+            self.channellist.Show(False)
+            self.selectedchannellist = SelectedChannelList(self.splitter_top_window)
+            self.selectedchannellist.Show(False)
+            self.playlist = Playlist(self.splitter_top_window)
+            self.playlist.Show(False)
+        else:
+            self.actlist = None
+            self.top_bg = None
+            
+            self.guiUtility.guiPage = 'selectedchannel'
+            self.home = None
+            self.searchlist = None
+            self.librarylist = LibraryList(self)
+            self.librarylist.Show(False)
+            self.channellist = None
+            self.selectedchannellist = SelectedChannelList(self)
+            self.selectedchannellist.Show(True)
+            self.playlist = Playlist(self)
+            self.playlist.Show(False)
+        
+        self.stats = Stats(self)
+        self.stats.Show(False)
+        self.managechannel = ManageChannel(self)
+        self.managechannel.Show(False)
         
         progress('Positioning')
         
@@ -228,15 +235,17 @@ class MainFrame(wx.Frame):
             vSizer = wx.BoxSizer(wx.VERTICAL)
             
             vSizer.Add(self.top_bg, 0, wx.EXPAND)
+            
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
+            vSizer.Add(hSizer, 1, wx.EXPAND)
             
-            hSizer.Add(self.home, 1, wx.EXPAND|wx.ALL, 20)
+            hSizer.Add(self.actlist, 0, wx.EXPAND)
+            separator = wx.Panel(self, size=(1,-1))
+            separator.SetBackgroundColour(SEPARATOR_GREY)
+            hSizer.Add(separator, 0, wx.EXPAND)
+            hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
-            hSizer.Add(self.channelselector, 0, wx.EXPAND|wx.RIGHT, 5)
-            hSizer.Add(self.channellist, 1, wx.EXPAND)
-            hSizer.Add(self.searchlist, 1, wx.EXPAND)
-            
+            hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL) 
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -244,41 +253,31 @@ class MainFrame(wx.Frame):
             
             self.top_bg = TopSearchPanelStub()
             
-        hSizer.Add(self.selectedchannellist, 1, wx.EXPAND)
-        hSizer.Add(self.playlist, 1, wx.EXPAND)
         hSizer.Add(self.managechannel, 1, wx.EXPAND)
-        hSizer.Add(self.librarylist, 1, wx.EXPAND)
         
         if self.videoparentpanel:
-            hSizer.Add(self.videoparentpanel, 0, wx.LEFT, 5)
+            hSizer.Add(self.videoparentpanel, 1, wx.EXPAND)
         
         self.SetSizer(vSizer)
         
         #set sizes
         if not channelonly:
-            self.top_bg.SetMinSize((-1,70))
-            self.channelselector.SetMinSize((110,-1))
-            quicktip.SetMinSize((-1,300))
-        
-        if self.videoparentpanel:
-            self.videoparentpanel.SetSize((320,500))
+            self.top_bg.SetMinSize((-1,45))
+            self.actlist.SetMinSize((180,-1))
         
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
         
-        if not channelonly:
-            self.channelcategories.Select(1, False)
-        
         def preload_data():
             if not channelonly:
-                self.guiUtility.showChannelCategory('Popular', False)
+                self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)
             
         wx.CallLater(1500, preload_data)
         if channelonly:
             self.guiUtility.showChannelFromDispCid(channelonly)
             if not self.guiUtility.useExternalVideo:
-                self.guiUtility.ShowPlayer(True)
+                self.guiUtility.ShowPlayer()
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
@@ -318,21 +317,24 @@ class MainFrame(wx.Frame):
         quitId = wx.NewId()
         nextId = wx.NewId()
         prevId = wx.NewId()
+        dispId = wx.NewId()
         self.Bind(wx.EVT_MENU, self.OnFind, id = findId)
         self.Bind(wx.EVT_MENU, lambda event: self.Close(), id = quitId)
         self.Bind(wx.EVT_MENU, self.OnNext, id = nextId)
         self.Bind(wx.EVT_MENU, self.OnPrev, id = prevId)
+        self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('stats'), id = dispId)
         
-        #SEEING WIDGET_REALIZED_FOR_EVENT assert for linux, when I press ctrl+f
-        if sys.platform != 'linux2':
-            accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
-            accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
-            accelerators.append((wx.ACCEL_CTRL|wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
-            if sys.platform == 'linux2':
-                accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
-                accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
-            self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
+        accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
+        accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
+        accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
+        accelerators.append((wx.ACCEL_CTRL|wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
+        
+        if sys.platform == 'linux2':
+            accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
+            accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
+        self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
+        
         # Init video player
         sys.stdout.write('GUI Complete.\n')
         self.Thaw()
@@ -388,7 +390,7 @@ class MainFrame(wx.Frame):
                 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
-            self.guiUtility.Notify("Download from magnet failed", wx.ART_WARNING)
+            self.guiUtility.Notify("Download from magnet failed", icon = wx.ART_WARNING)
             return False
         
         print >> sys.stderr, "Trying to retrieve metadata for:", url
@@ -407,7 +409,7 @@ class MainFrame(wx.Frame):
                 return True
         except:
             print_exc()
-        self.guiUtility.Notify("Download from url failed", wx.ART_WARNING)
+        self.guiUtility.Notify("Download from url failed", icon = wx.ART_WARNING)
         return False
 
     @forceAndReturnWxThread
@@ -513,7 +515,7 @@ class MainFrame(wx.Frame):
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
                 
                 if result and not hidden:
-                    self.show_saved()
+                    self.show_saved(tdef.get_name_as_unicode() if tdef else '')
                     
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile)
@@ -555,7 +557,9 @@ class MainFrame(wx.Frame):
 
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                    mypref.addClicklogToMyPreference(cdef.get_id(), clicklog)
+                    def do_db():
+                        mypref.addClicklogToMyPreference(cdef.get_id(), clicklog)
+                    startWorker(None, do_db)
 
                 return result  
 
@@ -651,9 +655,9 @@ class MainFrame(wx.Frame):
         return (0, False)
                 
     @forceWxThread
-    def show_saved(self):
+    def show_saved(self, torrentname):
         if self.ready and self.librarylist.isReady:
-            self.guiUtility.Notify("Download started", wx.ART_INFORMATION)
+            self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon = wx.ART_INFORMATION)
             
             print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
@@ -881,10 +885,11 @@ class MainFrame(wx.Frame):
         self.top_bg.SearchFocus()
     
     def OnNext(self, event):
-        self.top_bg.NextPage()
+        self.actlist.NextPage()
+    
     
     def OnPrev(self, event):
-        self.top_bg.PrevPage()
+        self.actlist.PrevPage()
 
 
     #######################################
@@ -976,8 +981,13 @@ class MainFrame(wx.Frame):
             size = wx.Size( width, height )
         else:
             position = wx.Point(int(x), int(y))
+        sashpos = self.utility.config.Read("sash_position")
+        try:
+            sashpos = int(sashpos)
+        except:
+            sashpos = -185
 
-        return size, position     
+        return size, position, sashpos
         
     def saveWindowSettings(self):
         width, height = self.GetSizeTuple()
@@ -986,6 +996,7 @@ class MainFrame(wx.Frame):
         self.utility.config.Write("window_height", height)
         self.utility.config.Write("window_x", x)
         self.utility.config.Write("window_y", y)
+        self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
 
         self.utility.config.Flush()
        

@@ -4,22 +4,24 @@ import wx.lib.scrolledpanel as scrolled
 
 import sys
 from threading import currentThread
-from traceback import print_stack
+from traceback import print_stack, print_exc
 from time import time
 import re
 
-from Tribler.Main.vwxGUI.tribler_topButton import NativeIcon, BetterText as StaticText,\
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText,\
     _set_font
 
 from __init__ import *
 from wx._core import PyDeadObjectError
+from _abcoll import Iterable
 
 DEBUG = False
 
 class ListItem(wx.Panel):
     
     @warnWxThread
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED):
+    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED, list_expanded = LIST_EXPANDED, list_selected_and_expanded = LIST_DARKBLUE):
         wx.Panel.__init__(self, parent)
          
         self.parent_list = parent_list
@@ -30,6 +32,8 @@ class ListItem(wx.Panel):
         self.showChange = showChange
         self.list_deselected = LIST_DESELECTED
         self.list_selected = list_selected
+        self.list_expanded = list_expanded
+        self.list_selected_and_expanded = list_selected_and_expanded
         
         self.highlightTimer = None
         self.selected = False
@@ -54,54 +58,73 @@ class ListItem(wx.Panel):
             self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
-            if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                option = 1
-                size = wx.DefaultSize
-            else:
-                option = 0
-                size = (self.columns[i]['width'],-1)
+            if self.columns[i].get('show', True):
+                width = self.columns[i].get('width', wx.LIST_AUTOSIZE)
+                if isinstance(width, basestring) and width.endswith('em'):
+                    test_string = 'T' * int(self.columns[i]['width'][:-2])
+                    width = self.GetTextExtent(test_string)[0]
+                    self.columns[i]['width'] = width
                 
-            type = self.columns[i].get('type', 'label')
-            if type == 'label':
-                str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-                control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
-
-                fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
-                if fontWeight != wx.FONTWEIGHT_NORMAL:
-                    _set_font(control, fontweight = fontWeight)
-
-                #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
-                control.SetLabel(str_data.replace('&', "&&"))
-                
-            elif type == 'method':
-                control = self.columns[i]['method'](self, self)
-                
-            if control:
-                control.icon = self._get_icon(i, 'icon')
-                control.icon_right = self._get_icon(i, 'icon_right')
-                self.controls.append(control)
-                
-                if i != 0:
-                    self.hSizer.AddSpacer((3, -1))
+                if width == wx.LIST_AUTOSIZE:
+                    option = 1
+                    size = wx.DefaultSize
+                else:
+                    option = 0
+                    size = (self.columns[i]['width'], -1)
                     
-                if control.icon:
-                    self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
-                
-                self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
-                
-                if control.icon_right:
-                    self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-                
-                if self.columns[i]['width'] == wx.LIST_AUTOSIZE:
-                    control.SetMinSize((1,-1))
-                
-                elif self.columns[i]['width'] == LIST_AUTOSIZEHEADER:
-                    self.columns[i]['width'] = control.GetSize()[0]
-                    if self.parent_list.parent_list.header:
-                        self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])  
-            else:
-                if self.columns[i]['width'] != LIST_AUTOSIZEHEADER:
-                    self.hSizer.Add((self.columns[i]['width'], -1), 0, wx.LEFT, 3)    
+                remaining_width = size[0]
+                addColumnname = self.columns[i].get('showColumname', True) and self.columns[i].get('name', False)
+                type = self.columns[i].get('type', 'label')
+                if type == 'label':
+                    str_data = self.columns[i].get('fmt', unicode)(self.data[i])
+                    
+                    prefix = self.columns[i]['name'] + ": " if addColumnname else ''
+                    str_data = prefix + str_data
+                    
+                    control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+    
+                    fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
+                    fontSize = self.columns[i].get('fontSize', 0)
+                    if fontWeight != wx.FONTWEIGHT_NORMAL or fontSize:
+                        _set_font(control, size_increment = fontSize, fontweight = fontWeight)
+    
+                    #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
+                    control.SetLabel(str_data.replace('&', "&&"))
+                    
+                else:
+                    if addColumnname:
+                        control = StaticText(self, -1, self.columns[i]['name']+": ", style = self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+                        self._add_control(control, -1, 0, 0)
+                        remaining_width -= control.GetSize()[0]
+                    
+                    if type == 'method':                  
+                        control = self.columns[i]['method'](self, self)
+                    
+                if control:
+                    spacing = 0
+                    if isinstance(control, Iterable):
+                        control, spacing = control
+                    
+                    control.icon = self._get_icon(i, 'icon')
+                    control.icon_right = self._get_icon(i, 'icon_right')
+                    
+                    self.controls.append(control)
+                    
+                    if remaining_width != size[0]:
+                        control.SetMinSize((remaining_width, control.GetMinSize()[1]))
+                    
+                    self._add_control(control, i, option, spacing)
+                    
+                    if width == wx.LIST_AUTOSIZE:
+                        control.SetMinSize((1,-1))
+            
+                    elif width == LIST_AUTOSIZEHEADER:
+                        self.columns[i]['width'] = control.GetSize()[0]
+                        if self.parent_list.parent_list.header:
+                            self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
+                        else:
+                            if width != LIST_AUTOSIZEHEADER:
+                                self.hSizer.Add((width, -1), 0, wx.LEFT, 3) 
 
         if rightSpacer > 0:
             self.hSizer.AddSpacer((rightSpacer, -1))
@@ -109,6 +132,33 @@ class ListItem(wx.Panel):
         
         self.AddEvents(self)
         
+    def _add_control(self, control, column_index, option, spacing):
+        if column_index != 0:
+            self.hSizer.AddSpacer((3, -1))
+                    
+        if control.icon:
+            self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        
+        self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3+spacing)
+        
+        if control.icon_right:
+            self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+        
+        
+                    
+    def _replace_control(self, old_index, newcontrol):
+        oldcontrol = self.controls[old_index]
+        self.hSizer.Replace(oldcontrol, newcontrol)
+        self.hSizer.Detach(oldcontrol)
+        
+        if isinstance(oldcontrol, wx.Sizer):
+            oldcontrol.ShowItems(False)
+            oldcontrol.DeleteWindows()
+            oldcontrol.Destroy()
+        else:
+            oldcontrol.Show(False)
+            oldcontrol.Destroy()
+            
     def _get_icon(self, column, name="icon", staticbitmap = None):
         icon = None
         if self.columns[column].get(name, False):
@@ -164,6 +214,9 @@ class ListItem(wx.Panel):
     
     @warnWxThread
     def RefreshData(self, data):
+        if DEBUG:
+            print_stack()
+            print >> sys.stderr, "LISTITEM: refreshdata"
         if isinstance(data[2], dict): #update original_data
             for key in data[2].keys():
                 self.original_data[key] = data[2][key]
@@ -180,54 +233,48 @@ class ListItem(wx.Panel):
         
         self.Freeze()
         for i in xrange(len(self.columns)):
-            self.controls[control_index].icon = self._get_icon(i, 'icon', self.controls[control_index].icon)
-            self.controls[control_index].icon_right = self._get_icon(i, 'icon_right', self.controls[control_index].icon_right)
-            
-            type = self.columns[i].get('type','label')
-            if type == 'label':
-                str_data = self.columns[i].get('fmt', unicode)(data[1][i])
+            if self.columns[i].get('show', True):
+                self.controls[control_index].icon = self._get_icon(i, 'icon', self.controls[control_index].icon)
+                self.controls[control_index].icon_right = self._get_icon(i, 'icon_right', self.controls[control_index].icon_right)
                 
-                #niels: we need to escape ampersand to allow them to be visible
-                str_data = str_data.replace('&', "&&")
+                addColumnname = self.columns[i].get('showColumname', True) and self.columns[i].get('name', False)
                 
-                if str_data != self.controls[control_index].GetLabel():
-                    self.controls[control_index].SetLabel(str_data)
-                    has_changed = True
-                control_index += 1
-            
-            elif type == 'method':
-                if prevData[i] != data[1][i]:
-                    control = self.columns[i]['method'](self, self)
-                    if control:
-                        control.icon = self.controls[control_index].icon
-                        control.icon_right = self.controls[control_index].icon_right
-                        
-                        if isinstance(control, wx.Window):
-                            control.SetBackgroundColour(self.GetBackgroundColour())
-                        
-                        cur_sizeritem_index = 0
-                        for child in self.hSizer.GetChildren():
-                            if child.GetSizer() == self.controls[control_index] or child.GetWindow() == self.controls[control_index]:
-                                break
-                            else:
-                                cur_sizeritem_index += 1
-                        self.hSizer.Insert(cur_sizeritem_index, control, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3)
-                        
-                        self.hSizer.Detach(self.controls[control_index])
-                        
-                        if isinstance(self.controls[control_index], wx.Sizer):
-                            self.controls[control_index].ShowItems(False)
-                            self.controls[control_index].DeleteWindows()
-                            self.controls[control_index].Destroy()
-                        else:
-                            self.controls[control_index].Show(False)
-                            self.controls[control_index].Destroy()
-                        self.controls[control_index] = control
-                        new_controls = True
+                type = self.columns[i].get('type','label')
+                if type == 'label':
+                    str_data = self.columns[i].get('fmt', unicode)(data[1][i])
+                    
+                    prefix = self.columns[i]['name'] + ": " if addColumnname else ''
+                    str_data = prefix + str_data
+                    
+                    #niels: we need to escape ampersand to allow them to be visible
+                    str_data = str_data.replace('&', "&&")
+                    
+                    if str_data != self.controls[control_index].GetLabel():
+                        self.controls[control_index].SetLabel(str_data)
                         has_changed = True
+                    control_index += 1
+                
+                elif type == 'method':
+                    if prevData[i] != data[1][i]:
+                        control = self.columns[i]['method'](self, self)
                         
-                        self.AddEvents(control)
-                control_index += 1
+                        if isinstance(control, Iterable):
+                            control, _ = control
+                        
+                        if control:
+                            control.icon = self.controls[control_index].icon
+                            control.icon_right = self.controls[control_index].icon_right
+                            
+                            if isinstance(control, wx.Window):
+                                control.SetBackgroundColour(self.GetBackgroundColour())
+                                
+                            self._replace_control(control_index, control)
+                            self.controls[control_index] = control
+                            new_controls = True
+                            has_changed = True
+                            
+                            self.AddEvents(control)
+                    control_index += 1
             
         if new_controls:
             self.hSizer.Layout()
@@ -275,9 +322,16 @@ class ListItem(wx.Panel):
                     if IsSelected(child):
                         return True
             return False
-                    
-        selected = self.expanded or IsSelected(self)
-        if selected:
+        
+        if self.expanded:
+            if self.list_expanded:
+                if self.GetScreenRect().Contains(wx.GetMousePosition()):
+                    self.BackgroundColor(self.list_selected_and_expanded)
+                else:
+                    self.BackgroundColor(self.list_expanded)
+            else:
+                self.BackgroundColor(self.list_selected)
+        elif IsSelected(self):
             self.BackgroundColor(self.list_selected)
         else:
             self.BackgroundColor(self.list_deselected)
@@ -293,12 +347,10 @@ class ListItem(wx.Panel):
             self.Freeze()
             
             self.SetBackgroundColour(color)
-            for sizeritem in self.hSizer.GetChildren():
-                if sizeritem.IsWindow():
-                    child = sizeritem.GetWindow()
-                    if isinstance(child, wx.Window) and not isinstance(child, wx.Button):
-                        child.SetBackgroundColour(color)
-            
+            for child in self.GetChildren():
+                child = child.GetWindow() if getattr(child, 'IsWindow', False) and child.IsWindow() else child
+                if isinstance(child, wx.Window) and not isinstance(child, wx.Button):
+                    child.SetBackgroundColour(color)
             
             for control in self.controls:
                 if getattr(control, 'icon', False) and control.icon.type:
@@ -313,8 +365,8 @@ class ListItem(wx.Panel):
         return False
     
     @warnWxThread
-    def Deselect(self):
-        if self.GetBackgroundColour() == self.list_selected:
+    def Deselect(self, raise_event = True):
+        if self.GetBackgroundColour() == self.list_selected or self.expanded:
             def SetDeselected(control):
                 if getattr(control, 'GetWindow', False): #convert sizeritems
                     control = control.GetWindow()
@@ -328,9 +380,9 @@ class ListItem(wx.Panel):
             SetDeselected(self)
             
             if self.expanded:
-                self.DoCollapse()
-            else:
-                self.ShowSelected()
+                self.DoCollapse(raise_event)
+
+            self.ShowSelected()
        
     def GetColumn(self, column):
         return self.data[column]
@@ -352,6 +404,12 @@ class ListItem(wx.Panel):
         elif event.LeftUp():
             if getattr(self.parent_list.lastMouseLeftDownEvent, 'listitem', None) == self:
                 self.OnClick(event)
+        
+        elif event.RightUp():
+            self.OnRightClick(event)
+        
+        elif event.ButtonDClick(wx.MOUSE_BTN_LEFT):
+            self.OnDClick(event)
             
         event.Skip() #Allow windows to paint button hover
     
@@ -360,12 +418,21 @@ class ListItem(wx.Panel):
         if not self.expanded:
             if self.parent_list.OnExpand(self):
                 self.expanded = True
+                self.ShowSelected()
             
                 for control in self.controls:
                     if control.icon and control.icon.type:
                         control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 1))
         else:
             self.DoCollapse()
+            
+    @warnWxThread
+    def OnRightClick(self, event = None):
+        pass
+
+    @warnWxThread
+    def OnDClick(self, event = None):
+        pass
             
     @warnWxThread
     def DoExpand(self):
@@ -388,8 +455,8 @@ class ListItem(wx.Panel):
         return self.expandedPanel
 
     @warnWxThread
-    def DoCollapse(self):
-        self.parent_list.OnCollapse(self)
+    def DoCollapse(self, raise_events = True):
+        self.parent_list.OnCollapse(self, raise_events = raise_events)
         self.expanded = False
             
         for control in self.controls:
@@ -417,7 +484,7 @@ class ListItem(wx.Panel):
         
     def __str__( self ):
         return "ListItem " + " ".join(map(str, self.data))
-        
+ 
 class AbstractListBody():
     
     @warnWxThread
@@ -429,6 +496,7 @@ class AbstractListBody():
         self.singleExpanded = singleExpanded
         self.showChange = showChange
         self.list_selected = LIST_SELECTED
+        self.list_expanded = LIST_EXPANDED
         self.listRateLimit = listRateLimit
         if not list_item_max:
             list_item_max = LIST_ITEM_MAX_SIZE
@@ -504,13 +572,14 @@ class AbstractListBody():
         self.listpanel.SetBackgroundColour(colour)
     
     @warnWxThread
-    def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED):
+    def SetStyle(self, font = None, foregroundcolour = None, list_selected = LIST_SELECTED, list_expanded = LIST_EXPANDED):
         if font:
             self.SetFont(font)
         if foregroundcolour:
             self.SetForegroundColour(foregroundcolour)
 
         self.list_selected = list_selected
+        self.list_expanded = list_expanded
 
     @warnWxThread        
     def OnSort(self, column, reverse):
@@ -544,8 +613,23 @@ class AbstractListBody():
             
             return cmp(a, b)
         
+        fixed_positions = []
+        
+        index = 0
+        while index < len(self.data):
+            item = self.data[index]
+            if len(item) == 5:
+                fixed_positions.append((item[-1], item))
+                self.data.pop(index)
+                continue
+            index += 1
+            
         if self.sortcolumn != None:
             self.data = sorted(self.data, cmp = sortby, reverse=self.sortreverse)
+
+        fixed_positions.sort()
+        for pos, item in fixed_positions:
+            self.data.insert(pos, item)
     
     def SetFilter(self, filter, filterMessage, highlight):
         self.filterMessage = filterMessage
@@ -559,40 +643,63 @@ class AbstractListBody():
     def OnExpand(self, item, raise_event = False):
         self.Freeze()
         
-        if self.singleExpanded:
+        if not self.singleExpanded and wx.GetKeyState(wx.WXK_SHIFT):
+            pos_from = self.GetItemPos(self.GetItemKey(self.cur_expanded))
+            pos_to = self.GetItemPos(self.GetItemKey(item))
+            pos_min = min(pos_from, pos_to)
+            pos_max = max(pos_from, pos_to)
+            self.DeselectAll()
+            for index, data in enumerate(self.data[pos_min:pos_max+1]):
+                if index+pos_min != pos_to:
+                    self.Select(data[0], raise_event = False)
+
+        elif self.singleExpanded or not wx.GetKeyState(wx.WXK_CONTROL):
             if self.cur_expanded:
-                self.OnCollapse(self.cur_expanded, False)
-        
+                self.OnCollapse(self.cur_expanded, from_expand = True)
+
         panel = self.parent_list.OnExpand(item)
         if panel and not isinstance(panel, bool):
             item.Expand(panel)
             self.OnChange()
-            
-            #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
-            self.Refresh()
             
         self.cur_expanded = item
         self.Thaw()
         return panel
     
     @warnWxThread
-    def OnCollapse(self, item = None, onchange = True):
+    def OnCollapse(self, item = None, raise_events = True, from_expand = False):
         self.Freeze()
         
         if not item:
             item = self.cur_expanded
-        
+            
         if item:
             panel = item.Collapse()
             self.parent_list.OnCollapse(item, panel)
             self.cur_expanded = None
-        
-        if onchange:
-            self.OnChange()
-            
-            #Niels: Windows 7 needs this refresh otherwise it will show some paint errors
-            self.Refresh()
-            
+
+        toBeSelected = None        
+        if self.singleExpanded or wx.GetKeyState(wx.WXK_CONTROL):        
+            #select another still expanded item
+            selectedItems = self.GetExpandedItems()
+            if selectedItems:
+                toBeSelected = selectedItems[0]
+                
+        else:
+            if raise_events:
+                #if we're not comming from expand, then this is a click on a previously selected item
+                #schedule a expand if we had multiple items selected
+                selectedItems = self.GetExpandedItems()
+                if len(selectedItems) > 1 and not from_expand:
+                    toBeSelected = self.GetItemKey(item), item                    
+                    
+                self.DeselectAll()
+
+        #use callafter for select to let all expanded boolean flags settle, before yet again selecting this item
+        if toBeSelected:
+            toBeSelected[1].expanded = False
+            wx.CallAfter(self.Select, toBeSelected[0])
+           
         self.Thaw()
     
     @warnWxThread
@@ -606,8 +713,8 @@ class AbstractListBody():
         self.Layout()
         
         #Determine scrollrate
-        if self.rate is None:
-            nritems = len(self.vSizer.GetChildren())
+        nritems = len(self.vSizer.GetChildren())
+        if self.rate is None or nritems <= LIST_ITEM_BATCH_SIZE * 3:
             if nritems > 0:
                 height = self.vSizer.GetSize()[1]
                 self.rate = height / nritems
@@ -644,6 +751,9 @@ class AbstractListBody():
         for key in self.items.keys():
             self.items[key].Destroy()
             
+        if self.dataTimer:
+            self.dataTimer.Stop()
+            
         self.list_cur_max = self.list_item_max
             
         self.items = {}
@@ -653,6 +763,11 @@ class AbstractListBody():
         self.ShowLoading()
         self.OnChange()
         self.Thaw()
+        
+    def Rebuild(self):
+        _rawdata = self.raw_data
+        self.Reset()
+        self.SetData(_rawdata, highlight = False, force = True)
     
     def IsEmpty(self):
         return len(self.items) == 0
@@ -672,6 +787,15 @@ class AbstractListBody():
         else:
             self.Scroll(-1, 0)
         
+    @warnWxThread
+    def ScrollToNextPage(self, scroll_to_nextpage):
+        scroll_pos = self.CalcUnscrolledPosition(0, 0)[1]/self.GetScrollPixelsPerUnit()[1]
+        if scroll_to_nextpage:
+            scroll_pos = min(scroll_pos + self.GetScrollPageSize(0), self.vSizer.GetSize()[1])
+        else:
+            scroll_pos = max(scroll_pos - self.GetScrollPageSize(0), 0)
+        self.Scroll(-1, scroll_pos)
+
     @warnWxThread
     def ScrollToId(self, id):
         if id in self.items:
@@ -763,7 +887,7 @@ class AbstractListBody():
         else:
             self.raw_data = data
             
-        assert len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list)) 
+        assert not data or len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list))
             
         if highlight is None:
             highlight = not self.IsEmpty()
@@ -801,17 +925,17 @@ class AbstractListBody():
         
         #apply quickfilter
         if self.filter:
-            data = filter(self.filter, self.raw_data)
-            if len(data) != len(self.raw_data):
-                self.parent_list.SetFilteredResults(len(data))
+            if self.raw_data:
+                data = filter(self.filter, self.raw_data)
             else:
-                self.parent_list.SetFilteredResults(None)
+                data = None
         else:
-            self.parent_list.SetFilteredResults(None)
             data = self.raw_data
             
         if not data:
             data = []
+        if getattr(self.parent_list, 'SetNrResults', None):
+            self.parent_list.SetNrResults(len(data))
         
         self.highlightSet = set()
         cur_keys = set(self.items.keys())
@@ -845,7 +969,7 @@ class AbstractListBody():
             except:
                 pass
             
-        elif self.filter:
+        elif self.filter and self.filter.__name__ != 'MatchFFilter':
             self.ShowMessage(self.filterMessage(empty = True) + '.')
         
         if self.done:
@@ -887,13 +1011,13 @@ class AbstractListBody():
         if not key in self.items and self.data:
             for curdata in self.data:
                 if len(curdata) > 3:
-                    thiskey, item_data, original_data, create_method = curdata
+                    thiskey, item_data, original_data, create_method = curdata[:4]
                 else:
                     thiskey, item_data, original_data = curdata
                     create_method = ListItem
                 
                 if key == thiskey:
-                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
+                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected, list_expanded = self.list_expanded)
                     
                     if self.messagePanel.IsShown():
                         before = len(self.vSizer.GetChildren()) - 1
@@ -925,7 +1049,7 @@ class AbstractListBody():
             self.loadNext.Show(False)
             self.vSizer.Remove(self.messagePanel)
             
-            if self.filter:
+            if self.filter and self.filter.__name__ != 'MatchFFilter':
                 message = self.filterMessage() + '.'
             else:
                 message = ''
@@ -934,19 +1058,16 @@ class AbstractListBody():
             #Add created/cached items
             for curdata in self.data:
                 if len(curdata) > 3:
-                    key, item_data, original_data, create_method = curdata
+                    key, item_data, original_data, create_method = curdata[:4]
                 else:
                     key, item_data, original_data = curdata
                     create_method = ListItem
                 
                 if nr_items_to_add > 0 and nr_items_to_create > 0:
                     if key not in self.items:
-                        self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected)
+                        self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected, list_expanded = self.list_expanded)
                         nr_items_to_create -= 1
                         
-                    elif getattr(self.items[key], 'should_update', False):
-                        self.items[key].RefreshData(curdata)
-                    
                     item = self.items[key]
                     sizer = self.vSizer.GetItem(item)
                     if not sizer:
@@ -1007,6 +1128,11 @@ class AbstractListBody():
         for i, data in enumerate(self.data):
             if key == data[0]:
                 return i
+            
+    def GetItemKey(self, item):
+        for key, curitem in self.items.iteritems():
+            if item == curitem:
+                return key
     
     @warnWxThread   
     def RemoveItem(self, remove):
@@ -1034,14 +1160,15 @@ class AbstractListBody():
 
         if updated:
             self.OnChange()
-        
-        for i, curdata in enumerate(self.raw_data):
-            if curdata[0] in _keys:
-                self.raw_data.pop(i)
-                _keys.discard(curdata[0])
-        
-            if len(_keys) == 0:
-                break
+
+        if self.raw_data:
+            for i, curdata in enumerate(self.raw_data):
+                if curdata[0] in _keys:
+                    self.raw_data.pop(i)
+                    _keys.discard(curdata[0])
+            
+                if len(_keys) == 0:
+                    break
             
     def GetExpandedItem(self):
         return self.cur_expanded
@@ -1051,7 +1178,8 @@ class AbstractListBody():
     
     @warnWxThread
     def Select(self, key, raise_event = True):
-        self.DeselectAll()
+        if self.singleExpanded:
+            self.DeselectAll()
         
         #check if we need to create this item on the spot
         if not key in self.items:
@@ -1065,11 +1193,43 @@ class AbstractListBody():
                 self.cur_expanded = self.items[key]
             
             self.items[key].ShowSelected()
+            
+    @warnWxThread
+    def SelectNextItem(self, next = True):
+        item = self.GetExpandedItem()
+        if not item:
+            return        
+        
+        key = None
+        for k, i in self.items.iteritems():
+            if item == i:
+                key = k
+        
+        select = None
+        for index, data in enumerate(self.data):
+            if data[0] == key:
+                if next and len(self.data) > index+1:
+                    select = self.data[index+1][0]
+                elif not next and index > 0:
+                    select = self.data[index-1][0]
+                break
+
+        if select:
+            cur_scroll = self.CalcUnscrolledPosition(0, 0)[1]/self.GetScrollPixelsPerUnit()[1]
+            if next:
+                tot_scroll = (self.items[select].GetPosition()[1]+self.items[select].GetSize()[1]+1) / self.GetScrollPixelsPerUnit()[1]
+                if tot_scroll - cur_scroll > self.GetScrollPageSize(1):
+                    self.Scroll(-1, tot_scroll-self.GetScrollPageSize(1))
+            else:
+                tot_scroll = self.items[select].GetPosition()[1] / self.GetScrollPixelsPerUnit()[1]
+                if tot_scroll - cur_scroll < 0:
+                    self.Scroll(-1, tot_scroll)
+            self.Select(select, True)
     
     @warnWxThread
     def DeselectAll(self):
-        for _, item in self.items.iteritems():
-            item.Deselect()
+        for _, item in self.GetExpandedItems():
+            item.Deselect(raise_event = False)
             
     def Revert(self, revertList):
         for key in revertList:
@@ -1101,11 +1261,25 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         
         homeId = wx.NewId()
         endId = wx.NewId()
+        pupId = wx.NewId()
+        pdownId = wx.NewId()
+        aupId = wx.NewId()
+        adownId = wx.NewId()
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(False), id = homeId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(True), id = endId)
+        self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(False), id = pupId)
+        self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(True), id = pdownId)
+        self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(False), id = aupId)
+        self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(True), id = adownId)        
+        self.Bind(wx.EVT_CHILD_FOCUS, self.OnChildFocus)
+        wx.GetTopLevelParent(self).Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         
         accelerators = [(wx.ACCEL_NORMAL, wx.WXK_HOME, homeId)]
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_PRIOR, pupId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_NEXT, pdownId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_UP, aupId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
         
         self.SetForegroundColour(parent.GetForegroundColour())
@@ -1114,12 +1288,25 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         TIMER_ID = wx.NewId()
         self.scrollTimer = wx.Timer(self, TIMER_ID)
         self.Bind(wx.EVT_TIMER, self.checkScroll)
+        self.processingMousewheel = False
                 
     def OnChildFocus(self, event):
-        event.Skip()
-        
-    def SetFocus(self):
-        self.SetFocusIgnoringChildren()
+        pass
+
+    def OnMouseWheel(self, event):
+        try:
+            if self.processingMousewheel:
+                return
+            self.processingMousewheel = True
+            if self.IsShownOnScreen() and self.GetScreenRect().Contains(wx.GetMousePosition()):
+                self.GetEventHandler().ProcessEvent(event)
+                self.processingMousewheel = False
+            else:
+                self.processingMousewheel = False
+                event.Skip()
+        except PyDeadObjectError:
+            wx.GetTopLevelParent(self).Unbind(wx.EVT_MOUSEWHEEL, handler = self.OnMouseWheel)
+  
         
     def Show(self, show = True):
         scrolled.ScrolledPanel.Show(self, show)

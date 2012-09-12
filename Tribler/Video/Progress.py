@@ -154,8 +154,9 @@ class ProgressBar(wx.Panel):
             dc.SetBrush(self.brushes[2])
         else:
             dc.SetBrush(wx.TRANSPARENT_BRUSH)
+
         dc.SetPen(wx.BLACK_PEN)
-        dc.DrawRectangle(x, y, maxw, maxh)
+        dc.DrawRoundedRectangle(x, y, maxw, maxh, 2)
 
     def set_pieces(self, blocks):
         maxBlocks = max(self.GetClientRect().width, 100)

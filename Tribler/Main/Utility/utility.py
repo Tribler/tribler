@@ -6,6 +6,7 @@ import os
 from threading import Event, Semaphore
 from Tribler.Core.Utilities.Crypto import sha
 from traceback import print_exc
+from random import gauss
 #from cStringIO import StringIO
 
 from wx.lib import masked
@@ -19,6 +20,7 @@ from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults
 from Tribler.Core.BitTornado.parseargs import parseargs
 from Tribler.Core.BitTornado.zurllib import urlopen
 from Tribler.Core.BitTornado.__init__ import version_id
+from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 
 if sys.platform == 'win32':
     from Tribler.Main.Utility.regchecker import RegChecker
@@ -161,6 +163,7 @@ class Utility:
             'prefwindow_width': '1000', 
             'prefwindow_height': '480', 
             'prefwindow_split': '400', 
+            'sash_position' : '-185',
             't4t_option': 0, # Seeding items added by Boxun
             't4t_ratio': 100, # T4T seeding ratio added by Niels
             't4t_hours': 0,
@@ -333,6 +336,45 @@ class Utility:
     def getPath(self):
         return self.abcpath
         #return self.abcpath.decode(sys.getfilesystemencoding())
+    
+    def getMaxDown(self):
+        maxdownloadrate = self.config.Read('maxdownloadrate', 'int')
+        if maxdownloadrate == 0:
+            return 'unlimited'
+        return str(maxdownloadrate)
+    
+    def setMaxDown(self, valdown):
+        if valdown == 'unlimited':
+            self.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
+            self.config.Write('maxdownloadrate', '0')
+        else:
+            self.ratelimiter.set_global_max_speed(DOWNLOAD, int(valdown))
+            self.config.Write('maxdownloadrate', valdown)
+    
+    def getMaxUp(self):
+        maxuploadrate = self.config.Read('maxuploadrate', 'int')
+        if maxuploadrate == -1:
+            return 0        
+        elif maxuploadrate == 0:
+            return 'unlimited'
+        return str(maxuploadrate)
+        
+    def setMaxUp(self, valup):
+        if valup == 'unlimited':
+            self.ratelimiter.set_global_max_speed(UPLOAD, 0)
+            self.ratelimiter.set_global_max_seedupload_speed(0)
+            self.config.Write('maxuploadrate', '0')
+            self.config.Write('maxseeduploadrate', '0')
+        elif valup == '0':
+            self.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
+            self.ratelimiter.set_global_max_seedupload_speed(0.0001)
+            self.config.Write('maxuploadrate', '-1')
+            self.config.Write('maxseeduploadrate', '-1')
+        else: 
+            self.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
+            self.ratelimiter.set_global_max_seedupload_speed(int(valup))
+            self.config.Write('maxuploadrate', valup)
+            self.config.Write('maxseeduploadrate', valup)
 
     def eta_value(self, n, truncate = 3):
         if n == -1:
@@ -452,6 +494,30 @@ class Utility:
             
         return text
         
+    def round_range(self, x):
+        returnar = set()
+        for i in range(2500):
+            value = int(gauss(x, 100))
+            if value < 0:
+                continue
+    
+            diff = abs(value - x)
+            if diff < 2:
+                pass
+            elif diff < 10 and x < 50:
+                value = int(round(value / 3.0) * 3)
+            elif diff < 75:
+                value = int(round(value / 25.0) * 25)
+            elif diff < 450:
+                value = int(round(value / 75.0) * 75)
+            else:
+                value = int(round(value / 150.0) * 150)
+    
+            returnar.add(value)
+        returnar = list(returnar)
+        returnar.sort()
+        return returnar
+    
     def makeNumCtrl(self, parent, value, integerWidth = 6, fractionWidth = 0, min = 0, max = None, size = wx.DefaultSize):
         if size != wx.DefaultSize:
             autoSize = False

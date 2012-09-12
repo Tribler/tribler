@@ -19,7 +19,7 @@ import os
 import wx
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 import platform
-from Tribler.Main.vwxGUI.tribler_topButton import AutoWidthListCtrl
+from Tribler.Main.vwxGUI.widgets import AutoWidthListCtrl
 import httplib
 from urllib import urlencode
 

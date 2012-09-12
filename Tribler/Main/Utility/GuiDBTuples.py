@@ -2,8 +2,7 @@
 import sys
 import os.path
 from datetime import date
-from binascii import hexlify
-
+from time import time
 from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
@@ -128,9 +127,17 @@ class MergedDs:
     
     def get_num_con_candidates(self):
         return self.dslist[0].get_num_con_candidates() + self.dslist[1].get_num_con_candidates()
+    
+    def get_num_seeds_peers(self):
+        seeds, peers = self.dslist[0].get_num_seeds_peers() 
+        s_seeds, s_peers = self.dslist[1].get_num_seeds_peers()
+        return seeds+s_seeds, peers+s_peers
+    
+    def get_peerlist(self):
+        return self.dslist[0].get_peerlist() + self.dslist[1].get_peerlist()
 
 class Torrent(Helper):
-    __slots__ = ('_torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'dslist', 'progress', 'relevance_score', 'query_candidates')
+    __slots__ = ('_torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers' ,'_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'dslist', '_progress', 'relevance_score', 'query_candidates', 'magnetstatus')
     def __init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         self._torrent_id = torrent_id
         self.infohash = infohash
@@ -150,10 +157,12 @@ class Torrent(Helper):
         self.channeltorrents_id = None
         self.torrent_db = None
         self.channelcast_db = None
-        self.dslist = None
+
         self.relevance_score = None
         self.query_candidates = None
-        self.progress = None
+        self._progress = None
+        self.dslist = None
+        self.magnetstatus = None
    
     @cacheProperty
     def categories(self):
@@ -215,6 +224,9 @@ class Torrent(Helper):
             if status in [DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
                 stateList.append('checking')
                 
+            if status == DLSTATUS_ALLOCATING_DISKSPACE:
+                stateList.append('allocating')
+                
             if status == DLSTATUS_SEEDING:
                 stateList.append('seeding')
             
@@ -225,6 +237,22 @@ class Torrent(Helper):
                 stateList.append('completed')
             
         return stateList
+    
+    @property
+    def magnetState(self):
+        if self.magnetstatus:
+            if self.magnetstatus[2]:
+                return 3
+            if self.magnetstatus[1]:
+                return 2
+            return 1 
+        return 0
+    
+    @property
+    def progress(self):
+        if self.ds:
+            return self.ds.get_progress()
+        return min(1,self._progress)
     
     @property
     def ds(self):
@@ -252,7 +280,7 @@ class Torrent(Helper):
     
     def clearDs(self):
         self.dslist = [None, None]
-     
+
     def assignRelevance(self, matches):
         """
         Assigns a relevance score to this Torrent.
@@ -310,7 +338,7 @@ class CollectedTorrent(Helper):
         
         self.comment = torrentdef.get_comment_as_unicode()
         self.trackers = torrentdef.get_trackers_as_single_tuple()
-        self.creation_date = torrentdef.get_creation_date()
+        self.creation_date = min(long(time()), torrentdef.get_creation_date())
         self.files = torrentdef.get_files_as_unicode_with_length()
         self.last_check = -1
 
@@ -404,7 +432,7 @@ class LibraryTorrent(Torrent):
         if progress > 1:
             progress = progress / 100.0
             
-        self.progress = progress
+        self._progress = progress
     
 class ChannelTorrent(Torrent):
     __slots__ = ('channeltorrent_id', 'dispersy_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted', 'playlist')
@@ -452,7 +480,7 @@ class RemoteChannelTorrent(ChannelTorrent):
         self.query_candidates = query_candidates
     
 class Channel(Helper):
-    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents')
+    __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents', 'popular_torrents')
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):
         self.id = id
         self.dispersy_cid = str(dispersy_cid)
@@ -467,6 +495,7 @@ class Channel(Helper):
         self.modified = modified
         self.my_channel = my_channel
         self.torrents = None
+        self.popular_torrents = None
     
     def isDispersy(self):
         return len(self.dispersy_cid) == 20
@@ -523,6 +552,13 @@ class Channel(Helper):
             for torrent in self.torrents:
                 if torrent.infohash == infohash:
                     return torrent
+    
+    def loadPopularTorrentNames(self, num_torrents, force_refresh = False):
+        if not self.popular_torrents or force_refresh:
+            from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+            results = ChannelManager.getInstance().getMostPopularTorrentsFromChannel(self.id, ['Torrent.Name'], family_filter = GUIUtility.getInstance().getFamilyFilter(), limit = num_torrents)
+            self.popular_torrents = [result[0] for result in results]
                 
     def __eq__(self, other):
         if other:

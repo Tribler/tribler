@@ -5,7 +5,7 @@ import wx
 import os
 import sys
 
-from Tribler.Main.vwxGUI.tribler_topButton import _set_font, BetterText as StaticText
+from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT

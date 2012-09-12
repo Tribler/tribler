@@ -1,15 +1,15 @@
 # Written by Niels Zeilemaker
 import wx
+
+from wx.html import HtmlWindow
 from __init__ import LIST_RADIUS, LIST_HIGHTLIGHT
 from list_details import AbstractDetails
 
-from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
+from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, TextCtrl
 from Tribler.community.channel.community import ChannelCommunity
 
-from Tribler.Main.vwxGUI.tribler_topButton import BetterText as StaticText
-
 class ListFooter(wx.Panel):
-    def __init__(self, parent, radius = LIST_RADIUS, spacers = [0,0]):
+    def __init__(self, parent, radius = 0, spacers = [0,0]):
         wx.Panel.__init__(self, parent)
         self.SetForegroundColour(parent.GetForegroundColour())
 
@@ -38,9 +38,6 @@ class ListFooter(wx.Panel):
         
     def GetMidPanel(self, hSizer):
         hSizer.AddStretchSpacer()
-        
-    def SetSpacerRight(self, diff):
-        pass
 
     def SetBackgroundColour(self, colour):
         if self.originalColor == None:
@@ -100,18 +97,10 @@ class TitleFooter(ListFooter):
         self.Layout()
         self.Thaw()
         
-    def SetSpacerRight(self, right):
-        if self.scrollBar:
-            right = max(3, right + 3)
-            
-            if self.scrollBar.GetSize()[0] != right:
-                self.scrollBar.SetSpacer((right, 0))
-                self.scrollBar.sizer.Layout()
-        
 class TotalFooter(TitleFooter):
-    def __init__(self, parent, columns):
+    def __init__(self, parent, columns, radius = LIST_RADIUS):
         self.columns = columns
-        ListFooter.__init__(self, parent)
+        ListFooter.__init__(self, parent, radius)
         
     def GetMidPanel(self, hSizer):
         self.totals = []
@@ -409,10 +398,11 @@ class ManageChannelPlaylistFooter(ListFooter):
         self.addnew.Show(canDelete)
         
 class CommentFooter(ListFooter, AbstractDetails):
-    def __init__(self, parent, createnew, quickPost):
+    def __init__(self, parent, createnew, quickPost, horizontal):
         self.quickPost = quickPost
+        self.horizontal = horizontal
         
-        if quickPost:
+        if quickPost and not horizontal:
             spacers = [3,3]
         else:
             spacers = [7,7]
@@ -422,31 +412,44 @@ class CommentFooter(ListFooter, AbstractDetails):
         if quickPost:
             self.quickAdd.Bind(wx.EVT_BUTTON, quickPost)
     
-    def GetMidPanel(self, sizer):
+    def GetMidPanel(self, topsizer):
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        self._add_header(self, vSizer, 'Post a comment', spacer = 0)
+#        self._add_header(self, vSizer, 'Post a comment', spacer = 0)
         
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.commentbox = wx.TextCtrl(self, style = wx.TE_MULTILINE)
-        self.commentbox.SetMinSize((-1, 70))
+        self.commentbox = TextCtrl(self, style = wx.TE_MULTILINE)
+        self.commentbox.SetDescriptiveText('Type in your comment here')
+        if self.horizontal:
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            sizer.AddSpacer((-1, 7))
+            self.commentbox.SetMinSize((200, -1))
+        else:
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.commentbox.SetMinSize((-1, 70))
+            
+        sizer.Add(self.commentbox, 1, wx.EXPAND)
         
-        hSizer.Add(self.commentbox, 1, wx.EXPAND)
+        if self.horizontal:
+            sizer.AddSpacer((-1, 7))
         
         self.addnew = wx.Button(self, -1, 'Post')
         self.quickAdd = None
         if self.quickPost:
-            self.quickAdd = wx.Button(self, -1, "Post\n'Thanks'")
-            
-            postSizer = wx.BoxSizer(wx.VERTICAL)
+            if self.horizontal:
+                self.quickAdd = wx.Button(self, -1, "Post 'Thanks'")
+                postSizer = wx.BoxSizer(wx.HORIZONTAL)
+            else:
+                self.quickAdd = wx.Button(self, -1, "Post\n'Thanks'")
+                postSizer = wx.BoxSizer(wx.VERTICAL)
+                
             postSizer.Add(self.quickAdd)
             postSizer.AddStretchSpacer()
             postSizer.Add(self.addnew)
-            hSizer.Add(postSizer, 0, wx.EXPAND|wx.LEFT, 3)
+            sizer.Add(postSizer, 0, wx.EXPAND|wx.LEFT, 3)
         else:
-            hSizer.Add(self.addnew, 0, wx.ALIGN_BOTTOM|wx.LEFT, 3)
+            sizer.Add(self.addnew, 0, wx.ALIGN_BOTTOM|wx.LEFT, 3)
             
-        vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, self.spacers[0])
-        sizer.Add(vSizer, 1, wx.EXPAND)
+        vSizer.Add(sizer, 1, wx.EXPAND|wx.BOTTOM, self.spacers[0])
+        topsizer.Add(vSizer, 1, wx.EXPAND)
     
     def GetComment(self):
         return self.commentbox.GetValue()

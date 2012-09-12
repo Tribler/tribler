@@ -4,7 +4,7 @@
 import wx
 import os
 import sys
-from Tribler.Main.vwxGUI.tribler_topButton import CheckSelectableListCtrl,\
+from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl,\
     _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -145,7 +145,7 @@ class SaveAs(wx.Dialog):
                 return
         
         path = self.GetPath()
-        if not os.path.exists(path):
+        if not os.path.exists(path) or os.path.isfile(path):
             path, _ = os.path.split(path)
         self.filehistory.AddFileToHistory(path)
         

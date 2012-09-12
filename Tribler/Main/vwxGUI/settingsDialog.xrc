@@ -599,7 +599,7 @@
 				                                    </object>
 		                                        </object>
 												<object class="sizeritem">
-		                                            <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.tribler_topButton.settingsButton">
+		                                            <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.widgets.settingsButton">
 		                                                <size>33,32</size>
 		                                            </object>
 		                                        </object>

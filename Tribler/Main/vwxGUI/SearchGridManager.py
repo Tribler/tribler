@@ -17,7 +17,8 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity,\
     forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
@@ -132,7 +133,7 @@ class TorrentManager:
                 torrent.swift_torrent_hash = dict['swift_torrent_hash']
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
-        
+
         
     def getCollectedFilenameFromDef(self, torrentdef):
         torrent = self.getTorrentByInfohash(torrentdef.infohash)
@@ -328,8 +329,10 @@ class TorrentManager:
                         #cannot repair torrent, removing
                         os.remove(torrent_filename)
                         return self.loadTorrent(torrent, callback)
+ 
                 torrent = CollectedTorrent(torrent, tdef)
-            
+                
+        self.library_manager.addDownloadState(torrent)
         if not callback is None:
             callback(torrent)
         else:
@@ -450,8 +453,9 @@ class TorrentManager:
             if DEBUG:
                 beginsort = time()
             
+
             if new_local_hits or new_remote_hits or ffchanged:
-                self.hits = filter(torrentFilter, self.hits)
+                #self.hits = filter(torrentFilter, self.hits)
                 
                 if sort == 'rameezmetric':
                     self.rameezSort()
@@ -839,6 +843,7 @@ class LibraryManager:
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
         self.dslist = []
+        self.magnetlist = {}
         
         #current progress of download states
         self.cache_progress = {}
@@ -873,7 +878,7 @@ class LibraryManager:
         videoplayer = VideoPlayer.getInstance()
         videoplayer.set_other_downloads(other_downloads)
         
-        self.guiUtility.ShowPlayer(True)
+        self.guiUtility.ShowPlayer()
         return videoplayer
         
     def download_state_callback(self, dslist):
@@ -885,17 +890,37 @@ class LibraryManager:
         
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
-            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True)
+            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+    
+        return self.wantpeerdownloadstates
+    
+    def magnet_started(self, infohash):
+        self.magnetlist[infohash] = [long(time()), 0, 0]
+        
+    def magnet_got_peers(self, infohash, total_peers):
+        if infohash not in self.magnetlist:
+            self.magnet_started(infohash)
+        self.magnetlist[infohash][1] = total_peers
+        
+    def magnet_got_piece(self, infohash, progress):
+        if infohash not in self.magnetlist:
+            self.magnet_started(infohash)
+        self.magnetlist[infohash][2] = progress
+        
+    def magnet_close(self, infohash):
+        if infohash in self.magnetlist:
+            del self.magnetlist[infohash]
     
         return self.wantpeerdownloadstates
     
     @forceWxThread
     def _do_gui_callback(self):
         dslist = self.dslist[:]
+        magnetlist = self.magnetlist.copy()
         
         for callback in self.gui_callback:
             try:
-                callback(dslist)
+                callback(dslist, magnetlist)
             except:
                 print_exc()
     
@@ -933,12 +958,16 @@ class LibraryManager:
         # Add downloadstate data to a torrent instance
         for ds in self.dslist:
             torrent.addDs(ds)
+        if torrent.infohash in self.magnetlist:
+            torrent.magnetstatus = self.magnetlist[torrent.infohash]
         return torrent
     
     def addDownloadStates(self, torrentlist):
         for torrent in torrentlist:
             for ds in self.dslist:
                 torrent.addDs(ds)
+            if torrent.infohash in self.magnetlist:
+                torrent.magnetstatus = self.magnetlist[torrent.infohash]
         return torrentlist
     
     @forceWxThread
@@ -947,6 +976,8 @@ class LibraryManager:
         
         ds = torrent.get('ds')
         
+        #Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
+        self.guiUtility.frame.videoframe.recreate_videopanel()
         #videoplayer calls should be on gui thread, hence forceWxThread
         videoplayer = self._get_videoplayer(ds)
         videoplayer.stop_playback()
@@ -1087,7 +1118,7 @@ class LibraryManager:
                 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
-                t.progress = a[-1]
+                t._progress = a[-1] / 100.0
                 return t
             
             results = map(create_torrent, results)
@@ -1348,6 +1379,9 @@ class ChannelManager:
             torrent = torrentdict[hit[0]]
             playlist = Playlist(*hit[1:]+(torrent.channel,))
             torrent.playlist = playlist
+            
+    def getMostPopularTorrentsFromChannel(self, channel_id, keys, family_filter = False, limit = None):
+        return self.channelcast_db.getMostPopularTorrentsFromChannel(channel_id, keys, limit, family_filter)
     
     def _createTorrent(self, tuple, channel, playlist = None, collectedOnly = True):
         if tuple:

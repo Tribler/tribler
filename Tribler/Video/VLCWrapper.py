@@ -45,7 +45,7 @@ class VLCWrapper:
         setting the window.
         """
         try:
-            if sys.platform == "darwin":
+            if False and sys.platform == "darwin":
                 oldpath = os.getcwd()
                 os.chdir(os.path.join(self.installdir,'vlc','lib'))
                 import vlc.lib.vlc as vlc

@@ -155,19 +155,8 @@ class SettingsDialog(wx.Dialog):
         self.currentPortValue = str(self.guiUtility.get_port_number())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
         
-        maxdownloadrate = self.utility.config.Read('maxdownloadrate', 'int')
-        if maxdownloadrate == 0:
-            self.elements['downloadCtrl'].SetValue('unlimited')        
-        else:
-            self.elements['downloadCtrl'].SetValue(str(maxdownloadrate))
-        
-        maxuploadrate = self.utility.config.Read('maxuploadrate', 'int')
-        if maxuploadrate == -1:
-            self.elements['uploadCtrl'].SetValue('0')        
-        elif maxuploadrate == 0:
-            self.elements['uploadCtrl'].SetValue('unlimited')        
-        else:
-            self.elements['uploadCtrl'].SetValue(str(maxuploadrate))
+        self.elements['downloadCtrl'].SetValue(self.utility.getMaxDown())
+        self.elements['uploadCtrl'].SetValue(self.utility.getMaxUp())        
         
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
@@ -327,28 +316,8 @@ class SettingsDialog(wx.Dialog):
             cfgfilename = self.utility.session.get_default_config_filename(state_dir)
             scfg = SessionStartupConfig.load(cfgfilename)
             
-            if valdown == 'unlimited':
-                self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
-                self.utility.config.Write('maxdownloadrate', '0')
-            else:
-                self.utility.ratelimiter.set_global_max_speed(DOWNLOAD, int(valdown))
-                self.utility.config.Write('maxdownloadrate', valdown)
-
-            if valup == 'unlimited':
-                self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0)
-                self.utility.ratelimiter.set_global_max_seedupload_speed(0)
-                self.utility.config.Write('maxuploadrate', '0')
-                self.utility.config.Write('maxseeduploadrate', '0')
-            elif valup == '0':
-                self.utility.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
-                self.utility.ratelimiter.set_global_max_seedupload_speed(0.0001)
-                self.utility.config.Write('maxuploadrate', '-1')
-                self.utility.config.Write('maxseeduploadrate', '-1')
-            else: 
-                self.utility.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
-                self.utility.ratelimiter.set_global_max_seedupload_speed(int(valup))
-                self.utility.config.Write('maxuploadrate', valup)
-                self.utility.config.Write('maxseeduploadrate', valup)
+            self.utility.setMaxDown(valdown)
+            self.utility.setMaxUp(valup)
 
             if valport != self.currentPortValue:
                 self.utility.config.Write('minport', valport)

@@ -65,13 +65,13 @@ class Category:
         keys.sort()
         return keys
     
-    def getCategoryNames(self):
+    def getCategoryNames(self, filter = True):
         if self.category_info is None:
             return []
         keys = []
         for category in self.category_info:
             rank = category['rank']
-            if rank == -1:
+            if rank == -1 and filter:
                 break
             keys.append((category['name'],category['displayname']))
         return keys

@@ -90,6 +90,10 @@ NTFY_STARTED = 'started'
 NTFY_STATE = 'state'
 NTFY_MODIFIED = 'modified'
 NTFY_FINISHED = 'finished'
+NTFY_MAGNET_STARTED = 'magnet_started'
+NTFY_MAGNET_GOT_PEERS = 'magnet_peers'
+NTFY_MAGNET_PROGRESS = 'magnet_progress'
+NTFY_MAGNET_CLOSE = 'magnet_close'
 
 # object IDs for NTFY_ACTIVITIES subject 
 NTFY_ACT_NONE = 0

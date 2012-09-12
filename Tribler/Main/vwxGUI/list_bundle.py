@@ -10,7 +10,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, BetterText as StaticText
+from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterText as StaticText
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from __init__ import *
@@ -104,10 +104,16 @@ class BundleListItem(ListItem):
         if event:
             #ignore onclick from bundlegrid
             control = event.GetEventObject()
-            if getattr(control, 'action', False): 
+            if getattr(control, 'action', False):
+                self.showing_similar_item = True 
                 return
+
+            if getattr(self, 'showing_similar_item', False):
+                self.showing_similar_item = False
+                self.parent_list.OnExpand(self)
+                self.bundlepanel.SetBackgroundColour(self.bundlepanel.parent.GetBackgroundColour())
         
-        if self.expanded == self.expanded_panel_shown:
+        if True:#self.expanded == self.expanded_panel_shown:
             ListItem.OnClick(self, event)
         else:
             self.ShowExpandedPanel(not self.expanded_panel_shown)
@@ -202,7 +208,7 @@ class BundlePanel(wx.BoxSizer):
         
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
         
-        self.indent = parent.controls[0].icon.GetSize()[0] + 3 + 3 + self.parent_list.leftSpacer #width of icon + 3px left spacer + 3px right spacer
+        self.indent = 3 + 3 + self.parent_list.leftSpacer #width of 3px left spacer + 3px right spacer
         
         self.AddHeader()
         self.AddGrid()
@@ -316,7 +322,7 @@ class BundlePanel(wx.BoxSizer):
             for i in range(items_to_add):
                 hit = hits[i] 
     
-                new_text = LinkStaticText(self.parent, hit.name, icon = False, icon_type = 'tree', icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
+                new_text = LinkStaticText(self.parent, hit.name, icon = False, icon_align = wx.ALIGN_LEFT, font_increment = self.font_increment, font_colour = BUNDLE_FONT_COLOR)
                 new_text.Bind(wx.EVT_LEFT_UP, self.OnBundleLinkClick)
                 new_text.SetMinSize((1,-1))
                 new_text.action = hit
@@ -434,10 +440,10 @@ class BundlePanel(wx.BoxSizer):
         
         self.bundlelist.ExpandItem(id)
         self.parent_listitem.ShowSelected()
-    
+
     def OnBundleLinkClick(self, event):
         #do expand
-        self.ExpandAndHideParent()
+        #self.ExpandAndHideParent()
         
         staticText = event.GetEventObject()
         action = getattr(staticText, 'action', None)
@@ -449,8 +455,16 @@ class BundlePanel(wx.BoxSizer):
                 self.hits.remove(action)
                 self.hits.insert(0, action)
         
-            self.ChangeState(BundlePanel.PARTIAL)
-            self.ExpandHit(action)
+            #self.ChangeState(BundlePanel.PARTIAL)
+            #self.ExpandHit(action)
+            self.SetBackgroundColour(self.parent.GetBackgroundColour())
+            from __init__ import TRIBLER_RED, LIST_HIGHTLIGHT
+            event.GetEventObject().SetBackgroundColour(LIST_HIGHTLIGHT)
+            for item in self.parent_listitem.bundle:
+                if action.infohash == item.infohash:
+                    td = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item)
+                    item.expandedPanel = td
+                    self.guiutility.SetBottomSplitterWindow(td)
         
         def db_callback():
             self.uelog.addEvent(message="Bundler GUI: BundleLink click; %s; %s;" %
@@ -458,6 +472,7 @@ class BundlePanel(wx.BoxSizer):
         self.guiutility.frame.guiserver.add_task(db_callback)
     
     def OnMoreClick(self, event):
+        return
         #do expand
         self.ExpandAndHideParent()
         self.ChangeState(BundlePanel.FULL)
@@ -516,16 +531,19 @@ class BundleListView(GenericSearchList):
         pass 
     
     def CreateList(self, parent):
-        return ExpandableFixedListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, list_item_max = self.list_item_max)
+        pass
+        #return ExpandableFixedListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, list_item_max = self.list_item_max)
     
     def OnExpand(self, item):
         # Keep only one panel open at all times, thus we make sure the parent is closed
         self.parent.ShowExpandedPanel(False)
-        
-        return TorrentDetails(item, item.original_data, compact = True)
-    
+        td = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, compact = True)
+        self.guiutility.SetBottomSplitterWindow(td)
+        return True
+
     def OnCollapseInternal(self, item):
-        pass
+        self.guiutility.frame.top_bg.ClearButtonHandlers()
+        self.guiutility.SetBottomSplitterWindow(None)
     
     def SetFilteredResults(self, nr):
         pass

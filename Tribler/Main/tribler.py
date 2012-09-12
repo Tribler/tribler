@@ -301,6 +301,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_moderationupdats, NTFY_MODERATIONS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_torrentfinished,NTFY_TORRENTS,[NTFY_FINISHED])
+        s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
         
         if Dispersy.has_instance():
             self.sesscb_ntfy_dispersy()
@@ -545,7 +546,7 @@ class ABCApp():
         def do_wx(delayedResult):
             myRep, total_down, total_up, nr_connections = delayedResult.get()
             
-            self.frame.SRstatusbar.set_reputation(myRep, total_down, total_up)
+            #self.frame.SRstatusbar.set_reputation(myRep, total_down, total_up)
             
             #bitmap is 16px wide, -> but first and last pixel do not add anything.
             percentage = min(1.0, (nr_connections + 1) / 16.0)
@@ -561,7 +562,6 @@ class ABCApp():
             return (5.0, False)
         
         wantpeers = False
-        
         if DEBUG: 
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
@@ -660,7 +660,7 @@ class ABCApp():
                             hash = cdef.get_id()
                             
                             notifier = Notifier.getInstance()
-                            notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash)
+                            notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
                             
                             # Arno, 2012-05-04: Swift reseeding
                             if self.utility.config.Read('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
@@ -682,7 +682,7 @@ class ABCApp():
             # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(dslist)
             # _SelectiveSeeding
-            
+
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
             # occurs.
@@ -816,10 +816,20 @@ class ABCApp():
             manager.torrentUpdated(objectID)
             
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
-        self.guiUtility.Notify("Download Completed", wx.ART_INFORMATION)
+        self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading." % args[0], icon = wx.ART_INFORMATION)
         
         if self.ready and self.frame.ready:
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)
+            
+    def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
+        if changetype == NTFY_MAGNET_STARTED:
+            self.guiUtility.library_manager.magnet_started(objectID)
+        elif changetype == NTFY_MAGNET_GOT_PEERS:
+            self.guiUtility.library_manager.magnet_got_peers(objectID, args[0])
+        elif changetype == NTFY_MAGNET_PROGRESS:
+            self.guiUtility.library_manager.magnet_got_piece(objectID, args[0])
+        elif changetype == NTFY_MAGNET_CLOSE:
+            self.guiUtility.library_manager.magnet_close(objectID)
         
     @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
@@ -983,7 +993,6 @@ class ABCApp():
                 self.guiUtility.ShowPage('my_files')
 
             wx.CallAfter(start_asked_download)
-
 
     def sesscb_reseed_via_swift(self, td, callback = None):
         # Arno, 2012-05-07: root hash calculation may take long time, halting 
@@ -1256,7 +1265,7 @@ def run(params = None):
     #if sys.platform != 'linux2':
     #    tribler_done(configpath)
     #os._exit(0)
-
+    
 if __name__ == '__main__':
     run()
 

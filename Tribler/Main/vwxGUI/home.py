@@ -12,13 +12,13 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.tribler_topButton import BetterListCtrl, SelectableListCtrl,\
+from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl,\
     TextCtrlAutoComplete, BetterText as StaticText, _set_font
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 
-from __init__ import LIST_GREY, LIST_BLUE
+from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
@@ -97,8 +97,9 @@ class Home(XRCPanel):
 
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
-
+        
         buzzpanel = BuzzPanel(self)
+        buzzpanel.SetMinSize((-1,180))
         vSizer.Add(buzzpanel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
@@ -311,7 +312,7 @@ class HomePanel(wx.Panel):
         self.Layout()
 
     def CreateHeader(self):
-        return TitleHeader(self, self, [])
+        return TitleHeader(self, self, [], radius=LIST_RADIUS)
     def CreatePanel(self):
         pass
     def CreateFooter(self):
@@ -325,7 +326,7 @@ class HomePanel(wx.Panel):
 
 class NetworkPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Network info' , LIST_BLUE)
+        HomePanel.__init__(self, parent, 'Network info' , LIST_LIGHTBLUE)
 
         self.torrentdb = TorrentDBHandler.getInstance()
         self.channelcastdb = ChannelCastDBHandler.getInstance()
@@ -394,7 +395,7 @@ class NetworkPanel(HomePanel):
             nr_channels = self.channelcastdb.getNrChannels()
             self._UpdateStats(stats, nr_channels)
 
-        startWorker(None, db_callback, uId ="NetworkPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="NetworkPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, stats, nr_channels):
@@ -423,7 +424,7 @@ class DispersyPanel(HomePanel):
         if not self.dispersy:
             raise RuntimeError("Dispersy has not started yet")
 
-        HomePanel.__init__(self, parent, 'Dispersy info' , LIST_BLUE)
+        HomePanel.__init__(self, parent, 'Dispersy info' , LIST_LIGHTBLUE)
 
         self.SetMinSize((-1, 200))
 
@@ -501,6 +502,7 @@ class DispersyPanel(HomePanel):
             _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
             self.gridSizer.Add(header)
             self.textdict[key] = StaticText(self.panel, -1, '')
+            self.textdict[key].SetMinSize((200,-1))
             self.gridSizer.Add(self.textdict[key])
 
         columns = ["in_debugmode"]
@@ -535,7 +537,7 @@ class DispersyPanel(HomePanel):
             info = self.dispersy.info(database_sync=includeStuffs)
             self._UpdateStats(info)
 
-        startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, info):
@@ -613,7 +615,6 @@ class DispersyPanel(HomePanel):
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
             fakeRoot = self.tree.AddRoot('fake')
-
             for key, value in info.iteritems():
                 for title, func in self.mapping.get(key, [(key, lambda info: str(info[key]))]):
                     updateColumn(title, func(info))
@@ -626,7 +627,7 @@ class DispersyPanel(HomePanel):
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_BLUE)
+        HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_LIGHTBLUE)
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -654,7 +655,7 @@ class NewTorrentPanel(HomePanel):
             if torrent:
                 self._UpdateStats(torrent)
 
-        startWorker(None, db_callback, uId ="NewTorrentPanel_UpdateStats")
+        startWorker(None, db_callback, uId ="NewTorrentPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, torrent):
@@ -671,7 +672,7 @@ class NewTorrentPanel(HomePanel):
 
 class PopularTorrentPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Popular Torrents' , LIST_BLUE)
+        HomePanel.__init__(self, parent, 'Popular Torrents' , LIST_LIGHTBLUE)
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -694,7 +695,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
             self._RefreshList(topTen)
 
-        startWorker(None, db_callback, uId ="PopularTorrentPanel_RefreshList")
+        startWorker(None, db_callback, uId ="PopularTorrentPanel_RefreshList",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -707,7 +708,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
 class TopContributorsPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Top Contributors' , LIST_BLUE)
+        HomePanel.__init__(self, parent, 'Top Contributors' , LIST_LIGHTBLUE)
         self.Layout()
 
         self.peerdb = PeerDBHandler.getInstance()
@@ -735,7 +736,7 @@ class TopContributorsPanel(HomePanel):
             topTen = self.barterdb.getTopNPeers(10)
             self._RefreshList(topTen)
 
-        startWorker(None, db_callback, uId ="TopContributorsPanel_RefreshList")
+        startWorker(None, db_callback, uId ="TopContributorsPanel_RefreshList",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -756,7 +757,7 @@ class TopContributorsPanel(HomePanel):
 
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Recent Activity' , LIST_BLUE)
+        HomePanel.__init__(self, parent, 'Recent Activity' , LIST_LIGHTBLUE)
 
     @forceWxThread
     def onActivity(self, msg):
@@ -766,7 +767,7 @@ class ActivityPanel(NewTorrentPanel):
         if size > 50:
             self.list.DeleteItem(size-1)
 
-class BuzzPanel(HomePanel):
+class BuzzPanel(wx.Panel):
     INACTIVE_COLOR = (255, 51, 0)
     ACTIVE_COLOR = (0, 105, 156)
 
@@ -775,12 +776,41 @@ class BuzzPanel(HomePanel):
     REFRESH_EVERY = 5
 
     def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(wx.WHITE)
+        self.SetForegroundColour(parent.GetForegroundColour())
+                
         #Niels 04-06-2012: termextraction needs a session variable, create instance from mainthread
         TermExtraction.getInstance()
-        self.nbdb = None
-        self.xxx_filter = Category.getInstance().xxx_filter
 
-        HomePanel.__init__(self, parent, "Click below to explore what's hot", LIST_GREY)
+        self.nbdb       = None
+        self.xxx_filter = Category.getInstance().xxx_filter
+        self.guiutility = GUIUtility.getInstance()
+        self.utility    = self.guiutility.utility
+
+        vSizer = wx.BoxSizer(wx.VERTICAL)        
+        for colour, height, text in [(SEPARATOR_GREY, 1, None), (FILTER_GREY, 25, "Click below to explore what's hot"), (SEPARATOR_GREY, 1, None)]:
+            panel = wx.Panel(self)
+            panel.SetMinSize((-1,height))
+            panel.SetBackgroundColour(colour)
+            panel.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
+            if text:
+                stext = wx.StaticText(panel, label = text)
+                _set_font(stext, fontweight = wx.FONTWEIGHT_BOLD, fontcolour = wx.BLACK)
+                sizer = wx.BoxSizer(wx.HORIZONTAL)
+                sizer.Add(stext, 0, wx.CENTER|wx.LEFT, 5)
+                panel.SetSizer(sizer)
+            vSizer.Add(panel, 0, wx.EXPAND)
+        vSizer.AddSpacer((-1,10))
+
+        self.panel = wx.Panel(self)
+        self.panel.SetBackgroundColour(DEFAULT_BACKGROUND)
+        self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.panel.SetSizer(self.vSizer)
+        vSizer.Add(self.panel, 1, wx.EXPAND|wx.BOTTOM, 5)
+
+        self.footer = wx.StaticText(self)
+        vSizer.Add(self.footer, 0, wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, 1)
 
         self.tags = []
         self.buzz_cache = [[],[],[]]
@@ -798,41 +828,32 @@ class BuzzPanel(HomePanel):
         row3_font.SetWeight(wx.FONTWEIGHT_BOLD)
         self.TERM_FONTS = [row1_font, row2_font, row3_font]
 
-        self.header.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
-        self.footer.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
         self.panel.Bind(wx.EVT_ENTER_WINDOW, self.OnEnterWindow)
         self.panel.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
 
-        self.vSizer.Add(self.getStaticText('...collecting buzz information...'), 0, wx.ALIGN_CENTER)
+        text = wx.StaticText(self.panel, -1, '...collecting buzz information...')
+        _set_font(text, fontcolour = BuzzPanel.INACTIVE_COLOR)
+        self.vSizer.AddStretchSpacer()
+        self.vSizer.Add(text, 0, wx.ALIGN_CENTER)
+        self.vSizer.AddStretchSpacer()
 
         self.refresh = 5
         self.GetBuzzFromDB(doRefresh=True,samplesize=10)
+        self.guiutility.addList(self)
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnRefreshTimer, self.timer)
         self.timer.Start(1000, False)
 
-    def CreateHeader(self):
-        header = FamilyFilterHeader(self, self, [])
-        header.SetFF(self.guiutility.getFamilyFilter())
-        return header
-
-    def CreateFooter(self):
-        return TitleFooter(self)
-
-    def CreatePanel(self):
-        panel = wx.Panel(self)
-        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
-
-        self.vSizer = wx.BoxSizer(wx.VERTICAL)
-        panel.SetSizer(self.vSizer)
-
-        return panel
-
-    def toggleFamilyFilter(self):
-        self.guiutility.toggleFamilyFilter()
-        self.header.SetFF(self.guiutility.getFamilyFilter())
-        self.ForceUpdate()
+        self.SetSizer(vSizer)
+        self.Layout()
+   
+    def do_or_schedule_refresh(self, force_refresh = False):
+        # Only called when the FF is toggled.
+        if self.guiutility.ShouldGuiUpdate():
+            self.ForceUpdate()
+        else:
+            self.refresh = -1
 
     def ForceUpdate(self):
         self.GetBuzzFromDB(doRefresh=True)
@@ -852,6 +873,7 @@ class BuzzPanel(HomePanel):
                 self.OnRefreshTimer(force = True, fromDBThread = True)
         startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
 
+
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
         if event:
@@ -869,10 +891,8 @@ class BuzzPanel(HomePanel):
 
                 if self.guiutility.getFamilyFilter():
                     xxx_filter = self.xxx_filter.isXXX
-                    self.header.SetFF(True)
                 else:
                     xxx_filter = lambda *args, **kwargs: False
-                    self.header.SetFF(False)
 
                 # consume cache
                 # Note: if a term is fetched from two different row caches, it is shown in the
@@ -894,7 +914,8 @@ class BuzzPanel(HomePanel):
                 self.last_shown_buzz = filtered_buzz
             self.refresh = BuzzPanel.REFRESH_EVERY
 
-        self.footer.SetTitle('Update in %d...'%self.refresh)
+        self.footer.SetLabel('Update in %d...'%self.refresh)
+        self.Layout()
 
     def getStaticText(self, term, font = None):
         if len(self.tags) > 0:
@@ -915,6 +936,7 @@ class BuzzPanel(HomePanel):
             self.Freeze()
             self.vSizer.ShowItems(False)
             self.vSizer.Clear()
+            self.vSizer.AddStretchSpacer()
 
             cur_tags = []
             for i in range(len(rows)):
@@ -933,7 +955,8 @@ class BuzzPanel(HomePanel):
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)
-
+            
+            self.vSizer.AddStretchSpacer()
             self.vSizer.ShowItems(True)
             self.vSizer.Layout()
 
@@ -942,7 +965,8 @@ class BuzzPanel(HomePanel):
                 text.Destroy()
             self.tags = cur_tags
 
-            self.DoLayout()
+            self.Layout()
+            self.GetParent().Layout()
             self.Thaw()
 
     def DoPauseResume(self):
@@ -966,11 +990,13 @@ class BuzzPanel(HomePanel):
         if timerstop != self.timer.IsRunning():
             if not enter:
                 self.timer.Start(1000, False)
-                self.footer.SetTitle('Resuming update')
+                self.footer.SetLabel('Resuming update')
+                self.Layout()
         
         if enter:
             self.timer.Stop()
-            self.footer.SetTitle('Update has paused')
+            self.footer.SetLabel('Update has paused')
+            self.Layout()
         return enter
 
     def OnMouse(self, event):
@@ -1017,7 +1043,7 @@ class BuzzPanel(HomePanel):
 #
 #class NetworkTestPanel(HomePanel):
 #    def __init__(self, parent):
-#        HomePanel.__init__(self, parent, 'Network Test' , LIST_BLUE)
+#        HomePanel.__init__(self, parent, 'Network Test' , LIST_LIGHTBLUE)
 #
 #        self.timer = None
 #
@@ -1129,7 +1155,7 @@ class BuzzPanel(HomePanel):
 #
 #class ProxyDiscoveryPanel(NewTorrentPanel):
 #    def __init__(self, parent):
-#        HomePanel.__init__(self, parent, 'Peer Discovery' , LIST_BLUE)
+#        HomePanel.__init__(self, parent, 'Peer Discovery' , LIST_LIGHTBLUE)
 #
 #        session = Session.get_instance()
 #        session.add_observer(self.OnNotify, NTFY_PROXYDISCOVERY, [NTFY_INSERT])

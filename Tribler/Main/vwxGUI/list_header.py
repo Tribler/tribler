@@ -1,14 +1,20 @@
-# Written by Niels Zeilemaker
-from Tribler.Main.vwxGUI.tribler_topButton import LinkStaticText, ImageScrollablePanel,\
-    NativeIcon, LinkText, BetterText as StaticText, _set_font
+# Written by Niels Zeilemaker, Egbert Bouman
+from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, ImageScrollablePanel,\
+    NativeIcon, LinkText, BetterText as StaticText, _set_font, ProgressButton
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Category.Category import Category
+from Tribler.Core.Search.Bundler import Bundler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler, UserEventLogDBHandler
 
-from __init__ import LIST_RADIUS
+from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
+from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
+from Tribler.Main.vwxGUI.list_body import FixedListBody
+from Tribler.community.channel.community import ChannelCommunity
 
 DEBUG = False
 
@@ -57,7 +63,7 @@ class ListHeaderIcon:
         return [down, up, empty]
 
 class ListHeader(wx.Panel):
-    def __init__(self, parent, parent_list, columns, radius = LIST_RADIUS, spacers = [0,0]):
+    def __init__(self, parent, parent_list, columns, radius = 0, spacers = [3,3]):
         wx.Panel.__init__(self, parent)
         self.parent_list = parent_list
         self.columnHeaders = []
@@ -165,15 +171,6 @@ class ListHeader(wx.Panel):
                 item.SetSpacer((width, -1))
 
     @warnWxThread
-    def SetSpacerRight(self, right):
-        if self.scrollBar:
-            right = max(0, right)
-            
-            if self.scrollBar.GetSize()[0] != right:
-                self.scrollBar.SetSpacer((right, 0))
-                self.scrollBar.sizer.Layout()
-    
-    @warnWxThread
     def OnClick(self, event):
         newColumn = event.GetEventObject().column
         
@@ -266,7 +263,7 @@ class ListHeader(wx.Panel):
         event.Skip()
         
 class TitleHeader(ListHeader):
-    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=LIST_RADIUS, spacers = [0,0]):
+    def __init__(self, parent, parent_list, columns, font_increment = 2, fontweight = wx.FONTWEIGHT_BOLD, radius=0, spacers = [3,3]):
         self.font_increment = font_increment
         self.fontweight = fontweight
 
@@ -275,11 +272,12 @@ class TitleHeader(ListHeader):
     @warnWxThread
     def AddComponents(self, columns, spacers):
         vSizer = wx.BoxSizer(wx.VERTICAL)
+
         vSizer.AddSpacer((-1, 3))
-        
+
         self.title = StaticText(self)
         _set_font(self.title, self.font_increment, self.fontweight)
-                
+        
         titlePanel = self.GetTitlePanel(self)
         subtitlePanel = self.GetSubTitlePanel(self)
         righttitlePanel = self.GetRightTitlePanel(self)
@@ -310,7 +308,7 @@ class TitleHeader(ListHeader):
         vSizer.Add(righttitlePanel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius+spacers[0])
         if belowPanel:
             vSizer.Add(belowPanel, 1, wx.EXPAND|wx.TOP, 3)
-
+            
         vSizer.AddSpacer((-1, 3))
 
         if len(columns) > 0:
@@ -318,7 +316,7 @@ class TitleHeader(ListHeader):
             self.AddColumns(hSizer, self, columns)
             vSizer.Add(hSizer, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, self.radius+spacers[0])
         self.SetSizer(vSizer)
-    
+
     def GetTitlePanel(self, parent):
         pass
     def GetSubTitlePanel(self, parent):
@@ -417,18 +415,6 @@ class ManageChannelHeader(SubTitleHeader):
     @warnWxThread
     def SetName(self, name):
         self.SetTitle(name)
-        
-    @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddStretchSpacer()
-        self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
-        hSizer.Add(self.back, 0, wx.LEFT, 5)
-        return hSizer
-
-    @warnWxThread
-    def SetEvents(self, back):
-        self.back.Bind(wx.EVT_BUTTON, back)
     
     @warnWxThread
     def SetNrTorrents(self, nr, nr_favorites = None):
@@ -458,67 +444,6 @@ class ManageChannelHeader(SubTitleHeader):
     def Reset(self):
         SubTitleHeader.Reset(self)
         self.nr_favorites = None
-
-class FamilyFilterHeader(TitleHeader):
-    def __init__(self, *args, **kwargs):
-        self.family_filter = None
-        self.nrfiltered = 0
-        
-        TitleHeader.__init__(self, *args, **kwargs)
-    
-    @warnWxThread
-    def GetSubTitlePanel(self, parent):
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        self.ff = StaticText(parent)
-        self.ffbutton = LinkStaticText(parent, '', None)
-        self.ffbutton.Bind(wx.EVT_LEFT_UP, self.toggleFamilyFilter)
-        self._SetLabels()
-        
-        hSizer.Add(self.ff)
-        hSizer.Add(self.ffbutton)
-        return hSizer
-    
-    def SetFF(self, family_filter, nrfiltered = 0):
-        self.family_filter = family_filter
-        self.nrfiltered = nrfiltered
-        
-        self._SetLabels()
-        
-    def SetFamilyFiltered(self, nr):
-        self.nrfiltered = nr
-        self._SetLabels()
-    
-    @warnWxThread
-    def SetBackgroundColour(self, colour):
-        TitleHeader.SetBackgroundColour(self, colour)
-        if getattr(self, 'ffbutton', False):
-            self.ffbutton.SetBackgroundColour(colour)
-    
-    def toggleFamilyFilter(self, event):
-        self.parent_list.toggleFamilyFilter()
-    
-    @warnWxThread
-    def _SetLabels(self):
-        self.Freeze()
-        if self.family_filter:
-            if self.nrfiltered > 0:
-                self.ff.SetLabel('%d results blocked by Family Filter, '%self.nrfiltered)
-            else:
-                self.ff.SetLabel('Family Filter is On, ')
-            self.ffbutton.SetLabel('turn off')
-            
-        else:
-            self.ff.SetLabel('Family Filter is Off, ')
-            self.ffbutton.SetLabel('turn on')
-        self.Layout()
-        self.Thaw()
-
-class SearchHeader(SearchHeaderHelper, FamilyFilterHeader):
-    
-    def Reset(self):
-        FamilyFilterHeader.Reset(self)
-        SearchHeaderHelper.Reset(self)
 
 class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
     
@@ -602,163 +527,832 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         SearchHeaderHelper.Reset(self)
         self.filter.Clear()
 
-class ChannelHeader(SearchHeader):
-    DESCRIPTION_MAX_HEIGTH = 100
-    
-    @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
-        self.back = wx.Button(parent, wx.ID_BACKWARD, "Go back")
-        hSizer.Add(self.back, 0, wx.LEFT, 5)
-        return hSizer
+class BaseFilter(wx.Panel):
+    def __init__(self, parent, parent_list, columns, spacers):
+        wx.Panel.__init__(self, parent)
+        
+        self.spacers = spacers
+        self.parent_list = parent_list
+        self.columns = columns
 
+        self.SetBackgroundColour(FILTER_GREY)
+        self.AddComponents(spacers)
+        
     @warnWxThread
-    def GetBelowPanel(self, parent):
-        self.descriptionPanel = ImageScrollablePanel(parent)
-        self.descriptionPanel.SetBackgroundColour(DEFAULT_BACKGROUND)
+    def AddComponents(self, spacers):
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.filter_panel = self.GetFilterPanel(self)
+        if self.filter_panel:
+            vSizer.Add(self.filter_panel, 0, wx.EXPAND)
+            self.filter_separator = wx.Panel(self, size = (-1, 1))
+            self.filter_separator.SetBackgroundColour(SEPARATOR_GREY)
+            vSizer.Add(self.filter_separator, 0, wx.EXPAND)
+
+        self.SetSizer(vSizer)
         
-        self.description = StaticText(self.descriptionPanel)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.description, 1, wx.EXPAND|wx.ALL, 3)
+    def GetFilterPanel(self, parent):
+        panel = wx.Panel(parent)
+        panel.SetMinSize((-1, 25))
+        panel.SetBackgroundColour(self.GetBackgroundColour())
+        return panel
+    
+    def SetTitle(self, title):
+        pass 
+
+    def SetSubTitle(self, subtitle):
+        pass
+
+    def SetStyle(self, style):
+        pass
+    
+    def ShowSortedBy(self, sortedby):
+        pass
+    
+    def SetAssociatedChannels(self, channels):
+        pass
+                    
+    def FilterCorrect(self, regex_correct):
+        pass
+
+
+class TorrentFilter(BaseFilter):
+    def __init__(self, parent, parent_list, columns, spacers = [10,3], show_bundle = False):
+        self.guiutility =  GUIUtility.getInstance()
+        self.torrentsearch_manager = self.guiutility.torrentsearch_manager
+
+        self.bundlestates = [Bundler.ALG_MAGIC, Bundler.ALG_NAME, Bundler.ALG_NUMBERS, Bundler.ALG_SIZE, Bundler.ALG_OFF]
+        self.bundlestates_str = {Bundler.ALG_NAME: 'Name',
+                                 Bundler.ALG_NUMBERS: 'Numbers',
+                                 Bundler.ALG_SIZE: 'Size',
+                                 Bundler.ALG_MAGIC: 'Magic',
+                                 Bundler.ALG_OFF: 'Off'}
+        self.bundletexts = []
+        self.bundle_db = BundlerPreferenceDBHandler.getInstance()
+        self.uelog = UserEventLogDBHandler.getInstance()
         
-        self.descriptionPanel.SetSizer(sizer)
-        self.descriptionPanel.Hide()
+        self.slider_minmax = (0, 0)
+        self.slider_positions = (0, 0)
+        self.conversion_factor = 1048576.0
+        self.show_bundle = show_bundle
+        self.SetBundleState(None)
         
-        self.descriptionPanel.Bind(wx.EVT_SIZE, self.SetHeight)
-        self.descriptionPanel.Bind(wx.EVT_SHOW, self.SetHeight)
+        BaseFilter.__init__(self, parent, parent_list, columns, spacers)
+    
+    def GetFilterPanel(self, parent):
+        panel = wx.Panel(parent)
+        panel.SetMinSize((-1, 25))
+        panel.SetBackgroundColour(self.GetBackgroundColour())
+        
+        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
+        
+        self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
+        self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
+        
+        if self.show_bundle:
+            self.bundleby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+            self.bundleby = LinkStaticText(panel, 'Bundle by', None, font_colour=wx.BLACK)
+            self.bundleby.Bind(wx.EVT_LEFT_UP, self.OnPopupBundle)
+        
+        self.filetype_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.filetype = LinkStaticText(panel, 'File type', None, font_colour=wx.BLACK)
+        self.filetype.Bind(wx.EVT_LEFT_UP, self.OnPopupFileType)
+        
+        self.filesize_str = StaticText(panel, -1, 'File size:')
+        self.filesize = MinMaxSlider(panel, -1, size=(185, 25))
+        self.filesize.SetFormatter(self.guiutility.utility.size_format)
+        
+        self.search = wx.SearchCtrl(panel)
+        self.search.SetDescriptiveText('Search within results')
+        self.search.Bind(wx.EVT_TEXT, self.OnKey)
+        if sys.platform == 'darwin':
+            self.search.SetMinSize((175,20))
+        else:
+            self.search.SetMinSize((175,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.descriptionPanel, 1, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, self.radius + 3)
-        return hSizer
+        hSizer.AddSpacer((self.spacers[0], -1))
+        hSizer.Add(self.sortby_icon, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.sortby, 0, wx.CENTER)
+        hSizer.AddSpacer((45, -1))
+        if self.show_bundle:
+            hSizer.Add(self.bundleby_icon, 0, wx.CENTER|wx.RIGHT, 3)
+            hSizer.Add(self.bundleby, 0, wx.CENTER)
+            hSizer.AddSpacer((45, -1))
+        hSizer.Add(self.filetype_icon, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.filetype, 0, wx.CENTER)
+        hSizer.AddSpacer((45, -1))
+        hSizer.Add(self.filesize_str, 0, wx.CENTER | wx.RIGHT, 20)
+        hSizer.Add(self.filesize, 0, wx.CENTER)
+        hSizer.AddStretchSpacer()
+        hSizer.Add(self.search, 0, wx.CENTER)
+        hSizer.AddSpacer((self.spacers[1], -1))
+        self.filter_sizer = hSizer
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(hSizer, 1, wx.EXPAND)        
+        panel.SetSizer(vSizer)
+        return panel
+                    
+    def OnPopupSort(self, event):
+        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn != None else -1        
+        sortreverse = getattr(self.parent_list.list, 'sortreverse', False)
+        
+        menu = wx.Menu()
+        itemid = wx.NewId()
+        menu.AppendRadioItem(itemid, "Relevance")
+        menu.Bind(wx.EVT_MENU, lambda x: self.parent_list.OnSort(-1, False), id=itemid)
+        menu.Check(itemid, sortcolumn == -1)                
+        for index, column in enumerate(self.columns):
+            sortAsc = column.get('sortAsc', False)
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, column['name'])
+            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+            menu.Check(itemid, sortcolumn == index)
+
+        if len(self.columns) > 0:
+            menu.AppendSeparator()
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, "Ascending").Enable(sortcolumn != -1)
+            menu.Bind(wx.EVT_MENU, lambda x, col=sortcolumn: self.parent_list.OnSort(col, True), id=itemid)
+            menu.Check(itemid, (sortcolumn >= 0 and sortreverse))
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, "Descending")
+            menu.Bind(wx.EVT_MENU, lambda x, col=sortcolumn: self.parent_list.OnSort(col, False), id=itemid)        
+            menu.Check(itemid, (sortcolumn == -1) or (not sortreverse))
+                
+        ctrl = self.sortby_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.filter_panel.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()           
+        
+    def OnPopupBundle(self, event):
+        menu = wx.Menu()
+        for state, state_str in self.bundlestates_str.iteritems():
+            itemid = wx.NewId()        
+            menu.AppendRadioItem(itemid, state_str)
+            menu.Bind(wx.EVT_MENU, lambda x, state=state: self.Rebundle(state), id=itemid)
+            menu.Check(itemid, self.bundlestate == state)
+            
+        ctrl = self.bundleby_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()
+        
+    def OnPopupFileType(self, event):
+        menu = wx.Menu()
+        itemid = wx.NewId()
+        menu.AppendRadioItem(itemid, "All")
+        menu.Bind(wx.EVT_MENU, lambda x: self.CategoryFilter(''), id=itemid)
+        menu.Check(itemid, not self.parent_list.categoryfilter)
+        for _, filetype in Category.getInstance().getCategoryNames():
+            if filetype != 'XXX':
+                itemid = wx.NewId()        
+                menu.AppendRadioItem(itemid, filetype)
+                menu.Bind(wx.EVT_MENU, lambda x, filetype=filetype: self.CategoryFilter(filetype), id=itemid)
+                menu.Check(itemid, bool(self.parent_list.categoryfilter) and (filetype.lower() in self.parent_list.categoryfilter))            
+            
+        ctrl = self.filetype_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()
+
+    def OnSlider(self, min_val, max_val):
+        search = self.search.GetValue().strip()
+        #Remove old filter
+        if search.find("size=") > -1:
+            try:
+                start = search.find("size=") + 5
+                end = search.find(" ", start)
+                if end == -1:
+                    end = len(search)
+                search = search[:start - 5] + search[end:]
+                search = search.strip()
+            except:
+                pass
+        #Insert new filter
+        if min_val <= max_val:
+            if search: search += " "
+            search += "size=%d:%d" % (min_val/self.conversion_factor, max_val/self.conversion_factor)
+        self.search.SetValue(search)
+        self.OnKey()
+    
+    def OnKey(self, event = None):
+        search = self.search.GetValue().strip()
+        self.parent_list.GotFilter(search)
+        if event and search.find("size=") > -1:
+            try:
+                start = search.find("size=") + 5
+                end = search.find(" ", start)
+                if end == -1:
+                    end = len(search)
+                    
+                sizeStr = search[start:end]
+                if sizeStr.find(":") > -1:
+                    sizes = sizeStr.split(":")
+                    if sizes[0] != '':
+                        min_val = int(sizes[0])
+                    if sizes[1] != '':
+                        max_val = int(sizes[1])
+                else:
+                    min_val = max_val = int(sizeStr)
+                self.slider_positions = (min_val*self.conversion_factor, max_val*self.conversion_factor)
+                self.filesize.SetCurrentValues(*self.slider_positions)
+            except:
+                pass
+
+    def CategoryFilter(self, category):
+        search = self.search.GetValue().strip()
+        #Remove old filter
+        if search.find("category=") > -1:
+            try:
+                start = search.find("category='") + 10
+                end = search.find("'", start)
+                if start != -1 and end != -1:
+                    search = search[:start - 10] + search[end+1:]
+                    search = search.strip()
+            except:
+                pass
+        #Insert new filter
+        if category:
+            if search: search += " "
+            search += "category='%s'" % category
+        self.search.SetValue(search)
+        self.OnKey()
 
     def Reset(self):
-        SearchHeader.Reset(self)
-        self.SetStyle(None)
-    
-    @warnWxThread
-    def SetHeight(self, event):
-        if self.descriptionPanel.IsShown():
-            dirty = False
-            self.descriptionPanel.SetVirtualSizeHints(-1, -1, maxW = self.descriptionPanel.GetClientSize()[0]) #change to allow for scrollbarwidth
-            self.descriptionPanel.SetupScrolling()
+        self.search.Clear()
+        self.filesize.Reset()
+        
+    def GetSliderMinMax(self):
+        return self.slider_minmax
             
-            bestHeight = self.description.GetVirtualSize()[1] + 6
-            minHeight = min(self.DESCRIPTION_MAX_HEIGTH, bestHeight)
-            if self.descriptionPanel.GetMinSize()[1] != minHeight:
-                self.descriptionPanel.SetMinSize((-1, minHeight))
-                dirty = True
+    def SetSliderMinMax(self, length_min, length_max):
+        if self.slider_minmax != (length_min, length_max):
+            self.slider_minmax = (length_min, length_max)
+            self.filesize.SetMinMax(length_min, length_max)            
+            min_val = max(self.slider_positions[0], length_min)
+            max_val = min(self.slider_positions[1], length_max)
+            self.filesize.SetCurrentValues(min_val, max_val)
 
-            if dirty:
+    def Rebundle(self, newstate):
+        curstate = self.bundlestate
+        selectedByMagic = self.selected_bundle_mode if self.bundlestate == Bundler.ALG_MAGIC else -1
+        self.SetBundleState(newstate)
+        
+        def db_callback():
+            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+            self.bundle_db.storePreference(keywords, newstate)
+            query = ' '.join(keywords)
+            
+            selectedByMagicStr = ''
+            if selectedByMagic != -1:
+                selectedByMagicStr = self.bundlestates_str[selectedByMagic]
+            
+            self.uelog.addEvent(message="Bundler GUI: %s -> %s; %s -> %s; selectedByMagic %s (%s); q=%s" 
+                                % (curstate, newstate, self.bundlestates_str[curstate], 
+                                   self.bundlestates_str[newstate],
+                                   selectedByMagic, selectedByMagicStr, query), type = 3)
+        
+        self.guiutility.frame.guiserver.add_task(db_callback)
+        
+    def SetBundleState(self, newstate, refresh=True):
+        if newstate is None:
+            auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
+            
+            newstate = Bundler.ALG_OFF # default
+            keywords = self.torrentsearch_manager.getSearchKeywords()[0]
+            if keywords != '':
+                try:
+                    stored_state = self.bundle_db.getPreference(keywords)
+                except:
+                    #if db interaction fails, ignore
+                    stored_state = None
+                
+                local_override = stored_state is not None
+                
+                if local_override:
+                    newstate = stored_state
+                    
+                elif auto_guess:
+                    newstate = Bundler.ALG_MAGIC
+        
+        self.bundlestate = newstate
+        self.selected_bundle_mode = None
+        
+        self.torrentsearch_manager.setBundleMode(newstate,refresh)
+    
+    def SetSelectedBundleMode(self, selected_bundle_mode):
+        if self.bundlestate == Bundler.ALG_MAGIC:
+            self.selected_bundle_mode = selected_bundle_mode
+            
+    def AddButton(self, btn_label, btn_handler):
+        num_children = len(self.filter_sizer.GetChildren())
+        if num_children < 2:
+            return
+        child = self.filter_sizer.GetItem(num_children-3)
+        child = child.GetWindow() if getattr(child, 'IsWindow', False) and child.IsWindow() else child
+        if not isinstance(child, wx.Button):
+            if btn_handler:
+                btn = wx.Button(self.filter_panel, -1, btn_label)
+                btn.Bind(wx.EVT_BUTTON, btn_handler)
+                btn.SetMinSize((-1,23))
+                self.filter_sizer.Insert(num_children-2, btn, 0, wx.CENTER|wx.RIGHT, 3)
+                self.filter_sizer.Layout()
                 self.Layout()
-    
-    @warnWxThread
-    def SetEvents(self, back):
-        self.back.Bind(wx.EVT_BUTTON, back)
-    
-    @warnWxThread
-    def SetStyle(self, description, font = None, foreground = None, bgImage = None):
-        if description:
-            self.description.SetLabel(description)
-            if font:
-                self.description.SetFont(font)
-            if foreground:
-                self.description.SetForegroundColour(foreground)
-            
-            self.descriptionPanel.SetBitmap(bgImage)
-            self.descriptionPanel.Show()
         else:
-            self.descriptionPanel.Hide()
-            
-class ChannelOnlyHeader(ChannelHeader):
-    
-    @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        hSizer = SearchHeader.GetRightTitlePanel(self, parent)
+            btn = child
+            if btn_handler:
+                btn.SetLabel(btn_label)
+                btn.Bind(wx.EVT_BUTTON, btn_handler)
+            else:
+                self.filter_sizer.Remove(btn)
+                btn.Destroy()
+                self.filter_sizer.Layout()
+                
+class SelectedChannelFilter(TorrentFilter):
+    def __init__(self, parent, parent_list, columns, spacers = [10,3], show_bundle = False):
 
-        self.settings = wx.Button(parent, -1, "Settings")
-        self.library = wx.Button(parent, -1, "Downloads")
+        self.heading_cols = [{'name':'Name', 'fontSize': 2, 'showColumname': False}]        
+        self.heading_list = None
         
-        hSizer.Add(self.settings, 0, wx.LEFT, 5)
-        hSizer.Add(self.library, 0, wx.LEFT, 5)
-        return hSizer
+        TorrentFilter.__init__(self, parent, parent_list, columns, spacers)
+        
+    def AddComponents(self, spacers):
+        TorrentFilter.AddComponents(self, spacers)
+        
+        self.heading_list = self.GetHeadingList(self)
+
+        vSizer = self.GetSizer()
+        vSizer.Insert(1, self.heading_list, 1, wx.EXPAND)
+        
+        filter_separator = wx.Panel(self, size = (-1, 1))
+        filter_separator.SetBackgroundColour(SEPARATOR_GREY)
+        vSizer.Insert(1, filter_separator, 0, wx.EXPAND)
     
     @warnWxThread
-    def SetEvents(self, settings, library):
-        self.library.Bind(wx.EVT_BUTTON, library)
-        self.settings.Bind(wx.EVT_BUTTON, settings)
+    def SetHeading(self, item):
+        if item:
+            self.heading_list.Reset()
+           
+            if isinstance(item, Channel):
+                channel = item
+
+                from Tribler.Main.vwxGUI.list_item import ChannelListItem
+                self.heading_list.SetData([(channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem)], force = True)
+                new_item = self.heading_list.GetItem(channel.id)
+                new_item.SetTitleSizerHeight(30)
+                new_item.list_deselected = FILTER_GREY
+                new_item.ShowSelected()
+                num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
+                self.SetHeadingButtons(new_item, num_items, channel.my_vote, self.parent_list.state, self.parent_list.iamModerator, channel)
+                
+                self.heading_list.Layout()
+
+    def SetHeadingButtons(self, item, num_items, vote, channelstate, iamModerator, original_data = None):
+        nr_children = len(item.titleSizer.GetChildren())
+        if nr_children > 1:
+            last_child = item.titleSizer.GetItem(nr_children-1)
+            if getattr(last_child, 'IsWindow', False) and last_child.IsWindow() and isinstance(last_child.GetWindow(), ProgressButton):
+                return
+        
+        open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
+        allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
+        if vote == 0 and not iamModerator:
+            item.AddButton("Mark as Spam", self.parent_list.OnSpam)
+            item.AddButton("Mark as Favorite", self.parent_list.OnFavorite)
+        else:
+            if open2edit or allow2edit:
+                item.AddButton("Edit this Channel", self.parent_list.OnManage)
+            if vote == -1:
+                item.AddButton("This is not Spam", self.parent_list.OnRemoveVote)
+            elif vote == 2:
+                item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote)
+            elif not open2edit and not allow2edit:
+                item.AddButton("Edit this Channel", self.parent_list.OnManage)
+                
+    def OnExpand(self, item):
+        from Tribler.Main.vwxGUI.list_item import ChannelListItem
+        
+        if isinstance(item, ChannelListItem):
+            from Tribler.Main.vwxGUI.list_details import ChannelDetails
+            cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
+            item.expandedPanel = cd
+            self.parent_list.list.DeselectAll()
+            self.guiutility.SetBottomSplitterWindow(cd)
             
-class LibraryHeader(SearchHelpHeader):
+        return True
+    
+    def OnCollapse(self, item, panel):
+        if panel:
+            panel.Destroy()
+            self.parent_list.ResetBottomWindow()
+        wx.CallAfter(self.guiutility.frame.top_bg.TorrentsChanged)
+
+    def GetHeadingList(self, parent):
+        return FixedListBody(parent, self, self.heading_cols, singleExpanded = True)
+    
+class SelectedPlaylistFilter(SelectedChannelFilter):
     
     @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        sizer = SearchHelpHeader.GetRightTitlePanel(self, parent)
-        
-        self.add = wx.Button(parent, -1, "+ Add...", style = wx.BU_EXACTFIT)
-        self.add.SetToolTipString('Add a .torrent from an external source.')
-        sizer.Insert(1, self.add, 0, wx.RIGHT, 3)
-        return sizer
+    def SetHeading(self, item):
+        if item:
+            self.heading_list.Reset()
+           
+            if isinstance(item, Playlist):
+                playlist = item
+
+                from Tribler.Main.vwxGUI.list_item import PlaylistItem
+                self.heading_list.SetData([(playlist.id,[playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem)], force = True)
+                new_item = self.heading_list.GetItem(playlist.id)
+                new_item.SetTitleSizerHeight(30)
+                                
+                from Tribler.Main.vwxGUI.widgets import TagText
+                tag = TagText(new_item, -1, label='channel', fill_colour = wx.Colour(210,252,120))
+                tag.SetToolTipString("Click on this icon to return to %s's channel"%playlist.channel.name)
+                new_item.AddEvents(tag)
+                tag.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(playlist.channel))
+                new_item.titleSizer.Insert(0, tag, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
+                new_item.titleSizer.Insert(1, (5,-1))
+                new_item.titleSizer.Insert(2, wx.StaticBitmap(new_item, -1, self.icon_right), 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
+                new_item.titleSizer.Insert(3, (5,-1))
+                
+                new_item.list_deselected = FILTER_GREY
+                new_item.ShowSelected()
+
+                self.heading_list.Layout()
     
-    @warnWxThread
-    def SetEvents(self, add):
-        self.add.Bind(wx.EVT_BUTTON, add)
+    def OnExpand(self, item):
+        from Tribler.Main.vwxGUI.list_item import PlaylistItem
         
-class LibraryOnlyHeader(LibraryHeader):
-    
-    @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        hSizer = LibraryHeader.GetRightTitlePanel(self, parent)
-        
-        self.settings = wx.Button(parent, -1, "Settings")
-        self.channel = wx.Button(parent, -1, "Channel")
-        
-        hSizer.Add(self.settings, 0, wx.LEFT, 5)
-        hSizer.Add(self.channel, 0, wx.LEFT, 5)
-        return hSizer
-    
-    @warnWxThread
-    def SetEvents(self, add, settings, channel):
-        LibraryHeader.SetEvents(self, add)
-        
-        self.channel.Bind(wx.EVT_BUTTON, channel)
-        self.settings.Bind(wx.EVT_BUTTON, settings)
+        if isinstance(item, PlaylistItem):
+            from Tribler.Main.vwxGUI.list_details import PlaylistDetails
+            pd = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
+            item.expandedPanel = pd
+            self.parent_list.list.DeselectAll()
+            self.guiutility.SetBottomSplitterWindow(pd)
             
-class PlayerHeader(TitleHeader):
-    def __init__(self, parent, parent_list, background, columns, minimize, maximize):
-        self.minimize = minimize
-        self.maximize = maximize
-        TitleHeader.__init__(self, parent, parent_list, columns)
-        self.SetBackgroundColour(background)
-        self.SetTitle('Player')
-        
-        self.ShowMinimized(False)
+        return True
     
-    @warnWxThread
-    def GetRightTitlePanel(self, parent):
-        self.minimize = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(self.minimize, wx.BITMAP_TYPE_ANY)))
-        self.maximize = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(self.maximize, wx.BITMAP_TYPE_ANY)))
+class ChannelFilter(BaseFilter):
+    def __init__(self, parent, parent_list, columns, spacers = [10,3]):
+        self.guiutility =  GUIUtility.getInstance()
+        self.channellist_manager = parent_list.GetManager()
+        self.channel_categories = ["All","Popular","New","Updated"]
+
+        BaseFilter.__init__(self, parent, parent_list, columns, spacers)
+
+    def GetFilterPanel(self, parent):
+        panel = wx.Panel(parent)
+        panel.SetMinSize((-1, 25))
+        panel.SetBackgroundColour(self.GetBackgroundColour())
         
-        self.minimize.Bind(wx.EVT_LEFT_UP, self.OnClick)
-        self.maximize.Bind(wx.EVT_LEFT_UP, self.OnClick)
+        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
+        
+        self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
+        self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
+        
+        self.channeltype_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.channeltype = LinkStaticText(panel, 'Channel type', None, font_colour=wx.BLACK)
+        self.channeltype.Bind(wx.EVT_LEFT_UP, self.OnPopupChannelType)
+        
+        self.search = wx.SearchCtrl(panel)
+        self.search.SetDescriptiveText('Search within results')
+        self.search.Bind(wx.EVT_TEXT, self.OnKey)
+        if sys.platform == 'darwin':
+            self.search.SetMinSize((175,20))
+        else:
+            self.search.SetMinSize((175,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.AddSpacer((self.spacers[0], -1))
+        hSizer.Add(self.sortby_icon, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.sortby, 0, wx.CENTER)
+        hSizer.AddSpacer((45, -1))
+        hSizer.Add(self.channeltype_icon, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.channeltype, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
-        hSizer.Add(self.minimize)
-        hSizer.Add(self.maximize)
-        return hSizer
-    
-    @warnWxThread
-    def OnClick(self, event):
-        if self.minimize.IsShown():
-            self.parent_list.OnMinimize()
-        else:
-            self.parent_list.OnMaximize()
-    
-    @warnWxThread
-    def ShowMinimized(self, minimized):
-        self.Freeze()
-        self.minimize.Show(minimized)
-        self.maximize.Show(not minimized)
+        hSizer.Add(self.search, 0, wx.CENTER)
+        hSizer.AddSpacer((self.spacers[1], -1))
+        self.filter_sizer = hSizer
         
-        self.title.Show(minimized)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(hSizer, 1, wx.EXPAND)        
+        panel.SetSizer(vSizer)
+        return panel
+                    
+    def OnPopupSort(self, event):
+        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn != None else -1
+        sortreverse = getattr(self.parent_list.list, 'sortreverse', False)
+        
+        menu = wx.Menu()
+        for index, column in enumerate(self.columns):
+            sortAsc = column.get('sortAsc', False)
+            sortDef = column.get('defaultSorted', False)
+            sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, column['name'])
+            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+            menu.Check(itemid, sortcolumn == index)
+
+        if len(self.columns) > 0:
+            menu.AppendSeparator()
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, "Ascending")
+            menu.Bind(wx.EVT_MENU, lambda x, col=sortcolumn: self.parent_list.OnSort(col, True), id=itemid)
+            menu.Check(itemid, sortreverse)
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, "Descending")
+            menu.Bind(wx.EVT_MENU, lambda x, col=sortcolumn: self.parent_list.OnSort(col, False), id=itemid)        
+            menu.Check(itemid, not sortreverse)
+                
+        ctrl = self.sortby_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.filter_panel.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()           
+        
+    def OnPopupChannelType(self, event):
+        current_cat = self.GetChannelCategory()
+        
+        menu = wx.Menu()
+        for cat in self.channel_categories:
+            itemid = wx.NewId()        
+            menu.AppendRadioItem(itemid, cat)
+            menu.Bind(wx.EVT_MENU, lambda x, cat=cat: self.SetChannelCategory(cat), id=itemid)
+            menu.Check(itemid, current_cat == cat)            
+            
+        ctrl = self.channeltype_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.filter_panel.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
         self.Layout()
-        self.Thaw()
+    
+    def OnKey(self, event = None):
+        search = self.search.GetValue().strip()
+        self.parent_list.GotFilter(search)
+
+    def GetChannelCategory(self):
+        if self.channellist_manager.category:
+            return self.channellist_manager.category
+        else:
+            return "All"
+    
+    def SetChannelCategory(self, cat):
+        if cat in self.channel_categories:
+            self.guiutility.showChannelCategory(cat)
+            
+    def ShowChannelTypeFilter(self, show):
+        self.channeltype_icon.Show(show)
+        self.channeltype.Show(show)
+
+    def Reset(self):
+        self.search.Clear()
+
+    def AddButton(self, btn_label, btn_handler):
+        num_children = len(self.filter_sizer.GetChildren())
+        if num_children < 2:
+            return
+        child = self.filter_sizer.GetItem(num_children-3)
+        child = child.GetWindow() if getattr(child, 'IsWindow', False) and child.IsWindow() else child
+        if not isinstance(child, wx.Button):
+            if btn_handler:
+                btn = wx.Button(self.filter_panel, -1, btn_label)
+                btn.Bind(wx.EVT_BUTTON, btn_handler)
+                btn.SetMinSize((-1,23))
+                self.filter_sizer.Insert(num_children-2, btn, 0, wx.CENTER|wx.RIGHT, 3)
+                self.filter_sizer.Layout()
+                self.Layout()
+        else:
+            btn = child
+            if btn_handler:
+                btn.SetLabel(btn_label)
+                btn.Bind(wx.EVT_BUTTON, btn_handler)
+            else:
+                self.filter_sizer.Remove(btn)
+                btn.Destroy()
+                self.filter_sizer.Layout()
+
+
+class DownloadFilter(BaseFilter):
+    def __init__(self, parent, parent_list, columns, spacers = [10,3]):
+        self.guiutility =  GUIUtility.getInstance()
+        self.slider_minmax = (0, 0)
+        self.slider_positions = (0, 0)
+        self.conversion_factor = 1048576.0
+        
+        BaseFilter.__init__(self, parent, parent_list, columns, spacers)
+
+    def GetFilterPanel(self, parent):
+        panel = wx.Panel(parent)
+        panel.SetMinSize((-1, 25))
+        panel.SetBackgroundColour(self.GetBackgroundColour())
+        
+        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
+        
+        self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
+        self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
+        
+        self.filesize_str = StaticText(panel, -1, 'File size:')
+        self.filesize = MinMaxSlider(panel, -1, size=(185, 25))
+        self.filesize.SetFormatter(self.guiutility.utility.size_format)
+        
+        self.state_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.state = LinkStaticText(panel, 'Download state', None, font_colour=wx.BLACK)
+        self.state.Bind(wx.EVT_LEFT_UP, self.OnPopupState)
+        
+        self.search = wx.SearchCtrl(panel)
+        self.search.SetDescriptiveText('Search within downloads')
+        self.search.Bind(wx.EVT_TEXT, self.OnKey)
+        if sys.platform == 'darwin':
+            self.search.SetMinSize((175,20))
+        else:
+            self.search.SetMinSize((175,-1))
+        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer.AddSpacer((self.spacers[0], -1))
+        hSizer.Add(self.sortby_icon, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.sortby, 0, wx.CENTER)
+        hSizer.AddSpacer((45, -1))
+        hSizer.Add(self.state_icon, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.state, 0, wx.CENTER)
+        hSizer.AddSpacer((45, -1))
+        hSizer.Add(self.filesize_str, 0, wx.CENTER|wx.RIGHT, 3)
+        hSizer.Add(self.filesize, 0, wx.CENTER)
+        hSizer.AddStretchSpacer()
+        hSizer.Add(self.search, 0, wx.CENTER)
+        hSizer.AddSpacer((self.spacers[1], -1))
+        self.filter_sizer = hSizer
+        
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(hSizer, 1, wx.EXPAND)        
+        panel.SetSizer(vSizer)
+        return panel
+    
+    def OnPopupState(self, event):
+        currentState = self.parent_list.statefilter if self.parent_list.statefilter != None else ''
+        
+        menu = wx.Menu()
+        for state in ['All', 'Completed', 'Active', 'Seeding', 'Downloading', 'Stopped', 'Checking']:
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, state)
+            menu.Bind(wx.EVT_MENU, lambda x, state=state: self.OnState(state), id=itemid)
+            if state == 'All':
+                enabled = bool(currentState)
+            else:
+                enabled = state.lower() == currentState.lower()
+            menu.Check(itemid, enabled)
+
+        ctrl = self.state_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.filter_panel.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()
+        
+    def OnPopupSort(self, event):
+        sortcolumn = self.parent_list.list.sortcolumn if self.parent_list.list.sortcolumn != None else -1
+        sortreverse = getattr(self.parent_list.list, 'sortreverse', False)
+        
+        menu = wx.Menu()
+        for index, column in enumerate(self.columns):
+            sortAsc = column.get('sortAsc', False)
+            sortDef = column.get('defaultSorted', False)
+            sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, column['name'] if column['name'] else 'Progress')
+            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+            menu.Check(itemid, sortcolumn == index)
+
+        if len(self.columns) > 0:
+            menu.AppendSeparator()
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, "Ascending")
+            menu.Bind(wx.EVT_MENU, lambda x, col=sortcolumn: self.parent_list.OnSort(col, True), id=itemid)
+            menu.Check(itemid, sortreverse)
+            itemid = wx.NewId()
+            menu.AppendRadioItem(itemid, "Descending")
+            menu.Bind(wx.EVT_MENU, lambda x, col=sortcolumn: self.parent_list.OnSort(col, False), id=itemid)        
+            menu.Check(itemid, not sortreverse)
+                
+        ctrl = self.sortby_icon
+        pos = wx.Point(ctrl.GetPosition().x, self.filter_panel.GetPosition().y+self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()  
+        
+    def OnSlider(self, min_val, max_val):
+        search = self.search.GetValue().strip()
+        #Remove old filter
+        if search.find("size=") > -1:
+            try:
+                start = search.find("size=") + 5
+                end = search.find(" ", start)
+                if end == -1:
+                    end = len(search)
+                search = search[:start - 5] + search[end:]
+                search = search.strip()
+            except:
+                pass
+        #Insert new filter
+        if min_val <= max_val:
+            if search: search += " "
+            search += "size=%d:%d" % (min_val/self.conversion_factor, max_val/self.conversion_factor)
+        self.search.SetValue(search)
+        self.OnKey()
+        
+    def OnState(self, state):
+        search = self.search.GetValue().strip()
+        #Remove old filter
+        if search.find("state=") > -1:
+            try:
+                start = search.find("state=") + 6
+                end = search.find(" ", start)
+                if end == -1:
+                    end = len(search)
+                search = search[:start - 6] + search[end:]
+                search = search.strip()
+            except:
+                pass
+        #Insert new filter
+        if state and state !=  'All':
+            if search: search += " "
+            search += "state=%s" % state
+        self.search.SetValue(search)
+        self.OnKey()
+    
+    def OnKey(self, event = None):
+        search = self.search.GetValue().strip()
+        self.parent_list.GotFilter(search)
+        if event and search.find("size=") > -1:
+            try:
+                start = search.find("size=") + 5
+                end = search.find(" ", start)
+                if end == -1:
+                    end = len(search)
+                    
+                sizeStr = search[start:end]
+                if sizeStr.find(":") > -1:
+                    sizes = sizeStr.split(":")
+                    if sizes[0] != '':
+                        min_val = int(sizes[0])
+                    if sizes[1] != '':
+                        max_val = int(sizes[1])
+                else:
+                    min_val = max_val = int(sizeStr)
+                self.slider_positions = (min_val*self.conversion_factor, max_val*self.conversion_factor)
+                self.filesize.SetCurrentValues(*self.slider_positions)
+            except:
+                pass
+
+    def Reset(self):
+        self.search.Clear()
+        
+    def GetSliderMinMax(self):
+        return self.slider_minmax
+            
+    def SetSliderMinMax(self, length_min, length_max):
+        if self.slider_minmax != (length_min, length_max):
+            self.slider_minmax = (length_min, length_max)
+            self.filesize.SetMinMax(length_min, length_max)            
+            min_val = max(self.slider_positions[0], length_min)
+            max_val = min(self.slider_positions[1], length_max)
+            self.filesize.SetCurrentValues(min_val, max_val)
+            
+    def AddButton(self, btn_label, btn_handler):
+        num_children = len(self.filter_sizer.GetChildren())
+        if num_children < 2:
+            return
+        child = self.filter_sizer.GetItem(num_children-3)
+        child = child.GetWindow() if getattr(child, 'IsWindow', False) and child.IsWindow() else child
+        if not isinstance(child, wx.Button):
+            if btn_handler:
+                btn = wx.Button(self.filter_panel, -1, btn_label)
+                btn.Bind(wx.EVT_BUTTON, btn_handler)
+                btn.SetMinSize((-1,23))
+                self.filter_sizer.Insert(num_children-2, btn, 0, wx.CENTER|wx.RIGHT, 3)
+                self.filter_sizer.Layout()
+                self.Layout()
+        else:
+            btn = child
+            if btn_handler:
+                btn.SetLabel(btn_label)
+                btn.Bind(wx.EVT_BUTTON, btn_handler)
+            else:
+                self.filter_sizer.Remove(btn)
+                btn.Destroy()
+                self.filter_sizer.Layout()
+                
+    def ResizeColumn(self, *args, **kwargs):
+        pass
+
+
+    

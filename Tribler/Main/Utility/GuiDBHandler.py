@@ -270,6 +270,9 @@ def startWorker(
     
     if not consumer:
         consumer = exceptionConsumer
+        
+    if not workerFn:
+        raise Exception("no workerfunction specified")
     
     if jobID is None:
         if __debug__:

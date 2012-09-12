@@ -43,3 +43,13 @@ class TorrentStateManager:
             for filename, destname in dest_files:
                 if filename == largest_file:
                     print >> sys.stderr, 'Can run post-download scripts for', torrent, filename, destname
+                    #1. roep ffmpeg/vlc aan op thumbnails te genereren + bitrate 
+                    
+                    #2. roep swift aan om een swarm te maken (arno vragen, multifile swift-swarm)
+                    
+                    #3. gebruik swift-roothash om een modificatie te maken in de open-channel, voor deze torrent, met als inhoud de swift-roothash
+                    #(de open-channel is te vinden dmv torrent.channel)
+                    #(ChannelSearchgrid manager -> _disp_get_community_from_channel_id)
+                    #(community -> modifyTorrent modifications {swift-thumbnails: roothash})
+                    #sql upgrade script maken die nieuwe modificaiton_type insert in database
+                    

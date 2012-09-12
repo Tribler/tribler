@@ -6,6 +6,8 @@ import random
 import wx
 import os
 import sys
+import json
+
 from wx import xrc
 
 from Tribler.__init__ import LIBRARYNAME
@@ -60,6 +62,8 @@ class GUIUtility:
         self.max_remote_queries = 20    # max number of remote peers to query
         
         self.current_search_query = ''
+        
+        self.lists = []
     
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -78,10 +82,9 @@ class GUIUtility:
         self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
         self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
     
-    def ShowPlayer(self, show):
-        if self.frame.videoparentpanel:
-            if show != self.frame.videoparentpanel.IsShown():
-                self.frame.videoparentpanel.Show(show)
+    def ShowPlayer(self):
+        if self.frame.videoparentpanel:        
+            self.ShowPage('videoplayer')
     
     @forceWxThread
     def ShowPage(self, page, *args):
@@ -95,45 +98,45 @@ class GUIUtility:
             dialog.Centre()
             dialog.ShowModal()
             dialog.Destroy()
-            self.frame.top_bg.selectTab(page)
         
         elif page != self.guiPage:
-            self.frame.top_bg.selectTab(page)
+            self.frame.actlist.selectTab(page)
+                
+            self.frame.top_bg.ClearButtonHandlers()
 
             self.oldpage.append(self.guiPage)
             if len(self.oldpage) > 3:
                 self.oldpage.pop(0)
                 
             self.frame.Freeze()
+
+            if page not in ['search_results', 'my_files', 'selectedchannel', 'playlist', 'channels']:
+                self.frame.splitter.Show(False)
             
             if page == 'search_results':
                 #Show list
-                self.frame.searchlist.Show()
-                
+                self.SetTopSplitterWindow(self.frame.searchlist)
+                items = self.frame.searchlist.GetExpandedItems()
+                if items:
+                    self.frame.searchlist.Select(items[0][0])
+                else:
+                    self.frame.searchlist.ResetBottomWindow()
             elif self.guiPage == 'search_results':
                 #Hide list
                 self.frame.searchlist.Show(False)
             
             if page == 'channels':
-                if self.frame.channelcategories:
-                    selectedcat = self.frame.channelcategories.GetSelectedCategory()
+                self.SetTopSplitterWindow(self.frame.channellist)
+                items = self.frame.channellist.GetExpandedItems()
+                if items:
+                    self.frame.channellist.Select(items[0][0])
                 else:
-                    selectedcat = ''
-
-                if selectedcat == 'My Channel':
-                    self.frame.channelcategories.Select(1)
-                    
-                self.frame.channelselector.ShowItems(True)
-                self.frame.channellist.Show()
-                self.frame.channelcategories.Quicktip('All Channels are ordered by popularity. Popularity is measured by the number of Tribler users which have marked this channel as favorite.')
+                    self.frame.channellist.ResetBottomWindow()
                     
             elif self.guiPage == 'channels':
                 self.frame.channellist.Show(False)
-                self.frame.channelselector.ShowItems(False)
             
             if page == 'mychannel':
-                self.frame.channelcategories.Quicktip('This is your channel, other Tribler users can find this channel by searching for your username')
-                
                 #Show list
                 self.frame.managechannel.SetChannelId(self.channelsearch_manager.channelcast_db._channel_id)
                 self.frame.managechannel.Show()
@@ -150,15 +153,29 @@ class GUIUtility:
                 self.frame.managechannel.Reset()
             
             if page == 'selectedchannel':
-                self.frame.selectedchannellist.Show()
+                self.SetTopSplitterWindow(self.frame.selectedchannellist)
+                items = self.frame.selectedchannellist.GetExpandedItems()
+                if items:
+                    self.frame.selectedchannellist.Select(items[0][0])
+                else:
+                    self.frame.selectedchannellist.ResetBottomWindow()
+                channelmenu = self.frame.actlist.GetItem(3)
+                if channelmenu and channelmenu.expandedPanel:
+                    channelmenu.expandedPanel.AddCurrentChannelLink()
 
             elif self.guiPage == 'selectedchannel':
                 self.frame.selectedchannellist.Show(False)
-                if self.frame.channelcategories and page not in ['playlist','managechannel']:
+                if page not in ['playlist','managechannel']:
                     self.frame.selectedchannellist.Reset()
             
             if page == 'playlist':
-                self.frame.playlist.Show()
+                self.SetTopSplitterWindow(self.frame.playlist)
+                items = self.frame.playlist.GetExpandedItems()
+                if not items:
+                    self.frame.playlist.ResetBottomWindow()
+                channelmenu = self.frame.actlist.GetItem(3)
+                if channelmenu and channelmenu.expandedPanel:
+                    channelmenu.expandedPanel.AddCurrentPlaylistLink()
                 
             elif self.guiPage == 'playlist':
                 self.frame.playlist.Show(False)
@@ -166,7 +183,17 @@ class GUIUtility:
                 
             if page == 'my_files':
                 #Show list
-                self.frame.librarylist.Show()
+                self.SetTopSplitterWindow(self.frame.librarylist)
+
+                #Open infohash
+                if args:
+                    self.frame.librarylist.GetManager().refresh_or_expand(args[0])
+                else:
+                    items = self.frame.librarylist.GetExpandedItems()
+                    if items:
+                        self.frame.librarylist.Select(items[0][0])
+                    else:
+                        self.frame.librarylist.ResetBottomWindow()
                 
                 #Open infohash
                 if args:
@@ -175,7 +202,7 @@ class GUIUtility:
             elif self.guiPage == 'my_files':
                 #Hide list
                 self.frame.librarylist.Show(False)
-            
+
             if page == 'home':
                 self.frame.home.ResetSearchBox()
                 self.frame.home.Show()
@@ -186,13 +213,12 @@ class GUIUtility:
                 self.frame.stats.Show()
             elif self.guiPage == 'stats':
                 self.frame.stats.Show(False)
-            
-            #show player on these pages
-            if not self.useExternalVideo:
-                if page in ['my_files', 'mychannel', 'selectedchannel', 'channels', 'search_results', 'playlist', 'managechannel']:
-                    self.ShowPlayer(True)
-                else:
-                    self.ShowPlayer(False)
+
+            if self.frame.videoparentpanel:
+                if page == 'videoplayer':
+                    self.frame.videoparentpanel.Show(True)
+                elif self.guiPage == 'videoplayer':
+                    self.frame.videoparentpanel.Show(False)
             
             self.guiPage = page
             self.frame.Layout()
@@ -212,6 +238,64 @@ class GUIUtility:
             self.frame.selectedchannellist.Focus()
         elif page =='my_files':
             self.frame.librarylist.Focus()
+            
+    def GetSelectedPage(self):
+        if self.guiPage == 'home':
+            return self.frame.home
+        
+        if self.guiPage == 'search_results':
+            return self.frame.searchlist
+                
+        if self.guiPage == 'channels':
+            return self.frame.channellist
+        
+        if self.guiPage == 'selectedchannel':
+            return self.frame.selectedchannellist
+        
+        if self.guiPage == 'mychannel':
+            return self.frame.managechannel
+        
+        if self.guiPage == 'managechannel':
+            return self.frame.managechannel
+        
+        if self.guiPage == 'playlist':
+            return self.frame.playlist
+        
+        if self.guiPage =='my_files':
+            return self.frame.librarylist
+
+    def SetTopSplitterWindow(self, window = None, show = True):
+        while self.frame.splitter_top.GetChildren():
+            self.frame.splitter_top.Detach(0)
+            
+        self.SetBottomSplitterWindow()
+        if window:
+            self.frame.splitter_top.Add(window, 1, wx.EXPAND)
+            window.Show(show)
+        self.frame.splitter.Show(show)
+        self.frame.splitter_top.Layout()
+        self.frame.splitter_top_window.Refresh()
+
+    def SetBottomSplitterWindow(self, window = None, show = True):
+        self.frame.splitter_bottom.Clear(True)
+        if window:
+            self.frame.splitter_bottom.Add(window, 1, wx.EXPAND|wx.ALIGN_TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            self.frame.splitter_bottom_window.SetBackgroundColour(window.GetBackgroundColour())
+        else:
+            from __init__ import GRADIENT_LGREY
+            self.frame.splitter_bottom_window.SetBackgroundColour(GRADIENT_LGREY)
+        if self.guiPage != 'mychannel':
+            self.frame.splitter.Show(show)
+        self.frame.splitter_bottom.Layout()
+        self.frame.splitter_bottom_window.Refresh()
+        
+    def SetHideColumnInfo(self, itemtype, columns):
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "hide_columns"))
+        hide_columns = fileconfig.Read("hide_columns")
+        hide_columns = json.loads(hide_columns) if hide_columns else {"TorrentListItem": [3,4], "LibraryListItem": [2]} # defaults
+        for index in hide_columns.get(itemtype.__name__, []):
+            columns[index]['show'] = False
+        return columns
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):
@@ -223,19 +307,12 @@ class GUIUtility:
             else:
                 return
         
-        if topage == 'channels':
-            category = self.frame.channellist.GetManager().category
-            categories = ['Popular','New','Favorites','All','My Channel', 'Updated', 'Search']
-            if category in categories:
-                category = categories.index(category) + 1
-                self.frame.channelcategories.Select(category, False)
-        
         if topage == 'search_results':
-            self.frame.top_bg.selectTab('results')
+            self.frame.actlist.selectTab('results')
         elif topage in ['channels', 'selectedchannel', 'mychannel']:
-            self.frame.top_bg.selectTab('channels')
+            self.frame.actlist.selectTab('channels')
         else:
-            self.frame.top_bg.selectTab(topage)
+            self.frame.actlist.selectTab(topage)
         
         self.ShowPage(topage)
         self.oldpage.pop() #remove curpage from history
@@ -323,6 +400,7 @@ class GUIUtility:
     
     @forceWxThread
     def showChannelCategory(self, category, show = True):
+
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category, True)
         
@@ -361,7 +439,6 @@ class GUIUtility:
     @forceWxThread
     def showChannel(self, channel):
         if channel:
-            self.frame.top_bg.selectTab('channels')
             
             manager = self.frame.selectedchannellist.GetManager()
             manager.refresh(channel)
@@ -372,14 +449,12 @@ class GUIUtility:
                 self.showChannelFromPermid(channel.permid)
             
     def showChannels(self):
-        self.frame.top_bg.selectTab('channels')
+        self.frame.actlist.selectTab('channels')
         self.ShowPage('channels')
     
     @forceWxThread
     def showChannelResults(self, data_channel):
-        self.frame.top_bg.selectTab('channels')
-        self.frame.channelcategories.DeselectAll()
-        self.frame.channelcategories.searchSelected = True
+        self.frame.actlist.selectTab('channels')
         
         def subscribe_latestupdate_sort(a, b):
             val = cmp(a.modified, b.modified)
@@ -418,8 +493,12 @@ class GUIUtility:
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
             
-    def Notify(self, msg, icon= -1):
-        self.frame.top_bg.Notify(msg, icon)       
+    def Notify(self, title, msg = '', icon = 0):
+        fallback_notifier = True
+        if sys.platform == 'win32':
+            fallback_notifier = not self.frame.tbicon.Notify(title, msg, icon)
+        if fallback_notifier:
+            self.frame.actlist.Notify(title, icon)
 
     def ShouldGuiUpdate(self):
         if self.frame.ready:
@@ -432,13 +511,21 @@ class GUIUtility:
     def get_port_number(self):
         return self.port_number
     
-    def toggleFamilyFilter(self, state = None): 
-        catobj = Category.getInstance()
-        ff_enabled = not catobj.family_filter_enabled()
-        #print 'Setting family filter to: %s' % ff_enabled
-        if state is not None:
-            ff_enabled = state    
-        catobj.set_family_filter(ff_enabled)
+    def addList(self, l):
+        if l not in self.lists:
+            self.lists.append(l)
+    
+    def toggleFamilyFilter(self, newState = None, setCheck = False): 
+        if newState == None:
+            newState = not self.getFamilyFilter()
+
+        Category.getInstance().set_family_filter(newState)
+        for l in self.lists:
+            if getattr(l, 'do_or_schedule_refresh', False):
+                l.do_or_schedule_refresh(force_refresh = l.IsShownOnScreen())
+                
+        if setCheck:
+            self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
         
     def getFamilyFilter(self):
         catobj = Category.getInstance()

@@ -5,7 +5,7 @@ import wx
 import os
 import sys
 
-from Tribler.Main.vwxGUI.tribler_topButton import CheckSelectableListCtrl,\
+from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl,\
     _set_font
 
 class MoveTorrents(wx.Dialog):

@@ -997,7 +997,7 @@ def parse_playtime_to_secs(hhmmss):
 def return_feasible_playback_modes(syspath):
     l = []
     try:
-        if sys.platform == "darwin":
+        if False and sys.platform == "darwin":
             oldpath = os.getcwd()
             os.chdir(os.path.join(syspath,'vlc','lib'))
             import vlc.lib.vlc as vlc

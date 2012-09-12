@@ -7,8 +7,7 @@ import inspect
 import sys
 
 from datetime import datetime
-from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker,\
-    GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker
 from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
 
@@ -18,9 +17,12 @@ LIST_ITEM_MAX_SIZE = 50
 LIST_RATE_LIMIT = 1
 
 DEFAULT_BACKGROUND = wx.Colour(255,255,255)
-LIST_BLUE = wx.Colour(216,233,240)
-LIST_GREY = wx.Colour(230,230,230)
-LIST_SELECTED = LIST_BLUE
+LIST_LIGHTBLUE = wx.Colour(240,248,255)
+LIST_BLUE = wx.Colour(216,237,255)
+LIST_DARKBLUE = wx.Colour(191,226,255)
+LIST_GREY = wx.Colour(240,240,240)
+LIST_SELECTED = LIST_LIGHTBLUE
+LIST_EXPANDED = LIST_BLUE
 LIST_DESELECTED = wx.Colour(255,255,255)
 LIST_HIGHTLIGHT = wx.Colour(255,255,153)
 
@@ -28,6 +30,18 @@ LIST_ORANGE = wx.Colour(255,209,126)
 LIST_GREEN = wx.Colour(176,255,150)
 
 TRIBLER_RED = wx.Colour(255, 51, 0)
+
+SEEDING_COLOUR = wx.Colour(129,255,129)
+COMPLETED_COLOUR = wx.Colour(129,255,129)
+DOWNLOADING_COLOUR = wx.Colour(50,100,255)
+STOPPED_COLOUR = TRIBLER_RED
+
+GRADIENT_LRED = wx.Colour(255,125,93)
+GRADIENT_DRED = wx.Colour(255,51,0)
+GRADIENT_LGREY = wx.Colour(254,254,254)
+GRADIENT_DGREY = wx.Colour(235,235,235)
+SEPARATOR_GREY = wx.Colour(210,210,210)
+FILTER_GREY = wx.Colour(240,240,240)
 
 LIST_RADIUS = 7
 LIST_AUTOSIZEHEADER = -2
