@@ -935,6 +935,10 @@ class NotebookPanel(wx.Panel):
         
     def Reset(self):
         self.list.Reset()
+        
+    def SetupScrolling(self, scroll_x=True, scroll_y=True, rate_x=20, rate_y=20, scrollToTop=True):
+        if hasattr(self.list, 'SetupScrolling'):
+            self.list.SetupScrolling(scroll_x, scroll_y, rate_x, rate_y, scrollToTop)
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):

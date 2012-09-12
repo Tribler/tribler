@@ -7,7 +7,8 @@ import inspect
 import sys
 
 from datetime import datetime
-from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker
+from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker,\
+    GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
 

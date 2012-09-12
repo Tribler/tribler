@@ -23,6 +23,7 @@ import wx.lib.agw.flatnotebook as fnb
 from wx._controls import StaticLine
 from shutil import copyfile
 from Tribler.Main.vwxGUI.list_details import PlaylistDetails
+from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 
 DEBUG = False
 
@@ -48,7 +49,7 @@ class ChannelManager(BaseManager):
             BaseManager.refreshDirty(self)
         self.dirtyset.clear()
     
-    @forceDBThread
+    @forcePrioDBThread
     def reload(self, channel_id):
         channel = self.channelsearch_manager.getChannel(channel_id)
         self.refresh(channel)
@@ -591,14 +592,9 @@ class SelectedChannelList(GenericSearchList):
     
             self._DoFavorite(channel)
 
-    @forceDBThread    
+    @forcePrioDBThread    
     def _DoFavorite(self, channel):
         id = channel.id
-        #Request all items from connected peers
-        if not channel.isDispersy():
-            permid = self.channelsearch_manager.getPermidFromChannel(id)
-            channelcast = BuddyCastFactory.getInstance().channelcast_core
-            channelcast.updateAChannel(id, permid)
         
         #Set self.channel to None to prevent updating twice
         self.channel = None
