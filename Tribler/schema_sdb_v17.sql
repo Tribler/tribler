@@ -100,38 +100,6 @@ CREATE UNIQUE INDEX permid_idx
   ON Peer
   (permid);
 
-CREATE INDEX Peer_name_idx
-  ON Peer
-  (name);
-
-CREATE INDEX Peer_ip_idx
-  ON Peer
-  (ip);
-
-CREATE INDEX Peer_similarity_idx
-  ON Peer
-  (similarity);
-
-CREATE INDEX Peer_last_seen_idx
-  ON Peer
-  (last_seen);
-
-CREATE INDEX Peer_last_connected_idx
-  ON Peer
-  (last_connected);
-
-CREATE INDEX Peer_num_peers_idx
-  ON Peer
-  (num_peers);
-
-CREATE INDEX Peer_num_torrents_idx
-  ON Peer
-  (num_torrents);
-
-CREATE INDEX Peer_local_oversion_idx
-  ON Peer
-  (is_local, oversion);
-
 ----------------------------------------
 
 CREATE TABLE Preference (
@@ -182,18 +150,6 @@ CREATE TABLE Torrent (
 CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
-
-CREATE INDEX Torrent_creation_date_idx
-  ON Torrent
-  (creation_date);
-
-CREATE INDEX Torrent_relevance_idx
-  ON Torrent
-  (relevance);
-
-CREATE INDEX Torrent_name_idx 
-  ON Torrent
-  (name);
 
 CREATE INDEX Torrent_insert_idx 
   ON Torrent 
@@ -634,7 +590,7 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 16);
+INSERT INTO MyInfo VALUES ('version', 17);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
