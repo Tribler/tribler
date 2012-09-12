@@ -38,7 +38,7 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 ##Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
 ##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
 ##Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
-##Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables 
+##Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is 
 # written to the DB in the schema_sdb_v*.sql file!!!
@@ -2209,6 +2209,19 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             
             self.execute_write("DELETE FROM Peer WHERE superpeer = 1")
             self.execute_write("DROP VIEW IF EXISTS SuperPeer", commit = True)
+
+            self.execute_write("DROP INDEX IF EXISTS Peer_name_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_ip_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_similarity_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_last_seen_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_last_connected_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_num_peers_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_num_torrents_idx")
+            self.execute_write("DROP INDEX IF EXISTS Peer_local_oversion_idx")
+            self.execute_write("DROP INDEX IF EXISTS Torrent_creation_date_idx")
+            self.execute_write("DROP INDEX IF EXISTS Torrent_relevance_idx")
+            self.execute_write("DROP INDEX IF EXISTS Torrent_name_idx")
+
 
     def clean_db(self, vacuum = False):
         from time import time
