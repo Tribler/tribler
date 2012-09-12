@@ -1239,116 +1239,116 @@ class LibraryDetails(TorrentDetails):
     def _Refresh(self, ds = None):
         TorrentDetails._Refresh(self, ds)
         
-        #register callback for peerlist update
-        self.peerList.Freeze()
-        
-        ds = self.torrent.ds
-        index = 0
-        if ds:
-            peers = ds.get_peerlist()
+        if self.isReady:
+            #register callback for peerlist update
+            self.peerList.Freeze()
             
-            def downsort(a, b):
-                if a['downrate'] != b['downrate']:
-                    return a['downrate'] - b['downrate']
-                return a['uprate'] - b['uprate']
-            peers.sort(downsort, reverse = True)
-            
-            for peer_dict in peers:
-                peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict['completed']*100.0)
-                if index < self.peerList.GetItemCount():
-                    self.peerList.SetStringItem(index, 0, peer_name)
-                else:
-                    self.peerList.InsertStringItem(index, peer_name)
+            ds = self.torrent.ds
+            index = 0
+            if ds:
+                peers = ds.get_peerlist()
                 
-                traffic = ""
-                traffic += self.guiutility.utility.speed_format_new(peer_dict['downrate']) + u"\u2193 "
-                traffic += self.guiutility.utility.speed_format_new(peer_dict['uprate']) + u"\u2191"
-                self.peerList.SetStringItem(index, 1, traffic.strip())
+                def downsort(a, b):
+                    if a['downrate'] != b['downrate']:
+                        return a['downrate'] - b['downrate']
+                    return a['uprate'] - b['uprate']
+                peers.sort(downsort, reverse = True)
                 
-                state = ""
-                if peer_dict['optimistic']:
-                    state += "O,"
-                if peer_dict['uinterested']:
-                    state += "UI,"
-                if peer_dict['uchoked']:
-                    state += "UC,"
-                if peer_dict['uhasqueries']:
-                    state += "UQ,"
-                if not peer_dict['uflushed']:
-                    state += "UBL,"
-                if peer_dict['ueligable']:
-                    state += "UE,"
-                if peer_dict['dinterested']:
-                    state += "DI,"
-                if peer_dict['dchoked']:
-                    state += "DC,"
-                if peer_dict['snubbed']:
-                    state += "S,"
-                state += peer_dict['direction']
-                self.peerList.SetStringItem(index, 2, state)
-                
-                try:
-                    self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
-                except:
-                    try:
-                        self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
-                    except:
-                        print >> sys.stderr, "Could not format peer client version"
-                
-                index += 1
-
-            if self.availability:
-                self.availability.SetLabel("%.2f"%ds.get_availability())
-                self.pieces.SetLabel("total %d, have %d"%ds.get_pieces_total_complete())
-                
-                self.availability.sizer.Layout()
-
-            dsprogress = ds.get_progress()
-            #Niels: 28-08-2012 rounding to prevent updating too many times
-            dsprogress = long(dsprogress * 1000) / 1000.0
-            if self.old_progress != dsprogress:
-                completion = {}
-                
-                useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
-                if useSimple:
-                    selected_files = ds.get_download().get_selected_files()
-                    if selected_files:
-                        for i in range(self.listCtrl.GetItemCount()):
-                            file = self.listCtrl.GetItem(i, 0).GetText()
-                            if file in selected_files:
-                                completion[file] = dsprogress
+                for peer_dict in peers:
+                    peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict['completed']*100.0)
+                    if index < self.peerList.GetItemCount():
+                        self.peerList.SetStringItem(index, 0, peer_name)
                     else:
-                        for i in range(self.listCtrl.GetItemCount()):
-                            completion[self.listCtrl.GetItem(i, 0).GetText()] =  dsprogress
-                else:
-                    for file, progress in ds.get_files_completion():
-                        completion[file] = progress
-
-                for i in range(self.listCtrl.GetItemCount()):
-                    listfile = self.listCtrl.GetItem(i, 0).GetText()
+                        self.peerList.InsertStringItem(index, peer_name)
                     
-                    progress = completion.get(listfile, None)
-                    if progress:
-                        self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
+                    traffic = ""
+                    traffic += self.guiutility.utility.speed_format_new(peer_dict['downrate']) + u"\u2193 "
+                    traffic += self.guiutility.utility.speed_format_new(peer_dict['uprate']) + u"\u2191"
+                    self.peerList.SetStringItem(index, 1, traffic.strip())
+                    
+                    state = ""
+                    if peer_dict['optimistic']:
+                        state += "O,"
+                    if peer_dict['uinterested']:
+                        state += "UI,"
+                    if peer_dict['uchoked']:
+                        state += "UC,"
+                    if peer_dict['uhasqueries']:
+                        state += "UQ,"
+                    if not peer_dict['uflushed']:
+                        state += "UBL,"
+                    if peer_dict['ueligable']:
+                        state += "UE,"
+                    if peer_dict['dinterested']:
+                        state += "DI,"
+                    if peer_dict['dchoked']:
+                        state += "DC,"
+                    if peer_dict['snubbed']:
+                        state += "S,"
+                    state += peer_dict['direction']
+                    self.peerList.SetStringItem(index, 2, state)
+                    
+                    try:
+                        self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
+                    except:
+                        try:
+                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
+                        except:
+                            print >> sys.stderr, "Could not format peer client version"
+                    
+                    index += 1
+    
+                if self.availability:
+                    self.availability.SetLabel("%.2f"%ds.get_availability())
+                    self.pieces.SetLabel("total %d, have %d"%ds.get_pieces_total_complete())
+                    
+                    self.availability.sizer.Layout()
+    
+                dsprogress = ds.get_progress()
+                #Niels: 28-08-2012 rounding to prevent updating too many times
+                dsprogress = long(dsprogress * 1000) / 1000.0
+                if self.old_progress != dsprogress:
+                    completion = {}
+                    
+                    useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
+                    if useSimple:
+                        selected_files = ds.get_download().get_selected_files()
+                        if selected_files:
+                            for i in range(self.listCtrl.GetItemCount()):
+                                file = self.listCtrl.GetItem(i, 0).GetText()
+                                if file in selected_files:
+                                    completion[file] = dsprogress
+                        else:
+                            for i in range(self.listCtrl.GetItemCount()):
+                                completion[self.listCtrl.GetItem(i, 0).GetText()] =  dsprogress
                     else:
-                        self.listCtrl.SetStringItem(i, 2, 'Excluded')
+                        for file, progress in ds.get_files_completion():
+                            completion[file] = progress
+    
+                    for i in range(self.listCtrl.GetItemCount()):
+                        listfile = self.listCtrl.GetItem(i, 0).GetText()
+                        
+                        progress = completion.get(listfile, None)
+                        if progress:
+                            self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
+                        else:
+                            self.listCtrl.SetStringItem(i, 2, 'Excluded')
+                    
+                    self.old_progress = dsprogress
                 
-                self.old_progress = dsprogress
+            if index == 0:
+                self.peerList.DeleteAllItems()
+                self.peerList.InsertStringItem(index, "Not connected to any peers")
+            else:
+                while index < self.peerList.GetItemCount():
+                    self.peerList.DeleteItem(index)
+                    index += 1
             
-        if index == 0:
-            self.peerList.DeleteAllItems()
-            self.peerList.InsertStringItem(index, "Not connected to any peers")
-        else:
-            while index < self.peerList.GetItemCount():
-                self.peerList.DeleteItem(index)
-                index += 1
-        
-        self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-        self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-        self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
-        self.peerList._doResize()
-        self.peerList.Thaw()
-        
+            self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+            self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+            self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+            self.peerList._doResize()
+            self.peerList.Thaw()
 
 class ChannelDetails(AbstractDetails):
 

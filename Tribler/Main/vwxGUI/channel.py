@@ -960,9 +960,6 @@ class Playlist(SelectedChannelList):
         num_items = len(self.list.raw_data) if self.list.raw_data else 0
         panel.Set(num_items)
         self.guiutility.SetBottomSplitterWindow(panel)
-           
-    def OnChange(self):
-        self.parent_list.OnChange()
     
 class ManageChannelFilesManager(BaseManager):
     def __init__(self, list):
