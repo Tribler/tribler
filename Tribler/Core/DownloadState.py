@@ -286,7 +286,7 @@ class DownloadState(Serializable):
             return (total- non_seeds, non_seeds)
         
         total = len(self.stats['spew'])
-        seeds = len([i for i in self.stats['spew'] if i['completed'] == 1.0])
+        seeds = len([i for i in self.stats['spew'] if i.get('completed', 0) == 1.0])
         return seeds, total-seeds
     
     def get_pieces_complete(self):
