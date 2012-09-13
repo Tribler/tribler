@@ -642,10 +642,12 @@ class TorrentDetails(AbstractDetails):
         title = self.notebook.GetPageText(page)
         if title.startswith('Comments'):
             self.commentList.Show()
+            self.commentList.SetupScrolling()
             self.commentList.SetFocus()
             
         elif title.startswith('Modifications'):
             self.modificationList.Show()
+            self.modificationList.SetupScrolling()
             self.modificationList.SetFocus()
 
         event.Skip()

@@ -936,9 +936,9 @@ class NotebookPanel(wx.Panel):
     def Reset(self):
         self.list.Reset()
         
-    def SetupScrolling(self, scroll_x=True, scroll_y=True, rate_x=20, rate_y=20, scrollToTop=True):
+    def SetupScrolling(self, *args, **kwargs):
         if hasattr(self.list, 'SetupScrolling'):
-            self.list.SetupScrolling(scroll_x, scroll_y, rate_x, rate_y, scrollToTop)
+            self.list.SetupScrolling(*args, **kwargs)
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style):
@@ -1845,7 +1845,7 @@ class SimpleNotebook(wx.Panel):
             return self.panels[num_page]
         return None 
         
-    def AddPage(self, page, text, select = True):
+    def AddPage(self, page, text, select = False):
         label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
         label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
@@ -1861,7 +1861,7 @@ class SimpleNotebook(wx.Panel):
         else:
             self.Layout()
     
-    def InsertPage(self, index, page, text, select = True):
+    def InsertPage(self, index, page, text, select = False):
         if not ( index >= 0 and index < self.GetPageCount() ):
             return
         label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
@@ -1903,6 +1903,7 @@ class SimpleNotebook(wx.Panel):
     def SetSelection(self, num_page):
         if not ( num_page >= 0 and num_page < self.GetPageCount() ) or self.pshown == num_page:
             return
+        old_page_index = self.pshown
         old_page = self.GetCurrentPage()
         if old_page:
             old_page.Show(False)
@@ -1911,6 +1912,9 @@ class SimpleNotebook(wx.Panel):
         self.panels[num_page].Show(True)
         self.pshown = num_page
         self.Layout()
+        
+        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
+        wx.PostEvent(self.GetEventHandler(), event)
 
     def ChangeSelection(self, num_page):
         self.SetSelection(num_page)

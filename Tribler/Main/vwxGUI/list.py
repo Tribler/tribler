@@ -810,6 +810,9 @@ class List(wx.BoxSizer):
     def Layout(self):
         return wx.BoxSizer.Layout(self)
     
+    def SetupScrolling(self, *args, **kwargs):
+        return self.list.SetupScrolling(*args, **kwargs)
+    
 class SizeList(List):
     
     def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
