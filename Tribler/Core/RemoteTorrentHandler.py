@@ -279,8 +279,13 @@ class RemoteTorrentHandler:
         sdef = SwiftDef(roothash)
         swiftpath = os.path.join(self.session.get_torrent_collecting_dir(),sdef.get_roothash_as_hex())
         if os.path.exists(swiftpath):
-            tdef = TorrentDef.load(swiftpath)
-            startWorker(None, do_db, wargs = (tdef, ))
+            try:
+                tdef = TorrentDef.load(swiftpath)
+                startWorker(None, do_db, wargs = (tdef, ))
+                
+            except:
+                #ignore if tdef loading fails
+                pass
     
     def notify_possible_torrent_infohash(self, infohash, actualTorrent = False):
         keys = self.callbacks.keys()

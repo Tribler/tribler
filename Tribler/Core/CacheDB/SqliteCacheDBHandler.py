@@ -1172,7 +1172,7 @@ class TorrentDBHandler(BasicDBHandler):
                     to_be_indexed.append((tid, swarmname))
                     
                 elif swift_hash and swift_hash not in roothash_tid: #else check if we need to update swift
-                    update_roothash.append((roothash, tid))
+                    update_roothash.append((swift_hash, tid))
                     
                 elif infohash and infohash not in infohash_tid: #or infohash
                     update_infohash.append((infohash, tid))
