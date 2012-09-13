@@ -2226,11 +2226,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
     def clean_db(self, vacuum = False):
         from time import time
         
-        oneweekago = long(time() - 604800)
         self.execute_write("DELETE FROM TorrentBiTermPhrase WHERE torrent_id NOT IN (SELECT torrent_id FROM CollectedTorrent)", commit = False)
         self.execute_write("DELETE FROM ClicklogSearch WHERE peer_id <> 0", commit = False)
         self.execute_write("DELETE FROM TorrentFiles where torrent_id in (select torrent_id from CollectedTorrent)", commit = False)
-        self.execute_write("DELETE FROM Torrent where name is NULL")
+        self.execute_write("DELETE FROM Torrent where name is NULL and torrent_id not in (select torrent_id from _ChannelTorrents)")
         
         if vacuum:
             self.execute_read("VACUUM")
