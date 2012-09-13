@@ -592,6 +592,7 @@ class DispersyPanel(HomePanel):
                         candidates = "- "
                     total_packets = sum(community["database_sync"].itervalues()) if "database_sync" in community else -1
                     parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community["hex_cid"], total_packets, candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
+                    self.summary_tree.AppendItem(parent, u"member:             %s" % community["hex_mid"])
                     self.summary_tree.AppendItem(parent, u"classification:     %s" % community["classification"])
                     self.summary_tree.AppendItem(parent, u"database id:        %d" % community["database_id"])
                     self.summary_tree.AppendItem(parent, u"global time:        %d" % community["global_time"])

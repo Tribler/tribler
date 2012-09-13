@@ -36,6 +36,8 @@ from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+from Tribler.dispersy.community import HardKilledCommunity
+from Tribler.community.effort.community import EffortCommunity
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -321,6 +323,7 @@ class TriblerLaunchMany(Thread):
             else:
                 schedule = []
                 schedule.append((SearchCommunity, (self.session.dispersy_member,), {}))
+                schedule.append((EffortCommunity, (), {}))
                 schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
                 schedule.append((ChannelCommunity, (), {}))
 
@@ -375,7 +378,9 @@ class TriblerLaunchMany(Thread):
         self.session.dispersy_member = self.dispersy.get_member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # define auto loads
+        self.dispersy.define_auto_load(HardKilledCommunity)
         self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
+        self.dispersy.define_auto_load(EffortCommunity)
         self.dispersy.define_auto_load(ChannelCommunity)
         self.dispersy.define_auto_load(PreviewChannelCommunity)
 

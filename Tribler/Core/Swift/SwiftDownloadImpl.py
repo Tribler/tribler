@@ -299,6 +299,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         stats['vod_playable'] = self.progress == 1.0 or (self.network_calc_prebuf_frac() == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
+        stats['spew'] = self.network_create_spew_from_peerlist()
         
         logmsgs = []
         coopdl_helpers = None
@@ -337,6 +338,22 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         d['npieces'] = ((self.dynasize +1023) / 1024)
         return d
 
+
+    def network_create_spew_from_peerlist(self):
+        if not 'channels' in self.midict:
+            return []
+        
+        plist = []
+        channels = self.midict['channels']
+        for channel in channels:
+            d = {}
+            d['ip'] = channel['ip']
+            d['port'] = channel['port']
+            d['utotal'] = channel['bytes_up'] / 1024.0
+            d['dtotal'] = channel['bytes_down'] / 1024.0
+            plist.append(d)
+            
+        return plist
         
     #
     # Retrieving DownloadState
@@ -584,6 +601,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.error = e
         self.dllock.release()
 
+        
         
 class SwiftStatisticsResponse:
     

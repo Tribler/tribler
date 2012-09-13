@@ -140,7 +140,12 @@ class ABCApp():
         self.decodeprogress = 0
 
         self.old_reputation = 0
-        
+
+        # DISPERSY will be set when available
+        self.dispersy = None
+        # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
+        self.effort_community = None
+
         try:
             bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.png'),wx.BITMAP_TYPE_ANY)
             self.splash = GaugeSplash(bm)
@@ -595,6 +600,17 @@ class ABCApp():
             except:
                 print_exc()
 
+            if self.effort_community:
+                wantpeers = True
+                self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
+            else:
+                if not self.dispersy:
+                    self.dispersy = Dispersy.has_instance()
+
+                if self.dispersy:
+                    wantpeers = True
+                    self.effort_community = self.dispersy.callback.call(self.dispersy.get_community, ("925f18381cb79b446332f92b8756bfab98c6dddb".decode("HEX",), dict(load=False, auto_load=False)))
+
             # Find State of currently playing video
             playds = None
             d = self.videoplayer.get_vod_download()
@@ -726,7 +742,7 @@ class ABCApp():
         except:
             print_exc()
         
-        return (1.0, wantpeers)
+        return (5.0, wantpeers)
 
     def loadSessionCheckpoint(self):
         #Niels: first remove all "swift" torrent collect checkpoints
