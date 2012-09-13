@@ -304,13 +304,15 @@ LIMIT 1""", (ip,)))
             new[identifier] = dict((peer["ip"], (peer["utotal"], peer["dtotal"])) for peer in state.get_peerlist())
 
     def _periodically_cleanup_database(self):
+        yield 100.0
+
         while True:
-            yield 400.0
             # remove all entries when:
             # - dispersy never encountered this node within the last hour
             # - or, the entry is older than 24 hours
             self._database.execute(u"DELETE FROM bandwidth_guess WHERE (member = 0 AND timestamp < ?) OR timestamp < ?",
                                    (time() - 3600, time() - 86400))
+            yield 300.0
 
     def on_introduction_request(self, messages):
         try:
