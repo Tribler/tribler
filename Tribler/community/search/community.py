@@ -709,6 +709,8 @@ class SearchCommunity(Community):
                 files = torrentdef.get_files_as_unicode_with_length()
                 
                 return self._disp_create_torrent(torrentdef.get_infohash(), long(time()), torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple(), store, update, forward)
+            except ValueError:
+                pass
             except:
                 print_exc()
         return False
