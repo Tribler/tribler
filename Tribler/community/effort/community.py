@@ -781,9 +781,12 @@ LIMIT 1000""", (last_record_pushed,)))
                 dprint("unable to push statistics", exception=True, level="error")
 
             else:
-                if response.status == 200 and update_last_record_pushed:
+                if response.status == 200:
                     # post successful
-                    self._database.execute(u"UPDATE option SET value = ? WHERE key = ?", (last_record_pushed, u"last_record_pushed"))
+                    if update_last_record_pushed:
+                        self._database.execute(u"UPDATE option SET value = ? WHERE key = ?", (last_record_pushed, u"last_record_pushed"))
+                else:
+                    dprint("unable to push statistics.  response: ", response.status, level="error")
 
         try:
             while True:
