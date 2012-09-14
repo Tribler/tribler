@@ -742,7 +742,7 @@ class ABCApp():
         except:
             print_exc()
         
-        return (5.0, wantpeers)
+        return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
         #Niels: first remove all "swift" torrent collect checkpoints
