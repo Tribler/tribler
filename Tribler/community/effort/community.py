@@ -196,7 +196,7 @@ class EffortCommunity(Community):
 
         # store all cached bandwidth guesses
         self._database.executemany(u"INSERT OR REPLACE INTO bandwidth_guess (ip, member, timestamp, upload, download) VALUES (?, ?, ?, ?, ?)",
-                                   [(ip, guess.member.database_id if guess.member else 0, guess.timestamp, int(guess.upload), int(guess.download)) for ip, guess in self._bandwidth_guesses.iteritems()])
+                                   [(unicode(ip), guess.member.database_id if guess.member else 0, guess.timestamp, int(guess.upload), int(guess.download)) for ip, guess in self._bandwidth_guesses.iteritems()])
 
     def _observation(self, candidate, member, now, update_record=True):
         if not isinstance(candidate, BootstrapCandidate):
