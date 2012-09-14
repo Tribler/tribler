@@ -915,11 +915,8 @@ class SelectedChannelFilter(TorrentFilter):
                 self.heading_list.Layout()
 
     def SetHeadingButtons(self, item, num_items, vote, channelstate, iamModerator, original_data = None):
-        nr_children = len(item.titleSizer.GetChildren())
-        if nr_children > 1:
-            last_child = item.titleSizer.GetItem(nr_children-1)
-            if getattr(last_child, 'IsWindow', False) and last_child.IsWindow() and isinstance(last_child.GetWindow(), ProgressButton):
-                return
+        if getattr(item, 'buttons_added', False):
+            return
         
         open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
         allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
@@ -935,6 +932,7 @@ class SelectedChannelFilter(TorrentFilter):
                 item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote)
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)
+        item.buttons_added = True
                 
     def OnExpand(self, item):
         from Tribler.Main.vwxGUI.list_item import ChannelListItem
