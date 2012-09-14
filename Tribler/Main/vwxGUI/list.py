@@ -461,12 +461,17 @@ class List(wx.BoxSizer):
         self.dirty = False
         self.rawfilter = ''
         self.filter = ''
+        
         self.footer = self.header = self.list = None
         self.nr_filtered = 0
         self.cur_nr_filtered = 0
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
+        self.ffEnabled = self.guiutility.getFamilyFilter()
+        if self.ffEnabled:
+            self.LoadEnabledCategoryIDs()
+        
         self.leftLine = self.rightLine = None
         self.parent = parent
         
@@ -740,21 +745,24 @@ class List(wx.BoxSizer):
         oldrawfilter = self.rawfilter
         self.rawfilter = keyword.lower().strip()
         
-        if self.guiutility.getFamilyFilter():
-            self.LoadEnabledCategoryIDs()
-
-        if self.rawfilter == '':
-            wx.CallAfter(self.list.SetFilter, self.MatchFFilter, lambda *args, **kwargs: '', False)
-            self.OnFilter('')
-
-        else:
-            self.OnFilter(self.rawfilter)
+        if self.rawfilter != oldrawfilter or self.ffEnabled != self.guiutility.getFamilyFilter():
             
-            highlight = True
-            if oldrawfilter[:-1] == self.rawfilter: #did the user simple remove 1 character?
-                highlight = False
-            
-            wx.CallAfter(self.list.SetFilter, self.MatchFilter, self.GetFilterMessage, highlight)
+            if self.ffEnabled != self.guiutility.getFamilyFilter():
+                self.LoadEnabledCategoryIDs()
+                self.ffEnabled = not self.ffEnabled
+    
+            if self.rawfilter == '':
+                wx.CallAfter(self.list.SetFilter, self.MatchFFilter, lambda *args, **kwargs: '', False)
+                self.OnFilter('')
+    
+            else:
+                self.OnFilter(self.rawfilter)
+                
+                highlight = True
+                if oldrawfilter[:-1] == self.rawfilter: #did the user simple remove 1 character?
+                    highlight = False
+                
+                wx.CallAfter(self.list.SetFilter, self.MatchFilter, self.GetFilterMessage, highlight)
         
     def OnFilter(self, keyword):
         self.filter = keyword

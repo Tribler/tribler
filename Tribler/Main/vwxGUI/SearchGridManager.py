@@ -1216,12 +1216,13 @@ class ChannelManager:
         return ChannelManager.__single
     getInstance = staticmethod(getInstance)
 
-    def connect(self, session, torrentsearch_manager):
+    def connect(self, session, library_manager, torrentsearch_manager):
         self.session = session
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
         self.torrentsearch_manager = torrentsearch_manager
+        self.library_manager = library_manager
         self.remote_th = RemoteTorrentHandler.getInstance()
 
         if Dispersy.has_instance():
@@ -1383,11 +1384,14 @@ class ChannelManager:
     def getMostPopularTorrentsFromChannel(self, channel_id, keys, family_filter = False, limit = None):
         return self.channelcast_db.getMostPopularTorrentsFromChannel(channel_id, keys, limit, family_filter)
     
-    def _createTorrent(self, tuple, channel, playlist = None, collectedOnly = True):
+    def _createTorrent(self, tuple, channel, playlist = None, collectedOnly = True, addDs = True):
         if tuple:
             ct = ChannelTorrent(*tuple[1:]+[channel, playlist])
             ct.torrent_db = self.torrent_db
             ct.channelcast_db = self.channelcast_db
+            
+            if addDs:
+                self.library_manager.addDownloadState(ct)
             
             #Only return ChannelTorrent with a name, old not-collected torrents 
             #will be filtered due to this
@@ -1403,9 +1407,11 @@ class ChannelManager:
         
         torrents = []
         for hit in hits:
-            torrent = self._createTorrent(hit, channel_dict.get(hit[0], None), playlist)
+            torrent = self._createTorrent(hit, channel_dict.get(hit[0], None), playlist, addDs = False)
             if torrent: 
                 torrents.append(torrent)
+                
+        self.library_manager.addDownloadStates(torrents)
                 
         self.filteredResults = 0
         if filterTorrents:
