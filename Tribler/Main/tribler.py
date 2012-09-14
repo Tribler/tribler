@@ -609,7 +609,7 @@ class ABCApp():
 
                 if self.dispersy:
                     wantpeers = True
-                    self.effort_community = self.dispersy.callback.call(self.dispersy.get_community, ("925f18381cb79b446332f92b8756bfab98c6dddb".decode("HEX",), dict(load=False, auto_load=False)))
+                    self.effort_community = self.dispersy.callback.call(self.dispersy.get_community, ("925f18381cb79b446332f92b8756bfab98c6dddb".decode("HEX"),), dict(load=False, auto_load=False))
 
             # Find State of currently playing video
             playds = None
