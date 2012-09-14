@@ -71,9 +71,6 @@ class EffortDatabase(Database):
         assert int(database_version) >= 0
         database_version = int(database_version)
 
-        # we need to access the dispersy database to obtain debug information
-        self.execute(u"ATTACH DATABASE '%s' AS dispersy" % (self._dispersy.database.file_path(),))
-
         # setup new database with current database_version
         if database_version < 1:
             self.executescript(schema)
@@ -82,51 +79,54 @@ class EffortDatabase(Database):
         else:
             # upgrade an older version
 
-            # upgrade from version 1 to version 2
-            if database_version < 2:
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 2)
-                self.executescript(u"""
-INSERT INTO option(key, value) VALUES('last_record_pushed', 0);
-UPDATE option SET value = '2' WHERE key = 'database_version';
-""")
-                self.commit()
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 2, " (done)")
+#             # upgrade from version 1 to version 2
+#             if database_version < 2:
+#                 if __debug__: dprint("upgrade database ", database_version, " -> ", 2)
+#                 self.executescript(u"""
+# INSERT INTO option(key, value) VALUES('last_record_pushed', 0);
+# UPDATE option SET value = '2' WHERE key = 'database_version';
+# """)
+#                 self.commit()
+#                 if __debug__: dprint("upgrade database ", database_version, " -> ", 2, " (done)")
 
-            # upgrade from version 2 to version 3
-            if database_version < 3:
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 3)
-                self.executescript(u"""
-CREATE TABLE bandwidth_guess(
- ip STRING,
- member INTEGER,
- timestamp INTEGER,
- upload INTEGER,                                -- bytes uploaded from me to member
- download INTEGER,                              -- bytes uploaded from member to me
- PRIMARY KEY (ip));
-UPDATE option SET value = '3' WHERE key = 'database_version';
-""")
-                self.commit()
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 3, " (done)")
+#             # upgrade from version 2 to version 3
+#             if database_version < 3:
+#                 if __debug__: dprint("upgrade database ", database_version, " -> ", 3)
+#                 self.executescript(u"""
+# CREATE TABLE bandwidth_guess(
+#  ip STRING,
+#  member INTEGER,
+#  timestamp INTEGER,
+#  upload INTEGER,                                -- bytes uploaded from me to member
+#  download INTEGER,                              -- bytes uploaded from member to me
+#  PRIMARY KEY (ip));
+# UPDATE option SET value = '3' WHERE key = 'database_version';
+# """)
+#                 self.commit()
+#                 if __debug__: dprint("upgrade database ", database_version, " -> ", 3, " (done)")
 
-            # upgrade from version 3 to version 4
+#             # upgrade from version 3 to version 4
+#             if database_version < 4:
+#                 if __debug__: dprint("upgrade database ", database_version, " -> ", 4)
+#                 self.executescript(u"""
+# -- remove old records.  these are no longer compatible
+# DELETE FROM dispersy.sync WHERE dispersy.sync.id IN (SELECT sync FROM record);
+# DELETE FROM record;
+# -- performance index
+# CREATE INDEX bandwidth_guess_member_index ON bandwidth_guess (member);
+# -- new columns in the records
+# ALTER TABLE record ADD COLUMN first_upload INTEGER;
+# ALTER TABLE record ADD COLUMN first_download INTEGER;
+# ALTER TABLE record ADD COLUMN second_upload INTEGER;
+# ALTER TABLE record ADD COLUMN second_download INTEGER;
+# -- update version
+# UPDATE option SET value = '4' WHERE key = 'database_version';
+# """)
+#                 self.commit()
+#                 if __debug__: dprint("upgrade database ", database_version, " -> ", 4, " (done)")
+
             if database_version < 4:
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 4)
-                self.executescript(u"""
--- remove old records.  these are no longer compatible
-DELETE FROM dispersy.sync WHERE dispersy.sync.id IN (SELECT sync FROM record);
-DELETE FROM record;
--- performance index
-CREATE INDEX bandwidth_guess_member_index ON bandwidth_guess (member);
--- new columns in the records
-ALTER TABLE record ADD COLUMN first_upload INTEGER;
-ALTER TABLE record ADD COLUMN first_download INTEGER;
-ALTER TABLE record ADD COLUMN second_upload INTEGER;
-ALTER TABLE record ADD COLUMN second_download INTEGER;
--- update version
-UPDATE option SET value = '4' WHERE key = 'database_version';
-""")
-                self.commit()
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 4, " (done)")
+                raise RuntimeError("Unable to upgrade versions below 4")
 
             # upgrade from version 4 to version 5
             if database_version < 5:

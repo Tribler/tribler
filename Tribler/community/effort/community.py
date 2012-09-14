@@ -4,6 +4,7 @@ try:
 except ImportError:
     from Tribler.dispersy.python27_ordereddict import OrderedDict
 
+from json import dumps
 from httplib import HTTPConnection
 from random import random, sample
 from time import time
@@ -15,7 +16,7 @@ from .efforthistory import CYCLE_SIZE, EffortHistory
 from .payload import EffortRecordPayload, PingPayload, PongPayload, DebugRequestPayload, DebugResponsePayload
 
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication, MemberAuthentication
-from Tribler.dispersy.candidate import BootstrapCandidate
+from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -51,7 +52,8 @@ class PingCache(Cache):
 
     def on_timeout(self):
         self.community.remove_from_slope(self.member)
-        self.candidate.obsolete(self.community, time())
+        if isinstance(self.candidate, WalkCandidate):
+            self.candidate.obsolete(self.community, time())
 
 class RecordCandidate(object):
     def __init__(self, community, candidate, history, callback_id):
@@ -194,7 +196,7 @@ class EffortCommunity(Community):
 
         # store all cached bandwidth guesses
         self._database.executemany(u"INSERT OR REPLACE INTO bandwidth_guess (ip, member, timestamp, upload, download) VALUES (?, ?, ?, ?, ?)",
-                                   [(unicode(ip), guess.member.database_id if guess.member else 0, guess.timestamp, int(guess.upload), int(guess.download)) for ip, guess in self._bandwidth_guesses.iteritems()])
+                                   [(ip, guess.member.database_id if guess.member else 0, guess.timestamp, int(guess.upload), int(guess.download)) for ip, guess in self._bandwidth_guesses.iteritems()])
 
     def _observation(self, candidate, member, now, update_record=True):
         if not isinstance(candidate, BootstrapCandidate):
@@ -227,22 +229,19 @@ class EffortCommunity(Community):
             return history
 
     def _get_bandwidth_guess_from_ip(self, ip):
+        assert isinstance(ip, basestring), type(ip)
         # try cache
         guess = self._bandwidth_guesses.get(ip)
         if not guess:
             # fetch from database
             try:
-                public_key, mid, timestamp, upload, download = next(self._database.execute(u"""
-SELECT m.public_key, m.mid, b.timestamp, b.upload, b.download
-FROM bandwidth_guess AS b
-JOIN dispersy.member AS m ON m.id = b.member
-WHERE b.ip = ?
-LIMIT 1""", (ip,)))
+                member_database_id, timestamp, upload, download = next(self._database.execute(u"SELECT member, timestamp, upload, download FROM bandwidth_guess WHERE ip = ? LIMIT 1", (ip,)))
             except StopIteration:
                 # first seen: create new BandwidthGuess instance
                 guess = BandwidthGuess()
             else:
-                member = self._dispersy.get_member(str(public_key)) if public_key else self._dispersy.get_members_from_id(str(mid))
+                member = self._dispersy.get_member_from_database_id(member_database_id) if member_database_id > 0 else None
+                # note that get_member_from_database_id may also return None
                 guess = BandwidthGuess(member, timestamp, float(upload), float(download))
 
             # store in cache
@@ -263,7 +262,7 @@ LIMIT 1""", (ip,)))
         except StopIteration:
             return None
         else:
-            return self._get_bandwidth_guess_from_ip(str(ip))
+            return self._get_bandwidth_guess_from_ip(ip)
 
     def download_state_callback(self, states):
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
@@ -301,7 +300,7 @@ LIMIT 1""", (ip,)))
                     guess.download += down
 
             # set OLD for the next call to DOWNLOAD_STATE_CALLBACK
-            new[identifier] = dict((peer["ip"], (peer["utotal"], peer["dtotal"])) for peer in state.get_peerlist())
+            new[identifier] = dict((peer["ip"], (peer["utotal"], peer["dtotal"])) for peer in state.get_peerlist() if peer["utotal"] > 0.0 or peer["dtotal"] > 0.0)
 
     def _periodically_cleanup_database(self):
         yield 100.0
@@ -694,52 +693,64 @@ LIMIT 1""", (ip,)))
             print "DEBUG", message.authentication.member.mid.encode("HEX"), payload.revision, payload.now, payload.observations, payload.records, " ".join("%s:%d:%d" % (mid.encode("HEX"), view[0], view[1]) for mid, view in payload.views.iteritems())
 
     def _periodically_push_statistics(self):
+        def get_record_entry(_, first_member_id, second_member_id, *args):
+            try:
+                mid1, = next(self._dispersy.execute(u"SELECT mid FROM member WHERE id = ?", (first_member_id,)))
+                mid1 = str(mid1)
+            except StopIteration:
+                mid1 = "unavailable"
+            try:
+                mid2, = next(self._dispersy.execute(u"SELECT mid FROM member WHERE id = ?", (second_member_id,)))
+                mid2 = str(mid2)
+            except StopIteration:
+                mid2 = "unavailable"
+
+            return (mid1, mid2) + args
+
         def push(shutdown=False):
             """ Push a portion of the available data """
             observations_in_db, = next(self._database.execute(u"SELECT COUNT(*) FROM observation"))
             bandwidth_guesses_in_db, = next(self._database.execute(u"SELECT COUNT(*) FROM bandwidth_guess"))
             records_in_db, = next(self._database.execute(u"SELECT COUNT(*) FROM record"))
 
-            data = ["cid", self._cid.encode("HEX"), "\n",
-                    "mid ", self._my_member.mid.encode("HEX"), "\n",
-                    "timestamp", str(time()), "\n",
-                    "lan_address %s:%d" % self._dispersy.lan_address, "\n",
-                    "wan_address %s:%d" % self._dispersy.wan_address, "\n",
-                    "connection_type ", self._dispersy.connection_type, "\n",
-                    "observations_in_db ", str(observations_in_db), "\n",
-                    "bandwidth_guesses_in_db ", str(bandwidth_guesses_in_db), "\n",
-                    "records_in_db ", str(records_in_db), "\n",
-                    "member_ordering_fail ", str(self._statistic_member_ordering_fail), "\n",
-                    "initial_timestamp_fail ", str(self._statistic_initial_timestamp_fail), "\n",
-                    "cycle_fail ", str(self._statistic_cycle_fail), "\n",
-                    "shutdown ", str(shutdown), "\n"]
+            data = dict(cid=self._cid,
+                        mid=self._my_member.mid,
+                        timestamp=time(),
+                        lan_address=self._dispersy.lan_address,
+                        wan_address=self._dispersy.wan_address,
+                        connection_type=self._dispersy.connection_type,
+                        observations_in_db=observations_in_db,
+                        bandwidth_guesses_in_db=bandwidth_guesses_in_db,
+                        records_in_db=records_in_db,
+                        member_ordering_fail=self._statistic_member_ordering_fail,
+                        initial_timestamp_fail=self._statistic_initial_timestamp_fail,
+                        cycle_fail=self._statistic_cycle_fail,
+                        shutdown=shutdown)
 
             update_last_record_pushed = False
             if not shutdown:
                 last_record_pushed, = next(self._database.execute(u"SELECT value FROM option WHERE key = ?", (u"last_record_pushed",)))
                 records = list(self._database.execute(u"""
-SELECT record.sync, HEX(m1.mid), HEX(m2.mid), record.global_time, record.first_timestamp, record.second_timestamp, HEX(record.effort), record.first_upload, record.first_download, record.second_upload, record.second_download
+SELECT sync, first_member, second_member, global_time, first_timestamp, second_timestamp, HEX(effort), first_upload, first_download, second_upload, second_download
 FROM record
-JOIN dispersy.sync ON dispersy.sync.id = record.sync
-JOIN dispersy.member AS m1 on record.first_member = m1.id
-JOIN dispersy.member AS m2 on record.second_member = m2.id
-WHERE record.sync > ?
-ORDER BY record.sync
+WHERE sync > ?
+ORDER BY sync
 LIMIT 10000""", (last_record_pushed,)))
                 if records:
                     update_last_record_pushed = True
                     last_record_pushed = records[-1][0]
-                    data.extend("record {1:s} {2:s} {3:d} {4:d} {5:d} {6:s} {7:d} {8:d} {9:d} {10:d}\n".format(*record) for record in records)
+                    data["records"] = [get_record_entry(*row) for row in records]
+                    del records
 
                 else:
                     if __debug__: dprint("no new records to push (post sync.id ", last_record_pushed, ")")
 
             # one big data string...
-            data = compress("".join(data), 9)
+            data = compress(dumps(data), 9)
 
             try:
                 yield 0.0
-                if __debug__: dprint("pushing ", len(data), " bytes (compressed)")
+                dprint("pushing ", len(data), " bytes (compressed)")
                 connection = HTTPConnection("effortreporter.tribler.org")
                 # connection.set_debuglevel(1)
                 connection.putrequest("POST", "/post/post.py")
