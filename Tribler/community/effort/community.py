@@ -726,6 +726,7 @@ class EffortCommunity(Community):
                         initial_timestamp_fail=self._statistic_initial_timestamp_fail,
                         cycle_fail=self._statistic_cycle_fail,
                         shutdown=shutdown)
+            yield 0.0
 
             update_last_record_pushed = False
             if not shutdown:
@@ -735,22 +736,26 @@ SELECT sync, first_member, second_member, global_time, first_timestamp, second_t
 FROM record
 WHERE sync > ?
 ORDER BY sync
-LIMIT 10000""", (last_record_pushed,)))
+LIMIT 1000""", (last_record_pushed,)))
                 if records:
+                    yield 0.0
                     update_last_record_pushed = True
                     last_record_pushed = records[-1][0]
                     data["records"] = [get_record_entry(*row) for row in records]
                     del records
+                    yield 0.0
 
                 else:
                     if __debug__: dprint("no new records to push (post sync.id ", last_record_pushed, ")")
 
             # one big data string...
-            data = compress(dumps(data), 9)
+            data = dumps(data)
+            yield 0.0
+            data = compress(data, 9)
+            yield 0.0
 
             try:
-                yield 0.0
-                dprint("pushing ", len(data), " bytes (compressed)")
+                if __debug__: dprint("pushing ", len(data), " bytes (compressed)")
                 connection = HTTPConnection("effortreporter.tribler.org")
                 # connection.set_debuglevel(1)
                 connection.putrequest("POST", "/post/post.py")
