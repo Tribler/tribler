@@ -1257,7 +1257,7 @@ class LibraryDetails(TorrentDetails):
                 peers.sort(downsort, reverse = True)
                 
                 for peer_dict in peers:
-                    peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict['completed']*100.0)
+                    peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict.get('completed', 0)*100.0)
                     if index < self.peerList.GetItemCount():
                         self.peerList.SetStringItem(index, 0, peer_name)
                     else:
