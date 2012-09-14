@@ -695,12 +695,12 @@ class EffortCommunity(Community):
     def _periodically_push_statistics(self):
         def get_record_entry(_, first_member_id, second_member_id, *args):
             try:
-                mid1, = next(self._dispersy.execute(u"SELECT mid FROM member WHERE id = ?", (first_member_id,)))
+                mid1, = next(self._dispersy.database.execute(u"SELECT HEX(mid) FROM member WHERE id = ?", (first_member_id,)))
                 mid1 = str(mid1)
             except StopIteration:
                 mid1 = "unavailable"
             try:
-                mid2, = next(self._dispersy.execute(u"SELECT mid FROM member WHERE id = ?", (second_member_id,)))
+                mid2, = next(self._dispersy.database.execute(u"SELECT HEX(mid) FROM member WHERE id = ?", (second_member_id,)))
                 mid2 = str(mid2)
             except StopIteration:
                 mid2 = "unavailable"
@@ -713,8 +713,8 @@ class EffortCommunity(Community):
             bandwidth_guesses_in_db, = next(self._database.execute(u"SELECT COUNT(*) FROM bandwidth_guess"))
             records_in_db, = next(self._database.execute(u"SELECT COUNT(*) FROM record"))
 
-            data = dict(cid=self._cid,
-                        mid=self._my_member.mid,
+            data = dict(cid=self._cid.encode("HEX"),
+                        mid=self._my_member.mid.encode("HEX"),
                         timestamp=time(),
                         lan_address=self._dispersy.lan_address,
                         wan_address=self._dispersy.wan_address,
