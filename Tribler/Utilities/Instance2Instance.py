@@ -11,8 +11,13 @@
 import sys
 import socket
 from traceback import print_exc
-from threading import Thread, Event
+from threading import Thread, Event, currentThread
 from Tribler.Core.BitTornado.RawServer import RawServer
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 DEBUG = False
 
@@ -67,6 +72,10 @@ class Instance2InstanceServer(Thread):
         # Could log this somewhere, or phase it out
 
     def run(self):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         try:
             try:
                 if DEBUG:

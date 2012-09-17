@@ -4,7 +4,7 @@ import sys, os
 import signal
 import re
 import pickle
-from threading import Event, Thread
+from threading import Event, Thread, currentThread
 from urllib import quote, unquote
 from urlparse import urlparse
 from os.path import exists
@@ -14,6 +14,12 @@ from time import time, gmtime, strftime, localtime
 from random import shuffle, seed
 from types import StringType, IntType, LongType, DictType
 from binascii import b2a_hex
+
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.BitTornado.parseargs import parseargs, formatDefinitions
@@ -341,6 +347,10 @@ class Tracker:
         rq.start()
 
     def _aggregate_senddata(self, url):     # just send, don't attempt to error check,
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         try:                                # discard any returned data
             h = urlopen(url)
             h.read()

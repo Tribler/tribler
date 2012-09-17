@@ -8,9 +8,14 @@
 #
 import sys
 
-from threading import Thread,Condition, RLock
+from threading import Thread,Condition, RLock, currentThread
 from traceback import print_exc,print_stack,format_stack
 from time import time
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 DEBUG = False
 
@@ -62,6 +67,10 @@ class TimedTaskQueue:
         
     def run(self):
         """ Run by server thread """
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         while True:
             task = None
             timeout = None

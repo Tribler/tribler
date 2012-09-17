@@ -22,11 +22,16 @@
 
 import sys
 import threading
-from threading import Thread, Lock
+from threading import Thread, Lock, currentThread
 from random import sample
 from time import time
 from os import path
 from collections import deque
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 from Tribler.Core.BitTornado.bencode import bdecode
 from Tribler.TrackerChecking.TrackerChecking import trackerChecking,\
@@ -154,6 +159,10 @@ class TorrentChecking(Thread):
             
     def run(self):
         """ Gets one torrent from good or unknown list and checks it """
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         #request new infohash from queue
         while True:
             start = time()

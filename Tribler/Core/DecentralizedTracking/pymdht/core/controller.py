@@ -20,6 +20,12 @@ import ptime as time
 import datetime
 import os
 import cPickle
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
+from threading import currentThread
 
 import logging, logging_conf
 
@@ -187,6 +193,9 @@ class Controller:
         This method is designed to be used as minitwisted's heartbeat handler.
 
         """
+
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
 
         queries_to_send = []
         current_ts = time.time()

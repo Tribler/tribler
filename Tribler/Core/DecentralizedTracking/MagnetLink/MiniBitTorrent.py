@@ -12,21 +12,27 @@ metadata is obtained.
 
 from cStringIO import StringIO
 from random import getrandbits
-from threading import RLock, Event, Thread
+from threading import RLock, Event, Thread, currentThread
 from time import time
 from traceback import print_exc
 from urllib import urlopen, urlencode
 import sys
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
+
 
 from Tribler.Core.BitTornado.BT1.MessageID import protocol_name, EXTEND 
 from Tribler.Core.BitTornado.BT1.convert import toint, tobinary
-from Tribler.Core.BitTornado.RawServer import RawServer
 from Tribler.Core.BitTornado.SocketHandler import SocketHandler
 from Tribler.Core.BitTornado.bencode import bencode, bdecode
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MAGNET_STARTED,\
     NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_CLOSE
+
 
 UT_EXTEND_HANDSHAKE = chr(0)
 UT_PEX_ID = chr(1)
@@ -637,6 +643,10 @@ class MiniTracker(Thread):
         self.start()
 
     def run(self):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         announce = self._tracker + "?" + urlencode({"info_hash":self._swarm.get_info_hash(),
                                                     "peer_id":self._swarm.get_peer_id(),
                                                     "port":"12345",

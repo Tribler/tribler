@@ -6,9 +6,14 @@
 #
 
 import sys
-from threading import Thread,Lock
+from threading import Thread,Lock,currentThread
 import socket
 from traceback import print_exc
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 DEBUG = False
 
@@ -33,6 +38,10 @@ class FastI2IConnection(Thread):
         
         
     def run(self):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect(("127.0.0.1",self.port))

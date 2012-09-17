@@ -6,6 +6,11 @@ import time
 from traceback import print_exc
 import threading
 from Queue import Queue
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 class ThreadPool:
 
@@ -183,6 +188,9 @@ class ThreadPoolThread(threading.Thread):
 
         """ Until told to quit, retrieve the next task and execute
         it, calling the callback if any.  """
+
+        if prctlimported:
+            prctl.set_name("Tribler"+threading.currentThread().getName())
 
         # Arno, 2010-04-07: Dying only used when shrinking pool now. 
         while self.__isDying == False:

@@ -9,6 +9,11 @@ import sys
 import time
 import threading
 import logging
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 
 # from core.pymdht import Pymdht
@@ -72,6 +77,10 @@ class SwiftTracker(threading.Thread):
         self.channel_m = ChannelManager()
         
     def run(self):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+threading.currentThread().getName())
+        
         stop_dht = False
         while not stop_dht:
             try:

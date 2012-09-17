@@ -9,9 +9,15 @@ import pickle
 import socket
 import binascii
 import time as timemod
-from threading import Event,Thread,enumerate as enumerate_threads
+from threading import Event,Thread,enumerate as enumerate_threads, currentThread
 from traceback import print_exc, print_stack
 import traceback
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
+
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.BitTornado.RawServer import RawServer
@@ -889,6 +895,10 @@ class TriblerLaunchMany(Thread):
             return ip
 
     def run(self):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         if not self.initComplete:
             self.init()
 

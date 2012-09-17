@@ -20,7 +20,11 @@ from time import time
 from struct import pack, unpack
 import binascii
 from Tribler.Core.simpledefs import *
-
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 if mainlineDHT.dht_imported:
@@ -265,6 +269,10 @@ class Rerequester:
         rq.start()
 
     def _rerequest(self, s, callback):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         try:
             def fail(self = self, callback = callback):
                 self._fail(callback)
@@ -386,6 +394,10 @@ class Rerequester:
         return False    # returns true if it wants rerequest() to exit
 
     def _rerequest_single(self, t, s, l, callback):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         try:        
             closer = [None]
             def timedout(self = self, l = l, closer = closer):

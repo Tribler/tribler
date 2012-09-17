@@ -2,8 +2,13 @@
 # see LICENSE.txt for license information
 
 import sys
-from threading import Event,Thread
+from threading import Event,Thread, currentThread
 from traceback import print_exc
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 from Tribler.Core.BitTornado.natpunch import UPnPWrapper, UPnPError
 
@@ -37,6 +42,10 @@ class UPnPThread(Thread):
         self.shutdownevent = Event()
 
     def run(self):
+        
+        if prctlimported:
+            prctl.set_name("Tribler"+currentThread().getName())
+        
         if self.upnp_type > 0:
             self.upnp_wrap = UPnPWrapper.getInstance()
             self.upnp_wrap.register(self.locally_guessed_ext_ip)

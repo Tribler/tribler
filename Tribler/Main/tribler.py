@@ -40,7 +40,12 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 from random import randint
-from threading import current_thread
+from threading import current_thread,currentThread
+try:
+    prctlimported = True
+    import prctl
+except ImportError,e:
+    prctlimported = False
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
 # errors on Vista in "Regional and Language Settings Options" different from 
@@ -346,7 +351,7 @@ class ABCApp():
             destdir = get_default_dest_dir()
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
-            
+
             self.sconfig.set_nat_detect(True)
             
             # Arno, 2012-05-04: swift
@@ -1024,6 +1029,9 @@ class ABCApp():
         #
         try:
             current_thread().setName("SwiftRootHashCalculator"+current_thread().getName())
+            
+            if prctlimported:
+                prctl.set_name(currentThread().getName())
             
             # 1. Get torrent info
             tdef = td.get_def()
