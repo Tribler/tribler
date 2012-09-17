@@ -1257,9 +1257,9 @@ class LibraryDetails(TorrentDetails):
                 peers = ds.get_peerlist()
                 
                 def downsort(a, b):
-                    if a['downrate'] != b['downrate']:
-                        return a['downrate'] - b['downrate']
-                    return a['uprate'] - b['uprate']
+                    if a.get('downrate', 0) != b.get('downrate',0):
+                        return a.get('downrate', 0) - b.get('downrate', 0)
+                    return a.get('uprate', 0) - b.get('uprate', 0)
                 peers.sort(downsort, reverse = True)
                 
                 for peer_dict in peers:
@@ -1270,39 +1270,42 @@ class LibraryDetails(TorrentDetails):
                         self.peerList.InsertStringItem(index, peer_name)
                     
                     traffic = ""
-                    traffic += self.guiutility.utility.speed_format_new(peer_dict['downrate']) + u"\u2193 "
-                    traffic += self.guiutility.utility.speed_format_new(peer_dict['uprate']) + u"\u2191"
+                    traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
+                    traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
                     self.peerList.SetStringItem(index, 1, traffic.strip())
                     
                     state = ""
-                    if peer_dict['optimistic']:
+                    if peer_dict.get('optimistic'):
                         state += "O,"
-                    if peer_dict['uinterested']:
+                    if peer_dict.get('uinterested'):
                         state += "UI,"
-                    if peer_dict['uchoked']:
+                    if peer_dict.get('uchoked'):
                         state += "UC,"
-                    if peer_dict['uhasqueries']:
+                    if peer_dict.get('uhasqueries'):
                         state += "UQ,"
-                    if not peer_dict['uflushed']:
+                    if not peer_dict.get('uflushed'):
                         state += "UBL,"
-                    if peer_dict['ueligable']:
+                    if peer_dict.get('ueligable'):
                         state += "UE,"
-                    if peer_dict['dinterested']:
+                    if peer_dict.get('dinterested'):
                         state += "DI,"
-                    if peer_dict['dchoked']:
+                    if peer_dict.get('dchoked'):
                         state += "DC,"
-                    if peer_dict['snubbed']:
+                    if peer_dict.get('snubbed'):
                         state += "S,"
-                    state += peer_dict['direction']
+                    state += peer_dict.get('direction', '')
                     self.peerList.SetStringItem(index, 2, state)
                     
-                    try:
-                        self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
-                    except:
+                    if 'extended_version' in peer_dict:
                         try:
-                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
+                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
                         except:
-                            print >> sys.stderr, "Could not format peer client version"
+                            try:
+                                self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
+                            except:
+                                print >> sys.stderr, "Could not format peer client version"
+                    else:
+                        self.peerList.SetStringItem(index, 3, '')
                     
                     index += 1
     
