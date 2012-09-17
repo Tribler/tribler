@@ -369,7 +369,7 @@ class GUIUtility:
                 self.torrentsearch_manager.setSearchKeywords(keywords)
                 self.channelsearch_manager.setSearchKeywords(keywords)
                 
-                self.frame.searchlist.Reset()
+                self.frame.searchlist.oldkeywords = ''
                 self.ShowPage('search_results', keywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.

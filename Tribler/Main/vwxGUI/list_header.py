@@ -740,7 +740,6 @@ class TorrentFilter(BaseFilter):
             if search: search += " "
             search += "size=%d:%d" % (min_val/self.conversion_factor, max_val/self.conversion_factor)
         self.search.SetValue(search)
-        self.OnKey()
     
     def OnKey(self, event = None):
         search = self.search.GetValue().strip()
@@ -783,7 +782,6 @@ class TorrentFilter(BaseFilter):
             if search: search += " "
             search += "category='%s'" % category
         self.search.SetValue(search)
-        self.OnKey()
 
     def Reset(self):
         self.search.Clear()
@@ -1268,7 +1266,6 @@ class DownloadFilter(BaseFilter):
             if search: search += " "
             search += "size=%d:%d" % (min_val/self.conversion_factor, max_val/self.conversion_factor)
         self.search.SetValue(search)
-        self.OnKey()
         
     def OnState(self, state):
         search = self.search.GetValue().strip()
@@ -1288,7 +1285,6 @@ class DownloadFilter(BaseFilter):
             if search: search += " "
             search += "state=%s" % state
         self.search.SetValue(search)
-        self.OnKey()
     
     def OnKey(self, event = None):
         search = self.search.GetValue().strip()

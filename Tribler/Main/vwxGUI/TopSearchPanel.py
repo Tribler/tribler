@@ -189,7 +189,7 @@ class TopSearchPanel(GradientPanel):
     def StartSearch(self):
         if getattr(self.searchField, 'ShowDropDown', False):
             self.searchField.ShowDropDown(False)
-            self.guiutility.SetBottomSplitterWindow()
+            self.guiutility.frame.searchlist.ResetBottomWindow()
                 
     def complete(self, term):
         """autocompletes term."""
