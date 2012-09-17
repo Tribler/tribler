@@ -369,7 +369,8 @@ class GUIUtility:
                 self.torrentsearch_manager.setSearchKeywords(keywords)
                 self.channelsearch_manager.setSearchKeywords(keywords)
                 
-                self.frame.searchlist.Reset()
+                # We set oldkeywords to '', which will trigger a reset in SetKeywords (called from ShowPage). This avoid calling reset twice.
+                self.frame.searchlist.oldkeywords = ''
                 self.ShowPage('search_results', keywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.
