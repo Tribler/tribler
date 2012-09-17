@@ -370,7 +370,9 @@ class GUIUtility:
                 self.channelsearch_manager.setSearchKeywords(keywords)
                 
                 # We set oldkeywords to '', which will trigger a reset in SetKeywords (called from ShowPage). This avoid calling reset twice.
-                self.frame.searchlist.oldkeywords = ''
+                # Niels: 17-09-2012, unfortunately showpage calls show(true) which results in the dirty items being refreshed.
+                # We need to call Reset in order to prevent this from happening
+                self.frame.searchlist.Reset()
                 self.ShowPage('search_results', keywords)
                 
                 #We now have to call thaw, otherwise loading message will not be shown.

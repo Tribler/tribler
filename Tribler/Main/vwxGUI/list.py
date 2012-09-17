@@ -460,6 +460,7 @@ class List(wx.BoxSizer):
         self.borders = borders
         self.showChange = showChange
         self.dirty = False
+        self.hasData = False
         self.rawfilter = ''
         self.filter = ''
         
@@ -535,9 +536,10 @@ class List(wx.BoxSizer):
         assert self.isReady, "List not ready"
 
         self.nr_filtered = 0
-        if self.isReady:
+        if self.isReady and self.hasData:
             self.rawfilter = ''
             self.filter = ''
+            self.hasData = False
             
             manager = self.GetManager()
             if manager and getattr(manager, 'Reset', False):
@@ -552,6 +554,9 @@ class List(wx.BoxSizer):
 
             self.dirty = False
             self.Layout()
+            
+            return True
+        return False
     
     @warnWxThread
     def OnExpand(self, item):
@@ -586,6 +591,7 @@ class List(wx.BoxSizer):
     @warnWxThread
     def SetData(self, data):
         assert self.isReady, "List not ready"
+        self.hasData = True
         
     @warnWxThread
     def RefreshDelayedData(self, delayedResult, key):
@@ -1136,8 +1142,9 @@ class GenericSearchList(SizeList):
             self.list.RefreshData(key, data)
             
     def Reset(self):
-        List.Reset(self)
         self.infohash2key = {}
+
+        return List.Reset(self)
 
     @warnWxThread
     def OnExpand(self, item):
@@ -1521,12 +1528,14 @@ class SearchList(GenericSearchList):
         self.guiutility.dosearch(label.GetLabel())
     
     def Reset(self):
-        GenericSearchList.Reset(self)
-        
-        self.total_results = None
-        self.total_channels = None
-        self.keywords = None
-        self.SetNrResults(0)
+        if GenericSearchList.Reset(self):
+            self.total_results = None
+            self.total_channels = None
+            self.keywords = None
+            self.SetNrResults(0)
+            
+            return True
+        return False
 
     def SetBackgroundColour(self, colour):
         GenericSearchList.SetBackgroundColour(self, colour)
@@ -1850,8 +1859,10 @@ class LibraryList(SizeList):
             actitem.hSizer.Layout()
 
     def Reset(self):
-        List.Reset(self)
-        self.SetNrResults(0)
+        if List.Reset(self):
+            self.SetNrResults(0)
+            return True
+        return False
     
     @warnWxThread
     def OnFilter(self, keyword):
@@ -2068,9 +2079,6 @@ class ChannelList(List):
 
     def SetMyChannelId(self, channel_id):
         self.GetManager().refresh_partial((channel_id,))
-
-    def Reset(self):
-        List.Reset(self)
 
 class ActivitiesList(List):
     def __init__(self, parent):

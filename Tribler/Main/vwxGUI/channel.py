@@ -332,11 +332,13 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def Reset(self):
-        GenericSearchList.Reset(self)
-        
-        self.commentList.Reset()
-        self.activityList.Reset()
-        self.moderationList.Reset()
+        if GenericSearchList.Reset(self):
+            self.commentList.Reset()
+            self.activityList.Reset()
+            self.moderationList.Reset()
+            
+            return True
+        return False
 
     @warnWxThread
     def SetChannel(self, channel):
@@ -831,7 +833,7 @@ class PlaylistManager(BaseManager):
         self.refresh()
     
     def Reset(self):
-        self.dirtyset.clear()
+        BaseManager.Reset(self)
         
         if self.list.playlist:
             cancelWorker("PlaylistManager_refresh_list_%d"%self.list.playlist.id)
@@ -953,6 +955,8 @@ class ManageChannelFilesManager(BaseManager):
         self.Reset()
         
     def Reset(self):
+        BaseManager.Reset(self)
+        
         if self.channel:
             cancelWorker("ManageChannelFilesManager_refresh_%d"%self.channel.id)
             
@@ -1097,6 +1101,8 @@ class ManageChannelPlaylistsManager(BaseManager):
         self.Reset()
         
     def Reset(self):
+        BaseManager.Reset(self)
+
         if self.channel:
             cancelWorker("ManageChannelPlaylistsManager_refresh_%d"%self.channel.id)
             
@@ -1988,6 +1994,8 @@ class CommentManager(BaseManager):
         self.Reset()
         
     def Reset(self):
+        BaseManager.Reset(self)
+
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
@@ -2188,6 +2196,8 @@ class ActivityManager(BaseManager):
         self.Reset()
         
     def Reset(self):
+        BaseManager.Reset(self)
+
         self.channel = None
         self.playlist = None
         self.channeltorrent = None
