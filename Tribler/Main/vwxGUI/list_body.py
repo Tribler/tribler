@@ -143,8 +143,6 @@ class ListItem(wx.Panel):
         
         if control.icon_right:
             self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
-        
-        
                     
     def _replace_control(self, old_index, newcontrol):
         oldcontrol = self.controls[old_index]
@@ -215,8 +213,8 @@ class ListItem(wx.Panel):
     @warnWxThread
     def RefreshData(self, data):
         if DEBUG:
-            print_stack()
             print >> sys.stderr, "LISTITEM: refreshdata"
+            
         if isinstance(data[2], dict): #update original_data
             for key in data[2].keys():
                 self.original_data[key] = data[2][key]
