@@ -910,16 +910,17 @@ class SelectedChannelFilter(TorrentFilter):
                 new_item.list_deselected = FILTER_GREY
                 new_item.ShowSelected()
                 num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
-                self.SetHeadingButtons(new_item, num_items, channel.my_vote, self.parent_list.state, self.parent_list.iamModerator, channel)
+                self.SetHeadingButtons(new_item, num_items, channel.my_vote, self.parent_list.state, self.parent_list.iamModerator)
                 
                 self.heading_list.Layout()
 
-    def SetHeadingButtons(self, item, num_items, vote, channelstate, iamModerator, original_data = None):
+    def SetHeadingButtons(self, item, num_items, vote, channelstate, iamModerator):
         if getattr(item, 'buttons_added', False):
             return
         
         open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
         allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
+        item.buttonSizer.Clear(deleteWindows = True)
         if vote == 0 and not iamModerator:
             item.AddButton("Mark as Spam", self.parent_list.OnSpam)
             item.AddButton("Mark as Favorite", self.parent_list.OnFavorite)
@@ -932,6 +933,7 @@ class SelectedChannelFilter(TorrentFilter):
                 item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote)
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)
+        item.SetHideButtons(False)
         item.buttons_added = True
                 
     def OnExpand(self, item):
@@ -979,6 +981,7 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
                 new_item.titleSizer.Insert(1, (5,-1))
                 new_item.titleSizer.Insert(2, wx.StaticBitmap(new_item, -1, self.icon_right), 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
                 new_item.titleSizer.Insert(3, (5,-1))
+                new_item.buttonSizer.Clear(deleteWindows = True)
                 
                 new_item.list_deselected = FILTER_GREY
                 new_item.ShowSelected()

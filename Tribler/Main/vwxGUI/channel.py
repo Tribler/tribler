@@ -490,29 +490,10 @@ class SelectedChannelList(GenericSearchList):
     @warnWxThread
     def OnExpand(self, item):
         if isinstance(item, PlaylistItem):
-            def createAd(parent):
-                panel = wx.Panel(parent)
-                hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                vSizer = wx.BoxSizer(wx.VERTICAL)
-    
-                separator = wx.Panel(panel, size = (1, -1))
-                separator.SetBackgroundColour(SEPARATOR_GREY)
-                hSizer.Add(separator, 0, wx.EXPAND)
-    
-                hSizer.Add(vSizer, 1, wx.EXPAND)
-                vSizer.AddStretchSpacer()
-                button = ProgressButton(panel, -1, "Visit playlist")
-                button.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showPlaylist(item.original_data))
-                vSizer.Add(button, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 20)
-                vSizer.AddStretchSpacer()
-                panel.SetSizer(hSizer)
-                return panel
-                
-            details = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, createAd = createAd)
+            details = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
         else:
             details = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, noChannel = True)
             item.expandedPanel = details
-        
         self.guiutility.SetBottomSplitterWindow(details)
         self.header.heading_list.DeselectAll()
         return True     
@@ -535,7 +516,7 @@ class SelectedChannelList(GenericSearchList):
         
         if _channel:
             panel = SelectedchannelInfoPanel(self.guiutility.frame.splitter_bottom_window)
-            num_items = len(self.list.raw_data) if self.list.raw_data else 0
+            num_items = len(self.list.raw_data) if self.list.raw_data else 1
             panel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
             self.guiutility.SetBottomSplitterWindow(panel)
         
@@ -957,8 +938,9 @@ class Playlist(SelectedChannelList):
     @warnWxThread
     def ResetBottomWindow(self):
         panel = PlaylistInfoPanel(self.guiutility.frame.splitter_bottom_window)
-        num_items = len(self.list.raw_data) if self.list.raw_data else 0
-        panel.Set(num_items)
+        num_items = len(self.list.raw_data) if self.list.raw_data else 1
+        is_favourite = self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None
+        panel.Set(num_items, is_favourite)
         self.guiutility.SetBottomSplitterWindow(panel)
     
 class ManageChannelFilesManager(BaseManager):

@@ -1622,16 +1622,20 @@ class SearchInfoPanel(AbstractInfoPanel):
 
     def Set(self, num_items):
         if num_items > 0:
-            self.AddMessage('Please click on a torrent or channel for more details.')
+            self.AddMessage('Please click on a channel or a torrent for more details.')
         self.Show(True)
 
 class ChannelInfoPanel(AbstractInfoPanel):
 
-    def Set(self, num_items):
-        self.AddMessage('A channel is a collection of torrents made by users to share their favorite torrents.', colour = TRIBLER_RED)
-        self.AddMessage('All channels are ordered by popularity. Popularity is measured by the number of Tribler users which \nhave marked this channel as favorite.')
-        if num_items > 0:
-            self.AddMessage('Please click on a channel for more details.')
+    def Set(self, num_items, is_favourite):
+        if is_favourite:
+            self.AddMessage('This is a list of your favorite channels.')
+            if num_items > 0:
+                self.AddMessage('Please select a channel for more details, or visit it to access its content.')
+        else:
+            self.AddMessage('A channel is a collection of torrents made by users to share their favorite torrents.')
+            if num_items > 0:
+                self.AddMessage('Please click on a channel for more details.')
         self.Show(True)
 
 
@@ -1639,13 +1643,17 @@ class LibraryInfoPanel(AbstractInfoPanel):
 
     def Set(self, num_items):
         if num_items > 0:
-            self.AddMessage('Please click on a torrent for more details.')
+            self.AddMessage('Please select a torrent for more details.')
         self.Show(True)
         
 
 class PlaylistInfoPanel(AbstractInfoPanel):
 
-    def Set(self, num_items):
+    def Set(self, num_items, is_favourite):
+        if is_favourite == True:
+            self.AddMessage('You are looking at the full content of this playlist.')
+        elif is_favourite == False:
+            self.AddMessage('You are looking at a preview of this playlist. To see more of it, mark the channel as favorite.')
         if num_items > 0:
             self.AddMessage('Please click on a torrent for more details.')
         self.Show(True)
@@ -1660,38 +1668,36 @@ class SelectedchannelInfoPanel(AbstractInfoPanel):
         allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
         
         if preview:
-            self.AddMessage("You are looking at a preview of this Channel.")
-            self.AddMessage("If you want to see more of it, press the 'Mark as Favorite' button.\nTribler will then more aggressively download updates making sure you always have access to the newest content.")
+            self.AddMessage("You are looking at a preview of this channel. If you want to see more of it, \"Mark it as Favorite\".")
 
         else:
-            msg_bold = ""
-            msg_norm = ""
+            msg1 = ""
+            msg2 = ""
             
             if open2edit:
-                msg_bold = "You can now enable community-features for this Channel."
-                msg_norm = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit your channel settings to get started."
+                msg1 = "You can now enable community-features for this Channel."
+                msg2 = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit your channel settings to get started."
 
             elif allow2edit:
-                msg_bold = "This is an open community. You can modify, comment and add new content. Feel free to do so."
+                msg1 = "This is an open community channel. You can modify it, comment on it and add new content."
                             
             if vote == -1:
-                msg_bold = ""
-                msg_norm = "You have marked this Channel as Spam."
+                msg1 = ""
+                msg2 = "You have marked this Channel as Spam."
                 
-            elif vote == 2:
-                msg_norm = "Thank you for marking this Channel as your Favorite." if not msg_norm else msg_norm
-                
-            else:
-                msg_norm = "You can edit this channel" if not msg_norm else msg_norm
+            elif vote != 2:
+                msg2 = "You can edit this channel" if not msg2 else msg2
 
-            if msg_bold:
-                self.AddMessage(msg_bold, bold = True)
-                self.AddMessage(msg_norm)
+            if msg1:
+                self.AddMessage(msg1)
             else:
-                self.AddMessage(msg_norm)
+                self.AddMessage('You are looking at the full content of one of your favorite channels.')
+
+            if msg2:
+                self.AddMessage(msg2)
 
         if num_items > 0:
-            self.AddMessage('Please click on a torrent or playlist for more details.')
+            self.AddMessage('Please click on a torrent or a playlist for more details.')
         self.Show(True)
         
 
@@ -2214,9 +2220,9 @@ class ChannelsExpandedPanel(wx.Panel):
         if label == 'My Channel':
             self.guiutility.ShowPage('mychannel')
         else:
-            self.guiutility.frame.channellist.ResetBottomWindow()
             self.guiutility.showChannelCategory(label)
             self.guiutility.frame.channellist.header.ShowChannelTypeFilter(label != 'Favorites')    
+            self.guiutility.frame.channellist.ResetBottomWindow()
         self.channel_category = label    
         self.channel_or_playlist = None
         self.SetTextHighlight()

@@ -10,7 +10,7 @@ import re
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText,\
-    _set_font
+    _set_font, ActionButton
 
 from __init__ import *
 from wx._core import PyDeadObjectError
@@ -196,7 +196,7 @@ class ListItem(wx.Panel):
             control = control.GetWindow() or control.GetSizer()
         
         if getattr(control, 'Bind', False):
-            if not isinstance(control, wx.Button):
+            if not isinstance(control, wx.Button) and not isinstance(control, ActionButton):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                 control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             else:

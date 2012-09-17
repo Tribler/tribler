@@ -45,7 +45,7 @@ class DoubleLineListItem(ListItem):
         vSizer.Add(self.titleSizer, 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 3)
         vSizer.Add(self.descrSizer, 0, wx.TOP|wx.BOTTOM, 3)            
         self.hSizer.Add(vSizer, 1, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.CENTER|wx.TOP|wx.BOTTOM|wx.EXPAND, 3) 
-            
+           
         ListItem.AddComponents(self, 0, rightSpacer)
         
         #remove last line
@@ -141,32 +141,20 @@ class DoubleLineListItem(ListItem):
             return [self.parent_list.parent_list._special_icon(self)]
         else:
             return []
+        
 
-class TorrentListItem(DoubleLineListItem):
-    def __init__(self, *args, **kwargs):
-        DoubleLineListItem.__init__(self, *args, **kwargs)
-        
-    @warnWxThread        
-    def GetIcons(self):
-        if getattr(self.parent_list.parent_list, '_special_icon', None) and getattr(self.parent_list.parent_list, '_status_icon', None):
-            return [self.parent_list.parent_list._special_icon(self), self.parent_list.parent_list._status_icon(self)]
-        else:
-            return []
-        
-class ChannelListItem(DoubleLineListItem):
-    def __init__(self, *args, **kwargs):
-        DoubleLineListItem.__init__(self, *args, **kwargs)
-        
+class DoubleLineListItemWithButtons(DoubleLineListItem):
+       
     def AddComponents(self, *args, **kwargs):
-        # Hack to enable torrents and channels to be mixed in the search results            
-        if isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
-            self.columns = self.guiutility.frame.channellist.columns
-
         DoubleLineListItem.AddComponents(self, *args, **kwargs)
-        tag = TagText(self, -1, label='channel', fill_colour = wx.Colour(210,252,120))
-        self.AddEvents(tag)
-        self.titleSizer.Insert(0, tag, 0, wx.CENTER|wx.TOP, 2)
-        self.titleSizer.Insert(1, (5, -1), 0, 0)
+
+        self.buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.hSizer.Add(self.buttonSizer, 0, wx.CENTER|wx.TOP|wx.BOTTOM|wx.EXPAND, 3)
+        self.hide_buttons = True
+        self.AddButtons()
+        
+    def AddButtons(self):
+        pass
         
     def AddButton(self, label, handler):
         if handler == None or label == None:
@@ -175,8 +163,64 @@ class ChannelListItem(DoubleLineListItem):
         button = ProgressButton(self, -1, label)
         button.Bind(wx.EVT_LEFT_UP, handler)
         self.AddEvents(button)
-        self.titleSizer.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 10)
-        self.Layout()        
+        self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 10)
+        self.Layout()
+        self.ShowSelected()
+        
+    def ShowSelected(self):
+        DoubleLineListItem.ShowSelected(self)
+        
+        if self.hide_buttons and self.GetBackgroundColour() == self.list_deselected:
+            self.buttonSizer.ShowItems(False)
+        else:
+            self.buttonSizer.ShowItems(True)
+        self.Layout()
+        
+    def SetHideButtons(self, val):
+        self.hide_buttons = val
+        self.ShowSelected()
+
+
+class TorrentListItem(DoubleLineListItem):
+        
+    @warnWxThread        
+    def GetIcons(self):
+        if getattr(self.parent_list.parent_list, '_special_icon', None) and getattr(self.parent_list.parent_list, '_status_icon', None):
+            return [self.parent_list.parent_list._special_icon(self), self.parent_list.parent_list._status_icon(self)]
+        else:
+            return []
+        
+class ChannelListItem(DoubleLineListItemWithButtons):
+        
+    def AddComponents(self, *args, **kwargs):
+        # Hack to enable torrents and channels to be mixed in the search results            
+        if isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
+            self.columns = self.guiutility.frame.channellist.columns
+
+        DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
+
+        tag = TagText(self, -1, label='channel', fill_colour = wx.Colour(210,252,120))
+        self.AddEvents(tag)
+        self.titleSizer.Insert(0, tag, 0, wx.CENTER|wx.TOP, 2)
+        self.titleSizer.Insert(1, (5, -1), 0, 0)
+        
+    def AddButtons(self):
+        self.buttonSizer.Clear(deleteWindows = True)
+        if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list_header.BaseFilter):
+            self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
+        if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
+            if self.original_data.my_vote == 2:
+                self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.RemoveFavorite(evt, data))
+            else:
+                self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.MarkAsFavorite(evt, data))
+            self.last_my_vote = self.original_data.my_vote
+        
+    @warnWxThread
+    def RefreshData(self, data):
+        DoubleLineListItemWithButtons.RefreshData(self, data)
+        
+        if self.last_my_vote != data[2].my_vote:
+            self.AddButtons()
         
     def GetIcons(self):
         return [self.guiutility.frame.channellist._special_icon(self)]
@@ -189,9 +233,9 @@ class ChannelListItem(DoubleLineListItem):
         self.titleSizer.AddSpacer((-1,height))
  
         
-class PlaylistItem(DoubleLineListItem):
+class PlaylistItem(DoubleLineListItemWithButtons):
     def __init__(self, parent, parent_list, columns, data, original_data, *args, **kwargs):
-        DoubleLineListItem.__init__(self, parent, parent_list, columns, data, original_data, *args, **kwargs)
+        DoubleLineListItemWithButtons.__init__(self, parent, parent_list, columns, data, original_data, *args, **kwargs)
                 
         if getattr(parent_list.parent_list, 'AddTorrent', False):
             from channel import TorrentDT
@@ -202,12 +246,17 @@ class PlaylistItem(DoubleLineListItem):
         if not isinstance(self.parent_list.parent_list, TorrentFilter) and isinstance(self.original_data, Playlist):
             self.columns = self.guiutility.frame.selectedchannellist.playlist_columns
         
-        DoubleLineListItem.AddComponents(self, *args, **kwargs)
+        DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
+        
         tag = TagText(self, -1, label='playlist', fill_colour = wx.Colour(136,117,255), text_colour = wx.WHITE)
         self.AddEvents(tag)
         self.titleSizer.Insert(0, tag, 0, wx.CENTER|wx.TOP, 2)
         self.titleSizer.Insert(1, (5, -1), 0, 0)
-
+        
+    def AddButtons(self):
+        self.buttonSizer.Clear(deleteWindows = True)
+        self.AddButton("Visit playlist", lambda evt: self.guiutility.showPlaylist(self.original_data))
+            
     def OnChange(self):
         self.parent_list.OnChange()
         

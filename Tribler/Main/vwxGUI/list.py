@@ -1007,23 +1007,6 @@ class GenericSearchList(SizeList):
             return self.statusInactive, "This torrent is inactive"   
     
     @warnWxThread
-    def CreatePopularity(self, parent, item):
-        pop = item.original_data.nr_favorites
-        if pop <= 0:
-            ratio = wx.StaticText(parent, -1, "New", )
-            return ratio
-        
-        max = log(self.max_votes)
-        cur = log(pop+1)
-        ratio = min(1, cur/max)
-        
-        control = ChannelPopularity(parent, self.normalministar, self.ministar)
-        control.SetBackgroundColour(DEFAULT_BACKGROUND)
-        control.SetVotes(ratio)
-        control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
-        return control  
-    
-    @warnWxThread
     def CreateDownloadButton(self, parent, item):
         button = wx.Button(parent, -1, 'Download', style = wx.BU_EXACTFIT)
         button.item = item
@@ -1168,28 +1151,8 @@ class GenericSearchList(SizeList):
             td = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
             item.expandedPanel = td
             self.guiutility.SetBottomSplitterWindow(td)
-            
         elif isinstance(item.original_data, Channel):
-
-            def createAd(parent):
-                panel = wx.Panel(parent)
-                hSizer = wx.BoxSizer(wx.HORIZONTAL)
-                vSizer = wx.BoxSizer(wx.VERTICAL)
-    
-                separator = wx.Panel(panel, size = (1, -1))
-                separator.SetBackgroundColour(SEPARATOR_GREY)
-                hSizer.Add(separator, 0, wx.EXPAND)
-    
-                hSizer.Add(vSizer, 1, wx.EXPAND)
-                vSizer.AddStretchSpacer()
-                button = ProgressButton(panel, -1, "Visit channel")
-                button.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(item.original_data))
-                vSizer.Add(button, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 20)
-                vSizer.AddStretchSpacer()
-                panel.SetSizer(hSizer)
-                return panel
-            
-            cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, createAd = createAd)
+            cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
             item.expandedPanel = cd
             self.guiutility.SetBottomSplitterWindow(cd)
         return True
@@ -2005,7 +1968,7 @@ class ChannelList(List):
         max = log(self.max_votes)
         cur = log(pop+1)
         ratio = min(1, cur/max)
-        ratio = int(self.columns[2]['width'] * ratio) / float(self.columns[2]['width'])
+        ratio = int(self.columns[3]['width'] * ratio) / float(self.columns[3]['width'])
         prev_ratio = getattr(item, 'prev_ratio', None)
         
         if ratio != prev_ratio: #if not enough difference don't return the control
@@ -2031,7 +1994,7 @@ class ChannelList(List):
             wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
             
     @warnWxThread
-    def RemoveAsFavorite(self, event, channel):
+    def RemoveFavorite(self, event, channel):
         if channel:
             if event:
                 button = event.GetEventObject()
@@ -2043,32 +2006,7 @@ class ChannelList(List):
     
     def OnExpand(self, item):
         List.OnExpand(self, item)
-        def createAd(parent):
-            panel = wx.Panel(parent)
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            vSizer = wx.BoxSizer(wx.VERTICAL)
-
-            separator = wx.Panel(panel, size = (1, -1))
-            separator.SetBackgroundColour(SEPARATOR_GREY)
-            hSizer.Add(separator, 0, wx.EXPAND)
-
-            hSizer.Add(vSizer, 1, wx.EXPAND)
-            vSizer.AddStretchSpacer()
-            button = ProgressButton(panel, -1, "Visit channel")
-            button.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(item.original_data))
-            vSizer.Add(button, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 20)
-            if item.original_data.my_vote == 2:
-                button = ProgressButton(panel, -1, "Remove Favorite")
-                button.Bind(wx.EVT_LEFT_UP, lambda evt, data = item.original_data: self.RemoveAsFavorite(evt, data))
-            else:
-                button = ProgressButton(panel, -1, "Mark as Favorite")
-                button.Bind(wx.EVT_LEFT_UP, lambda evt, data = item.original_data: self.MarkAsFavorite(evt, data))
-            vSizer.Add(button, 0, wx.EXPAND|wx.LEFT|wx.RIGHT, 20)
-            vSizer.AddStretchSpacer()
-            panel.SetSizer(hSizer)
-            return panel
-        
-        cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, createAd = createAd)
+        cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
         item.expandedPanel = cd
         self.guiutility.SetBottomSplitterWindow(cd)
         return True
@@ -2082,8 +2020,8 @@ class ChannelList(List):
                 
     def ResetBottomWindow(self):
         panel = ChannelInfoPanel(self.guiutility.frame.splitter_bottom_window)
-        num_items = len(self.list.raw_data) if self.list.raw_data else 0
-        panel.Set(num_items)
+        num_items = len(self.list.raw_data) if self.list.raw_data else 1
+        panel.Set(num_items, self.GetManager().category == "Favorites")
         self.guiutility.SetBottomSplitterWindow(panel)   
 
     def OnAdd(self, event):
