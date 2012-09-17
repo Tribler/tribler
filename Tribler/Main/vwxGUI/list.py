@@ -738,7 +738,7 @@ class List(wx.BoxSizer):
             
     def ShowFooter(self, show = True):
         self.footer.Show(show)
-  
+
     def GotFilter(self, keyword):
         oldrawfilter = self.rawfilter
         self.rawfilter = keyword.lower().strip()
@@ -889,13 +889,13 @@ class SizeList(List):
         
         if self.sizefilter:
             if self.sizefilter[0] == self.sizefilter[1]:
-                message += " equal to %d MB in size."%self.sizefilter[0]
+                message += " equal to %d MB in size"%self.sizefilter[0]
             elif self.sizefilter[0] == 0:
-                message += " smaller than %d MB in size."%self.sizefilter[1]
+                message += " smaller than %d MB in size"%self.sizefilter[1]
             elif self.sizefilter[1] == sys.maxint:
                 message += " larger than %d MB in size"%self.sizefilter[0]
             else:
-                message += " between %d and %d MB in size."%(self.sizefilter[0], self.sizefilter[1])
+                message += " between %d and %d MB in size"%(self.sizefilter[0], self.sizefilter[1])
         return message
     
     @warnWxThread
@@ -1251,6 +1251,42 @@ class GenericSearchList(SizeList):
             return "?"
         return str(val)
         
+    def OnFilter(self, keyword):
+        new_filter = keyword.lower().strip()
+        
+        self.categoryfilter = None
+        if new_filter.find("category=") > -1:
+            try:
+                start = new_filter.find("category='")
+                start = start + 10 if start >= 0 else -1
+                end = new_filter.find("'", start)
+                if start == -1 or end == -1:
+                    category = None
+                else:
+                    category = new_filter[start:end]
+                    
+                self.categoryfilter = category
+                new_filter = new_filter[:start - 10] + new_filter[end+1:]
+            except:
+                pass
+    
+        SizeList.OnFilter(self, new_filter)
+    
+    def MatchFilter(self, item):
+        if not isinstance(item[2], Torrent) or ( self.categoryfilter and self.categoryfilter not in self.category_names[item[2].category_id].lower() ):
+                return False
+        
+        return SizeList.MatchFilter(self, item)
+    
+    def GetFilterMessage(self, empty = False):
+        message = SizeList.GetFilterMessage(self, empty)
+        
+        if self.categoryfilter:
+            message = message.rstrip('.')
+            message += " matching category '%s'"%self.categoryfilter
+        return message
+    
+        
 class SearchList(GenericSearchList):
     def __init__(self, parent=None):
         self.guiutility = GUIUtility.getInstance()
@@ -1417,7 +1453,6 @@ class SearchList(GenericSearchList):
             message += '\n\nAlternatively your could search for %s'%suggestions[0][0]
             self.list.ShowMessage(message, header = header)
 
-
     @forceWxThread        
     def SetMaxResults(self, max, keywords):
         self.Freeze()
@@ -1498,41 +1533,7 @@ class SearchList(GenericSearchList):
         
     def OnSize(self, event):
         event.Skip()
-        
-    def OnFilter(self, keyword):
-        new_filter = keyword.lower().strip()
-        
-        self.categoryfilter = None
-        if new_filter.find("category=") > -1:
-            try:
-                start = new_filter.find("category='")
-                start = start + 10 if start >= 0 else -1
-                end = new_filter.find("'", start)
-                if start == -1 or end == -1:
-                    category = None
-                else:
-                    category = new_filter[start:end]
-                    
-                self.categoryfilter = category
-                new_filter = new_filter[:start - 10] + new_filter[end+1:]
-            except:
-                pass
-    
-        SizeList.OnFilter(self, new_filter)
-    
-    def MatchFilter(self, item):
-        if not isinstance(item[2], Torrent) or ( self.categoryfilter and self.categoryfilter not in self.category_names[item[2].category_id].lower() ):
-                return False
-        
-        return SizeList.MatchFilter(self, item)
-    
-    def GetFilterMessage(self, empty = False):
-        message = SizeList.GetFilterMessage(self, empty)
-        
-        if self.categoryfilter:
-            message = message.rstrip('.')
-            message += " matching category '%s'"%self.categoryfilter
-        return message
+
 
 class LibraryList(SizeList):
     def __init__(self, parent):
