@@ -644,12 +644,13 @@ class AbstractListBody():
         if not self.singleExpanded and wx.GetKeyState(wx.WXK_SHIFT):
             pos_from = self.GetItemPos(self.GetItemKey(self.cur_expanded))
             pos_to = self.GetItemPos(self.GetItemKey(item))
-            pos_min = min(pos_from, pos_to)
-            pos_max = max(pos_from, pos_to)
-            self.DeselectAll()
-            for index, data in enumerate(self.data[pos_min:pos_max+1]):
-                if index+pos_min != pos_to:
-                    self.Select(data[0], raise_event = False)
+            if pos_from != None and pos_to != None:
+                pos_min = min(pos_from, pos_to)
+                pos_max = max(pos_from, pos_to)
+                self.DeselectAll()
+                for index, data in enumerate(self.data[pos_min:pos_max+1]):
+                    if index+pos_min != pos_to:
+                        self.Select(data[0], raise_event = False)
 
         elif self.singleExpanded or not wx.GetKeyState(wx.WXK_CONTROL):
             if self.cur_expanded:

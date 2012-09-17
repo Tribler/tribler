@@ -119,9 +119,11 @@ class DoubleLineListItem(ListItem):
         
         fileconfig.Write("hide_columns", json.dumps(hide_columns))
         fileconfig.Flush()
-        
-        self.parent_list.Rebuild()
 
+        if getattr(self.parent_list.parent_list, 'ResetBottomWindow', False):
+            self.parent_list.parent_list.ResetBottomWindow()        
+        self.parent_list.Rebuild()
+            
     @warnWxThread        
     def GetContextMenu(self):
         menu = wx.Menu()

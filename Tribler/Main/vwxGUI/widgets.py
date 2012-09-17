@@ -1685,7 +1685,7 @@ class MinMaxSlider(wx.Panel):
         self.base = 1.7
         self.LoadIcons()
         self.SetMinMax(0, 0)
-        self.text_spacers = [60, 60]
+        self.text_spacers = [self.GetTextExtent('T'*10)[0]]*2
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)

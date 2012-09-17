@@ -144,6 +144,13 @@ class TorrentDetails(AbstractDetails):
         self.messagePanel = TransparentText(self, -1, "Loading details, please wait.")
         self.messageGauge = None
         _set_font(self.messagePanel, size_increment = 2, fontweight = wx.FONTWEIGHT_NORMAL)
+        
+        for colour, height in [(SEPARATOR_GREY, 1), (FILTER_GREY, 25), (SEPARATOR_GREY, 1)]:
+            panel = wx.Panel(self)
+            panel.SetMinSize((-1,height))
+            panel.SetBackgroundColour(colour)
+            self.vSizer.Add(panel, 0, wx.EXPAND)
+        
         self.vSizer.AddStretchSpacer()
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.messageIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
@@ -185,7 +192,7 @@ class TorrentDetails(AbstractDetails):
                 if requesttype:
                     self.showRequestType('The torrentfile is requested %s.'%requesttype)
                     self.messageGauge = wx.Gauge(self, -1, size = (100, 15))
-                    self.vSizer.Insert(2, self.messageGauge, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
+                    self.vSizer.Insert(5, self.messageGauge, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
                     self.Layout()
                 
                 self.timeouttimer = wx.CallLater(10000, self._timeout)
@@ -244,7 +251,7 @@ class TorrentDetails(AbstractDetails):
                 
                 self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
                 
-                self.vSizer.Clear()
+                self.vSizer.Clear(deleteWindows = True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
             
                 self._Refresh(ds)
@@ -1372,6 +1379,13 @@ class ChannelDetails(AbstractDetails):
         self.messagePanel = TransparentText(self, -1, "Loading details, please wait.")
         self.messageGauge = None
         _set_font(self.messagePanel, size_increment = 2, fontweight = wx.FONTWEIGHT_NORMAL)
+        
+        for colour, height in [(SEPARATOR_GREY, 1), (FILTER_GREY, 25), (SEPARATOR_GREY, 1)]:
+            panel = wx.Panel(self)
+            panel.SetMinSize((-1,height))
+            panel.SetBackgroundColour(colour)
+            self.vSizer.Add(panel, 0, wx.EXPAND)
+        
         self.vSizer.AddStretchSpacer()
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.messageIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
@@ -1409,7 +1423,7 @@ class ChannelDetails(AbstractDetails):
                 
                 self._addOverview(self.overview, self.overviewSizer)
 
-                self.vSizer.Clear()
+                self.vSizer.Clear(deleteWindows = True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
@@ -1475,6 +1489,13 @@ class PlaylistDetails(AbstractDetails):
         self.messagePanel = TransparentText(self, -1, "Loading details, please wait.")
         self.messageGauge = None
         _set_font(self.messagePanel, size_increment = 2, fontweight = wx.FONTWEIGHT_NORMAL)
+
+        for colour, height in [(SEPARATOR_GREY, 1), (FILTER_GREY, 25), (SEPARATOR_GREY, 1)]:
+            panel = wx.Panel(self)
+            panel.SetMinSize((-1,height))
+            panel.SetBackgroundColour(colour)
+            self.vSizer.Add(panel, 0, wx.EXPAND)
+        
         self.vSizer.AddStretchSpacer()
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.messageIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
@@ -1512,7 +1533,7 @@ class PlaylistDetails(AbstractDetails):
                 
                 self._addOverview(self.overview, self.overviewSizer)
 
-                self.vSizer.Clear()
+                self.vSizer.Clear(deleteWindows = True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
