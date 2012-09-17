@@ -648,7 +648,7 @@ class SearchCommunity(Community):
                         from Tribler.Core.CacheDB.sqlitecachedb import bin2str
                         print >> sys.stderr, "SearchCommunity: requesting .torrent after receiving ping/pong ", candidate, bin2str(infohash), bin2str(roothash)
 
-                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio = 2)
+                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio = 2, timeout = CANDIDATE_WALK_LIFETIME)
     
     def _create_pingpong(self, meta_name, candidates, identifiers = None):
         max_len = self.dispersy_sync_bloom_filter_bits/8

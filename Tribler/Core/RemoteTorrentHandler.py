@@ -75,7 +75,7 @@ class RemoteTorrentHandler:
         while True:
             num_torrents = self.torrent_db.getNumberCollectedTorrents()
             if DEBUG:
-                print >>sys.stderr,"rtorrent: check overflow: current", self.num_torrents, "max", self.max_num_torrents
+                print >>sys.stderr,"rtorrent: check overflow: current", num_torrents, "max", self.max_num_torrents
             
             if num_torrents > self.max_num_torrents:
                 num_delete = int(num_torrents - self.max_num_torrents*0.95)
@@ -104,12 +104,12 @@ class RemoteTorrentHandler:
             
             return self._searchcommunity
     
-    def download_torrent(self, candidate, infohash = None, roothash = None, usercallback = None, prio = 1):
+    def download_torrent(self, candidate, infohash = None, roothash = None, usercallback = None, prio = 1, timeout = None):
         if self.registered:
-            raw_lambda = lambda candidate=candidate, infohash=infohash, roothash=roothash, usercallback=usercallback, prio=prio: self._download_torrent(candidate, infohash, roothash, usercallback, prio)
+            raw_lambda = lambda candidate=candidate, infohash=infohash, roothash=roothash, usercallback=usercallback, prio=prio, timeout = timeout: self._download_torrent(candidate, infohash, roothash, usercallback, prio, timeout)
             self.scheduletask(raw_lambda)
             
-    def _download_torrent(self, candidate, infohash, roothash, usercallback, prio):
+    def _download_torrent(self, candidate, infohash, roothash, usercallback, prio, timeout):
         if self.registered:
             assert infohash or roothash, "We need either the info or roothash"
             
@@ -147,7 +147,7 @@ class RemoteTorrentHandler:
                 requester = requesters[prio]
         
             #make request
-            requester.add_request(hash, candidate)
+            requester.add_request(hash, candidate, timeout)
         
             if DEBUG:
                 print >>sys.stderr,'rtorrent: adding torrent request:', bin2str(infohash or ''), bin2str(roothash or ''), candidate, prio
@@ -336,14 +336,19 @@ class Requester:
         self.sources = {}
         self.canrequest = True
     
-    def add_request(self, hash, candidate):
+    def add_request(self, hash, candidate, timeout = None):
         was_empty = self.queue.empty()
         
         if hash not in self.sources:
             self.sources[hash] = set()
             
+        if timeout is None:
+            timeout = sys.maxint
+        else:
+            timeout = timeout + time()
+            
         self.sources[hash].add(candidate)
-        self.queue.put(hash)
+        self.queue.put((hash, timeout))
         
         if was_empty:
             self.scheduletask(self.doRequest, t = self.REQUEST_INTERVAL * self.prio)
@@ -364,23 +369,26 @@ class Requester:
             if canRequest:
                 #request new infohash from queue
                 while True:
-                    hash = self.queue.get_nowait()
+                    hash, timeout = self.queue.get_nowait()
                     
                     #check if still needed
-                    if hash in self.sources: 
+                    if time() > timeout:
+                        if DEBUG:
+                            print >> sys.stderr, "rtorrent: timeout for hash", hash
+                        if len(self.sources.get(hash, [])) == 1:
+                            del self.sources[hash]
+                    
+                    elif hash in self.sources:
                         break
-                    else:
-                        self.queue.task_done()
+                    
+                    self.queue.task_done()
                     
                 try:
                     #~load balance sources
-                    candidate = choice(list(self.sources[hash]))
-                    self.sources[hash].remove(candidate)
-                    
-                    if len(self.sources[hash]) < 1:
-                        del self.sources[hash]
+                    candidates = list(self.sources[hash])
+                    del self.sources[hash]
                         
-                    madeRequest = self.doFetch(hash, candidate)
+                    madeRequest = self.doFetch(hash, candidates)
                     
                 #Make sure exceptions wont crash this requesting loop
                 except: 
@@ -395,7 +403,7 @@ class Requester:
         except Queue.Empty:
             pass
         
-    def doFetch(self, hash, candidate):
+    def doFetch(self, hash, candidates):
         raise NotImplementedError()
 
 class TorrentRequester(Requester):
@@ -414,20 +422,23 @@ class TorrentRequester(Requester):
         self.dscfg.set_dest_dir(session.get_torrent_collecting_dir())
     
     
-    def doFetch(self, hash, candidate):
+    def doFetch(self, hash, candidates):
         infohash, roothash = hash
         
-        raw_lambda = lambda filename, hash=hash, candidate=candidate: self._doFetch(filename, hash, candidate)
+        raw_lambda = lambda filename, hash=hash, candidates=candidates: self._doFetch(filename, hash, candidates)
         self.remote_th.has_torrent(infohash, raw_lambda)
     
-    def _doFetch(self, filename, hash, candidate):
+    def _doFetch(self, filename, hash, candidates):
         infohash, roothash = hash
         
         if filename:
             self.remote_th.notify_possible_torrent_infohash(infohash, True)
             self.remote_th.notify_possible_torrent_infohash(hash, True)
             
-        elif candidate:
+        elif candidates:
+            candidate = candidates[0]
+            candidates = candidates[1:]
+            
             ip,port = candidate.sock_addr
             if not candidate.tunnel:
                 port = 7758
@@ -453,6 +464,17 @@ class TorrentRequester(Requester):
                 
             except OperationNotEnabledByConfigurationException:
                 doMagnet = True
+                
+            if download and candidates:
+                try:
+                    for candidate in candidates:
+                        ip,port = candidate.sock_addr
+                        if not candidate.tunnel:
+                            port = 7758
+                            
+                        download.add_peer((ip,port))
+                except:
+                    print_exc()
         
             #schedule a magnet lookup after X seconds
             if doMagnet:
@@ -501,11 +523,12 @@ class TorrentMessageRequester(Requester):
         Requester.__init__(self, remote_th.scheduletask, prio)
         self.searchcommunity = searchcommunity
     
-    def doFetch(self, hashes, candidate):
+    def doFetch(self, hashes, candidates):
         if self.searchcommunity:
             if DEBUG:
-                print >>sys.stderr,"rtorrent: requesting torrent message", map(bin2str, hashes), candidate
-            self.searchcommunity.create_torrent_request(hashes, candidate)
+                print >>sys.stderr,"rtorrent: requesting torrent message", map(bin2str, hashes), candidates
+            for candidate in candidates:
+                self.searchcommunity.create_torrent_request(hashes, candidate)
             
         return True
 
@@ -527,14 +550,14 @@ class MagnetRequester(Requester):
             self.MAX_CONCURRENT = 3
         self.canrequest = lambda: len(self.requestedInfohashes) < self.MAX_CONCURRENT
         
-    def doFetch(self, infohash, candidate):
+    def doFetch(self, infohash, candidates):
         if infohash not in self.requestedInfohashes:
             self.requestedInfohashes.add(infohash)
         
-            raw_lambda = lambda filename, infohash=infohash, candidate=candidate: self._doFetch(filename, infohash, candidate)
+            raw_lambda = lambda filename, infohash=infohash, candidates=candidates: self._doFetch(filename, infohash, candidates)
             self.remote_th.has_torrent(infohash, raw_lambda)
     
-    def _doFetch(self, filename, infohash, candidate):
+    def _doFetch(self, filename, infohash, candidates):
         if filename:
             if infohash in self.requestedInfohashes: 
                 self.requestedInfohashes.remove(infohash)
