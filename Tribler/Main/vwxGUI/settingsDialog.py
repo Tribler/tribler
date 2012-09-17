@@ -613,10 +613,6 @@ class SettingsDialog(wx.Dialog):
             try:
                 target.set_proxyservice_dir(os.path.join(defaultdestdir, PROXYSERVICE_DESTDIR))
             except:
-                print_exc()
-            try:    
-                target.set_subtitles_collecting_dir(os.path.join(defaultdestdir, STATEDIR_SUBSCOLL_DIR))
-            except:
                 print_exc()    
         scfg.save(cfgfilename)
     

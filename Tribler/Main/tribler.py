@@ -347,11 +347,6 @@ class ABCApp():
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
             
-            # 13-04-2010, Andrea: subtitles collecting dir definition
-            subscolldir = os.path.join(destdir, STATEDIR_SUBSCOLL_DIR)
-            self.sconfig.set_subtitles_collecting(True)
-            self.sconfig.set_subtitles_collecting_dir(subscolldir)
-            
             self.sconfig.set_nat_detect(True)
             
             # Arno, 2012-05-04: swift
