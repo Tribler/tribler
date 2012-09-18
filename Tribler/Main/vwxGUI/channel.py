@@ -167,6 +167,10 @@ class ChannelManager(BaseManager):
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
             self.do_or_schedule_partial([infohash])
+            
+    def torrentsUpdated(self, infohashes):
+        infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
+        self.do_or_schedule_partial(infohashes)            
              
     def channelUpdated(self, channel_id, stateChanged = False, modified = False):
         _channel = self.list.channel
@@ -868,6 +872,10 @@ class PlaylistManager(BaseManager):
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
             self.do_or_schedule_partial([infohash])
+
+    def torrentsUpdated(self, infohashes):
+        infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
+        self.do_or_schedule_partial(infohashes)            
         
     def playlistUpdated(self, playlist_id, modified = False):
         if self.list.playlist == playlist_id:

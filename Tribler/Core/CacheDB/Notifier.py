@@ -6,6 +6,7 @@ import threading
 from traceback import print_exc, print_stack
 
 from Tribler.Core.simpledefs import *
+from threading import Timer
 
 class Notifier:
     
@@ -19,8 +20,11 @@ class Notifier:
         if Notifier.__single:
             raise RuntimeError, "Notifier is singleton"
         self.pool = pool
-        self.observers = []    
+        
+        self.observers = []
+        self.observerscache = {}    
         self.observerLock = threading.Lock()
+        
         Notifier.__single = self
         
     def getInstance(*args, **kw):
@@ -29,7 +33,7 @@ class Notifier:
         return Notifier.__single
     getInstance = staticmethod(getInstance)
     
-    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None):
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None, cache = 0):
         """
         Add observer function which will be called upon certain event
         Example: 
@@ -42,7 +46,7 @@ class Notifier:
         assert type(changeTypes) == list
         assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS'%subject
         
-        obs = (func, subject, changeTypes, id)
+        obs = (func, subject, changeTypes, id, cache)
         self.observerLock.acquire()
         self.observers.append(obs)
         self.observerLock.release()
@@ -68,20 +72,40 @@ class Notifier:
         tasks = []
         assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS'%subject
         
+        args = [subject, changeType, obj_id] + list(args)
+        
         self.observerLock.acquire()
-        for ofunc, osubject, ochangeTypes, oid in self.observers:
+        for ofunc, osubject, ochangeTypes, oid, cache in self.observers:
             try:
                 if (subject == osubject and
                     changeType in ochangeTypes and
                     (oid is None or oid == obj_id)):
-                    tasks.append(ofunc)
+                    
+                    if not cache:
+                        tasks.append(ofunc)
+                    else:
+                        if ofunc not in self.observerscache:
+                            def doQueue(ofunc):
+                                self.observerLock.acquire()
+                                events = self.observerscache[ofunc]
+                                del self.observerscache[ofunc]
+                                self.observerLock.release()
+                                
+                                if self.pool:
+                                    self.pool.queueTask(ofunc, (events,))
+                                else:
+                                    ofunc(events)
+                            
+                            self.observerscache[ofunc] = []
+                            t = Timer(cache, doQueue, (ofunc, ))
+                            t.start()
+                            
+                        self.observerscache[ofunc].append(args)
             except:
-                print_stack()
                 print_exc()
                 print >>sys.stderr,"notify: OIDs were",`oid`,`obj_id`
                 
         self.observerLock.release()
-        args = [subject, changeType, obj_id] + list(args)
         for task in tasks:
             if self.pool:
                 self.pool.queueTask(task, args)

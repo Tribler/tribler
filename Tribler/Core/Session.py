@@ -513,7 +513,7 @@ class Session(SessionRuntimeConfig):
     #
     # Notification of events in the Session
     #
-    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID = None):
+    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID = None, cache = 0):
         """ Add an observer function function to the Session. The observer 
         function will be called when one of the specified events (changeTypes)
         occurs on the specified subject.
@@ -531,13 +531,13 @@ class Session(SessionRuntimeConfig):
         events.
         @param objectID The specific object in the subject to monitor (e.g. a
         specific primary key in a database to monitor for updates.)
-        
+        @param cache The time to bundle/cache events matching this function
         
         TODO: Jelle will add per-subject/event description here ;o)
         
         """
         #Called by any thread
-        self.uch.notifier.add_observer(func, subject, changeTypes, objectID) # already threadsafe
+        self.uch.notifier.add_observer(func, subject, changeTypes, objectID, cache=cache) # already threadsafe
         
     def remove_observer(self, func):
         """ Remove observer function. No more callbacks will be made.

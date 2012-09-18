@@ -183,6 +183,10 @@ class RemoteSearchManager(BaseManager):
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
             self.do_or_schedule_partial([infohash])
+    
+    def torrentsUpdated(self, infohashes):
+        infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
+        self.do_or_schedule_partial(infohashes)
 
 class LocalSearchManager(BaseManager):
     def __init__(self, list):
@@ -236,6 +240,10 @@ class LocalSearchManager(BaseManager):
     def torrentUpdated(self, infohash):
         if self.list.InList(infohash):
             self.do_or_schedule_partial([infohash])
+            
+    def torrentsUpdated(self, infohashes):
+        infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
+        self.do_or_schedule_partial(infohashes)            
             
     def downloadStarted(self, infohash):
         self.prev_refresh_if = 0

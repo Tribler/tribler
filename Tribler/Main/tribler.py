@@ -300,11 +300,11 @@ class ABCApp():
         
         s = self.utility.session
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE,NTFY_MODIFIED])
-        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE])
+        s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT], cache = 10)
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_CHANNELCAST,[NTFY_INSERT,NTFY_UPDATE,NTFY_CREATE,NTFY_STATE,NTFY_MODIFIED], cache = 10)
+        s.add_observer(self.sesscb_ntfy_channelupdates,NTFY_VOTECAST,[NTFY_UPDATE], cache = 10)
         s.add_observer(self.sesscb_ntfy_myprefupdates,NTFY_MYPREFERENCES,[NTFY_INSERT,NTFY_UPDATE])
-        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE, NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_torrentupdates,NTFY_TORRENTS,[NTFY_UPDATE, NTFY_INSERT], cache = 10)
         s.add_observer(self.sesscb_ntfy_playlistupdates, NTFY_PLAYLISTS, [NTFY_INSERT,NTFY_UPDATE])
         s.add_observer(self.sesscb_ntfy_commentupdates, NTFY_COMMENTS, [NTFY_INSERT, NTFY_DELETE])
         s.add_observer(self.sesscb_ntfy_modificationupdates, NTFY_MODIFICATIONS, [NTFY_INSERT])
@@ -781,10 +781,13 @@ class ABCApp():
             print_exc()
     
     @forceWxThread
-    def sesscb_ntfy_activities(self,subject,changeType,objectID,*args):
-        #print >>sys.stderr,"main: sesscb_ntfy_activities called:",subject,"ct",changeType,"oid",objectID,"a",args
+    def sesscb_ntfy_activities(self,events):
         if self.ready and self.frame.ready:
-            self.frame.setActivity(objectID, *args)
+            for args in events:
+                objectID = args[2]
+                args = args[3:]
+        
+                self.frame.setActivity(objectID, *args)
     
     @forceWxThread
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
@@ -792,44 +795,51 @@ class ABCApp():
             self.frame.SRstatusbar.onReachable()
 
     @forceWxThread
-    def sesscb_ntfy_channelupdates(self,subject,changeType,objectID,*args):
+    def sesscb_ntfy_channelupdates(self,events):
         if self.ready and self.frame.ready:
-            if self.frame.channellist:
-                if len(args) > 0:
-                    myvote = args[0]
-                else:
-                    myvote = False
-                
-                manager = self.frame.channellist.GetManager()
-                manager.channelUpdated(objectID, subject == NTFY_VOTECAST, myvote = myvote)
+            for args in events:
+                subject = args[0]
+                changeType = args[1]
+                objectID = args[2]
             
-            manager = self.frame.selectedchannellist.GetManager()
-            manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = changeType == NTFY_MODIFIED)
-            
-            if changeType == NTFY_CREATE:
                 if self.frame.channellist:
-                    self.frame.channellist.SetMyChannelId(objectID)
+                    if len(args) > 3:
+                        myvote = args[3]
+                    else:
+                        myvote = False
+                    
+                    manager = self.frame.channellist.GetManager()
+                    manager.channelUpdated(objectID, subject == NTFY_VOTECAST, myvote = myvote)
                 
-                self.torrentfeed.register(self.utility.session, objectID)
-                self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-            
-            self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
+                manager = self.frame.selectedchannellist.GetManager()
+                manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = changeType == NTFY_MODIFIED)
+                
+                if changeType == NTFY_CREATE:
+                    if self.frame.channellist:
+                        self.frame.channellist.SetMyChannelId(objectID)
+                    
+                    self.torrentfeed.register(self.utility.session, objectID)
+                    self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
+                
+                self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
     
     @forceWxThread
-    def sesscb_ntfy_torrentupdates(self, subject, changeType, objectID, *args):
+    def sesscb_ntfy_torrentupdates(self, events):
         if self.ready and self.frame.ready:
+            infohashes = [args[2] for args in events]
+            
             if self.frame.searchlist:
                 manager = self.frame.searchlist.GetManager()
-                manager.torrentUpdated(objectID)
-            
-            manager = self.frame.selectedchannellist.GetManager()
-            manager.torrentUpdated(objectID)
-            
-            manager = self.frame.playlist.GetManager()
-            manager.torrentUpdated(objectID)
-            
-            manager = self.frame.librarylist.GetManager()
-            manager.torrentUpdated(objectID)
+                manager.torrentsUpdated(infohashes)
+                
+                manager = self.frame.selectedchannellist.GetManager()
+                manager.torrentsUpdated(infohashes)
+                
+                manager = self.frame.playlist.GetManager()
+                manager.torrentsUpdated(infohashes)
+                
+                manager = self.frame.librarylist.GetManager()
+                manager.torrentsUpdated(infohashes)
             
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading." % args[0], icon = wx.ART_INFORMATION)
