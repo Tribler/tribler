@@ -715,6 +715,7 @@ class EffortCommunity(Community):
 
             data = dict(cid=self._cid.encode("HEX"),
                         mid=self._my_member.mid.encode("HEX"),
+                        timestamp_start=start,
                         timestamp=time(),
                         lan_address=self._dispersy.lan_address,
                         wan_address=self._dispersy.wan_address,
@@ -789,6 +790,7 @@ LIMIT 1000""", (last_record_pushed,)))
                     dprint("unable to push statistics.  response: ", response.status, level="error")
 
         try:
+            start = time()
             while True:
                 yield 300.0
                 for delay in push():
