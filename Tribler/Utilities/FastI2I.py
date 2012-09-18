@@ -38,6 +38,8 @@ class FastI2IConnection(Thread):
             self.sock.connect(("127.0.0.1",self.port))
             while True:
                 data = self.sock.recv(10240)
+                if len(data) == 0:
+                    break
                 self.data_came_in(data)
         except:
             print_exc()
