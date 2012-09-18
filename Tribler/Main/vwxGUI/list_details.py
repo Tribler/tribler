@@ -906,7 +906,7 @@ class TorrentDetails(AbstractDetails):
             elif curTorrent.num_seeders != newTorrent.num_seeders or curTorrent.num_leechers != newTorrent.num_leechers:
                 curTorrent.num_seeders = newTorrent.num_seeders
                 curTorrent.num_leechers = newTorrent.num_leechers
-                self.ShowStatus(False)
+                self.ShowHealth(False)
     
     @forceDBThread
     def UpdateHealth(self):
