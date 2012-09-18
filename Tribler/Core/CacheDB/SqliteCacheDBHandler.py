@@ -4464,7 +4464,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         self.update_terms = {}
         
         self.termLock = Lock()
-        self.extractor.session.lm.database_thread.register(self.__flush_to_database, delay = 20.0)
+        self.extractor.session.lm.database_thread.register(self.__flush_to_database, delay = 5.0 if self.nr_bi_phrases < 100 else 20.0)
         
     def __flush_to_database(self):
         with self.termLock:
@@ -4479,8 +4479,11 @@ class NetworkBuzzDBHandler(BasicDBHandler):
             
         if self.nr_bi_phrases < self.MAX_UNCOLLECTED:
             self.updateBiPhraseCount()
-            
-        yield 20.0
+        
+        if self.nr_bi_phrases < 100:
+            yield 5.0
+        else:
+            yield 20.0
             
     def updateBiPhraseCount(self):
         count_sql = "SELECT COUNT(*) FROM TorrentBiTermPhrase"
