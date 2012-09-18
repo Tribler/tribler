@@ -69,6 +69,10 @@ class ChannelManager(BaseManager):
             self.list.SetChannel(channel)
 
         self._refresh_list()
+        
+    def refresh_if_required(self, channel):
+        if self.list.channel != channel:
+            self.refresh(channel)
     
     def _refresh_list(self, stateChanged = False):
         if DEBUG:

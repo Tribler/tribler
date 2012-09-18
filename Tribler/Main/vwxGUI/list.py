@@ -38,6 +38,7 @@ from Tribler.Category.Category import Category
 
 DEBUG = False
 DEBUG_RELEVANCE = False
+MAX_REFRESH_PARTIAL = 5
 
 class BaseManager:
     def __init__(self, list):
@@ -49,7 +50,7 @@ class BaseManager:
         self.dirtyset.clear()
     
     def refreshDirty(self):
-        if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > 5 or len(self.dirtyset) == 0:
+        if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > MAX_REFRESH_PARTIAL or len(self.dirtyset) == 0:
             if len(self.dirtyset) > 0:
                 self.list.RemoveItems(self.dirtyset)
                 
@@ -77,7 +78,11 @@ class BaseManager:
         
     def do_or_schedule_partial(self, ids, force_refresh = False):
         if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
-            self.refresh_partial(ids)
+            if len(ids) > MAX_REFRESH_PARTIAL:
+                self.list.RemoveItems(ids)
+                self.refresh()
+            else:
+                self.refresh_partial(ids)
         else:
             self.dirtyset.update(ids)
             self.list.dirty = True
@@ -127,7 +132,8 @@ class RemoteSearchManager(BaseManager):
             
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
-        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = "guiTaskQueue",priority=GUI_PRI_DISPERSY)
+        workerType = "guiTaskQueue" if remote else "dbThread"
+        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = workerType, priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
@@ -932,6 +938,8 @@ class SizeList(List):
             if isinstance(original_data, Torrent):
                 infohash = original_data.infohash
                 old_dsdict[infohash] = original_data.ds
+                prevState = self.prevStates.get(infohash, (original_data.state, original_data.magnetState))
+                
                 original_data.clearDs()
                 
                 removekeys = [key for key, ds in dsdict.iteritems() if original_data.addDs(ds)]
@@ -946,8 +954,6 @@ class SizeList(List):
                     item.original_data.magnetstatus = original_data.magnetstatus
     
                 curState = curStates[infohash] = original_data.state, original_data.magnetState
-                prevState = self.prevStates.get(infohash, (-1, -1))
-                
                 if curState != prevState:
                     didStateChange = True
     

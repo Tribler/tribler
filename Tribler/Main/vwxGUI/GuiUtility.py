@@ -143,14 +143,12 @@ class GUIUtility:
                 
             elif self.guiPage == 'mychannel':
                 self.frame.managechannel.Show(False)
-                self.frame.managechannel.Reset()
                 
             if page == 'managechannel':
                 self.frame.managechannel.Show()
                 
             elif self.guiPage == 'managechannel':
                 self.frame.managechannel.Show(False)
-                self.frame.managechannel.Reset()
             
             if page == 'selectedchannel':
                 self.SetTopSplitterWindow(self.frame.selectedchannellist)
@@ -165,8 +163,6 @@ class GUIUtility:
 
             elif self.guiPage == 'selectedchannel':
                 self.frame.selectedchannellist.Show(False)
-                if page not in ['playlist','managechannel']:
-                    self.frame.selectedchannellist.Reset()
             
             if page == 'playlist':
                 self.SetTopSplitterWindow(self.frame.playlist)
@@ -179,7 +175,6 @@ class GUIUtility:
                 
             elif self.guiPage == 'playlist':
                 self.frame.playlist.Show(False)
-                self.frame.playlist.Reset()
                 
             if page == 'my_files':
                 #Show list
@@ -442,9 +437,8 @@ class GUIUtility:
     @forceWxThread
     def showChannel(self, channel):
         if channel:
-            
             manager = self.frame.selectedchannellist.GetManager()
-            manager.refresh(channel)
+            manager.refresh_if_required(channel)
             
             self.ShowPage('selectedchannel')
             
