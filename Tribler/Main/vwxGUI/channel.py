@@ -350,7 +350,6 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def SetChannel(self, channel):
-        print >> sys.stderr, "new channel", channel
         self.channel = channel
         
         self.Freeze()
@@ -364,15 +363,6 @@ class SelectedChannelList(GenericSearchList):
     def SetIds(self, channel):
         if channel:
             self.my_channel = channel.isMyChannel()
-        
-            manager = self.commentList.GetManager()
-            manager.SetIds(channel = channel)
-            
-            manager = self.activityList.GetManager()
-            manager.SetIds(channel = channel)
-            
-            manager = self.moderationList.GetManager()
-            manager.SetIds(channel = channel)
         else:
             self.my_channel = False
             
@@ -384,7 +374,8 @@ class SelectedChannelList(GenericSearchList):
     def SetChannelState(self, state, iamModerator):
         self.iamModerator = iamModerator
         self.state = state
-        
+        self.channel.setState(state, iamModerator)
+
         if state >= ChannelCommunity.CHANNEL_SEMI_OPEN:
             if self.notebook.GetPageCount() == 1:
                 self.commentList.Show(True)
@@ -402,7 +393,11 @@ class SelectedChannelList(GenericSearchList):
                 page.Show(False)
                 self.notebook.RemovePage(i-1)
         
-        self.header.SetHeadingButtons(self.channel.my_vote, self.state, self.iamModerator)
+        #Update header + list ids
+        self.header.SetHeadingButtons(self.channel)
+        self.commentList.GetManager().SetIds(channel = self.channel)
+        self.activityList.GetManager().SetIds(channel = self.channel)
+        self.moderationList.GetManager().SetIds(channel = self.channel)
     
     @warnWxThread
     def SetTitle(self, channel):
@@ -422,7 +417,7 @@ class SelectedChannelList(GenericSearchList):
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem, index) for index, playlist in enumerate(playlists)]
             
-            shouldDrag = len(playlists) > 0 and (self.iamModerator or self.channel.isOpen())
+            shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, DragItem) for torrent in torrents]
             else:
@@ -464,7 +459,7 @@ class SelectedChannelList(GenericSearchList):
         
         if data:
             if isinstance(data, Torrent):
-                if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
+                if self.state == ChannelCommunity.CHANNEL_OPEN or self.channel.iamModerator:
                     data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data, DragItem)
                 else:
                     data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data)
@@ -1993,7 +1988,7 @@ class CommentManager(BaseManager):
     def SetIds(self, channel, playlist = None, channeltorrent = None):
         changed = False
         
-        if channel != self.channel:
+        if channel:
             self.channel = channel
             if self.list.header:
                 self.list.header.SetTitle('Comments for this channel')
@@ -2005,14 +2000,14 @@ class CommentManager(BaseManager):
                 
             changed = True
         
-        if playlist != self.playlist:
+        if playlist:
             self.playlist = playlist
             if self.list.header:
                 self.list.header.SetTitle('Comments for this playlist')
             
             changed = True
             
-        elif channeltorrent != self.channeltorrent:
+        elif channeltorrent:
             assert isinstance(channeltorrent, ChannelTorrent) or (isinstance(channeltorrent, CollectedTorrent) and isinstance(channeltorrent.torrent, ChannelTorrent)), type(channeltorrent)
             self.channeltorrent = channeltorrent
             if self.list.header:
@@ -2193,13 +2188,13 @@ class ActivityManager(BaseManager):
         self.channeltorrent = None
         
     def SetIds(self, channel, playlist = None):
-        if channel != self.channel:
+        if channel:
             self.channel = channel
             self.list.dirty = True
             
             self.list.header.SetTitle('Recent activity in this Channel')
         
-        if playlist != self.playlist:
+        if playlist:
             self.playlist = playlist
             self.list.dirty = True
             
@@ -2430,13 +2425,13 @@ class ModerationManager(BaseManager):
         
     def SetIds(self, channel = None, playlist = None):
         changed = False
-        if channel != self.channel:
+        if channel:
             self.channel = channel
             self.list.header.SetTitle('Recent moderations for this Channel')
             
             changed = True
         
-        if playlist != self.playlist:
+        if playlist:
             self.playlist = playlist
             self.list.header.SetTitle('Recent moderations for this Playlist')
             

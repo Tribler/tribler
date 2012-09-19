@@ -914,23 +914,25 @@ class SelectedChannelFilter(TorrentFilter):
                 
                 self.heading_list.Layout()
 
-    def SetHeadingButtons(self, vote, channelstate, iamModerator):
+    def SetHeadingButtons(self, channel):
         item = self.heading_list.GetItems()[0]
         num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
         
+        channelstate, iamModerator = channel.getState()
+        
         open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
-        allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
+        allow2edit = channel.my_vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
         item.buttonSizer.Clear(deleteWindows = True)
         
-        if vote == 0 and not iamModerator:
+        if channel.my_vote == 0 and not iamModerator:
             item.AddButton("Mark as Spam", self.parent_list.OnSpam)
             item.AddButton("Mark as Favorite", self.parent_list.OnFavorite)
         else:
             if open2edit or allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)
-            if vote == -1:
+            if channel.my_vote == -1:
                 item.AddButton("This is not Spam", self.parent_list.OnRemoveVote)
-            elif vote == 2:
+            elif channel.my_vote == 2:
                 item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote)
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)

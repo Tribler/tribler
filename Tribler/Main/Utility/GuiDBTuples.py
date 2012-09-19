@@ -520,6 +520,10 @@ class Channel(Helper):
         state, myChannel = self.getState()
         return state >= ChannelCommunity.CHANNEL_SEMI_OPEN
     
+    @property
+    def iamModerator(self):
+        return self.getState()[1]
+    
     @cache
     def getState(self):
         if self.isDispersy():
@@ -534,6 +538,9 @@ class Channel(Helper):
                 return result 
         
         return ChannelCommunity.CHANNEL_CLOSED, self.isMyChannel()
+    
+    def setState(self, state, iamModerator):
+        self._cache['getState'] = (state, iamModerator)
     
     def refreshState(self):
         try:
