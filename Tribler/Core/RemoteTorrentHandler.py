@@ -245,13 +245,12 @@ class RemoteTorrentHandler:
         
         mfpath = os.path.join(self.session.get_torrent_collecting_dir(),sdef.get_roothash_as_hex())
         if not os.path.exists(mfpath):
-            if os.path.exists(mfpath + ".mhash"): #indicating active swift download
-                download = self.session.get_download(sdef.get_roothash())
-                if download:
-                    self.session.remove_download(download, removestate = True)
-                    sleep(1)
-                else:
-                    os.remove(mfpath + ".mhash")
+            download = self.session.get_download(sdef.get_roothash())
+            if download:
+                self.session.remove_download(download, removestate = True)
+                sleep(1)
+            elif os.path.exists(mfpath + ".mhash"): #indicating failed swift download
+                os.remove(mfpath + ".mhash")
             
             try:
                 shutil.copy(filename, mfpath)
