@@ -68,7 +68,7 @@ class ChannelManager(BaseManager):
             self.list.Reset()
             self.list.SetChannel(channel)
 
-        self._refresh_list()
+        self._refresh_list(channel)
         
     def refresh_if_required(self, channel):
         if self.list.channel != channel:
@@ -356,19 +356,7 @@ class SelectedChannelList(GenericSearchList):
         self.SetIds(channel)
         
         if channel:
-            self.SetTitle(channel.name, channel.description)
-        
-            nr_torrents = channel.nr_torrents
-            if not channel.isFavorite() and not channel.isMyChannel():
-                nr_torrents = min(nr_torrents, 50)
-            self.SetNrResults(nr_torrents)
-            
-            if channel.isDispersy():
-                startWorker(self.SetState, self.channel.getState, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
-            else:
-                self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, self.my_channel)
-        else:
-            self.SetChannelState(ChannelCommunity.CHANNEL_CLOSED, False)
+            self.SetTitle(channel)
             
         self.Thaw()
     
@@ -392,11 +380,6 @@ class SelectedChannelList(GenericSearchList):
             self.notebook.SetSelection(0)
     
     @warnWxThread
-    def SetState(self, delayedResult):
-        state, iamModerator = delayedResult.get()
-        self.SetChannelState(state, iamModerator)
-    
-    @warnWxThread
     def SetChannelState(self, state, iamModerator):
         self.iamModerator = iamModerator
         self.state = state
@@ -417,19 +400,13 @@ class SelectedChannelList(GenericSearchList):
                 page = self.notebook.GetPage(i-1)
                 page.Show(False)
                 self.notebook.RemovePage(i-1)
-
-        if self.channel:
-            self.ResetBottomWindow()
-            self.header.SetHeading(self.channel)
-            self.Layout()
+                
+        self.SetTitle(self.channel)
     
-    @warnWxThread    
-    def SetTitle(self, title, description):
-        if title != self.title:
-            self.title = title
-            self.header.SetTitle("%s's channel"%title)
-        
-        self.header.SetStyle(description)
+    @warnWxThread
+    def SetTitle(self, channel):
+        self.ResetBottomWindow()
+        self.header.SetHeading(channel)
         self.Layout()
    
     def GetManager(self):
@@ -711,7 +688,7 @@ class SelectedChannelList(GenericSearchList):
             if torDetails:
                 torDetails.OnMarkingCreated(channeltorrent_id)
     
-    @warnWxThread   
+    @warnWxThread
     def OnMarkTorrent(self, channel, infohash, type):
         self.channelsearch_manager.markTorrent(channel.id, infohash, type)
         
