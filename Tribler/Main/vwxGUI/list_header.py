@@ -789,6 +789,7 @@ class TorrentFilter(BaseFilter):
     def Reset(self):
         self.search.Clear()
         self.filesize.Reset()
+        self.slider_positions = (0, 0)
         
     def GetSliderMinMax(self):
         return self.slider_minmax
@@ -910,8 +911,8 @@ class SelectedChannelFilter(TorrentFilter):
                 new_item = self.heading_list.GetItem(channel.id)
                 new_item.SetTitleSizerHeight(30)
                 new_item.list_deselected = FILTER_GREY
-                new_item.ShowSelected()
-                
+                new_item.SetHideButtons(False)
+                                
                 self.heading_list.Layout()
 
     def SetHeadingButtons(self, channel):
@@ -936,7 +937,6 @@ class SelectedChannelFilter(TorrentFilter):
                 item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote)
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)
-        item.SetHideButtons(False)
                 
     def OnExpand(self, item):
         from Tribler.Main.vwxGUI.list_item import ChannelListItem
@@ -1320,6 +1320,8 @@ class DownloadFilter(BaseFilter):
 
     def Reset(self):
         self.search.Clear()
+        self.filesize.Reset()
+        self.slider_positions = (0, 0)
         
     def GetSliderMinMax(self):
         return self.slider_minmax

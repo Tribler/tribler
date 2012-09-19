@@ -563,6 +563,7 @@ class AbstractListBody():
         self.lastMouseLeftDownEvent = None
         self.curWidth = -1
         self.Bind(wx.EVT_SIZE, self.OnEventSize)
+        self.ShowLoading()
     
     @warnWxThread
     def SetBackgroundColour(self, colour):
@@ -1310,8 +1311,9 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
             else:
                 self.processingMousewheel = False
                 event.Skip()
+                
         except PyDeadObjectError:
-            wx.GetTopLevelParent(self).Unbind(wx.EVT_MOUSEWHEEL, handler = self.OnMouseWheel)
+            GUIUtility.getInstance().frame.Unbind(wx.EVT_MOUSEWHEEL, handler = self.OnMouseWheel)
   
         
     def Show(self, show = True):

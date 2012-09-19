@@ -18,7 +18,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
-    ProgressButton, GradientPanel, TransparentText
+    ProgressButton, GradientPanel, TransparentText, LinkText
 
 from list_header import ListHeader
 from list_body import ListBody
@@ -169,11 +169,14 @@ class TorrentDetails(AbstractDetails):
         self.canMark = False
         self.showDetails = False
         self.markWindow = None
+        self.markings = None
         
         self.isEditable = {}
         
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
         self._doLoad()
+        
+        self.Bind(wx.EVT_SIZE, self.OnSize)
         
         self.Show()
 
@@ -613,6 +616,13 @@ class TorrentDetails(AbstractDetails):
                     self._add_row(panel, vSizer, 'Swift URL', value)
         
         if self.canComment:
+            self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 5)
+            self.markingSizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.marktoggle = LinkText(self.overview, 'Mark this torrent', colours=[wx.BLACK,TRIBLER_RED])
+            self.marktoggle.Bind(wx.EVT_LEFT_UP, self.OnMark)
+            self.markingSizer.AddStretchSpacer()
+            self.markingSizer.Add(self.marktoggle)
+            self.torrentSizer.Add(self.markingSizer, 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 5)
             self.UpdateMarkings()
         
         self.UpdateHealth()
@@ -640,7 +650,11 @@ class TorrentDetails(AbstractDetails):
         else:
             #Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
             wx.CallAfter(self.ShowPanel, newState)
-    
+
+    def OnSize(self, event):
+        self.DestroyMarkingsWindow()
+        event.Skip()
+
     @warnWxThread
     def OnChange(self, event):
         page = event.GetSelection()
@@ -798,27 +812,25 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread   
     def OnMark(self, event):
-        if self.markWindow:
-            self.markWindow.Show(False)
-            self.markWindow.Destroy()
-            self.markWindow = None
+        self.DestroyMarkingsWindow()
         
         parentPanel = self.parent.GetParent()
         
-        self.markWindow = wx.Panel(parentPanel)
+        markWindow = wx.Panel(parentPanel)
+        markWindow.Show(False)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        text = wx.StaticText(self.markWindow, -1, "Mark this torrent as being: ")
+        text = wx.StaticText(markWindow, -1, "Mark this torrent as being: ")
         _set_font(text, size_increment = 1, fontweight = wx.FONTWEIGHT_BOLD)
         
-        markChoices = wx.Choice(self.markWindow, choices = ['Good', 'High-Quality', 'Mid-Quality', 'Low-Quality', 'Corrupt', 'Fake', 'Spam'])
+        markChoices = wx.Choice(markWindow, choices = ['Good', 'High-Quality', 'Mid-Quality', 'Low-Quality', 'Corrupt', 'Fake', 'Spam'])
         hSizer.Add(text, 1, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 3)
         hSizer.Add(markChoices)
         
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.ALL, 3)
         
-        addiText = wx.StaticText(self.markWindow, -1, "Corrupt, Fake and Spam torrents are reported to the Moderators \nfor deletion.")
+        addiText = wx.StaticText(markWindow, -1, "Corrupt, Fake and Spam torrents are reported to the Moderators \nfor deletion.")
         vSizer.Add(addiText, 0, wx.EXPAND|wx.ALL, 3)
         
         def DoMark(event):
@@ -830,21 +842,24 @@ class TorrentDetails(AbstractDetails):
                 self.markWindow.Show(False)
                 self.markWindow.Destroy()
                 self.markWindow = None
+                self.marktoggle.SetForegroundColour(self.GetForegroundColour())
                 
-        button = wx.Button(self.markWindow, -1, "Mark Now")
+        button = wx.Button(markWindow, -1, "Mark Now")
         button.Bind(wx.EVT_BUTTON, DoMark)
         vSizer.Add(button, 0, wx.ALIGN_RIGHT|wx.ALL, 3)
         
-        self.markWindow.SetSizerAndFit(vSizer)
-        self.markWindow.Layout()
+        markWindow.SetSizerAndFit(vSizer)
+        markWindow.Layout()
+        
+        if self.overview.GetSize()[1] < markWindow.GetSize()[1]+100:
+            sashpos = (markWindow.GetSize()[1]+100)*-1
+            self.guiutility.frame.splitter.SetSashPosition(sashpos)
         
         btn = event.GetEventObject()
+        btn.SetForegroundColour(TRIBLER_RED)
+        pos = wx.Point(btn.GetPosition().x+btn.GetSize().x-markWindow.GetSize().x+5, parentPanel.GetSize().y-self.GetSize().y+30)
         
-        sz =  btn.GetSize()
-        pos = btn.ClientToScreen((0,0))
-        parentpos = parentPanel.ClientToScreen((0,0))
-        pos = pos - parentpos + (0, sz[1])
-        
+        self.markWindow = markWindow
         self.markWindow.SetPosition(pos)
         self.markWindow.Show()
         self.markWindow.Raise()
@@ -970,17 +985,21 @@ class TorrentDetails(AbstractDetails):
                 msg += ' %s (%d)'%(marktype, nr)
             
             #see if we are updating
-            children = list(self.torrentSizer.GetChildren())
-            staticline = children[-2].GetWindow()
-            
-            if not isinstance(staticline, wx.StaticLine):
-                self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.ALL|wx.EXPAND, 5)
-                self._add_row(self.overview, self.torrentSizer, None, msg, 10)
+            if not self.markings:
+                self.markings = MaxBetterText(self.overview, unicode(msg), maxLines = 3)
+                self.markingSizer.Insert(0, self.markings)
             else:
-                statictext = children[-1].GetSizer()
-                statictext.SetLabel(msg)
+                self.markings.SetLabel(msg)
                 
             self.torrentSizer.Layout()
+            
+    def DestroyMarkingsWindow(self):
+        if self.markWindow:
+            self.markWindow.Show(False)
+            self.markWindow.Destroy()
+            self.markWindow = None
+            self.marktoggle.SetForegroundColour(self.GetForegroundColour())
+            return
            
     def OnRefresh(self, dslist, magnetlist):
         found = False
