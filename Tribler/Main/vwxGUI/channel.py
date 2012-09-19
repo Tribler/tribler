@@ -100,7 +100,7 @@ class ChannelManager(BaseManager):
             result = delayedResult.get()
             if result:
                 total_items, nrfiltered, torrentList, playlists, state, iamModerator = result
-                if state:
+                if state != None:
                     self.list.SetChannelState(state, iamModerator)
                     
                 self._on_data(total_items, nrfiltered, torrentList, playlists)
@@ -1610,8 +1610,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             state = 2
         elif state == 2:
             state = 0
+            
         startWorker(None, self.channelsearch_manager.setChannelState, wargs = (self.channel.id, state), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
-
         
         button = event.GetEventObject()
         button.Enable(False)
