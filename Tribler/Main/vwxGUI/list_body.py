@@ -1064,11 +1064,15 @@ class AbstractListBody():
                 
                 if nr_items_to_add > 0 and nr_items_to_create > 0:
                     if key not in self.items:
-                        self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected, list_expanded = self.list_expanded)
-                        nr_items_to_create -= 1
+                        try:
+                            self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected, list_expanded = self.list_expanded)
+                            nr_items_to_create -= 1
+                        except:
+                            print_exc()
+                            self.items[key] = None
                         
                     item = self.items[key]
-                    sizer = self.vSizer.GetItem(item)
+                    sizer = self.vSizer.GetItem(item) if item else True
                     if not sizer:
                         self.vSizer.Add(item, 0, wx.EXPAND|wx.BOTTOM, 1)
                         item.Show()
