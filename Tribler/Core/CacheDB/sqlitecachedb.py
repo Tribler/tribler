@@ -306,7 +306,6 @@ class SQLiteCacheDBBase:
                 cur.execute("PRAGMA journal_mode = DELETE;")
                 cur.execute("PRAGMA page_size = 8192;")
                 cur.execute("VACUUM;")
-                cur.execute("PRAGMA journal_mode = WAL;")
                 print >> sys.stderr, "...end page_size upgrade"
 
             # http://www.sqlite.org/pragma.html
@@ -320,6 +319,10 @@ class SQLiteCacheDBBase:
             #
             cur.execute("PRAGMA synchronous = NORMAL;")
             cur.execute("PRAGMA cache_size = 10000;")
+            
+            #Niels 19-09-2012: even though my database upgraded to increase the pagesize it did not keep wal mode?
+            #Enabling WAL on every starup
+            cur.execute("PRAGMA journal_mode = WAL;")
             
         return cur
     
