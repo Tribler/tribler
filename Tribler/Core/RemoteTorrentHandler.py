@@ -511,7 +511,7 @@ class TorrentRequester(Requester):
         # Arno, 2012-05-30: Make sure .mbinmap is written
         if not removestate and d.get_def().get_def_type() == 'swift':
             d.checkpoint()
-        self.session.remove_download(d, removestate = removestate, hidden = True)
+        self.session.remove_download(d, removecontent = removestate, removestate = removestate, hidden = True)
             
 class TorrentMessageRequester(Requester):
     
