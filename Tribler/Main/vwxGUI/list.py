@@ -71,7 +71,6 @@ class BaseManager:
     def do_or_schedule_refresh(self, force_refresh = False):
         if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
             self.refresh()
-            self.list.GotFilter(self.list.rawfilter)
         else:
             self.dirtyset.add('COMPLETE_REFRESH')
             self.list.dirty = True

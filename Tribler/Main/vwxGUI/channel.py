@@ -45,9 +45,9 @@ class ChannelManager(BaseManager):
     def refreshDirty(self):
         if 'COMPLETE_REFRESH_STATE' in self.dirtyset:
             self._refresh_list(stateChanged = True)
+            self.dirtyset.clear()
         else:
             BaseManager.refreshDirty(self)
-        self.dirtyset.clear()
     
     @forcePrioDBThread
     def reload(self, channel_id):
@@ -350,6 +350,7 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def SetChannel(self, channel):
+        print >> sys.stderr, "new channel", channel
         self.channel = channel
         
         self.Freeze()
@@ -400,8 +401,8 @@ class SelectedChannelList(GenericSearchList):
                 page = self.notebook.GetPage(i-1)
                 page.Show(False)
                 self.notebook.RemovePage(i-1)
-                
-        self.SetTitle(self.channel)
+        
+        self.header.SetHeadingButtons(self.channel.my_vote, self.state, self.iamModerator)
     
     @warnWxThread
     def SetTitle(self, channel):
@@ -2203,12 +2204,6 @@ class ActivityManager(BaseManager):
             self.list.dirty = True
             
             self.list.header.SetTitle('Recent activity in this Playlist')
-    
-    def do_or_schedule_refresh(self, force_refresh = False):
-        if self.list.isReady and (self.list.ShouldGuiUpdate() or force_refresh):
-            self.refresh()
-        else:
-            self.list.dirty = True
     
     def refresh(self):
         def db_callback():

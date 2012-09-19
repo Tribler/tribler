@@ -899,29 +899,29 @@ class SelectedChannelFilter(TorrentFilter):
     @warnWxThread
     def SetHeading(self, item):
         if item:
-            self.heading_list.Reset()
-           
             if isinstance(item, Channel):
                 channel = item
+                if self.heading_list.InList(channel.id):
+                    self.heading_list.RemoveKey(channel.id)
 
                 from Tribler.Main.vwxGUI.list_item import ChannelListItem
                 self.heading_list.SetData([(channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem)], force = True)
+                
                 new_item = self.heading_list.GetItem(channel.id)
                 new_item.SetTitleSizerHeight(30)
                 new_item.list_deselected = FILTER_GREY
                 new_item.ShowSelected()
-                num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
-                self.SetHeadingButtons(new_item, num_items, channel.my_vote, self.parent_list.state, self.parent_list.iamModerator)
                 
                 self.heading_list.Layout()
 
-    def SetHeadingButtons(self, item, num_items, vote, channelstate, iamModerator):
-        if getattr(item, 'buttons_added', False):
-            return
+    def SetHeadingButtons(self, vote, channelstate, iamModerator):
+        item = self.heading_list.GetItems()[0]
+        num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
         
         open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
         allow2edit = vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
         item.buttonSizer.Clear(deleteWindows = True)
+        
         if vote == 0 and not iamModerator:
             item.AddButton("Mark as Spam", self.parent_list.OnSpam)
             item.AddButton("Mark as Favorite", self.parent_list.OnFavorite)
@@ -935,7 +935,6 @@ class SelectedChannelFilter(TorrentFilter):
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)
         item.SetHideButtons(False)
-        item.buttons_added = True
                 
     def OnExpand(self, item):
         from Tribler.Main.vwxGUI.list_item import ChannelListItem
@@ -963,13 +962,14 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
     @warnWxThread
     def SetHeading(self, item):
         if item:
-            self.heading_list.Reset()
-           
             if isinstance(item, Playlist):
                 playlist = item
+                if self.heading_list.InList(playlist.id):
+                    self.heading_list.RemoveKey(playlist.id)
 
                 from Tribler.Main.vwxGUI.list_item import PlaylistItem
                 self.heading_list.SetData([(playlist.id,[playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem)], force = True)
+
                 new_item = self.heading_list.GetItem(playlist.id)
                 new_item.SetTitleSizerHeight(30)
                                 

@@ -1122,6 +1122,9 @@ class AbstractListBody():
     def GetItem(self, key):
         return self.items[key]
     
+    def GetItems(self):
+        return self.items.values()
+    
     def GetItemPos(self, key):
         # Returns the index of the ListItem belonging to this key
         for i, data in enumerate(self.data):
