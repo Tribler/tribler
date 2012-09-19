@@ -812,7 +812,9 @@ class TorrentDetails(AbstractDetails):
     
     @warnWxThread   
     def OnMark(self, event):
-        self.DestroyMarkingsWindow()
+        if self.markWindow:
+            self.DestroyMarkingsWindow()
+            return
         
         parentPanel = self.parent.GetParent()
         
