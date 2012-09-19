@@ -194,12 +194,12 @@ class SearchCommunity(Community):
         sock_addresses = set(candidate.sock_addr for _,_,candidate in self.taste_buddies)
         
         for candidate in self._dispersy.yield_candidates(self):
-            if len(candidates) == 20:
-                break
-            
             if candidate.sock_addr not in sock_addresses:
                 candidates.add(candidate)
                 sock_addresses.add(candidate.sock_addr)
+                
+            if len(candidates) == 20:
+                break
         return candidates
     
     def _doXOR(self, preferences, fmt, xor):
