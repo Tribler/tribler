@@ -495,6 +495,9 @@ class List(wx.BoxSizer):
         self.isReady = True
         
         self.guiutility.addList(self)
+        
+        if self.header:
+            self.header.Reset()
     
     def _PostInit(self):
         self.header = self.CreateHeader(self.parent)
@@ -1571,7 +1574,7 @@ class LibraryList(SizeList):
         self.prevStates = {}
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
-                   {'type':'method', 'name':'', 'width': 120, 'method': self.CreateProgress}, \
+                   {'type':'method', 'name':'', 'width': '20em', 'method': self.CreateProgress}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
                    {'type':'method', 'name':'ETA', 'width': '13em', 'method': self.CreateETA, 'sortAsc': True}, \
                    {'type':'method', 'name':'Down speed', 'width': '20em', 'method': self.CreateDown, 'fmt': self.utility.speed_format_new}, \

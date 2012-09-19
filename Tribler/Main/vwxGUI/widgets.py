@@ -2130,6 +2130,11 @@ class TransparentText(wx.StaticText):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
         self.Bind(wx.EVT_SIZE, self.OnSize)
+        
+    def SetLabel(self, value):
+        size = self.GetTextExtent(value)
+        self.SetSize(size)
+        wx.StaticText.SetLabel(self, value)
     
     def OnPaint(self, event):
         dc = wx.PaintDC(self)

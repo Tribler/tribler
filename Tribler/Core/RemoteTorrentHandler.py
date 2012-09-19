@@ -447,6 +447,7 @@ class TorrentRequester(Requester):
                 print >>sys.stderr,"rtorrent: requesting torrent", hash, ip, port
             
             doMagnet = self.prio <= 1
+            download = None
             
             sdef = SwiftDef(roothash, tracker="%s:%d"%(ip,port))
             dcfg = self.dscfg.copy()

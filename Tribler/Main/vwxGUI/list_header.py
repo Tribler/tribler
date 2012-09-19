@@ -621,7 +621,10 @@ class TorrentFilter(BaseFilter):
         self.filetype.Bind(wx.EVT_LEFT_UP, self.OnPopupFileType)
         
         self.filesize_str = StaticText(panel, -1, 'File size:')
-        self.filesize = MinMaxSlider(panel, -1, size=(185, 25))
+        if sys.platform == 'win32':
+            self.filesize = MinMaxSlider(panel, -1, size=(185, 25))
+        else:
+            self.filesize = MinMaxSlider(panel, -1, size=(235, 25))
         self.filesize.SetFormatter(self.guiutility.utility.size_format)
         
         self.search = wx.SearchCtrl(panel)
@@ -1162,7 +1165,10 @@ class DownloadFilter(BaseFilter):
         self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
         
         self.filesize_str = StaticText(panel, -1, 'File size:')
-        self.filesize = MinMaxSlider(panel, -1, size=(185, 25))
+        if sys.platform == 'win32':
+            self.filesize = MinMaxSlider(panel, -1, size=(185, 25))
+        else:
+            self.filesize = MinMaxSlider(panel, -1, size=(235, 25))
         self.filesize.SetFormatter(self.guiutility.utility.size_format)
         
         self.state_icon = wx.StaticBitmap(panel, -1, self.icon_right)
