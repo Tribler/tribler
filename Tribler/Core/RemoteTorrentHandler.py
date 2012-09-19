@@ -383,7 +383,6 @@ class Requester:
                     self.queue.task_done()
                     
                 try:
-                    #~load balance sources
                     candidates = list(self.sources[hash])
                     del self.sources[hash]
                         
@@ -426,6 +425,7 @@ class TorrentRequester(Requester):
         
         raw_lambda = lambda filename, hash=hash, candidates=candidates: self._doFetch(filename, hash, candidates)
         self.remote_th.has_torrent(infohash, raw_lambda)
+        return True
     
     def _doFetch(self, filename, hash, candidates):
         infohash, roothash = hash
@@ -557,6 +557,8 @@ class MagnetRequester(Requester):
         
             raw_lambda = lambda filename, infohash=infohash, candidates=candidates: self._doFetch(filename, infohash, candidates)
             self.remote_th.has_torrent(infohash, raw_lambda)
+            
+            return True
     
     def _doFetch(self, filename, infohash, candidates):
         if filename:
