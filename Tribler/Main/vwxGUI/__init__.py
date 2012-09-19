@@ -11,6 +11,7 @@ from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker,\
     GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
+from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG
 
 #batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
@@ -93,8 +94,6 @@ def showError(textCtrl):
     curBack = textCtrl.GetBackgroundColour()
     setColours(textCtrl, wx.WHITE, wx.RED)
     wx.CallLater(2000, setColours, textCtrl, curFore, curBack)
-
-TRHEADING_DEBUG = False
 
 def forceWxThread(func):
     def invoke_func(*args,**kwargs):
