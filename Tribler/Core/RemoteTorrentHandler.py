@@ -486,7 +486,7 @@ class TorrentRequester(Requester):
         d = ds.get_download()
         cdef = d.get_def()
         if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR or time() - getattr(d, 'started_downloading', time()) > 45:
-            remove_lambda = lambda d=d: self._remove_donwload(d)
+            remove_lambda = lambda d=d: self._remove_download(d)
             self.scheduletask(remove_lambda)
             
             if not didMagnet:
@@ -496,7 +496,7 @@ class TorrentRequester(Requester):
             return (0,False)
         
         elif ds.get_progress() == 1:
-            remove_lambda = lambda d=d: self._remove_donwload(d, False)
+            remove_lambda = lambda d=d: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
             
             if DEBUG:
@@ -507,10 +507,11 @@ class TorrentRequester(Requester):
     
         return (5.0, True)
     
-    def _remove_donwload(self, d, removestate = True):
+    def _remove_download(self, d, removestate = True):
         # Arno, 2012-05-30: Make sure .mbinmap is written
         if not removestate and d.get_def().get_def_type() == 'swift':
             d.checkpoint()
+        # Arno+Niels, 2012-09-19: Remove content as well on failed swift dl.
         self.session.remove_download(d, removecontent = removestate, removestate = removestate, hidden = True)
             
 class TorrentMessageRequester(Requester):
