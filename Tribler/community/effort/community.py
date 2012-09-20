@@ -143,8 +143,8 @@ class EffortCommunity(Community):
     def dispersy_sync_response_limit(self):
         return 5 * 1024
 
-    def dispersy_claim_sync_bloom_filter(self, identifier):
-        return self.dispersy_claim_sync_bloom_filter_modulo()
+    # def dispersy_claim_sync_bloom_filter(self, identifier):
+    #     return self.dispersy_claim_sync_bloom_filter_modulo()
 
     def initiate_meta_messages(self):
         return [Message(self, u"effort-record", DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request, encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1), CommunityDestination(node_count=10), EffortRecordPayload(), self.check_effort_record, self.on_effort_record, batch=BatchConfiguration(max_window=4.5)),
