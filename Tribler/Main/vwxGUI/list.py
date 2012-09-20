@@ -1329,7 +1329,7 @@ class SearchList(GenericSearchList):
                    {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
         
-        columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns)
+        columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns, [3,4])
         
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.category_names = {}
@@ -1575,12 +1575,13 @@ class LibraryList(SizeList):
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
                    {'type':'method', 'name':'', 'width': '20em', 'method': self.CreateProgress}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
-                   {'type':'method', 'name':'ETA', 'width': '13em', 'method': self.CreateETA, 'sortAsc': True}, \
-                   {'type':'method', 'name':'Down speed', 'width': '20em', 'method': self.CreateDown, 'fmt': self.utility.speed_format_new}, \
-                   {'type':'method', 'name':'Up speed', 'width': '19em', 'method': self.CreateUp, 'fmt': self.utility.speed_format_new}, \
-                   {'type':'method', 'name':'Connections', 'width': '15em', 'method': self.CreateConnections}]
+                   {'name':'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True}, \
+                   {'name':'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new}, \
+                   {'name':'Up speed', 'width': '19em', 'fmt': self.utility.speed_format_new}, \
+                   {'name':'Connections', 'width': '15em'},
+                   {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio}]
         
-        columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns)
+        columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns, [2, 7])
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
@@ -1590,6 +1591,13 @@ class LibraryList(SizeList):
         if getattr(self, 'manager', None) == None:
             self.manager = LocalSearchManager(self) 
         return self.manager
+    
+    def _format_eta(self, value):
+        eta = self.utility.eta_value(value, truncate=2)
+        return eta or '-'
+
+    def _format_ratio(self, value):
+        return "%.2f"%value
     
     def _swift_icon(self, item):
         torrent = item.original_data
@@ -1627,30 +1635,6 @@ class LibraryList(SizeList):
         progressPanel.SetMinSize((self.columns[1]['width'],-1))
         item.progressPanel = progressPanel
         return progressPanel
-    
-    @warnWxThread
-    def CreateETA(self, parent, item):
-        eta = wx.StaticText(parent, -1, '-', style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE)
-        item.eta = eta
-        return eta
-    
-    @warnWxThread
-    def CreateUp(self, parent, item):
-        up = wx.StaticText(parent, style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE)
-        item.up = up
-        return up
-    
-    @warnWxThread
-    def CreateDown(self, parent, item):
-        down = wx.StaticText(parent, style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE)
-        item.down = down
-        return down
-    
-    @warnWxThread
-    def CreateConnections(self, parent, item):
-        connections = wx.StaticText(parent, -1, '0', style = wx.ALIGN_RIGHT|wx.ST_NO_AUTORESIZE)
-        item.connections = connections
-        return connections
 
     def OnExpand(self, item):
         List.OnExpand(self, item)
@@ -1752,34 +1736,9 @@ class LibraryList(SizeList):
                 else:
                     item.data[1] = -1
 
+                tooltip = ''
+                ratio = 0
                 if ds:
-                    eta = self.utility.eta_value(ds.get_eta(), truncate=2)
-                    if hasattr(item, 'eta'):
-                        item.eta.SetLabel(eta or '-')
-                    item.data[2] = ds.get_eta() if ds.get_eta() else 0
-            
-                seeds, peers = ds.get_num_seeds_peers() if ds else (0,0)
-                nr_connections = seeds+peers
-                if hasattr(item, 'connections'):
-                    item.connections.SetLabel(str(nr_connections))
-                item.data[5] = nr_connections
-
-                dls = ds.get_current_speed('down')*1024 if ds else 0
-                down = self.utility.speed_format_new(dls)
-                if hasattr(item, 'down'):
-                    item.down.SetLabel(down)
-                item.data[3] = dls
-                
-                uls = ds.get_current_speed('up')*1024 if ds else 0
-                up = self.utility.speed_format_new(uls)
-                if hasattr(item, 'up'):
-                    item.up.SetLabel(up)
-                item.data[4] = uls
-                
-                item.Layout()
-                
-                if ds:
-                    item.connections.SetToolTipString("Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(seeds, peers, ds.get_num_con_initiated(), ds.get_num_con_candidates()))
                     if ds.get_seeding_statistics():
                         stats = ds.get_seeding_statistics()
                         dl = stats['total_down']
@@ -1798,6 +1757,7 @@ class LibraryList(SizeList):
                             ratio = 1.0*ul/dl
                             
                         tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f\nTime seeding: %s"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio, self.utility.eta_value(stats['time_seeding']))
+                    
                     else:
                         dl = ds.get_total_transferred(DOWNLOAD)
                         ul = ds.get_total_transferred(UPLOAD)
@@ -1818,11 +1778,6 @@ class LibraryList(SizeList):
                         
                         tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio)
                         
-                    if hasattr(item, 'down'):
-                        item.down.SetToolTipString(tooltip)
-                    if hasattr(item, 'up'):
-                        item.up.SetToolTipString(tooltip)
-                    
                     if show_seeding_colours:
                         #t4t_ratio is goal
                         step = ratio / t4t_ratio
@@ -1833,15 +1788,21 @@ class LibraryList(SizeList):
                         item.SetDeselectedColour(bgcolour)
                     else:
                         item.SetDeselectedColour(LIST_DESELECTED)
-                        
-                else:
-                    if hasattr(item, 'connections'):
-                        item.connections.SetToolTipString('')
-                    if hasattr(item, 'up'):
-                        item.up.SetToolTipString('')
-                    if hasattr(item, 'down'):
-                        item.down.SetToolTipString('')
+                    
+                item.RefreshColumn(3, ds.get_eta() if ds else '-')
                 
+                item.RefreshColumn(4, ds.get_current_speed('down') * 1024 if ds else 0)
+                item.SetToolTipColumn(4, tooltip)
+                    
+                item.RefreshColumn(5, ds.get_current_speed('up')*1024 if ds else 0)
+                item.SetToolTipColumn(5, tooltip)
+                
+                seeds, peers = ds.get_num_seeds_peers() if ds else (0,0)
+                item.RefreshColumn(6, seeds+peers)
+                item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(seeds, peers, ds.get_num_con_initiated(), ds.get_num_con_candidates()) if ds else '')
+                
+                item.RefreshColumn(7, ratio)
+
         if newFilter:
             self.newfilter = False
     
@@ -1850,7 +1811,7 @@ class LibraryList(SizeList):
         List.SetData(self, data)
         
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1864,7 +1825,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0], data)
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):

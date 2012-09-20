@@ -109,6 +109,7 @@ class ListItem(wx.Panel):
                     control.icon_right = self._get_icon(i, 'icon_right')
                     
                     self.controls.append(control)
+                    self.columns[i]['controlindex'] = len(self.controls) - 1
                     
                     if remaining_width != size[0]:
                         control.SetMinSize((remaining_width, control.GetMinSize()[1]))
@@ -221,59 +222,18 @@ class ListItem(wx.Panel):
         else:
             self.original_data = data[2]
         
-        prevData = self.data
-        self.data = data[1]
-        
-        control_index = 0
-        
         new_controls = False
         has_changed = False
         
         self.Freeze()
         for i in xrange(len(self.columns)):
-            if self.columns[i].get('show', True):
-                self.controls[control_index].icon = self._get_icon(i, 'icon', self.controls[control_index].icon)
-                self.controls[control_index].icon_right = self._get_icon(i, 'icon_right', self.controls[control_index].icon_right)
-                
-                addColumnname = self.columns[i].get('showColumname', True) and self.columns[i].get('name', False)
-                
-                type = self.columns[i].get('type','label')
-                if type == 'label':
-                    str_data = self.columns[i].get('fmt', unicode)(data[1][i])
-                    
-                    prefix = self.columns[i]['name'] + ": " if addColumnname else ''
-                    str_data = prefix + str_data
-                    
-                    #niels: we need to escape ampersand to allow them to be visible
-                    str_data = str_data.replace('&', "&&")
-                    
-                    if str_data != self.controls[control_index].GetLabel():
-                        self.controls[control_index].SetLabel(str_data)
-                        has_changed = True
-                    control_index += 1
-                
-                elif type == 'method':
-                    if prevData[i] != data[1][i]:
-                        control = self.columns[i]['method'](self, self)
-                        
-                        if isinstance(control, Iterable):
-                            control, _ = control
-                        
-                        if control:
-                            control.icon = self.controls[control_index].icon
-                            control.icon_right = self.controls[control_index].icon_right
-                            
-                            if isinstance(control, wx.Window):
-                                control.SetBackgroundColour(self.GetBackgroundColour())
-                                
-                            self._replace_control(control_index, control)
-                            self.controls[control_index] = control
-                            new_controls = True
-                            has_changed = True
-                            
-                            self.AddEvents(control)
-                    control_index += 1
+            i_new_controls, i_has_changed = self.RefreshColumn(i, data[1][i])
             
+            if i_new_controls:
+                new_controls = True
+            if i_has_changed:
+                has_changed = True
+                    
         if new_controls:
             self.hSizer.Layout()
         
@@ -284,6 +244,62 @@ class ListItem(wx.Panel):
             self.ShowSelected()
         
         self.Thaw()
+            
+    def RefreshColumn(self, columnindex, data):
+        new_controls = has_changed = False
+        column = self.columns[columnindex]
+        
+        if column.get('show', True):
+            control_index = column['controlindex']
+            prevdata = self.data[columnindex]
+            self.data[columnindex] = data
+            
+            self.controls[control_index].icon = self._get_icon(columnindex, 'icon', self.controls[control_index].icon)
+            self.controls[control_index].icon_right = self._get_icon(columnindex, 'icon_right', self.controls[control_index].icon_right)
+            
+            addColumnname = column.get('showColumname', True) and column.get('name', False)
+            
+            type = column.get('type','label')
+            if type == 'label':
+                str_data = column.get('fmt', unicode)(data)
+                
+                prefix = column['name'] + ": " if addColumnname else ''
+                str_data = prefix + str_data
+                
+                #niels: we need to escape ampersand to allow them to be visible
+                str_data = str_data.replace('&', "&&")
+                
+                if str_data != self.controls[control_index].GetLabel():
+                    self.controls[control_index].SetLabel(str_data)
+                    has_changed = True
+            
+            elif type == 'method':
+                if prevdata != data:
+                    control = column['method'](self, self)
+                    
+                    if isinstance(control, Iterable):
+                        control, _ = control
+                    
+                    if control:
+                        control.icon = self.controls[control_index].icon
+                        control.icon_right = self.controls[control_index].icon_right
+                        
+                        if isinstance(control, wx.Window):
+                            control.SetBackgroundColour(self.GetBackgroundColour())
+                            
+                        self._replace_control(control_index, control)
+                        self.controls[control_index] = control
+                        new_controls = True
+                        has_changed = True
+                        
+                        self.AddEvents(control)
+        return new_controls, has_changed
+        
+    def SetToolTipColumn(self, columnindex, tooltip):
+        column = self.columns[columnindex]
+        if column.get('show', True):
+            control_index = column['controlindex']
+            self.controls[control_index].SetToolTipString(tooltip)
     
     @warnWxThread
     def Highlight(self, timeout = 3.0, revert = True):

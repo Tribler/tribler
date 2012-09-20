@@ -284,11 +284,11 @@ class GUIUtility:
         self.frame.splitter_bottom.Layout()
         self.frame.splitter_bottom_window.Refresh()
         
-    def SetHideColumnInfo(self, itemtype, columns):
+    def SetHideColumnInfo(self, itemtype, columns, defaults = []):
         fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "hide_columns"))
         hide_columns = fileconfig.Read("hide_columns")
-        hide_columns = json.loads(hide_columns) if hide_columns else {"TorrentListItem": [3,4], "LibraryListItem": [2]} # defaults
-        for index in hide_columns.get(itemtype.__name__, []):
+        hide_columns = json.loads(hide_columns) if hide_columns else {}
+        for index in hide_columns.get(itemtype.__name__, defaults):
             columns[index]['show'] = False
         return columns
 
