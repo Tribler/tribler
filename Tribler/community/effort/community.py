@@ -130,6 +130,10 @@ class EffortCommunity(Community):
         self._signature_count = 5
 
         # simple statistics
+        self._statistic_incoming_signature_request_success = 0
+        self._statistic_outgoing_signature_request = 0
+        self._statistic_outgoing_signature_request_success = 0 
+        self._statistic_outgoing_signature_request_timeout = 0
         self._statistic_member_ordering_fail = 0
         self._statistic_initial_timestamp_fail = 0
         self._statistic_cycle_fail = 0
@@ -350,6 +354,7 @@ class EffortCommunity(Community):
             first_up = 0
             first_down = 0
 
+        self._statistic_outgoing_signature_request += 1
         meta = self.get_meta_message(u"effort-record")
         record = meta.impl(authentication=([self._my_member, second_member],),
                            distribution=(self.claim_global_time(),),
@@ -373,7 +378,7 @@ class EffortCommunity(Community):
         if not second_member == self._my_member:
             # the first_member is us.  meaning that we will get duplicate global times because
             # someone else claimed the global time for us
-            if __debug__: dprint("invalid request.  second_member != my_member", level="error")
+            if __debug__: dprint("invalid request.  second_member != my_member", level="warning")
             self._statistic_member_ordering_fail += 1
             return None
 
@@ -384,7 +389,7 @@ class EffortCommunity(Community):
             # the initial (unsigned) record must have both time stamps set to the value that
             # FIRST_MEMBER believes to be true.  this will ensure that MESSAGE.payload.history will
             # have FIRST_MEMBERS' choice of origin.
-            if __debug__: dprint("invalid request.  first_timestamp != second_timestamp", level="error")
+            if __debug__: dprint("invalid request.  first_timestamp != second_timestamp", level="warning")
             self._statistic_initial_timestamp_fail += 1
             return None
 
@@ -396,7 +401,7 @@ class EffortCommunity(Community):
             # there is a problem determining the current cycle.  this can be caused by (a)
             # difference in local clock times, (b) record creation during transition between cycles,
             # (c) delay in message processing resulting in issue b.
-            if __debug__: dprint("invalid request. cycle mismatch (", proposed_history.cycle, " != ", local_history.cycle, " or ", proposed_history.origin, " != ", local_history.origin, ")", level="error")
+            if __debug__: dprint("invalid request. cycle mismatch (", proposed_history.cycle, " != ", local_history.cycle, " or ", proposed_history.origin, " != ", local_history.origin, ")", level="warning")
             self._statistic_cycle_fail += 1
             return None
 
@@ -404,7 +409,7 @@ class EffortCommunity(Community):
 #            # there is a mismatch in bits, this should not occur on the DAS4, however, we will need
 #            # to repair this once we go into the big bad world
 #            bz2log("effort.log", "record-disagreement", reason="invalid bits", identifier=message.payload.identifier)
-#            if __debug__: dprint("invalid request. bits mismatch (", bin(proposed_history.long), " != ", bin(local_history.long), ")", level="error")
+#            if __debug__: dprint("invalid request. bits mismatch (", bin(proposed_history.long), " != ", bin(local_history.long), ")", level="warning")
 #            return None
 
         # AND between proposed and local history
@@ -425,6 +430,7 @@ class EffortCommunity(Community):
             second_up = 0
             second_down = 0
 
+        self._statistic_accept_signature_request += 1
         # return the modified effort-record we propose
         meta = self.get_meta_message(u"effort-record")
         return meta.impl(authentication=([first_member, second_member],),
@@ -442,12 +448,14 @@ class EffortCommunity(Community):
         # TODO: we should ensure that new_message is correct (i.e. all checks made above)
 
         if new_message:
+            self._statistic_outgoing_signature_request_success += 1
             self._observation(new_message.candidate, cache.members[0], time())
 
             assert cache.request.payload.message.meta == new_message.meta
             return True
 
         else:
+            self._statistic_outgoing_signature_request_timeout += 1
             self.remove_from_slope(cache.members[0])
             return False
 
@@ -723,6 +731,10 @@ class EffortCommunity(Community):
                         observations_in_db=observations_in_db,
                         bandwidth_guesses_in_db=bandwidth_guesses_in_db,
                         records_in_db=records_in_db,
+                        incoming_signature_request_success=self._statistic_incoming_signature_request_success,
+                        outgoing_signature_request=self._statistic_outgoing_signature_request,
+                        outgoing_signature_request_success=self._statistic_outgoing_signature_request_success,
+                        outgoing_signature_request_timeout=self._statistic_outgoing_signature_request_timeout,
                         member_ordering_fail=self._statistic_member_ordering_fail,
                         initial_timestamp_fail=self._statistic_initial_timestamp_fail,
                         cycle_fail=self._statistic_cycle_fail,
