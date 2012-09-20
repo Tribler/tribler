@@ -173,6 +173,7 @@ class GUIDBProducer():
                 self.uIdsLock.release()
                 
             self.database_thread.unregister(uId)
+            self.guitaskqueue.remove_task(uId)
         
 #Wrapping Senders for new delayedResult impl  
 class MySender():

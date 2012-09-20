@@ -62,6 +62,12 @@ class TimedTaskQueue:
         self.cond.notify()
         self.cond.release()
         
+    def remove_task(self, id):
+        self.cond.acquire()
+        self.queue = filter(lambda item:item[3]!=id, self.queue)
+        self.cond.notify()
+        self.cond.release()
+        
     def does_task_exist(self, id):
         return any(item[3]==id for item in self.queue)
         
