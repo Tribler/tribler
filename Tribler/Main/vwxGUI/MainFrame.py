@@ -998,7 +998,9 @@ class MainFrame(wx.Frame):
         self.utility.config.Write("window_height", height)
         self.utility.config.Write("window_x", x)
         self.utility.config.Write("window_y", y)
-        self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
+        
+        if self.splitter.IsShownOnScreen():
+            self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
 
         self.utility.config.Flush()
        
