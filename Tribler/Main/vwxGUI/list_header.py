@@ -905,8 +905,8 @@ class SelectedChannelFilter(TorrentFilter):
                 if self.heading_list.InList(channel.id):
                     self.heading_list.RemoveKey(channel.id)
 
-                from Tribler.Main.vwxGUI.list_item import ChannelListItem
-                self.heading_list.SetData([(channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem)], force = True)
+                from Tribler.Main.vwxGUI.list_item import ChannelListItemNoButton
+                self.heading_list.SetData([(channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItemNoButton)], force = True)
                 
                 new_item = self.heading_list.GetItem(channel.id)
                 new_item.SetTitleSizerHeight(30)
@@ -969,8 +969,8 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
                 if self.heading_list.InList(playlist.id):
                     self.heading_list.RemoveKey(playlist.id)
 
-                from Tribler.Main.vwxGUI.list_item import PlaylistItem
-                self.heading_list.SetData([(playlist.id,[playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem)], force = True)
+                from Tribler.Main.vwxGUI.list_item import PlaylistItemNoButton
+                self.heading_list.SetData([(playlist.id,[playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItemNoButton)], force = True)
 
                 new_item = self.heading_list.GetItem(playlist.id)
                 new_item.SetTitleSizerHeight(30)

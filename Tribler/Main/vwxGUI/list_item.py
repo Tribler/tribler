@@ -233,7 +233,10 @@ class ChannelListItem(DoubleLineListItemWithButtons):
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
         self.titleSizer.AddSpacer((-1,height))
- 
+
+class ChannelListItemNoButton(ChannelListItem):
+    def AddButtons(self):
+        pass
         
 class PlaylistItem(DoubleLineListItemWithButtons):
     def __init__(self, parent, parent_list, columns, data, original_data, *args, **kwargs):
@@ -272,7 +275,10 @@ class PlaylistItem(DoubleLineListItemWithButtons):
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
         self.titleSizer.AddSpacer((-1,height))
-
+        
+class PlaylistItemNoButton(PlaylistItem):
+    def AddButtons(self):
+        pass
         
 class LibraryListItem(DoubleLineListItem):
     def __init__(self, *args, **kwargs):
