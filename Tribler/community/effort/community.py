@@ -132,7 +132,7 @@ class EffortCommunity(Community):
         # simple statistics
         self._statistic_incoming_signature_request_success = 0
         self._statistic_outgoing_signature_request = 0
-        self._statistic_outgoing_signature_request_success = 0 
+        self._statistic_outgoing_signature_request_success = 0
         self._statistic_outgoing_signature_request_timeout = 0
         self._statistic_member_ordering_fail = 0
         self._statistic_initial_timestamp_fail = 0
@@ -430,7 +430,7 @@ class EffortCommunity(Community):
             second_up = 0
             second_down = 0
 
-        self._statistic_accept_signature_request += 1
+        self._statistic_incoming_signature_request_success += 1
         # return the modified effort-record we propose
         meta = self.get_meta_message(u"effort-record")
         return meta.impl(authentication=([first_member, second_member],),
