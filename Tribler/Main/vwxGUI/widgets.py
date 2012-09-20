@@ -1771,6 +1771,8 @@ class MinMaxSlider(wx.Panel):
         self.arrow_up_rect = [self.range[0], self.GetClientRect()[3]/2+1, w, h]
         self.arrow_up_drag = False
         
+        self.SetMinMax(0,0)
+        
     def SetFormatter(self, formatter):
         self.formatter = formatter
         

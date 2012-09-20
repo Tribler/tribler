@@ -483,6 +483,7 @@ class List(wx.BoxSizer):
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
+        self.LoadEnabledCategoryIDs()
         
         self.leftLine = self.rightLine = None
         self.parent = parent
@@ -494,9 +495,6 @@ class List(wx.BoxSizer):
         self.isReady = True
         
         self.guiutility.addList(self)
-        
-        if self.header:
-            self.header.Reset()
     
     def _PostInit(self):
         self.header = self.CreateHeader(self.parent)
@@ -561,9 +559,10 @@ class List(wx.BoxSizer):
             if manager and getattr(manager, 'Reset', False):
                 manager.Reset()
             
+            self.list.Reset()
+            
             if self.header:
                 self.header.Reset()
-            self.list.Reset()
 
             if self.footer:
                 self.footer.Reset()
@@ -681,7 +680,6 @@ class List(wx.BoxSizer):
     
     @warnWxThread
     def SetBackgroundColour(self, colour):
-        
         if self.header:
             self.header.SetBackgroundColour(colour)
         
@@ -765,11 +763,13 @@ class List(wx.BoxSizer):
         oldrawfilter = self.rawfilter
         self.rawfilter = keyword.lower().strip()
         
-        if self.guiutility.getFamilyFilter():
-            self.LoadEnabledCategoryIDs()
+        self.LoadEnabledCategoryIDs()
 
         if self.rawfilter == '':
-            wx.CallAfter(self.list.SetFilter, self.MatchFFilter, lambda *args, **kwargs: '', False)
+            if self.guiutility.getFamilyFilter():
+                wx.CallAfter(self.list.SetFilter, self.MatchFFilter, lambda *args, **kwargs: '', False)
+            else: #no ff -> disable filter
+                wx.CallAfter(self.list.SetFilter, None, None, False)
             self.OnFilter('')
 
         else:
@@ -800,14 +800,17 @@ class List(wx.BoxSizer):
         for key, id in torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
                 self.enabled_category_ids.add(id)
-        self.deadstatus_id = torrent_db.status_table['dead']        
+        self.deadstatus_id = torrent_db.status_table['dead']
     
     def MatchFFilter(self, item):
         result = True
-        if self.guiutility.getFamilyFilter() and isinstance(item[2], Torrent):
+        if isinstance(item[2], Torrent):
             torrent = item[2]
-            category = torrent.category_id if torrent.category_id else 0
-            okCategory = category in self.enabled_category_ids
+            if self.guiutility.getFamilyFilter():
+                category = torrent.category_id if torrent.category_id else 0
+                okCategory = category in self.enabled_category_ids
+            else:
+                okCategory = True
             okGood = torrent.status_id != self.deadstatus_id
             result = okCategory and okGood
             if not result:
@@ -844,6 +847,10 @@ class SizeList(List):
         List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
         self.prevStates = {}
         self.library_manager = self.guiutility.library_manager
+        
+        self.curMax = -1
+        self.filteredMax = -1
+        self.sizefilter = None
     
     @warnWxThread
     def OnCollapse(self, item, panel):
@@ -878,32 +885,22 @@ class SizeList(List):
                 self.sizefilter = [minSize, maxSize]
                 new_filter = new_filter[:start - 5] + new_filter[end:]
                 new_filter = new_filter.rstrip()
+
             except:
                 pass
-            
-        if getattr(self.header, 'SetSliderMinMax', None):
-            self.header.SetSliderMinMax(0, 0)    
         List.OnFilter(self, new_filter)
-    
-    def MatchFFilter(self, item):
-        listmff = List.MatchFFilter(self, item)
-        length = item[2].get('length', 0)
-        if listmff and getattr(self.header, 'SetSliderMinMax', None):
-            self.header.SetSliderMinMax(0, max(self.header.GetSliderMinMax()[1], length))
-        
-        return listmff            
     
     def MatchFilter(self, item):
         listmf = List.MatchFilter(self, item)
-        length = item[2].get('length', 0)
-        if listmf and getattr(self.header, 'SetSliderMinMax', None):
-            self.header.SetSliderMinMax(0, max(self.header.GetSliderMinMax()[1], length))
         
-        if self.sizefilter:
+        if listmf and self.sizefilter:
+            length = item[2].get('length', 0)
             size = int(length/1048576.0)
             if size < self.sizefilter[0] or size > self.sizefilter[1]:
                 return False
-        
+            
+            self.filteredMax = max(self.filteredMax, length)
+            
         return listmf
     
     def GetFilterMessage(self, empty = False):
@@ -920,6 +917,28 @@ class SizeList(List):
                 message += " between %d and %d MB in size"%(self.sizefilter[0], self.sizefilter[1])
         return message
     
+    def SetData(self, data):
+        List.SetData(self, data)
+        
+        if getattr(self.header, 'SetSliderMinMax', None):
+            #detect min/max size for this data
+            minSize = 0
+            self.curMax = -1
+            for item in data:
+                if isinstance(item, tuple) and item and isinstance(item[0], Channel):
+                    pass
+                else:
+                    if 'bundle' in item:
+                        item = item['bundle'][0]
+                    self.curMax = max(self.curMax, item.length)
+            
+    @warnWxThread        
+    def SetNrResults(self, nr):
+        List.SetNrResults(self, nr)
+        
+        if getattr(self.header, 'SetSliderMinMax', None):
+            self.header.SetSliderMinMax(0, self.filteredMax if self.sizefilter else self.curMax)
+        
     @warnWxThread
     def RefreshItems(self, dslist, magnetlist, rawdata = False):
         dsdict = {}
@@ -1064,7 +1083,7 @@ class GenericSearchList(SizeList):
         
         resetbottomwindow = not bool(self.list.raw_data)
         
-        List.SetData(self, data)
+        SizeList.SetData(self, data)
         if len(data) > 0:
             list_data = []
             for item in data:
@@ -1159,7 +1178,6 @@ class GenericSearchList(SizeList):
             
     def Reset(self):
         self.infohash2key = {}
-
         return List.Reset(self)
 
     @warnWxThread
@@ -1308,7 +1326,6 @@ class GenericSearchList(SizeList):
             message = message.rstrip('.')
             message += " matching category '%s'"%self.categoryfilter
         return message
-    
         
 class SearchList(GenericSearchList):
     def __init__(self, parent=None):
@@ -1453,6 +1470,8 @@ class SearchList(GenericSearchList):
         GenericSearchList.SetData(self, channels+torrents)
         
     def SetNrResults(self, nr):
+        SizeList.SetNrResults(self, nr)
+        
         self.total_results = nr
         
         actitem = self.guiutility.frame.actlist.GetItem(2)
@@ -1812,7 +1831,7 @@ class LibraryList(SizeList):
     
     @warnWxThread
     def SetData(self, data):
-        List.SetData(self, data)
+        SizeList.SetData(self, data)
         
         if len(data) > 0:
             data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0], file, LibraryListItem) for file in data]
@@ -1823,7 +1842,6 @@ class LibraryList(SizeList):
             self.list.ShowMessage(message, header = header)
 
         self.list.SetData(data)
-        self.SetNrResults(len(data))
         
     @warnWxThread   
     def RefreshData(self, key, data):
@@ -1833,6 +1851,8 @@ class LibraryList(SizeList):
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
+        SizeList.SetNrResults(self, nr)
+        
         actitem = self.guiutility.frame.actlist.GetItem(4)
         num_items = getattr(actitem, 'num_items', None)
         if num_items:
@@ -2040,7 +2060,6 @@ class ChannelList(List):
 
         else:
             self.list.ShowMessage('No channels are discovered for this category.')
-        self.SetNrResults(len(data))
         
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
@@ -2049,6 +2068,8 @@ class ChannelList(List):
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
+        List.SetNrResults(self, nr)
+        
         actitem = self.guiutility.frame.actlist.GetItem(3)
         chcat = actitem.expandedPanel.channel_category if actitem.expandedPanel else None
         if chcat and chcat != 'All':

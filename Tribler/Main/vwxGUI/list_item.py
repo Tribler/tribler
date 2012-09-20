@@ -552,7 +552,7 @@ class ModificationItem(AvantarItem):
         if isinstance(parent, wx.Dialog):
             self.noButton = True
         else:
-            self.noButton = False
+            self.noButton = not getattr(parent_list.parent_list, 'canModify', True)
         AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
     
     def AddComponents(self, leftSpacer, rightSpacer):

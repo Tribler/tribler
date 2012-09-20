@@ -651,8 +651,10 @@ class AbstractListBody():
         
         if self.filter is not None or filter is not None:
             self.filter = filter
-            self.Scroll(-1, 0)
-            self.SetData(highlight = highlight)
+            
+            if self.raw_data:
+                self.Scroll(-1, 0)
+                self.SetData(highlight = highlight)
     
     @warnWxThread
     def OnExpand(self, item, raise_event = False):
@@ -753,7 +755,7 @@ class AbstractListBody():
     @warnWxThread
     def Reset(self):
         if DEBUG:
-            print >> sys.stderr, "ListBody: reset"
+            print >> sys.stderr, "ListBody: Reset"
             
         self.Freeze()
         
@@ -764,8 +766,9 @@ class AbstractListBody():
         
         self.vSizer.ShowItems(False)
         self.vSizer.Clear()
-        for key in self.items.keys():
-            self.items[key].Destroy()
+        for item in self.items.itervalues():
+            if item:
+                item.Destroy()
             
         if self.dataTimer:
             self.dataTimer.Stop()
@@ -892,16 +895,16 @@ class AbstractListBody():
     
     @warnWxThread
     def SetData(self, data = None, highlight = None, force = False):
-        if DEBUG:
-            nr_items = 0
-            if data:
-                nr_items = len(data)
-            print >> sys.stderr, "ListBody: new data", time(), nr_items
-        
         if data == None:
             data = self.raw_data
         else:
             self.raw_data = data
+            
+        if DEBUG:
+            nr_items = -1
+            if data:
+                nr_items = len(data)
+            print >> sys.stderr, "ListBody: new data", time(), nr_items
             
         assert not data or len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list))
             
@@ -936,8 +939,6 @@ class AbstractListBody():
         if __debug__ and currentThread().getName() != "MainThread":
             print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
-        
-        self.Freeze()
         
         #apply quickfilter
         if self.filter:
@@ -992,10 +993,10 @@ class AbstractListBody():
             self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
         else:
             self.Bind(wx.EVT_IDLE, self.OnIdle)
-        
-        self.Thaw()
     
     def OnIdle(self, event):
+        if DEBUG:
+            print >> sys.stderr, "ListBody: OnIdle"
         if not self.done:
             if self.data and len(self.data) > 0:
                 self.CreateItems()
@@ -1128,6 +1129,7 @@ class AbstractListBody():
             
             if didAdd:
                 self.OnChange()
+                
             self.Thaw()
             
             if len(revertList) > 0:
@@ -1138,7 +1140,7 @@ class AbstractListBody():
         
         self.done = done
         if DEBUG:
-            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1, "done:", self.done
+            print >> sys.stderr, "List created", len(self.vSizer.GetChildren()),"rows of", len(self.data),"took", time() - t1, "done:", self.done, time()
     
     def GetItem(self, key):
         return self.items[key]

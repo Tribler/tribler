@@ -76,12 +76,16 @@ class ChannelManager(BaseManager):
     
     def _refresh_list(self, stateChanged = False):
         if DEBUG:
-            print >> sys.stderr, "SelChannelManager complete refresh"
+            t1 = time()
+            print >> sys.stderr, "SelChannelManager complete refresh", t1
         
         self.list.dirty = False
         def db_callback():
             channel = self.list.channel
             if channel:
+                if DEBUG:
+                    t2 = time()
+                
                 if stateChanged:
                     state, iamModerator = channel.refreshState()
                 else:
@@ -93,6 +97,10 @@ class ChannelManager(BaseManager):
                 else:
                     playlists = []
                     total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(channel, self.guiutility.getFamilyFilter())
+                
+                if DEBUG:
+                    t3 = time()
+                    print >> sys.stderr, "SelChannelManager complete refresh took",t3-t1, t2-t1
                 
                 return total_items, nrfiltered, torrentList, playlists, state, iamModerator
         
@@ -412,7 +420,7 @@ class SelectedChannelList(GenericSearchList):
     
     @forceWxThread
     def SetData(self, playlists, torrents):
-        List.SetData(self, torrents)
+        SizeList.SetData(self, torrents)
         
         if len(playlists) > 0 or len(torrents) > 0:
             data = [(playlist.id,[playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem, index) for index, playlist in enumerate(playlists)]
@@ -440,6 +448,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def SetNrResults(self, nr):
+        SizeList.SetNrResults(self, nr)
         if self.channel and (self.channel.isFavorite() or self.channel.isMyChannel()):
             header = 'Discovered'
         else:
