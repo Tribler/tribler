@@ -1577,11 +1577,12 @@ class LibraryList(SizeList):
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
                    {'name':'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True}, \
                    {'name':'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new}, \
-                   {'name':'Up speed', 'width': '19em', 'fmt': self.utility.speed_format_new}, \
+                   {'name':'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new}, \
                    {'name':'Connections', 'width': '15em'},
-                   {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio}]
+                   {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio},
+                   {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value}]
         
-        columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns, [2, 7])
+        columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns, [2, 7, 8])
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
@@ -1738,6 +1739,7 @@ class LibraryList(SizeList):
 
                 tooltip = ''
                 ratio = 0
+                time_seeding = 0
                 if ds:
                     if ds.get_seeding_statistics():
                         stats = ds.get_seeding_statistics()
@@ -1756,8 +1758,9 @@ class LibraryList(SizeList):
                         else:
                             ratio = 1.0*ul/dl
                             
-                        tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f\nTime seeding: %s"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio, self.utility.eta_value(stats['time_seeding']))
-                    
+                        tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
+                        time_seeding = stats['time_seeding']
+                        
                     else:
                         dl = ds.get_total_transferred(DOWNLOAD)
                         ul = ds.get_total_transferred(UPLOAD)
@@ -1776,7 +1779,7 @@ class LibraryList(SizeList):
                         else:
                             ratio = 1.0*ul/dl
                         
-                        tooltip = "Total transferred: %s down, %s up.\nRatio: %.2f"%(self.utility.size_format(dl), self.utility.size_format(ul), ratio)
+                        tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
                         
                     if show_seeding_colours:
                         #t4t_ratio is goal
@@ -1802,6 +1805,7 @@ class LibraryList(SizeList):
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(seeds, peers, ds.get_num_con_initiated(), ds.get_num_con_candidates()) if ds else '')
                 
                 item.RefreshColumn(7, ratio)
+                item.RefreshColumn(8, time_seeding)
 
         if newFilter:
             self.newfilter = False
@@ -1811,7 +1815,7 @@ class LibraryList(SizeList):
         List.SetData(self, data)
         
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1825,7 +1829,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0], data)
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
