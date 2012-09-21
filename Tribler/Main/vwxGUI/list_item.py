@@ -54,8 +54,10 @@ class DoubleLineListItem(ListItem):
             lastline = self.descrSizer.GetItem(nrchildren - 1)
             lastline.Show(False)
             self.descrSizer.Detach(nrchildren - 1)
+            
         else:
             vSizer.Detach(self.descrSizer)
+            self.descrSizer = None
         
     def _add_control(self, control, column_index, option, spacing):
         if column_index == 0:
