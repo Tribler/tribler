@@ -11,10 +11,11 @@ from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread, forceDBThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 DEBUG = False
 
@@ -802,9 +803,10 @@ class TorrentFilter(BaseFilter):
     def Rebundle(self, newstate):
         curstate = self.bundlestate
         selectedByMagic = self.selected_bundle_mode if self.bundlestate == Bundler.ALG_MAGIC else -1
-        self.SetBundleState(newstate)
         
         def db_callback():
+            self.SetBundleState(newstate)
+            
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
             self.bundle_db.storePreference(keywords, newstate)
             query = ' '.join(keywords)
@@ -818,8 +820,9 @@ class TorrentFilter(BaseFilter):
                                    self.bundlestates_str[newstate],
                                    selectedByMagic, selectedByMagicStr, query), type = 3)
         
-        self.guiutility.frame.guiserver.add_task(db_callback)
-        
+        startWorker(None, db_callback)
+
+    @forceDBThread        
     def SetBundleState(self, newstate, refresh=True):
         if newstate is None:
             auto_guess = self.guiutility.utility.config.Read('use_bundle_magic', "boolean")
