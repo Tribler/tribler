@@ -952,7 +952,7 @@ class SizeList(List):
         if rawdata:
             list_data = [(self.list.items.get(getattr(values[2],'infohash', None), None), values[2]) for values in self.list.raw_data]
         else:
-            list_data = [(item, item.original_data) for item in self.list.items.itervalues()]
+            list_data = [(item, item.original_data) for item in self.list.items.itervalues() if item]
             
         for item, original_data in list_data:
             if isinstance(original_data, Torrent):
@@ -1395,7 +1395,7 @@ class SearchList(GenericSearchList):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
     def _special_icon(self, item):
-        torrent = item.original_data
+#        torrent = item.original_data
 #        if torrent.swift_hash:
 #            return self.hasSwift, "This torrent is Swift-enabled"
 #        return self.noSwift

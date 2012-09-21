@@ -11,7 +11,7 @@ from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker,\
     GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
-from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG
+from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG, register_task
 
 #batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
@@ -151,22 +151,6 @@ def warnWxThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
-_register_task = None
-def register_task(*args, **kwargs):
-    global _register_task
-    if not _register_task:
-        # 21/11/11 Boudewijn: there are conditions where the Dispersy instance has not yet been
-        # created.  In this case we must wait.
-        
-        dispersy = Dispersy.has_instance()
-        while not dispersy:
-            print >> sys.stderr, "WAITING FOR DISPERSY"
-            sleep(0.1)
-            dispersy = Dispersy.has_instance()
-        _register_task = dispersy.callback.register
-        
-    return _register_task(*args, **kwargs)
-
 def forceDBThread(func):
     def invoke_func(*args,**kwargs):
         if onWorkerThread('dbThread'):
@@ -179,7 +163,7 @@ def forceDBThread(func):
             
             def db_thread():
                 func(*args, **kwargs)
-            register_task(db_thread)
+            register_task(None, db_thread)
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -196,7 +180,7 @@ def forcePrioDBThread(func):
             
             def db_thread():
                 func(*args, **kwargs)
-            register_task(db_thread, priority = GUI_PRI_DISPERSY)
+            register_task(None, db_thread, priority = GUI_PRI_DISPERSY)
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -222,7 +206,7 @@ def forceAndReturnDBThread(func):
             
             #Niels: 10-03-2012, setting prio to 1024 because we are actively waiting for this
             db_thread.__name__ = func.__name__
-            register_task(db_thread, priority = GUI_PRI_DISPERSY)
+            register_task(None, db_thread, priority = GUI_PRI_DISPERSY)
             
             if event.wait(15) or event.isSet():
                 return result[0]
