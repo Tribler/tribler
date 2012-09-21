@@ -5,10 +5,7 @@
 import sys
 import time as standard_time
 
-if sys.platform == 'win32':
-    portable_standard_time = standard_time.clock
-else:
-    portable_standard_time = standard_time.time
+portable_standard_time = standard_time.time
 
 time = sleep = is_real = None
 

@@ -5,6 +5,7 @@
 import sys
 from threading import currentThread
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 DEBUG = False
 
@@ -46,7 +47,7 @@ class mainlineDHTChecker:
         elif DEBUG:
             print >>sys.stderr,"mainlineDHTChecker: No lookup, no DHT support loaded"
 
-        
+    
     def got_peers_callback(self, infohash, peers, node=None):
         """ Called by network thread """
         if DEBUG:
@@ -58,10 +59,11 @@ class mainlineDHTChecker:
         if peers:
             # Arno, 2010-02-19: this can be called frequently with the new DHT,
             # so first check before doing commit.
-            #
-            torrent = self.torrent_db.getTorrent(infohash) # ,keys=('torrent_id','status_id') don't work, st*pid code
-            if torrent['status'] != "good":
-                status = "good"
-                kw = {'status': status}
-                self.torrent_db.updateTorrent(infohash, commit=True, **kw)
-    
+            @forceDBThread
+            def do_db():
+                torrent = self.torrent_db.getTorrent(infohash) # ,keys=('torrent_id','status_id') don't work, st*pid code
+                if torrent['status'] != "good":
+                    status = "good"
+                    kw = {'status': status}
+                    self.torrent_db.updateTorrent(infohash, commit=True, **kw)
+            do_db()

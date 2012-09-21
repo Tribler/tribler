@@ -93,7 +93,7 @@ class Controller:
         self._next_timeout_ts = current_ts
         self._next_main_loop_call_ts = current_ts
         self._pending_lookups = []
-        self._cached_lookups = []
+        self._cached_lookups = {}
                 
     def on_stop(self):
         self._experimental_m.on_stop()
@@ -117,6 +117,7 @@ class Controller:
                 callback_f(lookup_id, peers, None)
                 callback_f(lookup_id, None, None)
                 return datagrams_to_send
+        
         self._pending_lookups.append(self._lookup_m.get_peers(lookup_id,
                                                               info_hash,
                                                               callback_f,
@@ -125,21 +126,25 @@ class Controller:
         datagrams_to_send = self._register_queries(queries_to_send)
         return datagrams_to_send
     
-    def _get_cached_peers(self, info_hash):
+    def _clean_peer_caches(self):
         oldest_valid_ts = time.time() - CACHE_VALID_PERIOD
-        for ts, cached_info_hash, peers in self._cached_lookups:
-            if ts > oldest_valid_ts and info_hash == cached_info_hash:
-                return peers
+        
+        for key, values in self._cached_lookups.items():
+            ts, _ = values
+            if ts < oldest_valid_ts:
+                del self._cached_lookups[key]
+    
+    def _get_cached_peers(self, info_hash):
+        self._clean_peer_caches()
+        if info_hash in self._cached_lookups:
+            return self._cached_lookups[info_hash][1]
 
     def _add_cache_peers(self, info_hash, peers):
-        oldest_valid_ts = time.time() - CACHE_VALID_PERIOD
-        while self._cached_lookups and self._cached_lookups[0][0] < oldest_valid_ts:
-            # clean up old entries
-            del self._cached_lookups[0]
-        if self._cached_lookups and self._cached_lookups[-1][1] == info_hash:
-            self._cached_lookups[-1][2].extend(peers)
-        else:
-            self._cached_lookups.append((time.time(), info_hash, peers))
+        self._clean_peer_caches()
+        
+        if info_hash not in self._cached_lookups:
+            self._cached_lookups[info_hash] = (time.time(), [])
+        self._cached_lookups[info_hash][1].extend(peers)
 
     def _try_do_lookup(self):
         queries_to_send = []
@@ -419,7 +424,7 @@ class Controller:
             queries_to_send.extend(maintenance_queries_to_send)
         if exp_queries_to_send:
             datagrams = self._register_queries(exp_queries_to_send)
-            datagrams_to_send.extend(datagrams)
+            queries_to_send.extend(datagrams)
         return queries_to_send
 
     def _announce(self, lookup_obj):
