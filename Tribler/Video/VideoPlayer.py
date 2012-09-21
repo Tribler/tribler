@@ -496,6 +496,7 @@ class VideoPlayer:
 
             self.set_vod_download(download)
             return download
+        
         else:
             return None
         

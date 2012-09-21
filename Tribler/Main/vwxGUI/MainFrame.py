@@ -274,8 +274,8 @@ class MainFrame(wx.Frame):
             if not channelonly:
                 self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)
-            
-        wx.CallLater(1500, preload_data)
+        startWorker(None, preload_data, delay = 1.5, workerType = "guiTaskQueue")
+        
         if channelonly:
             self.guiUtility.showChannelFromDispCid(channelonly)
             if not self.guiUtility.useExternalVideo:
@@ -414,7 +414,6 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon = wx.ART_WARNING)
         return False
 
-    @forceAndReturnWxThread
     def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None,hidden=False):
         if True or DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename, destdir,cdef,vodmode,selectedFiles
@@ -447,21 +446,26 @@ class MainFrame(wx.Frame):
                 defaultname = correctedFilename
                 if not correctedFilename and tdef:
                     defaultname = tdef.get_name_as_unicode()
-                    
-                dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
-                dlg.CenterOnParent()
                 
-                if dlg.ShowModal() == wx.ID_OK:
-                    #for multifile we enabled correctedFilenames, use split to remove the filename from the path
-                    if tdef and tdef.is_multifile_torrent():
-                        destdir, correctedFilename = os.path.split(dlg.GetPath())
-                        selectedFiles = dlg.GetSelectedFiles()
+                @forceAndReturnWxThread
+                def do_gui(destdir, selectedFiles, correctedFilename, cancelDownload):
+                    dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
+                    dlg.CenterOnParent()
+                    
+                    if dlg.ShowModal() == wx.ID_OK:
+                        #for multifile we enabled correctedFilenames, use split to remove the filename from the path
+                        if tdef and tdef.is_multifile_torrent():
+                            destdir, correctedFilename = os.path.split(dlg.GetPath())
+                            selectedFiles = dlg.GetSelectedFiles()
+                        else:
+                            destdir = dlg.GetPath()
                     else:
-                        destdir = dlg.GetPath()
-                else:
-                    cancelDownload = True
-                dlg.Destroy()
-            
+                        cancelDownload = True
+                    dlg.Destroy()
+                    return destdir, selectedFiles, correctedFilename, cancelDownload
+                
+                destdir, selectedFiles, correctedFilename, cancelDownload = do_gui(destdir, selectedFiles, correctedFilename, cancelDownload)
+                    
             if not cancelDownload:
                 if destdir is not None:
                     dscfg.set_dest_dir(destdir)
@@ -522,57 +526,23 @@ class MainFrame(wx.Frame):
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile)
                         result.set_state_callback(state_lambda, getpeerlist=False, delay=15.0)
-                        
-                
-                # store result because we want to store clicklog data
-                # right after d#        self.frame.sendButton.Disable()
-#        # Disabling the focused button disables keyboard navigation
-#        # unless we set the focus to something else - let's put it
-#        # on close button
-#        self.frame.closeButton.SetFocus() 
-#        self.frame.sendButton.SetLabel(_(u'Sending...'))
-#        
-#        try:
-#            from M2Crypto import httpslib, SSL
-#            # Try to load the CA certificates for secure SSL.
-#            # If we can't load them, the data is hidden from casual observation,
-#            # but a man-in-the-middle attack is possible.
-#            ctx = SSL.Context()
-#            opts = {}
-#            if ctx.load_verify_locations('parcels/osaf/framework/certstore/cacert.pem') == 1:
-#                ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, 9)
-#                opts['ssl_context'] = ctx
-#            c = httpslib.HTTPSConnection('feedback.osafoundation.org', 443, opts)
-#            body = buildXML(self.frame.comments, self.frame.email,
-#                            self.frame.sysInfo, self.frame.text)
-#            c.request('POST', '/desktop/post/submit', body)
-#            response = c.getresponse()
-#            
-#            if response.status != 200:
-#                raise Exception('response.status=' + response.status)
-#            c.close()
-#        except:
-#            self.frame.sendButton.SetLabel(_(u'Failed to send'))
-#        else:
-#            self.frame.sendButton.SetLabel(_(u'Sent'))
-#            self.logReport(body, response.read())ownload was started, then return result
 
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                    def do_db():
-                        mypref.addClicklogToMyPreference(cdef.get_id(), clicklog)
-                    startWorker(None, do_db)
+                    startWorker(None, mypref.addClicklogToMyPreference, wargs= (cdef.get_id(), clicklog))
 
                 return result  
 
         except DuplicateDownloadException:
-            # show nice warning dialog
-            dlg = wx.MessageDialog(None,
-                                   self.utility.lang.get('duplicate_download_msg'),
-                                   self.utility.lang.get('duplicate_download_title'),
-                                   wx.OK|wx.ICON_ERROR)
-            result = dlg.ShowModal()
-            dlg.Destroy()
+            def do_gui():
+                # show nice warning dialog
+                dlg = wx.MessageDialog(None,
+                                       self.utility.lang.get('duplicate_download_msg'),
+                                       self.utility.lang.get('duplicate_download_title'),
+                                       wx.OK|wx.ICON_ERROR)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+            wx.CallAfter(do_gui)
             
             # If there is something on the cmdline, all other torrents start
             # in STOPPED state. Restart
@@ -582,9 +552,11 @@ class MainFrame(wx.Frame):
                     if d.get_def().get_infohash() == cdef.get_infohash():
                         d.restart()
                         break
+            
         except Exception,e:
             print_exc()
             self.onWarning(e)
+            
         return None
     
     
@@ -1092,7 +1064,8 @@ class MainFrame(wx.Frame):
             ts = enumerate()
             for t in ts:
                 print >>sys.stderr,"mainframe: Thread still running",t.getName(),"daemon",t.isDaemon()
-        
+    
+    @forceWxThread
     def onWarning(self,exc):
         msg = self.utility.lang.get('tribler_startup_nonfatalerror')
         msg += str(exc.__class__)+':'+str(exc)

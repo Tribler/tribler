@@ -408,7 +408,7 @@ class GUIUtility:
     @forceWxThread
     def showLibrary(self, show = True):
         manager = self.frame.librarylist.GetManager()
-        manager.refresh()
+        manager.do_or_schedule_refresh(True)
         
         if show:
             self.ShowPage('my_files')
