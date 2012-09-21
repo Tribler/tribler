@@ -139,7 +139,7 @@ class RemoteSearchManager(BaseManager):
         
         if keywords == self.oldkeywords:
             if new_items or new_channels:
-                pass#self.list.SetNrResults(total_items, total_channels)
+                self.list.SetNrResults(total_items+total_channels)
 
             self.list.SetSelectedBundleMode(selected_bundle_mode)
             
@@ -237,8 +237,7 @@ class LocalSearchManager(BaseManager):
     @forceWxThread
     def _on_data(self, delayedResult):
         total_items, nrfiltered, data = delayedResult.get()
-        
-        self.list.header.Reset()
+
         self.list.SetData(data)
         self.list.Layout()
         
