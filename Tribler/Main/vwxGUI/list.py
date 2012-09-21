@@ -138,9 +138,6 @@ class RemoteSearchManager(BaseManager):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
         
         if keywords == self.oldkeywords:
-            if new_items or new_channels:
-                self.list.SetNrResults(total_items+total_channels)
-
             self.list.SetSelectedBundleMode(selected_bundle_mode)
             
             if modified_hits:
@@ -236,7 +233,7 @@ class LocalSearchManager(BaseManager):
 
     @forceWxThread
     def _on_data(self, delayedResult):
-        total_items, nrfiltered, data = delayedResult.get()
+        total_items, data = delayedResult.get()
 
         self.list.SetData(data)
         self.list.Layout()
@@ -304,29 +301,29 @@ class ChannelSearchManager(BaseManager):
                 total_items = 0
                 
                 if category == 'New':
-                    total_items, nrfiltered, data = self.channelsearch_manager.getNewChannels()
+                    total_items, data = self.channelsearch_manager.getNewChannels()
                 elif category == 'Popular':
-                    total_items, nrfiltered, data = self.channelsearch_manager.getPopularChannels()
+                    total_items, data = self.channelsearch_manager.getPopularChannels()
                 elif category == 'Updated':
-                    total_items, nrfiltered, data = self.channelsearch_manager.getUpdatedChannels()
+                    total_items, data = self.channelsearch_manager.getUpdatedChannels()
                 elif category == 'All':
-                    total_items, nrfiltered, data = self.channelsearch_manager.getAllChannels()
+                    total_items, data = self.channelsearch_manager.getAllChannels()
                 elif category == 'Favorites':
-                    total_items, nrfiltered, data = self.channelsearch_manager.getMySubscriptions()
-                return data, nrfiltered, category
+                    total_items, data = self.channelsearch_manager.getMySubscriptions()
+                return data, category
             
             startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         else:
             if search_results:
                 total_items = len(search_results)
-                self._on_data(search_results, 0, self.category)
+                self._on_data(search_results, self.category)
     
     def _on_data_delayed(self, delayedResult):
-        data, nrfiltered, category = delayedResult.get()
-        self._on_data(data, nrfiltered, category)
+        data, category = delayedResult.get()
+        self._on_data(data, category)
     
-    def _on_data(self, data, nrfiltered, category):
+    def _on_data(self, data, category):
         if category == self.category:
             if category != 'searchresults': #if we filter empty channels from search we will never see them
                 data = [channel for channel in data if not channel.isEmpty()]
@@ -347,7 +344,7 @@ class ChannelSearchManager(BaseManager):
             return self.channelsearch_manager.getChannels(ids)
         
         def do_gui(delayedResult):
-            _,_,newChannels = delayedResult.get()
+            _,newChannels = delayedResult.get()
             
             for channel in newChannels:
                 id = channel.id
@@ -482,7 +479,7 @@ class List(wx.BoxSizer):
 
         self.guiutility = GUIUtility.getInstance()
         self.uelog = UserEventLogDBHandler.getInstance()
-        self.LoadEnabledCategoryIDs()
+        self.category = Category.getInstance()
         
         self.leftLine = self.rightLine = None
         self.parent = parent
@@ -494,6 +491,7 @@ class List(wx.BoxSizer):
         self.isReady = True
         
         self.guiutility.addList(self)
+        self.GotFilter(None)
     
     def _PostInit(self):
         self.header = self.CreateHeader(self.parent)
@@ -758,27 +756,24 @@ class List(wx.BoxSizer):
     def ShowFooter(self, show = True):
         self.footer.Show(show)
 
-    def GotFilter(self, keyword):
+    def GotFilter(self, keyword = None):
         oldrawfilter = self.rawfilter
-        self.rawfilter = keyword.lower().strip()
-        
-        self.LoadEnabledCategoryIDs()
-
-        if self.rawfilter == '':
-            if self.guiutility.getFamilyFilter():
-                wx.CallAfter(self.list.SetFilter, self.MatchFFilter, lambda *args, **kwargs: '', False)
-            else: #no ff -> disable filter
-                wx.CallAfter(self.list.SetFilter, None, None, False)
-            self.OnFilter('')
-
+        if keyword != None:
+            self.rawfilter = keyword.lower().strip()
         else:
-            self.OnFilter(self.rawfilter)
+            self.LoadEnabledCategoryIDs()
+        
+        if self.rawfilter == '' and not self.guiutility.getFamilyFilter():
+            wx.CallAfter(self.list.SetFilter, None, None, keyword == None)
             
+        else:
             highlight = True
             if oldrawfilter[:-1] == self.rawfilter: #did the user simple remove 1 character?
                 highlight = False
             
             wx.CallAfter(self.list.SetFilter, self.MatchFilter, self.GetFilterMessage, highlight)
+            
+        self.OnFilter(self.rawfilter)
 
     def OnFilter(self, keyword):
         self.filter = keyword
@@ -794,7 +789,7 @@ class List(wx.BoxSizer):
                 
     def LoadEnabledCategoryIDs(self):
         torrent_db = self.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
-        enabled_category_keys = [key.lower() for key, _ in Category.getInstance().getCategoryNames()]
+        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
         self.enabled_category_ids = set([0, 8])
         for key, id in torrent_db.category_table.iteritems():
             if key.lower() in enabled_category_keys:
@@ -812,9 +807,16 @@ class List(wx.BoxSizer):
                 okCategory = True
             okGood = torrent.status_id != self.deadstatus_id
             result = okCategory and okGood
-            if not result:
-                self.cur_nr_filtered += 1
-
+                
+        elif isinstance(item[2], Channel):
+            if self.guiutility.getFamilyFilter():
+                okCategory = not self.category.xxx_filter.isXXX(item[2].name, False)
+            else:
+                okCategory = True
+            result = okCategory
+            
+        if not result:
+            self.cur_nr_filtered += 1
         return result
     
     def MatchFilter(self, item):
@@ -824,14 +826,15 @@ class List(wx.BoxSizer):
         return re.search(self.filter, item[1][0].lower()) and ff
     
     def GetFilterMessage(self, empty = False):
-        if empty:
-            message = '0 items'
-        else:
-            message = 'Only showing items'
-        
-        if self.filter:
-            return message + ' matching "%s"'%self.filter
-        return message
+        if self.rawfilter:
+            if empty:
+                message = '0 items'
+            else:
+                message = 'Only showing items'
+            
+            if self.filter:
+                return message + ' matching "%s"'%self.filter
+            return message
         
     @warnWxThread
     def Layout(self):
@@ -892,14 +895,14 @@ class SizeList(List):
     def MatchFilter(self, item):
         listmf = List.MatchFilter(self, item)
         
-        if listmf and self.sizefilter:
+        if listmf:
             length = item[2].get('length', 0)
-            size = int(length/1048576.0)
-            if size < self.sizefilter[0] or size > self.sizefilter[1]:
-                return False
+            if self.sizefilter:
+                size = int(length/1048576.0)
+                if size < self.sizefilter[0] or size > self.sizefilter[1]:
+                    return False
             
             self.filteredMax = max(self.filteredMax, length)
-            
         return listmf
     
     def GetFilterMessage(self, empty = False):
@@ -936,7 +939,11 @@ class SizeList(List):
         List.SetNrResults(self, nr)
         
         if getattr(self.header, 'SetSliderMinMax', None):
-            self.header.SetSliderMinMax(0, self.filteredMax if self.sizefilter else self.curMax)
+            if nr != 0:
+                self.header.SetSliderMinMax(0, self.filteredMax if self.sizefilter or self.guiutility.getFamilyFilter() else self.curMax)
+            else:
+                self.header.SetSliderMinMax(0, 0)
+            self.filteredMax = -1
         
     @warnWxThread
     def RefreshItems(self, dslist, magnetlist, rawdata = False):
@@ -1139,6 +1146,7 @@ class GenericSearchList(SizeList):
                 self.list.ShowMessage(message, header, suggestionSizer)
             else:
                 self.list.ShowMessage(message, header)
+            self.SetNrResults(0)
                 
         if resetbottomwindow:
             self.ResetBottomWindow()
@@ -1313,8 +1321,8 @@ class GenericSearchList(SizeList):
         SizeList.OnFilter(self, new_filter)
     
     def MatchFilter(self, item):
-        if not isinstance(item[2], Torrent) or ( self.categoryfilter and self.categoryfilter not in self.category_names[item[2].category_id].lower() ):
-                return False
+        if isinstance(item[2], Torrent) and (self.categoryfilter and self.categoryfilter not in self.category_names[item[2].category_id].lower()):
+            return False
         
         return SizeList.MatchFilter(self, item)
     
@@ -1452,9 +1460,13 @@ class SearchList(GenericSearchList):
         associated = [a[-1] for a in associated]
         results = results.values()
         results.sort(reverse = True, key = lambda x: x.nr_torrents)
+        
+        #We need to filter here, as otherwise our top-3 associated channels could only consist of
+        #xxx channels, which will be filtered afterwards. Resulting in no channels being shown.
         def channelFilter(channel):
             isXXX = self.category.xxx_filter.isXXX(channel.name, False)
             return not isXXX
+        
         if self.guiutility.getFamilyFilter():
             associated = filter(channelFilter, associated)        
             results = filter(channelFilter, results)
@@ -1566,8 +1578,6 @@ class SearchList(GenericSearchList):
             self.total_results = None
             self.total_channels = None
             self.keywords = None
-            self.SetNrResults(0)
-            
             return True
         return False
 
@@ -1839,6 +1849,7 @@ class LibraryList(SizeList):
             message = "Torrents can be found using our integrated search or using channels.\n"
             message += "Additionally you could add any torrent file downloaded from an external source by using the '+ Add' button or dropping it here."
             self.list.ShowMessage(message, header = header)
+            self.SetNrResults(0)
 
         self.list.SetData(data)
         
@@ -1857,12 +1868,6 @@ class LibraryList(SizeList):
         if num_items:
             num_items.SetValue(str(nr))
             actitem.hSizer.Layout()
-
-    def Reset(self):
-        if List.Reset(self):
-            self.SetNrResults(0)
-            return True
-        return False
     
     @warnWxThread
     def OnFilter(self, keyword):
@@ -1896,6 +1901,9 @@ class LibraryList(SizeList):
                 return False
         
         return SizeList.MatchFilter(self, item)
+    
+    def MatchFFilter(self, item):
+        return True
     
     def GetFilterMessage(self, empty = False):
         message = SizeList.GetFilterMessage(self, empty)
@@ -2056,9 +2064,9 @@ class ChannelList(List):
             
             data = [(channel.id,[channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem) for channel in data]
             self.list.SetData(data)
-
         else:
             self.list.ShowMessage('No channels are discovered for this category.')
+            self.SetNrResults(0)
         
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
@@ -2130,6 +2138,9 @@ class ActivitiesList(List):
         self.selectTab('home')
         
     def do_or_schedule_refresh(self, force_refresh = False):
+        pass
+    
+    def GotFilter(self, filter):
         pass
 
     def CreateList(self, parent):

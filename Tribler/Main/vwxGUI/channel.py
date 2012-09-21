@@ -431,8 +431,6 @@ class SelectedChannelList(GenericSearchList):
                     data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem)]
             self.list.SetData(data)
             
-            self.SetNrResults(len(data))
-
         else:
             header =  'No torrents or playlists found.'
             
@@ -441,7 +439,6 @@ class SelectedChannelList(GenericSearchList):
                 self.list.ShowMessage(message, header = header)
             else:
                 self.list.ShowMessage(header)
-            
             self.SetNrResults(0)
     
     @warnWxThread
@@ -1665,7 +1662,7 @@ class ManageChannelFilesList(List):
             self.list.SetData(data)
         else:
             self.list.ShowMessage('You are currently not sharing any torrents in your channel.')
-        self.SetNrResults(len(data))
+            self.SetNrResults(0)
         
     def SetFooter(self, state, iamModerator):
         self.canDelete = iamModerator
@@ -1738,7 +1735,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             self.list.SetData(data)
         else:
             self.list.ShowMessage('You currently do not have any playlists in your channel.')
-        self.SetNrResults(len(data))
+            self.SetNrResults(0)
         
     def SetFooter(self, state, iamModerator):
         self.canDelete = iamModerator
@@ -2137,7 +2134,7 @@ class CommentList(List):
             self.list.SetData(listData)
         else:
             self.list.ShowMessage('No comments are found.')
-        self.SetNrResults(len(listData))
+            self.SetNrResults(0)
         
     def ShowPreview(self):
         altControl = None
@@ -2361,7 +2358,7 @@ class ModificationList(List):
             self.list.SetData(data)
         else:
             self.list.ShowMessage('No modifications are found.')
-        self.SetNrResults(len(data))
+            self.SetNrResults(0)
         
     @forceWxThread   
     def ShowPreview(self):
@@ -2488,7 +2485,7 @@ class ModerationList(List):
             self.list.SetData(data)
         else:
             self.list.ShowMessage('No moderations are found.\nModerations are modifications which are reverted by another peer.')
-        self.SetNrResults(len(data))
+            self.SetNrResults(0)
         
     @forceWxThread   
     def ShowPreview(self):

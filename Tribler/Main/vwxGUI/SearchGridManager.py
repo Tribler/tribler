@@ -711,7 +711,7 @@ class TorrentManager:
                 channeldict = {}
                 channels = set([result[-1] for result in results if result[-1]])
                 if len(channels) > 0:
-                    _,_,channels = self.channel_manager.getChannelsByCID(channels)
+                    _,channels = self.channel_manager.getChannelsByCID(channels)
                     
                     for channel in channels:
                         channeldict[channel.dispersy_cid] = channel
@@ -1109,7 +1109,7 @@ class LibraryManager:
             channelDict = {}
             channels = set((result[0] for result in results))
             if len(channels) > 0:
-                _,_,channels = self.channelsearch_manager.getChannels(channels)
+                _,channels = self.channelsearch_manager.getChannels(channels)
                 for channel in channels:
                     channelDict[channel.id] = channel
             
@@ -1154,7 +1154,7 @@ class LibraryManager:
             print >> sys.stderr, 'getHitsInCat took:', time() - begintime
             
         self.hits = self.addDownloadStates(results)
-        return [len(self.hits), 0 , self.hits]
+        return [len(self.hits), self.hits]
        
     def getTorrentFromInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys = ['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
@@ -1320,11 +1320,8 @@ class ChannelManager:
         for hit in hits:
             channel = Channel(*hit)
             channels.append(channel)
-        
-        self.filteredResults = 0
-        if filterTorrents:
-            channels = self._applyChannelFF(channels)
-        return len(channels), self.filteredResults, channels
+
+        return len(channels), channels
     
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
@@ -1591,18 +1588,6 @@ class ChannelManager:
             return okCategory and okGood
         
         return filter(torrentFilter, hits)
-    
-    def _applyChannelFF(self, channels):
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
-        
-        #only check XXX category
-        if 'xxx' in enabled_category_keys:
-            return channels
-        
-        def channelFilter(channel):
-            isXXX = self.category.xxx_filter.isXXX(channel.name, False)
-            return not isXXX
-        return filter(channelFilter, channels) 
     
     @forceAndReturnDispersyThread
     def _disp_get_community_from_channel_id(self, channel_id):
@@ -1965,7 +1950,7 @@ class ChannelManager:
     def _searchLocalDatabase(self):
         self.hits = {}
         hits = self.channelcast_db.searchChannels(self.searchkeywords)
-        _,_,channels = self._createChannels(hits)
+        _,channels = self._createChannels(hits)
         
         for channel in channels:
             self.hits[channel.id] = channel
@@ -1974,7 +1959,7 @@ class ChannelManager:
     def gotDispersyRemoteHits(self, kws, answers):
         if self.searchkeywords == kws:
             channel_cids = answers.keys()
-            _,_,dispersyChannels = self.getChannelsByCID(channel_cids)
+            _,dispersyChannels = self.getChannelsByCID(channel_cids)
             try:
                 self.remoteLock.acquire()
                 

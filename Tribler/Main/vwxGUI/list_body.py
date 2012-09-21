@@ -986,8 +986,10 @@ class AbstractListBody():
             except:
                 pass
             
-        elif self.filter and self.filter.__name__ != 'MatchFFilter':
-            self.ShowMessage(self.filterMessage(empty = True) + '.')
+        elif self.filter:
+            ffmessage = self.filterMessage(empty = True)
+            if ffmessage: 
+                self.ShowMessage(ffmessage+ '.')
         
         if self.done:
             self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
@@ -1065,11 +1067,12 @@ class AbstractListBody():
             self.messagePanel.Show(False)
             self.loadNext.Show(False)
             self.vSizer.Remove(self.messagePanel)
-            
-            if self.filter and self.filter.__name__ != 'MatchFFilter':
-                message = self.filterMessage() + '.'
-            else:
-                message = ''
+
+            message = ''            
+            if self.filter:
+                message = self.filterMessage() or ''
+                if message:
+                    message += '.'
             
             revertList = []
             #Add created/cached items
