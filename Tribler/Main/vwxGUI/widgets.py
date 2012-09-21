@@ -2009,6 +2009,8 @@ class TorrentStatus(wx.Panel):
         
     def SetMinSize(self, size):
         w, h = size
+        if w == -1:
+            w = self.GetSize()[0]
         if h == -1:
             h = self.GetTextExtent(self.status)[1]
         wx.Panel.SetMinSize(self, (w, h))
