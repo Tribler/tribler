@@ -160,6 +160,7 @@ def register_task(*args, **kwargs):
         
         dispersy = Dispersy.has_instance()
         while not dispersy:
+            print >> sys.stderr, "WAITING FOR DISPERSY"
             sleep(0.1)
             dispersy = Dispersy.has_instance()
         _register_task = dispersy.callback.register
