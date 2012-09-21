@@ -935,7 +935,7 @@ class TorrentDetails(AbstractDetails):
         markings = delayedResult.get()
         if len(markings) > 0:
             msg = 'This torrent is marked as:'
-            for marktype, nr in markings:
+            for marktype, nr, myMark in markings:
                 msg += ' %s (%d)'%(marktype, nr)
             
             #see if we are updating

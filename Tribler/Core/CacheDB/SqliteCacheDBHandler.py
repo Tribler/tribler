@@ -4310,8 +4310,15 @@ class ChannelCastDBHandler(object):
         return  self._db.fetchone(sql, (channel_id,))
     
     def getTorrentMarkings(self, channeltorrent_id):
-        sql = "SELECT type, count(*) FROM TorrentMarkings WHERE channeltorrent_id = ? GROUP BY type"
-        return self._db.fetchall(sql, (channeltorrent_id,))
+        counts = {}
+        sql = "SELECT type, peer_id FROM TorrentMarkings WHERE channeltorrent_id = ?"
+        for type, peer_id in self._db.fetchall(sql, (channeltorrent_id,)):
+            if type not in counts:
+                counts[type] = [type, 0, False]
+            counts[type][1] += 1
+            if not peer_id:
+                counts[2] = True
+        return counts.values()
     
     def getTorrentModifications(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) +" FROM MetaDataTorrent, ChannelMetaData LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id WHERE metadata_id = ChannelMetaData.id AND channeltorrent_id = ? ORDER BY -Moderations.time_stamp ASC, prev_global_time DESC"
