@@ -170,6 +170,7 @@ class TorrentDetails(AbstractDetails):
         self.showDetails = False
         self.markWindow = None
         self.markings = None
+        self.myMark = None
         
         self.isEditable = {}
         
@@ -600,7 +601,7 @@ class TorrentDetails(AbstractDetails):
                 
         if self.torrent.get('channel', False):
             channel = self.torrent.get('channel')
-            link = LinkStaticText(panel, channel.name, None, font_colour=wx.BLACK)
+            link = LinkStaticText(panel, channel.name, None, font_colour = self.GetForegroundColour())
             link.Bind(wx.EVT_LEFT_UP, lambda evt:  self.guiutility.showChannel(channel))
             self._add_row(panel, vSizer, 'Channel', link)                
 
@@ -616,8 +617,11 @@ class TorrentDetails(AbstractDetails):
         if self.canComment:
             self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 5)
             self.markingSizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.marktoggle = LinkText(self.overview, 'Mark this torrent', colours=[wx.BLACK,TRIBLER_RED])
+            icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
+            icon = wx.StaticBitmap(panel, -1, icon)
+            self.marktoggle = LinkStaticText(self.overview, 'Mark this torrent', None, font_colour = self.GetForegroundColour())
             self.marktoggle.Bind(wx.EVT_LEFT_UP, self.OnMark)
+            self.marktoggle.Insert(0, icon, 0, wx.CENTER|wx.RIGHT, 3)
             self.markingSizer.AddStretchSpacer()
             self.markingSizer.Add(self.marktoggle)
             self.torrentSizer.Add(self.markingSizer, 0, wx.EXPAND)
@@ -810,7 +814,11 @@ class TorrentDetails(AbstractDetails):
         itemid = wx.NewId()
         for mark in ['Good', 'High-Quality', 'Mid-Quality', 'Low-Quality', 'Corrupt', 'Fake', 'Spam']:
             itemid = wx.NewId()
-            menu.Append(itemid, mark)
+            if self.myMark:
+                menu.AppendRadioItem(itemid, mark)
+                menu.Check(itemid, self.myMark == mark)
+            else:
+                menu.Append(itemid, mark)
             menu.Bind(wx.EVT_MENU, lambda x, selected = mark: self.doMark(self.torrent.channel, self.torrent.infohash, unicode(selected)), id = itemid)
                 
         ctrl = self.marktoggle
@@ -937,6 +945,8 @@ class TorrentDetails(AbstractDetails):
             msg = 'This torrent is marked as:'
             for marktype, nr, myMark in markings:
                 msg += ' %s (%d)'%(marktype, nr)
+                if myMark:
+                    self.myMark = marktype
             
             #see if we are updating
             if not self.markings:

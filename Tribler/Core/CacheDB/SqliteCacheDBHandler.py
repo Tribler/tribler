@@ -4317,7 +4317,7 @@ class ChannelCastDBHandler(object):
                 counts[type] = [type, 0, False]
             counts[type][1] += 1
             if not peer_id:
-                counts[2] = True
+                counts[type][2] = True
         return counts.values()
     
     def getTorrentModifications(self, channeltorrent_id, keys):

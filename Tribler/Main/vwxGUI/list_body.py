@@ -965,6 +965,7 @@ class AbstractListBody():
         
         #cur_keys now contains all removed items
         for key in cur_keys:
+            self.items[key].DoCollapse()
             self.items[key].Show(False)
             self.items[key].Destroy()
             del self.items[key]
@@ -1198,7 +1199,7 @@ class AbstractListBody():
         return self.cur_expanded
     
     def GetExpandedItems(self):
-        return [(key, item) for key, item in self.items.iteritems() if item.expanded]
+        return [(key, item) for key, item in self.items.iteritems() if item and item.expanded]
     
     @warnWxThread
     def Select(self, key, raise_event = True):
