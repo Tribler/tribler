@@ -1680,12 +1680,14 @@ class DottedBetterText(BetterText):
 class MinMaxSlider(wx.Panel):
     
     def __init__(self, *args, **kwargs):
+        self.slider_size = kwargs.pop('slider_size', (100, 25))
         wx.Panel.__init__(self, *args, **kwargs)
         self.SetBackgroundColour(self.GetParent().GetBackgroundColour())
         self.base = 1.7
         self.LoadIcons()
         self.SetMinMax(0, 0)
-        self.text_spacers = [self.GetTextExtent('T'*10)[0]]*2
+        self.text_spacers = [self.GetTextExtent('T'*11)[0]]*2
+        self.SetSize((sum(self.text_spacers)+self.slider_size[0], -1))
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -1795,10 +1797,10 @@ class MinMaxSlider(wx.Panel):
         min_val = self.Format(min_val)
         max_val = self.Format(max_val)
         dc.SetFont(self.GetFont())
-        text_height = dc.GetTextExtent(min_val)[1]
-        dc.DrawText(min_val, 0, (height-text_height)/2)
+        text_width, text_height = dc.GetTextExtent(min_val)
+        dc.DrawText(min_val, (self.text_spacers[0]-text_width)/2, (height-text_height+1)/2)
         text_width, text_height = dc.GetTextExtent(max_val)
-        dc.DrawText(max_val, width-text_width, (height-text_height)/2)
+        dc.DrawText(max_val, width-text_width-(self.text_spacers[0]-text_width)/2, (height-text_height+1)/2)
         
         dc.SetPen(wx.Pen(fg_colour, 2, wx.SOLID))
         dc.DrawLine(self.range[0], height/2, self.range[1]+self.arrow_down.GetSize()[0], height/2)

@@ -100,7 +100,7 @@ class ChannelManager(BaseManager):
                 
                 if DEBUG:
                     t3 = time()
-                    print >> sys.stderr, "SelChannelManager complete refresh took",t3-t1, t2-t1
+                    print >> sys.stderr, "SelChannelManager complete refresh took",t3-t1, t2-t1, t3
                 
                 return total_items, nrfiltered, torrentList, playlists, state, iamModerator
         
@@ -127,8 +127,6 @@ class ChannelManager(BaseManager):
             
             self.list.channel.torrents = set([torrent for torrent in self.list.channel.torrents if torrent.infohash in remoteTorrents])
             torrents = torrents + list(self.list.channel.torrents)
-        
-        torrents = self.library_manager.addDownloadStates(torrents)
         
         #only show a small random selection of available content for non-favorite channels
         if not self.list.channel.isFavorite() and not self.list.channel.isMyChannel():

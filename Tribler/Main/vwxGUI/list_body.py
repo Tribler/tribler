@@ -248,12 +248,11 @@ class ListItem(wx.Panel):
     def RefreshColumn(self, columnindex, data):
         new_controls = has_changed = False
         column = self.columns[columnindex]
+        prevdata = self.data[columnindex]
+        self.data[columnindex] = data
         
         if column.get('show', True):
             control_index = column['controlindex']
-            prevdata = self.data[columnindex]
-            self.data[columnindex] = data
-            
             self.controls[control_index].icon = self._get_icon(columnindex, 'icon', self.controls[control_index].icon)
             self.controls[control_index].icon_right = self._get_icon(columnindex, 'icon_right', self.controls[control_index].icon_right)
             
