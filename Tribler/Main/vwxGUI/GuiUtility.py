@@ -524,8 +524,6 @@ class GUIUtility:
         for l in self.lists:
             if getattr(l, 'GotFilter', False):
                 l.GotFilter(None)
-#            if getattr(l, 'do_or_schedule_refresh', False):
-#                l.do_or_schedule_refresh(force_refresh = l.IsShownOnScreen())
                 
         if setCheck:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)

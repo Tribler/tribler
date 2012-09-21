@@ -26,7 +26,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOV
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
-from traceback import print_exc
+from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
 from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter
 from Tribler.Core.Tag.Extraction import TermExtraction
@@ -874,13 +874,8 @@ class BuzzPanel(wx.Panel):
                 self.OnRefreshTimer(force = True, fromDBThread = True)
         startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
 
-
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
-        if event:
-            if self.DoPauseResume():
-                return
-        
         self.refresh -= 1
         if self.refresh <= 0 or force or fromDBThread:
             if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force or fromDBThread:

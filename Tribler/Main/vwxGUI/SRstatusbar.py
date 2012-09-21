@@ -137,11 +137,11 @@ class SRstatusbar(wx.StatusBar):
         self.speed_up.Layout()
     
     def OnCheckbox(self, event):
-        wx.CallAfter(self.__toggleFF, event.GetEventObject().GetValue())
-        
         checkbox = event.GetEventObject()
         checkbox.Enable(False)
         wx.CallLater(1000, checkbox.Enable, True)
+        
+        wx.CallLater(100, self.__toggleFF, event.GetEventObject().GetValue())
         
     def __toggleFF(self, newvalue):
         if newvalue != self.guiutility.getFamilyFilter():
@@ -155,10 +155,6 @@ class SRstatusbar(wx.StatusBar):
         self.connection.SetPercentage(connectionPercentage)
         self.connection.SetToolTipString('Connected to %d peers'%totalConnections)
             
-    def SetConnections(self, connectionPercentage, totalConnections):
-        self.connection.SetPercentage(connectionPercentage)
-        self.connection.SetToolTipString('Connected to %d peers'%totalConnections)
-        
     def onReachable(self,event=None):
         if not self.guiutility.firewall_restart:
             self.firewallStatus.setSelected(2)
