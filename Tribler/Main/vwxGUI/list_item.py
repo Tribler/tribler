@@ -107,7 +107,6 @@ class DoubleLineListItem(ListItem):
             if menu:
                 self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
                 menu.Destroy()
-                self.Layout()
 
     @warnWxThread
     def OnShowColumn(self, event, index):
@@ -124,7 +123,7 @@ class DoubleLineListItem(ListItem):
 
         if getattr(self.parent_list.parent_list, 'ResetBottomWindow', False):
             self.parent_list.parent_list.ResetBottomWindow()        
-        self.parent_list.Rebuild()
+        wx.CallAfter(self.parent_list.Rebuild)
             
     @warnWxThread        
     def GetContextMenu(self):
@@ -235,6 +234,42 @@ class ChannelListItem(DoubleLineListItemWithButtons):
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
         self.titleSizer.AddSpacer((-1,height))
+        
+class ChannelListItemAssociatedTorrents(ChannelListItem):
+    def __init__(self, *args, **kwargs):
+        self.at_index = -1
+        DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
+        
+    def AddComponents(self, *args, **kwargs):
+        self.columns = self.guiutility.frame.channellist.associatedchannel_columns
+
+        DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
+        
+        visible_columns = [column['name'] for column in self.columns if column['show']]
+        try:
+            self.at_index = visible_columns.index('Associated torrents')
+            self.controls[self.at_index].SetToolTipString('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
+        except:
+            pass
+        
+        tag = TagText(self, -1, label='channel', fill_colour = wx.Colour(210,252,120))
+        self.AddEvents(tag)
+        self.titleSizer.Insert(0, tag, 0, wx.CENTER|wx.TOP, 2)
+        self.titleSizer.Insert(1, (5, -1), 0, 0)
+        
+    def ShowSelected(self):
+        DoubleLineListItemWithButtons.ShowSelected(self)
+        
+        if self.at_index >= 0:
+            highlight = self.controls[-1].GetScreenRect().Contains(wx.GetMousePosition())
+            for infohash in self.data[-1]:
+                if infohash in self.parent_list.items:
+                    torrent_item = self.parent_list.GetItem(infohash)
+                    if highlight:
+                        torrent_item.Highlight(colour = LIST_AT_HIGHLIST, timeout = 5, revert = True)
+                    else:
+                        torrent_item.ShowSelected()
+        
 
 class ChannelListItemNoButton(ChannelListItem):
     def AddButtons(self):

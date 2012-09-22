@@ -301,9 +301,9 @@ class ListItem(wx.Panel):
             self.controls[control_index].SetToolTipString(tooltip)
     
     @warnWxThread
-    def Highlight(self, timeout = 3.0, revert = True):
+    def Highlight(self, timeout = 3.0, revert = True, colour = LIST_HIGHTLIGHT):
         if self.IsShownOnScreen():
-            self.BackgroundColor(LIST_HIGHTLIGHT)
+            self.BackgroundColor(colour)
 
             if revert:
                 if self.highlightTimer == None:

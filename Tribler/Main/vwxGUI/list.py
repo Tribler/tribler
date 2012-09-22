@@ -940,7 +940,7 @@ class SizeList(List):
         
         if getattr(self.header, 'SetSliderMinMax', None):
             if nr != 0:
-                self.header.SetSliderMinMax(0, self.filteredMax if self.sizefilter or self.guiutility.getFamilyFilter() else self.curMax)
+                self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else self.curMax)
             else:
                 self.header.SetSliderMinMax(0, 0)
             self.filteredMax = -1
@@ -1094,9 +1094,12 @@ class GenericSearchList(SizeList):
             list_data = []
             for item in data:
                 if isinstance(item, tuple) and item and isinstance(item[0], Channel):
-                    self.max_votes = max(item[0].nr_favorites, self.max_votes)
-                    channel = item[0]
-                    list_data.append((channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], item[0], ChannelListItem, item[1]))
+                    channel, position, isAssociated = item[:3]                    
+                    self.max_votes = max(channel.nr_favorites, self.max_votes)
+                    if isAssociated:
+                        list_data.append((channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites, item[3]], channel, ChannelListItemAssociatedTorrents, position))
+                    else:
+                        list_data.append((channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem, position))
                 else:
 
                     # either we have a bundle of hits:
@@ -1440,9 +1443,10 @@ class SearchList(GenericSearchList):
             if torrent.get('channel', False):
                 channel = torrent.get('channel')
                 if channel.id not in associated:
-                        associated[channel.id] = [0, channel]
+                    associated[channel.id] = [0, [], channel]
                 if channel.nr_favorites > 0 or channel.isFavorite():
                     associated[channel.id][0] += 1
+                associated[channel.id][1].append(torrent.infohash)
                     
         #Determine the channels results
         results = self.GetManager().data_channels
@@ -1455,6 +1459,7 @@ class SearchList(GenericSearchList):
                     associated.pop(chid)
                 
         #Sorting + filtering..
+        associated_torrents = dict([(ch, tr) for _, tr, ch in associated.values()])
         associated = associated.values()
         associated.sort(reverse = True)
         associated = [a[-1] for a in associated]
@@ -1475,7 +1480,10 @@ class SearchList(GenericSearchList):
         results = results[:3]
         channels = results+associated
         for index, channel in enumerate(channels):
-            channels[index] = (channel, (index+1)*5)
+            if channel in associated:
+                channels[index] = (channel, (index+1)*5, True, associated_torrents[channel])
+            else:
+                channels[index] = (channel, (index+1)*5, False)
         
         self.SetNrChannels(len(channels))
         GenericSearchList.SetData(self, channels+torrents)
@@ -1923,7 +1931,11 @@ class ChannelList(List):
         columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
                    {'name':'Latest Update', 'width': '24em', 'fmt': format_time}, \
                    {'name':'Torrents', 'width': '13em'}, \
-                   {'type':'method', 'width': 200, 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}]
+                   {'type':'method', 'width': '20em', 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}]
+
+        self.associatedchannel_columns = [copy.copy(column) for column in columns]
+        self.associatedchannel_columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
+        self.associatedchannel_columns = self.guiutility.SetHideColumnInfo(ChannelListItemAssociatedTorrents, self.associatedchannel_columns)
         
         columns = self.guiutility.SetHideColumnInfo(ChannelListItem, columns)
         

@@ -1620,6 +1620,7 @@ class AbstractInfoPanel(GradientPanel):
 class SearchInfoPanel(AbstractInfoPanel):
 
     def Set(self, num_items):
+        self.AddMessage('Channels may contain torrents associated with your search.')
         if num_items > 0:
             self.AddMessage('Please click on a channel or a torrent for more details.')
         self.Show(True)
