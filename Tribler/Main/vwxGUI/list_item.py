@@ -116,7 +116,8 @@ class DoubleLineListItem(ListItem):
         
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
-        hide_columns[type(self).__name__] = [column.get('show', True) for column in self.columns]
+        hide_columns[type(self).__name__] = hide_columns.get(type(self).__name__, {})
+        hide_columns[type(self).__name__].update({self.columns[index]['name']: self.columns[index]['show']})
 
         fileconfig.Write("hide_columns", json.dumps(hide_columns))
         fileconfig.Flush()

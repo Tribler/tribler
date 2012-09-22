@@ -288,10 +288,10 @@ class GUIUtility:
         fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "hide_columns"))
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
-        hide_columns = hide_columns.get(itemtype.__name__, [])
+        hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
-            if index < len(hide_columns):
-                column['show'] = hide_columns[index]
+            if hide_columns.has_key(column['name']):
+                column['show'] = hide_columns[column['name']]
             else:
                 column['show'] = not (index in defaults)
         return columns
