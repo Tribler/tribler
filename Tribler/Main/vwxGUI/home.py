@@ -3,7 +3,7 @@ import wx
 import sys
 import os
 import random
-from time import strftime
+from time import strftime, time
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.list_header import *
@@ -150,9 +150,13 @@ class Stats(XRCPanel):
         self.dowserStatus = StaticText(self, -1, 'Dowser is not running')
         self.dowserButton = wx.Button(self, -1, 'Start dowser')
         self.dowserButton.Bind(wx.EVT_BUTTON, self.OnDowser)
+        self.memdumpButton = wx.Button(self, -1, 'Dump memory')
+        self.memdumpButton.Bind(wx.EVT_BUTTON, self.OnMemdump)
+        
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         hSizer.Add(self.dowserButton)
+        hSizer.Add(self.memdumpButton)
         vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.BOTTOM, 10)
         
         vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 10)
@@ -223,6 +227,16 @@ class Stats(XRCPanel):
                     self._startDowser()
                      
                 dlg.Destroy()
+                
+    def OnMemdump(self, event):
+        from meliae import scanner
+        start = time()
+        try:
+            while True:
+                yield float(60 * 60)
+                scanner.dump_all_objects("memory-%d.out" % (time() - start))
+        except GeneratorExit:
+            scanner.dump_all_objects("memory-%d-shutdown.out" % (time() - start))
     
     def _startDowser(self):
         try:
