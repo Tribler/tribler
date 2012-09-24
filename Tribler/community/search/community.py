@@ -162,9 +162,10 @@ class SearchCommunity(Community):
         # there is no dispersy-identity for the master member, so don't try to download
         return False
     
-    def dispersy_claim_sync_bloom_filter(self, identifier):
+    @property
+    def dispersy_sync_bloom_filter_strategy(self):
         # disable sync bloom filter
-        return None
+        return lambda: None
     
     def add_taste_buddies(self, new_taste_buddies):
         for new_tb_tuple in new_taste_buddies[:]:

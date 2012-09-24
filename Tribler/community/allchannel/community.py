@@ -74,9 +74,10 @@ class AllChannelCommunity(Community):
             return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
         else:
             return super(AllChannelCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
-        
-    def dispersy_claim_sync_bloom_filter(self, identifier):
-        return self.dispersy_claim_sync_bloom_filter_modulo()
+
+    @property
+    def dispersy_sync_bloom_filter_strategy(self):
+        return self._dispersy_claim_sync_bloom_filter_modulo
 
     def __init__(self, master, integrate_with_tribler = True, auto_join_channel = False):
         super(AllChannelCommunity, self).__init__(master)
