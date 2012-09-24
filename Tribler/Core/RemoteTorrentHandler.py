@@ -375,7 +375,7 @@ class Requester:
                     hash, timeout = self.queue.get_nowait()
                     
                     #check if still needed
-                    if time() < timeout:
+                    if time() > timeout:
                         if DEBUG:
                             print >> sys.stderr, "rtorrent: timeout for hash", hash
                         
