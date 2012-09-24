@@ -19,6 +19,12 @@ from threading import currentThread, Event, RLock, Lock
 import inspect
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 
+try:
+    # python 2.7 only...
+    from collections import OrderedDict
+except ImportError:
+    from Tribler.dispersy.python27_ordereddict import OrderedDict
+
 #support_version = (3,5,9)
 #support_version = (3,3,13)
 #apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
@@ -69,6 +75,16 @@ DEPRECATION_DEBUG = False
 
 class Warning(Exception):
     pass
+
+class LimitedOrderedDict(OrderedDict):
+    def __init__(self, limit, *args, **kargs):
+        super(LimitedOrderedDict, self).__init__(*args, **kargs)
+        self._limit = limit
+
+    def __setitem__(self, *args, **kargs):
+        super(LimitedOrderedDict, self).__setitem__(*args, **kargs)
+        if len(self) > self._limit:
+            self.popitem(last=False)
 
 def init(config, db_exception_handler = None):
     """ create sqlite database """
@@ -214,8 +230,9 @@ class SQLiteCacheDBBase:
         
         # Arno, 2012-08-02: As there is just Dispersy thread here, removing
         # safe_dict() here
-        self.permid_id = {}  # safe_dict()  
-        self.infohash_id = {} # safe_dict()
+        # 24/09/12 Boudewijn: changed into LimitedOrderedDict to limit memory consumption
+        self.permid_id = LimitedOrderedDict(1024*5) # {}  # safe_dict()  
+        self.infohash_id = LimitedOrderedDict(1024*5) # {} # safe_dict()
         self.show_execute = False
         
         #TODO: All global variables must be protected to be thread safe?
