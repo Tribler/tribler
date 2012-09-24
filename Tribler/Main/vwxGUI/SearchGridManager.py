@@ -1398,7 +1398,7 @@ class ChannelManager:
     def _createTorrents(self, hits, filterTorrents, channel_dict = {}, playlist = None):
         fetch_channels = set(hit[0] for hit in hits if hit[0] not in channel_dict)
         if len(fetch_channels) > 0:
-            _,_,channels = self.getChannels(fetch_channels)
+            _,channels = self.getChannels(fetch_channels)
             for channel in channels:
                 channel_dict[channel.id] = channel
         

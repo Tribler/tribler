@@ -419,7 +419,7 @@ class NetworkPanel(HomePanel):
         else:
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
-        self.queueSize.SetLabel('%d (%d sources)'%self.remotetorrenthandler.getQueueSize())
+        self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
         self.nrChannels.SetLabel(str(nr_channels))
         self.incomplete.SetLabel(", ".join(map(str, self.incompleteCounter.getstats())))
         

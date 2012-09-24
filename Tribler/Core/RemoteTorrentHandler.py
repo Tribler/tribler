@@ -317,12 +317,15 @@ class RemoteTorrentHandler:
                         requester.remove_request(key)
     
     def getQueueSize(self):
-        nr_sources = nr_requests = 0
-        for requester in self.trequesters.values() + self.drequesters.values():
-            nr_sources += len(requester.sources)
-            for infohash in requester.sources.keys():
-                nr_requests += len(requester.sources.get(infohash, []))
-        return nr_sources, nr_requests
+        def getQueueSize(requesters):
+            qsize = {}
+            for requester in requesters.itervalues():
+                qsize[requester.prio] = len(requester.sources)
+            items = qsize.items()
+            items.sort()
+            return items
+        
+        return "TQueue: "+str(getQueueSize(self.trequesters))+"\nDQueue: "+str(getQueueSize(self.drequesters))+"\nMQueue: "+str(getQueueSize(self.mrequesters))
 
 class Requester:
     REQUEST_INTERVAL = 0.5
@@ -365,16 +368,18 @@ class Requester:
                 canRequest = self.canrequest
             else:
                 canRequest = self.canrequest()
+                
             if canRequest:
                 #request new infohash from queue
                 while True:
                     hash, timeout = self.queue.get_nowait()
                     
                     #check if still needed
-                    if time() > timeout:
+                    if time() < timeout:
                         if DEBUG:
                             print >> sys.stderr, "rtorrent: timeout for hash", hash
-                        if len(self.sources.get(hash, [])) == 1:
+                        
+                        if hash in self.sources:
                             del self.sources[hash]
                     
                     elif hash in self.sources:
