@@ -4474,23 +4474,24 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         self.extractor.session.lm.database_thread.register(self.__flush_to_database, delay = 5.0 if self.nr_bi_phrases < 100 else 20.0)
         
     def __flush_to_database(self):
-        with self.termLock:
-            add_new_terms_sql = "INSERT INTO TermFrequency (term, freq) VALUES (?, ?);"
-            update_exist_terms_sql = "UPDATE OR REPLACE TermFrequency SET freq = ? WHERE term_id = ?;"
-            
-            self._db.executemany(add_new_terms_sql, self.new_terms.values(), commit=False)
-            self._db.executemany(update_exist_terms_sql, self.update_terms.values(), commit=False)
-            
-            self.new_terms.clear()
-            self.update_terms.clear()
-            
-        if self.nr_bi_phrases < self.MAX_UNCOLLECTED:
-            self.updateBiPhraseCount()
-        
-        if self.nr_bi_phrases < 100:
-            yield 5.0
-        else:
-            yield 20.0
+        while True:
+            with self.termLock:
+                add_new_terms_sql = "INSERT INTO TermFrequency (term, freq) VALUES (?, ?);"
+                update_exist_terms_sql = "UPDATE OR REPLACE TermFrequency SET freq = ? WHERE term_id = ?;"
+
+                self._db.executemany(add_new_terms_sql, self.new_terms.values(), commit=False)
+                self._db.executemany(update_exist_terms_sql, self.update_terms.values(), commit=False)
+
+                self.new_terms.clear()
+                self.update_terms.clear()
+
+            if self.nr_bi_phrases < self.MAX_UNCOLLECTED:
+                self.updateBiPhraseCount()
+
+            if self.nr_bi_phrases < 100:
+                yield 5.0
+            else:
+                yield 20.0
             
     def updateBiPhraseCount(self):
         count_sql = "SELECT COUNT(*) FROM TorrentBiTermPhrase"
