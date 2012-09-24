@@ -27,7 +27,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 import urllib
 
 DEBUG = False
-SWIFTFAILED_TIMEOUT = 15*60 #15 minutes
+SWIFTFAILED_TIMEOUT = 5*60 #5 minutes
 
 class RemoteTorrentHandler:
     
