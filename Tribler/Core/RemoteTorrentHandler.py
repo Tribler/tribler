@@ -27,6 +27,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 import urllib
 
 DEBUG = False
+SWIFTFAILED_TIMEOUT = 15*60 #15 minutes
 
 class RemoteTorrentHandler:
     
@@ -497,7 +498,7 @@ class TorrentRequester(Requester):
             if not didMagnet:
                 if DEBUG:
                     print >>sys.stderr,"rtorrent: switching to magnet for", cdef.get_name(), bin2str(infohash)
-                self.magnet_requester.add_request(infohash, None)
+                self.magnet_requester.add_request(infohash, None, timeout = SWIFTFAILED_TIMEOUT)
             return (0,False)
         
         elif ds.get_progress() == 1:
