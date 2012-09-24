@@ -3,7 +3,7 @@ Usage:
 python -O -c "from Tribler.dispersy.tool.main import main; main()" --statedir STATEDIR --script Tribler.community.effort.script.CrawlerScript | multilog t n1024 s104857600 STATEDIR
 """
 
-from Tribler.community.effort.community import EffortCommunity
+from Tribler.community.effort.community import EffortCommunity, MASTER_MEMBER_PUBLIC_KEY
 from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.dispersy.dprint import dprint
 from Tribler.dispersy.member import Member
@@ -22,7 +22,6 @@ class CrawlerScript(ScriptBase):
 
     def run(self):
         self._community = None
-
         self.add_testcase(self.setup)
         self.add_testcase(self.crawl)
 
@@ -62,6 +61,20 @@ class CrawlerScript(ScriptBase):
             yield 60.0
             self._community.create_debug_request()
 
+
+class DestroyCommunityScript(CrawlerScript):
+    def run(self):
+        self._community = None
+        self.add_testcase(self.setup)
+        self.add_testcase(self.destroy)
+
+    def destroy(self):
+        """ Destroy the effort community """
+        for i in xrange(10, 0, -1):
+            dprint("CID: ", self._community.cid.encode("HEX"), level="warning")
+            dprint("WARNING: the community will be destroyed in ", i, " seconds!", level="warning")
+            yield 1.0
+
 class TriblerEffortScript(ScenarioScript):
     """
     Runs a Tribler instance from console that joins the EffortCommunity to increase the overall
@@ -77,7 +90,7 @@ class TriblerEffortScript(ScenarioScript):
 
     @property
     def master_member_public_key(self):
-        return "3081a7301006072a8648ce3d020106052b810400270381920004039bb20a07b2c09fe2eb0d75a6ab8f23503728fb105c5b34fea181d2b30130fa5b493ee6317b5af3b079d3509a0225d8bafd940438e07aa48b76a37ace874a1612cbcd0878f8b7eb03b95d6bb27992d61a165a657c2b1fe096e2d39998fca7604f3bf3cf317c33be8e449c5015fbef8981f6f9d5d4ddc38f2c728cf823f9faca3224629ab6282b29136117b21737c0f4".decode("HEX")
+        return MASTER_MEMBER_PUBLIC_KEY
 
     @property
     def community_class(self):

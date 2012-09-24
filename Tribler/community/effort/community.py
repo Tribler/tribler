@@ -33,6 +33,19 @@ from Tribler.dispersy.revision import update_revision_information, get_revision
 # update version information directly from SVN
 update_revision_information("$HeadURL$", "$Revision$")
 
+# generated: Thu Sep  6 10:02:41 2012
+# curve: high <<< NID_sect571r1 >>>
+# len: 571 bits ~ 144 bytes signature
+# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004039bb20a07b2c09fe2eb0d75a6ab8f23503728fb105c5b34fea181d2b30130fa5b493ee6317b5af3b079d3509a0225d8bafd940438e07aa48b76a37ace874a1612cbcd0878f8b7eb03b95d6bb27992d61a165a657c2b1fe096e2d39998fca7604f3bf3cf317c33be8e449c5015fbef8981f6f9d5d4ddc38f2c728cf823f9faca3224629ab6282b29136117b21737c0f4
+# pub-sha1 925f18381cb79b446332f92b8756bfab98c6dddb
+# -----BEGIN PUBLIC KEY-----
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDm7IKB7LAn+LrDXWmq48jUDco+xBc
+# WzT+oYHSswEw+ltJPuYxe1rzsHnTUJoCJdi6/ZQEOOB6pIt2o3rOh0oWEsvNCHj4
+# t+sDuV1rsnmS1hoWWmV8Kx/gluLTmZj8p2BPO/PPMXwzvo5EnFAV+++Jgfb51dTd
+# w48scoz4I/n6yjIkYpq2KCspE2EXshc3wPQ=
+# -----END PUBLIC KEY-----
+MASTER_MEMBER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b810400270381920004039bb20a07b2c09fe2eb0d75a6ab8f23503728fb105c5b34fea181d2b30130fa5b493ee6317b5af3b079d3509a0225d8bafd940438e07aa48b76a37ace874a1612cbcd0878f8b7eb03b95d6bb27992d61a165a657c2b1fe096e2d39998fca7604f3bf3cf317c33be8e449c5015fbef8981f6f9d5d4ddc38f2c728cf823f9faca3224629ab6282b29136117b21737c0f4".decode("HEX")
+
 def bitcount(l):
     c = 0
     while l:
@@ -74,18 +87,7 @@ class BandwidthGuess(object):
 class EffortCommunity(Community):
     @classmethod
     def get_master_members(cls):
-# generated: Thu Sep  6 10:02:41 2012
-# curve: high <<< NID_sect571r1 >>>
-# len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004039bb20a07b2c09fe2eb0d75a6ab8f23503728fb105c5b34fea181d2b30130fa5b493ee6317b5af3b079d3509a0225d8bafd940438e07aa48b76a37ace874a1612cbcd0878f8b7eb03b95d6bb27992d61a165a657c2b1fe096e2d39998fca7604f3bf3cf317c33be8e449c5015fbef8981f6f9d5d4ddc38f2c728cf823f9faca3224629ab6282b29136117b21737c0f4
-# pub-sha1 925f18381cb79b446332f92b8756bfab98c6dddb
-# -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDm7IKB7LAn+LrDXWmq48jUDco+xBc
-# WzT+oYHSswEw+ltJPuYxe1rzsHnTUJoCJdi6/ZQEOOB6pIt2o3rOh0oWEsvNCHj4
-# t+sDuV1rsnmS1hoWWmV8Kx/gluLTmZj8p2BPO/PPMXwzvo5EnFAV+++Jgfb51dTd
-# w48scoz4I/n6yjIkYpq2KCspE2EXshc3wPQ=
-# -----END PUBLIC KEY-----
-        return [Member("3081a7301006072a8648ce3d020106052b810400270381920004039bb20a07b2c09fe2eb0d75a6ab8f23503728fb105c5b34fea181d2b30130fa5b493ee6317b5af3b079d3509a0225d8bafd940438e07aa48b76a37ace874a1612cbcd0878f8b7eb03b95d6bb27992d61a165a657c2b1fe096e2d39998fca7604f3bf3cf317c33be8e449c5015fbef8981f6f9d5d4ddc38f2c728cf823f9faca3224629ab6282b29136117b21737c0f4".decode("HEX"))]
+        return [Member(MASTER_MEMBER_PUBLIC_KEY)]
 
     @classmethod
     def load_community(cls, master):
@@ -95,7 +97,7 @@ class EffortCommunity(Community):
             next(dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)))
         except StopIteration:
             # join the community with a new my_member, using a cheap cryptography key
-            ec = ec_generate_key(u"NID_secp224r1")
+            ec = ec_generate_key(u"NID_secp160r1")
             return cls.join_community(master, Member(ec_to_public_bin(ec), ec_to_private_bin(ec)))
         else:
             return super(EffortCommunity, cls).load_community(master)
