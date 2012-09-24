@@ -897,12 +897,12 @@ class SizeList(List):
         
         if listmf:
             length = item[2].get('length', 0)
+            self.filteredMax = max(self.filteredMax, length)
+            
             if self.sizefilter:
                 size = int(length/1048576.0)
                 if size < self.sizefilter[0] or size > self.sizefilter[1]:
                     return False
-            
-            self.filteredMax = max(self.filteredMax, length)
         return listmf
     
     def GetFilterMessage(self, empty = False):
