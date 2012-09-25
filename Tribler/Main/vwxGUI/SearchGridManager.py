@@ -1020,6 +1020,9 @@ class LibraryManager:
             if download:
                 download.restart()
                 resumed = True
+                
+                id = download.get_def().get_id()
+                self.user_download_choice.set_download_state(id, "restart")
             
         if not resumed:
             filename = self.torrentsearch_manager.getCollectedFilename(torrent)
@@ -1035,14 +1038,14 @@ class LibraryManager:
                 callback = lambda: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         
-        self.user_download_choice.set_download_state(torrent.infohash, "restart")
-        
     def stopTorrent(self, torrent):
         downloads = self._getDownloads(torrent)        
         for download in downloads:
             if download:
                 download.stop()
-        self.user_download_choice.set_download_state(torrent.infohash, "stop")
+                
+                id = download.get_def().get_id()
+                self.user_download_choice.set_download_state(id, "stop")
     
     def _getDownloads(self, torrent):
         downloads = []

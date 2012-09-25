@@ -447,8 +447,7 @@ class MainFrame(wx.Frame):
                 if not correctedFilename and tdef:
                     defaultname = tdef.get_name_as_unicode()
                 
-                @forceAndReturnWxThread
-                def do_gui(destdir, selectedFiles, correctedFilename, cancelDownload):
+                if wx.Thread_IsMain():
                     dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
                     dlg.CenterOnParent()
                     
@@ -462,9 +461,8 @@ class MainFrame(wx.Frame):
                     else:
                         cancelDownload = True
                     dlg.Destroy()
-                    return destdir, selectedFiles, correctedFilename, cancelDownload
-                
-                destdir, selectedFiles, correctedFilename, cancelDownload = do_gui(destdir, selectedFiles, correctedFilename, cancelDownload)
+                else:
+                    raise Exception("cannot create dialog, not on wx thread")
                     
             if not cancelDownload:
                 if destdir is not None:
@@ -533,17 +531,7 @@ class MainFrame(wx.Frame):
 
                 return result  
 
-        except DuplicateDownloadException:
-            def do_gui():
-                # show nice warning dialog
-                dlg = wx.MessageDialog(None,
-                                       self.utility.lang.get('duplicate_download_msg'),
-                                       self.utility.lang.get('duplicate_download_title'),
-                                       wx.OK|wx.ICON_ERROR)
-                result = dlg.ShowModal()
-                dlg.Destroy()
-            wx.CallAfter(do_gui)
-            
+        except DuplicateDownloadException,e:
             # If there is something on the cmdline, all other torrents start
             # in STOPPED state. Restart
             if cmdline and cdef.get_def_type() == 'torrent':
@@ -553,12 +541,24 @@ class MainFrame(wx.Frame):
                         d.restart()
                         break
             
+            if wx.Thread_IsMain():
+                # show nice warning dialog
+                dlg = wx.MessageDialog(None,
+                                       self.utility.lang.get('duplicate_download_msg'),
+                                       self.utility.lang.get('duplicate_download_title'),
+                                       wx.OK|wx.ICON_ERROR)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                
+            else:
+                print_exc()
+                self.onWarning(e)
+            
         except Exception,e:
             print_exc()
             self.onWarning(e)
             
         return None
-    
     
     def startReseedSwiftDownload(self, tdef, storagepath, sdef):
         # Arno, 2012-05-07:

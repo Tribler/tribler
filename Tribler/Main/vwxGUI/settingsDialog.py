@@ -472,7 +472,7 @@ class SettingsDialog(wx.Dialog):
             choices = []
             dstates = []
             infohashes = []
-            _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
+            _,downloads = self.guiUtility.library_manager.getHitsInCategory()
         
             def sort_by_name(a, b):
                 return cmp(a.name, b.name)
@@ -558,7 +558,7 @@ class SettingsDialog(wx.Dialog):
         def do_db():
             choices = []
             dstates = []
-            _,_,downloads = self.guiUtility.library_manager.getHitsInCategory()
+            _,downloads = self.guiUtility.library_manager.getHitsInCategory()
             
             def sort_by_name(a, b):
                 return cmp(a.name, b.name)
