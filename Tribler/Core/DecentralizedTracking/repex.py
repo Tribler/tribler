@@ -349,7 +349,8 @@ class RePEXer(RePEXerInterface):
         if dns in self.starting_peertable:
             if success:
                 self.onlinecount += 1
-                self.live_peers[dns]['prev'] = True
+                if dns in self.live_peers:
+                    self.live_peers[dns]['prev'] = True
             else:
                 self.shufflecount += 1
                 #self.to_pex.extend([pexdns for pexdns,flags in self.starting_peertable[dns]['pex']])
