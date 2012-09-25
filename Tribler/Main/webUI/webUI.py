@@ -8,6 +8,8 @@ from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
 import json
 from functools import wraps
 from cherrypy import response, expose
+from cherrypy.lib.auth_basic import checkpassword_dict
+from traceback import print_exc
 
 
 DEBUG = False
@@ -17,10 +19,13 @@ def jsonify(func):
     '''JSON decorator for CherryPy'''
     @wraps(func)
     def wrapper(*args, **kw):
-        value = func(*args, **kw)
-        response.headers["Content-Type"] = "application/json"
-        return json.dumps(value)
-
+        try:
+            value = func(*args, **kw)
+            response.headers["Content-Type"] = "application/json"
+            return json.dumps(value)
+        except:
+            print_exc()
+            raise
     return wrapper
 
 
@@ -35,13 +40,13 @@ class WebUI():
         self.currentTokens = set()
         self.currentTorrents = {}
         
-        
         self.library_manager = library_manager
         self.torrentsearch_manager = torrentsearch_manager
         self.guiUtility = library_manager.guiUtility
         self.port = port
         
         self.started = False
+        self.hasauth = False
 
     def getInstance(*args, **kw):
         if WebUI.__single is None:
@@ -66,8 +71,14 @@ class WebUI():
                             'tools.staticdir.root': current_dir, 
                             'tools.staticdir.on': True,
                             'tools.staticdir.dir': "static",
-                          }
+                            }
                       }
+            
+            if self.hasauth:
+                userpassdict = {'hello':'world'}
+                checkpassword = checkpassword_dict(userpassdict)
+                config['/'] = {'tools.auth_basic.on': True, 'tools.auth_basic.realm': 'Tribler-WebUI', 'tools.auth_basic.checkpassword': checkpassword}
+                
             cherrypy.tree.mount(self, '/gui', config)
             cherrypy.engine.start()
     
@@ -93,10 +104,11 @@ class WebUI():
             self.currentTokens.add(str(args['token']))
         
         if str(args['token']) in self.currentTokens:
+            if 'action' in args:
+                returnDict = self.doAction(args)
+                
             if 'list' in args:
                 returnDict = self.doList(args)
-            elif 'action' in args:
-                returnDict = self.doAction(args)
                 
         returnDict['build'] = 1
         if DEBUG:
@@ -112,7 +124,7 @@ class WebUI():
         return "<html><body><div id='token' style='display:none;'>%s</div></body></html>"%newToken
     
     def doList(self, args):
-        _,_,torrents = self.library_manager.getHitsInCategory()
+        _,torrents = self.library_manager.getHitsInCategory()
         
         returnDict = {}
         returnDict['label'] = []
@@ -122,10 +134,16 @@ class WebUI():
             torrentList = []
             torrentList.append(hexlify(torrent.infohash))
             
-            if 'stopped' in torrent.state:
-                torrentList.append(200)
+            state = 0
+            if 'checking' in torrent.state:
+                state += 2
             else:
-                torrentList.append(201)
+                state += 8
+                
+            if 'active' in torrent.state:
+                state += 1 + 64 + 128
+                
+            torrentList.append(state)
             
             torrentList.append(torrent.name.encode('utf8'))
             torrentList.append(torrent.length)
@@ -145,7 +163,7 @@ class WebUI():
                 seeds, peers = ds.get_num_seeds_peers()
                 downS = ds.get_current_speed('down')*1024 
                 upS = ds.get_current_speed('up')*1024
-                eta = ds.get_eta()
+                eta = ds.get_eta() or sys.maxint
             else:
                 progress = torrent.progress
                 dl = 0

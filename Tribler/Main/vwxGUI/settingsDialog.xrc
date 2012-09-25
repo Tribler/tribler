@@ -768,7 +768,7 @@
 								</object>
 								<object class="sizeritem">
 		                        	<object class="wxStaticText">
-                                    	<label>The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\nFurthermore, we additionally allow you to control Tribler using your Browser.\nGo to http://localhost:PORT/gui to open it.</label>
+                                    	<label>The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler using your Browser. Go to http://localhost:PORT/gui to view your \ndownloads in the browser.\n</label>
                                 	</object>
 									<flag>wxEXPAND|wxTOP</flag>
 									<border>7</border>
