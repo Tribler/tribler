@@ -626,7 +626,7 @@ class Session(SessionRuntimeConfig):
     #
     # Persistence and shutdown 
     #
-    def load_checkpoint(self,initialdlstatus=None):
+    def load_checkpoint(self,initialdlstatus=None, initialdlstatus_dict = {}):
         """ Restart Downloads from checkpoint, if any.
         
         This method allows the API user to manage restoring downloads. 
@@ -634,8 +634,10 @@ class Session(SessionRuntimeConfig):
         on first, and only then restart any sleeping torrents (e.g. seeding).
         The optional initialdlstatus parameter can be set to DLSTATUS_STOPPED
         to restore all the Downloads in DLSTATUS_STOPPED state.
+        The options initialdlstatus_dict parameter can be used to specify a 
+        state overriding the initaldlstatus parameter per download id.
         """
-        self.lm.load_checkpoint(initialdlstatus)
+        self.lm.load_checkpoint(initialdlstatus, initialdlstatus_dict)
     
     
     def checkpoint(self):

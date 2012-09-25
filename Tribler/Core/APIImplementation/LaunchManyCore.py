@@ -657,7 +657,7 @@ class TriblerLaunchMany(Thread):
     #
     # Persistence methods
     #
-    def load_checkpoint(self,initialdlstatus=None):
+    def load_checkpoint(self,initialdlstatus=None, initialdlstatus_dict = {}):
         """ Called by any thread """
         self.sesslock.acquire()
         filelist = []
@@ -671,7 +671,7 @@ class TriblerLaunchMany(Thread):
             
         for i, filename in enumerate(filelist):
             shouldCommit = i+1 == len(filelist)
-            self.resume_download(filename,initialdlstatus,commit=shouldCommit,setupDelay=i*0.5)
+            self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.5)
             
     def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
@@ -685,7 +685,7 @@ class TriblerLaunchMany(Thread):
             #self.rawserver_nonfatalerrorfunc(e)
             return None
 
-    def resume_download(self,filename,initialdlstatus=None,commit=True,setupDelay=0):
+    def resume_download(self,filename,initialdlstatus=None,initialdlstatus_dict={},commit=True,setupDelay=0):
         tdef = sdef = dscfg = pstate = None
         
         try:
@@ -746,8 +746,10 @@ class TriblerLaunchMany(Thread):
             if dscfg.get_dest_dir() != '': #removed torrent ignoring
                 try:
                     if tdef:
+                        initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
                         self.add(tdef,dscfg,pstate,initialdlstatus,commit=commit,setupDelay=setupDelay)
                     else:
+                        initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
                         self.swift_add(sdef,dscfg,pstate,initialdlstatus)
                         
                 except Exception,e:

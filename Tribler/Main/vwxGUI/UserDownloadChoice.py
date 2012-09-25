@@ -61,3 +61,5 @@ class UserDownloadChoice:
     def get_download_state(self, infohash, default=None):
         return self._choices["download_state"].get(infohash, default)
     
+    def get_download_states(self):
+        return self._choices["download_state"]

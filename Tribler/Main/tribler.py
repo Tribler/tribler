@@ -763,8 +763,15 @@ class ABCApp():
                         os.remove(file)
             except:
                 pass
+            
+        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+        user_download_choice = UserDownloadChoice.get_singleton()
+        initialdlstatus_dict = {}
+        for id, state in user_download_choice.get_download_states().iteritems():
+            if state == 'stop':
+                initialdlstatus_dict[id] = DLSTATUS_STOPPED
         
-        self.utility.session.load_checkpoint()
+        self.utility.session.load_checkpoint(initialdlstatus_dict = initialdlstatus_dict)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
