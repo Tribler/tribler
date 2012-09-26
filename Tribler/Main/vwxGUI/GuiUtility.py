@@ -163,6 +163,9 @@ class GUIUtility:
 
             elif self.guiPage == 'selectedchannel':
                 self.frame.selectedchannellist.Show(False)
+                if not self.frame.splitter.IsSplit():
+                    sashpos = getattr(self.frame.splitter_top_window, 'sashpos', -185)
+                    self.frame.splitter.SplitHorizontally(self.frame.splitter_top_window, self.frame.splitter_bottom_window, sashpos)
             
             if page == 'playlist':
                 self.SetTopSplitterWindow(self.frame.playlist)
