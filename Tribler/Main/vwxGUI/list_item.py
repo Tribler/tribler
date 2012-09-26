@@ -250,6 +250,7 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         try:
             self.at_index = visible_columns.index('Associated torrents')
             self.controls[self.at_index].SetToolTipString('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
+            self.controls[self.at_index].Bind(wx.EVT_MOUSE_EVENTS, self.ShowSelected)
         except:
             pass
         
@@ -258,11 +259,12 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         self.titleSizer.Insert(0, tag, 0, wx.CENTER|wx.TOP, 2)
         self.titleSizer.Insert(1, (5, -1), 0, 0)
         
-    def ShowSelected(self):
+    def ShowSelected(self, event = None):
         DoubleLineListItemWithButtons.ShowSelected(self)
         
+        highlight = event and event.GetEventObject() == self.controls[self.at_index] and not event.Leaving()
+        
         if self.at_index >= 0:
-            highlight = self.controls[-1].GetScreenRect().Contains(wx.GetMousePosition())
             for infohash in self.data[-1]:
                 if infohash in self.parent_list.items:
                     torrent_item = self.parent_list.GetItem(infohash)
