@@ -261,6 +261,8 @@ class SelectedChannelList(GenericSearchList):
         self.accelerators = [(wx.ACCEL_NORMAL, wx.WXK_BACK, newId)]
         self.list.Bind(wx.EVT_MENU, self.OnBack, id = newId)
         self.list.SetAcceleratorTable(wx.AcceleratorTable(self.accelerators))
+        
+        self.list.Bind(wx.EVT_SHOW, lambda evt: self.notebook.SetSelection(0))
     
     @warnWxThread
     def _PostInit(self):
