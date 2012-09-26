@@ -1696,7 +1696,7 @@ class ManageChannelFilesList(List):
         dlg.Destroy()
         
     def OnAdd(self, event):
-        _,_,libraryTorrents = self.guiutility.library_manager.getHitsInCategory()
+        _,libraryTorrents = self.guiutility.library_manager.getHitsInCategory()
         
         dlg = AddTorrent(None, self.GetManager(), libraryTorrents)
         dlg.CenterOnParent()
