@@ -622,3 +622,10 @@ class SwiftStatisticsResponse:
         except:
             pass
 
+        try:
+            self.rawUpTotal = midict['raw_bytes_up']
+            self.rawDownTotal = midict['raw_bytes_down']
+        except KeyError:
+            self.rawUpTotal = 0
+            self.rawDownTotal = 0
+

@@ -123,6 +123,8 @@ class EffortCommunity(Community):
         # _DOWNLOAD_STATES contains all peers that are currently downloading.  when we determine
         # that a peer is missing, we will update its bandwidth statistics
         self._download_states = dict()
+        self._swift_raw_bytes_up = 0
+        self._swift_raw_bytes_down = 0
 
         # _SLOPE contains the promising members as Member:RecordCandidate
         self._slope_length = 10
@@ -281,6 +283,12 @@ class EffortCommunity(Community):
                       for state
                       in states
                       if state.get_download().get_def().get_def_type() == "swift" and state.get_peerlist())
+
+        # get global up and download for swift
+        for state in active.itervalues():
+            stats = state.stats["stats"]
+            self._swift_raw_bytes_up = stats.rawUpTotal
+            self._swift_raw_bytes_down = stats.rawDownTotal
 
         # OLD is used to determine stopped downloads and peers that left.  NEW will become the next OLD
         old = self._download_states
@@ -731,6 +739,10 @@ class EffortCommunity(Community):
                         lan_address=self._dispersy.lan_address,
                         wan_address=self._dispersy.wan_address,
                         connection_type=self._dispersy.connection_type,
+                        dispersy_total_up=self._dispersy.endpoint.total_up,
+                        dispersy_total_down=self._dispersy.endpoint.total_down,
+                        swift_total_up=self._swift_raw_bytes_up,
+                        swift_total_down=self._swift_raw_bytes_down,
                         observations_in_db=observations_in_db,
                         bandwidth_guesses_in_db=bandwidth_guesses_in_db,
                         records_in_db=records_in_db,
