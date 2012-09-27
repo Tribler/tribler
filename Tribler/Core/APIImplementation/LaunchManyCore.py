@@ -234,7 +234,6 @@ class TriblerLaunchMany(Thread):
                 print_exc()
             pass
 
-
         if config['megacache'] or config['overlay']:
             # Arno: THINK! whoever added this should at least have made the
             # config files configurable via SessionConfigInterface.
@@ -266,7 +265,6 @@ class TriblerLaunchMany(Thread):
 
         # add task for tracker checking
         if config['torrent_checking']:
-
             if config['mainline_dht']:
                 # Create torrent-liveliness checker based on DHT
                 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
