@@ -48,9 +48,9 @@ INSERT INTO option(key, value) VALUES('last_record_pushed', 0);
 """
 
 cleanup = u"""
-DELETE FROM TABLE record;
-DELETE FROM TABLE observation;
-DELETE FROM TABLE bandwidth_guess;
+DELETE FROM record;
+DELETE FROM observation;
+DELETE FROM bandwidth_guess;
 """
 
 class EffortDatabase(Database):
