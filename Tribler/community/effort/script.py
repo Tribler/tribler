@@ -27,7 +27,7 @@ class CrawlerScript(ScriptBase):
 
     def check_master_private_key(self):
         if not self._community.master_member.private_key:
-            private_key = open("effort_master_private_key.bin", "r").read()
+            private_key = open("_" + self._community.cid.encode("HEX") + ".private_key", "r").read()
             Member(self._community.master_member.public_key, private_key)
             assert self._community.master_member.private_key == private_key
 
@@ -70,9 +70,18 @@ class DestroyCommunityScript(CrawlerScript):
 
     def destroy(self):
         """ Destroy the effort community """
+        self.check_master_private_key()
+
         for i in xrange(10, 0, -1):
             dprint("CID: ", self._community.cid.encode("HEX"), level="warning")
             dprint("WARNING: the community will be destroyed in ", i, " seconds!", level="warning")
+            yield 1.0
+
+        # DESTROY!
+        self._community.create_dispersy_destroy_community(u"hard-kill", sign_with_master=True)
+
+        for i in xrange(60):
+            dprint("WARNING: leave running to improve message propagation", level="warning")
             yield 1.0
 
 class TriblerEffortScript(ScenarioScript):
