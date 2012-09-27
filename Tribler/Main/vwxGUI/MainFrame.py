@@ -381,6 +381,7 @@ class MainFrame(wx.Frame):
                 pass
             elif self.params[0].startswith("magnet:"):
                 self.startDownloadFromMagnet(self.params[0])
+                
             else:
                 torrentfilename = self.params[0]
                 self.startDownload(torrentfilename,cmdline=True)
@@ -388,7 +389,7 @@ class MainFrame(wx.Frame):
     def startDownloadFromMagnet(self, url, destdir = None):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            self.startDownload(cdef=tdef, destdir = destdir)
+            wx.CallAfter(self.startDownload, cdef = tdef, destdir = destdir)
                 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
@@ -400,14 +401,15 @@ class MainFrame(wx.Frame):
     
     def startDownloadFromSwift(self, url, destdir = None):
         cdef = SwiftDef.load_from_url(url)
-        self.startDownload(cdef=cdef, destdir = destdir)
+        wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)
+        
         return True
     
     def startDownloadFromUrl(self, url, destdir = None):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                self.startDownload(cdef=tdef, destdir = destdir)
+                wx.CallAfter(self.startDownload, cdef=tdef, destdir = destdir)
                 return True
         except:
             print_exc()
