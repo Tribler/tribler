@@ -973,7 +973,7 @@ class MainFrame(wx.Frame):
         self.utility.config.Write("window_x", x)
         self.utility.config.Write("window_y", y)
         
-        if self.splitter.IsShownOnScreen():
+        if self.splitter.IsShownOnScreen() and not self.splitter.Unsplit():
             self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
 
         self.utility.config.Flush()

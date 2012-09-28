@@ -10,6 +10,7 @@ from list_body import *
 from list_details import *
 from _abcoll import Iterable
 from Tribler.Main.vwxGUI.list_header import TorrentFilter
+import urllib
 
 class DoubleLineListItem(ListItem):
     def __init__(self, *args, **kwargs):
@@ -193,6 +194,46 @@ class TorrentListItem(DoubleLineListItem):
             return [self.parent_list.parent_list._special_icon(self), self.parent_list.parent_list._status_icon(self)]
         else:
             return []
+        
+    @warnWxThread        
+    def GetContextMenu(self):
+        menu = DoubleLineListItem.GetContextMenu(self)
+
+        filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.original_data)
+        if filename and os.path.exists(filename):
+            itemid = wx.NewId()
+            menu.Append(itemid, 'Export .torrent..')
+            menu.Bind(wx.EVT_MENU, lambda event, filename=filename: wx.CallAfter(self.OnExportTorrent, filename), id = itemid)
+        
+        itemid = wx.NewId()
+        menu.Append(itemid, 'Copy magnet link')
+        menu.Bind(wx.EVT_MENU, lambda event, infohash=self.original_data.infohash: self.OnCopyMagnet(infohash), id = itemid)
+
+        return menu
+    
+    def OnExportTorrent(self, filename):
+        dlg = wx.FileDialog(self, message = "Select an export destination", defaultFile = "%s.torrent" % self.original_data.name, wildcard = "*.torrent", style = wx.FD_SAVE|wx.CHANGE_DIR|wx.OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_OK:
+            paths = dlg.GetPaths()
+            if os.path.exists(paths[0]):
+                os.remove(paths[0])
+            shutil.copyfile(filename, paths[0])
+        dlg.Destroy()
+        
+    def OnCopyMagnet(self, infohash):
+        magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
+        trackers = self.guiutility.channelsearch_manager.torrent_db.getTracker(infohash)
+        if trackers:
+            for tracker,_ in trackers:
+                magnetlink += "&tr="+urllib.quote_plus(tracker)
+                
+        if wx.TheClipboard.Open():
+            magnetlinkObj = wx.TextDataObject()
+            magnetlinkObj.SetText(magnetlink)
+            wx.TheClipboard.SetData(magnetlinkObj)
+            wx.TheClipboard.Close()
+        else:
+            wx.MessageBox("Unable to copy magnet link to clipboard", "Error")
         
 class ChannelListItem(DoubleLineListItemWithButtons):
         
