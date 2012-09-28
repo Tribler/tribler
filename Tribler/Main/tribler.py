@@ -36,6 +36,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
+from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
@@ -609,7 +610,7 @@ class ABCApp():
 
                 if self.dispersy:
                     wantpeers = True
-                    self.effort_community = self.dispersy.callback.call(self.dispersy.get_community, ("925f18381cb79b446332f92b8756bfab98c6dddb".decode("HEX"),), dict(load=False, auto_load=False))
+                    self.effort_community = self.dispersy.callback.call(self.dispersy.get_community, (EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST,), dict(load=False, auto_load=False))
 
             # Find State of currently playing video
             playds = None

@@ -10,7 +10,7 @@ if __debug__:
 update_revision_information("$HeadURL$", "$Revision$")
 
 # a cycle is defined as a N second period
-CYCLE_SIZE = 120.0 #1800.0
+CYCLE_SIZE = 1800.0
 
 # the number of bits used per history
 BIT_COUNT = 64 * 8
