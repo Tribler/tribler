@@ -910,12 +910,12 @@ class ChannelCommunity(Community):
                             packets.append(tormessage.packet)
 
                 if __debug__:
-                    self._dispersy.statistics.outgoing(u"missing-channel-response", sum(len(packet) for packet in packets), len(packets))
+                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"missing-channel-response", len(packets))
                 self._dispersy.endpoint.send([message.candidate], packets)
 
             else:
                 if __debug__:
-                    self._dispersy.statistics.outgoing(u"missing-channel-response", len(channelmessage.packet), 1)
+                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"missing-channel-response")
                 self._dispersy.endpoint.send([message.candidate], [channelmessage.packet])
 
     #check or receive moderation messages

@@ -441,31 +441,22 @@ class DispersyPanel(HomePanel):
         self.timer.Start(5000, False)
         self.UpdateStats()
 
-        self.mapping = {"total_down":[("Down", lambda info: self.utility.size_format(info["total_down"])),
-                                      ("Down avg", lambda info: self.utility.size_format(int(info["total_down"] / info["runtime"])) + "/s")],
-                        "total_up":[("Up", lambda info: self.utility.size_format(info["total_up"])),
-                                    ("Up avg", lambda info: self.utility.size_format(int(info["total_up"] / info["runtime"])) + "/s")],
-                        "drop":[("Dropped", lambda info: "%s ~%.1f%%" % (self.utility.size_format(int(sum(byte_count for _, byte_count in info["drop"].itervalues()))), (100.0 * sum(byte_count for _, byte_count in info["drop"].itervalues()) / info["total_down"]) if info["total_down"] else 0.0))],
-                        "walk_success":[("Walker success", lambda info: "%d / %d ~%.1f%%" % (info["walk_success"], info["walk_attempt"], (100.0 * info["walk_success"] / info["walk_attempt"]) if info["walk_attempt"] else 0.0))],
-                        "walk_reset":[("Walker resets", lambda info: str(info["walk_reset"]))],
-                        "wan_address":[("Address WAN", lambda info: "%s:%d" % info["wan_address"])],
-                        "lan_address":[("Address LAN", lambda info: "%s:%d" % info["lan_address"])],
-                        "runtime":[("Runtime", lambda info: self.utility.eta_value(info["runtime"]))],
-                        "walk_attempt":[],
-                        "outgoing":[],
-                        "timestamp":[],
-                        "class":[],
-                        "success":[],
-                        "delay":[],
-                        "version":[],
-                        "communities":[],
-                        "sequence_number":[],
-                        "start":[],
-                        "walk_fail":[],
-                        "attachment":[],
-                        "revision":[("Version", lambda info: str(max(info["revision"].itervalues())))],
-                        "drop_count":[],
-                        "success_count":[("Packet success", lambda info: "%d / %d ~%.1f%%" % (info["success_count"] - info["drop_count"], info["success_count"], 100.0 * (info["success_count"] - info["drop_count"]) / info["success_count"] if info["success_count"] else 0.0))]}
+        self.mapping = [
+            ("WAN Address", lambda stats: "%s:%d" % stats.wan_address),
+            ("LAN Address", lambda stats: "%s:%d" % stats.lan_address),
+            ("Connection", lambda stats: str(stats.connection_type)),
+            ("Runtime", lambda stats: self.utility.eta_value(stats.timestamp - stats.start)),
+            ("Download", lambda stats: self.utility.size_format(stats.total_down)),
+            ("Down avg", lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
+            ("Upload", lambda stats: self.utility.size_format(stats.total_up)),
+            ("Up avg", lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
+            ("Packet dropped", lambda stats: "%d / %d ~%.1f%%" % (stats.drop_count, stats.success_count, (100.0 * stats.drop_count / stats.success_count) if stats.success_count else 0.0)),
+            ("Packet success", lambda stats: "%d / %d ~%.1f%%" % (stats.success_count - stats.drop_count, stats.success_count, 100.0 * (stats.success_count - stats.drop_count) / stats.success_count if stats.success_count else 0.0)),
+            ("Walker success", lambda stats: "%d / %d ~%.1f%%" % (stats.walk_success, stats.walk_attempt, (100.0 * stats.walk_success / stats.walk_attempt) if stats.walk_attempt else 0.0)),
+            ("Walker resets", lambda stats: str(stats.walk_reset)),
+            ("Revision", lambda stats: str(max(stats.revision.itervalues()))),
+            ("Debug mode", lambda stats: "yes" if __debug__ else "no"),
+            ]
 
     def CreatePanel(self):
         panel = wx.Panel(self)
@@ -502,23 +493,18 @@ class DispersyPanel(HomePanel):
         panel.SetSizer(vSizer)
         return panel
 
-    def CreateColumns(self, info):
+    def CreateColumns(self):
         self.textdict = {}
-        def addColumn(key):
-            strkey = key.replace("_", " ").capitalize()
+        def addColumn(strkey):
+            # strkey = key.replace("_", " ").capitalize()
             header = StaticText(self.panel, -1, strkey)
             _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
             self.gridSizer.Add(header)
-            self.textdict[key] = StaticText(self.panel, -1, '')
-            self.textdict[key].SetMinSize((200,-1))
-            self.gridSizer.Add(self.textdict[key])
+            self.textdict[strkey] = StaticText(self.panel, -1, '')
+            self.textdict[strkey].SetMinSize((200,-1))
+            self.gridSizer.Add(self.textdict[strkey])
 
-        columns = ["in_debugmode"]
-        for key in info.iterkeys():
-            for title, _ in self.mapping.get(key, [(key, None)]):
-                columns.append(title)
-
-        for title in sorted(columns):
+        for title, _ in self.mapping:
             addColumn(title)
 
         self.buildColumns = True
@@ -542,15 +528,15 @@ class DispersyPanel(HomePanel):
         includeStuffs = self.includeStuffs.GetValue()
 
         def db_callback():
-            info = self.dispersy.info(database_sync=includeStuffs)
-            self._UpdateStats(info)
+            self.dispersy.statistics.update(database=includeStuffs)
+            self._UpdateStats(self.dispersy.statistics)
 
         startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
-    def _UpdateStats(self, info):
+    def _UpdateStats(self, stats):
         if not self.buildColumns:
-            self.CreateColumns(info)
+            self.CreateColumns()
 
         def addValue(parentNode, value):
             if isinstance(value, dict):
@@ -578,59 +564,50 @@ class DispersyPanel(HomePanel):
             #     value = "%s:%d"%value
             self.textdict[key].SetLabel(str(value))
 
-        # center tree
+        # center communities
         if not self.summary_tree.blockUpdate:
             self.summary_tree.DeleteAllItems()
-            if "communities" in info:
-                root = self.summary_tree.AddRoot("fake")
-                def communitykey(community):
-                    hasCandidates = 1
-                    if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
-                        hasCandidates = 0
-                    elif community["candidates"]:
-                        hasCandidates = 0
-                    return (hasCandidates, community["classification"], community["hex_cid"])
-                
-                for community in sorted(info["communities"], key=communitykey):
-                    if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
-                        candidates = "%d " % len(community["candidates"])
-                    elif community["candidates"]:
-                        candidates = "%d*" % len(community["candidates"])
-                    else:
-                        candidates = "- "
-                    total_packets = sum(community["database_sync"].itervalues()) if "database_sync" in community else -1
-                    parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community["hex_cid"], total_packets, candidates, community["classification"], community["global_time"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
-                    self.summary_tree.AppendItem(parent, u"member:             %s" % community["hex_mid"])
-                    self.summary_tree.AppendItem(parent, u"classification:     %s" % community["classification"])
-                    self.summary_tree.AppendItem(parent, u"database id:        %d" % community["database_id"])
-                    self.summary_tree.AppendItem(parent, u"global time:        %d" % community["global_time"])
-                    self.summary_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community["acceptable_global_time"] - community["dispersy_acceptable_global_time_range"], community["acceptable_global_time"] - community["global_time"] - community["dispersy_acceptable_global_time_range"]))
-                    self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community["dispersy_acceptable_global_time_range"])
-                    if community["attributes"]["dispersy_enable_candidate_walker"] or community["attributes"]["dispersy_enable_candidate_walker_responses"]:
-                        sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
-                        for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
-                                                for lan_address, wan_address, global_time
-                                                in community["candidates"]):
-                            self.summary_tree.AppendItem(sub_parent, candidate)
-                    if "database_sync" in community:
-                        sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community["database_sync"].itervalues()))
-                        for name, count in sorted(community["database_sync"].iteritems(), key=lambda tup: tup[1]):
-                            self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
-                    # self.summary_tree.Expand(parent)
-                # self.summary_tree.ExpandAll()
+            root = self.summary_tree.AddRoot("fake")
+            for community in sorted(stats.communities, key=lambda community: community.cid):
+                if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
+                    candidates = "%d " % len(community.candidates)
+                elif community.candidates:
+                    candidates = "%d*" % len(community.candidates)
+                else:
+                    candidates = "- "
+                total_packets = sum(community.database.itervalues())
+                parent = self.summary_tree.AppendItem(root, u"%s %6d %3s %s @%d ~%d" % (community.hex_cid, total_packets, candidates, community.classification, community.global_time, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
+                self.summary_tree.AppendItem(parent, u"member:             %s" % community.hex_mid)
+                self.summary_tree.AppendItem(parent, u"classification:     %s" % community.classification)
+                self.summary_tree.AppendItem(parent, u"database id:        %d" % community.database_id)
+                self.summary_tree.AppendItem(parent, u"global time:        %d" % community.global_time)
+                self.summary_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community.acceptable_global_time - community.dispersy_acceptable_global_time_range, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
+                self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community.dispersy_acceptable_global_time_range)
+                if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
+                    sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
+                    for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
+                                            for lan_address, wan_address, global_time
+                                            in community.candidates):
+                        self.summary_tree.AppendItem(sub_parent, candidate)
+                if community.database:
+                    sub_parent = self.summary_tree.AppendItem(parent, u"database: %d packets" % sum(count for count in community.database.itervalues()))
+                    for name, count in sorted(community.database.iteritems(), key=lambda tup: tup[1]):
+                        self.summary_tree.AppendItem(sub_parent, "%s: %d" % (name, count))
+                # self.summary_tree.Expand(parent)
+            # self.summary_tree.ExpandAll()
 
 
         # left tree
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
             fakeRoot = self.tree.AddRoot('fake')
-            for key, value in info.iteritems():
-                for title, func in self.mapping.get(key, [(key, lambda info: str(info[key]))]):
-                    updateColumn(title, func(info))
-            updateColumn("in_debugmode", str(__debug__))
+            for title, func in self.mapping:
+                updateColumn(title, func(stats))
 
+        # right tree
+        if not self.tree.blockUpdate:
             parentNode = self.tree.AppendItem(fakeRoot, "raw info")
-            addValue(parentNode, info)
+            addValue(parentNode, {})
 
         self.panel.Layout()
 

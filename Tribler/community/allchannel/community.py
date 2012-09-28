@@ -175,7 +175,7 @@ class AllChannelCommunity(Community):
                                         distribution=(self.global_time,), payload=(torrents,))
                             
                     if __debug__:
-                        self._dispersy.statistics.outgoing(meta.name, len(message.packet), 1)
+                        self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta.name)
                     self._dispersy.endpoint.send([candidate], [message.packet])
                             
                     #we've send something to this address, add to blocklist
@@ -234,7 +234,7 @@ class AllChannelCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(toCollect,))
         if __debug__:
-            self._dispersy.statistics.outgoing(meta.name, len(message.packet), 1)
+            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta.name)
         self._dispersy.endpoint.send([candidate], [message.packet])
         
         if DEBUG:
@@ -253,7 +253,7 @@ class AllChannelCommunity(Community):
 
             if requested_packets:
                 if __debug__:
-                    self._dispersy.statistics.outgoing(u"channelcast-response", sum(len(packet) for packet in requested_packets), len(requested_packets))
+                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"channelcast-response", len(requested_packets))
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
             
             if DEBUG:
@@ -308,7 +308,7 @@ class AllChannelCommunity(Community):
                             distribution=(self.global_time,), payload=(keywords, torrents))
         
         if __debug__:
-            self._dispersy.statistics.outgoing(meta.name, len(message.packet), 1)
+            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta.name)
         self._dispersy.endpoint.send([candidate], [message.packet])
         
         if DEBUG:

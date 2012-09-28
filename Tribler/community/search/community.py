@@ -269,7 +269,7 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: sending introduction request to",destination
 
-        self._dispersy._statistics.increment_walk_attempt()
+        self._dispersy.statistics.walk_attempt += 1
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
@@ -357,8 +357,8 @@ class SearchCommunity(Community):
                                     distribution=(self.global_time,), payload=(message.payload.identifier, myList))
                 
                 if __debug__:
-                    self._dispersy.statistics.outgoing(u"xor-response", len(resp_message.packet))
-                    self._dispersy.statistics.outgoing(u"xor-request", len(requ_message.packet))
+                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"xor-response")
+                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"xor-request")
                     
                 self._dispersy.endpoint.send([message.candidate, message.candidate], [resp_message.packet, requ_message.packet])
             
@@ -439,7 +439,7 @@ class SearchCommunity(Community):
                                 distribution=(self.global_time,), payload=(identifier, keywords))
             
             if __debug__:
-                self._dispersy.statistics.outgoing(u"search-request", len(message.packet))
+                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"search-request")
             self._dispersy.endpoint.send(candidates, [message.packet])
         
         return len(candidates)
@@ -488,7 +488,7 @@ class SearchCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(identifier, results))
         if __debug__:
-            self._dispersy.statistics.outgoing(u"search-response", len(message.packet))
+            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"search-response")
         self._dispersy.endpoint.send([candidate], [message.packet])
         
         if DEBUG:
@@ -541,7 +541,7 @@ class SearchCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(torrentdict,))
         if __debug__:
-            self._dispersy.statistics.outgoing(u"torrent-request", len(message.packet))
+            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"torrent-request")
         self._dispersy.endpoint.send([candidate], [message.packet])
         
         if DEBUG:
@@ -561,7 +561,7 @@ class SearchCommunity(Community):
 
             if requested_packets:
                 if __debug__:
-                    self._dispersy.statistics.outgoing(u"torrent-response", sum([len(packet) for packet in requested_packets]))
+                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"torrent-response", len(requested_packets))
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
             
             if DEBUG:
@@ -692,7 +692,7 @@ class SearchCommunity(Community):
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), payload=(identifier, SWIFT_INFOHASHES, torrents))
             if __debug__:
-                self._dispersy.statistics.outgoing(meta_name, len(message.packet))
+                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta_name)
             self._dispersy.endpoint.send([candidate], [message.packet])
     
             if DEBUG:
