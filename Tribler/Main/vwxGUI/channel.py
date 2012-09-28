@@ -1640,8 +1640,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             
 class ManageChannelFilesList(List):
     def __init__(self, parent):
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}, \
-                   {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True}]
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False}, \
+                   {'name':'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True, 'showColumname': False}]
    
         List.__init__(self, columns, LIST_LIGHTBLUE, [0,0], parent = parent, borders = False)
     
@@ -1711,7 +1711,7 @@ class ManageChannelFilesList(List):
         
 class ManageChannelPlaylistList(ManageChannelFilesList):
     def __init__(self, parent):
-        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True}]
+        columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False}]
         
         List.__init__(self, columns, LIST_LIGHTBLUE, [0,0], True, parent = parent, borders = False)
     

@@ -1033,7 +1033,8 @@ class ABCApp():
         # SessionCallbackThread meaning download statuses won't be updated. 
         # Offload to diff thread.
         #
-        thread.start_new_thread(self.workerthread_reseed_via_swift_run,(td, callback))
+        t = Thread(target = self.workerthread_reseed_via_swift_run, args = (td, callback), name = "SwiftRootHashCalculator")
+        t.start()
         # apparently daemon by default
         
     def workerthread_reseed_via_swift_run(self, td, callback = None):
@@ -1046,15 +1047,16 @@ class ABCApp():
         #   the other is (kept/deleted/...) too.
         #
         try:
-            current_thread().setName("SwiftRootHashCalculator"+current_thread().getName())
-            
             if prctlimported:
                 prctl.set_name(currentThread().getName())
             
             # 1. Get torrent info
             tdef = td.get_def()
-            
             destdir = td.get_dest_dir()
+            
+            # renaming swarmname for now not supported in swift
+            if td.correctedinfoname != fix_filebasename(tdef.get_name_as_unicode()):
+                return
     
             # 2. Convert to swift def
             sdef = SwiftDef()
