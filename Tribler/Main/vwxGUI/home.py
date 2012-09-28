@@ -568,7 +568,7 @@ class DispersyPanel(HomePanel):
         if not self.summary_tree.blockUpdate:
             self.summary_tree.DeleteAllItems()
             root = self.summary_tree.AddRoot("fake")
-            for community in sorted(stats.communities, key=lambda community: community.cid):
+            for community in sorted(stats.communities, key=lambda community: (community.classification, community.cid)):
                 if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
                     candidates = "%d " % len(community.candidates)
                 elif community.candidates:
