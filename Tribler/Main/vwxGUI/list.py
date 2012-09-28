@@ -1995,7 +1995,7 @@ class ChannelList(List):
         max = log(self.max_votes)
         cur = log(pop+1)
         ratio = min(1, cur/max)
-        ratio = int(self.columns[3]['width'] * ratio) / float(self.columns[3]['width'])
+        ratio = int(item.columns[3]['width'] * ratio) / float(item.columns[3]['width'])
         prev_ratio = getattr(item, 'prev_ratio', None)
         
         if ratio != prev_ratio: #if not enough difference don't return the control
