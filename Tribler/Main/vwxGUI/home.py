@@ -441,6 +441,9 @@ class DispersyPanel(HomePanel):
         self.timer.Start(5000, False)
         self.UpdateStats()
 
+        def ratio(i, j):
+            return "%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
+
         self.mapping = [
             ("WAN Address", lambda stats: "%s:%d" % stats.wan_address),
             ("LAN Address", lambda stats: "%s:%d" % stats.lan_address),
@@ -450,10 +453,11 @@ class DispersyPanel(HomePanel):
             ("Down avg", lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
             ("Upload", lambda stats: self.utility.size_format(stats.total_up)),
             ("Up avg", lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
-            ("Packet dropped", lambda stats: "%d / %d ~%.1f%%" % (stats.drop_count, stats.success_count, (100.0 * stats.drop_count / stats.success_count) if stats.success_count else 0.0)),
-            ("Packet success", lambda stats: "%d / %d ~%.1f%%" % (stats.success_count - stats.drop_count, stats.success_count, 100.0 * (stats.success_count - stats.drop_count) / stats.success_count if stats.success_count else 0.0)),
-            ("Walker success", lambda stats: "%d / %d ~%.1f%%" % (stats.walk_success, stats.walk_attempt, (100.0 * stats.walk_success / stats.walk_attempt) if stats.walk_attempt else 0.0)),
+            ("Packet dropped", lambda stats: ratio(stats.drop_count, stats.success_count)),
+            ("Packet success", lambda stats: ratio(stats.success_count - stats.drop_count, stats.success_count)),
+            ("Walker success", lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker resets", lambda stats: str(stats.walk_reset)),
+            ("Bloom reuse", lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
             ("Revision", lambda stats: str(max(stats.revision.itervalues()))),
             ("Debug mode", lambda stats: "yes" if __debug__ else "no"),
             ]
@@ -583,6 +587,8 @@ class DispersyPanel(HomePanel):
                 self.summary_tree.AppendItem(parent, u"global time:        %d" % community.global_time)
                 self.summary_tree.AppendItem(parent, u"median global time: %d (%d difference)" % (community.acceptable_global_time - community.dispersy_acceptable_global_time_range, community.acceptable_global_time - community.global_time - community.dispersy_acceptable_global_time_range))
                 self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community.dispersy_acceptable_global_time_range)
+                self.summary_tree.AppendItem(parent, u"sync bloom created: %d" % community.sync_bloom_new)
+                self.summary_tree.AppendItem(parent, u"sync bloom reused:  %d" % community.sync_bloom_reuse)
                 if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
                     sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
                     for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
