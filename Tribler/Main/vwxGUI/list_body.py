@@ -137,12 +137,12 @@ class ListItem(wx.Panel):
         if column_index != 0:
             self.hSizer.AddSpacer((3, -1))
                     
-        if control.icon:
+        if getattr(control, 'icon', None):
             self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         
         self.hSizer.Add(control, option, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_CENTER_VERTICAL|wx.TOP|wx.BOTTOM, 3+spacing)
         
-        if control.icon_right:
+        if getattr(control, 'icon_right', None):
             self.hSizer.Add(control.icon_right, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
                     
     def _replace_control(self, old_index, newcontrol):
