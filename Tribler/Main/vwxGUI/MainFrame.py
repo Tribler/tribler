@@ -446,7 +446,7 @@ class MainFrame(wx.Frame):
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
                 defaultname = correctedFilename
-                if not correctedFilename and tdef:
+                if not correctedFilename and tdef and tdef.is_multifile_torrent():
                     defaultname = tdef.get_name_as_unicode()
                 
                 if wx.Thread_IsMain():

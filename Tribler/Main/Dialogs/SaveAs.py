@@ -46,7 +46,6 @@ class SaveAs(wx.Dialog):
         choices = [self.filehistory.GetHistoryFile(i) for i in range(self.filehistory.GetCount())]
         if defaultdir not in choices:
             choices.append(defaultdir)
-            
         
         if defaultname:
             choices.insert(0, os.path.join(lastUsed, defaultname))

@@ -237,9 +237,10 @@ class TorrentChecking(Thread):
                         print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
                 
                 # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
-                for tor in self.queue:
-                    if tor['infohash'] in multi_announce_dict:
-                        tor['last_check'] = time()
+                with self.queueLock:
+                    for tor in self.queue:
+                        if tor['infohash'] in multi_announce_dict:
+                            tor['last_check'] = time()
 
                 # Update torrent with new status
                 self.updateTorrents(torrent, multi_announce_dict)

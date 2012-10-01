@@ -256,13 +256,15 @@ class TorrentManager:
                 sdef = None
 
             # Api download
-            d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
-            if d:
-                if secret:
-                    self.torrent_db.setSecret(torrent.infohash, secret)
+            def do_gui():
+                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
+                if d:
+                    if secret:
+                        self.torrent_db.setSecret(torrent.infohash, secret)
 
-                if DEBUG:
-                    print >>sys.stderr,'standardDetails: download: download started'
+                    if DEBUG:
+                        print >>sys.stderr,'standardDetails: download: download started'
+            wx.CallAfter(do_gui)
         else:
             callback = lambda: self.downloadTorrent(torrent, dest, secret, vodmode)
             response = self.getTorrent(torrent, callback)
