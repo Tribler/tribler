@@ -957,7 +957,7 @@ class SizeList(List):
         didStateChange = False
         
         if rawdata:
-            list_data = [(self.list.items.get(getattr(values[2],'infohash', None), None), values[2]) for values in self.list.raw_data]
+            list_data = [(self.list.items.get(getattr(values[2],'infohash', None), None), values[2]) for values in self.list.raw_data or []]
         else:
             list_data = [(item, item.original_data) for item in self.list.items.itervalues() if item]
             

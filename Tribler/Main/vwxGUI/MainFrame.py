@@ -375,21 +375,28 @@ class MainFrame(wx.Frame):
         # _ProxyService 90s Test
         
     def startCMDLineTorrent(self):
-        if self.params[0] != "":
-            if self.params[0].startswith("--"):
-                # it is a parameter, ignore
-                pass
-            elif self.params[0].startswith("magnet:"):
-                self.startDownloadFromMagnet(self.params[0])
-                
+        if self.params[0] != "" and not self.params[0].startswith("--"):
+            vod = False
+            url_filename = self.params[0]
+            selectedFiles = [self.params[1]] if len(self.params) == 2 else []
+            if selectedFiles:
+                _, ext = os.path.splitext(selectedFiles[0])
+                if ext != '' and ext[0] == '.':
+                    ext = ext[1:]
+                if ext.lower() in videoextdefaults:
+                    vod = True
+            
+            if url_filename.startswith("magnet:"):
+                self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
+            elif url_filename.startswith("http"):
+                self.startDownloadFromUrl(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
             else:
-                torrentfilename = self.params[0]
-                self.startDownload(torrentfilename,cmdline=True)
+                self.startDownload(url_filename, cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
 
-    def startDownloadFromMagnet(self, url, destdir = None):
+    def startDownloadFromMagnet(self, url, destdir = None, cmdline=False, selectedFiles = [], vodmode = False):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            wx.CallAfter(self.startDownload, cdef = tdef, destdir = destdir)
+            wx.CallAfter(self.startDownload, cdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
                 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
@@ -402,14 +409,13 @@ class MainFrame(wx.Frame):
     def startDownloadFromSwift(self, url, destdir = None):
         cdef = SwiftDef.load_from_url(url)
         wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)
-        
         return True
     
-    def startDownloadFromUrl(self, url, destdir = None):
+    def startDownloadFromUrl(self, url, destdir = None, cmdline=False, selectedFiles = [], vodmode = False):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                wx.CallAfter(self.startDownload, cdef=tdef, destdir = destdir)
+                wx.CallAfter(self.startDownload, cdef=tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
                 return True
         except:
             print_exc()
