@@ -1349,7 +1349,7 @@ class SearchList(GenericSearchList):
         
         columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
-                   {'name':'File type', 'width': '21em', 'sortAsc': True}, \
+                   {'name':'File type', 'width': '24em', 'sortAsc': True}, \
                    {'name':'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
@@ -1931,7 +1931,7 @@ class ChannelList(List):
         self.utility = self.guiutility.utility
         
         columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
-                   {'name':'Latest Update', 'width': '24em', 'fmt': format_time}, \
+                   {'name':'Latest Update', 'width': '27em', 'fmt': format_time}, \
                    {'name':'Torrents', 'width': '13em'}, \
                    {'type':'method', 'width': '20em', 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}]
 
