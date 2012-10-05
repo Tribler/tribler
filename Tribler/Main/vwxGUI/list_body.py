@@ -905,7 +905,9 @@ class AbstractListBody():
                 nr_items = len(data)
             print >> sys.stderr, "ListBody: new data", time(), nr_items
             
-        assert not data or len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list))
+        if __debug__:
+            noposition = len(data) < 5
+            assert not noposition or not data or len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list))
             
         if highlight is None:
             highlight = not self.IsEmpty()
