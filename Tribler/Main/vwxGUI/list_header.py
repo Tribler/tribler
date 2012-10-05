@@ -888,6 +888,8 @@ class SelectedChannelFilter(TorrentFilter):
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
         
+        self.search.SetDescriptiveText('Search within channel')
+        
         self.heading_list = self.GetHeadingList(self)
 
         vSizer = self.GetSizer()
@@ -960,7 +962,12 @@ class SelectedChannelFilter(TorrentFilter):
         return FixedListBody(parent, self, self.heading_cols, singleExpanded = True)
     
 class SelectedPlaylistFilter(SelectedChannelFilter):
-    
+
+    def AddComponents(self, spacers):
+        SelectedChannelFilter.AddComponents(self, spacers)
+        
+        self.search.SetDescriptiveText('Search within playlist')
+
     @warnWxThread
     def SetHeading(self, item):
         if item:
@@ -1028,7 +1035,7 @@ class ChannelFilter(BaseFilter):
         self.channeltype.Bind(wx.EVT_LEFT_UP, self.OnPopupChannelType)
         
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within results')
+        self.search.SetDescriptiveText('Search within channels')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))

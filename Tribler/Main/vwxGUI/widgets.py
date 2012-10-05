@@ -466,27 +466,27 @@ class MaxBetterText(wx.BoxSizer):
                 self.hasMore = True
                 
                 if not self.expand:
-                    self.expand = wx.Button(self.parent, -1, "Click to view full "+self.name, style = wx.BU_EXACTFIT)
-                    self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
-                    self.Add(self.expand, 0, wx.ALIGN_RIGHT)
+                    self.expand = LinkText(self.parent, "See more >>", colours = [None, TRIBLER_RED], parentsizer = self)
+                    self.expand.Bind(wx.EVT_LEFT_UP, self.OnFull)
+                    self.Add(self.expand, 0, wx.ALIGN_LEFT)
                 else:
-                    self.expand.Bind(wx.EVT_BUTTON, self.OnFull)
-                    self.expand.SetLabel("Click to view full "+self.name)
+                    self.expand.Bind(wx.EVT_LEFT_UP, self.OnFull)
+                    self.expand.SetLabel("See more >>")
             else:
                 self.hasMore = False
 
     def OnFull(self, event):
         if not self.IsExpanded():
-            self.expand.SetLabel('Click to collapse '+self.name)
+            self.expand.SetLabel("<< See less")
             self.label.SetLabel(self.fullLabel)
         else:
-            self.expand.SetLabel('Click to view full '+self.name)
+            self.expand.SetLabel("See more >>")
             self.label.SetLabel(self.shortLabel)
         
         self.parent.OnChange()
     
     def IsExpanded(self):
-        return self.expand == None or self.expand.GetLabel().startswith('Click to collapse')
+        return self.expand == None or self.expand.GetLabel().startswith('<< See less')
         
     def OnSize(self, event):
         width = self.label.GetSize()[0]

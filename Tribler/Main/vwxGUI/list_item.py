@@ -362,9 +362,7 @@ class PlaylistItemNoButton(PlaylistItem):
         pass
         
 class LibraryListItem(DoubleLineListItem):
-    def __init__(self, *args, **kwargs):
-        DoubleLineListItem.__init__(self, *args, **kwargs)
-        
+            
     def GetIcons(self):
         return [self.parent_list.parent_list._swift_icon(self)]        
 
@@ -380,11 +378,29 @@ class LibraryListItem(DoubleLineListItem):
             
         menu.AppendMenu(wx.ID_ANY, 'Show labels..', show)
         
-        for label, handler in [('Explore files', self.OnExplore)]:
+        menu_items = [('Explore files', self.OnExplore)]
+        if 'seeding' in self.original_data.state:
+            menu_items.append(('Add to my channel', self.OnAddToMyChannel))
+        
+        for label, handler in menu_items:
             itemid = wx.NewId()
             menu.Append(itemid, label)
             menu.Bind(wx.EVT_MENU, handler, id=itemid)
         return menu
+
+    @forceDBThread    
+    def OnAddToMyChannel(self, event):
+        didAdd = self.guiutility.channelsearch_manager.createTorrent(None, self.original_data)
+        if didAdd:
+            UserEventLogDBHandler.getInstance().addEvent(message="MyChannel: manual add from library", type = 2)
+            
+            #remote channel link to force reload
+            del self.original_data.channel
+            self.original_data.channel
+            
+            def gui_call():
+                self.guiutility.Notify('New torrent added to My Channel', "Torrent '%s' has been added to My Channel" % self.original_data.name, icon = wx.ART_INFORMATION)
+            wx.CallAfter(gui_call)
         
     def OnExplore(self, event):
         path = self._GetPath()

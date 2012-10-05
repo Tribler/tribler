@@ -429,10 +429,10 @@ class TorrentDetails(AbstractDetails):
             
             vSizer = wx.BoxSizer(wx.VERTICAL)
             if isinstance(self, LibraryDetails):
-                vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT|wx.TOP, 10)
+                vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
                 vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
                 self.filesFooter = StaticText(parent, -1, 'Double click on any file to modify which files should be downloaded.')
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.LEFT|wx.BOTTOM, 10)
+                vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.LEFT)
                 
             elif isinstance(self, LibraryDetails):
                 vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -446,7 +446,7 @@ class TorrentDetails(AbstractDetails):
                 self.notebook.AddPage(parent, "Files")
             else:
                 vSizer = wx.BoxSizer(wx.VERTICAL)
-                vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT|wx.TOP|wx.BOTTOM, 10)
+                vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
             parent.SetSizer(vSizer)
             self.notebook.AddPage(parent, "Files")
         
@@ -718,6 +718,18 @@ class TorrentDetails(AbstractDetails):
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
                     startfile(file)
+
+    @warnWxThread                       
+    def _GetPath(self, file = None):
+        ds = self.torrent.ds
+        if ds:
+            destdirs = ds.get_download().get_dest_files()
+            if file:
+                for filenameintorrent, path in destdirs:
+                    if filenameintorrent == file:
+                        return path
+                    
+            return os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
     
     @warnWxThread   
     def OnFilesSelected(self, event):
@@ -825,20 +837,6 @@ class TorrentDetails(AbstractDetails):
         pos = wx.Point(ctrl.GetPosition().x, ctrl.GetPosition().y+ctrl.GetSize().y)
         self.overview.PopupMenu(menu, pos)
         menu.Destroy()
-    
-    @forceDBThread
-    def OnMyChannel(self, event):
-        didAdd = self.guiutility.channelsearch_manager.createTorrent(None, self.torrent)
-        if didAdd:
-            self.uelog.addEvent(message="MyChannel: manual add from library", type = 2)
-            
-            #remote channel link to force reload
-            del self.torrent.channel
-            self.torrent.channel
-            
-            def gui_call():
-                self.guiutility.Notify('New torrent added to My Channel', icon = wx.ART_INFORMATION)
-            wx.CallAfter(gui_call)
 
     @warnWxThread
     def RefreshData(self, data):
@@ -1315,7 +1313,7 @@ class LibraryDetails(TorrentDetails):
                         listfile = self.listCtrl.GetItem(i, 0).GetText()
                         
                         progress = completion.get(listfile, None)
-                        if progress:
+                        if isinstance(progress, float) or isinstance(progress, int):
                             self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
                         else:
                             self.listCtrl.SetStringItem(i, 2, 'Excluded')

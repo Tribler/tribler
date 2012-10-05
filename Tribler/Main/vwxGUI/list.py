@@ -1623,6 +1623,10 @@ class LibraryList(SizeList):
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, columns, LIST_GREY, [0,0], False, parent = parent)
+        
+    def OnDeleteKey(self, event):
+        if self.list.GetExpandedItems():
+            self.guiutility.frame.top_bg.OnDelete()
     
     def GetManager(self):
         if getattr(self, 'manager', None) == None:

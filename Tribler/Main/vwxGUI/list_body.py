@@ -1293,12 +1293,14 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         pdownId = wx.NewId()
         aupId = wx.NewId()
         adownId = wx.NewId()
+        deleteId = wx.NewId()
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(False), id = homeId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(True), id = endId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(False), id = pupId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(True), id = pdownId)
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(False), id = aupId)
-        self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(True), id = adownId)        
+        self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(True), id = adownId)
+        self.Bind(wx.EVT_MENU, lambda event: self.parent_list.OnDeleteKey(event) if getattr(self.parent_list, 'OnDeleteKey', False) else None, id = deleteId)        
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnChildFocus)
         wx.GetTopLevelParent(self).Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         
@@ -1308,6 +1310,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_NEXT, pdownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_UP, aupId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DELETE, deleteId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
         
         self.SetForegroundColour(parent.GetForegroundColour())

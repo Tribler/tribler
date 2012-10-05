@@ -403,7 +403,7 @@ class TopSearchPanel(GradientPanel):
         button = event.GetEventObject()
         button.Enable(False)
     
-    def OnDelete(self, event):
+    def OnDelete(self, event = None):
         for torrent in self.__getTorrents():
             dlg = RemoveTorrent(None, torrent)
             buttonId = dlg.ShowModal()
