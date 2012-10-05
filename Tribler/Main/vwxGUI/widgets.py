@@ -1734,15 +1734,19 @@ class MinMaxSlider(wx.Panel):
         return (min_val, max_val)
 
     def OnLeftDown(self, event):
-        if wx.Rect(*self.arrow_down_rect).Contains(event.GetPositionTuple()):
+        x, y, w, h = self.arrow_down_rect
+        if wx.Rect(x, y-4, w, h+4).Contains(event.GetPositionTuple()):
             self.arrow_down_drag = True
-        if wx.Rect(*self.arrow_up_rect).Contains(event.GetPositionTuple()):
+        x, y, w, h = self.arrow_up_rect
+        if wx.Rect(x, y, w, h+4).Contains(event.GetPositionTuple()):
             self.arrow_up_drag = True
+        self.CaptureMouse()
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
     def OnLeftUp(self, event):
         self.arrow_down_drag = False
         self.arrow_up_drag = False
+        self.ReleaseMouse()
         self.Unbind(wx.EVT_MOTION)
         #Call parent
         min_val, max_val = self.GetCurrentValues()
@@ -1753,7 +1757,7 @@ class MinMaxSlider(wx.Panel):
             self.SetIcon(event)
         
     def SetIcon(self, event):
-        mx = event.GetPositionTuple()[0]
+        mx = event.GetPositionTuple()[0]-3
         if self.arrow_up_drag and mx < self.arrow_down_rect[0]:
             self.arrow_up_rect[0] = max(mx, self.range[0])
         elif self.arrow_down_drag and mx > self.arrow_up_rect[0]:
