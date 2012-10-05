@@ -453,8 +453,11 @@ class DispersyPanel(HomePanel):
             ("Down avg", lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
             ("Upload", lambda stats: self.utility.size_format(stats.total_up)),
             ("Up avg", lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
-            ("Packet dropped", lambda stats: ratio(stats.drop_count, stats.success_count)),
-            ("Packet success", lambda stats: ratio(stats.success_count - stats.drop_count, stats.success_count)),
+            ("Packet dropped", lambda stats: ratio(stats.drop_count, stats.received_count)),
+            ("Packet delayed", lambda stats: ratio(stats.delay_count, stats.received_count)),
+            ("Packet delayed success", lambda stats: ratio(stats.delay_succes, stats.delay_count)),
+            ("Packet delayed timeout", lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
+            ("Packet success", lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Walker success", lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker resets", lambda stats: str(stats.walk_reset)),
             ("Bloom reuse", lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
@@ -613,7 +616,20 @@ class DispersyPanel(HomePanel):
         # right tree
         if not self.tree.blockUpdate:
             parentNode = self.tree.AppendItem(fakeRoot, "raw info")
-            addValue(parentNode, {})
+            raw_info = {}
+            if hasattr(stats, 'drop'):
+                raw_info['drop'] = stats.drop
+            if hasattr(stats, 'delay'):
+                raw_info['delay'] = stats.delay
+            if hasattr(stats, 'success'):
+                raw_info['success'] = stats.success
+            if hasattr(stats, 'outgoing'):
+                raw_info['outgoing'] = stats.outgoing
+            if hasattr(stats, 'walk_fail'):
+                raw_info['walk_fail'] = stats.walk_fail
+            if hasattr(stats, 'attachment'):
+                raw_info['attachment'] = stats.attachment   
+            addValue(parentNode, raw_info)
 
         self.panel.Layout()
 
