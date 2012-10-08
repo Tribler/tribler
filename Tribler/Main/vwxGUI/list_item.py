@@ -195,7 +195,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         do_add = False
         for column in self.columns:
             if column.get('name', None) == 'Name':
-                do_add = column['dlbutton']
+                do_add = column.get('dlbutton', False)
                 break
         
         if do_add:
