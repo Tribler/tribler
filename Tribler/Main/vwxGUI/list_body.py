@@ -25,7 +25,8 @@ class ListItem(wx.Panel):
         wx.Panel.__init__(self, parent)
          
         self.parent_list = parent_list
-        self.columns = columns
+        from Tribler.Main.vwxGUI.list_item import ColumnsManager
+        self.columns = columns if columns != None else ColumnsManager.getInstance().getColumns(self.__class__)
         self.data = data
         self.original_data = original_data
          
@@ -904,10 +905,6 @@ class AbstractListBody():
             if data:
                 nr_items = len(data)
             print >> sys.stderr, "ListBody: new data", time(), nr_items
-            
-        if __debug__:
-            noposition = len(data) < 5
-            assert not noposition or not data or len(data[0][1]) == len(self.columns), 'Data does not have equal amount of columns %d/%d %s'%(len(data[0][1]), len(self.columns), type(self.parent_list))
             
         if highlight is None:
             highlight = not self.IsEmpty()

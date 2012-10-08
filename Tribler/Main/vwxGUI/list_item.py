@@ -9,8 +9,28 @@ from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from list_body import *
 from list_details import *
 from _abcoll import Iterable
-from Tribler.Main.vwxGUI.list_header import TorrentFilter
 import urllib
+
+class ColumnsManager:
+    __single = None
+    def __init__(self):
+        if ColumnsManager.__single:
+            raise RuntimeError, "ColumnsManager is singleton"
+        ColumnsManager.__single = self
+        self.defaults = {}
+        
+    def getInstance(*args, **kw):
+        if ColumnsManager.__single is None:
+            ColumnsManager(*args, **kw)
+        return ColumnsManager.__single
+    getInstance = staticmethod(getInstance)
+    
+    def setColumns(self, itemtype, columns):
+        self.defaults[itemtype.__name__] = columns
+        
+    def getColumns(self, itemtype):
+        return self.defaults.get(itemtype.__name__, [])
+
 
 class DoubleLineListItem(ListItem):
     def __init__(self, *args, **kwargs):
@@ -275,10 +295,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 class ChannelListItem(DoubleLineListItemWithButtons):
         
     def AddComponents(self, *args, **kwargs):
-        # Hack to enable torrents and channels to be mixed in the search results            
-        if isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
-            self.columns = self.guiutility.frame.channellist.columns
-
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
 
         tag = TagText(self, -1, label='channel', fill_colour = wx.Colour(210,252,120))
@@ -320,8 +336,6 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
         
     def AddComponents(self, *args, **kwargs):
-        self.columns = self.guiutility.frame.channellist.associatedchannel_columns
-
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
         
         visible_columns = [column['name'] for column in self.columns if column['show']]
@@ -366,10 +380,6 @@ class PlaylistItem(DoubleLineListItemWithButtons):
             self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
             
     def AddComponents(self, *args, **kwargs):
-        # Hack to enable torrents and playlists to be mixed     
-        if not isinstance(self.parent_list.parent_list, TorrentFilter) and isinstance(self.original_data, Playlist):
-            self.columns = self.guiutility.frame.selectedchannellist.playlist_columns
-        
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
         
         tag = TagText(self, -1, label='playlist', fill_colour = wx.Colour(136,117,255), text_colour = wx.WHITE)

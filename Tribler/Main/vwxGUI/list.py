@@ -1065,7 +1065,7 @@ class GenericSearchList(SizeList):
         item.data[-2] = seeders + leechers
         
         control = SwarmHealth(parent)
-        width = self.columns[-2]['width'] if isinstance(self.columns[-2]['width'], int) else -1
+        width = item.columns[-2]['width'] if isinstance(item.columns[-2]['width'], int) else -1
         control.SetMinSize((width,7))
         control.SetBackgroundColour(DEFAULT_BACKGROUND)
         control.SetRatio(seeders, leechers)
@@ -1347,11 +1347,7 @@ class SearchList(GenericSearchList):
         self.keywords = None
         self.categoryfilter = None
         
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
-        hide_buttons = fileconfig.Read("hide_buttons")
-        hide_buttons = json.loads(hide_buttons) if hide_buttons else True
-        
-        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not hide_buttons}, \
+        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.HideDownloadButton()}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
                    {'name':'File type', 'width': '24em', 'sortAsc': True}, \
                    {'name':'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
@@ -1359,6 +1355,7 @@ class SearchList(GenericSearchList):
                    {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
         
         columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns, [3,4])
+        ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
         
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.category_names = {}
@@ -1372,7 +1369,7 @@ class SearchList(GenericSearchList):
         self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
-        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, parent=parent)
+        GenericSearchList.__init__(self, None, LIST_GREY, [0,0], True, parent=parent)
        
     def _PostInit(self):
         self.header = self.CreateHeader(self.parent)
@@ -1426,7 +1423,7 @@ class SearchList(GenericSearchList):
     
     @warnWxThread
     def CreateHeader(self, parent):
-        return TorrentFilter(parent, self, self.columns)
+        return TorrentFilter(parent, self)
 
     @warnWxThread
     def CreateFooter(self, parent):
@@ -1621,10 +1618,11 @@ class LibraryList(SizeList):
                    {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value}]
         
         columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns, [2, 7, 8])
+        ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
-        SizeList.__init__(self, columns, LIST_GREY, [0,0], False, parent = parent)
+        SizeList.__init__(self, None, LIST_GREY, [0,0], False, parent = parent)
         
     def OnDeleteKey(self, event):
         if self.list.GetExpandedItems():
@@ -1651,7 +1649,7 @@ class LibraryList(SizeList):
     @warnWxThread
     def CreateHeader(self, parent):
         if self.guiutility.frame.top_bg:
-            header = DownloadFilter(parent, self, self.columns)
+            header = DownloadFilter(parent, self)
         else:
             raise NotYetImplementedException('')
 #            header = LibraryOnlyHeader(parent, self, self.columns)
@@ -1675,7 +1673,7 @@ class LibraryList(SizeList):
     @warnWxThread
     def CreateProgress(self, parent, item):
         progressPanel = TorrentStatus(parent)
-        progressPanel.SetMinSize((self.columns[1]['width'],-1))
+        progressPanel.SetMinSize((item.columns[1]['width'],-1))
         item.progressPanel = progressPanel
         return progressPanel
 
@@ -1938,12 +1936,14 @@ class ChannelList(List):
                    {'name':'Latest Update', 'width': '27em', 'fmt': format_time}, \
                    {'name':'Torrents', 'width': '13em'}, \
                    {'type':'method', 'width': '20em', 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}]
-
-        self.associatedchannel_columns = [copy.copy(column) for column in columns]
-        self.associatedchannel_columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
-        self.associatedchannel_columns = self.guiutility.SetHideColumnInfo(ChannelListItemAssociatedTorrents, self.associatedchannel_columns)
         
         columns = self.guiutility.SetHideColumnInfo(ChannelListItem, columns)
+        ColumnsManager.getInstance().setColumns(ChannelListItem, columns)
+
+        columns = [copy.copy(column) for column in columns]
+        columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
+        columns = self.guiutility.SetHideColumnInfo(ChannelListItemAssociatedTorrents, columns)
+        ColumnsManager.getInstance().setColumns(ChannelListItemAssociatedTorrents, columns)
         
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.normal = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
@@ -1954,7 +1954,7 @@ class ChannelList(List):
         
         self.select_popular = True
         self.max_votes = 5
-        List.__init__(self, columns, LIST_GREY, [0,0], True, parent = parent)
+        List.__init__(self, None, LIST_GREY, [0,0], True, parent = parent)
 
     def _special_icon(self, item):
         return (self._favorite_icon(item),'')
@@ -1977,7 +1977,7 @@ class ChannelList(List):
     
     @warnWxThread
     def CreateHeader(self, parent):
-        return ChannelFilter(parent, self, self.columns)
+        return ChannelFilter(parent, self)
     
     @warnWxThread
     def CreateFooter(self, parent):

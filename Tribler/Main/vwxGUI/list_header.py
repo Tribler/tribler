@@ -1,7 +1,5 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, ImageScrollablePanel,\
-    NativeIcon, LinkText, BetterText as StaticText, _set_font, ProgressButton
-from Tribler.__init__ import LIBRARYNAME
+from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, NativeIcon, LinkText, BetterText as StaticText, _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
@@ -16,6 +14,7 @@ from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.vwxGUI.list_item import ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem, ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem
 
 DEBUG = False
 
@@ -578,7 +577,7 @@ class BaseFilter(wx.Panel):
 
 
 class TorrentFilter(BaseFilter):
-    def __init__(self, parent, parent_list, columns, spacers = [10,3], show_bundle = False):
+    def __init__(self, parent, parent_list, spacers = [10,3], show_bundle = False):
         self.guiutility =  GUIUtility.getInstance()
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
 
@@ -598,7 +597,7 @@ class TorrentFilter(BaseFilter):
         self.show_bundle = show_bundle
         self.SetBundleState(None)
         
-        BaseFilter.__init__(self, parent, parent_list, columns, spacers)
+        BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(TorrentListItem), spacers)
     
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
@@ -878,12 +877,12 @@ class TorrentFilter(BaseFilter):
                 self.filter_sizer.Layout()
                 
 class SelectedChannelFilter(TorrentFilter):
-    def __init__(self, parent, parent_list, columns, spacers = [10,3], show_bundle = False):
+    def __init__(self, parent, parent_list, spacers = [10,3], show_bundle = False):
 
         self.heading_cols = [{'name':'Name', 'fontSize': 2, 'showColumname': False}]        
         self.heading_list = None
         
-        TorrentFilter.__init__(self, parent, parent_list, columns, spacers)
+        TorrentFilter.__init__(self, parent, parent_list, spacers)
         
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
@@ -907,7 +906,6 @@ class SelectedChannelFilter(TorrentFilter):
                 if self.heading_list.InList(channel.id):
                     self.heading_list.RemoveKey(channel.id)
 
-                from Tribler.Main.vwxGUI.list_item import ChannelListItemNoButton
                 self.heading_list.SetData([(channel.id, [channel.name], channel, ChannelListItemNoButton)], force = True)
                 
                 new_item = self.heading_list.GetItem(channel.id)
@@ -941,8 +939,6 @@ class SelectedChannelFilter(TorrentFilter):
                 item.AddButton("Edit this Channel", self.parent_list.OnManage)
                 
     def OnExpand(self, item):
-        from Tribler.Main.vwxGUI.list_item import ChannelListItem
-        
         if isinstance(item, ChannelListItem):
             from Tribler.Main.vwxGUI.list_details import ChannelDetails
             cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
@@ -976,7 +972,6 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
                 if self.heading_list.InList(playlist.id):
                     self.heading_list.RemoveKey(playlist.id)
 
-                from Tribler.Main.vwxGUI.list_item import PlaylistItemNoButton
                 self.heading_list.SetData([(playlist.id,[playlist.name], playlist, PlaylistItemNoButton)], force = True)
 
                 new_item = self.heading_list.GetItem(playlist.id)
@@ -999,8 +994,6 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
                 self.heading_list.Layout()
     
     def OnExpand(self, item):
-        from Tribler.Main.vwxGUI.list_item import PlaylistItem
-        
         if isinstance(item, PlaylistItem):
             from Tribler.Main.vwxGUI.list_details import PlaylistDetails
             pd = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
@@ -1011,12 +1004,12 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
         return True
     
 class ChannelFilter(BaseFilter):
-    def __init__(self, parent, parent_list, columns, spacers = [10,3]):
+    def __init__(self, parent, parent_list, spacers = [10,3]):
         self.guiutility =  GUIUtility.getInstance()
         self.channellist_manager = parent_list.GetManager()
         self.channel_categories = ["All","Popular","New","Updated"]
 
-        BaseFilter.__init__(self, parent, parent_list, columns, spacers)
+        BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(ChannelListItem), spacers)
 
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
@@ -1153,13 +1146,13 @@ class ChannelFilter(BaseFilter):
 
 
 class DownloadFilter(BaseFilter):
-    def __init__(self, parent, parent_list, columns, spacers = [10,3]):
+    def __init__(self, parent, parent_list, spacers = [10,3]):
         self.guiutility =  GUIUtility.getInstance()
         self.slider_minmax = (0, 0)
         self.slider_positions = (0, 0)
         self.conversion_factor = 1048576.0
         
-        BaseFilter.__init__(self, parent, parent_list, columns, spacers)
+        BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(LibraryListItem), spacers)
 
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)

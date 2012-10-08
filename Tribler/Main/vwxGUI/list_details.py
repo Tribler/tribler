@@ -20,7 +20,6 @@ from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
     ProgressButton, GradientPanel, TransparentText, LinkText
 
-from list_header import ListHeader
 from list_body import ListBody
 from widgets import _set_font
 from __init__ import *

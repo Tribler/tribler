@@ -298,6 +298,12 @@ class GUIUtility:
             else:
                 column['show'] = not (index in defaults)
         return columns
+    
+    def HideDownloadButton(self):
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        hide_buttons = fileconfig.Read("hide_buttons")
+        hide_buttons = json.loads(hide_buttons) if hide_buttons else True
+        return hide_buttons
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):

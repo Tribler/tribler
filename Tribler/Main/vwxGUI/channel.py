@@ -224,19 +224,11 @@ class SelectedChannelList(GenericSearchList):
         self.my_channel = False
         self.state = ChannelCommunity.CHANNEL_CLOSED
         
-        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
-                   {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
-                   {'name':'File type', 'width': '21em', 'sortAsc': True}, \
-                   {'name':'Seeders', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
-                   {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
-                   {'type':'method', 'width': 100, 'method': self.CreateRatio, 'name':'Health'}]
+        columns = [{'name':'Name', 'sortAsc': True},
+                   {'name':'Torrents', 'width': '14em', 'fmt': lambda x: '?' if x == -1 else str(x)}]
         
-        columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns)
-        
-        self.playlist_columns = [{'name':'Name', 'sortAsc': True},
-                                 {'name':'Torrents', 'width': '14em', 'fmt': lambda x: '?' if x == -1 else str(x)}]
-        
-        self.playlist_columns = self.guiutility.SetHideColumnInfo(PlaylistItem, self.playlist_columns)
+        columns = self.guiutility.SetHideColumnInfo(PlaylistItem, columns)
+        ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.category_names = {}
@@ -255,7 +247,7 @@ class SelectedChannelList(GenericSearchList):
         self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
 
-        GenericSearchList.__init__(self, columns, LIST_GREY, [0,0], True, borders = False, showChange = True, parent = parent)
+        GenericSearchList.__init__(self, None, LIST_GREY, [0,0], True, borders = False, showChange = True, parent = parent)
 
         newId = wx.NewId()
         self.accelerators = [(wx.ACCEL_NORMAL, wx.WXK_BACK, newId)]
@@ -344,7 +336,7 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def CreateHeader(self, parent):
-        return SelectedChannelFilter(self.parent, self, self.columns, show_bundle = False)
+        return SelectedChannelFilter(self.parent, self, show_bundle = False)
     
     @warnWxThread
     def Reset(self):
@@ -888,7 +880,7 @@ class Playlist(SelectedChannelList):
     
     @warnWxThread
     def CreateHeader(self, parent):
-        return SelectedPlaylistFilter(self.parent, self, self.columns, show_bundle = False)
+        return SelectedPlaylistFilter(self.parent, self, show_bundle = False)
     
     def Set(self, playlist):
         self.playlist = playlist
