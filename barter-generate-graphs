@@ -91,7 +91,6 @@ def plot_total_records(peers_directory, first, last):
     print "with steps lw 2",
     print ""
 
-
 def plot_drop(peers_directory, first, last):
     """ I plot the dropped records per peer """
     print "set ylabel 'number of records droped'"
@@ -150,6 +149,11 @@ def plot_received(peers_directory, first, last):
         print "title '%s'" % get_title(node),
         print "with steps",
     print ""
+    
+def plot_statistics(peers_directory, first, last):
+    print "set ylabel 'sum of statistic'"
+    print "set xrange [%d-%d]" % (0, last - first)
+    
     
 def write_stat(outputfile, averagefile, peers_directory, column):
     print >> outputfile, '#timeoffset, kb diff+'
@@ -213,17 +217,6 @@ def header(peers_directory, filename):
     print "reset"
     print "set terminal postscript eps enhanced color \"Helvetica\" 16 solid"
     print "set output '"+ peers_directory + "/output/%s.eps'" % filename
-    
-    # print "set term epslatex"
-    # print "set output 'peers/%s.eps'" % filename
-    #print "set key outside" #MB
-
-    #if filename in ["received", "sent"]:
-    #    print "set yrange [0:1000]"
-    #elif filename in ["drops"]:
-    #    print "set yrange [0:400]"
-    #else:
-    #    print "set yrange [0:5000]"
     print "set xlabel 'Time expired in seconds'"
     print "unset key"
 
