@@ -322,9 +322,10 @@ class TopSearchPanel(GradientPanel):
         self.SetButtonHandler(self.stop_btn, None)
         self.SetButtonHandler(self.delete_btn, None)
     
-    def OnDownload(self, event):
+    def OnDownload(self, event, torrents = None):
         refresh_library = False
-        for torrent in self.__getTorrents():
+        torrents = torrents if torrents != None else self.__getTorrents() 
+        for torrent in torrents:
             if 'stopped' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
             else:

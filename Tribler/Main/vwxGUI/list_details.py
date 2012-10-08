@@ -134,7 +134,7 @@ class TorrentDetails(AbstractDetails):
         self.isReady = False
         self.noChannel = noChannel
         
-        self.SetBackgroundColour(LIST_DESELECTED)
+        self.SetBackgroundColour(wx.Colour(246,246,246))
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.timeouttimer = None
@@ -577,8 +577,8 @@ class TorrentDetails(AbstractDetails):
             self.downloaded.SetMinSize((-1, 25))
             sizer.Add(self.downloaded, 0, wx.EXPAND|wx.BOTTOM, 10)
         
-        #hide Status element if we do not have a state or magetlist for this torrent
-        if not self.torrent.state and not self.torrent.magnetstatus:
+        #hide Status element if we do not have a state for this torrent
+        if not self.torrent.state:
             overviewColumnsOrder.remove("Status")
             
         if self.showDetails:
@@ -601,9 +601,11 @@ class TorrentDetails(AbstractDetails):
                 
         if self.torrent.get('channel', False):
             channel = self.torrent.get('channel')
-            link = LinkStaticText(panel, channel.name, None, font_colour = self.GetForegroundColour())
+            ulfont = self.GetFont()
+            ulfont.SetUnderlined(True)
+            link = LinkText(panel, channel.name, fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
             link.Bind(wx.EVT_LEFT_UP, lambda evt:  self.guiutility.showChannel(channel))
-            self._add_row(panel, vSizer, 'Channel', link)                
+            self._add_row(panel, vSizer, 'Channel', link, flags = 0)                
 
         sizer.Add(vSizer, 1, wx.EXPAND)
             
@@ -615,16 +617,18 @@ class TorrentDetails(AbstractDetails):
                     self._add_row(panel, vSizer, 'Swift URL', value)
         
         if self.canComment:
-            self.torrentSizer.Add(wx.StaticLine(self.overview, -1, style = wx.LI_HORIZONTAL), 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 5)
+            sizer.Add(wx.StaticLine(panel, -1, style = wx.LI_HORIZONTAL), 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 5)
             self.markingSizer = wx.BoxSizer(wx.HORIZONTAL)
-            icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
-            icon = wx.StaticBitmap(panel, -1, icon)
-            self.marktoggle = LinkStaticText(self.overview, 'Mark this torrent', None, font_colour = self.GetForegroundColour())
+            self.markicon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0).ConvertToImage().Rotate90(False).ConvertToBitmap()
+            self.markicon = wx.StaticBitmap(panel, -1, self.markicon)
+            ulfont = self.GetFont()
+            ulfont.SetUnderlined(True)
+            self.marktoggle = LinkText(panel, 'Mark this torrent', fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
             self.marktoggle.Bind(wx.EVT_LEFT_UP, self.OnMark)
-            self.marktoggle.Insert(0, icon, 0, wx.CENTER|wx.RIGHT, 3)
             self.markingSizer.AddStretchSpacer()
+            self.markingSizer.Add(self.markicon, 0, wx.CENTER|wx.RIGHT, 3)
             self.markingSizer.Add(self.marktoggle)
-            self.torrentSizer.Add(self.markingSizer, 0, wx.EXPAND)
+            sizer.Add(self.markingSizer, 0, wx.EXPAND)
             self.UpdateMarkings()
         
         self.UpdateHealth()
@@ -833,8 +837,7 @@ class TorrentDetails(AbstractDetails):
                 menu.Append(itemid, mark)
             menu.Bind(wx.EVT_MENU, lambda x, selected = mark: self.doMark(self.torrent.channel, self.torrent.infohash, unicode(selected)), id = itemid)
                 
-        ctrl = self.marktoggle
-        pos = wx.Point(ctrl.GetPosition().x, ctrl.GetPosition().y+ctrl.GetSize().y)
+        pos = wx.Point(self.markicon.GetPosition().x, self.marktoggle.GetPosition().y+self.marktoggle.GetSize().y)
         self.overview.PopupMenu(menu, pos)
         menu.Destroy()
 
@@ -998,10 +1001,6 @@ class TorrentDetails(AbstractDetails):
                 if getattr(self, 'downloaded', False):
                     self.downloaded.Update(torrent = self.torrent)
                 else:                 
-                    self._addOverview(self.overview, self.torrentSizer)
-    
-            if self.torrent.magnetstatus:
-                if not getattr(self, 'status', False):
                     self._addOverview(self.overview, self.torrentSizer)
             
             if getattr(self, 'status', False):        
@@ -1347,7 +1346,7 @@ class ChannelDetails(AbstractDetails):
         self.createAd = createAd
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(LIST_DESELECTED)
+        self.SetBackgroundColour(wx.Colour(246,246,246))
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1458,7 +1457,7 @@ class PlaylistDetails(AbstractDetails):
         self.createAd = createAd
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(LIST_DESELECTED)
+        self.SetBackgroundColour(wx.Colour(246,246,246))
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.messageIcon = wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))

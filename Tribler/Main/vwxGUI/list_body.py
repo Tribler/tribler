@@ -1339,7 +1339,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
                 event.Skip()
                 
         except PyDeadObjectError:
-            GUIUtility.getInstance().frame.Unbind(wx.EVT_MOUSEWHEEL, handler = self.OnMouseWheel)
+            GUIUtility.getInstance().frame.Unbind(wx.EVT_MOUSEWHEEL)
   
         
     def Show(self, show = True):

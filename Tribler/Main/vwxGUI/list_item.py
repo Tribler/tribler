@@ -113,7 +113,7 @@ class DoubleLineListItem(ListItem):
     def OnShowColumn(self, event, index):
         self.columns[index]['show'] = not self.columns[index].get('show', True)
         
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "hide_columns"))
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
         
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
@@ -171,6 +171,7 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 10)
         self.Layout()
         self.ShowSelected()
+        return button
         
     def ShowSelected(self):
         DoubleLineListItem.ShowSelected(self)
@@ -186,8 +187,21 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         self.ShowSelected()
 
 
-class TorrentListItem(DoubleLineListItem):
+class TorrentListItem(DoubleLineListItemWithButtons):
         
+    def AddButtons(self):
+        self.buttonSizer.Clear(deleteWindows = True)
+        
+        do_add = False
+        for column in self.columns:
+            if column.get('name', None) == 'Name':
+                do_add = column['dlbutton']
+                break
+        
+        if do_add:
+            button = self.AddButton("Download", lambda evt, data = self.original_data: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
+            button.Enable('completed' not in self.original_data.state)
+            
     @warnWxThread        
     def GetIcons(self):
         if getattr(self.parent_list.parent_list, '_special_icon', None) and getattr(self.parent_list.parent_list, '_status_icon', None):
@@ -198,6 +212,14 @@ class TorrentListItem(DoubleLineListItem):
     @warnWxThread        
     def GetContextMenu(self):
         menu = DoubleLineListItem.GetContextMenu(self)
+
+        itemid = wx.NewId()
+        menu.AppendCheckItem(itemid, 'Show download button on hover')
+        enabled = bool(len(self.buttonSizer.GetChildren()))
+        menu.Check(itemid, enabled)
+        menu.Bind(wx.EVT_MENU, lambda event, enabled=enabled: self.OnShowDownload(not enabled), id = itemid)
+        
+        menu.AppendSeparator()
 
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.original_data)
         if filename and os.path.exists(filename):
@@ -234,6 +256,21 @@ class TorrentListItem(DoubleLineListItem):
             wx.TheClipboard.Close()
         else:
             wx.MessageBox("Unable to copy magnet link to clipboard", "Error")
+
+    def OnShowDownload(self, show):
+        for column in self.columns:
+            if column.get('name', None) == 'Name':
+                column['dlbutton'] = show
+                break
+        
+        for item in self.parent_list.items.values():
+            if isinstance(item, TorrentListItem):
+                item.AddButtons()
+
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
+        fileconfig.Write("hide_buttons", json.dumps(not show))
+        fileconfig.Flush()        
+        
         
 class ChannelListItem(DoubleLineListItemWithButtons):
         
@@ -301,6 +338,7 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         self.titleSizer.Insert(1, (5, -1), 0, 0)
         
     def ShowSelected(self, event = None):
+        if event: self.OnMouse(event)
         DoubleLineListItemWithButtons.ShowSelected(self)
         
         highlight = event and event.GetEventObject() == self.controls[self.at_index] and not event.Leaving()

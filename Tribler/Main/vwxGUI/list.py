@@ -1347,7 +1347,11 @@ class SearchList(GenericSearchList):
         self.keywords = None
         self.categoryfilter = None
         
-        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
+        hide_buttons = fileconfig.Read("hide_buttons")
+        hide_buttons = json.loads(hide_buttons) if hide_buttons else True
+        
+        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not hide_buttons}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
                    {'name':'File type', 'width': '24em', 'sortAsc': True}, \
                    {'name':'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \

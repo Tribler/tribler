@@ -88,7 +88,6 @@ class TorrentManager:
         self.bundle_mode = None
         self.bundle_mode_changed = True
         self.category = Category.getInstance()
-        self.prevff = self.category.family_filter_enabled()
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -401,39 +400,6 @@ class TorrentManager:
         if DEBUG:
             print >>sys.stderr,"TorrentSearchManager: getHitsInCategory:", categorykey
         
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()] + ['other',]
-        enabled_category_ids = set()
-        for key, id in self.torrent_db.category_table.iteritems():
-            if key.lower() in enabled_category_keys:
-                enabled_category_ids.add(id)
-            
-            if key.lower() == categorykey.lower():
-                categorykey = id
-        
-        deadstatus_id = self.torrent_db.status_table['dead']
-        
-        ffchanged = self.category.family_filter_enabled() != self.prevff
-        if ffchanged:
-            self.prevff = self.category.family_filter_enabled() 
-
-        def torrentFilter(torrent):
-            okCategory = False
-            category = torrent.category_id
-            if not category:
-                category = 0
-                
-            if categorykey == 'all' and category in enabled_category_ids:
-                okCategory = True
-            
-            elif category == categorykey:
-                okCategory = True
-            
-            if not okCategory:
-                self.filteredResults += 1
-            
-            okGood = torrent.status_id != deadstatus_id
-            return okCategory and okGood
-        
         try:
             #locking hits variable
             self.hitsLock.acquire()
@@ -456,9 +422,7 @@ class TorrentManager:
                 beginsort = time()
             
 
-            if new_local_hits or new_remote_hits or ffchanged:
-                #self.hits = filter(torrentFilter, self.hits)
-                
+            if new_local_hits or new_remote_hits:
                 if sort == 'rameezmetric':
                     self.rameezSort()
                     

@@ -28,18 +28,15 @@ urllib.URLopener.open_https = original_open_https
 
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
-from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 
-import os,sys
+import os, sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 from random import randint
 from threading import current_thread,currentThread
 try:
@@ -63,6 +60,9 @@ except:
 
 import wx
 from wx import xrc
+from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
+from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
 #import hotshot
 
 from traceback import print_exc
