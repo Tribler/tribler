@@ -455,7 +455,7 @@ class DispersyPanel(HomePanel):
             ("Up avg", lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
             ("Packet dropped", lambda stats: ratio(stats.drop_count, stats.received_count)),
             ("Packet delayed", lambda stats: ratio(stats.delay_count, stats.received_count)),
-            ("Packet delayed success", lambda stats: ratio(stats.delay_succes, stats.delay_count)),
+            ("Packet delayed success", lambda stats: ratio(stats.delay_count - stats.delay_timeout, stats.delay_count)),
             ("Packet delayed timeout", lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             ("Packet success", lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Walker success", lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
