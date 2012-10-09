@@ -1517,9 +1517,8 @@ class TorrentDBHandler(BasicDBHandler):
         return torrent_list
     
     def getLibraryTorrents(self, keys):
-        sql = "SELECT " + ", ".join(keys) +",deleted_at FROM MyPreference, Torrent LEFT JOIN _ChannelTorrents as ChannelTorrents ON Torrent.torrent_id = ChannelTorrents.torrent_id WHERE destination_path != '' AND MyPreference.torrent_id = Torrent.torrent_id"
+        sql = "SELECT " + ", ".join(keys) +" FROM MyPreference, Torrent LEFT JOIN ChannelTorrents ON Torrent.torrent_id = ChannelTorrents.torrent_id WHERE destination_path != '' AND MyPreference.torrent_id = Torrent.torrent_id"
         data = self._db.fetchall(sql)
-        data = [row[:-1] for row in data if not row[-1]]
         
         fixed = self.__fixTorrents(keys, data)
         return fixed
