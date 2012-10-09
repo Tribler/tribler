@@ -1762,7 +1762,8 @@ class LibraryList(SizeList):
             colourstep = (green[0] - orange[0], green[1] - orange[1], green[2] - orange[2])
         
         if len(newDS) > 0:
-            self.GetManager().refresh_if_exists(newDS, force = True) #new torrent?
+            ids = newDS.keys()
+            self.GetManager().refresh_if_exists(ids, force = True) #new torrent?
         
         if didStateChange:
             if self.statefilter != None:
