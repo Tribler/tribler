@@ -603,6 +603,7 @@ class TorrentDetails(AbstractDetails):
             ulfont = self.GetFont()
             ulfont.SetUnderlined(True)
             link = LinkText(panel, channel.name, fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
+            link.SetBackgroundColour(panel.GetBackgroundColour())
             link.Bind(wx.EVT_LEFT_UP, lambda evt:  self.guiutility.showChannel(channel))
             self._add_row(panel, vSizer, 'Channel', link, flags = 0)                
 
@@ -623,6 +624,7 @@ class TorrentDetails(AbstractDetails):
             ulfont = self.GetFont()
             ulfont.SetUnderlined(True)
             self.marktoggle = LinkText(panel, 'Mark this torrent', fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
+            self.marktoggle.SetBackgroundColour(panel.GetBackgroundColour())
             self.marktoggle.Bind(wx.EVT_LEFT_UP, self.OnMark)
             self.markingSizer.AddStretchSpacer()
             self.markingSizer.Add(self.markicon, 0, wx.CENTER|wx.RIGHT, 3)
@@ -1714,6 +1716,7 @@ class ProgressPanel(wx.BoxSizer):
         #self.AddStretchSpacer()        
         if show_bar:
             self.pb = ProgressBar(parent, colours =  ["#ffffff", DOWNLOADING_COLOUR, SEEDING_COLOUR])
+            self.pb.SetMaxSize((-1, -1))
             self.Add(self.pb, 1, wx.EXPAND)
         if show_status:
             self.status = StaticText(parent)
@@ -2096,6 +2099,7 @@ class ChannelsExpandedPanel(wx.Panel):
         self.channel_category = None
         self.channel_or_playlist = None
         self.AddComponents()
+        self.SetBackgroundColour(parent.GetBackgroundColour())
         self.Bind(wx.EVT_SHOW, self.OnShow)
         wx.CallAfter(self.AddCurrentChannelLink)
                 
