@@ -840,6 +840,8 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_remove_playlist_torrent(self._channel_id, playlist_dispersy_id, infohash, redo)
 
     def disp_create_missing_channel(self, candidate, includeSnapshot, response_func=None, response_args=(), timeout=10.0):
+        sendRequest = False
+        
         identifier = MissingChannelCache.properties_to_identifier(self)
         cache = self._dispersy.request_cache.get(identifier, MissingChannelCache)
         if not cache:
@@ -850,9 +852,12 @@ class ChannelCommunity(Community):
             meta = self._meta_messages[u"missing-channel"]
             request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
             self._dispersy.store_update_forward([request], False, False, True)
+            sendRequest = True
 
         if response_func:
             cache.callbacks.append((response_func, response_args))
+            
+        return sendRequest
 
     #check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):

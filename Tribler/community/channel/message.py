@@ -14,5 +14,5 @@ class DelayMessageReqChannelMessage(DelayMessage):
         self._includeSnapshot = includeSnapshot
 
     def create_request(self):
-        self._community.disp_create_missing_channel(self._delayed.candidate, self._includeSnapshot, self._process_delayed_message)
+        return self._community.disp_create_missing_channel(self._delayed.candidate, self._includeSnapshot, self._process_delayed_message)
 
