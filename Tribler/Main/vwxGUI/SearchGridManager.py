@@ -652,7 +652,7 @@ class TorrentManager:
                     self.hits.append(remoteItem)
                     hitsUpdated = True
                     
-                self.remoteHits = []
+            self.remoteHits = []
             return hitsUpdated, hitsModified
         except:
             raise
