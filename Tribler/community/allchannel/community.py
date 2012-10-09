@@ -145,7 +145,7 @@ class AllChannelCommunity(Community):
                     self._blocklist.pop(candidate)
             
             #loop through all candidates to see if we can find a non-blocked address
-            for candidate in islice((candidate for candidate in self._dispersy.yield_random_candidates(self) if not candidate in self._blocklist), 10):
+            for candidate in islice((candidate for candidate in self.dispersy_yield_random_candidates() if not candidate in self._blocklist), 10):
                 peer_ids = set()
                 for member in candidate.get_members(self):
                     key = member.public_key

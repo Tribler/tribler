@@ -651,7 +651,7 @@ class EffortCommunity(Community):
 
     def create_debug_request(self):
         members = set((self._my_member,))
-        for candidate in self._dispersy.yield_candidates(self):
+        for candidate in self.dispersy_yield_candidates():
             members.update(candidate.get_members(self))
         members = [member.mid for member in sample(members, min(len(members), 50))]
 

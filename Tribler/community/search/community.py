@@ -121,7 +121,7 @@ class SearchCommunity(Community):
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
-            candidates = [candidate for candidate in self._dispersy.yield_walk_candidates(self) if not isinstance(candidate, BootstrapCandidate)]
+            candidates = [candidate for candidate in self.dispersy_yield_walk_candidates() if not isinstance(candidate, BootstrapCandidate)]
             for candidate in candidates:
                 if __debug__: dprint("extra walk to ", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
@@ -194,7 +194,7 @@ class SearchCommunity(Community):
         candidates = set(candidate for _,_,candidate in self.taste_buddies)
         sock_addresses = set(candidate.sock_addr for _,_,candidate in self.taste_buddies)
         
-        for candidate in self._dispersy.yield_candidates(self):
+        for candidate in self.dispersy_yield_candidates():
             if candidate.sock_addr not in sock_addresses:
                 candidates.add(candidate)
                 sock_addresses.add(candidate.sock_addr)
