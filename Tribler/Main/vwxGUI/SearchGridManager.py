@@ -653,7 +653,7 @@ class TorrentManager:
                     hitsUpdated = True
                     
                 self.remoteHits = []
-                return hitsUpdated, hitsModified
+            return hitsUpdated, hitsModified
         except:
             raise
         
