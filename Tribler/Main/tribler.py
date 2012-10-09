@@ -34,6 +34,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
+from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
@@ -562,7 +563,13 @@ class ABCApp():
         if self.ready and self.frame.ready:
             startWorker(do_wx, do_db, uId = "tribler.set_reputation")
         startWorker(None, self.set_reputation, delay = 5.0, workerType="guiTaskQueue")
-    
+
+    def _dispersy_get_effort_community(self):
+        try:
+            return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
+        except KeyError:
+            return None
+
     def sesscb_states_callback(self, dslist):
         if not self.ready:
             return (5.0, False)
@@ -601,16 +608,20 @@ class ABCApp():
             except:
                 print_exc()
 
-            if self.effort_community:
-                wantpeers = True
-                self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
-            else:
-                if not self.dispersy:
-                    self.dispersy = Dispersy.has_instance()
+            if not self.dispersy:
+                self.dispersy = Dispersy.has_instance()
 
-                if self.dispersy:
+            if not self.effort_community:
+                self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
+
+            if not isinstance(self.effort_community, HardKilledCommunity):
+                if self.effort_community.has_been_killed:
+                    # set EFFORT_COMMUNITY to None.  next state callback we will again get the
+                    # effort community resulting in the HardKilledCommunity instead
+                    self.effort_community = None
+                else:
                     wantpeers = True
-                    self.effort_community = self.dispersy.callback.call(self.dispersy.get_community, (EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST,), dict(load=False, auto_load=False))
+                    self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
 
             # Find State of currently playing video
             playds = None

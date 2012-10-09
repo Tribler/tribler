@@ -95,13 +95,16 @@ class EffortCommunity(Community):
         dispersy = Dispersy.get_instance()
         try:
             # test if this community already exists
-            next(dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)))
+            classification, = next(dispersy.database.execute(u"SELECT classification FROM community WHERE master = ?", (master.database_id,)))
         except StopIteration:
             # join the community with a new my_member, using a cheap cryptography key
             ec = ec_generate_key(u"NID_secp160r1")
             return cls.join_community(master, Member(ec_to_public_bin(ec), ec_to_private_bin(ec)))
         else:
-            return super(EffortCommunity, cls).load_community(master)
+            if classification == cls.get_classification():
+                return super(EffortCommunity, cls).load_community(master)
+            else:
+                raise RuntimeError("Unable to load an EffortCommunity that has been killed")
 
     def __init__(self, master):
         # original walker callbacks (will be set during super(...).__init__)
@@ -143,10 +146,16 @@ class EffortCommunity(Community):
         self._statistic_initial_timestamp_fail = 0
         self._statistic_cycle_fail = 0
 
+        self._has_been_killed = False
+
         # wait till next time we can create records with the candidates on our slope
         self._pending_callbacks.append(self._dispersy.callback.register(self._periodically_create_records))
         self._pending_callbacks.append(self._dispersy.callback.register(self._periodically_push_statistics))
         self._pending_callbacks.append(self._dispersy.callback.register(self._periodically_cleanup_database))
+
+    @property
+    def has_been_killed(self):
+        return self._has_been_killed
 
     @property
     def dispersy_sync_response_limit(self):
@@ -183,6 +192,7 @@ class EffortCommunity(Community):
 
     def dispersy_cleanup_community(self, message):
         if __debug__: dprint()
+        self._has_been_killed = True
         # remove all data from the local database
         self._database.cleanup()
         # re-classify to prevent loading

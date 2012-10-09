@@ -9,7 +9,7 @@ if __debug__:
 # update version information directly from SVN
 update_revision_information("$HeadURL$", "$Revision$")
 
-LATEST_VERSION = 4
+LATEST_VERSION = 5
 
 schema = u"""
 CREATE TABLE record(
@@ -131,10 +131,20 @@ class EffortDatabase(Database):
             # upgrade from version 4 to version 5
             if database_version < 5:
                 # there is no version 5 yet...
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 5)
-                # self.executescript(u"""UPDATE option SET value = '4' WHERE key = 'database_version';""")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 5)
+                # require a database cleanup as this release included a new master key
+                self.cleanup()
+                self.executescript(u"""UPDATE option SET value = '5' WHERE key = 'database_version';""")
+                self.commit()
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 5, " (done)")
+
+            # upgrade from version 5 to version 6
+            if database_version < 6:
+                # there is no version 6 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 6)
+                # self.executescript(u"""UPDATE option SET value = '6' WHERE key = 'database_version';""")
                 # self.commit()
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 5, " (done)")
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 6, " (done)")
                 pass
 
         return LATEST_VERSION
