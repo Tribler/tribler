@@ -694,8 +694,9 @@ class TorrentManager:
                     
                     # Guess matches
                     keywordset = set(keywords)
+                    swarmnameset = set(split_into_keywords(remoteHit.name))
                     matches = {'fileextensions': set()}
-                    matches['swarmname'] = set(split_into_keywords(result[0])) & keywordset #all keywords matching in swarmname
+                    matches['swarmname'] = swarmnameset & keywordset #all keywords matching in swarmname
                     matches['filenames'] = keywordset - matches['swarmname'] #remaining keywords should thus me matching in filenames or fileextensions
                     
                     if len(matches['filenames']) == 0:
