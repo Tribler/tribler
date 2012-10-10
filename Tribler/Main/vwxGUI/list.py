@@ -973,6 +973,8 @@ class SizeList(List):
                     
                 if infohash in magnetlist:
                     original_data.magnetstatus = magnetlist[infohash]
+                else:
+                    original_data.magnetstatus = None
                 
                 if item: #torrents in raw_data and items are not equal
                     item.original_data.dslist = original_data.dslist
