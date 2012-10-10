@@ -445,24 +445,25 @@ class DispersyPanel(HomePanel):
             return "%d / %d ~%.1f%%" % (i, j, (100.0 * i / j) if j else 0.0)
 
         self.mapping = [
-            ("WAN Address", lambda stats: "%s:%d" % stats.wan_address),
-            ("LAN Address", lambda stats: "%s:%d" % stats.lan_address),
-            ("Connection", lambda stats: str(stats.connection_type)),
-            ("Runtime", lambda stats: self.utility.eta_value(stats.timestamp - stats.start)),
-            ("Download", lambda stats: self.utility.size_format(stats.total_down)),
-            ("Down avg", lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
-            ("Upload", lambda stats: self.utility.size_format(stats.total_up)),
-            ("Up avg", lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
-            ("Packet dropped", lambda stats: ratio(stats.drop_count, stats.received_count)),
-            ("Packet delayed", lambda stats: ratio(stats.delay_count, stats.received_count)),
-            ("Packet delayed success", lambda stats: ratio(stats.delay_count - stats.delay_timeout, stats.delay_count)),
-            ("Packet delayed timeout", lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
-            ("Packet success", lambda stats: ratio(stats.success_count, stats.received_count)),
-            ("Walker success", lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
-            ("Walker resets", lambda stats: str(stats.walk_reset)),
-            ("Bloom reuse", lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
-            ("Revision", lambda stats: str(max(stats.revision.itervalues()))),
-            ("Debug mode", lambda stats: "yes" if __debug__ else "no"),
+            ("WAN Address", '', lambda stats: "%s:%d" % stats.wan_address),
+            ("LAN Address", '', lambda stats: "%s:%d" % stats.lan_address),
+            ("Connection", '', lambda stats: str(stats.connection_type)),
+            ("Runtime", '', lambda stats: self.utility.eta_value(stats.timestamp - stats.start)),
+            ("Download", '', lambda stats: self.utility.size_format(stats.total_down)),
+            ("Down avg", '', lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
+            ("Upload", '', lambda stats: self.utility.size_format(stats.total_up)),
+            ("Up avg", '', lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
+            ("Packets dropped", '', lambda stats: ratio(stats.drop_count, stats.received_count)),
+            ("Packets delayed", 'Total number of packets being delayed', lambda stats: ratio(stats.delay_count, stats.received_count)),\
+            ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being send', lambda stats: ratio(stats.delay_send, stats.delay_count)),
+            ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_succes, stats.delay_count)),
+            ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
+            ("Packets success", '', lambda stats: ratio(stats.success_count, stats.received_count)),
+            ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
+            ("Walker resets", '', lambda stats: str(stats.walk_reset)),
+            ("Bloom reuse", '', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
+            ("Revision", '', lambda stats: str(max(stats.revision.itervalues()))),
+            ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
             ]
 
     def CreatePanel(self):
@@ -502,7 +503,7 @@ class DispersyPanel(HomePanel):
 
     def CreateColumns(self):
         self.textdict = {}
-        def addColumn(strkey):
+        def addColumn(strkey, strtooltip):
             # strkey = key.replace("_", " ").capitalize()
             header = StaticText(self.panel, -1, strkey)
             _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
@@ -510,9 +511,13 @@ class DispersyPanel(HomePanel):
             self.textdict[strkey] = StaticText(self.panel, -1, '')
             self.textdict[strkey].SetMinSize((200,-1))
             self.gridSizer.Add(self.textdict[strkey])
+            
+            if strtooltip:
+                header.SetToolTipString(strtooltip)
+                self.textdict[strkey].SetToolTipString(strtooltip)
 
-        for title, _ in self.mapping:
-            addColumn(title)
+        for title, tooltip, _ in self.mapping:
+            addColumn(title, tooltip)
 
         self.buildColumns = True
 
@@ -610,7 +615,7 @@ class DispersyPanel(HomePanel):
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
             fakeRoot = self.tree.AddRoot('fake')
-            for title, func in self.mapping:
+            for title, _, func in self.mapping:
                 updateColumn(title, func(stats))
 
         # right tree
