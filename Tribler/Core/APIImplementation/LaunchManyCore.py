@@ -315,7 +315,6 @@ class TriblerLaunchMany(Thread):
             
             self.rtorrent_handler = RemoteTorrentHandler.getInstance()
             self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
-            
 
     def start_dispersy(self, config, keypair):
         def load_communities():
@@ -657,19 +656,24 @@ class TriblerLaunchMany(Thread):
     #
     def load_checkpoint(self,initialdlstatus=None, initialdlstatus_dict = {}):
         """ Called by any thread """
-        self.sesslock.acquire()
-        filelist = []
-        try:
-            dir = self.session.get_downloads_pstate_dir()
-            filelist = os.listdir(dir)
-            filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
-                
-        finally:
-            self.sesslock.release()
+        if not self.initComplete:
+            network_load_checkpoint_callback_lambda = lambda:self.load_checkpoint(initialdlstatus, initialdlstatus_dict)
+            self.rawserver.add_task(network_load_checkpoint_callback_lambda,0.0)
             
-        for i, filename in enumerate(filelist):
-            shouldCommit = i+1 == len(filelist)
-            self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.5)
+        else:
+            self.sesslock.acquire()
+            filelist = []
+            try:
+                dir = self.session.get_downloads_pstate_dir()
+                filelist = os.listdir(dir)
+                filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
+                    
+            finally:
+                self.sesslock.release()
+                
+            for i, filename in enumerate(filelist):
+                shouldCommit = i+1 == len(filelist)
+                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.5)
             
     def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
