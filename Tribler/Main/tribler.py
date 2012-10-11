@@ -1091,7 +1091,7 @@ class ABCApp():
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1] # Point to file on disk
             else:
-                # Store multi-file spec as <roothashhex> alongside files
+                # Store multi-file spec as .<roothashhex> alongside files
                 mfpath = os.path.join(destdir,"."+sdef.get_roothash_as_hex() )
                 storagepath = mfpath # Point to spec file
                 
