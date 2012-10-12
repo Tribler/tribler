@@ -431,21 +431,12 @@ class TorrentDetails(AbstractDetails):
             if isinstance(self, LibraryDetails):
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
                 vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
-                self.filesFooter = StaticText(parent, -1, 'Double click on any file to modify which files should be downloaded.')
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.LEFT)
-                
-            elif isinstance(self, LibraryDetails):
-                vSizer = wx.BoxSizer(wx.VERTICAL)
-                vSizer.Add(self.listCtrl, 1, wx.EXPAND)
-                
-                vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
-                
-                self.filesFooter = StaticText(parent, -1, 'Double click on any file to modify which files should be downloaded.')
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND)
-                parent.SetSizer(vSizer)
-                self.notebook.AddPage(parent, "Files")
+                ulfont = self.GetFont()
+                ulfont.SetUnderlined(True)
+                self.filesFooter = LinkText(parent, 'Click here to modify which files should be downloaded.', fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
+                self.filesFooter.Bind(wx.EVT_LEFT_UP, self.OnChangeSelection)
+                vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.ALL, 3)
             else:
-                vSizer = wx.BoxSizer(wx.VERTICAL)
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
             parent.SetSizer(vSizer)
             self.notebook.AddPage(parent, "Files")
@@ -1178,47 +1169,32 @@ class LibraryDetails(TorrentDetails):
                 if self.notebook.GetPageText(i) == showTab:
                     self.notebook.SetSelection(i)
                     break
-    
-    @warnWxThread
-    def OnDoubleClick(self, event):
-        selected = self.listCtrl.GetFirstSelected()
+                
+    def OnChangeSelection(self, event):
+        files = []
+        for i in range(self.listCtrl.GetItemCount()):
+            files.append(self.listCtrl.GetItem(i, 0).GetText())
         
-        if selected != -1:
-            selected_file = self.listCtrl.GetItem(selected, 0).GetText()
+        dlg = wx.MultiChoiceDialog(self, "Select which files you would like to download", "File selection", files)
+        
+        selected = []
+        for i in range(self.listCtrl.GetItemCount()):
+            if self.listCtrl.GetItem(i, 2).GetText() != "Excluded":
+                selected.append(i)
+        dlg.SetSelections(selected)
+        
+        if (dlg.ShowModal() == wx.ID_OK):
+            newselections = dlg.GetSelections()
+            selectedFiles = []
+            for index in newselections:
+                selectedFiles.append(files[index])
+                
+            self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
+            def reset_selection():
+                self.old_progress = -1
+            wx.CallLater(1000, reset_selection())
             
-            if self.torrent.ds.get_download().get_def().get_def_type() == 'swift':
-                progress = self.torrent.ds.get_progress()
-            else:
-                progress = dict(self.torrent.ds.get_files_completion()).get(selected_file, 0)
-            
-            if progress < 1.0:
-                files = []
-                for i in range(self.listCtrl.GetItemCount()):
-                    files.append(self.listCtrl.GetItem(i, 0).GetText())
-                
-                dlg = wx.MultiChoiceDialog(self, "Select which files you would like to download", "File selection", files)
-                
-                selected = []
-                for i in range(self.listCtrl.GetItemCount()):
-                    if self.listCtrl.GetItem(i, 2).GetText() != "Excluded":
-                        selected.append(i)
-                dlg.SetSelections(selected)
-                
-                if (dlg.ShowModal() == wx.ID_OK):
-                    newselections = dlg.GetSelections()
-                    selectedFiles = []
-                    for index in newselections:
-                        selectedFiles.append(files[index])
-                        
-                    self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
-                    def reset_selection():
-                        self.old_progress = -1
-                    wx.CallLater(1000, reset_selection())
-                    
-                dlg.Destroy()
-            else:
-                TorrentDetails.OnDoubleClick(self, event)
-    
+        dlg.Destroy()    
 
     @warnWxThread
     def ShowPanel(self, newState = None):
