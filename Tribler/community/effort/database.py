@@ -9,7 +9,7 @@ if __debug__:
 # update version information directly from SVN
 update_revision_information("$HeadURL$", "$Revision$")
 
-LATEST_VERSION = 5
+LATEST_VERSION = 6
 
 schema = u"""
 CREATE TABLE record(
@@ -128,23 +128,22 @@ class EffortDatabase(Database):
             if database_version < 4:
                 raise RuntimeError("Unable to upgrade versions below 4")
 
-            # upgrade from version 4 to version 5
-            if database_version < 5:
-                # there is no version 5 yet...
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 5)
+            # upgrade from version 4 to version 6
+            if database_version < 6:
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 6)
                 # require a database cleanup as this release included a new master key
                 self.cleanup()
-                self.executescript(u"""UPDATE option SET value = '5' WHERE key = 'database_version';""")
+                self.executescript(u"""UPDATE option SET value = '6' WHERE key = 'database_version';""")
                 self.commit()
-                if __debug__: dprint("upgrade database ", database_version, " -> ", 5, " (done)")
+                if __debug__: dprint("upgrade database ", database_version, " -> ", 6, " (done)")
 
-            # upgrade from version 5 to version 6
-            if database_version < 6:
-                # there is no version 6 yet...
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 6)
-                # self.executescript(u"""UPDATE option SET value = '6' WHERE key = 'database_version';""")
+            # upgrade from version 6 to version 7
+            if database_version < 7:
+                # there is no version 7 yet...
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 7)
+                # self.executescript(u"""UPDATE option SET value = '7' WHERE key = 'database_version';""")
                 # self.commit()
-                # if __debug__: dprint("upgrade database ", database_version, " -> ", 6, " (done)")
+                # if __debug__: dprint("upgrade database ", database_version, " -> ", 7, " (done)")
                 pass
 
         return LATEST_VERSION
