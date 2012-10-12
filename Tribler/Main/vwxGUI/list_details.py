@@ -285,6 +285,7 @@ class TorrentDetails(AbstractDetails):
         
         self.overview, self.torrentSizer = self._create_tab(self.notebook, 'Torrent details', border = 10)
         self.overview.SetBackgroundColour(wx.WHITE)
+        self.overview.Bind(wx.EVT_LEFT_DCLICK, self.OnOverviewToggle)
         self._addOverview(self.overview, self.torrentSizer)
 
         if self.canEdit:
@@ -580,11 +581,6 @@ class TorrentDetails(AbstractDetails):
         if not self.torrent.state:
             overviewColumnsOrder.remove("Status")
             
-        if self.showDetails:
-            textCtrl = wx.TextCtrl(panel, -1, self.torrent.infohash_as_hex)
-            textCtrl.SetEditable(False)
-            self._add_row(panel, vSizer, "Infohash", textCtrl)
-                
         self.status = None
         self.health = None
         for column in overviewColumnsOrder:
@@ -597,6 +593,11 @@ class TorrentDetails(AbstractDetails):
                 self.status = value
             if column == "Health":
                 self.health = value
+                
+        if self.showDetails:
+            textCtrl = wx.TextCtrl(panel, -1, self.torrent.infohash_as_hex)
+            textCtrl.SetEditable(False)
+            self._add_row(panel, vSizer, "Infohash", textCtrl)
                 
         if self.torrent.get('channel', False):
             channel = self.torrent.get('channel')
@@ -1070,6 +1071,10 @@ class TorrentDetails(AbstractDetails):
         else:
             state = TorrentDetails.INACTIVE
         return state
+    
+    def OnOverviewToggle(self, event):
+        self.showDetails = not self.showDetails
+        self._addOverview(self.overview, self.torrentSizer)
     
     @warnWxThread
     def Layout(self):

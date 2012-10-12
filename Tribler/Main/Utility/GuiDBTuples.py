@@ -4,6 +4,7 @@ import os.path
 from datetime import date
 from time import time
 from inspect import getargspec
+from binascii import hexlify
 from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
     CHANNEL_REQ_COLUMNS
