@@ -450,9 +450,9 @@ class DispersyPanel(HomePanel):
             ("Connection", '', lambda stats: str(stats.connection_type)),
             ("Runtime", '', lambda stats: self.utility.eta_value(stats.timestamp - stats.start)),
             ("Download", '', lambda stats: self.utility.size_format(stats.total_down)),
-            ("Down avg", '', lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
+            ("Down avg", 'Average download speed over the entire process runtime', lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
             ("Upload", '', lambda stats: self.utility.size_format(stats.total_up)),
-            ("Up avg", '', lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
+            ("Up avg", 'Average upload speed over the entire process runtime', lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
             ("Packets dropped", '', lambda stats: ratio(stats.drop_count, stats.received_count)),
             ("Packets delayed", 'Total number of packets being delayed', lambda stats: ratio(stats.delay_count, stats.received_count)),\
             ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being send', lambda stats: ratio(stats.delay_send, stats.delay_count)),
@@ -460,9 +460,9 @@ class DispersyPanel(HomePanel):
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             ("Packets success", '', lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
-            ("Walker resets", '', lambda stats: str(stats.walk_reset)),
-            ("Bloom reuse", '', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
-            ("Revision", '', lambda stats: str(max(stats.revision.itervalues()))),
+            ("Walker resets", 'Total number of walker resets.  Every reset is caused by the python process not being able to keep up with the 5 second sync cycle', lambda stats: str(stats.walk_reset)),
+            ("Bloom reuse", 'Total number of bloom filters that were send, but were reused', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new + c.sync_bloom_reuse for c in stats.communities))),
+            ("Revision", 'The revision number of (mostly) the dispersy files', lambda stats: str(max(stats.revision.itervalues()))),
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
             ]
 
