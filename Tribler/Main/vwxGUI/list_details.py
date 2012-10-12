@@ -1180,9 +1180,13 @@ class LibraryDetails(TorrentDetails):
         
         if selected != -1:
             selected_file = self.listCtrl.GetItem(selected, 0).GetText()
-            selected_state = self.listCtrl.GetItem(selected, 2).GetText()
             
-            if selected_state == 'Excluded':
+            if self.torrent.ds.get_download().get_def().get_def_type() == 'swift':
+                progress = self.torrent.ds.get_progress()
+            else:
+                progress = dict(self.torrent.ds.get_files_completion()).get(selected_file, 0)
+            
+            if progress < 1.0:
                 files = []
                 for i in range(self.listCtrl.GetItemCount()):
                     files.append(self.listCtrl.GetItem(i, 0).GetText())
