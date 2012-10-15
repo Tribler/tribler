@@ -1992,7 +1992,7 @@ class CommentManager(BaseManager):
                 self.list.header.SetTitle('Comments for this channel')
             
             if channel:
-                self.list.EnableCommeting(channel.isFavorite())
+                self.list.EnableCommeting(channel.isSemiOpen())
             else:
                 self.list.EnableCommeting(False)
                 
@@ -2026,7 +2026,7 @@ class CommentManager(BaseManager):
                 return self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
             return self.channelsearch_manager.getCommentsFromChannel(self.channel)
         
-        if self.channel.isFavorite():
+        if self.channel.isSemiOpen():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2226,7 +2226,7 @@ class ActivityManager(BaseManager):
             self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
             self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations, recent_markings)
         
-        if self.channel.isFavorite():
+        if self.channel.isSemiOpen():
             startWorker(do_gui, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2313,7 +2313,7 @@ class ModificationManager(BaseManager):
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
-        if self.torrent.channel.isFavorite():
+        if self.torrent.channel.isSemiOpen():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2445,7 +2445,7 @@ class ModerationManager(BaseManager):
                 return self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
             return self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         
-        if self.channel.isFavorite():
+        if self.channel.isSemiOpen():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
