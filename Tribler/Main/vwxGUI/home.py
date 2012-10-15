@@ -43,7 +43,6 @@ class Home(XRCPanel):
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-
         vSizer.AddStretchSpacer()
 
         text = StaticText(self, -1, self.guiutility.utility.lang.get('title'))
@@ -156,15 +155,15 @@ class Stats(XRCPanel):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         hSizer.Add(self.dowserButton)
-        hSizer.Add(self.memdumpButton)
-        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.BOTTOM, 10)
+        hSizer.Add(self.memdumpButton, 0, wx.RIGHT, 3)
+        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.TOP|wx.BOTTOM, 3)
         
-        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
+        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.RIGHT, 7)
         self.activity = ActivityPanel(self)
-        hSizer.Add(self.activity, 1, wx.EXPAND|wx.BOTTOM, 10)
+        hSizer.Add(self.activity, 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
 
         # ProxyService 90s Test_
@@ -177,8 +176,8 @@ class Stats(XRCPanel):
         # _ProxyService 90s Test
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
-        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 10)
+        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 7)
+        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 7)
         # boudewijn: disabled TopContributorsPanel, getTopNPeers is a very expensive call
         # hSizer.Add(TopContributorsPanel(self), 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
@@ -293,7 +292,7 @@ class Stats(XRCPanel):
         XRCPanel.Show(self, show)
 
 class HomePanel(wx.Panel):
-    def __init__(self, parent, title, background):
+    def __init__(self, parent, title, background, hspacer = (0,0)):
         wx.Panel.__init__(self, parent)
 
         self.guiutility = GUIUtility.getInstance()
@@ -301,26 +300,33 @@ class HomePanel(wx.Panel):
         self.SetBackgroundColour(background)
         self.SetForegroundColour(parent.GetForegroundColour())
 
+        spacerFlags = 0
+        if hspacer[0]:
+            spacerFlags |= wx.LEFT
+        if hspacer[1]:
+            spacerFlags |= wx.RIGHT
+        spacer = max(hspacer)
+
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.header = self.CreateHeader()
         self.header.SetTitle(title)
         self.header.SetBackgroundColour(background)
-        vSizer.Add(self.header, 0, wx.EXPAND)
+        vSizer.Add(self.header, 0, wx.EXPAND|spacerFlags, spacer)
 
         self.panel = self.CreatePanel()
         if self.panel:
-            vSizer.Add(self.panel, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+            vSizer.Add(self.panel, 1, wx.EXPAND|spacerFlags, spacer)
 
         self.footer = self.CreateFooter()
         self.footer.SetBackgroundColour(background)
-        vSizer.Add(self.footer, 0, wx.EXPAND)
+        vSizer.Add(self.footer, 0, wx.EXPAND|spacerFlags, spacer)
 
         self.SetSizer(vSizer)
         self.Layout()
 
     def CreateHeader(self):
-        return TitleHeader(self, self, [], radius=LIST_RADIUS)
+        return DetailHeader(self)
     def CreatePanel(self):
         pass
     def CreateFooter(self):
@@ -334,7 +340,7 @@ class HomePanel(wx.Panel):
 
 class NetworkPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Network info' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Network info' , SEPARATOR_GREY, (0, 1))
 
         self.torrentdb = TorrentDBHandler.getInstance()
         self.channelcastdb = ChannelCastDBHandler.getInstance()
@@ -386,7 +392,7 @@ class NetworkPanel(HomePanel):
             gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'))
             gridSizer.Add(self.freeMem, 0, wx.EXPAND)
 
-        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
         panel.SetSizer(vSizer)
         return panel
 
@@ -432,7 +438,7 @@ class DispersyPanel(HomePanel):
         if not self.dispersy:
             raise RuntimeError("Dispersy has not started yet")
 
-        HomePanel.__init__(self, parent, 'Dispersy info' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Dispersy info' , SEPARATOR_GREY)
 
         self.SetMinSize((-1, 200))
 
@@ -474,7 +480,7 @@ class DispersyPanel(HomePanel):
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
 
-        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
 
         vSumSizer = wx.BoxSizer(wx.VERTICAL)
         self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
@@ -488,7 +494,7 @@ class DispersyPanel(HomePanel):
         
         vSumSizer.Add(self.summary_tree, 1, wx.EXPAND)
         self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
-        vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
+        vSumSizer.Add(self.includeStuffs, 0, wx.TOP, 3)
         
         vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
 
@@ -640,7 +646,7 @@ class DispersyPanel(HomePanel):
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Newest Torrents' , SEPARATOR_GREY, (0, 1))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -685,7 +691,7 @@ class NewTorrentPanel(HomePanel):
 
 class PopularTorrentPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Popular Torrents' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Popular Torrents' , SEPARATOR_GREY, (1,0))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -721,7 +727,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
 class TopContributorsPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Top Contributors' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Top Contributors' , SEPARATOR_GREY, (1,0))
         self.Layout()
 
         self.peerdb = PeerDBHandler.getInstance()
@@ -770,7 +776,7 @@ class TopContributorsPanel(HomePanel):
 
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Recent Activity' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Recent Activity' , SEPARATOR_GREY, (1,0))
 
     @forceWxThread
     def onActivity(self, msg):
@@ -802,18 +808,7 @@ class BuzzPanel(wx.Panel):
         self.utility    = self.guiutility.utility
 
         vSizer = wx.BoxSizer(wx.VERTICAL)        
-        for colour, height, text in [(SEPARATOR_GREY, 1, None), (FILTER_GREY, 25, "Click below to explore what's hot"), (SEPARATOR_GREY, 1, None)]:
-            panel = wx.Panel(self)
-            panel.SetMinSize((-1,height))
-            panel.SetBackgroundColour(colour)
-            panel.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
-            if text:
-                stext = wx.StaticText(panel, label = text)
-                _set_font(stext, fontweight = wx.FONTWEIGHT_BOLD, fontcolour = wx.BLACK)
-                sizer = wx.BoxSizer(wx.HORIZONTAL)
-                sizer.Add(stext, 0, wx.CENTER|wx.LEFT, 5)
-                panel.SetSizer(sizer)
-            vSizer.Add(panel, 0, wx.EXPAND)
+        vSizer.Add(DetailHeader(self, "Click below to explore what's hot"), 0, wx.EXPAND)
         vSizer.AddSpacer((-1,10))
 
         self.panel = wx.Panel(self)

@@ -575,7 +575,6 @@ class BaseFilter(wx.Panel):
     def FilterCorrect(self, regex_correct):
         pass
 
-
 class TorrentFilter(BaseFilter):
     def __init__(self, parent, parent_list, spacers = [10,3], show_bundle = False):
         self.guiutility =  GUIUtility.getInstance()
@@ -1144,7 +1143,6 @@ class ChannelFilter(BaseFilter):
                 btn.Destroy()
                 self.filter_sizer.Layout()
 
-
 class DownloadFilter(BaseFilter):
     def __init__(self, parent, parent_list, spacers = [10,3]):
         self.guiutility =  GUIUtility.getInstance()
@@ -1358,5 +1356,26 @@ class DownloadFilter(BaseFilter):
     def ResizeColumn(self, *args, **kwargs):
         pass
 
+class DetailHeader(wx.Panel):
+    def __init__(self, parent, title = ""):
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(SEPARATOR_GREY)
 
-    
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        panel = wx.Panel(self)
+        panel.SetMinSize((-1, 25))
+        panel.SetBackgroundColour(FILTER_GREY)
+        if hasattr(parent, 'OnLeaveWindow'):
+            panel.Bind(wx.EVT_ENTER_WINDOW, lambda event: parent.OnLeaveWindow())
+        self.title = wx.StaticText(panel, label = title)
+        _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD, fontcolour = wx.BLACK)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.title, 0, wx.CENTER|wx.LEFT, 7)
+        panel.SetSizer(sizer)
+
+        vSizer.Add(panel, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 1)
+        self.SetSizer(vSizer)
+            
+    def SetTitle(self, title):
+        self.title.SetLabel(title)

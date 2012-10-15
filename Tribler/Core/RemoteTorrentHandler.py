@@ -326,7 +326,7 @@ class RemoteTorrentHandler:
             items.sort()
             return items
         
-        return "TQueue: "+str(getQueueSize(self.trequesters))+"\nDQueue: "+str(getQueueSize(self.drequesters))+"\nMQueue: "+str(getQueueSize(self.mrequesters))
+        return "TQueue: "+str(getQueueSize(self.trequesters))+", DQueue: "+str(getQueueSize(self.drequesters))+", MQueue: "+str(getQueueSize(self.mrequesters))
 
 class Requester:
     REQUEST_INTERVAL = 0.5

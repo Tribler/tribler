@@ -246,7 +246,7 @@ class MainFrame(wx.Frame):
             separator.SetBackgroundColour(SEPARATOR_GREY)
             hSizer.Add(separator, 0, wx.EXPAND)
             hSizer.Add(self.home, 1, wx.EXPAND)
-            hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
+            hSizer.Add(self.stats, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL) 
