@@ -371,10 +371,13 @@ class DownloadState(Serializable):
         
         peers = self.get_peerlist()
         for peer in peers:
-            if peer['completed'] == 1 or peer['have'].complete():
+            completed = peer.get('completed', 0)
+            have = peer.get('have', False)
+            
+            if completed == 1 or have and have.complete():
                 nr_seeders_complete += 1
             else:
-                boollist = peer['have'].toboollist()
+                boollist = have.toboollist() if have else []
                 if merged_bitfields == None:
                     merged_bitfields = [0]*len(boollist)
                 

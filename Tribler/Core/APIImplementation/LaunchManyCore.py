@@ -489,7 +489,7 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.updateDestDir(torrent_id,"")
         
         if self.torrent_db != None and self.mypref_db != None:
-            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, hash))
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, hash), priority=1024)
 
     def get_downloads(self):
         """ Called by any thread """
@@ -1158,7 +1158,7 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.updateDestDir(torrent_id, "")
         
         if not hidden and self.torrent_db != None and self.mypref_db != None:
-            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash))
+            self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash), priority=1024)
         
 def singledownload_size_cmp(x,y):
     """ Method that compares 2 SingleDownload objects based on the size of the

@@ -4393,13 +4393,8 @@ class SearchDBHandler(BasicDBHandler):
         # and again we cannot assume that user/torrent/term only occurs once
         
         # vliegendhart: only store 1 query per (peer_id,torrent_id)
-        # Step 1: fetch current stored term_ids, if any, and decrease count
-        old_term_ids = self.getTorrentSearchTerms(torrent_id, peer_id) # list of 1-tuples
-        sql_update_term_popularity= u"UPDATE ClicklogTerm SET times_seen = times_seen-1 WHERE term_id=?"        
-        self._db.executemany(sql_update_term_popularity, old_term_ids, commit=commit)
-        
-        # Step 2: delete (peer_id,torrent_id) records, if any
-        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id,torrent_id])
+        # Step 1: delete (peer_id,torrent_id) records, if any
+        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id, torrent_id])
         
         # create insert data
         values = [(peer_id, torrent_id, term_id, term_order) 
@@ -4426,7 +4421,7 @@ class SearchDBHandler(BasicDBHandler):
             return_dict[torrent_id] = set()
         
         parameters = '?,'*len(torrent_ids)
-        sql = "SELECT torrent_id, term FROM ClicklogSearch, ClicklogTerm WHERE ClicklogSearch.term_id = ClicklogTerm.term_id AND torrent_id IN ("+parameters[:-1]+") AND peer_id = ? ORDER BY term_order"
+        sql = "SELECT torrent_id, term FROM ClicklogSearch, TermFrequency WHERE ClicklogSearch.term_id = TermFrequency.term_id AND torrent_id IN ("+parameters[:-1]+") AND peer_id = ? ORDER BY freq"
         
         parameters = torrent_ids[:]
         parameters.append(0)

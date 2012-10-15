@@ -408,16 +408,9 @@ class TopSearchPanel(GradientPanel):
         for torrent in self.__getTorrents():
             dlg = RemoveTorrent(None, torrent)
             buttonId = dlg.ShowModal()
-            if buttonId == wx.ID_DEFAULT:
-                self.guiutility.library_manager.deleteTorrent(torrent)
-                self.guiutility.frame.librarylist.RemoveItem(torrent)
-                self.guiutility.frame.librarylist.do_or_schedule_refresh()
-                if self.guiutility.frame.librarylist.IsShownOnScreen():
-                    self.ClearButtonHandlers()
-                    self.guiutility.frame.librarylist.ResetBottomWindow()
-            elif buttonId == wx.ID_DELETE:
-                self.guiutility.library_manager.deleteTorrent(torrent, True)
-                self.guiutility.frame.librarylist.RemoveItem(torrent)
+            if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
+                self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
+                self.guiutility.frame.librarylist.RemoveItem(torrent.infohash)
                 self.guiutility.frame.librarylist.do_or_schedule_refresh()
                 if self.guiutility.frame.librarylist.IsShownOnScreen():
                     self.ClearButtonHandlers()
