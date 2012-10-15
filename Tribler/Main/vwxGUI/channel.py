@@ -2017,6 +2017,12 @@ class CommentManager(BaseManager):
             self.do_or_schedule_refresh()
     
     def refresh(self):
+        channel = self.channel
+        if self.playlist:
+            channel = self.playlist.channel
+        elif self.channeltorrent:
+            channel = self.channeltorrent.channel
+        
         def db_callback():
             self.list.dirty = False
             
@@ -2026,7 +2032,7 @@ class CommentManager(BaseManager):
                 return self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
             return self.channelsearch_manager.getCommentsFromChannel(self.channel)
         
-        if self.torrent.channel.isFavorite() or self.torrent.channel.isMyChannel():
+        if channel.isFavorite() or channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
