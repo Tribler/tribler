@@ -2026,7 +2026,7 @@ class CommentManager(BaseManager):
                 return self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
             return self.channelsearch_manager.getCommentsFromChannel(self.channel)
         
-        if self.channel.isSemiOpen():
+        if self.torrent.channel.isFavorite() or self.torrent.channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2057,7 +2057,6 @@ class CommentManager(BaseManager):
             else:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
         startWorker(None, workerFn=db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
-
             
     def removeComment(self, comment):
         self.channelsearch_manager.removeComment(comment, self.channel)
@@ -2226,7 +2225,7 @@ class ActivityManager(BaseManager):
             self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
             self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations, recent_markings)
         
-        if self.channel.isSemiOpen():
+        if self.channel.isFavorite() or self.channel.isMyChannel():
             startWorker(do_gui, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2313,7 +2312,7 @@ class ModificationManager(BaseManager):
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
-        if self.torrent.channel.isSemiOpen():
+        if self.torrent.channel.isFavorite() or self.torrent.channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2445,7 +2444,7 @@ class ModerationManager(BaseManager):
                 return self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
             return self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         
-        if self.channel.isSemiOpen():
+        if self.channel.isFavorite() or self.channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
