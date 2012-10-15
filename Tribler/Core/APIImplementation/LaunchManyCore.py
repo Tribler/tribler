@@ -658,7 +658,7 @@ class TriblerLaunchMany(Thread):
         """ Called by any thread """
         if not self.initComplete:
             network_load_checkpoint_callback_lambda = lambda:self.load_checkpoint(initialdlstatus, initialdlstatus_dict)
-            self.rawserver.add_task(network_load_checkpoint_callback_lambda,0.0)
+            self.rawserver.add_task(network_load_checkpoint_callback_lambda,1.0)
             
         else:
             self.sesslock.acquire()
