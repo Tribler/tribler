@@ -309,7 +309,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
             if self.original_data.my_vote == 2:
                 self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.RemoveFavorite(evt, data))
-            else:
+            elif not self.original_data.isMyChannel():
                 self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.MarkAsFavorite(evt, data))
             self.last_my_vote = self.original_data.my_vote
         
