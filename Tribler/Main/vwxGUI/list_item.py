@@ -155,7 +155,7 @@ class DoubleLineListItem(ListItem):
             itemid = wx.NewId()
             show.AppendCheckItem(itemid, column['name']).Enable(column['name'] != 'Name')
             show.Check(itemid, column.get('show', True))
-            menu.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
+            show.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
             
         menu.AppendMenu(wx.ID_ANY, 'Show labels..', show)
         return menu
