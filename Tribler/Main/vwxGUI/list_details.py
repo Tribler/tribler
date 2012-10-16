@@ -142,6 +142,7 @@ class TorrentDetails(AbstractDetails):
         self.messageIcon = wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
         self.messagePanel = TransparentText(self, -1, "Loading details, please wait.")
         self.messageGauge = None
+        self.messageButton = None
         _set_font(self.messagePanel, size_increment = 2, fontweight = wx.FONTWEIGHT_NORMAL)
         
         for colour, height in [(SEPARATOR_GREY, 1), (FILTER_GREY, 25), (SEPARATOR_GREY, 1)]:
@@ -181,6 +182,9 @@ class TorrentDetails(AbstractDetails):
     def _doLoad(self):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: loading", self.torrent['name']
+            
+        if self.messageButton:
+            self.messageButton.Show(False)
             
         #is this torrent collected?
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent, retried = True)
@@ -273,8 +277,16 @@ class TorrentDetails(AbstractDetails):
                 if DEBUG:
                     print >> sys.stderr, "TorrentDetails: timeout on loading", self.torrent.name
             
-                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry or wait to allow other peers to respond.")
-                if self.messageGauge: self.messageGauge.Show(False) 
+                self.messagePanel.SetLabel("Failed loading torrent.\nPlease click retry or wait to allow other peers to respond.")
+                if self.messageGauge:
+                    self.messageGauge.Show(False)
+                if self.messageButton:
+                    self.messageButton.Show(True)
+                else:
+                    self.messageButton = wx.Button(self, -1, "Retry")
+                    self.messageButton.Bind(wx.EVT_BUTTON, lambda evt: self._doLoad())
+                    self.vSizer.Insert(5, self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
+                
                 self.Layout()
         except wx.PyDeadObjectError:
             pass
@@ -1115,8 +1127,16 @@ class LibraryDetails(TorrentDetails):
             
                 self.Freeze()
                 
-                self.messagePanel.SetLabel("Failed loading torrent. Please collapse and expand to retry or wait to allow other peers to respond.\nAlternatively you could remove this torrent from your Downloads.")
-                if self.messageGauge: self.messageGauge.Show(False)
+                self.messagePanel.SetLabel("Failed loading torrent. Please click retry or wait to allow other peers to respond.\nAlternatively you could remove this torrent from your Downloads.")
+                if self.messageGauge:
+                    self.messageGauge.Show(False)
+                if self.messageButton:
+                    self.messageButton.Show(True)
+                else:
+                    self.messageButton = wx.Button(self, -1, "Retry")
+                    self.messageButton.Bind(wx.EVT_BUTTON, lambda evt: self._doLoad())
+                    self.vSizer.Insert(5, self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
+
                 self.Layout()
 
                 self.guiutility.frame.top_bg.SetButtonHandler(self.guiutility.frame.top_bg.delete_btn, self.guiutility.frame.top_bg.OnDelete, 'Delete this torrent.')
