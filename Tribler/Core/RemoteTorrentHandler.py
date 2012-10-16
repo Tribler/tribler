@@ -318,15 +318,17 @@ class RemoteTorrentHandler:
                         requester.remove_request(key)
     
     def getQueueSize(self):
-        def getQueueSize(requesters):
+        def getQueueSize(qname, requesters):
             qsize = {}
             for requester in requesters.itervalues():
-                qsize[requester.prio] = len(requester.sources)
+                if len(requester.sources):
+                    qsize[requester.prio] = len(requester.sources)
             items = qsize.items()
-            items.sort()
-            return items
-        
-        return "TQueue: "+str(getQueueSize(self.trequesters))+", DQueue: "+str(getQueueSize(self.drequesters))+", MQueue: "+str(getQueueSize(self.mrequesters))
+            if items:
+                items.sort()
+                return "%s: "%qname + ",".join(map(str, items))
+            return ''
+        return ", ".join([qstring for qstring in [getQueueSize("TQueue", self.trequesters), getQueueSize("DQueue", self.drequesters), getQueueSize("MQueue", self.mrequesters)] if qstring])
 
 class Requester:
     REQUEST_INTERVAL = 0.5
