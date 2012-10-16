@@ -12,23 +12,33 @@ from twisted.internet import reactor
 
 class ConfigClientProtocol(LineReceiver):
     def connectionMade(self):
+        self.state = 1
+        
         my_ip = argv[2]
         self.sendLine("IP "+my_ip)
 
     def lineReceived(self, data):
         username = getuser()
-        parts = data.strip().split('#')
-        starting_timestamp = int(parts[0])
-        config_line = parts[1]
-        self.my_id = int(config_line.split()[0])
-        my_id_str = "%05d" %(self.my_id) 
-        f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, my_id_str), "w")
-        f.write(data)
-        f.close()
-        print my_id_str, starting_timestamp
-        
-        self.transport.loseConnection()
-        reactor.stop()
+        if self.state == 1:
+            data = data.strip()
+            id, ip, port = data.split()
+            self.my_id = "%05d" % int(id)
+            f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, self.my_id), "w")
+            print >> f, data
+            f.close()
+            
+            self.full_config_file = open("/tmp/%s/dispersy/peers_%s.conf" %(username, self.my_id), "w")
+            
+            print self.my_id
+            self.state = 2
+            
+        elif self.state == 2:
+            if data != "END":
+                print >> self.full_config_file, data
+            else:
+                self.full_config_file.close()
+                self.transport.loseConnection()
+                reactor.stop()
 
 class ConfigClientFactory(ClientFactory):
     def buildProtocol(self, addr):

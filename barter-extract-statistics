@@ -4,8 +4,8 @@ from time import mktime
 import re
 from os import listdir
 import os
-from ldecoder import parse
 from sys import argv, exit
+from Tribler.dispersy.tool.ldecoder import parse
 
 # Global variable (yes, not the brightest thing)
 measured_record_count = {} # dictionary with the total record count per node at time measure_interval_stop
@@ -34,12 +34,14 @@ def get_title(node):
 def get_first_datetime(peers_directory):
     datetimes = []
     for node in get_nodes(peers_directory):
-        _, datetime, _, _ = parse(node + "/output/dispersy.log").next()
-        datetimes.append(datetime)
+        _, time, _, _ = parse(node + "/output/dispersy.log").next()
+        datetimes.append(time)
     return min(datetimes)
 
-def generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
-    first = int(mktime(get_first_datetime(peers_directory).timetuple()))
+
+def generate(peers_directory, messagestoplot, measure_interval_start, measure_interval_stop, time_ratio):
+    messagestoplot = [message for message in messagestoplot if message]
+    first = int(get_first_datetime(peers_directory))
     lasts = []
 
     node_list = [x for x in get_nodes(peers_directory)]
@@ -53,83 +55,58 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
     dispersy_msg_distribution = {}
     dispersy_dropped_msg_distribution = {}
+    dispersy_statistics = {}
 
     for node in node_list:
         started_monitoring = False
         done_monitoring = False
         saved_total = False
+        nodename = node[-5:]
 
-        fn_received_record = node + "/output/received-record.txt"
-        h_received_record = open(fn_received_record, "w+")
-        h_received_record.write("# timestamp timeoffset num-records\n")
-        h_received_record.write("0 0 0\n")
+        h_received_record = open(node + "/output/received-record.txt", "w+")
+        print >> h_received_record, "# timestamp timeoffset num-records"
+        print >> h_received_record, "0 0 0"
         c_received_record = 0
+        c_received_records = {}
 
-        fn_created_record = node + "/output/created-record.txt"
-        h_created_record = open(fn_created_record, "w+")
-        h_created_record.write("# timestamp timeoffset num-records\n")
-        h_created_record.write("0 0 0\n")
+        h_created_record = open(node + "/output/created-record.txt", "w+")
+        print >> h_created_record, "# timestamp timeoffset num-records"
+        print >> h_created_record, "0 0 0"
         c_created_record = 0
 
-        fn_total_record = node + "/output/total-record.txt"
-        h_total_record = open(fn_total_record, "w+")
-        h_total_record.write("# timestamp timeoffset num-records\n")
-        h_total_record.write("0 0 0\n")
+        h_total_record = open(node + "/output/total-record.txt", "w+")
+        print >> h_total_record, "# timestamp timeoffset num-records"
+        print >> h_total_record, "0 0 0"
         write_total = False
+        
+        h_statistics = open(node + "/output/scenario-statistics.txt", "w+")
+        print >> h_statistics, "# timestamp timeoffset key value"
 
-        fn_drop = node + "/output/drop.txt"
-        h_drop = open(fn_drop, "w+")
-        h_drop.write("# timestamp timeoffset num-drops\n")
-        h_drop.write("0 0 0\n")
+        h_drop = open(node + "/output/drop.txt", "w+")
+        print >> h_drop, "# timestamp timeoffset num-drops"
+        print >> h_drop, "0 0 0"
         c_drop = 0
 
-        fn_stat = node + "/output/stat.txt"
-        h_stat = open(fn_stat, "w+")
-        h_stat.write("# timestamp timeoffset total-send total-received\n")
-        h_stat.write("0 0 0 0\n")
+        h_stat = open(node + "/output/stat.txt", "w+")
+        print >> h_stat, "# timestamp timeoffset total-send total-received"
+        print >> h_stat, "0 0 0 0"
 
-        print "  *", node[-5:]
-        record_count[node[-5:]] = {}
-        for lineno, datetime, message, kargs in parse(node + "/output/dispersy.log"):
+        print "  *", nodename
+        record_count[nodename] = {}
+        for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
+            time = int(time)
+            timeoffset = time - first
+            
             if message == "created-record":
                 c_created_record += 1
                 c_received_record -= 1 # each created record is also counted as received
-                time = int(mktime(datetime.timetuple()))
-                h_created_record.write(str(time))
-                h_created_record.write(" ")
-                h_created_record.write(str(time - first))
-                h_created_record.write(" ")
-                h_created_record.write(str(c_created_record))
-                h_created_record.write("\n")
-                write_total = True
-
-            if message == "handled-record":
-                c_received_record += 1
-                time = int(mktime(datetime.timetuple()))
-                h_received_record.write(str(time))
-                h_received_record.write(" ")
-                h_received_record.write(str(time - first))
-                h_received_record.write(" ")
-                h_received_record.write(str(c_received_record))
-                h_received_record.write("\n")
+                print >> h_created_record, str(time), str(timeoffset), str(c_created_record)
                 write_total = True
 
             if message == "statistics":
-                time = int(mktime(datetime.timetuple()))
-                
                 if "total_send" in kargs and "total_received" in kargs:
-                    kargs["total_send"] = kargs["total_send"][1]
-                    kargs["total_received"] = kargs["total_received"][1]
                     
-                    h_stat.write(str(time))
-                    h_stat.write(" ")
-                    timeoffset = time - first
-                    h_stat.write(str(timeoffset))
-                    h_stat.write(" ")
-                    h_stat.write(str(kargs["total_send"]))
-                    h_stat.write(" ")
-                    h_stat.write(str(kargs["total_received"]))
-                    h_stat.write("\n")
+                    print >> h_stat, str(time), str(timeoffset), str(kargs["total_send"]) , str(kargs["total_received"])
                     
                     # statistics are gathered every second, so we don't need to do much checking for interval limits in here
                     # if statistics will no longer be gathered every second, additional processing should include
@@ -148,29 +125,30 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
                         done_monitoring = True
                 
                 if "total_dropped" in kargs:
-                    h_drop.write(str(time))
-                    h_drop.write(" ")
-                    h_drop.write(str(time - first))
-                    h_drop.write(" ")
-                    h_drop.write(str(kargs["total_dropped"]))
-                    h_drop.write("\n")
-                    
+                    print >> h_drop, str(time), str(time - first), str(kargs["total_dropped"])
+            
             if message == "statistics-successful-messages":
                 for key, value in kargs.iteritems():
                     dispersy_msg_distribution[key] = max((value, node), dispersy_msg_distribution.get(key, (0, node)))
+                    
+                    if not messagestoplot or key in messagestoplot:
+                        c_received_records[key] = value
+                        c_received_record = sum(c_received_records.itervalues())
+                        
+                        print >> h_received_record, str(time), str(timeoffset), str(c_received_record)
+                        write_total = True
             
             if message == "statistics-dropped-messages":
                 for key, value in kargs.iteritems():
                     dispersy_dropped_msg_distribution[key] = max((value, node), dispersy_dropped_msg_distribution.get(key, (0, node)))
+                    
+            if message == "scenario-statistics":
+                for key, value in kargs.iteritems():
+                    print >> h_statistics, str(time), str(timeoffset), key, value
 
             if write_total:
-                h_total_record.write(str(time))
-                h_total_record.write(" ")
-                timeoffset = time - first
-                h_total_record.write(str(timeoffset))
-                h_total_record.write(" ")
-                h_total_record.write(str(c_received_record + c_created_record))
-                h_total_record.write("\n")
+                print >> h_total_record, str(time), str(timeoffset), str(c_received_record + c_created_record)
+                
                 write_total = False
                 record_count[node[-5:]][timeoffset] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
                 if started_monitoring and not saved_total and timeoffset <= measure_interval_stop:
@@ -183,64 +161,61 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
         if not started_monitoring:
             print "!!!! Statistics time-range is outside the experiment time."
-        #if not done_monitoring:
-        #    print "!!!! The end of the statistics time-range is after the experiment finished."
-        #if not saved_total:
-        #    print "!!!! There is no write of total records after the end of the statistics time-range."
-
-        lasts.append(datetime)
-
+        lasts.append(time)
+        
+    h_received_record.close()
+    h_created_record.close()
+    h_total_record.close()
+    h_statistics.close()
+    h_drop.close()
+    h_stat.close()
 
     # returns the first and the last last timetime
-    last = int(mktime(max(lasts).timetuple()))
+    last = int(max(lasts))
     experiment_length = last - first
     if measure_interval_stop > experiment_length:
         print "!!! interval stop after experiment end - adjusting interval stop from %d to %d" %(measure_interval_stop, experiment_length)
         measure_interval_stop = experiment_length
         measure_interval_length = measure_interval_stop - measure_interval_start
+        
     (sum_at_measure_time, sum_at_experiment_end) = sum_created_records(peers_directory, first, last, measure_interval_stop)
     print "# experiment took", experiment_length, "seconds"
     print "# number of records at experiment end (%d): %d records" %(experiment_length, sum_at_experiment_end)
-    fn_first_last = peers_directory + "/output/first_last.txt"
-    h_first_last = open(fn_first_last, "w")
-    h_first_last.write("%d %d\n" %(first, last))
+    h_first_last = open(peers_directory + "/output/first_last.txt", "w")
+    print >> h_first_last, "%d %d" %(first, last)
     h_first_last.close()
 
-    fn_dispersy_msg_distribution = peers_directory + "/output/dispersy-msg-distribution.txt"
-    h_dispersy_msg_distribution = open(fn_dispersy_msg_distribution, "w+")
-    h_dispersy_msg_distribution.write("# msg_name count\n")
+    h_dispersy_msg_distribution = open(peers_directory + "/output/dispersy-msg-distribution.txt", "w+")
+    print >> h_dispersy_msg_distribution, "# msg_name count"
     for msg, count in dispersy_msg_distribution.iteritems():
-        h_dispersy_msg_distribution.write("%s %d %s\n" %(msg, count[0], count[1]))
+        print >> h_dispersy_msg_distribution, "%s %d %s" %(msg, count[0], count[1])
     h_dispersy_msg_distribution.close()
     
-    fn_dispersy_dropped_msg_distribution = peers_directory + "/output/dispersy-dropped-msg-distribution.txt"
-    h_dispersy_dropped_msg_distribution = open(fn_dispersy_dropped_msg_distribution, "w+")
-    h_dispersy_dropped_msg_distribution.write("# msg_name count\n")
+    h_dispersy_dropped_msg_distribution = open(peers_directory + "/output/dispersy-dropped-msg-distribution.txt", "w+")
+    print >> h_dispersy_dropped_msg_distribution, "# msg_name count"
     for msg, count in dispersy_dropped_msg_distribution.iteritems():
-        h_dispersy_dropped_msg_distribution.write("%s %d %s\n" %(msg, count[0], count[1]))
+        print >> h_dispersy_dropped_msg_distribution, "%s %d %s" %(msg, count[0], count[1])
     h_dispersy_dropped_msg_distribution.close()
 
-    fn_traffic_count = peers_directory + "/output/traffic_count_per_peer.txt"
-    h_traffic_count = open(fn_traffic_count, "w+")
-    h_traffic_count.write("# peer-id traffic_start traffic_stop traffic_total\n")
+    h_traffic_count = open(peers_directory + "/output/traffic_count_per_peer.txt", "w+")
+    print >> h_traffic_count, "# peer-id traffic_start traffic_stop traffic_total"
     sum_traffic = 0
     for node in traffic_count.keys():
         v = traffic_count[node]
         sum_traffic += v[2]
-        h_traffic_count.write("%s %d %d %d\n" %(node, v[0], v[1], v[2]))
+        print >> h_traffic_count, "%s %d %d %d" %(node, v[0], v[1], v[2])
     h_traffic_count.close()
     bytes_per_second_experiment = float(sum_traffic)/len(traffic_count)/measure_interval_length
     bytes_per_second_real = bytes_per_second_experiment/time_ratio
 
-    fn_record_count = peers_directory + "/output/records_per_peer.txt"
-    h_record_count = open(fn_record_count, "w+")
-    h_record_count.write("# peer-id records_received records_created records_total coverage\n")
+    h_record_count = open(peers_directory + "/output/records_per_peer.txt", "w+")
+    print >> h_record_count, "# peer-id records_received records_created records_total coverage"
     sum_coverage = 0.0
     for node in measured_record_count.keys():
         v = measured_record_count[node]
         v[3] = float(v[2])*100/sum_at_measure_time
         sum_coverage += v[3]
-        h_record_count.write("%s %d %d %d %f\n" %(node, v[0], v[1], v[2], v[3]))
+        print >> h_record_count, "%s %d %d %d %f" %(node, v[0], v[1], v[2], v[3])
     h_record_count.close()
     l = len(measured_record_count)
     if l != 0:
@@ -267,22 +242,24 @@ def generate(peers_directory, measure_interval_start, measure_interval_stop, tim
 
     fn = peers_directory + "/output/peers_with_all_records_in_time.txt"
     h = open(fn, "w+")
-    h.write("# time record_count\n")
+    print >> h, "# time record_count"
     for time in range(experiment_length + 1):
-        h.write("%d %d\n" %(time, records_in_time[time]))
+        print >> h, "%d %d"%(time, records_in_time[time])
     h.close()
+    
+    sum_statistics(peers_directory)
 
     fn_measure_info = peers_directory + "/output/measure_info.txt"
     h_measure_info = open(fn_measure_info, "w+")
-    h_measure_info.write("experiment_length=%d\n" %(experiment_length))
-    h_measure_info.write("measure_interval_start=%d\n" %(measure_interval_start))
-    h_measure_info.write("measure_interval_stop=%d\n" %(measure_interval_stop))
-    h_measure_info.write("total_records_at_interval_stop=%d\n" %(sum_at_measure_time))
-    h_measure_info.write("total_records_at_experiment_end=%d\n" %(sum_at_experiment_end))
-    h_measure_info.write("average_coverage_at_interval_stop=%f\n" %(average_coverage))
-    h_measure_info.write("bytes_per_second_experiment=%f\n" %(bytes_per_second_experiment))
-    h_measure_info.write("bytes_per_second_real=%f\n" %(bytes_per_second_real))
-    h_measure_info.write("bits_per_second_real=%f\n" %(bytes_per_second_real*8))
+    print >> h_measure_info, "experiment_length=%d" %(experiment_length)
+    print >> h_measure_info, "measure_interval_start=%d" %(measure_interval_start)
+    print >> h_measure_info, "measure_interval_stop=%d" %(measure_interval_stop)
+    print >> h_measure_info, "total_records_at_interval_stop=%d" %(sum_at_measure_time)
+    print >> h_measure_info, "total_records_at_experiment_end=%d" %(sum_at_experiment_end)
+    print >> h_measure_info, "average_coverage_at_interval_stop=%f" %(average_coverage)
+    print >> h_measure_info, "bytes_per_second_experiment=%f" %(bytes_per_second_experiment)
+    print >> h_measure_info, "bytes_per_second_real=%f" %(bytes_per_second_real)
+    print >> h_measure_info, "bits_per_second_real=%f" %(bytes_per_second_real*8)
     h_measure_info.close()
 
     return first, last
@@ -291,55 +268,113 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
     """ I create a file under 'peers/' called 'sum_created_records.txt'
     with all the available records in the system per timestamp
     """
-    
     sum_records = {}
     for node in get_nodes(peers_directory):
         fn_created_record = node + "/output/created-record.txt"
         h_created_record = open(fn_created_record)
-        if True:
-            for line in h_created_record:
-                if line[0] == "#": continue
-                _, time, records = line.split()
-                time = int(time)
-                records = int(records)
-                if records == 0: continue # skip over lines that do not contain bartercast updates
-                try:
-                    sum_records[time] += 1
-                except KeyError:
-                    sum_records[time] = 1
+        for line in h_created_record:
+            if line[0] == "#": continue
+            _, time, records = line.split()
+            time = int(time)
+            records = int(records)
+            if records == 0: continue # skip over lines that do not contain bartercast updates
+            try:
+                sum_records[time] += 1
+            except KeyError:
+                sum_records[time] = 1
         h_created_record.close()
 
     sum_at_measure_time = -1
     determined_sum = False
 
     fp = open(peers_directory + '/output/sum_created_records.txt', 'wb')
-    fp.write("0 0\n")
-    if True:
-        sumr = 0
-        for time in sorted(sum_records.iterkeys()):
-            sumr += sum_records[time]
-            fp.write("%s %s\n" % (time, sumr))
-            if time > measure_interval_stop and not determined_sum:
-                determined_sum = True
-            if not determined_sum:
-                # take the last valid sub before measure_interval_stop
-                sum_at_measure_time = sumr
-
+    sumr = 0
+    for time in sorted(sum_records.iterkeys()):
+        sumr += sum_records[time]
+        print >> fp, "%s %s" % (time, sumr)
+        if time > measure_interval_stop and not determined_sum:
+            determined_sum = True
+        if not determined_sum:
+            # take the last valid sub before measure_interval_stop
+            sum_at_measure_time = sumr
     return (sum_at_measure_time, sumr)
 
+def sum_statistics(peers_directory):
+    """ I created a file under 'peers/' called 'sum_scenario_statiscitcs.txt'
+    with all the available records in the system per timestamp
+    """
+    sum_records = {}
+    timeoffset_dict = {}
+    nodes = set()
+    for node in get_nodes(peers_directory):
+        nodes.add(node)
+        
+        h_scenario_statistics = open(node + "/output/scenario-statistics.txt")
+        for line in h_scenario_statistics:
+            if line[0] == "#": continue
+            parts = line.split()
 
-def main(peers_directory, measure_interval_start, measure_interval_stop, time_ratio):
+            time = int(parts[0])
+            timeoffset = int(parts[1])
+            key = parts[2]
+            value = float(parts[3])
+            
+            timeoffset_dict[time] = timeoffset
+                
+            if key not in sum_records:
+                sum_records[key] = {}
+            if time not in sum_records[key]:
+                sum_records[key][time] = {}
+            sum_records[key][time][node] = value
+                    
+        h_scenario_statistics.close()
+
+    nodes = list(nodes)
+    nodes.sort()
+    
+    fp = open(peers_directory + '/output/sum_statictics.txt', 'w')
+    keys = sum_records.keys()
+    keys.sort()
+        
+    print >> fp, "#", "time", "timeoffset", "values"
+    print >> fp, " ".join(keys)
+    
+    timestamps = sum_records[keys[0]].keys()
+    timestamps.sort()
+    
+    prev_values = {}
+    for time in timestamps:
+        print >> fp, time, timeoffset_dict[time],
+        for key in keys:
+            sum = 0
+            for node in nodes:
+                if key not in prev_values:
+                    prev_values[key] = {}
+                    
+                prev_value = prev_values[key].get(node, 0)
+                value = sum_records[key][time].get(node, prev_value)
+                prev_values[key][node] = value
+                
+                sum += value
+                
+            print >> fp, sum,
+        print >> fp, ''
+    fp.close()
+
+def main(peers_directory, messagestoplot, measure_interval_start, measure_interval_stop, time_ratio):
     global node_count
     peer_count = open(peers_directory+'/peer.count', 'r')
     node_count = int(peer_count.readline())
     peer_count.close()
     
-    first, last = generate(peers_directory, measure_interval_start, measure_interval_stop, time_ratio)
-    # first = int(mktime(get_first_datetime().timetuple()))
-    # last = first + 200
+    generate(peers_directory, messagestoplot.split(','), measure_interval_start, measure_interval_stop, time_ratio)
 
 if __name__ == "__main__":
-    if len(argv) != 5:
-        print "Usage: %s <peers-directory> <measure-interval-start> <measure-interval-stop> <time-ratio-real-life-vs-experiment>" %(argv[0])
+    if len(argv) != 6:
+        print "Usage: %s <peers-directory> <messagestoplot> <measure-interval-start> <measure-interval-stop> <time-ratio-real-life-vs-experiment>" %(argv[0])
+        import sys
+        print >> sys.stderr, argv
+        
         exit(1)
-    main(argv[1], int(argv[2]), int(argv[3]), float(argv[4]))
+
+    main(argv[1], argv[2], int(argv[3]), int(argv[4]), float(argv[5]))

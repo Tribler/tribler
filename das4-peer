@@ -59,10 +59,10 @@ fi
 # determine the IP of the usable interface
 MY_IP=$(ip address show dev $iface | grep 'inet ' | awk -F '[/ ]' '{print $6}')
 
-export PYTHONPATH=${BRANCH}:/home/mbardac/3rd-party/lib/python2.6/site-packages:$PYTHONPATH
-export LD_LIBRARY_PATH=/home/mbardac/3rd-party/lib:$LD_LIBRARY_PATH
+export PYTHONPATH=${BRANCH}:/home/$USER/3rd-party/lib/python2.6/site-packages:/home/$USER/3rd-party/lib64/python2.6/site-packages:$PYTHONPATH
+export LD_LIBRARY_PATH=/home/$USER/3rd-party/lib:$LD_LIBRARY_PATH
 
-config="$(${BRANCH}/das4-config-sync-client.py 130.161.7.3 $MY_IP)"
+config="$(${BRANCH}/das4-config-sync-client.py 10.149.3.254 $MY_IP)"
 MY_ID=$(echo $config | cut -d' ' -f1)
 STARTING_TIMESTAMP=$(echo $config | cut -d' ' -f2)
 source $EXPERIMENT_CONFIG # reload config with the new STARTING_TIMESTAMP
@@ -76,6 +76,7 @@ rm -rf ${MYDIR}/output
 
 # move config files
 mv /tmp/$USER/dispersy/peer_${MY_ID}.conf ${MYDIR}/data/peer.conf
+mv /tmp/$USER/dispersy/peers_${MY_ID}.conf ${MYDIR}/data/peers
 
 #read -p "Press the any key to continue..."
 
@@ -90,8 +91,7 @@ cp ${DPRINT_CONF} $DISPERSY_DIR/dprint.conf
 
 cd $DISPERSY_DIR
 
-echo python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
-#python ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
-python -O ${BRANCH}/Tribler/Main/dispersy.py --ip $MY_IP --port $MY_PORT $DISPERSY_ARGS
+echo python -c "from Tribler.dispersy.tool.main import main; main()" --port $MY_PORT $DISPERSY_ARGS
+python -c "from Tribler.dispersy.tool.main import main; main()" --port $MY_PORT $DISPERSY_ARGS
 
 #read -p "Press the any key to close..."

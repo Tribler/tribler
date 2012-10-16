@@ -1,16 +1,24 @@
 #!/bin/bash
 # Mircea Bardac, 2011
 
-if test $# -ne 3; then
-    echo "Usage: $0 <peers-directory> <measure-interval-start> <measure-interval-stop>"
+if test $# -ne 4; then
+    echo "Usage: $0 <experiment-config> <peers-directory> <measure-interval-start> <measure-interval-stop>"
     exit 1
 fi
 
-BRANCH=$(pwd)
-TIME_START=$2
-TIME_STOP=$3
+# expand experiment config filename to full path
+cfg_name=$(basename $1)
+cfg_path=$(dirname $1)
+cd $cfg_path
+cfg_path=$(pwd)
+EXPERIMENT_CONFIG=$cfg_path/$cfg_name
+source $EXPERIMENT_CONFIG
 
-PEERS_DIRECTORY=$1
+BRANCH=$(pwd)
+TIME_START=$3
+TIME_STOP=$4
+
+PEERS_DIRECTORY=$2
 mkdir -p $PEERS_DIRECTORY/output/
 STATS_FILE=$PEERS_DIRECTORY/output/statistics.txt
 > $STATS_FILE
@@ -48,7 +56,6 @@ fi
 
 PEERS_PER_NODE=$[ $PEERS_COUNT / $NODE_COUNT ]
 
-
 echo "* Counting number of delayed cycles (too much to process within a cycle)..."
 c_ratio=0.0
 t_cycles="(not-counted)"
@@ -74,11 +81,19 @@ time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
 echo "* Summing up incoming and outgoing traffic..."
 o=$(
 find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:t2:.i[0-9]*, i\([0-9]*\).*send:t2:.i[0-9]*, i\([0-9]*\).*/\1 \2/g'
+    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:i\([0-9]*\).*send:i\([0-9]*\).*/\1 \2/g'
 done | awk '{received += $1; sent += $2 } END { print received, sent }'
 )
 in_bytes=$(echo $o | cut -d' ' -f1)
 out_bytes=$(echo $o | cut -d' ' -f2)
+
+p=$(
+find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
+	grep 's30:statistics' $f | tail -n 1 | sed 's/.*request:i\([0-9]*\).*response:i\([0-9]*\).*/\1 \2/g'
+done | awk '{request += $1; response += $2 } END { print request, response }'
+)
+in_requests=$(echo $p | cut -d' ' -f1)
+in_responses=$(echo $p | cut -d' ' -f2)
 
 #cd $PEERS_DIRECTORY/control
 #echo "* Summing up incoming traffic..."
@@ -116,11 +131,10 @@ if test $sig_req_timeouts -gt 0; then
     sleep 2
 fi
 
-
 echo "* Extracting statistics..."
 
 cd $BRANCH
-./barter-extract-statistics $PEERS_DIRECTORY $TIME_START $TIME_STOP $time_ratio
+./barter-extract-statistics $PEERS_DIRECTORY ${MESSAGESTOPLOT} $TIME_START $TIME_STOP $time_ratio
 
 echo "* Done"
 echo
@@ -178,6 +192,8 @@ signature_request_timeout_ratio=$s_ratio
 barter_history_size=$barter_history_size
 barter_forward_record_on_creation=$barter_forward_record_on_creation
 svn_version=$svn_version
+in_requests=$in_requests
+in_responses=$in_responses
 END-OF-MSG
 ) >> $STATS_FILE
 

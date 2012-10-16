@@ -18,8 +18,8 @@ display peers/records.png
 from time import mktime
 import re
 from os import listdir, path
-from ldecoder import parse
 from sys import argv
+from Tribler.dispersy.tool.ldecoder import parse
 import os.path
 import os
 import sys
@@ -151,9 +151,22 @@ def plot_received(peers_directory, first, last):
     print ""
     
 def plot_statistics(peers_directory, first, last):
-    print "set ylabel 'sum of statistic'"
-    print "set xrange [%d-%d]" % (0, last - first)
-    
+    nr_stats = 0
+    filename = os.path.join(peers_directory,'output','sum_statictics.txt')
+    f = open(filename)
+    for line in f.readlines():
+        if not line.startswith("#"):
+            nr_stats = len(line.split())
+            break
+    f.close()
+    if nr_stats:
+        print "set key"
+        print "set ylabel 'Sum of statistic'"
+        print "set xrange [%d:%d]" % (0, last - first)
+        
+        print "plot",
+        for i in range(nr_stats):
+            print "'%s' using 2:%d title columnhead(%d) with lines lc %d"%(filename, i+3, i+1, i),',\\' if i + 1 < nr_stats else ''
     
 def write_stat(outputfile, averagefile, peers_directory, column):
     print >> outputfile, '#timeoffset, kb diff+'
@@ -210,7 +223,6 @@ def write_stat(outputfile, averagefile, peers_directory, column):
     max_time = float(max(timeoffsets))
     
     for peer in peer_names:
-        print >> sys.stderr, peer, node_max[peer], max_time
         print >> averagefile, (int(node_max[peer])/max_time)/1024.0, 
 
 def header(peers_directory, filename):
@@ -239,6 +251,10 @@ def received(peers_directory, first, last):
 def sent(peers_directory, first, last):
     header(peers_directory, "traffic-sent")
     plot_send(peers_directory, first, last)
+    
+def statistics(peers_directory, first, last):
+    header(peers_directory, "statistics")
+    plot_statistics(peers_directory, first, last)
 
 def multiplot(peers_directory, first, last):
     header(peers_directory, "multiplot")
@@ -271,7 +287,7 @@ def main(peers_directory):
     [ first, last ] = [int(i) for i in h_first_last.readline().strip().split()]
     h_first_last.close()
  
-    for func in [records, drops, received, sent, received_records]:
+    for func in [records, drops, received, sent, received_records, statistics]:
         func(peers_directory, first, last+100)
         
     received_f = open(peers_directory + "/output/received.txt", "w")
