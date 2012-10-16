@@ -155,7 +155,12 @@ class DoubleLineListItem(ListItem):
             itemid = wx.NewId()
             show.AppendCheckItem(itemid, column['name']).Enable(column['name'] != 'Name')
             show.Check(itemid, column.get('show', True))
-            show.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
+            
+            #Niels: 16-10-2012, apparently windows requires this event to be bound to menu, ubuntu requires it to be bound to show?
+            if sys.platform == 'win32':
+                menu.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
+            else:
+                show.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
             
         menu.AppendMenu(wx.ID_ANY, 'Show labels..', show)
         return menu
