@@ -16,8 +16,8 @@ from lencoder import log
 from Tribler.dispersy.script import ScenarioScriptBase
     
 class AllChannelScenarioScript(ScenarioScriptBase):
-    def __init__(self, script, name, **kargs):
-        ScenarioScriptBase.__init__(self, script, name, 'barter.log', **kargs)
+    def __init__(self, **kargs):
+        ScenarioScriptBase.__init__(self, 'barter.log', **kargs)
         
         self.my_channel = None
         self.joined_community = None
