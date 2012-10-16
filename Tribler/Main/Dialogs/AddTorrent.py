@@ -10,6 +10,7 @@ from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.Swift import SwiftDef
+from Tribler.Core.TorrentDef import TorrentDef
 
 class AddTorrent(wx.Dialog):
     def __init__(self, parent, frame, libraryTorrents = None):
