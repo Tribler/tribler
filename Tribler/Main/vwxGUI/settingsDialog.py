@@ -168,7 +168,7 @@ class SettingsDialog(wx.Dialog):
             min_to_tray =  self.utility.config.Read('mintray', "int") == 1
             self.elements['minimize_to_tray'].SetValue(min_to_tray)
         else:
-            self.elements['minimize_to_tray'].Enabled(False)
+            self.elements['minimize_to_tray'].Enable(False)
         
         print >> sys.stderr, self.utility.lang.get('no_leeching')
         self.elements['t4t0'].SetLabel(self.utility.lang.get('no_leeching'))
