@@ -11,7 +11,7 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.script import ScriptBase
 from Tribler.dispersy.debug import Node
 from Tribler.dispersy.dprint import dprint
-from lencoder import log  
+from Tribler.dispersy.tool.lencoder import log
 
 from Tribler.dispersy.script import ScenarioScriptBase
     
