@@ -1657,25 +1657,23 @@ class SelectedchannelInfoPanel(AbstractInfoPanel):
             msg1 = ""
             msg2 = ""
             
+            if iamModerator:
+                msg1 = "You are looking at the contents of your channel."         
+            elif vote == -1:
+                msg1 = "You have marked this Channel as Spam."
+            elif vote == 2:
+                msg1 = 'You are looking at the full content of one of your favorite channels.'
+            
             if open2edit:
                 msg1 = "You can now enable community-features for this Channel."
-                msg2 = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit your channel settings to get started."
+                msg2 = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit the channel settings to get started."
 
             elif allow2edit:
                 msg1 = "This is an open community channel. You can modify it, comment on it and add new content."
-                            
-            if vote == -1:
-                msg1 = ""
-                msg2 = "You have marked this Channel as Spam."
-                
-            elif vote != 2:
                 msg2 = "You can edit this channel" if not msg2 else msg2
 
             if msg1:
                 self.AddMessage(msg1)
-            else:
-                self.AddMessage('You are looking at the full content of one of your favorite channels.')
-
             if msg2:
                 self.AddMessage(msg2)
 

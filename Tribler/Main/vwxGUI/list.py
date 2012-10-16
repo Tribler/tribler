@@ -310,6 +310,8 @@ class ChannelSearchManager(BaseManager):
                     total_items, data = self.channelsearch_manager.getAllChannels()
                 elif category == 'Favorites':
                     total_items, data = self.channelsearch_manager.getMySubscriptions()
+                elif category == 'Mine':
+                    total_items, data = self.channelsearch_manager.getMyChannels()
                 return data, category
             
             startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)

@@ -157,6 +157,7 @@ class GUIUtility:
                     self.frame.selectedchannellist.Select(items[0][0])
                 else:
                     self.frame.selectedchannellist.ResetBottomWindow()
+                    
                 channelmenu = self.frame.actlist.GetItem(3)
                 if channelmenu and channelmenu.expandedPanel:
                     channelmenu.expandedPanel.AddCurrentChannelLink()

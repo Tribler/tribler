@@ -340,6 +340,11 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def Reset(self):
+        self.title = None
+        self.channel = None
+        self.iamModerator = False
+        self.my_channel = False
+        
         if GenericSearchList.Reset(self):
             self.commentList.Reset()
             self.activityList.Reset()
@@ -394,6 +399,7 @@ class SelectedChannelList(GenericSearchList):
                 self.notebook.RemovePage(i-1)
         
         #Update header + list ids
+        self.ResetBottomWindow()
         self.header.SetHeadingButtons(self.channel)
         self.commentList.GetManager().SetIds(channel = self.channel)
         self.activityList.GetManager().SetIds(channel = self.channel)
@@ -401,7 +407,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def SetTitle(self, channel):
-        self.ResetBottomWindow()
+        self.title = channel.name
         self.header.SetHeading(channel)
         self.Layout()
    
@@ -500,6 +506,8 @@ class SelectedChannelList(GenericSearchList):
             num_items = len(self.list.raw_data) if self.list.raw_data else 1
             panel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
             self.guiutility.SetBottomSplitterWindow(panel)
+        else:
+            self.guiutility.SetBottomSplitterWindow()
         
     @warnWxThread
     def OnSaveTorrent(self, channel, panel):

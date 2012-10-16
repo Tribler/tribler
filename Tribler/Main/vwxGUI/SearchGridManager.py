@@ -1282,6 +1282,11 @@ class ChannelManager:
         lchannels = self.channelcast_db.getLatestUpdated()
         return self._createChannels(lchannels)
     
+    def getMyChannels(self):
+        if self.channelcast_db._channel_id:
+            return 1, [self.getChannel(self.channelcast_db._channel_id)]
+        return 0, []
+    
     def _createChannel(self, hit):
         return Channel(*hit)
     

@@ -1006,7 +1006,7 @@ class ChannelFilter(BaseFilter):
     def __init__(self, parent, parent_list, spacers = [10,3]):
         self.guiutility =  GUIUtility.getInstance()
         self.channellist_manager = parent_list.GetManager()
-        self.channel_categories = ["All","Popular","New","Updated"]
+        self.channel_categories = ["All","Popular","New","Updated","Mine"]
 
         BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(ChannelListItem), spacers)
 
