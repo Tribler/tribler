@@ -25,7 +25,7 @@ from Tribler.community.channel.payload import ModerationPayload
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
-    from lencoder import log
+    from Tribler.dispersy.tool.lencoder import log
 
 class MissingChannelCache(MissingSomethingCache):
     @staticmethod
