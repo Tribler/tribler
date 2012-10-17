@@ -1360,6 +1360,7 @@ class SearchList(GenericSearchList):
         
         columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns, [3,4])
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
+        ColumnsManager.getInstance().setColumns(DragItem, columns)
         
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.category_names = {}

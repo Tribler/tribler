@@ -487,9 +487,7 @@ class ActivityListItem(ListItem):
             self.hSizer.Layout()
         
 
-class DragItem(DoubleLineListItem):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED, list_expanded = LIST_EXPANDED):
-        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+class DragItem(TorrentListItem):
 
     def AddEvents(self, control):
         if getattr(control, 'GetWindow', False): #convert sizeritems
@@ -498,7 +496,7 @@ class DragItem(DoubleLineListItem):
         if getattr(control, 'Bind', False):
             control.Bind(wx.EVT_MOTION, self.OnDrag)
             
-        ListItem.AddEvents(self, control)
+        TorrentListItem.AddEvents(self, control)
         
     def OnDrag(self, event):
         if event.LeftIsDown():
