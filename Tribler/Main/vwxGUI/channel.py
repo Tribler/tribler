@@ -1763,6 +1763,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
                 if dlg.ShowModal() == wx.ID_YES:
                     self.OnSave(playlist_id, panel)
         ManageChannelFilesList.OnCollapse(self, item, panel)
+        self.list.Layout()
         
     def OnSave(self, playlist_id, panel):
         name, description, _ = panel.GetInfo()

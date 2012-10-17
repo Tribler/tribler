@@ -84,6 +84,10 @@ class DoubleLineListItem(ListItem):
         if column_index == 0:
             self.titleSizer.Add(control, 1, wx.CENTER)
             
+            if getattr(control, 'icon', None):
+                #Remove the spacer and replace it with the icon
+                self.hSizer.Remove(0)
+                self.hSizer.Insert(0, control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, (33-control.icon.GetSize().x)/2)            
         else:
             self.descrSizer.Add(control, 0, wx.CENTER|wx.TOP, spacing)
             
