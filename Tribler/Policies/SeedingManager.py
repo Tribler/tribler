@@ -17,6 +17,8 @@ STORAGE_VERSION_CURRENT = STORAGE_VERSION_ONE
 
 class GlobalSeedingManager:
     def __init__(self, Read, storage_dir):
+        if DEBUG: print >>sys.stderr, "SeedingManager: __init__"
+
         # directory where all pickled data must be kept
         self.storage_dir = storage_dir
 
@@ -38,11 +40,33 @@ class GlobalSeedingManager:
             os.mkdir(self.storage_dir)
 
     def write_all_storage(self):
-        for infohash, seeding_manager in self.seeding_managers.iteritems():
-            self.write_storage(infohash, seeding_manager.get_updated_storage())
+        infohashes = set()
+        infohashes.update(self.seeding_managers)
+        infohashes.update(self.download_statistics)
 
-        for infohash, download_statistics in self.download_statistics.iteritems():
-            self.write_storage(infohash, download_statistics.get_updated_storage())
+        for infohash in infohashes:
+            a = self.seeding_managers.get(infohash)
+            b = self.download_statistics.get(infohash)
+
+            if a and b:
+                if DEBUG:
+                    print >> sys.stderr, "SeedingManager: write_all_storage weird, both seeding and download statistics are available"
+                    print >> sys.stderr, "SeedingManager: write_all_storage", a.get_updated_storage()
+                    print >> sys.stderr, "SeedingManager: write_all_storage", b.get_updated_storage()
+
+                data_a = a.get_updated_storage()
+                data_b = b.get_updated_storage()
+                # merge fields.  take highest from each
+                data = {"version":STORAGE_VERSION_CURRENT,
+                        "total_up":max(data_a["total_up"], data_b["total_up"]),
+                        "total_down":max(data_a["total_down"], data_b["total_down"]),
+                        "time_seeding":max(data_a["time_seeding"], data_b["time_seeding"])}
+
+            else:
+                data = (a if a else b).get_updated_storage()
+
+            # write the data
+            self.write_storage(infohash, data)
 
     def read_storage(self, infohash):
         filename = os.path.join(self.storage_dir, binascii.hexlify(infohash) + ".pickle")
@@ -53,7 +77,7 @@ class GlobalSeedingManager:
                 storage = cPickle.load(f)
                 f.close()
                 # Any version upgrading must be done here
-    
+
                 if storage["version"] == STORAGE_VERSION_CURRENT:
                     return storage
             except:
@@ -69,6 +93,7 @@ class GlobalSeedingManager:
     def write_storage(self, infohash, storage):
         filename = os.path.join(self.storage_dir, binascii.hexlify(infohash) + ".pickle")
         if DEBUG: print >>sys.stderr, "SeedingManager: write_storage", filename
+        if DEBUG: print >>sys.stderr, "SeedingManager: write_storage=", storage
         f = open(filename, "wb")
         cPickle.dump(storage, f)
         f.close()
@@ -157,7 +182,8 @@ class GlobalSeedingManager:
 class DownloadStatistics:
     def __init__(self, download_state, storage):
         self.storage = storage
-        self.download_state = download_state
+        self.session_up = download_state.get_total_transferred(UPLOAD)
+        self.session_down = download_state.get_total_transferred(DOWNLOAD)
         self.time_start = time.time()
 
     def get_updated_storage(self):
@@ -166,17 +192,29 @@ class DownloadStatistics:
         information from the download_state
         """
         return {"version":STORAGE_VERSION_ONE,
-                "total_up":self.storage["total_up"] + self.download_state.get_total_transferred(UPLOAD),
-                "total_down":self.storage["total_down"] + self.download_state.get_total_transferred(DOWNLOAD),
+                "total_up":self.storage["total_up"] + self.session_up,
+                "total_down":self.storage["total_down"] + self.session_down,
                 "time_seeding":self.storage["time_seeding"] + time.time() - self.time_start}
 
     def update_download_state(self, download_state):
-        self.download_state = download_state
-        self.download_state.set_seeding_statistics(self.get_updated_storage())
+        session_up = download_state.get_total_transferred(UPLOAD)
+        session_down = download_state.get_total_transferred(DOWNLOAD)
+        if session_up < self.session_up or session_down < self.session_down:
+            # the download was stopped/paused between calls.  this has caused the download_state to
+            # start counting from 0 again
+            self.storage["total_up"] += self.session_up
+            self.storage["total_down"] += self.session_down
+
+        self.session_up = session_up
+        self.session_down = session_down
+        if DEBUG: print >> sys.stderr, "SeedingManager: update_download_state", self.session_up, "/", self.session_down, "session up / down"
+        download_state.set_seeding_statistics(self.get_updated_storage())
 
 class SeedingManager:
     def __init__(self, download_state, storage):
         self.storage = storage
+        self.session_up = download_state.get_total_transferred(UPLOAD)
+        self.session_down = download_state.get_total_transferred(DOWNLOAD)
         self.download_state = download_state
         self.t4t_policy = None
         self.g2g_policy = None
@@ -192,13 +230,23 @@ class SeedingManager:
         information from the download_state
         """
         return {"version":STORAGE_VERSION_ONE,
-                "total_up":self.storage["total_up"] + self.download_state.get_total_transferred(UPLOAD),
-                "total_down":self.storage["total_down"] + self.download_state.get_total_transferred(DOWNLOAD),
+                "total_up":self.storage["total_up"] + self.session_up,
+                "total_down":self.storage["total_down"] + self.session_down,
                 "time_seeding":self.storage["time_seeding"] + time.time() - self.time_start}
 
     def update_download_state(self, download_state):
-        self.download_state = download_state
-        self.download_state.set_seeding_statistics(self.get_updated_storage())
+        session_up = download_state.get_total_transferred(UPLOAD)
+        session_down = download_state.get_total_transferred(DOWNLOAD)
+        if session_up < self.session_up or session_down < self.session_down:
+            # the download was stopped/paused between calls.  this has caused the download_state to
+            # start counting from 0 again
+            self.storage["total_up"] += self.session_up
+            self.storage["total_down"] += self.session_down
+
+        self.session_up = session_up
+        self.session_down = session_down
+        if DEBUG: print >> sys.stderr, "SeedingManager: update_download_state", self.session_up, "/", self.session_down, "session up / down"
+        download_state.set_seeding_statistics(self.get_updated_storage())
 
     def is_conn_eligible(self, conn):
         if conn.use_g2g:
