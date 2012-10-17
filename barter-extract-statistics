@@ -339,26 +339,27 @@ def sum_statistics(peers_directory):
     print >> fp, "#", "time", "timeoffset", "values"
     print >> fp, " ".join(keys)
     
-    timestamps = sum_records[keys[0]].keys()
-    timestamps.sort()
-    
-    prev_values = {}
-    for time in timestamps:
-        print >> fp, time, timeoffset_dict[time],
-        for key in keys:
-            sum = 0
-            for node in nodes:
-                if key not in prev_values:
-                    prev_values[key] = {}
+    if keys:
+        timestamps = sum_records[keys[0]].keys()
+        timestamps.sort()
+        
+        prev_values = {}
+        for time in timestamps:
+            print >> fp, time, timeoffset_dict[time],
+            for key in keys:
+                sum = 0
+                for node in nodes:
+                    if key not in prev_values:
+                        prev_values[key] = {}
+                        
+                    prev_value = prev_values[key].get(node, 0)
+                    value = sum_records[key][time].get(node, prev_value)
+                    prev_values[key][node] = value
                     
-                prev_value = prev_values[key].get(node, 0)
-                value = sum_records[key][time].get(node, prev_value)
-                prev_values[key][node] = value
-                
-                sum += value
-                
-            print >> fp, sum,
-        print >> fp, ''
+                    sum += value
+                    
+                print >> fp, sum,
+            print >> fp, ''
     fp.close()
 
 def main(peers_directory, messagestoplot, measure_interval_start, measure_interval_stop, time_ratio):
