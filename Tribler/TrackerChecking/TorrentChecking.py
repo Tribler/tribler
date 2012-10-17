@@ -102,6 +102,8 @@ class TorrentChecking(Thread):
     def addToQueue(self, infohash):
         if infohash not in self.queueset and len(self.queueset) < QUEUE_SIZE_LIMIT:
             torrent = self.torrentdb.selectTorrentToCheck(infohash=infohash)
+            if not torrent:
+                return False
             
             diff = time() - (torrent['last_check'] or 0)
             if diff < 1800:
