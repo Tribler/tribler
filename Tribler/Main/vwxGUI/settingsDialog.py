@@ -50,7 +50,6 @@ class SettingsDialog(wx.Dialog):
                              'batchstart',\
                              'batchstop',\
                              'batchmove',\
-                             'use_bundle_magic',\
                              'minimize_to_tray',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
                              'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',\
@@ -161,16 +160,13 @@ class SettingsDialog(wx.Dialog):
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self.elements['diskLocationCtrl'].SetValue(self.currentDestDir)
         self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
-        
-        self.elements['use_bundle_magic'].SetValue(self.utility.config.Read('use_bundle_magic', "boolean"))
-        
+               
         if sys.platform != "darwin":
             min_to_tray =  self.utility.config.Read('mintray', "int") == 1
             self.elements['minimize_to_tray'].SetValue(min_to_tray)
         else:
             self.elements['minimize_to_tray'].Enable(False)
         
-        print >> sys.stderr, self.utility.lang.get('no_leeching')
         self.elements['t4t0'].SetLabel(self.utility.lang.get('no_leeching'))
         self.elements['t4t0'].Refresh()
         self.elements['t4t1'].SetLabel(self.utility.lang.get('unlimited_seeding'))
@@ -341,10 +337,6 @@ class SettingsDialog(wx.Dialog):
                 self.saveDefaultDownloadConfig(scfg)
                 self.moveCollectedTorrents(self.currentDestDir, valdir)
                 restart = True
-                
-            useBundleMagic = self.elements['use_bundle_magic'].IsChecked()
-            if useBundleMagic != self.utility.config.Read('use_bundle_magic', "boolean"):
-                self.utility.config.Write('use_bundle_magic', useBundleMagic, "boolean")
                 
             useWebUI = self.elements['use_webui'].IsChecked() 
             if useWebUI != self.utility.config.Read('use_webui', "boolean"):
