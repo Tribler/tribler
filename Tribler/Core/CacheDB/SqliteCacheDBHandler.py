@@ -3288,6 +3288,13 @@ class ChannelCastDBHandler(object):
     def getDispersyCIDFromChannelId(self, channel_id):
         return self._db.fetchone(u"SELECT dispersy_cid FROM Channels WHERE id = ?", (channel_id,))
     
+    def getChannelIdFromDispersyCID(self, dispersy_cid):
+        return self._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (dispersy_cid,))
+    
+    def getCountMaxFromChannelId(self, channel_id): 
+        sql = u"SELECT COUNT(*), MAX(inserted) FROM ChannelTorrents WHERE channel_id = ? LIMIT 1"
+        return self._db.fetchone(sql, (channel_id, ))
+    
     def drop_all_newer(self, dispersy_id):
         sql = "DELETE FROM _TorrentMarkings WHERE dipsersy_id > ?"
         self._db.execute_write(sql, (dispersy_id), commit = False)
