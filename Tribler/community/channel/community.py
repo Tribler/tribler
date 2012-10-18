@@ -148,9 +148,10 @@ class ChannelCommunity(Community):
             
             # call this after the init is completed and the community is attached to dispersy
             register_task(post_init)
-
-            from Tribler.community.allchannel.community import ChannelCastDBStub
-            self._channelcast_db = ChannelCastDBStub(self._dispersy)
+            from Tribler.community.allchannel.community import AllChannelCommunity
+            for community in self.dispersy.get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    self._channelcast_db = community._channelcast_db
         
     def initiate_meta_messages(self):
         if self.integrate_with_tribler:

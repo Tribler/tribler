@@ -483,9 +483,10 @@ class AllChannelCommunity(Community):
         assert isinstance(cid, str)
         assert len(cid) == 20
         
-        if not self._dispersy.has_community(cid):
+        channel_id = self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
+        if not channel_id:
             self._get_channel_community(cid)
-        return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
+        return channel_id 
     
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
@@ -556,6 +557,7 @@ class AllChannelCommunity(Community):
 class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
+        self.channel_id = None
         self.cachedTorrents = None
     
     def convert_to_messages(self, results):
@@ -566,7 +568,7 @@ class ChannelCastDBStub():
                 yield message.community.cid, message
                 
     def getChannelIdFromDispersyCID(self, cid):
-        return 1
+        return 1 if self.cachedTorrents else None
     
     def getCountMaxFromChannelId(self, channel_id):
         pass
