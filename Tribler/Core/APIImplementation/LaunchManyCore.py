@@ -612,13 +612,18 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
 
-        for d in dllist:
-            if d.get_def().get_def_type() == "swift":
-                # Arno, 2012-05-23: At Niels' request to get total transferred 
-                # stats. Causes MOREINFO message to be sent from swift proc 
-                # for every initiated dl.
-                # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
-                d.set_moreinfo_stats(getpeerlist)
+        try:
+            for d in dllist:
+                if d.get_def().get_def_type() == "swift":
+                    # Arno, 2012-05-23: At Niels' request to get total transferred 
+                    # stats. Causes MOREINFO message to be sent from swift proc 
+                    # for every initiated dl.
+                    # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
+                    d.set_moreinfo_stats(getpeerlist)
+        except:
+            #Niels, 2012-10-18: If Swift connection is crashing, set_moreinfo_stats will raise an exception
+            #We're catching it here to continue building the downloadstates
+            print_exc()
         
         network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback,getpeerlist)
         self.rawserver.add_task(network_set_download_states_callback_lambda,when)
@@ -638,8 +643,13 @@ class TriblerLaunchMany(Thread):
 
         dslist = []
         for d in dllist:
-            ds = d.network_get_state(None,getpeerlist,sessioncalling=True)
-            dslist.append(ds)
+            try:
+                ds = d.network_get_state(None,getpeerlist,sessioncalling=True)
+                dslist.append(ds)
+            except:
+                #Niels, 2012-10-18: If Swift connection is crashing, it will raise an exception
+                #We're catching it here to continue building the downloadstates
+                print_exc()
 
         # Invoke the usercallback function via a new thread.
         # After the callback is invoked, the return values will be passed to
