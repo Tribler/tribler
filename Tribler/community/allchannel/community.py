@@ -558,6 +558,7 @@ class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
         self.channel_id = None
+        self.latest_result = 0
         self.cachedTorrents = None
     
     def convert_to_messages(self, results):
@@ -571,6 +572,8 @@ class ChannelCastDBStub():
         return self.channel_id
     
     def getCountMaxFromChannelId(self, channel_id):
+        if self.cachedTorrents:
+            return len(self.cachedTorrents), self.latest_result
         pass
     
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
@@ -615,6 +618,7 @@ class ChannelCastDBStub():
             
     def newTorrent(self, message):
         self._cachedTorrents[message.payload.infohash] = message
+        self.latest_result = time()
     
     def setChannelId(self, channel_id):
         self.channel_id = channel_id
