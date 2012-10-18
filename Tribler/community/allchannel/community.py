@@ -663,6 +663,9 @@ class VoteCastDBStub():
         if id: #if we have a votecastmessage from this peer in our sync table, then signal a mark as favorite
             return 2
         return 0
+    
+    def get_latest_vote_dispersy_id(self, channel_id, voter_id):
+        return
         
 class PeerDBStub():
     def __init__(self, dispersy):
