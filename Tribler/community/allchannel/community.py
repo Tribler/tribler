@@ -483,6 +483,8 @@ class AllChannelCommunity(Community):
         assert isinstance(cid, str)
         assert len(cid) == 20
         
+        if not self._dispersy.has_community(cid):
+            self._get_channel_community(cid)
         return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
     
     def _selectTorrentsToCollect(self, cid, infohashes):
