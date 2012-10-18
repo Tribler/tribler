@@ -182,14 +182,11 @@ class ChannelCommunity(Community):
             
             def handled_function(messages):
                 for message in messages:
-                    if __debug__:
-                        log("dispersy.log", "handled-record",type = "torrent")
                     self._channelcast_db.newTorrent(message)
                         
             def handled_channel_function(messages):
-                if __debug__:
-                    log("dispersy.log", "handled-record", type = "channel")
                 self._channel_id = self._master_member.mid
+                self._channelcast_db.setChannelId(self._channel_id)
             
             disp_on_channel = handled_channel_function
             disp_on_torrent = handled_function

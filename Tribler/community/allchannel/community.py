@@ -568,7 +568,7 @@ class ChannelCastDBStub():
                 yield message.community.cid, message
                 
     def getChannelIdFromDispersyCID(self, cid):
-        return 1 if self.cachedTorrents or self._dispersy.has_community(cid) else None
+        return self.channel_id
     
     def getCountMaxFromChannelId(self, channel_id):
         pass
@@ -615,6 +615,9 @@ class ChannelCastDBStub():
             
     def newTorrent(self, message):
         self._cachedTorrents[message.payload.infohash] = message
+    
+    def setChannelId(self, channel_id):
+        self.channel_id = channel_id
 
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
