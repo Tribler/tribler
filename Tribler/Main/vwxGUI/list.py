@@ -1613,7 +1613,7 @@ class LibraryList(SizeList):
         self.prevStates = {}
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
-                   {'type':'method', 'name':'', 'width': '20em', 'method': self.CreateProgress}, \
+                   {'name':'Progress', 'type':'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
                    {'name':'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True}, \
                    {'name':'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new}, \

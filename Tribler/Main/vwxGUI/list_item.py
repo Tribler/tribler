@@ -424,16 +424,7 @@ class LibraryListItem(DoubleLineListItem):
         return [self.parent_list.parent_list._swift_icon(self)]        
 
     def GetContextMenu(self):
-        menu = wx.Menu()
-        show = wx.Menu()
-        for index, column in enumerate(self.columns):
-            itemid = wx.NewId()
-            label = column['name'] if column['name'] else 'Progress'
-            show.AppendCheckItem(itemid, label).Enable(label != 'Name')
-            show.Check(itemid, column.get('show', True))
-            menu.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
-            
-        menu.AppendMenu(wx.ID_ANY, 'Show labels..', show)
+        menu = DoubleLineListItem.GetContextMenu(self)
         
         menu_items = [('Explore files', self.OnExplore)]
         if 'seeding' in self.original_data.state:
