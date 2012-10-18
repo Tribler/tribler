@@ -227,6 +227,11 @@ class ChannelCommunity(Community):
     @property
     def dispersy_sync_response_limit(self):
         return 25 * 1024
+    
+    def dispersy_claim_sync_bloom_filter(self, request_cache):
+        if self._sync_cache:
+            self._sync_cache.responses_received = -1
+        return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
 
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
