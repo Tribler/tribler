@@ -1326,7 +1326,7 @@ class SwarmHealth(wx.Panel):
         elif leechers == 1:
             leechers_str = '1 leecher'
         else:
-            leechers_str = '%d leechers' % seeders
+            leechers_str = '%d leechers' % leechers
             
         tooltip = '%s ; %s' % (seeders_str, leechers_str)
         self.SetToolTipString(tooltip)
