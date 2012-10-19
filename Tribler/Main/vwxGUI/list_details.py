@@ -116,7 +116,7 @@ class TorrentDetails(AbstractDetails):
     MINCOMMENTHEIGHT = 230
 
     @warnWxThread
-    def __init__(self, parent, torrent, createAd = None, compact=False, noChannel=False):
+    def __init__(self, parent, torrent, compact=False, noChannel=False):
         GradientPanel.__init__(self, parent)
         self.Hide()
 
@@ -128,7 +128,6 @@ class TorrentDetails(AbstractDetails):
         self.torrent = torrent
         self.state = -1
         self.vod_log = None
-        self.createAd = createAd
 
         self.isReady = False
         self.noChannel = noChannel
@@ -248,11 +247,8 @@ class TorrentDetails(AbstractDetails):
                 if self.messageGauge: self.messageGauge.Show(False) 
             
                 self.notebook = SimpleNotebook(self, style = wx.NB_NOPAGETHEME, name = "TorrentDetailsNotebook")
-                self._addTabs(ds, "Torrent details")
-                
-                if self.createAd:
-                    panel = self.createAd(self.notebook)
-                    self.notebook.SetAdSpace(panel)
+                showTab = getattr(self.parent, self.__class__.__name__+'_tab', None) if self.parent else None
+                self._addTabs(ds, showTab)
                 
                 self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
                 
@@ -526,6 +522,8 @@ class TorrentDetails(AbstractDetails):
                 if self.notebook.GetPageText(i) == showTab:
                     self.notebook.SetSelection(i)
                     break
+        else:
+            self.notebook.SetSelection(0)
             
     @warnWxThread
     def _addOverview(self, panel, sizer):
@@ -676,6 +674,8 @@ class TorrentDetails(AbstractDetails):
             self.modificationList.Show()
             self.modificationList.SetupScrolling()
             self.modificationList.SetFocus()
+            
+        setattr(self.parent, self.__class__.__name__+'_tab', title)
 
         event.Skip()
     
@@ -1189,6 +1189,8 @@ class LibraryDetails(TorrentDetails):
                 if self.notebook.GetPageText(i) == showTab:
                     self.notebook.SetSelection(i)
                     break
+        else:
+            self.notebook.SetSelection(0)
                 
     def OnChangeSelection(self, event):
         files = []
@@ -1341,7 +1343,7 @@ class LibraryDetails(TorrentDetails):
 
 class ChannelDetails(AbstractDetails):
 
-    def __init__(self, parent, channel, createAd = None):
+    def __init__(self, parent, channel):
         GradientPanel.__init__(self, parent)
         self.Hide()
 
@@ -1349,7 +1351,6 @@ class ChannelDetails(AbstractDetails):
         self.utility = self.guiutility.utility
         self.uelog = UserEventLogDBHandler.getInstance()
         
-        self.createAd = createAd
         self.parent = parent
         self.isReady = False
         self.SetBackgroundColour(wx.Colour(246,246,246))
@@ -1395,10 +1396,6 @@ class ChannelDetails(AbstractDetails):
             
                 self.notebook = SimpleNotebook(self, style = wx.NB_NOPAGETHEME, name = "ChannelDetailsNotebook")
                 
-                if self.createAd:
-                    panel = self.createAd(self.notebook)
-                    self.notebook.SetAdSpace(panel)
-                
                 self.overview, self.overviewSizer = self._create_tab(self.notebook, 'Channel details', border = 10)
                 self.overview.SetBackgroundColour(wx.WHITE)
                 
@@ -1442,17 +1439,13 @@ class ChannelDetails(AbstractDetails):
                 self.channel.nr_torrents = data[2].nr_torrents
                 self.channel.modified = data[2].modified
                 self.channel.nr_favorites = data[2].nr_favorites
-                             
-            if self.createAd:
-                panel = self.createAd(self.notebook)
-                self.notebook.SetAdSpace(panel) 
 
             self._addOverview(self.overview, self.overviewSizer)
                 
 
 class PlaylistDetails(AbstractDetails):
 
-    def __init__(self, parent, playlist, createAd = None):
+    def __init__(self, parent, playlist):
         GradientPanel.__init__(self, parent)
         self.Hide()
 
@@ -1460,7 +1453,6 @@ class PlaylistDetails(AbstractDetails):
         self.utility = self.guiutility.utility
         self.uelog = UserEventLogDBHandler.getInstance()
 
-        self.createAd = createAd
         self.parent = parent
         self.isReady = False
         self.SetBackgroundColour(wx.Colour(246,246,246))
@@ -1504,10 +1496,6 @@ class PlaylistDetails(AbstractDetails):
                 if self.messageGauge: self.messageGauge.Show(False)
             
                 self.notebook = SimpleNotebook(self, style = wx.NB_NOPAGETHEME, name = "ChannelDetailsNotebook")
-                
-                if self.createAd:
-                    panel = self.createAd(self.notebook)
-                    self.notebook.SetAdSpace(panel)
                     
                 self.overview, self.overviewSizer = self._create_tab(self.notebook, 'Playlist details', border = 10)
                 self.overview.SetBackgroundColour(wx.WHITE)
@@ -1548,10 +1536,6 @@ class PlaylistDetails(AbstractDetails):
                 self.playlist.name = data[2].name
                 self.playlist.description = data[2].description
                 self.playlist.nr_torrents = data[2].nr_torrents
-                             
-            if self.createAd:
-                panel = self.createAd(self.notebook)
-                self.notebook.SetAdSpace(panel) 
 
             self._addOverview(self.overview, self.overviewSizer)
         
