@@ -456,7 +456,7 @@ class DispersyPanel(HomePanel):
             ("Packets dropped", '', lambda stats: ratio(stats.drop_count, stats.received_count)),
             ("Packets delayed", 'Total number of packets being delayed', lambda stats: ratio(stats.delay_count, stats.received_count)),\
             ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being send', lambda stats: ratio(stats.delay_send, stats.delay_count)),
-            ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_succes, stats.delay_count)),
+            ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             ("Packets success", '', lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
