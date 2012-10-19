@@ -196,9 +196,13 @@ class MainFrame(wx.Frame):
             self.splitter_bottom_window.SetSizer(self.splitter_bottom)
             self.splitter.SetSashGravity(0.8)
             self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
-            # The initial sash position of a SplitterWindow does not always work, so use CallAfter and set the position again once the frame is loaded. 
-            wx.CallAfter(self.splitter.SetSashPosition, sashpos)
             self.splitter.Show(False)
+            # Reset the sash position after the splitter has been made visible
+            def OnShowSplitter(event):
+                wx.CallAfter(self.splitter.SetSashPosition, sashpos)
+                self.splitter.Unbind(wx.EVT_SHOW)
+                event.Skip()
+            self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
 
             self.searchlist = SearchList(self.splitter_top_window)
             self.searchlist.Show(False)
@@ -979,7 +983,7 @@ class MainFrame(wx.Frame):
         self.utility.config.Write("window_x", x)
         self.utility.config.Write("window_y", y)
         
-        if self.splitter.IsShownOnScreen() and not self.splitter.Unsplit():
+        if self.splitter.IsShownOnScreen() and self.splitter.IsSplit():
             self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
 
         self.utility.config.Flush()
