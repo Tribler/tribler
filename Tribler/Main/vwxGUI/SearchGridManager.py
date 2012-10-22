@@ -945,10 +945,9 @@ class LibraryManager:
         
         ds = torrent.get('ds')
         
-        #Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
-        self.guiUtility.frame.videoframe.recreate_videopanel()
         #videoplayer calls should be on gui thread, hence forceWxThread
         videoplayer = self._get_videoplayer(ds)
+        videoplayer.recreate_videopanel()
         videoplayer.stop_playback()
         videoplayer.show_loading()
         
