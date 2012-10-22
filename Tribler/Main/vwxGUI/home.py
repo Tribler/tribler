@@ -363,6 +363,7 @@ class NetworkPanel(HomePanel):
         self.nrFiles = StaticText(panel)
         self.totalSize = StaticText(panel)
         self.queueSize = StaticText(panel)
+        self.queueSuccess = StaticText(panel)
         self.nrChannels = StaticText(panel)
         self.incomplete = StaticText(panel)
 
@@ -384,6 +385,8 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.nrTorrents, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Torrents in queue'))
         gridSizer.Add(self.queueSize, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Torrent queue success'))
+        gridSizer.Add(self.queueSuccess, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Channels found'))
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Incomplete limit (cur, max, history, maxhistory)'))
@@ -420,6 +423,7 @@ class NetworkPanel(HomePanel):
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
+        self.queueSuccess.SetLabel(self.remotetorrenthandler.getQueueSuccess())
         self.nrChannels.SetLabel(str(nr_channels))
         self.incomplete.SetLabel(", ".join(map(str, self.incompleteCounter.getstats())))
         

@@ -329,6 +329,21 @@ class RemoteTorrentHandler:
                 return "%s: "%qname + ",".join(map(str, items))
             return ''
         return ", ".join([qstring for qstring in [getQueueSize("TQueue", self.trequesters), getQueueSize("DQueue", self.drequesters), getQueueSize("MQueue", self.mrequesters)] if qstring])
+    
+    def getQueueSuccess(self):
+        def getQueueSuccess(qname, requesters):
+            sum_requests = sum_success = 0
+            print_value = False
+            for requester in requesters.itervalues():
+                if requester.requests_success >= 0:
+                    print_value = True
+                    sum_requests += requester.requests_made
+                    sum_success += requester.requests_success
+
+            if print_value:
+                return "%s: %d/%d"%(qname, sum_success, sum_requests) 
+            return ''
+        return ", ".join([qstring for qstring in [getQueueSuccess("TQueue", self.trequesters), getQueueSuccess("DQueue", self.drequesters), getQueueSuccess("MQueue", self.mrequesters)] if qstring])
 
 class Requester:
     REQUEST_INTERVAL = 0.5
@@ -340,6 +355,9 @@ class Requester:
         self.queue = Queue.Queue()
         self.sources = {}
         self.canrequest = True
+        
+        self.requests_made = 0
+        self.requests_success = 0
     
     def add_request(self, hash, candidate, timeout = None):
         was_empty = self.queue.empty()
@@ -395,6 +413,8 @@ class Requester:
                     del self.sources[hash]
                         
                     madeRequest = self.doFetch(hash, candidates)
+                    if madeRequest:
+                        self.requests_made += 1
                     
                 #Make sure exceptions wont crash this requesting loop
                 except: 
@@ -511,6 +531,7 @@ class TorrentRequester(Requester):
                 print >>sys.stderr,"rtorrent: swift finished for", cdef.get_name()
             
             self.remote_th.notify_possible_torrent_roothash(roothash)
+            self.requests_success += 1
             return (0,False)
     
         return (5.0, True)
@@ -531,14 +552,15 @@ class TorrentMessageRequester(Requester):
         
         Requester.__init__(self, remote_th.scheduletask, prio)
         self.searchcommunity = searchcommunity
+        self.requests_success = -1
     
     def doFetch(self, hashes, candidates):
         if self.searchcommunity:
             if DEBUG:
                 print >>sys.stderr,"rtorrent: requesting torrent message", map(bin2str, hashes), candidates
+                
             for candidate in candidates:
                 self.searchcommunity.create_torrent_request(hashes, candidate)
-            
         return True
 
 class MagnetRequester(Requester):
@@ -565,7 +587,6 @@ class MagnetRequester(Requester):
         
             raw_lambda = lambda filename, infohash=infohash, candidates=candidates: self._doFetch(filename, infohash, candidates)
             self.remote_th.has_torrent(infohash, raw_lambda)
-            
             return True
     
     def _doFetch(self, filename, infohash, candidates):
@@ -600,6 +621,8 @@ class MagnetRequester(Requester):
         self.remote_th.save_torrent(tdef)
         if infohash in self.requestedInfohashes:
             self.requestedInfohashes.remove(infohash)
+            
+        self.requests_success += 1
         
     def __torrentdef_failed(self, infohash):
         if infohash in self.requestedInfohashes:
