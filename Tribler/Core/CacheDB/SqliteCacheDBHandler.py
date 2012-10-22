@@ -1632,11 +1632,10 @@ class TorrentDBHandler(BasicDBHandler):
                 select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
                 from CollectedTorrent
-                where  torrent_id not in (select torrent_id from MyPreference)
+                where torrent_id not in (select torrent_id from MyPreference)
                 order by weight  
                 limit %d  
             """ % (int(time()), torrents2del)
-        
         
         res_list = self._db.fetchall(sql)
         if len(res_list) == 0: 

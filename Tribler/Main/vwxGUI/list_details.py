@@ -201,7 +201,7 @@ class TorrentDetails(AbstractDetails):
                 
                 self.timeouttimer = wx.CallLater(10000, self._timeout)
            
-            startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback':self.showTorrent}, priority = 1024)
+            startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback':self.showTorrent}, priority = GUI_PRI_DISPERSY)
     
     @forceWxThread
     def showRequestType(self, requesttype):

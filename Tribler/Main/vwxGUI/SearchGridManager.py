@@ -139,7 +139,7 @@ class TorrentManager:
         if torrent:
             return self.getCollectedFilename(torrent)
     
-    def getTorrent(self, torrent, callback):
+    def getTorrent(self, torrent, callback, prio = 0):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
@@ -155,7 +155,7 @@ class TorrentManager:
         if torrent_filename:
             return torrent_filename
         
-        if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio = 0):
+        if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio = prio):
             candidates = torrent.query_candidates
             if candidates and len(candidates) > 0:
                 return (True, "from peers")
@@ -310,6 +310,9 @@ class TorrentManager:
                             trackers.extend(trs)
                 
                 if len(files) > 0:
+                    #We still call getTorrent to fetch .torrent
+                    self.getTorrent(torrent, None, prio = 1)
+                    
                     torrent = NotCollectedTorrent(torrent, files, trackers)
                 else:
                     torrent_callback = lambda: self.loadTorrent(torrent, callback)
@@ -471,7 +474,6 @@ class TorrentManager:
         chance to be received and sorted before prefetching a subset.
         """
         if DEBUG: begin_time = time()
-        torrent_dir = Session.get_instance().get_torrent_collecting_dir()
         
         def sesscb_prefetch_done(infohash):
             if DEBUG:
