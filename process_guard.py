@@ -22,28 +22,15 @@ class ResourceMonitor(object):
         """Create new ResourceMonitor instance."""
         self.pid_list = pid_list
         self.process_group_id = getpgrp()
+        
+        try:
+            import psutils
+            self.usage_pids = self.psutil_usage_pids
+        except:
+            self.usage_pids = self.ps_parse_usage_pids
 
     def usage(self):
         return self.usage_pids(self.pid_list)
-
-    def usage_by_process_group_not_working(self):
-        # -g parameter for 'ps' does not work as expected (does not filter by process group)
-        self.process = subprocess.Popen( \
-            "ps h -g %d -o rss,pcpu | awk '{sum_mem+=$1; sum_cpu+=$2} END {print sum_mem, sum_cpu}'" %self.process_group_id,
-            shell=True,
-            stdout=subprocess.PIPE,
-            )
-        stdout_list = self.process.communicate()[0].strip().split()
-        m = int(stdout_list[0])
-        c = float(stdout_list[1])
-        self.process = subprocess.Popen( \
-            "ps h -p %d -o rss,pcpu'" %(getpid()),
-            shell=True,
-            stdout=subprocess.PIPE,
-            )
-        stdout_list = self.process.communicate()[0].strip().split()
-        return {'memory': m - int(stdout_list[0]), 'cpu': c - float(stdout_list[0])}
-    
 
     def get_pid_tree(self,parent_pids):
         """Build a list of all PIDs in the process tree starting from a given set of parent PIDs)"""
@@ -66,6 +53,9 @@ class ResourceMonitor(object):
         return return_pid_list
     
     def usage_pids(self, pid_list):
+        pass
+    
+    def ps_parse_usage_pids(self, pid_list):
         pid_list = self.get_pid_tree(pid_list)
         pid_list = self.make_string_list(pid_list) # we need it as a string
         self.process = subprocess.Popen( \
@@ -75,6 +65,10 @@ class ResourceMonitor(object):
             )
         self.stdout_list = self.process.communicate()[0].strip().split()
         return {'memory': int(self.stdout_list[0]), 'cpu': float(self.stdout_list[1])}
+    
+    def psutil_usage_pids(self, pid_list):
+        import psutil
+        return {'cpu': psutil.cpu_percent(interval=0), 'memory': int(psutil.phymem_usage())}
 
 class ProcessController(object):
     def __init__(self, output_dir):
