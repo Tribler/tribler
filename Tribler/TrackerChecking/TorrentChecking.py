@@ -27,6 +27,7 @@ from random import sample
 from time import time
 from os import path
 from collections import deque
+from Tribler.Main.Utility.GuiDBTuples import RemoteTorrent
 try:
     prctlimported = True
     import prctl
@@ -34,21 +35,14 @@ except ImportError,e:
     prctlimported = False
 
 from Tribler.Core.BitTornado.bencode import bdecode
-from Tribler.TrackerChecking.TrackerChecking import trackerChecking,\
-    multiTrackerChecking
+from Tribler.TrackerChecking.TrackerChecking import multiTrackerChecking
 
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from traceback import print_exc
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE
-from Tribler.Core.CacheDB.Notifier import Notifier
-from bisect import insort
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Core.CacheDB.sqlitecachedb import forceAndReturnDBThread, bin2str,\
-    forceDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 QUEUE_SIZE_LIMIT = 250
 DEBUG = False
@@ -78,10 +72,10 @@ class TorrentChecking(Thread):
         
         self.mldhtchecker = mainlineDHTChecker.getInstance()
         self.torrentdb = TorrentDBHandler.getInstance()
-        self.notifier = Notifier.getInstance()
         
         self.sleepEvent = threading.Event()
-        
+        self.threadingSemaphore = threading.Semaphore(2)
+                
         self.start()
             
     def getInstance(*args, **kw):
@@ -126,8 +120,8 @@ class TorrentChecking(Thread):
     #add a torrent to the queue, this will schedule a call to update the status etc. for this torrent
     #if the queue is currently full, it will not!
     def addTorrentToQueue(self, torrent):
-        if torrent.infohash not in self.queueset and len(self.queueset) < QUEUE_SIZE_LIMIT:
-        
+        if torrent._torrent_id != -1 and torrent.infohash not in self.queueset and len(self.queueset) < QUEUE_SIZE_LIMIT:
+            
             #convert torrent gui-dbtuple to internal format
             res = {'torrent_id':torrent._torrent_id, 
                    'ignored_times':0, 
@@ -153,11 +147,6 @@ class TorrentChecking(Thread):
             
             return True
         return False
-    
-    @forceAndReturnDBThread
-    def selectTorrentToCheck(self):
-        policy = self.selectPolicy()
-        return self.torrentdb.selectTorrentToCheck(policy=policy)
             
     def run(self):
         """ Gets one torrent from good or unknown list and checks it """
@@ -167,92 +156,83 @@ class TorrentChecking(Thread):
         
         #request new infohash from queue
         while True:
-            start = time()
             self.sleepEvent.clear()
-            
-            didTrackerCheck = False
+            self.threadingSemaphore.acquire()
             
             try:
                 torrent = None
-                try:   
+                try:
                     self.queueLock.acquire()
-                    
                     while True:
                         torrent = self.queue.popleft()
                         self.queueset.discard(torrent['infohash'])
                         if DEBUG:
                             print >> sys.stderr, "TorrentChecking: get value from QUEUE:", torrent
-                            
                         break
-                    
-                    self.queueLock.release()
-                
                 except:
+                    pass
+                finally:
                     self.queueLock.release()
-    
-                    torrent = self.selectTorrentToCheck()
-                    if DEBUG:
-                        print >> sys.stderr, "TorrentChecking: get value from DB:", torrent
-            
+                    
                 if torrent:
                     self.doCheck(torrent)
+                    
+                else:
+                    self.dbSelectTorrentToCheck(self.doCheck)
             
             except: #make sure we do not crash while True loop
                 print_exc()
             
             # schedule sleep time, only if we do not have any infohashes scheduled
             if len(self.queue) == 0:
-                diff = time() - start
-                remaining = int(self.interval - diff)
-                if remaining > 0:
-                    if DEBUG:
-                        print >> sys.stderr, "TorrentChecking: going to sleep for", remaining
-                    self.sleepEvent.wait(remaining)
+                self.sleepEvent.wait()
                         
     def doCheck(self, torrent):
-        if torrent:
-            diff = time() - (torrent['last_check'] or 0)
-            if diff < 1800:
-                pass
+        diff = time() - (torrent['last_check'] or 0)
+        if diff < 1800:
+            self.doneCheck()
+        
+        if torrent['ignored_times'] > 0:
+            #ignoring this torrent
+            if DEBUG:
+                print >> sys.stderr, 'TorrentChecking: ignoring torrent:', torrent
             
-            elif torrent['ignored_times'] > 0:
-                #ignoring this torrent
-                if DEBUG:
-                    print >> sys.stderr, 'TorrentChecking: ignoring torrent:', torrent
-                    
-                kw = { 'ignored_times': torrent['ignored_times'] - 1 }
-                self.torrentdb.updateTorrent(torrent['infohash'], **kw)
-                
-            else:
-                multi_announce_dict = {}
-                multi_announce_dict[torrent['infohash']] = (-2, -2)
-                
-                # read the torrent from disk / use other sources to specify trackers
-                torrent = self.readTrackers(torrent)
+            kw = { 'ignored_times': torrent['ignored_times'] - 1 }
+            self.dbUpdateTorrent(torrent, self.doneCheck, **kw)
+            
+        else:
+            def onTrackers(torrent):
                 if self.hasTrackers(torrent):
-                    if DEBUG:
-                        print >> sys.stderr, "TorrentChecking: tracker checking", torrent["info"].get("announce", ""), torrent["info"].get("announce-list", "")
+                    def do_check():
+                        if DEBUG:
+                            print >> sys.stderr, "TorrentChecking: tracker checking", torrent["info"].get("announce", ""), torrent["info"].get("announce-list", "")
                         trackerStart = time()
                     
-                    multi_announce_dict = multiTrackerChecking(torrent, self.GetInfoHashesForTracker)
-                    if DEBUG:
-                        print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
-                
-                # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
-                with self.queueLock:
-                    for tor in self.queue:
-                        if tor['infohash'] in multi_announce_dict:
-                            tor['last_check'] = time()
+                        multi_announce_dict = multiTrackerChecking(torrent, self.getInfoHashesForTracker)
+                        if DEBUG:
+                            print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
+                            
+                        # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
+                        with self.queueLock:
+                            for tor in self.queue:
+                                if tor['infohash'] in multi_announce_dict:
+                                    tor['last_check'] = time()
 
-                # Update torrent with new status
-                self.updateTorrents(torrent, multi_announce_dict)
-    
-    def readTrackers(self, torrent):
-        torrent = self.readTorrent(torrent)
-        if not self.hasTrackers(torrent):
-            torrent = self.dbreadTrackers(torrent)
-        return torrent
+                        # Update torrent with new status
+                        self.dbUpdateTorrents(torrent, multi_announce_dict, self.doneCheck)
+                            
+                    t = Thread(target = do_check, name = "TorrentCheckingThread")
+                    t.start()
                     
+                else:
+                    self.dbUpdateTorrents(torrent, {torrent['infohash']:(-2, -2)}, self.doneCheck)
+            
+            # read the torrent from disk / use other sources to specify trackers
+            self.readTrackers(torrent, onTrackers)
+    
+    def doneCheck(self):
+        self.threadingSemaphore.release()
+    
     def readTorrent(self, torrent):
         try:
             torrent_path = torrent['torrent_path']
@@ -280,8 +260,33 @@ class TorrentChecking(Thread):
             pass
         return torrent
     
-    @forceAndReturnDBThread
-    def dbreadTrackers(self, torrent):
+    def hasTrackers(self, torrent):
+        emptyAnnounceList = emptyAnnounce = True
+        if 'info' in torrent:
+            emptyAnnounceList = len(torrent["info"].get("announce-list", [])) == 0
+            emptyAnnounce = torrent["info"].get("announce", "") == ""
+            
+        return not emptyAnnounceList or not emptyAnnounce
+    
+    def readTrackers(self, torrent, callback):
+        torrent = self.readTorrent(torrent)
+        if not self.hasTrackers(torrent):
+            self.dbreadTrackers(torrent, callback)
+        else:
+            callback(torrent)
+    
+    @forceDBThread
+    def dbSelectTorrentToCheck(self, callback):
+        policy = self.selectPolicy()
+        torrent = self.torrentdb.selectTorrentToCheck(policy=policy)
+        
+        if torrent:
+            if DEBUG:
+                print >> sys.stderr, "TorrentChecking: get value from DB:", torrent
+            callback(torrent)
+    
+    @forceDBThread
+    def dbreadTrackers(self, torrent, callback):
         announce = announce_list = None
         
         #try using magnet torrentcollecting url
@@ -323,10 +328,15 @@ class TorrentChecking(Thread):
             torrent["info"]["announce"] = announce
             torrent['info']["announce-list"] = announce_list
             
-        return torrent
+        callback(torrent)
     
-    @forceAndReturnDBThread
-    def updateTorrents(self, torrent, announce_dict):
+    @forceDBThread
+    def dbUpdateTorrent(self, torrent, callback, **kw):
+        self.torrentdb.updateTorrent(torrent['infohash'], **kw)
+        callback()
+    
+    @forceDBThread
+    def dbUpdateTorrents(self, torrent, announce_dict, callback):
         for key, values in announce_dict.iteritems():
             seeders, leechers = values
             seeders = max(-2, seeders)
@@ -362,16 +372,9 @@ class TorrentChecking(Thread):
             if key == torrent['infohash']:
                 if status == 'dead':
                     self.mldhtchecker.lookup(torrent['infohash'])
+        callback()
                     
-    def hasTrackers(self, torrent):
-        emptyAnnounceList = emptyAnnounce = True
-        if 'info' in torrent:
-            emptyAnnounceList = len(torrent["info"].get("announce-list", [])) == 0
-            emptyAnnounce = torrent["info"].get("announce", "") == ""
-            
-        return not emptyAnnounceList or not emptyAnnounce
-    
-    def GetInfoHashesForTracker(self, tracker):
+    def getInfoHashesForTracker(self, tracker):
         isLocked = False
         try:
             tracker = unicode(tracker)

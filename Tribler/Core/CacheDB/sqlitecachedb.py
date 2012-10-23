@@ -2295,49 +2295,19 @@ def register_task(db, *args, **kwargs):
         return fakeDispersy(*args)
     return _callback.register(*args, **kwargs)
 
+def call_task(db, *args, **kwargs):
+    global _callback
+    if not _callback:
+        try_register(db)
+                
+    if not _callback or not _callback.is_running:
+        def fakeDispersy(call, args=(), kwargs = {}):
+            return call(*args, **kwargs)
+        return fakeDispersy(*args)
+    return _callback.call(*args, **kwargs)   
+
 def onDBThread():
     return currentThread().getName()== 'Dispersy'
-
-def forceAndReturnDBThread(func):
-    def invoke_func(*args,**kwargs):
-        global _callback
-        
-        if not onDBThread():
-            if TRHEADING_DEBUG:
-                stack = inspect.stack()
-                callerstr = ""
-                for i in range(1, min(4, len(stack))):
-                    caller = stack[i]
-                    callerstr += "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            
-            event = Event()
-            
-            result = [None]
-            def dispersy_thread():
-                try:
-                    result[0] = func(*args, **kwargs)
-                except Exception, exception:
-                    result[0] = exception
-                finally:
-                    event.set()
-            
-            dispersy_thread.__name__ = func.__name__
-            register_task(args[0], dispersy_thread, priority=1024)
-            
-            if event.wait(15) or event.isSet():
-                if isinstance(result[0], Exception):
-                    raise result[0]
-                else:
-                    return result[0]
-            
-            print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDBThread", func.__name__
-        else:
-            return func(*args, **kwargs)
-            
-    invoke_func.__name__ = func.__name__
-    return invoke_func
 
 def forceDBThread(func):
     def invoke_func(*args,**kwargs):
@@ -2353,6 +2323,44 @@ def forceDBThread(func):
             register_task(None, func, args, kwargs)
         else:
             func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forcePrioDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if not onDBThread():
+            if TRHEADING_DEBUG:
+                stack = inspect.stack()
+                callerstr = ""
+                for i in range(1, min(4, len(stack))):
+                    caller = stack[i]
+                    callerstr += "%s %s:%s "%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            register_task(None, func, args, kwargs, priority = 1024)
+        else:
+            func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forceAndReturnDBThread(func):
+    def invoke_func(*args,**kwargs):
+        global _callback
+        
+        if not onDBThread():
+            if TRHEADING_DEBUG:
+                stack = inspect.stack()
+                callerstr = ""
+                for i in range(1, min(4, len(stack))):
+                    caller = stack[i]
+                    callerstr += "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            return call_task(None, func, args, kwargs, timeout = 15.0, priority = 1024)
+        else:
+            return func(*args, **kwargs)
             
     invoke_func.__name__ = func.__name__
     return invoke_func

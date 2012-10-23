@@ -97,7 +97,7 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
                 
             if dict:    
                 if DEBUG:
-                    print >>sys.stderr,"TrackerChecking: Result", dict
+                    print >>sys.stderr,"TrackerChecking: Result", announce, dict
                 return dict
         except:
             if DEBUG:
