@@ -159,9 +159,9 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             return False
     
     @staticmethod
-    def retrieve_from_magnet_infohash(self, infohash, callback, timeout=30.0):
+    def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
         magnetlink = "magnet:?xt=urn:btih:"+hexlify(infohash)
-        return TorrentDef.retrieve_from_magnet(magnetlink, callback, timeout)
+        return TorrentDef.retrieve_from_magnet(magnetlink, callback, timeout, max_connections)
 
     def load_from_url(url):
         """
