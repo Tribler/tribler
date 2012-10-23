@@ -13,8 +13,12 @@ DEBUG = False
 class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent, style = wx.ST_SIZEGRIP)
-        self.SetFieldsCount(5)
-        self.SetStatusStyles([wx.SB_FLAT, wx.SB_FLAT, wx.SB_FLAT, wx.SB_FLAT, wx.SB_FLAT])
+
+        # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
+        # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.       
+        self.SetFieldsCount(6)
+        self.SetStatusStyles([wx.SB_FLAT]*6)
+        self.SetStatusWidths([-1, 250, 19, 19, 19, 19])
         
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
@@ -47,13 +51,7 @@ class SRstatusbar(wx.StatusBar):
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
         self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
         self.firewallStatus.SetToolTipString('Port status unknown')
-        
-        self.widths = [-1, 250, 19, 19, 19]
-        self.SetStatusWidths(self.widths)
-        #On windows there is a resize handle which causes wx to return a width of 1 instead of 18
-        self.widths[-1] += 19 - self.GetFieldRect(4).width
-        self.SetStatusWidths(self.widths)
-        
+
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         
