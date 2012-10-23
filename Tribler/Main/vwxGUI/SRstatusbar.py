@@ -1,13 +1,9 @@
 # Written by Niels Zeilemaker
-import wx.html
-import sys
+import wx
 import os
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-
-from Tribler.Main.vwxGUI.widgets import settingsButton, NativeIcon, BetterText as StaticText, HorizontalGauge
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
+from Tribler.Main.vwxGUI.widgets import settingsButton, NativeIcon, TransparentText as StaticText, HorizontalGauge
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
@@ -25,35 +21,18 @@ class SRstatusbar(wx.StatusBar):
         self.library_manager = self.guiutility.library_manager
         self.uelog = UserEventLogDBHandler.getInstance()
         
-        self.ff_panel = wx.Panel(self)
-        self.ff_checkbox = wx.CheckBox(self.ff_panel, -1, 'Family filter', style=wx.ALIGN_RIGHT)
+        self.ff_checkbox = wx.CheckBox(self, -1, 'Family filter', style=wx.ALIGN_RIGHT)
         self.ff_checkbox.Bind(wx.EVT_CHECKBOX, self.OnCheckbox)
         self.ff_checkbox.SetValue(self.guiutility.getFamilyFilter())
-
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.ff_checkbox, 0, wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 5)
-        self.ff_panel.SetSizer(hSizer)    
         
-        self.speed_panel = wx.Panel(self)
-        self.speed_panel.SetMinSize((250,-1))
         self.speed_down_icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
-        self.speed_down_sbmp  = wx.StaticBitmap(self.speed_panel, -1, self.speed_down_icon) 
-        self.speed_down      = StaticText(self.speed_panel, -1, '', style = wx.ST_NO_AUTORESIZE)
+        self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon) 
+        self.speed_down      = StaticText(self, -1, '', style = wx.ST_NO_AUTORESIZE)
         self.speed_down.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
         self.speed_up_icon   = self.speed_down_icon.ConvertToImage().Rotate90().Rotate90().ConvertToBitmap()
-        self.speed_up_sbmp  = wx.StaticBitmap(self.speed_panel, -1, self.speed_up_icon)
-        self.speed_up        = StaticText(self.speed_panel, -1, '', style = wx.ST_NO_AUTORESIZE)
+        self.speed_up_sbmp   = wx.StaticBitmap(self, -1, self.speed_up_icon)
+        self.speed_up        = StaticText(self, -1, '', style = wx.ST_NO_AUTORESIZE)
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
-        self.SetTransferSpeeds(0, 0)
-        
-        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddStretchSpacer()
-        hSizer.Add(self.speed_down_sbmp, 0, wx.ALL|wx.CENTER, 5)
-        hSizer.Add(self.speed_down, 0, wx.ALL|wx.CENTER, 5)
-        hSizer.Add(self.speed_up_sbmp, 0, wx.ALL|wx.CENTER, 5)
-        hSizer.Add(self.speed_up, 0, wx.ALL|wx.CENTER, 5)
-        hSizer.AddSpacer((10, -1))
-        self.speed_panel.SetSizer(hSizer)
 
         self.searchConnectionImages = ['progressbarEmpty.png', 'progressbarFull.png']
         self.searchConnectionImages = [os.path.join(self.guiutility.vwxGUI_path, 'images', image) for image in self.searchConnectionImages]
@@ -75,7 +54,7 @@ class SRstatusbar(wx.StatusBar):
         self.widths[-1] += 19 - self.GetFieldRect(4).width
         self.SetStatusWidths(self.widths)
         
-        self.Reposition()
+        self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         
         self.library_manager.add_download_state_callback(self.RefreshTransferSpeed)
@@ -90,7 +69,7 @@ class SRstatusbar(wx.StatusBar):
     def SetTransferSpeeds(self, down, up):
         self.speed_down.SetLabel(self.utility.speed_format_new(down))
         self.speed_up.SetLabel(self.utility.speed_format_new(up))
-        self.speed_panel.Layout()
+        self.Reposition()
         
     def OnDownloadPopup(self, event):
         menu = wx.Menu()
@@ -197,15 +176,15 @@ class SRstatusbar(wx.StatusBar):
         self.Freeze()
         
         rect = self.GetFieldRect(0)
-        self.ff_panel.Layout()
-        self.ff_panel.SetPosition((rect.x, rect.y))
-        bestWidth = self.ff_panel.GetBestSize()[0]
-        self.ff_panel.SetSize((bestWidth, rect.height))
+        self.ff_checkbox.SetPosition((rect.x+2, rect.y+2))
+        self.ff_checkbox.SetSize((-1, rect.height-4))
         
         rect = self.GetFieldRect(1)
-        self.speed_panel.Layout()
-        self.speed_panel.SetPosition((rect.x, rect.y))
-        self.speed_panel.SetSize((rect.width, rect.height))
+        x = rect.x+rect.width-15
+        for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
+            x -= control.GetSize()[0]+10
+            y = (rect.height - control.GetSize()[1])/2 if isinstance(control, wx.StaticBitmap) else rect.y+2
+            control.SetPosition((x, y+1))
         
         rect = self.GetFieldRect(2)
         size = self.connection.GetSize()
