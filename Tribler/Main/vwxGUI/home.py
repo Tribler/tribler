@@ -460,6 +460,7 @@ class DispersyPanel(HomePanel):
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             ("Packets success", '', lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
+            ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
             ("Bloom reuse", '', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
             ("Revision", '', lambda stats: str(max(stats.revision.itervalues()))),
@@ -473,9 +474,8 @@ class DispersyPanel(HomePanel):
 
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
-
         vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
-
+        
         vSumSizer = wx.BoxSizer(wx.VERTICAL)
         self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.summary_tree.blockUpdate = False
@@ -489,15 +489,20 @@ class DispersyPanel(HomePanel):
         vSumSizer.Add(self.summary_tree, 1, wx.EXPAND)
         self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
         vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
-        
-        vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
 
+        vTreeSizer = wx.BoxSizer(wx.VERTICAL)
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.tree.blockUpdate = False
         self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
-        vSizer.Add(self.tree, 1, wx.EXPAND|wx.LEFT, 10)
-
+        
+        vTreeSizer.Add(self.tree, 1, wx.EXPAND)
+        self.includeDebug = wx.CheckBox(panel, -1, "Collect debug")
+        self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
+        vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
+        
+        vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
         panel.SetSizer(vSizer)
         return panel
 
@@ -538,8 +543,10 @@ class DispersyPanel(HomePanel):
 
     def UpdateStats(self):
         includeStuffs = self.includeStuffs.GetValue()
+        includeDebug = self.includeDebug.GetValue()
 
         def db_callback():
+            self.dispersy.statistics.enable_debug_statistics(includeDebug)
             self.dispersy.statistics.update(database=includeStuffs)
             self._UpdateStats(self.dispersy.statistics)
 
@@ -555,7 +562,7 @@ class DispersyPanel(HomePanel):
                 addDict(parentNode, value)
             elif isinstance(value, list):
                 addList(parentNode, value)
-            else:
+            elif value != None:
                 self.tree.AppendItem(parentNode, str(value))
 
         def addList(parentNode, nodelist):
@@ -564,11 +571,16 @@ class DispersyPanel(HomePanel):
                 addValue(keyNode, value)
 
         def addDict(parentNode, nodedict):
-            for key, value in nodedict.items():
+            for key, value in nodedict.iteritems():
+                key = str(key)
+                prepend = ''
+                if not isinstance(value, (list, dict)):
+                    prepend = str(value) + "x "
+                    value = None
                 try:
-                    keyNode = self.tree.AppendItem(parentNode, str(key))
+                    keyNode = self.tree.AppendItem(parentNode, prepend + str(key))
                 except UnicodeDecodeError:
-                    keyNode = self.tree.AppendItem(parentNode, key.encode("HEX"))
+                    keyNode = self.tree.AppendItem(parentNode, prepend + key.encode("HEX"))
                 addValue(keyNode, value)
 
         def updateColumn(key, value):
@@ -622,17 +634,17 @@ class DispersyPanel(HomePanel):
         if not self.tree.blockUpdate:
             parentNode = self.tree.AppendItem(fakeRoot, "raw info")
             raw_info = {}
-            if hasattr(stats, 'drop'):
+            if stats.drop:
                 raw_info['drop'] = stats.drop
-            if hasattr(stats, 'delay'):
+            if stats.delay:
                 raw_info['delay'] = stats.delay
-            if hasattr(stats, 'success'):
+            if stats.success:
                 raw_info['success'] = stats.success
-            if hasattr(stats, 'outgoing'):
+            if stats.outgoing:
                 raw_info['outgoing'] = stats.outgoing
-            if hasattr(stats, 'walk_fail'):
+            if stats.walk_fail:
                 raw_info['walk_fail'] = stats.walk_fail
-            if hasattr(stats, 'attachment'):
+            if stats.attachment:
                 raw_info['attachment'] = stats.attachment   
             addValue(parentNode, raw_info)
 

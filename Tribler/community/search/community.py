@@ -270,6 +270,9 @@ class SearchCommunity(Community):
             print >> sys.stderr, "SearchCommunity: sending introduction request to",destination
 
         self._dispersy.statistics.walk_attempt += 1
+        if isinstance(destination, BootstrapCandidate):
+            self._dispersy.statistics.walk_bootstrap_attempt += 1
+        
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
