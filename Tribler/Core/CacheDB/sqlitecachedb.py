@@ -2338,7 +2338,7 @@ def forcePrioDBThread(func):
                     callerstr += "%s %s:%s "%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             
-            register_task(None, func, args, kwargs, priority = 1024)
+            register_task(None, func, args, kwargs, priority = 99)
         else:
             func(*args, **kwargs)
             
@@ -2358,7 +2358,7 @@ def forceAndReturnDBThread(func):
                     callerstr += "%s %s:%s"%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             
-            return call_task(None, func, args, kwargs, timeout = 15.0, priority = 1024)
+            return call_task(None, func, args, kwargs, timeout = 15.0, priority = 99)
         else:
             return func(*args, **kwargs)
             
