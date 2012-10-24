@@ -83,7 +83,7 @@ class SwiftProcess:
             args.append("180") # seconds
         #args.append("-B") # Enable debugging on swift        
         
-        if DEBUG:
+        if True or DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
         
         if sys.platform == "win32":
