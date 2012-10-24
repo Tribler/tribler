@@ -947,7 +947,7 @@ class SizeList(List):
         
         if getattr(self.header, 'SetSliderMinMax', None):
             if nr != 0:
-                self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else self.curMax)
+                self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else max(0, self.curMax))
             self.filteredMax = -1
         
     @warnWxThread

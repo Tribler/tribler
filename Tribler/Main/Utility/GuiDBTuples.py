@@ -320,7 +320,7 @@ class Torrent(Helper):
     def __getstate__(self):
         statedict = {}
         for key in Torrent.__slots__:
-            if key not in ['ds', 'channelcast_db', 'torrent_db']:
+            if key not in ['dslist', 'channelcast_db', 'torrent_db']:
                 statedict[key] = getattr(self, key, None)
         return statedict
     
