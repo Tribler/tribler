@@ -229,7 +229,7 @@ class SelectedChannelList(GenericSearchList):
         columns = [{'name':'Name', 'sortAsc': True},
                    {'name':'Torrents', 'width': '14em', 'fmt': lambda x: '?' if x == -1 else str(x)}]
         
-        columns = self.guiutility.SetHideColumnInfo(PlaylistItem, columns)
+        columns = self.guiutility.SetColumnInfo(PlaylistItem, columns)
         ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)

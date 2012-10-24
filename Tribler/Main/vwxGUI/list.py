@@ -1363,7 +1363,7 @@ class SearchList(GenericSearchList):
                    {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
         
-        columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns, [3,4])
+        columns = self.guiutility.SetColumnInfo(TorrentListItem, columns, hide_defaults = [3,4])
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
         ColumnsManager.getInstance().setColumns(DragItem, columns)
         
@@ -1627,7 +1627,7 @@ class LibraryList(SizeList):
                    {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio},
                    {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value}]
         
-        columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns, [2, 7, 8])
+        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
@@ -1948,12 +1948,12 @@ class ChannelList(List):
                    {'name':'Torrents', 'width': '13em'}, \
                    {'type':'method', 'width': '20em', 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}]
         
-        columns = self.guiutility.SetHideColumnInfo(ChannelListItem, columns)
+        columns = self.guiutility.SetColumnInfo(ChannelListItem, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItem, columns)
 
         columns = [copy.copy(column) for column in columns]
         columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
-        columns = self.guiutility.SetHideColumnInfo(ChannelListItemAssociatedTorrents, columns)
+        columns = self.guiutility.SetColumnInfo(ChannelListItemAssociatedTorrents, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItemAssociatedTorrents, columns)
         
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)

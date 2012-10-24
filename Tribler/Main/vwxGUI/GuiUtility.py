@@ -288,8 +288,9 @@ class GUIUtility:
         self.frame.splitter_bottom.Layout()
         self.frame.splitter_bottom_window.Refresh()
         
-    def SetHideColumnInfo(self, itemtype, columns, defaults = []):
+    def SetColumnInfo(self, itemtype, columns, hide_defaults = []):
         fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        # Load hidden column info
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns = hide_columns.get(itemtype.__name__, {})
@@ -297,7 +298,16 @@ class GUIUtility:
             if hide_columns.has_key(column['name']):
                 column['show'] = hide_columns[column['name']]
             else:
-                column['show'] = not (index in defaults)
+                column['show'] = not (index in hide_defaults)
+
+        # Load column width info                
+        column_sizes = fileconfig.Read("column_sizes")
+        column_sizes = json.loads(column_sizes) if column_sizes else {}
+        column_sizes = column_sizes.get(itemtype.__name__, {})
+        for index, column in enumerate(columns):
+            if column_sizes.has_key(column['name']):
+                column['width'] = column_sizes[column['name']]
+
         return columns
     
     def HideDownloadButton(self):

@@ -93,8 +93,63 @@ class DoubleLineListItem(ListItem):
             
             if column_index >= 0:
                 sline = wx.StaticLine(self, -1, style=wx.LI_VERTICAL)
+                self._add_columnresizing(sline, column_index)
                 self.descrSizer.Add(sline, 0, wx.EXPAND|wx.RIGHT|wx.LEFT, 7)
-                
+            
+    def _add_columnresizing(self, sline, column_index):
+        # Use CallAfter to set the cursor, which will overrule the cursor set by AddEvents
+        wx.CallAfter(lambda: sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE)))
+        # Take hidden columns into account
+        control_index = len([column for column in self.columns[:column_index] if column['show']])
+                    
+        def OnLeftDown(event):
+            sline.CaptureMouse()
+            sline.Unbind(wx.EVT_ENTER_WINDOW)
+            sline.Unbind(wx.EVT_LEAVE_WINDOW)
+            sline.Bind(wx.EVT_MOTION, OnMotion)
+
+        def OnMotion(event, control_index = control_index):
+            control = self.controls[control_index]
+            mouse_x = event.GetPosition().x
+            width = max(0, control.GetSize().x + mouse_x)
+            if getattr(self, 'buttonSizer', False):
+                width = min(width, self.buttonSizer.GetPosition().x - self.descrSizer.GetPosition().x - sum([child.GetSize().x for child in self.descrSizer.GetChildren()]) + control.GetSize().x)
+            else:
+                pass
+            control.SetMinSize((width, -1))
+            control.SetMaxSize((width, -1))
+            self.hSizer.Layout()
+
+        def OnLeftUp(event, column_index = column_index, control_index = control_index):
+            sline.ReleaseMouse()
+            sline.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
+            sline.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
+            sline.Unbind(wx.EVT_MOTION)
+            self.columns[column_index]['width'] = self.controls[control_index].GetSize().x
+            
+            # If we are dealing with a control with a label in front of it, we need to add the width of the label to the column width.
+            if self.columns[column_index].get('showColumname', True) and \
+               self.columns[column_index].get('name', False) and \
+               self.columns[column_index].get('type', '') == 'method':
+                for index, child in enumerate(self.descrSizer.GetChildren()):
+                    if child.IsWindow() and child.GetWindow() == self.controls[control_index]:
+                        if index > 1:
+                            self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index-1].GetSize().x
+                        break
+                                
+            fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
+            column_sizes = fileconfig.Read("column_sizes")
+            column_sizes = json.loads(column_sizes) if column_sizes else {}
+            column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
+            column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
+            fileconfig.Write("column_sizes", json.dumps(column_sizes))
+            fileconfig.Flush()
+            
+            wx.CallAfter(self.parent_list.Rebuild)
+
+        sline.Bind(wx.EVT_LEFT_DOWN, OnLeftDown)
+        sline.Bind(wx.EVT_LEFT_UP, OnLeftUp)
+
     def _replace_control(self, columnindex, newcontrol):
         oldcontrol = self.controls[columnindex]
         if columnindex == 0:

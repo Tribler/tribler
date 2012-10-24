@@ -807,6 +807,14 @@ class HorizontalGauge(wx.Control):
             
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        
+    def SetMinSize(self, size):
+        w, h = size
+        if w == -1:
+            w = self.GetSize().x
+        if h == -1:
+            h = self.GetSize().y
+        wx.Control.SetMinSize(self, (w, h))
     
     def SetPercentage(self, percentage):
         self.percentage = percentage
