@@ -27,7 +27,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from traceback import print_exc, print_stack
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter
 from Tribler.Core.Tag.Extraction import TermExtraction
 

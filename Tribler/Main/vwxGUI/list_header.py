@@ -3,13 +3,14 @@ from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, NativeIcon
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler, UserEventLogDBHandler
 
 from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread, forceDBThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity

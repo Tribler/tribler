@@ -17,7 +17,8 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
-from Tribler.Main.vwxGUI import forceDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+
 from Tribler.Main.Dialogs.MoveTorrents import MoveTorrents
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import MergedDs

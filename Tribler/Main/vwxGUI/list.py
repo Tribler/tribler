@@ -476,6 +476,7 @@ class List(wx.BoxSizer):
         self.filter = ''
         
         self.footer = self.header = self.list = None
+        self.nr_results = 0
         self.nr_filtered = 0
         self.cur_nr_filtered = 0
 
@@ -548,7 +549,7 @@ class List(wx.BoxSizer):
     def Reset(self):
         assert self.isReady, "List not ready"
 
-        self.nr_filtered = 0
+        self.nr_filtered = self.nr_results = 0
         if self.isReady and self.hasData:
             self.rawfilter = ''
             self.filter = ''
@@ -626,14 +627,18 @@ class List(wx.BoxSizer):
         assert self.isReady, "List not ready"
         self.list.RemoveKeys(keys)
 
-    @warnWxThread        
+    @warnWxThread
     def SetNrResults(self, nr):
         assert self.isReady, "List not ready"
+        self.nr_results = nr
         
         #ff uses two variables, cur_nr_filtered is used to count the total number in the loop
         #nr_filtered is the total number filtered from the previous run
         self.nr_filtered = self.cur_nr_filtered
         self.cur_nr_filtered = 0
+        
+    def GetNrResults(self):
+        return self.nr_results
             
     def InList(self, key, onlyCreated = True):
         assert self.isReady, "List not ready"

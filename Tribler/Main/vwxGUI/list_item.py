@@ -2,7 +2,7 @@
 import wx
 import sys
 import json
-
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM

@@ -11,7 +11,7 @@ from time import time
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, forceAndReturnDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -107,7 +107,6 @@ class TorrentManager:
             return torrent_filename
         
         #.torrent not found
-        
         if torrent.swift_torrent_hash:
             sdef = SwiftDef(torrent.swift_torrent_hash)
             torrent_filename = torrent_filename = os.path.join(self.col_torrent_dir, sdef.get_roothash_as_hex()) 

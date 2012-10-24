@@ -12,6 +12,7 @@ from list_body import *
 from list_item import *
 from list_details import *
 from __init__ import *
+
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity,\
@@ -24,6 +25,7 @@ from wx._controls import StaticLine
 from shutil import copyfile
 from Tribler.Main.vwxGUI.list_details import PlaylistDetails
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
 
 DEBUG = False
 

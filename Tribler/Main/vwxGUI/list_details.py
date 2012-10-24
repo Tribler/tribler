@@ -14,8 +14,9 @@ from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
     ProgressButton, GradientPanel, TransparentText, LinkText
@@ -909,15 +910,15 @@ class TorrentDetails(AbstractDetails):
                 else:
                     self.ShowHealth(False)
             else:
-                self.ShowHealth(False)
+                self.ShowHealth(False, ', no trackers found')
         except wx.PyDeadObjectError:
             pass
 
     @forceWxThread
-    def ShowHealth(self, updating):
+    def ShowHealth(self, updating, no_update_reason = ''):
         if getattr(self, 'health', False):
-            updating = ', updating now' if updating else ''
-            
+            updating = ', updating now' if updating else no_update_reason
+                        
             diff = time() - self.torrent.last_check
             if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
                 if self.torrent.status == 'good':
