@@ -93,7 +93,8 @@ class DoubleLineListItem(ListItem):
             
             if column_index >= 0:
                 sline = wx.StaticLine(self, -1, style=wx.LI_VERTICAL)
-                self._add_columnresizing(sline, column_index)
+                if sys.platform == 'win32':
+                    self._add_columnresizing(sline, column_index)
                 self.descrSizer.Add(sline, 0, wx.EXPAND|wx.RIGHT|wx.LEFT, 7)
             
     def _add_columnresizing(self, sline, column_index):
@@ -103,10 +104,11 @@ class DoubleLineListItem(ListItem):
         control_index = len([column for column in self.columns[:column_index] if column['show']])
                     
         def OnLeftDown(event):
-            sline.CaptureMouse()
-            sline.Unbind(wx.EVT_ENTER_WINDOW)
-            sline.Unbind(wx.EVT_LEAVE_WINDOW)
-            sline.Bind(wx.EVT_MOTION, OnMotion)
+            eo = event.GetEventObject()
+            eo.CaptureMouse()
+            eo.Unbind(wx.EVT_ENTER_WINDOW)
+            eo.Unbind(wx.EVT_LEAVE_WINDOW)
+            eo.Bind(wx.EVT_MOTION, OnMotion)
 
         def OnMotion(event, control_index = control_index):
             control = self.controls[control_index]
@@ -117,14 +119,14 @@ class DoubleLineListItem(ListItem):
             else:
                 pass
             control.SetMinSize((width, -1))
-            control.SetMaxSize((width, -1))
             self.hSizer.Layout()
 
         def OnLeftUp(event, column_index = column_index, control_index = control_index):
-            sline.ReleaseMouse()
-            sline.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
-            sline.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
-            sline.Unbind(wx.EVT_MOTION)
+            eo = event.GetEventObject()
+            eo.ReleaseMouse()
+            eo.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
+            eo.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
+            eo.Unbind(wx.EVT_MOTION)
             self.columns[column_index]['width'] = self.controls[control_index].GetSize().x
             
             # If we are dealing with a control with a label in front of it, we need to add the width of the label to the column width.
