@@ -27,7 +27,7 @@ import sys
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
-    from lencoder import log
+    from Tribler.dispersy.tool.lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
 CHANNELCAST_INTERVAL = 15.0
@@ -183,12 +183,12 @@ class AllChannelCommunity(Community):
                             
                     if DEBUG:
                         nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                        print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.address,"didFavorite",didFavorite
+                        print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.sock_addr,"didFavorite",didFavorite
 
                     if __debug__:
                         if not self.integrate_with_tribler:
                             nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                            log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.address,didFavorite))
+                            log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.sock_addr,didFavorite))
                     
                     #we're done
                     break       
@@ -483,13 +483,15 @@ class AllChannelCommunity(Community):
         assert isinstance(cid, str)
         assert len(cid) == 20
         
-        return self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(cid),))
+        channel_id = self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
+        if not channel_id:
+            self._get_channel_community(cid)
+        return channel_id 
     
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
         
-        sql = u"SELECT COUNT(*), MAX(inserted) FROM ChannelTorrents WHERE channel_id = ? LIMIT 1"
-        row = self._channelcast_db._db.fetchone(sql, (channel_id,))
+        row = self._channelcast_db.getCountMaxFromChannelId(channel_id) 
         if row:
             nrTorrrents, latestUpdate = row
         else:
@@ -555,7 +557,8 @@ class AllChannelCommunity(Community):
 class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
-
+        self.channel_id = None
+        self.latest_result = 0
         self.cachedTorrents = None
     
     def convert_to_messages(self, results):
@@ -564,6 +567,14 @@ class ChannelCastDBStub():
             if message:
                 message.packet_id = packet_id
                 yield message.community.cid, message
+                
+    def getChannelIdFromDispersyCID(self, cid):
+        return self.channel_id
+    
+    def getCountMaxFromChannelId(self, channel_id):
+        if self.cachedTorrents:
+            return len(self.cachedTorrents), self.latest_result
+        pass
     
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
@@ -607,6 +618,10 @@ class ChannelCastDBStub():
             
     def newTorrent(self, message):
         self._cachedTorrents[message.payload.infohash] = message
+        self.latest_result = time()
+    
+    def setChannelId(self, channel_id):
+        self.channel_id = channel_id
 
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
@@ -657,6 +672,9 @@ class VoteCastDBStub():
         if id: #if we have a votecastmessage from this peer in our sync table, then signal a mark as favorite
             return 2
         return 0
+    
+    def get_latest_vote_dispersy_id(self, channel_id, voter_id):
+        return
         
 class PeerDBStub():
     def __init__(self, dispersy):
