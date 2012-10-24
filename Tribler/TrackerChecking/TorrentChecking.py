@@ -46,7 +46,7 @@ from traceback import print_exc
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 QUEUE_SIZE_LIMIT = 250
-DEBUG = True
+DEBUG = False
 
 class TorrentChecking(Thread):
     
