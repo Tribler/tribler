@@ -228,11 +228,6 @@ class ChannelCommunity(Community):
     def dispersy_sync_response_limit(self):
         return 25 * 1024
     
-#    def dispersy_claim_sync_bloom_filter(self, request_cache):
-#        if self._sync_cache:
-#            self._sync_cache.responses_received = -1
-#        return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
-
     def initiate_conversions(self):
         return [DefaultConversion(self), ChannelConversion(self)]
     
@@ -341,10 +336,6 @@ class ChannelCommunity(Community):
                             distribution=(global_time,),
                             payload=(infohash, timestamp, name, files, trackers))
         self._dispersy.store_update_forward([message], store, update, forward)
-        
-        if __debug__:
-            if not self.integrate_with_tribler:
-                log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
         return message
     
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
@@ -358,9 +349,6 @@ class ChannelCommunity(Community):
                                 distribution=(self.claim_global_time(),),
                                 payload=(infohash, timestamp, name, files, trackers))
 
-            if __debug__:
-                if not self.integrate_with_tribler:
-                    log("dispersy.log", "created-record", type = "torrent", size = len(message.packet), gt = message._distribution.global_time)
             messages.append(message)
             
         self._dispersy.store_update_forward(messages, store, update, forward)
