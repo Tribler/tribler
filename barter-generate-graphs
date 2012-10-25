@@ -90,6 +90,27 @@ def plot_total_records(peers_directory, first, last):
     print "title 'total'",
     print "with steps lw 2",
     print ""
+    
+def plot_total_connections(peers_directory, first, last):
+    """ I plot the total (received, created) connections per peer """
+    print "set ylabel 'number of connections per peer'"
+    # print "set yrange [%d:%d]" % (0, 1500)
+    print "set xrange [%d:%d]" % (0, last - first)
+    print "plot",
+    first = True
+    for node in get_nodes(peers_directory):
+        if first:
+            first = False
+        else:
+            print ", \\\n    ",
+
+        filename = node + "/output/total-connections.txt"
+        print "'%s'" % filename,
+        print "using 2:3",
+        print "title '%s'" % get_title(node),
+        print "with steps",
+
+    print ""
 
 def plot_drop(peers_directory, first, last):
     """ I plot the dropped records per peer """
@@ -235,6 +256,10 @@ def header(peers_directory, filename):
 def records(peers_directory, first, last):
     header(peers_directory, "records-total")
     plot_total_records(peers_directory, first, last)
+    
+def connections(peers_directory, first, last):
+    header(peers_directory, "connections-total")
+    plot_total_connections(peers_directory, first, last)
 
 def received_records(peers_directory, first, last):
     header(peers_directory, "records-received")
@@ -287,7 +312,7 @@ def main(peers_directory):
     [ first, last ] = [int(i) for i in h_first_last.readline().strip().split()]
     h_first_last.close()
  
-    for func in [records, drops, received, sent, received_records, statistics]:
+    for func in [records, drops, received, sent, received_records, statistics, connections]:
         func(peers_directory, first, last+100)
         
     received_f = open(peers_directory + "/output/received.txt", "w")

@@ -79,6 +79,10 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
         print >> h_total_record, "0 0 0"
         write_total = False
         
+        h_total_connections = open(node + "/output/total-connections.txt", "w+")
+        print >> h_total_record, "# timestamp timeoffset num-connections"
+        print >> h_total_record, "0 0 0"
+        
         h_statistics = open(node + "/output/scenario-statistics.txt", "w+")
         print >> h_statistics, "# timestamp timeoffset key value"
 
@@ -119,7 +123,12 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
                         done_monitoring = True
                 
                 if "total_dropped" in kargs:
-                    print >> h_drop, str(time), str(time - first), str(kargs["total_dropped"])
+                    print >> h_drop, str(time), str(timeoffset), str(kargs["total_dropped"])
+                    
+                if 'candidates' in kargs:
+                    candidates = kargs['candidates']
+                    if len(candidates) > 0:
+                        print >> h_total_connections, str(time), str(timeoffset), str(candidates[-1][1])
             
             if message == "statistics-successful-messages":
                 for key, value in kargs.iteritems():
@@ -160,6 +169,7 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
     h_received_record.close()
     h_created_record.close()
     h_total_record.close()
+    h_total_connections.close()
     h_statistics.close()
     h_drop.close()
     h_stat.close()
@@ -241,7 +251,7 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
         print >> h, "%d %d"%(time, records_in_time[time])
     h.close()
     
-    sum_statistics(peers_directory)
+    parse_statistics(peers_directory)
 
     fn_measure_info = peers_directory + "/output/measure_info.txt"
     h_measure_info = open(fn_measure_info, "w+")
@@ -293,7 +303,7 @@ def sum_created_records(peers_directory, first, last, measure_interval_stop):
             sum_at_measure_time = sumr
     return (sum_at_measure_time, sumr)
 
-def sum_statistics(peers_directory):
+def parse_statistics(peers_directory):
     """ I created a file under 'peers/' called 'sum_scenario_statiscitcs.txt'
     with all the available records in the system per timestamp
     """
@@ -320,7 +330,7 @@ def sum_statistics(peers_directory):
             if time not in sum_records[key]:
                 sum_records[key][time] = {}
             sum_records[key][time][node] = value
-                    
+            
         h_scenario_statistics.close()
 
     nodes = list(nodes)
