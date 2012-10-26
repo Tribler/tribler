@@ -87,7 +87,9 @@ class TorrentManager:
         self.bundler = Bundler()
         self.bundle_mode = None
         self.bundle_mode_changed = True
+        
         self.category = Category.getInstance()
+        self.xxx_category = 0
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -377,6 +379,8 @@ class TorrentManager:
                 self.session.remove_observer(dispersy_started)
             
             self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+            
+        self.xxx_category = self.torrent_db.category_table.get('xxx', 0)
         
     def getSearchSuggestion(self, keywords, limit = 1):
         return self.torrent_db.getSearchSuggestion(keywords, limit)
@@ -422,7 +426,6 @@ class TorrentManager:
     
             if DEBUG:
                 beginsort = time()
-            
 
             if new_local_hits or new_remote_hits:
                 if sort == 'rameezmetric':
@@ -650,6 +653,13 @@ class TorrentManager:
                         break
             
                 if not known:
+                    #Niels 26-10-2012: override category if name is xxx
+                    if remoteItem.category_id != self.xxx_category:
+                        local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
+                        if local_category == 'xxx':
+                            print >> sys.stderr, remoteItem.name, "is xxx"
+                            remoteItem.category_id = self.xxx_category
+                    
                     self.hits.append(remoteItem)
                     hitsUpdated = True
                     

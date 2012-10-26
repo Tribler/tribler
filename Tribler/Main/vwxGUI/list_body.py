@@ -1068,11 +1068,6 @@ class AbstractListBody():
             self.vSizer.Remove(self.messagePanel)
 
             message = ''            
-            if self.filter:
-                message = self.filterMessage() or ''
-                if message:
-                    message += '.'
-            
             revertList = []
             #Add created/cached items
             for curdata in self.data:
@@ -1105,6 +1100,7 @@ class AbstractListBody():
                                 revertList.append(key)
                                                 
                     nr_items_to_add -= 1
+                    
                 else:
                     done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
     
@@ -1121,7 +1117,12 @@ class AbstractListBody():
                         self.loadNext.Enable()
                         self.loadNext.Show()
                     break
-           
+            
+            if done and self.filter:
+                message_start = self.filterMessage() or ''
+                if message_start: 
+                    message = message_start + '.' + message
+            
             if len(message) > 12:
                 self.messageText.SetLabel(message)
                 

@@ -805,25 +805,18 @@ class List(wx.BoxSizer):
     
     def MatchFFilter(self, item):
         result = True
-        if isinstance(item[2], Torrent):
-            torrent = item[2]
-            if self.guiutility.getFamilyFilter():
+        if self.guiutility.getFamilyFilter():
+            if isinstance(item[2], (Torrent, CollectedTorrent)):
+                torrent = item[2]
                 category = torrent.category_id if torrent.category_id else 0
-                okCategory = category in self.enabled_category_ids
-            else:
-                okCategory = True
-            okGood = torrent.status_id != self.deadstatus_id
-            result = okCategory and okGood
+                result = category in self.enabled_category_ids
+                    
+            elif isinstance(item[2], Channel):
+                result = not self.category.xxx_filter.isXXX(item[2].name, False)
                 
-        elif isinstance(item[2], Channel):
-            if self.guiutility.getFamilyFilter():
-                okCategory = not self.category.xxx_filter.isXXX(item[2].name, False)
-            else:
-                okCategory = True
-            result = okCategory
-            
         if not result:
             self.cur_nr_filtered += 1
+            
         return result
     
     def MatchFilter(self, item):
@@ -842,6 +835,9 @@ class List(wx.BoxSizer):
             if self.filter:
                 return message + ' matching "%s"'%self.filter
             return message
+        
+        elif self.guiutility.getFamilyFilter() and self.nr_filtered:
+            return '%d items were blocked by the Familiy Filter'%self.nr_filtered
         
     @warnWxThread
     def Layout(self):
