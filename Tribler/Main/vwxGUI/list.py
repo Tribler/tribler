@@ -837,7 +837,7 @@ class List(wx.BoxSizer):
             return message
         
         elif self.guiutility.getFamilyFilter() and self.nr_filtered:
-            return '%d items were blocked by the Familiy Filter'%self.nr_filtered
+            return '%d items were blocked by the Familiy filter'%self.nr_filtered
         
     @warnWxThread
     def Layout(self):
@@ -1142,10 +1142,10 @@ class GenericSearchList(SizeList):
             message = 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
             
             if self.guiutility.getFamilyFilter():
-                message += '\n\nAdditionally, you could disable the "Family Filter".'
+                message += '\n\nAdditionally, you could disable the "Family filter".'
                 
                 suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family Filter', None)
+                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family filter', None)
                 ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck = True))
                 suggestionSizer.Add(ffbutton)
                 
