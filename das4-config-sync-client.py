@@ -21,7 +21,7 @@ class ConfigClientProtocol(LineReceiver):
         username = getuser()
         if self.state == 1:
             data = data.strip()
-            id, ip, port = data.split()
+            id, ip, port, start_timestamp = data.split()
             self.my_id = "%05d" % int(id)
             f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, self.my_id), "w")
             print >> f, data
@@ -29,7 +29,7 @@ class ConfigClientProtocol(LineReceiver):
             
             self.full_config_file = open("/tmp/%s/dispersy/peers_%s.conf" %(username, self.my_id), "w")
             
-            print self.my_id
+            print self.my_id, start_timestamp
             self.state = 2
             
         elif self.state == 2:
