@@ -657,7 +657,8 @@ class TorrentManager:
                     if remoteItem.category_id != self.xxx_category:
                         local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
                         if local_category == 'xxx':
-                            print >> sys.stderr, remoteItem.name, "is xxx"
+                            if DEBUG:
+                                print >> sys.stderr, 'TorrentSearchGridManager:', remoteItem.name, "is xxx"
                             remoteItem.category_id = self.xxx_category
                     
                     self.hits.append(remoteItem)
