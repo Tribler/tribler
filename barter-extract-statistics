@@ -56,12 +56,14 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
     dispersy_msg_distribution = {}
     dispersy_dropped_msg_distribution = {}
     dispersy_statistics = {}
+    nr_connections = []
 
     for node in node_list:
         started_monitoring = False
         done_monitoring = False
         saved_total = False
         nodename = node[-5:]
+        max_incomming_connections = 0
 
         h_received_record = open(node + "/output/received-record.txt", "w+")
         print >> h_received_record, "# timestamp timeoffset num-records"
@@ -129,6 +131,7 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
                     candidates = kargs['candidates']
                     if len(candidates) > 0:
                         print >> h_total_connections, str(time), str(timeoffset), str(candidates[-1][1])
+                        max_incomming_connections = max(len(candidates), max_incomming_connectionss)
             
             if message == "statistics-successful-messages":
                 for key, value in kargs.iteritems():
@@ -153,11 +156,11 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
                 print >> h_total_record, str(time), str(timeoffset), str(c_received_record + c_created_record)
                 
                 write_total = False
-                record_count[node[-5:]][timeoffset] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
+                record_count[nodename][timeoffset] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
                 if started_monitoring and not saved_total and timeoffset <= measure_interval_stop:
                     # this entry will contain the last record_count before going over measure_interval_stop
                     #saved_time = timeoffset
-                    measured_record_count[node[-5:]] = record_count[node[-5:]][timeoffset]
+                    measured_record_count[nodename] = record_count[nodename][timeoffset]
                 if not saved_total and timeoffset > measure_interval_stop:
                     #print "time %d (@%d) %d records" %(saved_time, timeoffset, record_count[node[-5:]][2])
                     saved_total = True
@@ -166,6 +169,10 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
             print "!!!! Statistics time-range is outside the experiment time."
         lasts.append(time)
         
+        nr_connections.append((max_incomming_connections, nodename))
+        nr_connections.sort(reverse = True)
+        nr_connections = nr_connections[:10]
+        
     h_received_record.close()
     h_created_record.close()
     h_total_record.close()
@@ -173,6 +180,11 @@ def generate(peers_directory, messagestoplot, measure_interval_start, measure_in
     h_statistics.close()
     h_drop.close()
     h_stat.close()
+    
+    f = open(peers_directory + "/output/dispersy_incomming_connections.txt", 'w')
+    for nr, node in nr_connections:
+        print >> f, node, nr
+    f.close() 
 
     # returns the first and the last last timetime
     last = int(max(lasts))
