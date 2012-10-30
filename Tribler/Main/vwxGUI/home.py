@@ -97,14 +97,35 @@ class Home(XRCPanel):
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
         
-        buzzpanel = BuzzPanel(self)
-        buzzpanel.SetMinSize((-1,180))
-        vSizer.Add(buzzpanel, 0, wx.EXPAND)
+        self.buzzpanel = BuzzPanel(self)
+        self.buzzpanel.SetMinSize((-1,180))
+        self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
+        vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
         self.Layout()
+        
+        self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
 
         self.SearchFocus()
+
+    def OnRightClick(self, event):
+        menu = wx.Menu()
+        itemid = wx.NewId()
+        menu.AppendCheckItem(itemid, "Show buzz panel")
+        menu.Check(itemid, self.buzzpanel.IsShown())
+        
+        def toggleBuzz(event):
+            show = not self.buzzpanel.IsShown()
+            self.buzzpanel.Show(show)
+            self.guiutility.WriteGuiSetting("show_buzz", show)
+            self.Layout()
+            
+        menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
+
+        if menu:
+            self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
+            menu.Destroy()
 
     def OnClick(self, event):
         term = self.searchBox.GetValue()

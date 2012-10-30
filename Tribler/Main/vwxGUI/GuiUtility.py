@@ -309,12 +309,20 @@ class GUIUtility:
                 column['width'] = column_sizes[column['name']]
 
         return columns
-    
-    def HideDownloadButton(self):
+
+    def ReadGuiSetting(self, setting_name, default = None, do_json = True):
         fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
-        hide_buttons = fileconfig.Read("hide_buttons")
-        hide_buttons = json.loads(hide_buttons) if hide_buttons else True
-        return hide_buttons
+        setting_value = fileconfig.Read(setting_name)
+        if do_json and setting_value:
+            setting_value = json.loads(setting_value)
+        elif not setting_value:
+            setting_value = default
+        return setting_value
+    
+    def WriteGuiSetting(self, setting_name, setting_value, do_json = True):
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        fileconfig.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
+        fileconfig.Flush()           
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):

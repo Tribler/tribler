@@ -138,7 +138,7 @@ class DoubleLineListItem(ListItem):
                         if index > 1:
                             self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index-1].GetSize().x
                         break
-                                
+
             fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
             column_sizes = fileconfig.Read("column_sizes")
             column_sizes = json.loads(column_sizes) if column_sizes else {}
@@ -353,9 +353,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             if isinstance(item, TorrentListItem):
                 item.AddButtons()
 
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
-        fileconfig.Write("hide_buttons", json.dumps(not show))
-        fileconfig.Flush()        
+        self.guiutility.WriteGuiSetting("hide_buttons", not show)      
         
         
 class ChannelListItem(DoubleLineListItemWithButtons):
