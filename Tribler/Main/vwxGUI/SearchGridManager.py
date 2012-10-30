@@ -647,8 +647,8 @@ class TorrentManager:
                                 
                                 if this_rating > current_rating:
                                     item.updateChannel(remoteItem.channel)
-                            
-                                hitsModified.add(item.infohash)
+                                    hitsModified.add(item.infohash)
+                                    
                         known = True
                         break
             
