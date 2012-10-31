@@ -35,7 +35,8 @@ class SwiftDef(ContentDefinition):
         If the URL starts with the swift URL scheme, we convert the URL to a 
         SwiftDef.
         
-        Scheme: tswift://tracker/roothash-as-hex
+        Scheme: tswift:/roothash-as-hex
+                tswift://tracker/roothash-as-hex
                 tswift://tracker/roothash-as-hex$chunk-size-in-bytes
                 tswift://tracker/roothash-as-hex@duration-in-secs
                 tswift://tracker/roothash-as-hex$chunk-size-in-bytes@duration-in-secs
