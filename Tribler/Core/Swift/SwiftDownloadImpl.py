@@ -40,6 +40,7 @@ from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeCo
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
 # Send PLAY after receiving 2^layer * 1024 bytes
 CMDGW_PREBUFFER_BYTES  = (2 ** 8) * 1024 
+SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 
 
 DEBUG = False
@@ -74,6 +75,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         
         self.lm_network_vod_event_callback = None
         self.askmoreinfo = False
+        
+        self.session.lm.rawserver.add_task(self.network_check_swift_alive,SWIFT_ALIVE_CHECK_INTERVAL)
 
     #
     # Download Interface
@@ -600,6 +603,25 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.dllock.acquire()
         self.error = e
         self.dllock.release()
+
+
+    #
+    # Auto restart after swift crash
+    #
+    def network_check_swift_alive(self):
+        self.dllock.acquire()
+        try:
+            if self.sp is not None:
+                if not self.sp.is_alive():
+                    print >>sys.stderr,"SwiftDownloadImpl: network_check_swift_alive: Restarting",`self.sdef.get_name()`
+                    self.sp = None
+                    self.restart()
+        except:
+            print_exc()
+        finally:
+            self.dllock.release()
+        
+        self.session.lm.rawserver.add_task(self.network_check_swift_alive,SWIFT_ALIVE_CHECK_INTERVAL)
 
         
         
