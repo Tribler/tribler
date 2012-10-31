@@ -1492,6 +1492,9 @@ class SearchList(GenericSearchList):
         
         self.SetNrChannels(len(channels))
         GenericSearchList.SetData(self, channels+torrents)
+
+        if self.XXXKeywords() and self.guiutility.getFamilyFilter():
+            self.ShowXXXKeywordsMessage()
         
     def SetNrResults(self, nr):
         SizeList.SetNrResults(self, nr)
@@ -1567,7 +1570,7 @@ class SearchList(GenericSearchList):
     
     @warnWxThread
     def _ShowSuggestions(self, delayedResult, keywords):
-        if keywords == self.keywords and  self.total_results == 0 and self.nr_filtered == 0:
+        if keywords == self.keywords and self.total_results == 0 and self.nr_filtered == 0 and not self.XXXKeywords():
             suggestions = delayedResult.get()
             
             if len(suggestions) > 0:
@@ -1599,7 +1602,28 @@ class SearchList(GenericSearchList):
         
     def OnSize(self, event):
         event.Skip()
+    
+    def GotFilter(self, keyword = None):
+        GenericSearchList.GotFilter(self, keyword)
+        if self.XXXKeywords() and self.guiutility.getFamilyFilter():
+            self.ShowXXXKeywordsMessage()
 
+    def ShowXXXKeywordsMessage(self):        
+        self.list.ShowMessage('If you would still like to see the results, please disable the "Family filter" in the bottom left of your screen.', \
+                              'At least one of the keywords that you used has been blocked by the family filter.\n')
+        self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else max(0, self.curMax))
+        self.filteredMax = -1
+    
+    def MatchFFilter(self, item):
+        if self.XXXKeywords():
+            return False
+
+        return GenericSearchList.MatchFFilter(self, item)
+    
+    def XXXKeywords(self):
+        # Check if search keywords are XXX
+        keywords = self.keywords if self.keywords else []
+        return bool([keyword for keyword in keywords if self.category.xxx_filter.isXXX(keyword, False)])
 
 class LibraryList(SizeList):
     def __init__(self, parent):
