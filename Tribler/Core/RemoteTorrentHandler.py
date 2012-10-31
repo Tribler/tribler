@@ -28,6 +28,7 @@ import urllib
 
 DEBUG = False
 SWIFTFAILED_TIMEOUT = 5*60 #5 minutes
+LOW_PRIO_COLLECTING = 2
 
 class RemoteTorrentHandler:
     
@@ -89,7 +90,17 @@ class RemoteTorrentHandler:
                     num_delete -= to_remove
                     self.torrent_db.freeSpace(to_remove)
                     yield 5.0
+                LOW_PRIO_COLLECTING = 4
                 
+            elif num_torrents > (self.max_num_torrents * .75):
+                LOW_PRIO_COLLECTING = 3
+                
+            else:
+                LOW_PRIO_COLLECTING = 2
+            
+            if DEBUG:
+                print >> sys.stderr, "rtorrent: setting low_prio_collection to one .torrent every %.1f seconds"%(LOW_PRIO_COLLECTING *.5)
+            
             yield 30 * 60.0 #run every 30 minutes
         
     @property
