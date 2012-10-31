@@ -112,7 +112,7 @@ class Home(XRCPanel):
     def OnRightClick(self, event):
         menu = wx.Menu()
         itemid = wx.NewId()
-        menu.AppendCheckItem(itemid, "Show buzz panel")
+        menu.AppendCheckItem(itemid, 'Show "what\'s hot"')
         menu.Check(itemid, self.buzzpanel.IsShown())
         
         def toggleBuzz(event):
