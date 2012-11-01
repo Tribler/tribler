@@ -180,9 +180,10 @@ class SRstatusbar(wx.StatusBar):
         rect = self.GetFieldRect(1)
         x = rect.x+rect.width-15
         for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
-            x -= control.GetSize()[0]+10
-            y = (rect.height - control.GetSize()[1])/2 if isinstance(control, wx.StaticBitmap) else rect.y+2
-            control.SetPosition((x, y+1))
+            spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
+            x -= control.GetSize()[0] + spacer
+            yAdd = (rect.height - control.GetSize()[1])/2
+            control.SetPosition((x, rect.y+yAdd))
         
         rect = self.GetFieldRect(2)
         size = self.connection.GetSize()
