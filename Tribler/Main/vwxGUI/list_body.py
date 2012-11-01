@@ -822,9 +822,9 @@ class AbstractListBody():
             self.Scroll(-1, sy)
     
     @warnWxThread
-    def ShowMessage(self, message, header = None, altControl = None):
+    def ShowMessage(self, message, header = None, altControl = None, clearitems = True):
         if DEBUG:
-            print >> sys.stderr, "ListBody: ShowMessage", message
+            print >> sys.stderr, "ListBody: ShowMessage", message, header
 
         self.Freeze()
         
@@ -846,10 +846,11 @@ class AbstractListBody():
         if altControl:
             self.messageText.altControl = altControl
             self.messageText.sizer.Insert(2, altControl, 0, wx.EXPAND)
-            
-        self.loadNext.Hide()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
+        
+        if clearitems:
+            self.loadNext.Hide()
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
 
         self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
         self.messagePanel.Layout()
@@ -986,9 +987,9 @@ class AbstractListBody():
                 pass
             
         elif self.filter:
-            ffmessage = self.filterMessage(empty = True)
-            if ffmessage: 
-                self.ShowMessage(ffmessage+ '.')
+            header, message = self.filterMessage(empty = True)
+            if message: 
+                self.ShowMessage(message+ '.', header)
         
         if self.done:
             self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
@@ -1067,7 +1068,9 @@ class AbstractListBody():
             self.loadNext.Show(False)
             self.vSizer.Remove(self.messagePanel)
 
-            message = ''            
+            message = ''
+            header = None
+                  
             revertList = []
             #Add created/cached items
             for curdata in self.data:
@@ -1119,17 +1122,13 @@ class AbstractListBody():
                     break
             
             if done and self.filter:
-                message_start = self.filterMessage() or ''
-                if message_start: 
+                header, message_start = self.filterMessage()
+                if message_start:
                     message = message_start + '.' + message
             
             if len(message) > 12:
-                self.messageText.SetLabel(message)
+                self.ShowMessage(message, header, clearitems = False)
                 
-                self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-                self.messagePanel.Layout()
-                self.messagePanel.Show()
-            
             if didAdd:
                 self.OnChange()
                 
@@ -1137,9 +1136,6 @@ class AbstractListBody():
             
             if len(revertList) > 0:
                 wx.CallLater(1000, self.Revert, revertList)
-        
-        if len(revertList) > 0:
-            wx.CallLater(1000, self.Revert, revertList)
         
         self.done = done
         if DEBUG:

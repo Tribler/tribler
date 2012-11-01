@@ -819,6 +819,11 @@ class List(wx.BoxSizer):
             
         return result
     
+    def GetFFilterMessage(self):
+        if self.guiutility.getFamilyFilter() and self.nr_filtered:
+            return None, '%d items were blocked by the Familiy filter'%self.nr_filtered
+        return None, ''
+    
     def MatchFilter(self, item):
         ff = self.MatchFFilter(item)
         if self.filter == '':
@@ -833,11 +838,10 @@ class List(wx.BoxSizer):
                 message = 'Only showing items'
             
             if self.filter:
-                return message + ' matching "%s"'%self.filter
-            return message
-        
-        elif self.guiutility.getFamilyFilter() and self.nr_filtered:
-            return '%d items were blocked by the Familiy filter'%self.nr_filtered
+                return None, message + ' matching "%s"'%self.filter
+            return None, message
+        else:
+            return self.GetFFilterMessage()
         
     @warnWxThread
     def Layout(self):
@@ -909,7 +913,7 @@ class SizeList(List):
         return listmf
     
     def GetFilterMessage(self, empty = False):
-        message = List.GetFilterMessage(self, empty)
+        header, message = List.GetFilterMessage(self, empty)
         
         if self.sizefilter:
             if self.sizefilter[0] == self.sizefilter[1]:
@@ -920,7 +924,7 @@ class SizeList(List):
                 message += " larger than %d MB in size"%self.sizefilter[0]
             else:
                 message += " between %d and %d MB in size"%(self.sizefilter[0], self.sizefilter[1])
-        return message
+        return header, message
     
     def SetData(self, data):
         List.SetData(self, data)
@@ -1333,12 +1337,12 @@ class GenericSearchList(SizeList):
         return SizeList.MatchFilter(self, item)
     
     def GetFilterMessage(self, empty = False):
-        message = SizeList.GetFilterMessage(self, empty)
+        header, message = SizeList.GetFilterMessage(self, empty)
         
         if self.categoryfilter:
             message = message.rstrip('.')
             message += " matching category '%s'"%self.categoryfilter
-        return message
+        return header, message
         
 class SearchList(GenericSearchList):
     def __init__(self, parent=None):
@@ -1351,6 +1355,8 @@ class SearchList(GenericSearchList):
         self.total_channels = None
         self.keywords = None
         self.categoryfilter = None
+        self.keywords = None
+        self.xxx_keywords = False
         
         columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.ReadGuiSetting('hide_buttons', True)}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
@@ -1492,9 +1498,6 @@ class SearchList(GenericSearchList):
         
         self.SetNrChannels(len(channels))
         GenericSearchList.SetData(self, channels+torrents)
-
-        if self.XXXKeywords() and self.guiutility.getFamilyFilter():
-            self.ShowXXXKeywordsMessage()
         
     def SetNrResults(self, nr):
         SizeList.SetNrResults(self, nr)
@@ -1512,8 +1515,15 @@ class SearchList(GenericSearchList):
         
     def SetKeywords(self, keywords):
         self.GetManager().SetKeywords(keywords)
-        
         self.keywords = keywords
+        
+        self.CalcXXXKeywords()
+        
+    def CalcXXXKeywords(self):
+        if self.keywords and self.guiutility.getFamilyFilter():
+            self.xxx_keywords = any(self.category.xxx_filter.isXXX(keyword, False) for keyword in self.keywords)
+        else:
+            self.xxx_keywords = False
     
     @warnWxThread
     def ShowSuggestions(self, suggestions):
@@ -1533,7 +1543,6 @@ class SearchList(GenericSearchList):
         wx.CallLater(10000, self.SetFinished, keywords)
         wx.CallLater(250, self.FakeResult)
     
-    @forceWxThread
     @forceWxThread
     def FakeResult(self, times = 1):
         maxValue = self.guiutility.frame.top_bg.go.GetRange()
@@ -1570,7 +1579,7 @@ class SearchList(GenericSearchList):
     
     @warnWxThread
     def _ShowSuggestions(self, delayedResult, keywords):
-        if keywords == self.keywords and self.total_results == 0 and self.nr_filtered == 0 and not self.XXXKeywords():
+        if keywords == self.keywords and self.total_results == 0 and self.nr_filtered == 0 and not self.xxx_keywords:
             suggestions = delayedResult.get()
             
             if len(suggestions) > 0:
@@ -1594,36 +1603,28 @@ class SearchList(GenericSearchList):
             self.total_results = None
             self.total_channels = None
             self.keywords = None
+            self.xxx_keywords = False
             return True
         return False
 
-    def SetBackgroundColour(self, colour):
-        GenericSearchList.SetBackgroundColour(self, colour)
-        
     def OnSize(self, event):
         event.Skip()
     
     def GotFilter(self, keyword = None):
+        self.CalcXXXKeywords()
+        
         GenericSearchList.GotFilter(self, keyword)
-        if self.XXXKeywords() and self.guiutility.getFamilyFilter():
-            self.ShowXXXKeywordsMessage()
-
-    def ShowXXXKeywordsMessage(self):        
-        self.list.ShowMessage('If you would still like to see the results, please disable the "Family filter" in the bottom left of your screen.', \
-                              'At least one of the keywords that you used has been blocked by the family filter.\n')
-        self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else max(0, self.curMax))
-        self.filteredMax = -1
+    
+    def GetFFilterMessage(self):
+        if self.xxx_keywords and self.guiutility.getFamilyFilter():
+            return 'At least one of the keywords that you used has been blocked by the family filter.', 'If you would still like to see the results, please disable the "Family filter" in the bottom left of your screen.' 
+        return GenericSearchList.GetFFilterMessage(self)
     
     def MatchFFilter(self, item):
-        if self.XXXKeywords():
+        if self.xxx_keywords:
             return False
 
         return GenericSearchList.MatchFFilter(self, item)
-    
-    def XXXKeywords(self):
-        # Check if search keywords are XXX
-        keywords = self.keywords if self.keywords else []
-        return bool([keyword for keyword in keywords if self.category.xxx_filter.isXXX(keyword, False)])
 
 class LibraryList(SizeList):
     def __init__(self, parent):
@@ -1949,14 +1950,14 @@ class LibraryList(SizeList):
         return True
     
     def GetFilterMessage(self, empty = False):
-        message = SizeList.GetFilterMessage(self, empty)
+        header, message = SizeList.GetFilterMessage(self, empty)
         
         if self.statefilter:
             message += " with state %s"%self.statefilter
             if self.statefilter == 'active'and self.utility.config.Read('t4t_option', 'int') == 0:
                 t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
                 message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f"%t4t_ratio
-        return message
+        return header, message
 
 class ChannelList(List):
     def __init__(self, parent):
