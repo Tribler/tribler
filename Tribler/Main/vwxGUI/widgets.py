@@ -2204,3 +2204,42 @@ class TextCtrl(wx.TextCtrl):
         
     def OnKillFocus(self, event):
         self._SetDescriptiveText()
+        
+
+class HorizontalGradientGauge(wx.Panel):
+
+    def __init__(self, *args, **kwargs):
+        wx.Panel.__init__(self, *args, **kwargs)
+        
+        self.value = 0
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        
+    def SetValue(self, value):
+        self.value = min(max(0, value), 100)
+        
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnPaint(self, event):
+        w, h = self.GetClientSize()
+        
+        dc = wx.BufferedPaintDC(self)
+        gc = wx.GraphicsContext.Create(dc)
+
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w/2.0, 0, wx.Colour(255, 0, 0), wx.Colour(255, 216, 0)))
+        gc.DrawRectangle(0, 0, w/2.0, h)
+        
+        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w/2.0, 0, wx.Colour(255, 216, 0), wx.Colour(0, 255, 33)))
+        gc.DrawRectangle(w/2.0, 0, w/2.0, h)        
+        
+        gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
+        gc.SetBrush(wx.TRANSPARENT_BRUSH)
+        gc.DrawRectangle(0, 0, w-1, h-1)
+        
+        gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
+        x = (self.value / 100.0) * w
+        gc.DrawLines([(x-1, 0), (x-1, h)])
+        gc.DrawLines([(x+1, 0), (x+1, h)])
