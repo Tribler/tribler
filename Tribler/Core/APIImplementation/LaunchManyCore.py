@@ -274,7 +274,7 @@ class TriblerLaunchMany(Thread):
 
             self.torrent_checking_period = config['torrent_checking_period']
             #self.torrent_checking_period = 5
-            self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
+            self.run_torrent_check()
 
         # Gertjan's UDP code [disabled]
         # OFF in P2P-Next
