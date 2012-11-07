@@ -890,7 +890,7 @@ class AbstractListBody():
                 
                 panel.RefreshData(data)
                 
-        else:
+        elif self.data:
             self.data.append(data)
             self.CreateItem(key)
     
