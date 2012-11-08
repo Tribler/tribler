@@ -14,6 +14,9 @@ BRANCH=$(pwd)
 EXPERIMENT_CONFIG=$cfg_path/$cfg_name
 source $EXPERIMENT_CONFIG
 
+# check if we allready have SGE_KEEP_TMPFILES=no in .bashrc, if not add it
+cat ~/.bashrc | grep SGE_KEEP_TMPFILES || echo SGE_KEEP_TMPFILES=no >> ~/.bashrc
+
 cd $2
 PEERS_DIRECTORY=$(pwd)
 NODE_COUNT=$3
@@ -69,8 +72,8 @@ cd $PEERS_DIRECTORY
 echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
 
 #echo "* Reserving $NODE_COUNT nodes... "
-reservation_length=$[$EXPERIMENT_LENGTH * 60 + 60]
-echo "* Job reservation length is: $EXPERIMENT_LENGTH min (experiment length) + 1 min = $reservation_length seconds"
+reservation_length=$[$EXPERIMENT_LENGTH * 60 + 300]
+echo "* Job reservation length is: $EXPERIMENT_LENGTH min (experiment length) + 5 min = $reservation_length seconds"
 #RESERVATION_ID=$(preserve -# $NODE_COUNT $reservation_length | head -n1 | sed 's/Reservation number \(.*\):/\1/g')
 #echo "* Done. Reservation ID: $RESERVATION_ID (you can see reservation status with 'preserve -llist')"
 echo "* Sending job to DAS4..."

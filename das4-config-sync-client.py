@@ -4,6 +4,7 @@ from sys import argv, exit
 from os import getpid
 from getpass import getuser
 from hashlib import md5
+from time import time
 
 from twisted.internet.protocol import ClientFactory
 from twisted.protocols.basic import LineReceiver
@@ -15,7 +16,7 @@ class ConfigClientProtocol(LineReceiver):
         self.state = 1
         
         my_ip = argv[2]
-        self.sendLine("IP "+my_ip)
+        self.sendLine("TIME "+str(time()))
 
     def lineReceived(self, data):
         username = getuser()
@@ -23,11 +24,11 @@ class ConfigClientProtocol(LineReceiver):
             data = data.strip()
             id, ip, port, start_timestamp = data.split()
             self.my_id = "%05d" % int(id)
-            f = open("/tmp/%s/dispersy/peer_%s.conf" %(username, self.my_id), "w")
+            f = open("/local/%s/dispersy/peer_%s.conf" %(username, self.my_id), "w")
             print >> f, data
             f.close()
             
-            self.full_config_file = open("/tmp/%s/dispersy/peers_%s.conf" %(username, self.my_id), "w")
+            self.full_config_file = open("/local/%s/dispersy/peers_%s.conf" %(username, self.my_id), "w")
             
             print self.my_id, start_timestamp
             self.state = 2

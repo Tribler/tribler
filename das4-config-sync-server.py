@@ -4,7 +4,7 @@
 #  Synchronized publisher
 #
 from sys import argv, exit
-from time import sleep
+from time import sleep, time
 from threading import Semaphore, Lock
 from getpass import getuser
 from hashlib import md5
@@ -44,24 +44,25 @@ class ConfigProtocol(LineReceiver):
     def lineReceived(self, line):
         global configlock, subscribers, start_timestamp, initial_peer_delay
         
-        if len(line)>2 and line[0:2] == "IP":
+        if len(line) > 4 and line.startswith("TIME"):
             config_lock.acquire()
             
-            if subscribers == 1:
-                from time import time
-                start_timestamp = int(time()) + initial_peer_delay
-                
             nr_subscribers = len(subscribers) + 1
-            subscriber_ip2 = line[3:]
+
+            if nr_subscribers == 1:
+                start_timestamp = int(time()) + initial_peer_delay
+            
+            peer_time = float(line[5:])
+            peer_time_diff = time() - peer_time
             
             address = self.transport.getPeer() 
             subscriber_ip = address.host 
             
             port = 12000 + nr_subscribers
-            config_line = "%d %s %d %d"%(nr_subscribers, subscriber_ip, port, start_timestamp)
+            config_line = "%d %s %d %d"%(nr_subscribers, subscriber_ip, port, start_timestamp - peer_time_diff)
             self.transport.write(config_line + "\r\n")
             
-            print "* Peer #%d (%s %s:%d)" %(nr_subscribers, subscriber_ip, subscriber_ip2, port)
+            print "* Peer #%d (%s:%d) timediff: %.2f" %(nr_subscribers, subscriber_ip, port, peer_time_diff)
             subscribers.append((self.transport, subscriber_ip, port))
 
             config_lock.release()

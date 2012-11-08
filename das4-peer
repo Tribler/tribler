@@ -7,6 +7,7 @@ fi
 PEERS=$1
 EXPERIMENT_CONFIG=$2
 BRANCH=$3
+HEAD_IP=10.149.3.254
 source $EXPERIMENT_CONFIG # $DISPERSY_ARGS
 
 cd ${PEERS}
@@ -62,7 +63,7 @@ MY_IP=$(ip address show dev $iface | grep 'inet ' | awk -F '[/ ]' '{print $6}')
 export PYTHONPATH=${BRANCH}:/home/$USER/3rd-party/lib/python2.6/site-packages:/home/$USER/3rd-party/lib64/python2.6/site-packages:$PYTHONPATH
 export LD_LIBRARY_PATH=/home/$USER/3rd-party/lib:$LD_LIBRARY_PATH
 
-config="$(${BRANCH}/das4-config-sync-client.py 10.149.3.254 $MY_IP)"
+config="$(${BRANCH}/das4-config-sync-client.py $HEAD_IP $MY_IP)"
 MY_ID=$(echo $config | cut -d' ' -f1)
 STARTING_TIMESTAMP=$(echo $config | cut -d' ' -f2)
 source $EXPERIMENT_CONFIG # reload config with the new STARTING_TIMESTAMP
@@ -75,8 +76,8 @@ MYDIR=$(pwd)
 rm -rf ${MYDIR}/output
 
 # move config files
-mv /tmp/$USER/dispersy/peer_${MY_ID}.conf ${MYDIR}/data/peer.conf
-mv /tmp/$USER/dispersy/peers_${MY_ID}.conf ${MYDIR}/data/peers
+mv /local/$USER/dispersy/peer_${MY_ID}.conf ${MYDIR}/data/peer.conf
+mv /local/$USER/dispersy/peers_${MY_ID}.conf ${MYDIR}/data/peers
 
 #read -p "Press the any key to continue..."
 
@@ -84,7 +85,7 @@ MY_PORT=$(awk -F'[ ]' '{ print $3 }' data/peer.conf)
 
 echo "Starting Dispersy client #$MY_ID on $MY_IP:$MY_PORT"
 
-DISPERSY_DIR=/tmp/$USER/dispersy/$MY_ID
+DISPERSY_DIR=/local/$USER/dispersy/$MY_ID
 mkdir -p $DISPERSY_DIR/data
 cp -a ${MYDIR}/data/* $DISPERSY_DIR/data/
 cp ${DPRINT_CONF} $DISPERSY_DIR/dprint.conf
