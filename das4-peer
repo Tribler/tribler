@@ -93,6 +93,6 @@ cp ${DPRINT_CONF} $DISPERSY_DIR/dprint.conf
 cd $DISPERSY_DIR
 
 echo python -O -c "from Tribler.dispersy.tool.main import main; main()" --port $MY_PORT --debugstatistics $DISPERSY_ARGS
-python -O -c "from Tribler.dispersy.tool.main import main; main()" --port $MY_PORT --debugstatistics $DISPERSY_ARGS
+python -O -c "from Tribler.dispersy.tool.main import main; main()" --port $MY_PORT --debugstatistics  $DISPERSY_ARGS
 
 #read -p "Press the any key to close..."
