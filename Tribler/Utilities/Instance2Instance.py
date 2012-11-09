@@ -30,9 +30,8 @@ class Instance2InstanceServer(Thread):
         self.i2iport = i2iport
         self.connhandler = connhandler
         
-
+        print >> sys.stderr, "Instance2Instance binding to %s:%d"%("127.0.0.1", self.i2iport)
         self.i2idoneflag = Event()
-        
         self.rawserver = RawServer(self.i2idoneflag,
                                    timeout/5.0, 
                                    timeout,
