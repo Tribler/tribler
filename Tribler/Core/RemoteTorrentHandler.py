@@ -25,6 +25,7 @@ from Tribler.Core.exceptions import DuplicateDownloadException,\
 import atexit
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 import urllib
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 DEBUG = False
 SWIFTFAILED_TIMEOUT = 5*60 #5 minutes
@@ -223,10 +224,13 @@ class RemoteTorrentHandler:
             self.has_torrent(infohash, do_schedule)
     
     def _save_torrent(self, tdef, callback = None):
-        tmp_handle, tmp_filename = mkstemp()
-        tdef.save(tmp_filename)
-        os.close(tmp_handle)
+        tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(), "tmp_"+get_collected_torrent_filename(tdef.get_infohash()))
+        filename_index = 0
+        while os.path.exists(tmp_filename):
+            filename_index += 1
+            tmp_filename = os.path.join(self.session.get_torrent_collecting_dir(), ("tmp_%d_"%filename_index)+get_collected_torrent_filename(tdef.get_infohash()))
         
+        tdef.save(tmp_filename)
         sdef, swiftpath = self._write_to_collected(tmp_filename)
         
         try:
