@@ -109,6 +109,14 @@ class SaveAs(wx.Dialog):
         ok = wx.Button(self, wx.ID_OK)
         ok.Bind(wx.EVT_BUTTON, self.OnOk)
         
+        self.listCtrl.SetFocus()
+        def OnKeyUp(event):
+            if event.GetKeyCode() == wx.WXK_RETURN:
+                self.OnOk()
+            else:
+                event.Skip()                
+        self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
+        
         bSizer = wx.StdDialogButtonSizer()
         bSizer.AddButton(cancel)
         bSizer.AddButton(ok)
