@@ -164,7 +164,7 @@ class MainFrame(wx.Frame):
         self.Freeze()
         self.SetDoubleBuffered(True)
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
-        
+         
         themeColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
         r, g, b = themeColour.Get(False)
         if r > 190 or g > 190 or b > 190: #Grey == 190,190,190
@@ -185,11 +185,13 @@ class MainFrame(wx.Frame):
 
             self.splitter = wx.SplitterWindow(self, style=wx.SP_NOBORDER)
             self.splitter.SetMinimumPaneSize(1)
+            self.splitter.SetForegroundColour(self.GetForegroundColour())
             self.splitter_top_window = wx.Panel(self.splitter, style=wx.NO_BORDER)
+            self.splitter_top_window.SetForegroundColour(self.GetForegroundColour())
             self.splitter_top = wx.BoxSizer(wx.HORIZONTAL)
             self.splitter_top_window.SetSizer(self.splitter_top)
-            
             self.splitter_bottom_window = wx.Panel(self.splitter)
+            self.splitter_bottom_window.SetForegroundColour(self.GetForegroundColour())
             self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
             self.splitter_bottom_window.parent_list = self.splitter_bottom_window
             self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)

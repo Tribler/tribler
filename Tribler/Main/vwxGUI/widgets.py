@@ -1691,6 +1691,7 @@ class MinMaxSlider(wx.Panel):
         self.slider_size = kwargs.pop('slider_size', (100, 25))
         wx.Panel.__init__(self, *args, **kwargs)
         self.SetBackgroundColour(self.GetParent().GetBackgroundColour())
+        self.SetForegroundColour(self.GetParent().GetForegroundColour())
         self.base = 1.7
         self.LoadIcons()
         self.SetMinMax(0, 0)

@@ -2146,7 +2146,7 @@ class ActivitiesList(List):
         self.settings = {}
         self.expandedPanel = None
         columns = [{'width': wx.LIST_AUTOSIZE}]
-        List.__init__(self, columns, wx.WHITE, [10,10], True, parent = parent)
+        List.__init__(self, columns, parent.GetBackgroundColour(), [10,10], True, parent = parent)
 
     def _PostInit(self):
         self.list = self.CreateList(self.parent)

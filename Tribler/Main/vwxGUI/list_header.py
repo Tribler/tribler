@@ -537,6 +537,7 @@ class BaseFilter(wx.Panel):
         self.columns = columns
 
         self.SetBackgroundColour(FILTER_GREY)
+        self.SetForegroundColour(parent.GetForegroundColour())
         self.AddComponents(spacers)
         
     @warnWxThread
@@ -603,6 +604,7 @@ class TorrentFilter(BaseFilter):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
         panel.SetBackgroundColour(self.GetBackgroundColour())
+        panel.SetForegroundColour(self.GetForegroundColour())
         
         self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
@@ -623,7 +625,7 @@ class TorrentFilter(BaseFilter):
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
         self.filesize.SetFormatter(self.guiutility.utility.size_format)
-        
+       
         self.search = wx.SearchCtrl(panel)
         self.search.SetDescriptiveText('Search within results')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
@@ -1015,6 +1017,7 @@ class ChannelFilter(BaseFilter):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
         panel.SetBackgroundColour(self.GetBackgroundColour())
+        panel.SetForegroundColour(self.GetForegroundColour())
         
         self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()

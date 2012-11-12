@@ -573,6 +573,7 @@ class AvantarItem(ListItem):
         
         header = wx.StaticText(self, -1, self.header)
         _set_font(header, -1, wx.FONTWEIGHT_BOLD)
+        header.SetMinSize((1, -1))
         
         vSizer.Add(header, 0, wx.EXPAND)
         vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.RIGHT, 5)
