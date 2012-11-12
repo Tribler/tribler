@@ -98,8 +98,7 @@ class DoubleLineListItem(ListItem):
                 self.descrSizer.Add(sline, 0, wx.EXPAND|wx.RIGHT|wx.LEFT, 7)
             
     def _add_columnresizing(self, sline, column_index):
-        # Use CallAfter to set the cursor, which will overrule the cursor set by AddEvents
-        wx.CallAfter(lambda: sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE)))
+        sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
         # Take hidden columns into account
         control_index = len([column for column in self.columns[:column_index] if column['show']])
                     

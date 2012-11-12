@@ -957,13 +957,8 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         ListCtrlAutoWidthMixin.__init__(self)
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
         if tooltip:
             self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
-
-    def OnItemActivated(self, event):
-        if not wx.GetKeyState(wx.WXK_RETURN):        
-            self.ToggleItem(event.m_itemIndex)
     
     def GetListCtrl(self):
         return self
@@ -1022,6 +1017,11 @@ class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
     def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
         SelectableListCtrl.__init__(self, parent, style, tooltip)
         CheckListCtrlMixin.__init__(self)
+        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
+
+    def OnItemActivated(self, event):
+        if not wx.GetKeyState(wx.WXK_RETURN):        
+            self.ToggleItem(event.m_itemIndex)
         
     def IsSelected(self, index):
         return self.IsChecked(index)

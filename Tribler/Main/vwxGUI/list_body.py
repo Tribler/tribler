@@ -196,7 +196,7 @@ class ListItem(wx.Panel):
             control = control.GetWindow() or control.GetSizer()
         
         if getattr(control, 'Bind', False):
-            if not isinstance(control, wx.Button) and not isinstance(control, ActionButton):
+            if not isinstance(control, (wx.Button, ActionButton, wx.StaticLine)):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                 control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             else:
