@@ -38,9 +38,10 @@ class Instance2InstanceServer(Thread):
                                    ipv6_enable = False,
                                    failfunc = self.rawserver_fatalerrorfunc,
                                    errorfunc = self.rawserver_nonfatalerrorfunc)
-        self.rawserver.add_task(self.rawserver_keepalive,1)
+        
         # Only accept local connections
-        self.rawserver.bind(self.i2iport,bind=['127.0.0.1'],reuse=True) 
+        self.rawserver.bind(self.i2iport,bind=['127.0.0.1'],reuse=True)
+        self.rawserver.add_task(self.rawserver_keepalive, 10) 
         
     def rawserver_keepalive(self):
         """ Hack to prevent rawserver sleeping in select() for a long time, not
@@ -48,7 +49,6 @@ class Instance2InstanceServer(Thread):
         
         Called by Instance2Instance thread """
         self.rawserver.add_task(self.rawserver_keepalive,1)
-        
         
     def shutdown(self):
         self.connhandler.shutdown()
