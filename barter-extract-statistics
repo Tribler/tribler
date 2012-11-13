@@ -53,6 +53,7 @@ def generate(peers_directory, messagestoplot):
 
     dispersy_msg_distribution = {}
     dispersy_dropped_msg_distribution = {}
+    dispersy_bootstrap_distribution = {}
     dispersy_statistics = {}
     nr_connections = []
 
@@ -145,6 +146,12 @@ def generate(peers_directory, messagestoplot):
             if message == "statistics-dropped-messages":
                 for key, value in kargs.iteritems():
                     dispersy_dropped_msg_distribution[key] = max((value, node), dispersy_dropped_msg_distribution.get(key, (0, node)))
+
+            if message == "statistics-bootstrap-candidates":
+                for key, value in kargs.iteritems():
+                    if key not in dispersy_bootstrap_distribution:
+                        dispersy_bootstrap_distribution[key] = {}
+                    dispersy_bootstrap_distribution[key][node] = value
             
             if writeTotal:
                 print >> h_total_record, str(time), str(timeoffset), str(c_received_record + c_created_record)
@@ -202,6 +209,13 @@ def generate(peers_directory, messagestoplot):
     for msg, count in dispersy_msg_distribution.iteritems():
         print >> h_dispersy_msg_distribution, "%s %d %s" %(msg, count[0], count[1])
     h_dispersy_msg_distribution.close()
+    
+    h_dispersy_bootstrap_distribution = open(peers_directory + "/output/dispersy-bootstrap-distribution.txt", "w+")
+    print >> h_dispersy_bootstrap_distribution, "# sock_addr count"
+    for sock_addr, nodes in dispersy_bootstrap_distribution.iteritems():
+        times = sum(nodes.values())
+        print >> h_dispersy_bootstrap_distribution, "%s %d" %(str(sock_addr), times)
+    h_dispersy_bootstrap_distribution.close()
     
     h_dispersy_dropped_msg_distribution = open(peers_directory + "/output/dispersy-dropped-msg-distribution.txt", "w+")
     print >> h_dispersy_dropped_msg_distribution, "# msg_name count"
