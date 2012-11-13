@@ -70,7 +70,6 @@ echo "* Extracting experiment parameters from community properties..."
 sync_response_limit=$(grep community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
 barter_history_size=$(grep community-property 00001/output/barter.log | grep :barter_history_size | sed 's/.*value:i\([0-9]*\)/\1/g')
 barter_forward_record_on_creation=$(grep community-property 00001/output/barter.log | grep :barter_forward_record_on_creation | sed 's/.*value:b\([a-zA-Z]*\)/\1/g')
-)
 
 echo "* Summing up incoming and outgoing traffic..."
 o=$(
