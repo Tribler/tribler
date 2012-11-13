@@ -247,6 +247,10 @@ class Session(SessionRuntimeConfig):
             Session(*args, **kw)
         return Session.__single
     get_instance = staticmethod(get_instance)
+    
+    def has_instance():
+        return Session.__single != None
+    has_instance = staticmethod(has_instance)
 
     def get_default_state_dir(homedirpostfix='.Tribler'):
         """ Returns the factory default directory for storing session state

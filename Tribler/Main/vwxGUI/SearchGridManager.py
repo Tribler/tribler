@@ -69,6 +69,7 @@ class TorrentManager:
         
         # Remote results for current keywords
         self.remoteHits = []
+        self.gotRemoteHits = False
         self.remoteLock = threading.Lock()
         
         # Requests for torrents
@@ -537,7 +538,7 @@ class TorrentManager:
                 
                 self.hits = []
                 self.remoteHits = []
-                
+                self.gotRemoteHits = False
                 self.oldsearchkeywords = None
             finally:
                 self.hitsLock.release()
@@ -611,7 +612,7 @@ class TorrentManager:
             begintime = time()
         try:
             self.remoteLock.acquire()
-            
+
             hitsUpdated = False
             hitsModified = set()
             for remoteItem in self.remoteHits:
@@ -686,6 +687,8 @@ class TorrentManager:
             self.remoteLock.acquire()
             
             if self.searchkeywords == keywords:
+                self.gotRemoteHits = True
+                
                 channeldict = {}
                 channels = set([result[-1] for result in results if result[-1]])
                 if len(channels) > 0:
