@@ -6,6 +6,8 @@ if test $# -ne 2; then
     exit 1
 fi
 
+BRANCH=$(pwd)
+
 # expand experiment config filename to full path
 cfg_name=$(basename $1)
 cfg_path=$(dirname $1)
@@ -13,8 +15,6 @@ cd $cfg_path
 cfg_path=$(pwd)
 EXPERIMENT_CONFIG=$cfg_path/$cfg_name
 source $EXPERIMENT_CONFIG
-
-BRANCH=$(pwd)
 
 PEERS_DIRECTORY=$2
 mkdir -p $PEERS_DIRECTORY/output/
