@@ -935,7 +935,7 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "ListBody: __SetData", time()
         
-        if __debug__ and currentThread().getName() != "MainThread":
+        if __debug__ and not wx.Thread_IsMain():
             print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
         

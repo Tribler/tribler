@@ -994,7 +994,7 @@ class MainFrame(wx.Frame):
     # Close Program
     ##################################
                
-    def OnCloseWindow(self, event = None):
+    def OnCloseWindow(self, event = None, force = False):
         found = False
         if event != None:
             nr = event.GetEventType()
@@ -1071,7 +1071,7 @@ class MainFrame(wx.Frame):
             print_exc()
             
         print >>sys.stderr, "mainframe: Calling quit"
-        self.quit(event != None)
+        self.quit(event != None or force)
 
         if DEBUG:
             print >>sys.stderr,"mainframe: OnCloseWindow END"

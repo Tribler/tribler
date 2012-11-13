@@ -322,7 +322,7 @@ class TopSearchPanel(GradientPanel):
         self.SetButtonHandler(self.stop_btn, None)
         self.SetButtonHandler(self.delete_btn, None)
     
-    def OnDownload(self, event, torrents = None):
+    def OnDownload(self, event = None, torrents = None):
         refresh_library = False
         torrents = torrents if torrents != None else self.__getTorrents() 
         for torrent in torrents:
@@ -338,8 +338,11 @@ class TopSearchPanel(GradientPanel):
                     if response:
                         self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
                 refresh_library = True
-        button = event.GetEventObject()
-        button.Enable(False)
+                
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
+            
         if refresh_library:
             wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
 

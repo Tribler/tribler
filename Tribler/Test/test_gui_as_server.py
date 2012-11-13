@@ -23,7 +23,7 @@ class TestGuiAsServer(unittest.TestCase):
         #modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath(os.path.join('..','..', '.exe'))]
         
-        self.t = Thread(target = run, name = "MainThread")
+        self.t = Thread(target = run, name = "UnitTestingThread")
         self.t.start()
         
         while not Session.has_instance():
@@ -41,7 +41,7 @@ class TestGuiAsServer(unittest.TestCase):
     def tearDown(self):
         """ unittest test tear down code """
         
-        wx.CallAfter(self.frame.OnCloseWindow)
+        wx.CallAfter(self.frame.OnCloseWindow, force = True)
         self.t.join()
         
-        sleep(5)
+        sleep(10)
