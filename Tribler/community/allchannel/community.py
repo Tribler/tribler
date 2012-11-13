@@ -172,11 +172,9 @@ class AllChannelCommunity(Community):
                 if len(torrents) > 0:
                     meta = self.get_meta_message(u"channelcast")
                     message = meta.impl(authentication=(self._my_member,),
-                                        distribution=(self.global_time,), payload=(torrents,))
+                                        distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
                             
-                    if __debug__:
-                        self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta.name)
-                    self._dispersy.endpoint.send([candidate], [message.packet])
+                    self._dispersy._forward([message])
                             
                     #we've send something to this address, add to blocklist
                     self._blocklist[candidate] = now
@@ -232,10 +230,8 @@ class AllChannelCommunity(Community):
         #create channelcast request message
         meta = self.get_meta_message(u"channelcast-request")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), payload=(toCollect,))
-        if __debug__:
-            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta.name)
-        self._dispersy.endpoint.send([candidate], [message.packet])
+                            distribution=(self.global_time,), destination=(candidate,), payload=(toCollect,))
+        self._dispersy._forward([message])
         
         if DEBUG:
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
@@ -252,8 +248,7 @@ class AllChannelCommunity(Community):
                 requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
 
             if requested_packets:
-                if __debug__:
-                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"channelcast-response", len(requested_packets))
+                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"channelcast-response", len(requested_packets))
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
             
             if DEBUG:
@@ -271,7 +266,7 @@ class AllChannelCommunity(Community):
                             distribution=(self.global_time,),
                             payload=(keywords, ))
         
-        self._dispersy.store_update_forward([message], store = False, update = False, forward = True)
+        self._dispersy._forward([message])
         
         if DEBUG:
             print >> sys.stderr, "AllChannelCommunity: searching for",query
@@ -305,12 +300,9 @@ class AllChannelCommunity(Community):
         #create channelsearch-response message
         meta = self.get_meta_message(u"channelsearch-response")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), payload=(keywords, torrents))
+                            distribution=(self.global_time,), destination=(candidate,), payload=(keywords, torrents))
         
-        if __debug__:
-            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta.name)
-        self._dispersy.endpoint.send([candidate], [message.packet])
-        
+        self._dispersy._forward([message])
         if DEBUG:
             nr_requests = sum([len(tors) for tors in torrents.values()])
             print >> sys.stderr, "AllChannelCommunity: sending",nr_requests,"results"
