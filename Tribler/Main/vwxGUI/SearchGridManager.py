@@ -1849,11 +1849,6 @@ class ChannelManager:
             
             finally:
                 self.remoteLock.release()
-        try:
-            self.searchDispersy()
-        except TypeError:
-            #Dispersy not loaded yet
-            pass
         
     def getChannelHits(self):
         if DEBUG: begintime = time()
