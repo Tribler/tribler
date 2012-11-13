@@ -152,7 +152,7 @@ def generate(peers_directory, messagestoplot):
                 record_count[nodename][timeoffset] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
                 measured_record_count[nodename] = record_count[nodename][timeoffset]
 
-        if not started_monitoring:
+        if not traffic_start:
             print "!!!! No statistics collected"
         else:
             traffic_count[nodename] = [traffic_start, traffic_stop, traffic_stop - traffic_start]
