@@ -125,7 +125,6 @@ if test $sig_req_timeouts -gt 0; then
 fi
 
 echo "* Extracting statistics..."
-echo $BRANCH
 cd $BRANCH
 ./barter-extract-statistics $PEERS_DIRECTORY ${MESSAGESTOPLOT}
 
