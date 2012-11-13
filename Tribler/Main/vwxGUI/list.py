@@ -143,7 +143,7 @@ class RemoteSearchManager(BaseManager):
             if modified_hits:
                 self.list.RemoveItems(modified_hits)
             
-            if new_items:
+            if new_items or modified_hits:
                 self.list.SetData(data_files)
             else:
                 if DEBUG:
