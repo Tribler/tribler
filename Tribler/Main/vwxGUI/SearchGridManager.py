@@ -1893,8 +1893,7 @@ class ChannelManager:
         if self.dispersy:
             for community in self.dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
-                    community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
-                    sendSearch = True
+                    sendSearch = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
                     break
             
         if not sendSearch:
