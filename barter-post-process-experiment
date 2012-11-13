@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if test $# -ne 4; then
-    echo "Usage: $0 <experiment-config> <peer-directory> <time-interval-start> <time-interval-stop>"
+if test $# -ne 2; then
+    echo "Usage: $0 <experiment-config> <peer-directory>"
     exit 1
 fi
 
@@ -10,10 +10,8 @@ PD=$(pwd)
 cd - >/dev/null # return to initial directory
 
 EXPERIMENT_CONFIG=$1
-START=$3
-STOP=$4
 
-./barter-experiment-analysis $EXPERIMENT_CONFIG $PD $START $STOP
+./barter-experiment-analysis $EXPERIMENT_CONFIG $PD
 if test $? -ne 0; then
     exit 2
 fi

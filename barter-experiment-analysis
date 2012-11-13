@@ -1,8 +1,8 @@
 #!/bin/bash
 # Mircea Bardac, 2011
 
-if test $# -ne 4; then
-    echo "Usage: $0 <experiment-config> <peers-directory> <measure-interval-start> <measure-interval-stop>"
+if test $# -ne 2; then
+    echo "Usage: $0 <experiment-config> <peers-directory>"
     exit 1
 fi
 
@@ -15,8 +15,6 @@ EXPERIMENT_CONFIG=$cfg_path/$cfg_name
 source $EXPERIMENT_CONFIG
 
 BRANCH=$(pwd)
-TIME_START=$3
-TIME_STOP=$4
 
 PEERS_DIRECTORY=$2
 mkdir -p $PEERS_DIRECTORY/output/
@@ -72,11 +70,7 @@ echo "* Extracting experiment parameters from community properties..."
 sync_response_limit=$(grep community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
 barter_history_size=$(grep community-property 00001/output/barter.log | grep :barter_history_size | sed 's/.*value:i\([0-9]*\)/\1/g')
 barter_forward_record_on_creation=$(grep community-property 00001/output/barter.log | grep :barter_forward_record_on_creation | sed 's/.*value:b\([a-zA-Z]*\)/\1/g')
-
-cycle_length_exp=$(grep community-property 00001/output/barter.log | grep :timestep | sed 's/.*value:f\([0-9]*\.[0-9]\)/\1/g')
-cycle_length_real="600.00"
-
-time_ratio=$(echo "scale=2; $cycle_length_real/$cycle_length_exp" | bc)
+)
 
 echo "* Summing up incoming and outgoing traffic..."
 o=$(
@@ -134,7 +128,7 @@ fi
 echo "* Extracting statistics..."
 
 cd $BRANCH
-./barter-extract-statistics $PEERS_DIRECTORY ${MESSAGESTOPLOT} $TIME_START $TIME_STOP $time_ratio
+./barter-extract-statistics $PEERS_DIRECTORY ${MESSAGESTOPLOT}
 
 echo "* Done"
 echo
@@ -174,9 +168,6 @@ cat <<END-OF-MSG
 peers=$PEERS_COUNT
 nodes=$NODE_COUNT
 peers_per_node=$PEERS_PER_NODE
-experiment_time_ratio=$time_ratio
-cycle_length_experiment=$cycle_length_exp
-cycle_length_real=$cycle_length_real
 sync_member_count=$sync_member_count
 sync_response_limit=$sync_response_limit
 bytes_out=$out_bytes
