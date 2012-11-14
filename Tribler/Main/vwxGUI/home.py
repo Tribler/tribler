@@ -459,6 +459,7 @@ class DispersyPanel(HomePanel):
             ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             ("Packets success", '', lambda stats: ratio(stats.success_count, stats.received_count)),
+            ("Sync messages created", 'Total number of sync messages created by us in this session', lambda stats: str(stats.created_count)),
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
@@ -645,7 +646,11 @@ class DispersyPanel(HomePanel):
             if stats.walk_fail:
                 raw_info['walk_fail'] = stats.walk_fail
             if stats.attachment:
-                raw_info['attachment'] = stats.attachment   
+                raw_info['attachment'] = stats.attachment
+            if stats.created:
+                raw_info['created'] = stats.created
+            if stats.bootstrap_candidates:
+                raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
             addValue(parentNode, raw_info)
 
         self.panel.Layout()
