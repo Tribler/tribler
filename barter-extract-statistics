@@ -118,7 +118,7 @@ def generate(peers_directory, messagestoplot):
                 if 'candidates' in kargs:
                     candidates = kargs['candidates']
                     if len(candidates) > 0:
-                        cur_incomming_connections = candidates[-1][1]
+                        cur_incomming_connections = candidates[0][1]
                         max_incomming_connections = max(cur_incomming_connections, max_incomming_connections)
                         print >> h_total_connections, str(time), str(timeoffset), str(cur_incomming_connections)
             
