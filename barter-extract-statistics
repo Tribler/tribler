@@ -63,7 +63,9 @@ def generate(peers_directory, messagestoplot):
         traffic_start = traffic_stop = None
         
         c_created_record = 0
+        c_created_records = {}
         c_received_record = 0
+        c_received_records = {}
         c_dropped_record = 0
         cur_incomming_connections = max_incomming_connections = 0
 
@@ -80,8 +82,8 @@ def generate(peers_directory, messagestoplot):
         print >> h_total_record, "0 0 0"
         
         h_total_connections = open(node + "/output/total-connections.txt", "w+")
-        print >> h_total_record, "# timestamp timeoffset num-connections"
-        print >> h_total_record, "0 0 0"
+        print >> h_total_connections, "# timestamp timeoffset num-connections"
+        print >> h_total_connections, "0 0 0"
         
         h_statistics = open(node + "/output/scenario-statistics.txt", "w+")
         print >> h_statistics, "# timestamp timeoffset key value"
@@ -125,19 +127,21 @@ def generate(peers_directory, messagestoplot):
                     dispersy_msg_distribution[key] = max((value, node), dispersy_msg_distribution.get(key, (0, node)))
                     
                     if not messagestoplot or key in messagestoplot:
-                        c_received_record += 1
+                        c_received_records[key] = value
                         writeTotal = True
                         
                 if writeTotal:
+                    c_received_record = sum(c_received_records.itervalues())
                     print >> h_received_record, str(time), str(timeoffset), str(c_received_record)
                     
             if message == "statistics-created-messages":
                 for key, value in kargs.iteritems():
                     if not messagestoplot or key in messagestoplot:
-                        c_created_record += 1
+                        c_created_records[key] = value
                         writeTotal = True
                         
                 if writeTotal:
+                    c_created_record  = sum(c_created_records.itervalues())
                     print >> h_created_record, str(time), str(timeoffset), str(c_created_record)
                     
             if message == "scenario-statistics":
