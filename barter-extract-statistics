@@ -65,7 +65,7 @@ def generate(peers_directory, messagestoplot):
         c_created_record = 0
         c_received_record = 0
         c_dropped_record = 0
-        max_incomming_connections = 0
+        cur_incomming_connections = max_incomming_connections = 0
 
         h_received_record = open(node + "/output/received-record.txt", "w+")
         print >> h_received_record, "# timestamp timeoffset num-records"
@@ -116,8 +116,9 @@ def generate(peers_directory, messagestoplot):
                 if 'candidates' in kargs:
                     candidates = kargs['candidates']
                     if len(candidates) > 0:
-                        max_incomming_connections = max(candidates[-1][1], max_incomming_connections)
-                        print >> h_total_connections, str(time), str(timeoffset), str(max_incomming_connections)
+                        cur_incomming_connections = candidates[-1][1]
+                        max_incomming_connections = max(cur_incomming_connections, max_incomming_connections)
+                        print >> h_total_connections, str(time), str(timeoffset), str(cur_incomming_connections)
             
             if message == "statistics-successful-messages":
                 for key, value in kargs.iteritems():
@@ -176,7 +177,7 @@ def generate(peers_directory, messagestoplot):
         print >> h_drop, str(time), str(timeoffset), str(c_dropped_record)
         h_drop.close()
         
-        print >> h_total_connections, str(time), str(timeoffset), str(max_incomming_connections)
+        print >> h_total_connections, str(time), str(timeoffset), str(cur_incomming_connections)
         h_total_connections.close()
         
         h_statistics.close()
