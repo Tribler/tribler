@@ -273,7 +273,7 @@ def generate(peers_directory, messagestoplot):
     
     parse_statistics(peers_directory)
 
-    bytes_per_second_experiment = float(sum_traffic)/len(traffic_count)/measure_interval_length
+    bytes_per_second_experiment = float(sum_traffic)/len(traffic_count)/experiment_length
 
     fn_measure_info = peers_directory + "/output/measure_info.txt"
     h_measure_info = open(fn_measure_info, "w+")
