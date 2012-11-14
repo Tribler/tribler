@@ -322,7 +322,7 @@ class SearchCommunity(Community):
                                 destination=(destination,),
                                 payload=payload)
 
-        self._dispersy.store_update_forward([request], False, False, True)
+        self._dispersy._forward([request])
         return request
     
     def on_taste_intro(self, messages):
@@ -441,9 +441,7 @@ class SearchCommunity(Community):
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), payload=(identifier, keywords))
             
-            if __debug__:
-                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"search-request")
-            self._dispersy.endpoint.send(candidates, [message.packet])
+            self._dispersy._send(candidates, [message])
         
         return len(candidates)
     
@@ -489,10 +487,8 @@ class SearchCommunity(Community):
         #create search-response message
         meta = self.get_meta_message(u"search-response")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), payload=(identifier, results))
-        if __debug__:
-            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"search-response")
-        self._dispersy.endpoint.send([candidate], [message.packet])
+                            distribution=(self.global_time,), destination=(candidate,), payload=(identifier, results))
+        self._dispersy._forward([message])
         
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: returning",len(results),"results to",candidate
@@ -542,10 +538,8 @@ class SearchCommunity(Community):
         #create torrent-request message
         meta = self.get_meta_message(u"torrent-request")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), payload=(torrentdict,))
-        if __debug__:
-            self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"torrent-request")
-        self._dispersy.endpoint.send([candidate], [message.packet])
+                            distribution=(self.global_time,), destination=(candidate,), payload=(torrentdict,))
+        self._dispersy._forward([message])
         
         if DEBUG:
             nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
@@ -558,13 +552,10 @@ class SearchCommunity(Community):
         for message in messages:
             requested_packets = []
             for cid, torrents in message.payload.torrents.iteritems():
-                reqmessages = self._get_messages_from_infohashes(cid, torrents)
-                for reqmessage in reqmessages:
-                    requested_packets.append(reqmessage.packet)
+                requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
 
             if requested_packets:
-                if __debug__:
-                    self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"torrent-response", len(requested_packets))
+                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"torrent-response", len(requested_packets))
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
             
             if DEBUG:
@@ -693,10 +684,9 @@ class SearchCommunity(Community):
             #create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), payload=(identifier, SWIFT_INFOHASHES, torrents))
-            if __debug__:
-                self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, meta_name)
-            self._dispersy.endpoint.send([candidate], [message.packet])
+                                distribution=(self.global_time,), destination=(candidate,), payload=(identifier, SWIFT_INFOHASHES, torrents))
+            
+            self._dispersy._forward([message])
     
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: send",meta_name,"to", candidate
@@ -761,16 +751,15 @@ class SearchCommunity(Community):
             if __debug__: dprint("join preview community ", cid.encode("HEX"))
             return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler) 
 
-    def _get_messages_from_infohashes(self, cid, infohashes):
-        messages = []
+    def _get_packets_from_infohashes(self, cid, infohashes):
+        packets = []
         
-        def add_message(dispersy_id):
+        def add_packet(dispersy_id):
             if dispersy_id and dispersy_id > 0:
                 try:
-                    message = self._get_message_from_dispersy_id(dispersy_id, "torrent")
-                    if message:
-                        messages.append(message)
-                    
+                    packet = self._get_packet_from_dispersy_id(dispersy_id, "torrent")
+                    if packet:
+                        packets.append(packet)
                 except RuntimeError:
                     pass
         
@@ -794,29 +783,18 @@ class SearchCommunity(Community):
                     if not dispersy_id and torrent['torrent_file_name'] and path.isfile(torrent['torrent_file_name']):
                         message = self.create_torrent(torrent['torrent_file_name'], store = True, update = False, forward = False)
                         if message:
-                            messages.append(message)
-            
-            add_message(dispersy_id)
-        return messages
+                            packets.append(message.packet)
+            add_packet(dispersy_id)
+        return packets
 
-    def _get_message_from_dispersy_id(self, dispersy_id, messagename):
+    def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
             packet, packet_id = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
-
-        # 2. convert packet into a Message instance
-        message = self._dispersy.convert_packet_to_message(str(packet))        
-        if message:
-            message.packet_id = packet_id
-        else:
-            raise RuntimeError("Unable to convert packet")
-        
-        if message.name == messagename:
-            return message
-        
-        raise RuntimeError("Message is of an incorrect type, expecting a '%s' message got a '%s'"%(messagename, message.name))
+    
+        return str(packet)
 
 class ChannelCastDBStub():
     def __init__(self, dispersy):
