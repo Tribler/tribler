@@ -1457,7 +1457,7 @@ class SearchList(GenericSearchList):
                     associated[channel.id] = [0, [], channel]
                 if channel.nr_favorites > 0 or channel.isFavorite():
                     associated[channel.id][0] += 1
-                associated[channel.id][1].append(torrent.infohash)
+                associated[channel.id][1].append(torrent)
                     
         #Determine the channels results
         results = self.GetManager().data_channels

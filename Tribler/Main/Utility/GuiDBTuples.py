@@ -480,10 +480,6 @@ class RemoteChannelTorrent(ChannelTorrent):
         ChannelTorrent.__init__(self, torrent_id, infohash, swift_hash, swift_torrent_hash, name, False, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
         self.query_candidates = query_candidates
         
-    def updateChannel(self, c):
-        ChannelTorrent.updateChannel(self, c)
-        self._channel.addTorrent(self)
-        
 class Channel(Helper):
     __slots__ = ('id', 'dispersy_cid', 'name', 'description', 'nr_torrents', 'nr_favorites', 'nr_spam', 'my_vote', 'modified', 'my_channel', 'torrents', 'popular_torrents')
     def __init__(self, id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, my_channel):

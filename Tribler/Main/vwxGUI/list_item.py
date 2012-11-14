@@ -421,13 +421,19 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         highlight = event and event.GetEventObject() == self.controls[self.at_index] and not event.Leaving()
         
         if self.at_index >= 0:
-            for infohash in self.data[-1]:
+            for torrent in self.data[-1]:
+                infohash = torrent.infohash
                 if infohash in self.parent_list.items:
                     torrent_item = self.parent_list.GetItem(infohash)
                     if highlight:
                         torrent_item.Highlight(colour = LIST_AT_HIGHLIST, timeout = 5, revert = True)
                     else:
                         torrent_item.ShowSelected()
+                        
+    def OnDClick(self, event):
+        for torrent in self.data[4]:
+            self.original_data.addTorrent(torrent)
+        ChannelListItem.OnDClick(self, event)
         
 
 class ChannelListItemNoButton(ChannelListItem):
