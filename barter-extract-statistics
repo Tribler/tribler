@@ -5,7 +5,7 @@ import re
 from os import listdir
 import os
 from sys import argv, exit
-from Tribler.dispersy.tool.ldecoder import parse
+from Tribler.dispersy.tool.ldecoder import parse, parselast
 
 # Global variable (yes, not the brightest thing)
 measured_record_count = {} # dictionary with the total record count per node at time measure_interval_stop
