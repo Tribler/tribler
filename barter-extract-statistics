@@ -4,7 +4,7 @@ from time import mktime
 import re
 from os import listdir
 import os
-from sys import argv, exit
+from sys import argv, exit, maxint
 from Tribler.dispersy.tool.ldecoder import parse, parselast
 
 # Global variable (yes, not the brightest thing)
@@ -69,7 +69,7 @@ def get_communities(peers_directory):
 
 def generate(peers_directory, messagestoplot):
     messagestoplot = [message for message in messagestoplot if message]
-    first = sys.maxint
+    first = maxint
     start = int(get_first_datetime(peers_directory))
     last = 0
     communities = get_communities(peers_directory)
