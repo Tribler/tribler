@@ -449,17 +449,20 @@ class DispersyPanel(HomePanel):
             ("LAN Address", '', lambda stats: "%s:%d" % stats.lan_address),
             ("Connection", '', lambda stats: str(stats.connection_type)),
             ("Runtime", '', lambda stats: self.utility.eta_value(stats.timestamp - stats.start)),
-            ("Download", '', lambda stats: self.utility.size_format(stats.total_down)),
-            ("Down avg", '', lambda stats: self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
-            ("Upload", '', lambda stats: self.utility.size_format(stats.total_up)),
-            ("Up avg", '', lambda stats: self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
-            ("Packets dropped", '', lambda stats: ratio(stats.drop_count, stats.received_count)),
-            ("Packets delayed", 'Total number of packets being delayed', lambda stats: ratio(stats.delay_count, stats.received_count)),\
+            ("Download", '', lambda stats: self.utility.size_format(stats.total_down) + " or " + self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
+            ("Upload", '', lambda stats: self.utility.size_format(stats.total_up) + " or " + self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
+            
+            ("Packets send", 'Packets send vs Packets handled', lambda stats: ratio(stats.total_send, stats.received_count+stats.total_send)),
+            ("Packets received", 'Packets received vs Packets handled', lambda stats: ratio(stats.received_count, stats.received_count+stats.total_send)),
+            ("Packets dropped", 'Packets dropped vs Packets received', lambda stats: ratio(stats.drop_count, stats.received_count)),
+            ("Packets success", 'Messages successfully handled vs Packets received', lambda stats: ratio(stats.success_count, stats.received_count)),
+            ("Packets delayed", 'Packets being delayed vs Packets reveived', lambda stats: ratio(stats.delay_count, stats.received_count)),\
+            ("Sync-Messages created", 'Total number of sync messages created by us in this session', lambda stats: str(stats.created_count)),
+            
             ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being send', lambda stats: ratio(stats.delay_send, stats.delay_count)),
             ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
-            ("Packets success", '', lambda stats: ratio(stats.success_count, stats.received_count)),
-            ("Sync messages created", 'Total number of sync messages created by us in this session', lambda stats: str(stats.created_count)),
+            
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
