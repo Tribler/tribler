@@ -62,14 +62,16 @@ def get_communities(peers_directory):
                     communities.add(community)
         except:
             pass
-        
+    
+    communities = list(communities)
+    communities.sort()
     return communities
 
 def generate(peers_directory, messagestoplot):
     messagestoplot = [message for message in messagestoplot if message]
     first = int(get_first_datetime(peers_directory))
     lasts = []
-    communities = list(get_communities(peers_directory))
+    communities = get_communities(peers_directory)
     import sys
     print >> sys.stderr, communities
 
