@@ -59,7 +59,6 @@ def get_communities(peers_directory):
                 for community, nrcandidates in kargs['candidates']:
                     communities.add(community)
         except:
-            print_exc()
             pass
         
     return communities
@@ -69,6 +68,7 @@ def generate(peers_directory, messagestoplot):
     first = int(get_first_datetime(peers_directory))
     lasts = []
     communities = list(get_communities(peers_directory))
+    print >> sys.stderr, communities
 
     node_list = [x for x in get_nodes(peers_directory)]
     def node_cmp(a, b):
