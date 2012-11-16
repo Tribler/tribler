@@ -143,8 +143,7 @@ def generate(peers_directory, messagestoplot):
                     print >> h_drop, str(time), str(timeoffset), str(c_dropped_record)
                     
                 if 'candidates' in kargs:
-                    candidates = kargs['candidates']
-                    for community, nrcandidates in canidates:
+                    for community, nrcandidates in kargs['candidates']:
                         c_communities[community] = nrcandidates
                     
                     max_incomming_connections = max(c_communities.values(), max_incomming_connections)
