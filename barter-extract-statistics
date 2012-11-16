@@ -59,6 +59,7 @@ def get_communities(peers_directory):
                 for community, nrcandidates in kargs['candidates']:
                     communities.add(community)
         except:
+            print_exc()
             pass
         
     return communities
