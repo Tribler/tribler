@@ -295,11 +295,10 @@ def generate(peers_directory, messagestoplot):
 
     # count how many records were there in the system at each point in time
     records_in_time = {}
-    for time in range(experiment_length + 1):
-        records_in_time[time] = 0
     for node in record_count.keys():
         update_count = len(record_count[node])
         update_times = sorted(record_count[node].keys())
+        
         for i in range(update_count):
             extra = record_count[node][update_times[i]][2] # total number of records is in the list on the 3rd position
             if extra < sum_at_experiment_end: continue
@@ -307,13 +306,16 @@ def generate(peers_directory, messagestoplot):
                 last_time = experiment_length + 1
             else:
                 last_time = update_times[i+1]
+                
             for time in range(update_times[i], last_time):
-                records_in_time[time] += 1
+                records_in_time[time] = records_in_time.get(time, 0) + 1
 
     fn = peers_directory + "/output/peers_with_all_records_in_time.txt"
     h = open(fn, "w+")
     print >> h, "# time record_count"
-    for time in range(experiment_length + 1):
+    times = records_in_time.keys()
+    times.sort()
+    for time in times:
         print >> h, "%d %d"%(time, records_in_time[time])
     h.close()
     
