@@ -34,10 +34,21 @@ def get_title(node):
 def get_first_datetime(peers_directory):
     datetimes = []
     for node in get_nodes(peers_directory):
-        _, time, _, _ = parse(node + "/output/dispersy.log").next()
-        datetimes.append(time)
+        try:
+            _, _, _, kargs = parse(node + "/output/dispersy.log", ('joined-community', )).next()
+            if 'starting_timestamp' in kargs:
+                datetimes.append(kargs['starting_timestamp'])
+        except:
+            pass
+    
+    #Fallback to old method
+    if not datetimes:
+        print >> sys.stderr, "USING fallback for get_first_datetime"
+        for node in get_nodes(peers_directory):
+            _, time, _, _ = parse(node + "/output/dispersy.log").next()
+            datetimes.append(time)
+            
     return min(datetimes)
-
 
 def generate(peers_directory, messagestoplot):
     messagestoplot = [message for message in messagestoplot if message]
