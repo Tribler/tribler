@@ -54,10 +54,10 @@ def get_communities(peers_directory):
     communities = set()
     for node in get_nodes(peers_directory):
         try:
-            _, _, _, kargs = parselast(node + "/output/dispersy.log", ('statistics', ), chars = 5120).next()
+            _, _, _, kargs = parselast(node + "/output/dispersy.log", ('statistics', ), chars = 2048).next()
             if 'candidates' in kargs:
                 import sys
-                print >> sys.stderr, kargs
+                print >> sys.stderr, node, kargs['candidates']
                 for community, nrcandidates in kargs['candidates']:
                     communities.add(community)
         except:
