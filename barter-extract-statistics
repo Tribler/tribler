@@ -50,10 +50,24 @@ def get_first_datetime(peers_directory):
             
     return min(datetimes)
 
+def get_communities(peers_directory):
+    communities = set()
+    for node in get_nodes(peers_directory):
+        try:
+            _, _, _, kargs = parselast(node + "/output/dispersy.log", ('statistics', )).next()
+            if 'candidates' in kargs:
+                for community, nrcandidates in kargs['candidates']:
+                    communities.add(community)
+        except:
+            pass
+        
+    return communities
+
 def generate(peers_directory, messagestoplot):
     messagestoplot = [message for message in messagestoplot if message]
     first = int(get_first_datetime(peers_directory))
     lasts = []
+    communities = list(get_communities(peers_directory))
 
     node_list = [x for x in get_nodes(peers_directory)]
     def node_cmp(a, b):
@@ -78,6 +92,7 @@ def generate(peers_directory, messagestoplot):
         c_received_record = 0
         c_received_records = {}
         c_dropped_record = 0
+        c_communities = {}
         cur_incomming_connections = max_incomming_connections = 0
 
         h_received_record = open(node + "/output/received-record.txt", "w+")
@@ -93,8 +108,9 @@ def generate(peers_directory, messagestoplot):
         print >> h_total_record, "0 0 0"
         
         h_total_connections = open(node + "/output/total-connections.txt", "w+")
-        print >> h_total_connections, "# timestamp timeoffset num-connections"
-        print >> h_total_connections, "0 0 0"
+        print >> h_total_connections, "# timestamp timeoffset (num-connections +)"
+        print >> h_total_connections, "#", " ".join(communities) 
+        print >> h_total_connections, "0 0" + (" 0"*len(communities))
         
         h_statistics = open(node + "/output/scenario-statistics.txt", "w+")
         print >> h_statistics, "# timestamp timeoffset key value"
@@ -128,10 +144,14 @@ def generate(peers_directory, messagestoplot):
                     
                 if 'candidates' in kargs:
                     candidates = kargs['candidates']
-                    if len(candidates) > 0:
-                        cur_incomming_connections = candidates[0][1]
-                        max_incomming_connections = max(cur_incomming_connections, max_incomming_connections)
-                        print >> h_total_connections, str(time), str(timeoffset), str(cur_incomming_connections)
+                    for community, nrcandidates in canidates:
+                        c_communities[community] = nrcandidates
+                    
+                    max_incomming_connections = max(c_communities.values(), max_incomming_connections)
+                    print >> h_total_connections, str(time), str(timeoffset),
+                    for community in communities:
+                        print >> h_total_connections, c_communities.get(community, 0),
+                    print >> h_total_connections, ''
             
             if message == "statistics-successful-messages":
                 for key, value in kargs.iteritems():
@@ -192,7 +212,10 @@ def generate(peers_directory, messagestoplot):
         print >> h_drop, str(time), str(timeoffset), str(c_dropped_record)
         h_drop.close()
         
-        print >> h_total_connections, str(time), str(timeoffset), str(cur_incomming_connections)
+        print >> h_total_connections, str(time), str(timeoffset),
+        for community in communities:
+            print >> h_total_connections, c_communities.get(community, 0),
+        print >> h_total_connections, ''
         h_total_connections.close()
         
         h_statistics.close()
