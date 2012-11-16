@@ -69,8 +69,9 @@ def get_communities(peers_directory):
 
 def generate(peers_directory, messagestoplot):
     messagestoplot = [message for message in messagestoplot if message]
-    first = int(get_first_datetime(peers_directory))
-    lasts = []
+    first = sys.maxint
+    start = int(get_first_datetime(peers_directory))
+    last = 0
     communities = get_communities(peers_directory)
     import sys
     print >> sys.stderr, communities
@@ -133,7 +134,9 @@ def generate(peers_directory, messagestoplot):
         record_count[nodename] = {}
         for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
             time = int(time)
-            timeoffset = time - first
+            timeoffset = time - start
+            first = min(first, timeoffset)
+            
             writeTotal = False
             
             if message == "statistics":
@@ -226,7 +229,7 @@ def generate(peers_directory, messagestoplot):
         h_statistics.close()
         h_stat.close()
         
-        lasts.append(time)        
+        last = max(last, timeoffset)        
         nr_connections.append((max_incomming_connections, nodename))
         nr_connections.sort(reverse = True)
         nr_connections = nr_connections[:10]
@@ -237,8 +240,7 @@ def generate(peers_directory, messagestoplot):
     f.close() 
 
     # returns the first and the last last timetime
-    last = int(max(lasts))
-    experiment_length = last - first
+    experiment_length = last - start
     sum_received_records(peers_directory)    
     sum_at_experiment_end = sum_created_records(peers_directory)
     
