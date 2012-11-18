@@ -155,7 +155,7 @@ def generate(peers_directory, messagestoplot):
                     for community, nrcandidates in kargs['candidates']:
                         c_communities[community] = nrcandidates
                     
-                    max_incomming_connections = max(c_communities.values(), max_incomming_connections)
+                    max_incomming_connections = max(max(c_communities.values()), max_incomming_connections)
                     print >> h_total_connections, str(time), str(timeoffset),
                     for community in communities:
                         print >> h_total_connections, c_communities.get(community, 0),
