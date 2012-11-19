@@ -91,7 +91,7 @@ def plot_total_records(peers_directory, first, last):
     print "with steps lw 2",
     print ""
     
-def plot_total_connections(peers_directory, first, last):
+def plot_total_connections(peers_directory, first, last, column = 3):
     """ I plot the total (received, created) connections per peer """
     print "set ylabel 'number of connections per peer'"
     # print "set yrange [%d:%d]" % (0, 1500)
@@ -106,7 +106,7 @@ def plot_total_connections(peers_directory, first, last):
 
         filename = node + "/output/total-connections.txt"
         print "'%s'" % filename,
-        print "using 2:3",
+        print "using 2:%d"%column,
         print "title '%s'" % get_title(node),
         print "with steps",
 
@@ -258,8 +258,17 @@ def records(peers_directory, first, last):
     plot_total_records(peers_directory, first, last)
     
 def connections(peers_directory, first, last):
-    header(peers_directory, "connections-total")
-    plot_total_connections(peers_directory, first, last)
+    node1 = get_nodes(peers_directory)[0]
+    f = open(node + "/output/total-connections.txt", 'r')
+    f.readline()
+    communities = f.readline().split()
+    f.close()
+    
+    communities = communities[1:]
+    for i, community in enumerate(communities):
+        header(peers_directory, "connections-total-%d"%(i+1))
+        print 'set title "%s"'%community
+        plot_total_connections(peers_directory, first, last, column = 3+i)
 
 def received_records(peers_directory, first, last):
     header(peers_directory, "records-received")
