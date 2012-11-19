@@ -63,6 +63,7 @@ MY_IP=$(ip address show dev $iface | grep 'inet ' | awk -F '[/ ]' '{print $6}')
 export PYTHONPATH=${BRANCH}:/home/$USER/3rd-party/lib/python2.6/site-packages:/home/$USER/3rd-party/lib64/python2.6/site-packages:$PYTHONPATH
 export LD_LIBRARY_PATH=/home/$USER/3rd-party/lib:$LD_LIBRARY_PATH
 
+echo ${BRANCH}/das4-config-sync-client.py $HEAD_IP $MY_IP
 config="$(${BRANCH}/das4-config-sync-client.py $HEAD_IP $MY_IP)"
 MY_ID=$(echo $config | cut -d' ' -f1)
 STARTING_TIMESTAMP=$(echo $config | cut -d' ' -f2)
