@@ -259,7 +259,7 @@ def records(peers_directory, first, last):
     
 def connections(peers_directory, first, last):
     node1 = get_nodes(peers_directory).next()
-    f = open(node + "/output/total-connections.txt", 'r')
+    f = open(node1 + "/output/total-connections.txt", 'r')
     f.readline()
     communities = f.readline().split()
     f.close()
