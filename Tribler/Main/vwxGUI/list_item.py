@@ -284,7 +284,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 break
         
         if do_add:
-            button = self.AddButton("Download", lambda evt, data = self.original_data: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
+            button = self.AddButton("Download", lambda evt: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
             button.Enable('completed' not in self.original_data.state)
             
     @warnWxThread        
@@ -353,6 +353,9 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 item.AddButtons()
 
         self.guiutility.WriteGuiSetting("hide_buttons", not show)      
+        
+    def OnDClick(self, event):
+        self.guiutility.frame.top_bg.OnDownload([self.original_data])
         
         
 class ChannelListItem(DoubleLineListItemWithButtons):
