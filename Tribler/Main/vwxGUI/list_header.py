@@ -363,7 +363,7 @@ class SearchHeaderHelper():
     @warnWxThread
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
-        self.filter.SetDescriptiveText('Search within results')
+        self.filter.SetDescriptiveText('Filter results')
         self.filter.Bind(wx.EVT_TEXT, self.OnKey)
         self.filter.SetMinSize((175,-1))
         
@@ -627,7 +627,7 @@ class TorrentFilter(BaseFilter):
         self.filesize.SetFormatter(self.guiutility.utility.size_format)
        
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within results')
+        self.search.SetDescriptiveText('Filter results')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))
@@ -889,7 +889,7 @@ class SelectedChannelFilter(TorrentFilter):
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
         
-        self.search.SetDescriptiveText('Search within channel')
+        self.search.SetDescriptiveText('Filter channel content')
         
         self.heading_list = self.GetHeadingList(self)
 
@@ -964,7 +964,7 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
     def AddComponents(self, spacers):
         SelectedChannelFilter.AddComponents(self, spacers)
         
-        self.search.SetDescriptiveText('Search within playlist')
+        self.search.SetDescriptiveText('Filter playlist content')
 
     @warnWxThread
     def SetHeading(self, item):
@@ -1031,7 +1031,7 @@ class ChannelFilter(BaseFilter):
         self.channeltype.Bind(wx.EVT_LEFT_UP, self.OnPopupChannelType)
         
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within channels')
+        self.search.SetDescriptiveText('Filter channels')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))
@@ -1177,7 +1177,7 @@ class DownloadFilter(BaseFilter):
         self.state.Bind(wx.EVT_LEFT_UP, self.OnPopupState)
         
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within downloads')
+        self.search.SetDescriptiveText('Filter downloads')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))
@@ -1214,7 +1214,6 @@ class DownloadFilter(BaseFilter):
             menu.Bind(wx.EVT_MENU, lambda x, state=state: self.OnState(state), id=itemid)
             if state == 'All':
                 enabled = bool(currentState)
-            else:
                 enabled = state.lower() == currentState.lower()
             menu.Check(itemid, enabled)
 

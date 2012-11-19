@@ -120,18 +120,9 @@ class ChannelManager(BaseManager):
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
-        #sometimes a channel has some torrents in the torrents variable, merge them here
-        if self.list.channel.torrents:
-            remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
-            for torrent in torrents:
-                if torrent.infohash in remoteTorrents:
-                    remoteTorrents.discard(torrent.infohash)
-            
-            self.list.channel.torrents = set([torrent for torrent in self.list.channel.torrents if torrent.infohash in remoteTorrents])
-            torrents = torrents + list(self.list.channel.torrents)
-        
         #only show a small random selection of available content for non-favorite channels
-        if not self.list.channel.isFavorite() and not self.list.channel.isMyChannel():
+        inpreview = not self.list.channel.isFavorite() and not self.list.channel.isMyChannel()
+        if inpreview:
             if len(playlists) > 3:
                 playlists = sample(playlists, 3)
                 
@@ -141,6 +132,17 @@ class ChannelManager(BaseManager):
                 
                 torrents = sample(torrents, CHANNEL_MAX_NON_FAVORITE)
                 torrents.sort(cmp=cmp_torrent, reverse = True)
+        
+        #sometimes a channel has some torrents in the torrents variable, merge them here
+        if self.list.channel.torrents:
+            remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
+            for i in xrange(len(torrents), 0, -1):
+                if torrents[i-1].infohash in remoteTorrents:
+                    torrents.pop(i-1)
+            
+            torrents = list(self.list.channel.torrents) + torrents
+            if inpreview:
+                torrents = torrents[:CHANNEL_MAX_NON_FAVORITE]
         
         self.list.SetData(playlists, torrents)
         if DEBUG:    
@@ -429,8 +431,7 @@ class SelectedChannelList(GenericSearchList):
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, DragItem) for torrent in torrents]
             else:
-                for torrent in torrents:
-                    data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem)]
+                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem) for torrent in torrents] 
             self.list.SetData(data)
             
         else:

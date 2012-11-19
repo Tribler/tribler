@@ -16,6 +16,7 @@ from wx.lib.wordwrap import wordwrap
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR,\
     SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
+from wx.lib.embeddedimage import PyEmbeddedImage
 
 DEBUG = False
 
@@ -408,11 +409,23 @@ class NativeIcon:
             wx.RendererNative.Get().DrawTreeItemButton(parent, dc, (4, 4, 16, 16), state)
             
         elif type == 'arrow':
-            from wx.lib.embeddedimage import PyEmbeddedImage
             arrow = PyEmbeddedImage(
-                "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAAA3NCSVQICAjb4U/gAAAAGklE"
-                "QVQImWNgwAo+fPiAKcKEJgFhMyFz4NIALdoQ5dJXG4AAAAAASUVORK5CYII=")
+                "iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAYAAABCxiV9AAAAAXNSR0IArs4c6QAAAARnQU1B"
+                "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
+                "VCB2My41LjEwMPRyoQAAADFJREFUGFdjYGBg+I8Tf/jwQRSbJFCckQFIcIEZSCYA+RxAzAyS"
+                "BGFGmAIgzQTlMwAAOBAx4jYP9TUAAAAASUVORK5CYII=")
             return arrow.GetBitmap()
+        
+        elif type == 'slider':
+            slider = PyEmbeddedImage(
+                "iVBORw0KGgoAAAANSUhEUgAAAAkAAAAICAYAAAArzdW1AAAAAXNSR0IArs4c6QAAAARnQU1B"
+                "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
+                "VCB2My41LjEwMPRyoQAAAMZJREFUKFNlj7EKg0AMhm9y6ZOogyA6KG6i6Ka4qEuhg1xFK+g5"
+                "Wd+2UwUHW7qmiaW3GPhJSH6+JMyyrIfneZCmKWRZJpUkCbiuC7ZtP5mu61DXNYzjeBD1ac4M"
+                "wwDOObRtexD1ac5UVX3leQ5934MQQtKoLssSNE37MN/3r6ZpLoSepkmqaRq6Zw2CQDCKMAwv"
+                "+MA2DAPM87wT0bCh4bwbuq5juE6J4/iKX76rqgLMaxRFvCgKRZr24ke8O46z4Am3PwAhpy8k"
+                "y3qZwc++5gAAAABJRU5ErkJggg==")
+            return slider.GetBitmap()
             
         dc.SelectObject(wx.NullBitmap)
         del dc
@@ -1779,7 +1792,7 @@ class MinMaxSlider(wx.Panel):
         self.Refresh()
         
     def LoadIcons(self):
-        self.arrow_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.arrow_down = NativeIcon.getInstance().getBitmap(self, 'slider', self.GetBackgroundColour(), state=0)
         img = self.arrow_down.ConvertToImage()
         self.arrow_up = img.Rotate90().Rotate90().ConvertToBitmap()
         

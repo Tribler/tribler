@@ -171,7 +171,9 @@ class GUIUtility:
             if page == 'playlist':
                 self.SetTopSplitterWindow(self.frame.playlist)
                 items = self.frame.playlist.GetExpandedItems()
-                if not items:
+                if items:
+                    self.frame.playlist.Select(items[0][0])
+                else:
                     self.frame.playlist.ResetBottomWindow()
                 channelmenu = self.frame.actlist.GetItem(3)
                 if channelmenu and channelmenu.expandedPanel:
@@ -383,7 +385,7 @@ class GUIUtility:
             keywords = [keyword for keyword in keywords if len(keyword) > 1]
             
             if len(keywords)  == 0:
-                self.Notify('Please enter a search term', wx.ART_INFORMATION)
+                self.Notify('Please enter a search term', "Your search term '%s' was either to small or to general." % input , icon = wx.ART_INFORMATION)
                 
             else:
                 self.frame.top_bg.StartSearch()

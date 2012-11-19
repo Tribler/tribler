@@ -355,7 +355,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         self.guiutility.WriteGuiSetting("hide_buttons", not show)      
         
     def OnDClick(self, event):
-        self.guiutility.frame.top_bg.OnDownload([self.original_data])
+        self.guiutility.frame.top_bg.OnDownload(None, [self.original_data])
         
         
 class ChannelListItem(DoubleLineListItemWithButtons):

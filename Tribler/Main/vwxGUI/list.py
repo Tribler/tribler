@@ -248,6 +248,7 @@ class LocalSearchManager(BaseManager):
             
     def downloadStarted(self, infohash):
         self.prev_refresh_if = 0
+        self.refresh()
         
 class ChannelSearchManager(BaseManager):
     def __init__(self, list):

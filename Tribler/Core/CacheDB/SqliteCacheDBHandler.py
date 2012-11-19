@@ -4754,7 +4754,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
 
             catobj = Category.getInstance()
             if catobj.family_filter_enabled():
-                return filter(lambda term: not catobj.xxx_filter.foundXXXTerm(term), terms)[:num]
+                return filter(lambda term: not catobj.xxx_filter.isXXXTerm(term), terms)[:num]
             else:
                 return terms[:num]
         else:

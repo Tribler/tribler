@@ -649,7 +649,7 @@ class MainFrame(wx.Frame):
             
             print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
-
+            
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
 

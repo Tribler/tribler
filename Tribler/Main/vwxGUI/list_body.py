@@ -462,7 +462,8 @@ class ListItem(wx.Panel):
             #panel.SetFont(panel.GetDefaultAttributes().font)
         
         panel.Show()
-        self.vSizer.Add(panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
+        if not self.vSizer.GetItem(panel, recursive = True):
+            self.vSizer.Add(panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
         self.Layout()
         
     def GetExpandedPanel(self):
@@ -1113,7 +1114,7 @@ class AbstractListBody():
                         else:
                             message = 'Only showing the first %d of %d items in this list.'%(len(self.vSizer.GetChildren()), len(self.data))
                             if self.hasFilter:
-                                message +='\nSearch within results to reduce the number of items, or click the button below.'
+                                message +='\nFilter results to reduce the number of items, or click the button below.'
                             
                         remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
                         self.loadNext.SetLabel("Show next %d items"%remainingItems)
