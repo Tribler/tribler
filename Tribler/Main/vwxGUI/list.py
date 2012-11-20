@@ -1638,6 +1638,8 @@ class LibraryList(SizeList):
         self.statefilter = None
         self.newfilter = False
         self.prevStates = {}
+        
+        self.initnumitems = False
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
                    {'name':'Progress', 'type':'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False}, \
@@ -1906,6 +1908,7 @@ class LibraryList(SizeList):
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
+        highlight = nr > self.nr_results and self.initnumitems
         SizeList.SetNrResults(self, nr)
         
         actitem = self.guiutility.frame.actlist.GetItem(4)
@@ -1913,7 +1916,9 @@ class LibraryList(SizeList):
         if num_items:
             num_items.SetValue(str(nr))
             actitem.hSizer.Layout()
-    
+            if highlight: actitem.Highlight()
+            self.initnumitems = True
+
     @warnWxThread
     def OnFilter(self, keyword):
         self.statefilter = None

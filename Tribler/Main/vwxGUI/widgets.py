@@ -420,11 +420,11 @@ class NativeIcon:
             slider = PyEmbeddedImage(
                 "iVBORw0KGgoAAAANSUhEUgAAAAkAAAAICAYAAAArzdW1AAAAAXNSR0IArs4c6QAAAARnQU1B"
                 "AACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5F"
-                "VCB2My41LjEwMPRyoQAAAMZJREFUKFNlj7EKg0AMhm9y6ZOogyA6KG6i6Ka4qEuhg1xFK+g5"
-                "Wd+2UwUHW7qmiaW3GPhJSH6+JMyyrIfneZCmKWRZJpUkCbiuC7ZtP5mu61DXNYzjeBD1ac4M"
-                "wwDOObRtexD1ac5UVX3leQ5934MQQtKoLssSNE37MN/3r6ZpLoSepkmqaRq6Zw2CQDCKMAwv"
-                "+MA2DAPM87wT0bCh4bwbuq5juE6J4/iKX76rqgLMaxRFvCgKRZr24ke8O46z4Am3PwAhpy8k"
-                "y3qZwc++5gAAAABJRU5ErkJggg==")
+                "VCB2My41LjEwMPRyoQAAAOZJREFUKFM9j71rg1AUxd9LIUuX/gvZRAcRdfBjqp+jIoKYoZBQ"
+                "UdEO+pysa6f+mZ0ayJCWri/nhcYLP7icc+6BS3Rd/3Jdl6dpyrMsW0mShNu2zU3T/CaKovC2"
+                "bV+naXoGOTiAPRihN8Inqqryuq6Nvu83gALyD4W+Ez6RJOmnKIrPYRieGGMbNBCwxU7Lspxk"
+                "Wf4jvu83mqadUP0xz/MDoIKu65hhGGf4jIgJw/CABy7jOPbLslC07BG4BEHwcguIyfN8G8dx"
+                "4zjOb1VVR3x7jqKoFvoaui+4fLcs6+R53ttdQ/vjFXw5XtzmpGeLAAAAAElFTkSuQmCC")
             return slider.GetBitmap()
             
         dc.SelectObject(wx.NullBitmap)

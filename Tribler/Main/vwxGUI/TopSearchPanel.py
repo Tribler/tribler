@@ -414,7 +414,7 @@ class TopSearchPanel(GradientPanel):
             if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
                 self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
                 self.guiutility.frame.librarylist.RemoveItem(torrent.infohash)
-                self.guiutility.frame.librarylist.do_or_schedule_refresh()
+                self.guiutility.frame.librarylist.GetManager().refresh()
                 if self.guiutility.frame.librarylist.IsShownOnScreen():
                     self.ClearButtonHandlers()
                     self.guiutility.frame.librarylist.ResetBottomWindow()
