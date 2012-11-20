@@ -119,9 +119,7 @@ class SwiftProcessMgr:
         # Called by any thread, assume sessionlock is held
         print >>sys.stderr,"spm: early_shutdown"
         self.done = True
-
-    def shutdown(self): # InstanceConnectionHandler
-        """ Gets called when i2is.shutdown is called. Do not call directly """
+        
         for sp in self.sps:
             try:
                 sp.early_shutdown()
@@ -138,7 +136,6 @@ class SwiftProcessMgr:
                 print_exc()
 
     def connection_lost(self,port):
-        
         if self.done:
             return
 

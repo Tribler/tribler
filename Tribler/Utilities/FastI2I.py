@@ -56,6 +56,14 @@ class FastI2IConnection(Thread):
             print_exc()
             self.close()
 
+    def stop(self):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect(('127.0.0.1', self.port))
+            s.send('')
+            s.close()
+        except:
+            pass        
     
     def data_came_in(self,data):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """

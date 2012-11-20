@@ -74,6 +74,8 @@ class SwiftTracker(threading.Thread):
         except (socket.error):
 #            droid.log('EXCEP: swift_port in use')
             raise
+        self.stop_dht = False
+        self.swift_port = swift_port
         self.channel_m = ChannelManager()
         
     def run(self):
@@ -81,8 +83,7 @@ class SwiftTracker(threading.Thread):
         if prctlimported:
             prctl.set_name("Tribler"+threading.currentThread().getName())
         
-        stop_dht = False
-        while not stop_dht:
+        while not self.stop_dht:
             try:
                 data, addr = self.socket.recvfrom(1024)
             except (socket.timeout):
@@ -92,8 +93,15 @@ class SwiftTracker(threading.Thread):
                 #droid.log('EXCEPTION in recvfrom')
                 pass
             else:
-                stop_dht = self.handle(data, addr)
+                self.stop_dht = self.handle(data, addr) or self.stop_dht
         self.pymdht.stop()
+        
+    def stop(self):
+        if not self.stop_dht:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.sendto('KILL_DHT', ('127.0.0.1', self.swift_port))
+        
+            self.stop_dht = True
 
     def _on_peers_found(self, channel, peers, node):
         if peers is None:

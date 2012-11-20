@@ -152,6 +152,13 @@ class ABCApp():
         self.dispersy = None
         # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
         self.effort_community = None
+        
+        self.seedingmanager = None
+        self.i2is = None
+        self.torrentfeed = None    
+        self.webUI = None
+        self.utility = None
+        self.videoplayer = None
 
         try:
             bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.png'),wx.BITMAP_TYPE_ANY)
@@ -169,8 +176,8 @@ class ABCApp():
             self.PostInit()
                 
         except Exception,e:
+            print_exc()
             self.onError(e)
-            return False
 
     def PostInit(self):
         try:
@@ -954,32 +961,44 @@ class ABCApp():
         self.done = True
 
         # write all persistent data to disk
-        self.seedingmanager.write_all_storage()
-        
-        self.i2is.shutdown()
-                
-        self.torrentfeed.shutdown()
+        if self.seedingmanager:
+            self.seedingmanager.write_all_storage()
+        if self.i2is:
+            self.i2is.shutdown()
+        if self.torrentfeed:    
+            self.torrentfeed.shutdown()
         if self.webUI:
             self.webUI.stop()
+        if self.guiserver:
+            self.guiserver.shutdown()
+        if self.videoplayer:
+            self.videoplayer.shutdown()
+        
+        if self.frame:
+            del self.frame
         
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()
         
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
-        self.utility.session.shutdown(hacksessconfcheckpoint=False)
+        if self.utility:
+            self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
-        # Arno, 2012-07-12: Shutdown should be quick
-        waittime = 5
-        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < waittime:
-            diff = time() - session_shutdown_start
-            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
-            sleep(3)
-        print >>sys.stderr,"main: ONEXIT Session is shutdown"
+            # Arno, 2012-07-12: Shutdown should be quick
+            waittime = 5
+            while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < waittime:
+                diff = time() - session_shutdown_start
+                print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
+                sleep(3)
+            print >>sys.stderr,"main: ONEXIT Session is shutdown"
         
-        print >>sys.stderr,"main: ONEXIT cleaning database"
-        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-        peerdb._db.clean_db(randint(0,24) == 0)
+            print >>sys.stderr,"main: ONEXIT cleaning database"
+            peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+            peerdb._db.clean_db(randint(0,24) == 0)
+            
+            Session.del_instance()
+            GUIUtility.del_instance()
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -1294,13 +1313,14 @@ def run(params = None):
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)
-            
                 app.MainLoop()
 
             # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
             abc.OnExit()
 
             #Niels: No code should be present here, only executed after gui closes
+            del abc
+            del app
             
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(5)

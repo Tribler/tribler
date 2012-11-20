@@ -66,6 +66,7 @@ class TorrentChecking(Thread):
         
         self.retryThreshold = 10
         self.interval = interval
+        self.shouldquit = False
         
         self.queue = deque()
         self.queueset = set()
@@ -89,6 +90,11 @@ class TorrentChecking(Thread):
     
     def setInterval(self, interval):
         self.interval = interval
+        
+    def shutdown(self):
+        self.shouldquit = True
+        self.sleepEvent.set()
+        self.announceQueue.put(None)
         
     #add a torrent to the queue, this will schedule a call to update the status etc. for this torrent
     #if the queue is currently full, it will not!
@@ -148,7 +154,7 @@ class TorrentChecking(Thread):
             prctl.set_name("Tribler"+currentThread().getName())
         
         #request new infohash from queue, start database
-        while True:
+        while not self.shouldquit:
             start = time()
             self.sleepEvent.clear()
             try:
@@ -180,15 +186,16 @@ class TorrentChecking(Thread):
                     multi_announce_dict = multiTrackerChecking(torrent, self.getInfoHashesForTracker)
                     if DEBUG:
                         print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") ,torrent["info"].get("announce-list", "")
-                        
-                    # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
-                    with self.queueLock:
-                        for tor in self.queue:
-                            if tor['infohash'] in multi_announce_dict:
-                                tor['last_check'] = time()
-    
-                    # Update torrent with new status
-                    self.dbUpdateTorrents(torrent, multi_announce_dict)
+                    
+                    if not self.shouldquit:
+                        # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
+                        with self.queueLock:
+                            for tor in self.queue:
+                                if tor['infohash'] in multi_announce_dict:
+                                    tor['last_check'] = time()
+        
+                        # Update torrent with new status
+                        self.dbUpdateTorrents(torrent, multi_announce_dict)
                     
                 self.announceQueue.task_done()
             
@@ -196,8 +203,7 @@ class TorrentChecking(Thread):
                 print_exc()
             
             # schedule sleep time, only if we do not have any infohashes scheduled
-            if len(self.queue) == 0:
-                
+            if len(self.queue) == 0 and not self.shouldquit:
                 diff = time() - start
                 remaining = int(self.interval - diff)
                 if remaining > 0:

@@ -252,6 +252,10 @@ class Session(SessionRuntimeConfig):
         return Session.__single != None
     has_instance = staticmethod(has_instance)
 
+    def del_instance():
+        Session.__single = None
+    del_instance = staticmethod(del_instance)
+
     def get_default_state_dir(homedirpostfix='.Tribler'):
         """ Returns the factory default directory for storing session state
         on the current platform (Win32,Mac,Unix).
@@ -658,7 +662,7 @@ class Session(SessionRuntimeConfig):
         self.lm.early_shutdown()
         self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,gracetime=gracetime,hacksessconfcheckpoint=hacksessconfcheckpoint)
         # Arno, 2010-08-09: now shutdown after gracetime
-        #self.uch.shutdown()
+        self.uch.shutdown()
     
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal

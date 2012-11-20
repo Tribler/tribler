@@ -1072,7 +1072,8 @@ class MainFrame(wx.Frame):
             
         print >>sys.stderr, "mainframe: Calling quit"
         self.quit(event != None or force)
-
+        self.Destroy()
+        
         if DEBUG:
             print >>sys.stderr,"mainframe: OnCloseWindow END"
             ts = enumerate()
@@ -1135,8 +1136,8 @@ class MainFrame(wx.Frame):
                 if DEBUG:
                     print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
                 return
-                
-            if currentThread().getName() != "MainThread":
+            
+            if not wx.Thread_IsMain():
                 if DEBUG:
                     print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
                     print_stack()

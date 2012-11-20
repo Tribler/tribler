@@ -98,6 +98,7 @@ class Notifier:
                             
                             self.observerscache[ofunc] = []
                             t = Timer(cache, doQueue, (ofunc, ))
+                            t.setName("Notifier-timer")
                             t.start()
                             
                         self.observerscache[ofunc].append(args)

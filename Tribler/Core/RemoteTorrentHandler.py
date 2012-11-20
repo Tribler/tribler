@@ -61,8 +61,8 @@ class RemoteTorrentHandler:
         self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue 
-        tqueue = TimedTaskQueue("RemoteTorrentHandler")
-        self.scheduletask = tqueue.add_task
+        self.tqueue = TimedTaskQueue("RemoteTorrentHandler")
+        self.scheduletask = self.tqueue.add_task
         self.torrent_db = session.open_dbhandler('torrents')
         
         self.drequesters[0] = MagnetRequester(self, 0)
@@ -73,6 +73,9 @@ class RemoteTorrentHandler:
         
     def is_registered(self):
         return self.registered
+    
+    def shutdown(self):
+        self.tqueue.shutdown()
 
     def __check_overflow(self):
         while True:

@@ -264,6 +264,7 @@ class TriblerLaunchMany(Thread):
                 print_exc()
 
         # add task for tracker checking
+        self.torrent_checking = None
         if config['torrent_checking']:
             if config['mainline_dht']:
                 # Create torrent-liveliness checker based on DHT
@@ -271,10 +272,15 @@ class TriblerLaunchMany(Thread):
 
                 c = mainlineDHTChecker.getInstance()
                 c.register(mainlineDHT.dht)
-
-            self.torrent_checking_period = config['torrent_checking_period']
-            #self.torrent_checking_period = 5
-            self.run_torrent_check()
+            
+            try:
+                from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+                self.torrent_checking_period = config['torrent_checking_period']
+                self.torrent_checking = TorrentChecking.getInstance(self.torrent_checking_period)
+                #self.torrent_checking_period = 5
+                self.run_torrent_check()
+            except:
+                print_exc
 
         # Gertjan's UDP code [disabled]
         # OFF in P2P-Next
@@ -829,17 +835,22 @@ class TriblerLaunchMany(Thread):
             self.overlay_bridge.add_task(self.overlay_apps.early_shutdown,0)
         if self.udppuncture_handler is not None:
             self.udppuncture_handler.shutdown()
+        if self.rtorrent_handler:
+            self.rtorrent_handler.shutdown()
+        if self.torrent_checking:
+            self.torrent_checking.shutdown()
+        
         if self.dispersy_thread:
             self.dispersy_thread.stop(timeout=2.0)
         
         # SWIFTPROC
         if self.spm is not None:
             self.spm.early_shutdown()
+        mainlineDHT.deinit()
 
     def network_shutdown(self):
         try:
             print >>sys.stderr,"tlm: network_shutdown"
-            mainlineDHT.deinit()
 
             # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler 
             # it uses in its own shutdown procedure. There is no global close 

@@ -167,6 +167,8 @@ class ThreadNoPool:
         
     def joinAll(self, waitForTasks = False, waitForThreads = True):
         self.__isJoiningStopQueuing = True
+        self.queue.put((None, (), None))
+        
         if waitForTasks:
             self.thread.join()
        

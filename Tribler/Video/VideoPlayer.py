@@ -91,6 +91,10 @@ class VideoPlayer:
             
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback
+                
+    def shutdown(self):
+        if self.videohttpserv:
+            self.videohttpserv.shutdown()
 
     def set_other_downloads(self, other_downloads):
         """A boolean indicating whether there are other downloads running at this time"""

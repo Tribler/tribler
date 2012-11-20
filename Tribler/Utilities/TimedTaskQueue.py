@@ -36,7 +36,11 @@ class TimedTaskQueue:
 
         if __debug__:
             self.callstack = {} # callstack by self.count
-        
+            
+    def shutdown(self):
+        self.add_task("stop")
+        self.add_task = lambda task, t=0, id=None: None
+                
     def add_task(self,task,t=0,id=None):
         """ t parameter is now usable, unlike before. 
             If id is given, all the existing tasks with the same id will be removed

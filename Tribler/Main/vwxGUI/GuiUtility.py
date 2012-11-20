@@ -71,6 +71,10 @@ class GUIUtility:
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
     
+    def del_instance():
+        GUIUtility.__single = None
+    del_instance = staticmethod(del_instance)
+    
     def register(self):
         self.torrentsearch_manager = TorrentManager.getInstance(self)
         self.channelsearch_manager = ChannelManager.getInstance()

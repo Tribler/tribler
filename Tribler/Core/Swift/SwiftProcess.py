@@ -348,9 +348,13 @@ class SwiftProcess:
                 self.popen.terminate()
                 self.popen.wait()
                 self.popen = None
+            except WindowsError:
+                pass
             except:
                 print_exc()
-        # self.fastconn auto closed by killing proc.
+        
+        if self.fastconn:
+            self.fastconn.stop()
     
     #
     # Internal methods

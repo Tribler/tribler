@@ -180,13 +180,6 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         """ WARNING: mappers cannot be added dynamically, must be registered before background_serve()
         """
         self.mappers.append(mapper)
-
-    def shutdown(self):
-        if DEBUG:
-            print >>sys.stderr,"videoserv: Shutting down HTTP"
-        # Stop by closing listening socket of HTTP server
-        self.socket.close()
-
     
     def handle_error(self, request, client_address):
         """ Error inside the BaseHTTPServer that reports errors like:
@@ -201,8 +194,6 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         if DEBUGBASESERV:
             print >>sys.stderr,"VideoHTTPServer: handle_error",request,client_address
             print_exc()
-            
-
 
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
