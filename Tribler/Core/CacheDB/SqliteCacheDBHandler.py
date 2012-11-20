@@ -1779,7 +1779,6 @@ class TorrentDBHandler(BasicDBHandler):
             channel_id = result[-2]
             channel = channel_dict.get(channel_id, False)
             if channel:
-
                 #ignoring spam channels
                 if channel[7] < 0:
                     continue
@@ -1803,6 +1802,9 @@ class TorrentDBHandler(BasicDBHandler):
                         if votes < oldvotes:
                             continue
 
+                result_dict[infohash] = result
+            
+            elif infohash not in result_dict:
                 result_dict[infohash] = result
         
         t4 = time()
