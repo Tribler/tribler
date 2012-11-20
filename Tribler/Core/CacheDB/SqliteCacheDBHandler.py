@@ -1778,12 +1778,13 @@ class TorrentDBHandler(BasicDBHandler):
         for result in results:
             channel_id = result[-2]
             channel = channel_dict.get(channel_id, False)
+            
+            infohash = result[infohash_index]
             if channel:
                 #ignoring spam channels
                 if channel[7] < 0:
                     continue
 
-                infohash = result[infohash_index]
                 #see if we have a better channel in torrents_dict
                 if infohash in result_dict:
                     old_channel = channel_dict.get(result_dict[infohash][-2], False)
