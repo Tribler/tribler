@@ -23,8 +23,7 @@ class TestRemoteQuery(TestGuiAsServer):
         
     def test_ffsearch(self):
         sleep(10)
-        self.guiUtility.toggleFamilyFilter(True)
-        
+        wx.CallAfter(self.guiUtility.toggleFamilyFilter, True)
         wx.CallAfter(self.guiUtility.dosearch, u'xxx')
         sleep(10)
         
@@ -37,7 +36,7 @@ class TestRemoteQuery(TestGuiAsServer):
         
         assert self.frame.searchlist.total_results > 0, 'no hits matching vodo'
         
-        self.frame.searchlist.GotFilter('pioneer')
+        wx.CallAfter(self.frame.searchlist.GotFilter, 'pioneer')
         sleep(2)
 
         assert self.frame.searchlist.total_results > 0, 'no hits matching vodo + pioneer'

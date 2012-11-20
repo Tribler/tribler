@@ -5,8 +5,9 @@ import unittest
 import os
 import sys
 import wx
+import gc
 
-from threading import Thread
+from threading import Thread, enumerate as enumerate_threads
 from time import sleep
 
 from Tribler.Main.tribler import run
@@ -40,8 +41,18 @@ class TestGuiAsServer(unittest.TestCase):
 
     def tearDown(self):
         """ unittest test tear down code """
+        wx.CallAfter(self.frame.OnCloseWindow)
         
-        wx.CallAfter(self.frame.OnCloseWindow, force = True)
+        del self.guiUtility
+        del self.frame
+        del self.lm
+        del self.session
+        
         self.t.join()
         
         sleep(10)
+        
+        ts = enumerate_threads()
+        print >>sys.stderr,"teardown: Number of threads still running",len(ts)
+        for t in ts:
+            print >>sys.stderr,"teardown: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
