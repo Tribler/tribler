@@ -73,8 +73,6 @@ def generate(peers_directory, messagestoplot):
     start = int(get_first_datetime(peers_directory))
     last = 0
     communities = get_communities(peers_directory)
-    import sys
-    print >> sys.stderr, communities
 
     node_list = [x for x in get_nodes(peers_directory)]
     def node_cmp(a, b):
