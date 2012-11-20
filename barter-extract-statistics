@@ -341,16 +341,16 @@ def sum_created_records(peers_directory):
     for node in get_nodes(peers_directory):
         fn_created_record = node + "/output/created-record.txt"
         h_created_record = open(fn_created_record)
+        prev_created = 0
         for line in h_created_record:
             if line[0] == "#": continue
             _, time, records = line.split()
             time = int(time)
-            records = int(records)
-            if records == 0: continue # skip over lines that do not contain bartercast updates
-            try:
-                sum_records[time] += 1
-            except KeyError:
-                sum_records[time] = 1
+            created = int(records)
+            diff = created - prev_created
+            if diff:
+                sum_records[time] = sum_records.get(time, 0) + diff
+                prev_created = created
         h_created_record.close()
 
     sum_at_measure_time = -1
