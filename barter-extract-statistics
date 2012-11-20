@@ -238,7 +238,7 @@ def generate(peers_directory, messagestoplot):
     f.close() 
 
     # returns the first and the last last timetime
-    experiment_length = last - start
+    experiment_length = start+last - start
     sum_received_records(peers_directory)    
     sum_at_experiment_end = sum_created_records(peers_directory)
     
