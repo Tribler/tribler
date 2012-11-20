@@ -12,7 +12,7 @@ class SaveAs(wx.Dialog):
     def __init__(self, parent, tdef, defaultdir, defaultname, configfile, selectedFiles = None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600,450))
         
-        self.filehistory = wx.FileHistory(10)
+        self.filehistory = wx.FileHistory(25)
         self.config = wx.FileConfig(appName = "Tribler", localFilename = configfile)
         self.filehistory.Load(self.config)
         self.defaultdir = defaultdir
