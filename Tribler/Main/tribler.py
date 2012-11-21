@@ -166,7 +166,7 @@ class ABCApp():
             self.splash.setTicks(10)
             self.splash.Show()
 
-            self.utility = Utility(self.installdir,Session.get_default_state_dir())
+            self.utility = Utility(self.installdir, Session.get_default_state_dir())
             self.utility.app = self
 
             sys.stderr.write('Client Starting Up.\n')
@@ -423,6 +423,9 @@ class ABCApp():
                 return os.path.abspath(os.path.join(filedir, '..', '..'))
             
             self.sconfig.set_install_dir(module_path())
+            
+        else:
+            self.sconfig.set_install_dir(self.installdir)
             
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
 
