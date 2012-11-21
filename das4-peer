@@ -89,6 +89,7 @@ echo "Starting Dispersy client #$MY_ID on $MY_IP:$MY_PORT"
 DISPERSY_DIR=/local/$USER/dispersy/$MY_ID
 mkdir -p $DISPERSY_DIR/data
 cp -a ${MYDIR}/data/* $DISPERSY_DIR/data/
+cp -af ${PEERS}/bootstraptribler.txt $DISPERSY_DIR
 cp ${DPRINT_CONF} $DISPERSY_DIR/dprint.conf
 
 cd $DISPERSY_DIR
