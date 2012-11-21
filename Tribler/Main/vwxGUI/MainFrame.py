@@ -191,6 +191,7 @@ class MainFrame(wx.Frame):
             self.splitter_top = wx.BoxSizer(wx.HORIZONTAL)
             self.splitter_top_window.SetSizer(self.splitter_top)
             self.splitter_bottom_window = wx.Panel(self.splitter)
+            self.splitter_bottom_window.SetMinSize((-1,25))
             self.splitter_bottom_window.SetForegroundColour(self.GetForegroundColour())
             self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
             self.splitter_bottom_window.parent_list = self.splitter_bottom_window
