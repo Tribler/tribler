@@ -102,20 +102,20 @@ class SaveAs(wx.Dialog):
             self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
             vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.BOTTOM, 3)
+
+            self.listCtrl.SetFocus()
+            def OnKeyUp(event):
+                if event.GetKeyCode() == wx.WXK_RETURN:
+                    self.OnOk()
+                else:
+                    event.Skip()                
+            self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
         
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
         
         ok = wx.Button(self, wx.ID_OK)
         ok.Bind(wx.EVT_BUTTON, self.OnOk)
-        
-        self.listCtrl.SetFocus()
-        def OnKeyUp(event):
-            if event.GetKeyCode() == wx.WXK_RETURN:
-                self.OnOk()
-            else:
-                event.Skip()                
-        self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
         
         bSizer = wx.StdDialogButtonSizer()
         bSizer.AddButton(cancel)
