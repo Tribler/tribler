@@ -74,7 +74,7 @@ barter_forward_record_on_creation=$(grep community-property 00001/output/barter.
 echo "* Summing up incoming and outgoing traffic..."
 o=$(
 find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-    grep 's10:statistics' $f | tail -n 1 | sed 's/.*received:i\([0-9]*\).*send:i\([0-9]*\).*/\1 \2/g'
+    grep 's10:statistics' $f | grep 'total_received' | grep 'total_up' | tail -n 1 | sed 's/.*total_received:i\([0-9]*\).*total_up:i\([0-9]*\).*/\1 \2/g'
 done | awk '{received += $1; sent += $2 } END { print received, sent }'
 )
 in_bytes=$(echo $o | cut -d' ' -f1)
@@ -82,7 +82,7 @@ out_bytes=$(echo $o | cut -d' ' -f2)
 
 p=$(
 find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-	grep 's30:statistics' $f | tail -n 1 | sed 's/.*request:i\([0-9]*\).*response:i\([0-9]*\).*/\1 \2/g'
+	grep 's10:statistics' $f | grep 'received_count' | grep 'total_send' | tail -n 1 | sed 's/.*received_count:i\([0-9]*\).*total_send:i\([0-9]*\).*/\1 \2/g'
 done | awk '{request += $1; response += $2 } END { print request, response }'
 )
 in_requests=$(echo $p | cut -d' ' -f1)
