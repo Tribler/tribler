@@ -66,67 +66,11 @@ if test $d_cycles -gt 0; then
     sleep 2
 fi
 
-echo "* Extracting experiment parameters from community properties..."
-sync_response_limit=$(grep community-property 00001/output/barter.log | grep :sync_response_limit | sed 's/.*value:i\([0-9]*\)/\1/g')
-barter_history_size=$(grep community-property 00001/output/barter.log | grep :barter_history_size | sed 's/.*value:i\([0-9]*\)/\1/g')
-barter_forward_record_on_creation=$(grep community-property 00001/output/barter.log | grep :barter_forward_record_on_creation | sed 's/.*value:b\([a-zA-Z]*\)/\1/g')
-
-echo "* Summing up incoming and outgoing traffic..."
-o=$(
-find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-    grep 's10:statistics' $f | grep 'total_received' | grep 'total_up' | tail -n 1 | sed 's/.*total_received:i\([0-9]*\).*total_up:i\([0-9]*\).*/\1 \2/g'
-done | awk '{received += $1; sent += $2 } END { print received, sent }'
-)
-in_bytes=$(echo $o | cut -d' ' -f1)
-out_bytes=$(echo $o | cut -d' ' -f2)
-
-p=$(
-find . -regextype posix-egrep -regex '\./[0-9]{5}\/output\/dispersy\.log' | while read f; do
-	grep 's10:statistics' $f | grep 'received_count' | grep 'total_send' | tail -n 1 | sed 's/.*received_count:i\([0-9]*\).*total_send:i\([0-9]*\).*/\1 \2/g'
-done | awk '{request += $1; response += $2 } END { print request, response }'
-)
-in_requests=$(echo $p | cut -d' ' -f1)
-in_responses=$(echo $p | cut -d' ' -f2)
-
-#cd $PEERS_DIRECTORY/control
-#echo "* Summing up incoming traffic..."
-#in_bytes=$(grep ^@\>in: * -R | awk '{sum += $2 } END { print sum }')
-#echo "* Summing up outgoing traffic..."
-#out_bytes=$(grep ^@\>out: * -R | awk '{sum += $2 } END { print sum }')
-if test -z $in_bytes -o -z $out_bytes; then
-    echo "* !!! No traffic statistics gathered!"
-    lost_bytes=-1
-    s_in_bytes="(not-counted)"
-    s_out_bytes="(not-counted)"
-    s_lost_bytes="(not-counted)"
-    b_ratio='(unknown)'
-    in_bytes=-1
-    out_bytes=-1
-else
-    lost_bytes=$[ $out_bytes - $in_bytes ]
-    s_in_bytes=$(printf %\'14d $in_bytes)
-    s_out_bytes=$(printf %\'14d $out_bytes)
-    s_lost_bytes=$(printf %\'14d $lost_bytes)
-    b_ratio=$(echo "scale=2; 100*(${lost_bytes})/${out_bytes}" | bc -l)
-fi
-
-sig_req_timeouts=$(find . -name 'barter.log' | xargs cat | grep barter-community-signature-request-timeout | wc -l)
-
-echo "* Counting number of signature request timeouts..."
-s_ratio=0.0
-total_sig_req="(not-counted)"
-sig_req_timeouts=$(find . -name 'barter.log' | xargs cat | grep barter-community-signature-request-timeout | wc -l)
-if test $sig_req_timeouts -gt 0; then
-    echo "  * Counting number of total signature requests..."
-    total_sig_req=$(find . -name 'dispersy.log' -exec cat {} \; | grep 'created-barter-record' | wc -l)
-    s_ratio=$(echo "scale=2; 100*${sig_req_timeouts}/${total_sig_req}" | bc -l)
-    echo "  * Signature request timeouts: ${sig_req_timeouts}/${total_sig_req} (${s_ratio}%)"
-    sleep 2
-fi
-
 echo "* Extracting statistics..."
 cd $BRANCH
 ./barter-extract-statistics $PEERS_DIRECTORY ${MESSAGESTOPLOT}
+
+svn_version=$(cat $PEERS_DIRECTORY/output/svn_version.txt)
 
 echo "* Done"
 echo
@@ -135,14 +79,6 @@ cat <<END-OF-MSG
 Peers: $PEERS_COUNT
 Nodes: $NODE_COUNT
 Peers per node: $PEERS_PER_NODE
-
- Cycle length: $(printf %6.1f $cycle_length_exp) sec
-Sync response: $(printf %6d $sync_response_limit) bytes
-
-    Total sent traffic: $s_out_bytes bytes
-Total received traffic: $s_in_bytes bytes
-    Total lost traffic: $s_lost_bytes bytes ($b_ratio%)
-
 END-OF-MSG
 ) >> $STATS_FILE
 
@@ -152,37 +88,12 @@ else
     echo "No delayed execution cycles." >> $STATS_FILE
 fi
 
-if test $sig_req_timeouts -gt 0; then
-    echo "Signature request timeouts: ${sig_req_timeouts}/${total_sig_req} (${s_ratio}%)" >> $STATS_FILE
-else
-    echo "No signature request timeouts." >> $STATS_FILE
-fi
-
-svn_version=$(cat $PEERS_DIRECTORY/output/svn_version.txt)
-
 (
 cat <<END-OF-MSG
----
-peers=$PEERS_COUNT
-nodes=$NODE_COUNT
-peers_per_node=$PEERS_PER_NODE
-sync_member_count=$sync_member_count
-sync_response_limit=$sync_response_limit
-bytes_out=$out_bytes
-bytes_in=$in_bytes
-bytes_lost=$lost_bytes
-bytes_lost_ratio=$b_ratio
-total_cycles=$t_cycles
-delayed_cycles=$d_cycles
-delayed_cycles_ratio=$c_ratio
-signature_request_timeouts=$sig_req_timeouts
-signature_request_count=$total_sig_req
-signature_request_timeout_ratio=$s_ratio
-barter_history_size=$barter_history_size
-barter_forward_record_on_creation=$barter_forward_record_on_creation
-svn_version=$svn_version
-in_requests=$in_requests
-in_responses=$in_responses
+Total cycles: $t_cycles
+Delayed cycles: $d_cycles
+Delayed cycles ratio: $c_ratio
+Svn version: $svn_version
 END-OF-MSG
 ) >> $STATS_FILE
 

@@ -85,6 +85,7 @@ def generate(peers_directory, messagestoplot):
     dispersy_dropped_msg_distribution = {}
     dispersy_bootstrap_distribution = {}
     dispersy_statistics = {}
+    dispersy_in_out = {}
     nr_connections = []
 
     for node in node_list:
@@ -130,6 +131,7 @@ def generate(peers_directory, messagestoplot):
 
         print "  *", nodename
         record_count[nodename] = {}
+        dispersy_in_out[nodename] = [0,0,0,0]
         for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
             time = int(time)
             timeoffset = time - start
@@ -138,12 +140,22 @@ def generate(peers_directory, messagestoplot):
             writeTotal = False
             
             if message == "statistics":
-                if "total_send" in kargs and "total_received" in kargs:
-                    print >> h_stat, str(time), str(timeoffset), str(kargs["total_send"]) , str(kargs["total_received"])
+                if "total_down" in kargs:
+                    dispersy_in_out[nodename][0] = kargs["total_down"]
+                if "total_up" in kargs:
+                    dispersy_in_out[nodename][1] = kargs["total_up"]
+                if "total_send" in kargs:
+                    dispersy_in_out[nodename][2] = kargs["total_send"]
+                if "received_count" in kargs:
+                    dispersy_in_out[nodename][3] = kargs["received_count"]
                     
-                    if not traffic_start:
-                        traffic_start = kargs["total_send"] + kargs["total_received"]
-                    traffic_stop = kargs["total_send"] + kargs["total_received"]
+                if "total_down" in kargs or "total_up" in kargs:
+                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0])
+                    
+                    if timeoffset > 0:
+                        traffic_stop = dispersy_in_out[nodename][0] + dispersy_in_out[nodename][1]
+                        if not traffic_start:
+                            traffic_start = traffic_stop
                 
                 if "total_dropped" in kargs:
                     c_dropped_record = max(c_dropped_record, kargs["total_dropped"]) 
@@ -324,15 +336,28 @@ def generate(peers_directory, messagestoplot):
     parse_statistics(peers_directory)
 
     bytes_per_second_experiment = float(sum_traffic)/len(traffic_count)/experiment_length
+    
+    bytes_in = sum(total_down for total_down, _,_,_ in dispersy_in_out.values())
+    bytes_out = sum(total_up for _,total_up,_,_ in dispersy_in_out.values())
+    bytes_lost = bytes_out - bytes_in
+    bytes_lost_ratio = bytes_lost/float(bytes_out)
+    
+    in_requests = sum(received_count for _,_,_,received_count in dispersy_in_out.values())
+    out_requests = sum(total_send for _,_,total_send,_ in dispersy_in_out.values())
 
     fn_measure_info = peers_directory + "/output/measure_info.txt"
     h_measure_info = open(fn_measure_info, "w+")
-    print >> h_measure_info, "experiment_length=%d" %(experiment_length)
-    print >> h_measure_info, "total_records_at_experiment_end=%d" %(sum_at_experiment_end)
-    print >> h_measure_info, "average_coverage_at_interval_stop=%f" %(average_coverage)
-    print >> h_measure_info, "bytes_per_second_experiment=%f" %(bytes_per_second_experiment)
+    print >> h_measure_info, "Experiment length: %d" %(experiment_length)
+    print >> h_measure_info, "Total records at experiment end: %d" %(sum_at_experiment_end)
+    print >> h_measure_info, "Average coverage at experiment end: %f" %(average_coverage)
+    print >> h_measure_info, "Bytes per second experiment: %f" %(bytes_per_second_experiment)
+    print >> h_measure_info, "Bytes out: %d" %(bytes_out)
+    print >> h_measure_info, "Bytes in: %d" %(bytes_in)
+    print >> h_measure_info, "Bytes lost: %d" %(bytes_lost)
+    print >> h_measure_info, "Bytes lost_ratio: %.2f" %(bytes_lost_ratio)
+    print >> h_measure_info, "In requests: %d" %(in_requests)
+    print >> h_measure_info, "Out requests: %d" %(out_requests)
     h_measure_info.close()
-
     return first, last
 
 def sum_created_records(peers_directory):
