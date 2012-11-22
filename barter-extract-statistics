@@ -256,7 +256,11 @@ def generate(peers_directory, messagestoplot):
     
     h_dispersy_bootstrap_distribution = open(peers_directory + "/output/dispersy-bootstrap-distribution.txt", "w+")
     print >> h_dispersy_bootstrap_distribution, "# sock_addr count"
-    for sock_addr, nodes in dispersy_bootstrap_distribution.iteritems():
+
+    bootstrap_keys = dispersy_bootstrap_distribution.keys()
+    bootstrap_keys.sort(cmp = lambda a,b: cmp(sum(dispersy_bootstrap_distribution[a].values()), sum(dispersy_bootstrap_distribution[b].values())), reverse = True)
+    for sock_addr in bootstrap_keys:
+        nodes = dispersy_bootstrap_distribution[sock_addr]
         times = sum(nodes.values())
         print >> h_dispersy_bootstrap_distribution, "%s %d" %(str(sock_addr), times)
     h_dispersy_bootstrap_distribution.close()
