@@ -157,8 +157,8 @@ def generate(peers_directory, messagestoplot):
                         if not traffic_start:
                             traffic_start = traffic_stop
                 
-                if "total_dropped" in kargs:
-                    c_dropped_record = max(c_dropped_record, kargs["total_dropped"]) 
+                if "drop_count" in kargs:
+                    c_dropped_record = kargs["drop_count"]
                     print >> h_drop, str(time), str(timeoffset), str(c_dropped_record)
                     
                 if 'candidates' in kargs:
