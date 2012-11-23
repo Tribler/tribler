@@ -224,8 +224,9 @@ class TorrentManager:
         infohashes = set([torrent.infohash for torrent in torrents])
         self.session.download_torrentmessages_from_peer(candidate, infohashes, callback, prio)
         return True
-    
-    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
+
+    @forceWxThread
+    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None, correctedFilename = None):
         torrent_filename = self.getCollectedFilename(torrent)
         
         if isinstance(torrent_filename, basestring):
@@ -267,12 +268,30 @@ class TorrentManager:
                         print >>sys.stderr,'standardDetails: download: download started'
             wx.CallAfter(do_gui)
         else:
-            callback = lambda: self.downloadTorrent(torrent, dest, secret, vodmode)
+            dlg = None
+            def callback():
+                if dlg:
+                    torrent_filename = self.getCollectedFilename(torrent)
+                    tdef = TorrentDef.load(torrent_filename)
+                    wx.CallAfter(dlg.SetTdef, tdef)
             response = self.getTorrent(torrent, callback)
-
+            
             if response[0]:
-                #torrent is being requested from peers, using callback this function will be called again
-                return response[1]
+                from Tribler.Main.Dialogs.SaveAs import SaveAs
+                dlg = SaveAs(self.guiUtility.frame, None, DefaultDownloadStartupConfig.getInstance().get_dest_dir(), None, os.path.join(self.guiUtility.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles, torrent = torrent)
+                dlg.CenterOnParent()            
+                if dlg.ShowModal() == wx.ID_OK:
+                    #for multifile we enabled correctedFilenames, use split to remove the filename from the path
+                    if dlg.tdef and dlg.tdef.is_multifile_torrent():
+                        destdir, correctedFilename = os.path.split(dlg.GetPath())
+                        selectedFiles = dlg.GetSelectedFiles()
+                    else:
+                        destdir, correctedFilename = None, dlg.GetPath()
+                        selectedFiles = None
+                    dlg.Destroy()
+                    wx.CallAfter(lambda : self.downloadTorrent(torrent, destdir, secret, vodmode, selectedFiles = selectedFiles, correctedFilename = correctedFilename))
+                    return response[1]
+                dlg.Destroy()
             
             else:
                 #torrent not found
@@ -286,7 +305,7 @@ class TorrentManager:
                     if result == wx.ID_YES:
                         infohash = torrent.infohash
                         self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
-                wx.CallAfter(showdialog)
+                wx.CallAfter(showdialog)             
     
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):

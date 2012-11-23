@@ -1288,9 +1288,7 @@ class GenericSearchList(SizeList):
             self.uelog.addEvent(message=relevance_msg, type = 4)
 
         startWorker(None, db_callback, retryOnBusy=True)
-        response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
-        if response:
-            self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
+        self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):
         key = self.infohash2key.get(key, key)
