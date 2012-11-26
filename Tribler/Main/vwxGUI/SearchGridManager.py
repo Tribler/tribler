@@ -259,7 +259,7 @@ class TorrentManager:
 
             # Api download
             def do_gui():
-                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
+                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles, correctedFilename = correctedFilename) ## remove name=name
                 if d:
                     if secret:
                         self.torrent_db.setSecret(torrent.infohash, secret)
