@@ -278,7 +278,7 @@ class TorrentManager:
             
             if response[0]:
                 from Tribler.Main.Dialogs.SaveAs import SaveAs
-                dlg = SaveAs(self.guiUtility.frame, None, DefaultDownloadStartupConfig.getInstance().get_dest_dir(), None, os.path.join(self.guiUtility.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles, torrent = torrent)
+                dlg = SaveAs(self.guiUtility.frame, None, DefaultDownloadStartupConfig.getInstance().get_dest_dir(), torrent.name, os.path.join(self.guiUtility.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles, torrent = torrent)
                 dlg.CenterOnParent()            
                 if dlg.ShowModal() == wx.ID_OK:
                     #for multifile we enabled correctedFilenames, use split to remove the filename from the path
@@ -286,7 +286,7 @@ class TorrentManager:
                         destdir, correctedFilename = os.path.split(dlg.GetPath())
                         selectedFiles = dlg.GetSelectedFiles()
                     else:
-                        destdir, correctedFilename = None, dlg.GetPath()
+                        destdir, correctedFilename = dlg.GetPath(), None
                         selectedFiles = None
                     dlg.Destroy()
                     wx.CallAfter(lambda : self.downloadTorrent(torrent, destdir, secret, vodmode, selectedFiles = selectedFiles, correctedFilename = correctedFilename))
