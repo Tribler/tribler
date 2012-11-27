@@ -77,6 +77,8 @@ cd $PEERS_DIRECTORY
 PEER_COUNT=$(cat peer.count)
 
 cd ${BRANCH}/Tribler
+export PYTHONPATH=${BRANCH}:/home/$USER/3rd-party/lib/python2.6/site-packages:/home/$USER/3rd-party/lib64/python2.6/site-packages:$PYTHONPATH
+
 echo "* Starting a DAS4 tracker in the background..."
 python -c "from dispersy.tool.tracker import main; main()" --ip $HEAD_IP --port $TRACKER_PORT &
 TRACKER_PID=$!
