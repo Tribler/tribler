@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if test $# -ne 4; then
-	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min>"
+	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min> <ip-of-headnode> <port-of-tracker>"
 	exit 1
 fi
 
@@ -16,6 +16,21 @@ source $EXPERIMENT_CONFIG
 
 # check if we allready have SGE_KEEP_TMPFILES=no in .bashrc, if not add it
 cat ~/.bashrc | grep SGE_KEEP_TMPFILES || echo SGE_KEEP_TMPFILES=no >> ~/.bashrc
+
+if test $# -lt 5; then
+	HEAD_IP=10.149.3.254
+else
+	HEAD_IP=$5
+fi
+cat $EXPERIMENT_CONFIG | grep HEAD_IP || echo HEAD_IP=$HEAD_IP >> $EXPERIMENT_CONFIG
+sed 's/^HEAD\_IP*/HEAD\_IP=$HEAD_IP/' $EXPERIMENT_CONFIG > $EXPERIMENT_CONFIG
+
+if test $# -lt 6; then
+	TRACKER_PORT=6666
+else
+	TRACKER_PORT=$6
+fi
+echo $HEAD_IP $TRACKER_PORT > bootstraptribler.txt
 
 cd $2
 PEERS_DIRECTORY=$(pwd)
