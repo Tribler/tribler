@@ -4,13 +4,13 @@ if test $# -ne 4; then
 	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min> <ip-of-headnode> <port-of-tracker>"
 	exit 1
 fi
+BRANCH=$(pwd)
 
 # expand experiment config filename to full path
 cfg_name=$(basename $1)
 cfg_path=$(dirname $1)
 cd $cfg_path
 cfg_path=$(pwd)
-BRANCH=$(pwd)
 EXPERIMENT_CONFIG=$cfg_path/$cfg_name
 source $EXPERIMENT_CONFIG
 
@@ -30,7 +30,7 @@ if test $# -lt 6; then
 else
 	TRACKER_PORT=$6
 fi
-echo $HEAD_IP $TRACKER_PORT > bootstraptribler.txt
+echo $HEAD_IP $TRACKER_PORT > $BRANCH/bootstraptribler.txt
 
 cd $2
 PEERS_DIRECTORY=$(pwd)
