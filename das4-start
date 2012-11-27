@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if test $# -ne 4; then
+if test $# -lt 4; then
 	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min> <ip-of-headnode> <port-of-tracker>"
 	exit 1
 fi
