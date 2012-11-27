@@ -22,8 +22,8 @@ if test $# -lt 5; then
 else
 	HEAD_IP=$5
 fi
-cat $EXPERIMENT_CONFIG | grep HEAD_IP || echo HEAD_IP=$HEAD_IP >> $EXPERIMENT_CONFIG
-sed 's/^HEAD\_IP*/HEAD\_IP=$HEAD_IP/' $EXPERIMENT_CONFIG > $EXPERIMENT_CONFIG
+cat $EXPERIMENT_CONFIG | grep HEAD_IP || echo echo "" >> $EXPERIMENT_CONFIG && echo HEAD_IP=$HEAD_IP >> $EXPERIMENT_CONFIG
+sed -i 's/^HEAD\_IP=.*/HEAD\_IP=$HEAD_IP/' $EXPERIMENT_CONFIG
 
 if test $# -lt 6; then
 	TRACKER_PORT=6666
