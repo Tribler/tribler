@@ -145,3 +145,6 @@ echo
 echo "* Waiting for the experiment to end (expected finish time: $stop_time_s)..."
 wait $PRUN_PID
 echo "* Experiment completed."
+
+kill -9 $TRACKER_PID &>/dev/null
+kill -9 $CONFIG_SERVER_PID &>/dev/null
