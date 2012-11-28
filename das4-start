@@ -120,7 +120,7 @@ function stop_everything {
     echo "* Stopping config server..."
     kill -9 $CONFIG_SERVER_PID &>/dev/null
     echo "* Stopping tracker..."
-    kill -9 $TRACKER_PID &>/dev/null
+    kill -1 $TRACKER_PID &>/dev/null
     echo "* Stopping DAS4 job..."
     kill -1 $PRUN_PID &>/dev/null # according to http://www.cs.vu.nl/das4/prun.shtml, must send SIGINT
     #echo "* Canceling reservation..."
