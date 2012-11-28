@@ -79,17 +79,6 @@ cat <<END-OF-MSG
 Peers: $PEERS_COUNT
 Nodes: $NODE_COUNT
 Peers per node: $PEERS_PER_NODE
-END-OF-MSG
-) >> $STATS_FILE
-
-if test $d_cycles -gt 0; then
-    echo "Delayed cycles: ${d_cycles}/${t_cycles} (${c_ratio}%)" >> $STATS_FILE
-else
-    echo "No delayed execution cycles." >> $STATS_FILE
-fi
-
-(
-cat <<END-OF-MSG
 Total cycles: $t_cycles
 Delayed cycles: $d_cycles
 Delayed cycles ratio: $c_ratio
