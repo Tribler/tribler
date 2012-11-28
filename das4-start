@@ -82,7 +82,7 @@ export LD_LIBRARY_PATH=~/3rd-party/lib:$LD_LIBRARY_PATH
 
 echo "* Starting a DAS4 tracker in the background..."
 echo "--ip $HEAD_IP --port $TRACKER_PORT"
-python -c "from dispersy.tool.tracker import main; main()" --ip $HEAD_IP --port $TRACKER_PORT &
+python -c "from dispersy.tool.tracker import main; main()" --ip $HEAD_IP --port $TRACKER_PORT --silent &
 TRACKER_PID=$!
 
 cd ${BRANCH}
