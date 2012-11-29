@@ -1,6 +1,6 @@
 library(ggplot2)
 library(reshape)
-library(pracma)
+#library(pracma)
 
 summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
                       conf.interval=.95, .drop=TRUE) {
@@ -63,8 +63,8 @@ d10$type = "Push 10"
 
 df <- summarySE(d10, "cycle", groupvars = c("nrpeers", "type"))
 
-dfz <- data.frame(x=seq(5,max(df10$cycle),5), type = "Push 10")
-dfz$z <- with(df10, interp1(cycle, nrpeers, df10z$x))
+#dfz <- data.frame(x=seq(5,max(df10$cycle),5), type = "Push 10")
+#dfz$z <- with(df10, interp1(cycle, nrpeers, df10z$x))
 
 prop <- data.frame(x=seq(0,100,5))
 prop$push <- 10
@@ -74,8 +74,8 @@ prop$val <- apply(prop, 1, propFUN2)
 p <- ggplot() + theme_bw()
 p <- p + geom_line(data = df, aes(x=cycle, y=nrpeers, group=type, colour=type))
 p <- p + geom_line(data = prop, aes(x = x, y = val, colour=type, group=type), linetype="dashed")
-p <- p + geom_point(data = dfz, aes(x = x, y=z, shape=type, colour=type))
-p <- p + geom_point(data = prop, aes(x = x, y = val, shape=type, colour=type))
+#p <- p + geom_point(data = dfz, aes(x = x, y=z, shape=type, colour=type))
+#p <- p + geom_point(data = prop, aes(x = x, y = val, shape=type, colour=type))
 #p <- p + geom_errorbar(data = dfc, aes(x=cycle, ymin=yMin, ymax=yMax), width=.1)
 #p <- p + opts(legend.position="bottom", legend.direction="horizontal")
 p <- p + scale_colour_brewer(palette="Dark2", name="", breaks= c("Push 10","Prob 10"), labels = c("Emulation 11     ",  "Demers 11"))
@@ -88,4 +88,3 @@ p
 
 dev.copy2pdf(file="demers_histogram.pdf", width=7, height=4)
 embedFonts("demers_histogram.pdf",options="-dEmbedAllFonts=true -dPDFSETTINGS=/printer")
-
