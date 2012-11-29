@@ -66,7 +66,7 @@ df <- summarySE(d10, "cycle", groupvars = c("nrpeers", "type"))
 #dfz <- data.frame(x=seq(5,max(df10$cycle),5), type = "Push 10")
 #dfz$z <- with(df10, interp1(cycle, nrpeers, df10z$x))
 
-prop <- data.frame(x=seq(0,100,5))
+prop <- data.frame(x=seq(0,70,5))
 prop$push <- 10
 prop$type <- "Prob 10"
 prop$val <- apply(prop, 1, propFUN2)
