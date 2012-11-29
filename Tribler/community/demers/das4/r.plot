@@ -82,7 +82,7 @@ p <- p + scale_colour_brewer(palette="Dark2", name="", breaks= c("Push 10","Prob
 p <- p + scale_shape(name="", breaks= c("Push 10","Prob 10"), labels = c("Emulation 11     ", "Demers 11"))
 #p <- p + opts(axis.text.x = theme_text(colour = "grey50"), axis.text.y = theme_text(colour = "grey50"))
 p <- p + opts(legend.position="bottom", legend.direction="horizontal")
-p <- p + scale_x_continuous(breaks=seq(0, 100, 5))
+p <- p + scale_x_continuous(breaks=seq(0, 70, 5))
 p <- p + labs(y = "Probability of nodes\nhaving received the bundle", x = "Time since bundle was created (seconds)")
 p
 
