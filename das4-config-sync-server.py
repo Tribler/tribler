@@ -32,11 +32,13 @@ class ConfigProtocol(LineReceiver):
             for transport, ip, port in subscribers:
                 full_config += "%s %d\r\n"%(ip, port)
                 
+            print "*** Sending peers ip/port to peers:"
             for i, configtuple in enumerate(subscribers):
-                print "*** Sending peers ip/port to peer %d ***"%(i+1)
+                print i+1,
                 transport = configtuple[0]
                 transport.write(full_config)
                 transport.write("END\r\n")
+            print " ***"
                 
         print "*** Stopping reactor in 10 seconds ***"
         reactor.callLater(10, reactor.stop)
