@@ -639,6 +639,7 @@ class DispersyPanel(HomePanel):
         # right tree
         if not self.tree.blockUpdate:
             parentNode = self.tree.AppendItem(fakeRoot, "raw info")
+            
             raw_info = {}
             if stats.drop:
                 raw_info['drop'] = stats.drop
@@ -648,14 +649,24 @@ class DispersyPanel(HomePanel):
                 raw_info['success'] = stats.success
             if stats.outgoing:
                 raw_info['outgoing'] = stats.outgoing
+            if stats.created:
+                raw_info['created'] = stats.created
             if stats.walk_fail:
                 raw_info['walk_fail'] = stats.walk_fail
             if stats.attachment:
                 raw_info['attachment'] = stats.attachment
-            if stats.created:
-                raw_info['created'] = stats.created
+            if stats.database:
+                raw_info['database'] = stats.database
+            if stats.endpoint_recv:
+                raw_info['endpoint_recv'] = stats.endpoint_recv
+            if stats.endpoint_send:
+                raw_info['endpoint_send'] = stats.endpoint_send    
             if stats.bootstrap_candidates:
                 raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
+            if stats.overlapping_stumble_candidates:
+                raw_info['overlapping_stumble_candidates'] = stats.overlapping_stumble_candidates
+            if stats.overlapping_intro_candidates:
+                raw_info['overlapping_intro_candidates'] = stats.overlapping_intro_candidates                                
             addValue(parentNode, raw_info)
 
         self.panel.Layout()
