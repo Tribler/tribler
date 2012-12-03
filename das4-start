@@ -83,7 +83,7 @@ export PYTHONPATH=${BRANCH}:~/3rd-party/lib/python2.6/site-packages:~/3rd-party/
 export LD_LIBRARY_PATH=~/3rd-party/lib:$LD_LIBRARY_PATH
 
 echo "* Starting a DAS4 tracker in the background... --port $TRACKER_PORT"
-python -c "from dispersy.tool.tracker import main; main()" --port $TRACKER_PORT
+python -c "from dispersy.tool.tracker import main; main()" --port $TRACKER_PORT &
 # &> $PEERS_DIRECTORY/output/tracker_out.log &
 TRACKER_PID=$!
 
