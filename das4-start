@@ -30,7 +30,9 @@ if test $# -lt 6; then
 else
 	TRACKER_PORT=$6
 fi
+# create bootstraptribler files for local tracker and peers 
 echo $HEAD_IP $TRACKER_PORT > $BRANCH/bootstraptribler.txt
+echo $HEAD_IP $TRACKER_PORT > $BRANCH/Tribler/bootstraptribler.txt
 
 cd $2
 PEERS_DIRECTORY=$(pwd)
