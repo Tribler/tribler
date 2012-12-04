@@ -1,6 +1,6 @@
 import sys
 
-f = open("sum_received_records.txt")
+f = open("sum_total_records.txt")
 f2 = open("received_records_10.txt", 'w')
 print >> f2, "#nrpeers, took, partnr"
 

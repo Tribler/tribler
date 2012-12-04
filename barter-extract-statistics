@@ -251,7 +251,7 @@ def generate(peers_directory, messagestoplot):
 
     # returns the first and the last last timetime
     experiment_length = start+last - start
-    sum_received_records(peers_directory)    
+    sum_total_records(peers_directory)    
     sum_at_experiment_end = sum_created_records(peers_directory)
     
     print "# experiment took", experiment_length, "seconds"
@@ -391,7 +391,7 @@ def sum_created_records(peers_directory):
         
     return sumr
 
-def sum_received_records(peers_directory):
+def sum_total_records(peers_directory):
     """ I create a file under 'peers/' called 'sum_received_records.txt'
     with all the available records in the system per timestamp
     """
@@ -402,9 +402,9 @@ def sum_received_records(peers_directory):
         _,nodename = os.path.split(node)
         all_nodes.append(nodename)
         
-        fn_created_record = node + "/output/received-record.txt"
-        h_created_record = open(fn_created_record)
-        for line in h_created_record:
+        fn_total_record = node + "/output/total-record.txt"
+        h_total_record = open(fn_total_record)
+        for line in h_total_record:
             if line[0] == "#": continue
             
             parts = line.split()
@@ -418,7 +418,7 @@ def sum_received_records(peers_directory):
 
     all_nodes.sort()
 
-    fp = open(peers_directory + '/output/sum_received_records.txt', 'wb')
+    fp = open(peers_directory + '/output/sum_total_records.txt', 'wb')
     print >> fp, '#time ', ' '.join(all_nodes)
     
     max_records = {}
@@ -431,6 +431,8 @@ def sum_received_records(peers_directory):
             print >> fp, newmax,
             max_records[node] = newmax
         print >> fp, ''
+        
+    fp.close()
 
 def parse_statistics(peers_directory):
     """ I created a file under 'peers/' called 'sum_scenario_statiscitcs.txt'
