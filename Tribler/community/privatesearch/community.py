@@ -24,7 +24,7 @@ from payload import SearchRequestPayload,\
     SearchResponsePayload, TorrentRequestPayload, \
     PingPayload, PongPayload,\
     EncryptedHashResponsePayload, EncryptedResponsePayload,\
-    EncryptedIntroPayload, KeyIntroPayload
+    EncryptedIntroPayload, KeyIntroPayload, TorrentPayload
     
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
@@ -133,7 +133,6 @@ class SearchCommunity(Community):
         if __debug__: dprint("finished extra walks")
 
     def initiate_meta_messages(self):
-        from Tribler.community.search.payload import TorrentPayload
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self._dispersy._generic_timeline_check, self.on_search),
                 Message(self, u"search-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchResponsePayload(), self._dispersy._generic_timeline_check, self.on_search_response),
                 Message(self, u"torrent-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentRequestPayload(), self._dispersy._generic_timeline_check, self.on_torrent_request),
