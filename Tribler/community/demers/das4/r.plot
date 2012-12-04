@@ -86,4 +86,4 @@ p <- p + scale_x_continuous(breaks=seq(0, 70, 5))
 p <- p + labs(y = "Probability of nodes\nhaving received the bundle", x = "Time since bundle was created (seconds)")
 p
 
-ggsave(file="demers_histogram.pdf", width=7, height=4)
+ggsave(file="demers_histogram.pdf")
