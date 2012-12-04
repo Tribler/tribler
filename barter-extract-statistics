@@ -414,7 +414,7 @@ def sum_total_records(peers_directory):
                 records = int(records)
                 if records == 0: continue # skip over lines that do not contain bartercast updates
                 sum_records.setdefault(time, {})[nodename] = records
-        h_created_record.close()
+        h_total_record.close()
 
     all_nodes.sort()
 
