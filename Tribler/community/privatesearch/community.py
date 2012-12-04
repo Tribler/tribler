@@ -43,7 +43,7 @@ if __debug__:
 
 DEBUG = False
 TTL = 4
-NEIGHBORS = 7
+NEIGHBORS = 5
 
 class SearchCommunity(Community):
     """
