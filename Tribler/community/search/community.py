@@ -121,7 +121,7 @@ class SearchCommunity(Community):
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
-            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once = True) if candidate and candidate.is_eligible_for_walk(self, time())]
+            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once = True) if candidate]
             for candidate in candidates:
                 if __debug__: dprint("extra walk to ", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
