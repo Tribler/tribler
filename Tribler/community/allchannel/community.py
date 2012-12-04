@@ -145,7 +145,7 @@ class AllChannelCommunity(Community):
                     self._blocklist.pop(candidate)
             
             #loop through all candidates to see if we can find a non-blocked address
-            for candidate in islice((candidate for candidate in self.dispersy_yield_random_candidates() if not candidate in self._blocklist), 10):
+            for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once = True) if not candidate in self._blocklist]:
                 if not candidate:
                     continue
                     
