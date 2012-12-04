@@ -832,6 +832,9 @@ class HorizontalGauge(wx.Control):
     def SetPercentage(self, percentage):
         self.percentage = percentage
         self.Refresh()
+        
+    def GetPercentage(self):
+        return self.percentage
     
     def SetBackgroundColour(self, colour):
         self.hasBGColour = True

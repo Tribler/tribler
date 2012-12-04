@@ -2273,16 +2273,22 @@ def try_register(db, callback = None):
                     if dispersy:
                         callback = dispersy.callback
                     
-                if callback:
-                    print >> sys.stderr, "Using actual DB thread"
+                if callback and callback.is_running:
+                    print >> sys.stderr, "Using actual DB thread", callback
                     _callback = callback
-                    if currentThread().getName()== 'Dispersy' and db:
-                        db.initialBegin()
-                    else:
-                        #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                        _callback.register(db.initialBegin, priority = 1024)
+                    
+                    if db:
+                        if currentThread().getName()== 'Dispersy':
+                            db.initialBegin()
+                        else:
+                            #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
+                            _callback.register(db.initialBegin, priority = 1024)
         finally:
             _callback_lock.release()
+            
+def unregister():
+    global _callback
+    _callback = None
     
 def register_task(db, *args, **kwargs):
     global _callback
@@ -2384,6 +2390,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 cls.lock.release()
         return cls.__single
     
+    @classmethod
+    def delInstance(cls, *args, **kw):
+        cls.__single = None
+    
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object
         if self.__single != None:
@@ -2409,7 +2419,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         _shouldCommit = True
     
     @forceDBThread
-    def commitNow(self, vacuum = False):
+    def commitNow(self, vacuum = False, exiting = True):
         global _shouldCommit, _cacheCommit
         if _cacheCommit and _shouldCommit and onDBThread():
             try:
@@ -2423,12 +2433,13 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             if vacuum:
                 self._execute("VACUUM;")
 
-            try:
-                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
-                self._execute("BEGIN;")
-            except:
-                print >> sys.stderr, "BEGIN FAILED"
-                raise
+            if not exiting:
+                try:
+                    if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
+                    self._execute("BEGIN;")
+                except:
+                    print >> sys.stderr, "BEGIN FAILED"
+                    raise
             
         elif vacuum:
             self._execute("VACUUM;")

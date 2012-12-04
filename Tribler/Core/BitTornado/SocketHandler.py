@@ -615,11 +615,19 @@ class SocketHandler:
                 ss.close()
             except:
                 pass
+        
+        for us in self.udp_sockets.values():
+            try:
+                self.stop_listening_udp(us.socket)
+                us.socket.close()
+            except:
+                pass
+        
         for server in self.servers.values():
             try:
                 server.close()
             except:
-                pass
+                print_exc()
 
     #
     # Interface for Khasmir, called from RawServer

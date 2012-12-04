@@ -135,6 +135,7 @@ class FileDropTarget(wx.FileDropTarget):
 class MainFrame(wx.Frame):
     def __init__(self, parent, channelonly, internalvideo, progress):
         # Do all init here
+        self.ready = False
         self.guiUtility = GUIUtility.getInstance()
         self.guiUtility.frame = self
         self.utility = self.guiUtility.utility
@@ -278,6 +279,7 @@ class MainFrame(wx.Frame):
         self.SetStatusBar(self.SRstatusbar)
         
         def preload_data():
+            print >> sys.stderr, "mainframe preload_data"
             if not channelonly:
                 self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)

@@ -131,6 +131,9 @@ class SRstatusbar(wx.StatusBar):
     def SetConnections(self, connectionPercentage, totalConnections):
         self.connection.SetPercentage(connectionPercentage)
         self.connection.SetToolTipString('Connected to %d peers'%totalConnections)
+        
+    def GetConnections(self):
+        return self.connection.GetPercentage()
             
     def onReachable(self,event=None):
         if not self.guiutility.firewall_restart:

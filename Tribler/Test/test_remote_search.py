@@ -1,4 +1,3 @@
-# Written by Niels Zeilemaker
 # see LICENSE.txt for license information
 
 import unittest
@@ -14,44 +13,58 @@ class TestRemoteQuery(TestGuiAsServer):
     Testing QUERY message of Social Network extension V1
     """
     def test_remotesearch(self):
-        sleep(10)
-        wx.CallAfter(self.guiUtility.dosearch, u'mp3')
-        sleep(10)
+        def do_assert():
+            self.asserts.append((self.frame.searchlist.total_results > 0, 'no results'))
+            self.asserts.append((self.guiUtility.torrentsearch_manager.gotRemoteHits, 'no remote results'))
+            self.quit()
         
-        assert self.frame.searchlist.total_results > 0
-        assert self.guiUtility.torrentsearch_manager.gotRemoteHits
+        def do_search():
+            self.guiUtility.dosearch(u'mp3')
+            wx.CallLater(10000, do_assert)
+            
+        self.startTest(do_search)
         
     def test_ffsearch(self):
-        sleep(10)
-        wx.CallAfter(self.guiUtility.toggleFamilyFilter, True)
-        wx.CallAfter(self.guiUtility.dosearch, u'xxx')
-        sleep(10)
+        def do_assert():
+            self.asserts.append((self.frame.searchlist.total_results == 0, 'got results'))
+            self.quit()
         
-        assert self.frame.searchlist.total_results == 0
+        def do_search():
+            self.guiUtility.toggleFamilyFilter(True)
+            self.guiUtility.dosearch(u'xxx')
+            wx.CallLater(10000, do_assert)
+            
+        self.startTest(do_search)
         
     def test_remotedownload(self):
-        sleep(10)
-        wx.CallAfter(self.guiUtility.dosearch, u'vodo')
-        sleep(10)
+        def do_assert():
+            self.quit()
+            
+        def do_download():
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            defaultDLConfig.set_show_saveas(False)
         
-        assert self.frame.searchlist.total_results > 0, 'no hits matching vodo'
+            self.frame.top_bg.OnDownload()
+            wx.CallLater(5000, do_assert)  
+            
+        def do_select():
+            self.asserts.append((self.frame.searchlist.total_results > 0, 'no hits matching vodo + pioneer'))
+            items = self.frame.searchlist.GetItems()
+            keys = items.keys()
         
-        wx.CallAfter(self.frame.searchlist.GotFilter, 'pioneer')
-        sleep(2)
-
-        assert self.frame.searchlist.total_results > 0, 'no hits matching vodo + pioneer'
-        items = self.frame.searchlist.GetItems()
-        keys = items.keys()
+            self.frame.searchlist.Select(keys[0])
+            wx.CallLater(5000, do_download)
         
-        wx.CallAfter(self.frame.searchlist.Select, keys[0])
-        sleep(5)
+        def do_filter():
+            self.asserts.append((self.frame.searchlist.total_results > 0, 'no hits matching vodo'))
+            self.frame.searchlist.GotFilter('pioneer')
+            wx.CallLater(5000, do_select)
         
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-        defaultDLConfig.set_show_saveas(False)
-        
-        wx.CallAfter(self.frame.top_bg.OnDownload)
-        sleep(5)
+        def do_search():
+            self.guiUtility.dosearch(u'vodo')
+            wx.CallLater(10000, do_filter)
+            
+        self.startTest(do_search)  
 
 if __name__ == "__main__":
     unittest.main()
-

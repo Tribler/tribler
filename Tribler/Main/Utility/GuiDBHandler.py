@@ -8,7 +8,7 @@ from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedExceptio
 
 import threading
 from Queue import Queue
-from threading import Event, Lock
+from threading import Event, Lock, RLock
 from thread import get_ident
 from time import time
 import sys
@@ -18,6 +18,7 @@ import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from inspect import isgeneratorfunction
 from random import randint
+from Crypto.Random._UserFriendlyRNG import _singleton_lock
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
 GUI_PRI_DISPERSY = 99
@@ -28,6 +29,7 @@ DEBUG = False
 class GUIDBProducer():
     # Code to make this a singleton
     __single = None
+    __singleton_lock = RLock()
     
     def __init__(self):
         if GUIDBProducer.__single:
@@ -50,10 +52,16 @@ class GUIDBProducer():
         self.nrCallbacks = {}
         
     def getInstance(*args, **kw):
-        if GUIDBProducer.__single is None:
-            GUIDBProducer(*args, **kw)       
+        global _singleton_lock
+        with _singleton_lock:
+            if GUIDBProducer.__single is None:
+                GUIDBProducer(*args, **kw)       
         return GUIDBProducer.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        GUIDBProducer.__single = None
+    delInstance = staticmethod(delInstance)
     
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
@@ -67,6 +75,8 @@ class GUIDBProducer():
         workerFn(*args, **kwargs) to the main thread.
         """
         if self.utility.abcquitting:
+            if DEBUG:
+                print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)"%name
             return
         
         if uId:
@@ -84,6 +94,9 @@ class GUIDBProducer():
             callbackId = uId
         else:
             callbackId = name
+    
+        if DEBUG:
+            print >> sys.stderr, "GUIDBHandler: adding Task(%s)"%callbackId
     
         if __debug__:
             self.uIdsLock.acquire()

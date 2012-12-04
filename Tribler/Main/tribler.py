@@ -22,6 +22,7 @@
 # This must be done in the first python file that is started.
 #
 import urllib
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -31,7 +32,7 @@ import Tribler.Debug.console
 
 import os, sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
@@ -92,7 +93,8 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
 from Tribler.Core.Utilities.utilities import show_permid_short
-from Tribler.Core.Statistics.Status.Status import get_status_holder
+from Tribler.Core.Statistics.Status.Status import get_status_holder,\
+    delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
 from Tribler.Video.defs import *
@@ -976,6 +978,8 @@ class ABCApp():
             self.guiserver.shutdown()
         if self.videoplayer:
             self.videoplayer.shutdown()
+            
+        delete_status_holders()
         
         if self.frame:
             del self.frame
@@ -1002,6 +1006,9 @@ class ABCApp():
             
             Session.del_instance()
             GUIUtility.del_instance()
+            GUITaskQueue.delInstance()
+            SQLiteCacheDB.delInstance()
+            GUIDBProducer.delInstance()
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -1299,6 +1306,8 @@ def run(params = None):
             if params[0] != "":
                 torrentfilename = params[0]
                 i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
+                
+            print "Client shutting down. Detected another instance."
         else:
             arg0 = sys.argv[0].lower()
             if arg0.endswith('.exe'):
@@ -1311,7 +1320,9 @@ def run(params = None):
             #os.chdir(installdir)
     
             # Launch first abc single instance
-            app = wx.PySimpleApp(redirect = False)
+            app = wx.GetApp()
+            if not app:
+                app = wx.PySimpleApp(redirect = False)
             abc = ABCApp(params, single_instance_checker, installdir)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
@@ -1322,9 +1333,7 @@ def run(params = None):
             abc.OnExit()
 
             #Niels: No code should be present here, only executed after gui closes
-            del abc
-            del app
-            
+
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(5)
 

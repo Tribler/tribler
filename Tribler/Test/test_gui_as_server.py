@@ -8,11 +8,18 @@ import wx
 import gc
 
 from threading import Thread, enumerate as enumerate_threads
-from time import sleep
+from time import sleep, time
 
 from Tribler.Main.tribler import run
 from Tribler.Core.Session import Session
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.dispersy.singleton import Singleton
+from Tribler.dispersy.member import Member
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    from .python27_ordereddict import OrderedDict
 
 class TestGuiAsServer(unittest.TestCase):
     """ 
@@ -21,36 +28,81 @@ class TestGuiAsServer(unittest.TestCase):
     
     def setUp(self):
         """ unittest test setup code """
+        self.app = wx.GetApp()
+        if not self.app:
+            self.app = wx.PySimpleApp(redirect = False)
+            
+        self.guiUtility = None
+        self.frame = None
+        self.lm = None
+        self.session = None
+        
+        self.asserts = []
+        
+    def startTest(self, callback):
+        def wait_for_peers():
+            if not (self.frame.ready and self.frame.SRstatusbar.GetConnections() > 0):
+                wx.CallLater(1000, wait_for_peers)
+            else:
+                wx.CallLater(5000, callback)
+        
+        def wait_for_init():
+            if not self.lm.initComplete:
+                wx.CallLater(1000, wait_for_init)
+            else:
+                self.guiUtility = GUIUtility.getInstance()
+                self.frame = self.guiUtility.frame
+                wait_for_peers()
+        
+        def wait_for_instance():
+            if not Session.has_instance():
+                wx.CallLater(1000, wait_for_instance)
+            else:
+                self.session = Session.get_instance()
+                self.lm = self.session.lm
+            
+                wait_for_init()
+        
+        wx.CallLater(1000, wait_for_instance)
+        
         #modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath(os.path.join('..','..', '.exe'))]
+        run()
         
-        self.t = Thread(target = run, name = "UnitTestingThread")
-        self.t.start()
-        
-        while not Session.has_instance():
-            sleep(1)
-            
-        self.session = Session.get_instance()
-        self.lm = self.session.lm
-        
-        while not self.lm.initComplete:
-            sleep(1)
-            
-        self.guiUtility = GUIUtility.getInstance()
-        self.frame = self.guiUtility.frame
+    def quit(self):
+        self.frame.OnCloseWindow()
 
     def tearDown(self):
-        """ unittest test tear down code """
-        wx.CallAfter(self.frame.OnCloseWindow)
+        for boolean, reason in self.asserts:
+            assert boolean, reason
         
+        """ unittest test tear down code """
         del self.guiUtility
         del self.frame
         del self.lm
         del self.session
         
-        self.t.join()
+        for object in gc.get_objects():
+            if isinstance(object, Singleton):
+                print >> sys.stderr, "teardown: Deleting %s singleton"%str(type(object))
+                object.del_instance()
+                
+            if isinstance(object, OrderedDict):
+                print >> sys.stderr, "teardown: Clearing %s"%str(type(object))
+                object.clear()
+                
+            if isinstance(object, dict):
+                keys = object.keys()
+                if keys:
+                    if isinstance(object[keys[0]], Member):
+                        object.clear()
+                        print >> sys.stderr, "teardown: Clearing %s contains Member objects"%str(type(object))
+    
+        from Tribler.Core.CacheDB.sqlitecachedb import unregister
+        unregister()
         
         sleep(10)
+        gc.collect()
         
         ts = enumerate_threads()
         print >>sys.stderr,"teardown: Number of threads still running",len(ts)
