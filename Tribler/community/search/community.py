@@ -121,7 +121,7 @@ class SearchCommunity(Community):
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
-            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once = True) if candidate]
+            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once = True) if candidate and candidate.is_eligible_for_walk(self, time())]
             for candidate in candidates:
                 if __debug__: dprint("extra walk to ", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
@@ -315,7 +315,7 @@ class SearchCommunity(Community):
                 payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, None)
             else:
                 payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, 0, None)
-                
+        
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
