@@ -16,8 +16,7 @@ class SearchScript(ScenarioScriptBase):
             self.community_kargs['ttl'] = kargs['ttl']
         if 'neighbors' in kargs:
             self.community_kargs['neighbors'] = kargs['neighbors']
-        if 'encryption' in kargs:
-            self.community_kargs['encryption'] = kargs['encryption']
+        self.community_kargs['encryption'] = kargs.get('encryption', False)
         
         self.total_taste_buddies = 0
         self.current_taste_buddies = 0
