@@ -807,7 +807,7 @@ class SearchCommunity(Community):
         if len(candidates) < nr:
             sock_addresses = set(candidate.sock_addr for candidate in candidates)
             
-            for candidate in self._dispersy.yield_candidates(self):
+            for candidate in self.dispersy_yield_candidates(self):
                 if candidate.sock_addr not in sock_addresses:
                     candidates.add(candidate)
                     sock_addresses.add(candidate.sock_addr)
@@ -825,7 +825,7 @@ class SearchCommunity(Community):
         taste_buddies = list(self.yield_taste_buddies())
         
         sock_addresses = set(candidate.sock_addr for candidate in taste_buddies)
-        for candidate in self._dispersy.yield_candidates(self):
+        for candidate in self.dispersy_yield_candidates(self):
             if candidate.sock_addr not in sock_addresses:
                 random_peers.append(candidate)
                 sock_addresses.add(candidate.sock_addr)
