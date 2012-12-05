@@ -71,7 +71,7 @@ class TestGuiAsServer(unittest.TestCase):
         run()
         
     def quit(self):
-        wx.CallAfter(self.frame.OnCloseWindow)
+        self.frame.OnCloseWindow()
 
     def tearDown(self):
         for boolean, reason in self.asserts:
@@ -111,9 +111,6 @@ class TestGuiAsServer(unittest.TestCase):
             print >>sys.stderr,"teardown: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
     
     def screenshot(self, title = None, destdir = "output"):
-        wx.CallAfter(self._screenshot, title, destdir)
-        
-    def _screenshot(self, title, destdir):
         app = wx.GetApp()
         window = app.GetTopWindow()
         rect = window.GetRect()
