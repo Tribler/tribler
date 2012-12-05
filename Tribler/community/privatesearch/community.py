@@ -69,9 +69,9 @@ class SearchCommunity(Community):
         super(SearchCommunity, self).__init__(master)
         
         self.integrate_with_tribler = integrate_with_tribler
-        self.ttl = ttl
-        self.neighbors = neighbors
-        self.encryption = encryption
+        self.ttl = int(ttl)
+        self.neighbors = int(neighbors)
+        self.encryption = bool(encryption)
         
         self.taste_buddies = []
         
