@@ -114,7 +114,7 @@ class TestGuiAsServer(unittest.TestCase):
         wx.CallAfter(self._screenshot, title, destdir)
         
     def _screenshot(self, title, destdir):
-        app = wx.App()
+        app = wx.GetApp()
         window = app.GetTopWindow()
         rect = window.GetRect()
         
@@ -140,3 +140,5 @@ class TestGuiAsServer(unittest.TestCase):
             index += 1
             filename = os.path.join(destdir, 'Screenshot-%d.png'%index)
         im.save(filename)
+        
+        del bmp
