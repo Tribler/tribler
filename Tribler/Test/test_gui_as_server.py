@@ -67,7 +67,7 @@ class TestGuiAsServer(unittest.TestCase):
         wx.CallLater(1000, wait_for_instance)
         
         #modify argv to let tribler think its running from a different directory
-        sys.argv = [os.path.abspath(os.path.join('..','..', '.exe'))]
+        sys.argv = [os.path.abspath('./.exe')]
         run()
         
     def quit(self):
