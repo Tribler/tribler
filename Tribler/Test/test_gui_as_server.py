@@ -71,7 +71,7 @@ class TestGuiAsServer(unittest.TestCase):
         run()
         
     def quit(self):
-        self.frame.OnCloseWindow()
+        wx.CallAfter(self.frame.OnCloseWindow)
 
     def tearDown(self):
         for boolean, reason in self.asserts:
