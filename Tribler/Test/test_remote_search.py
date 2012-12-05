@@ -14,6 +14,7 @@ class TestRemoteQuery(TestGuiAsServer):
     """
     def test_remotesearch(self):
         def do_assert():
+            self.screenshot('After doing mp3 search')
             self.asserts.append((self.frame.searchlist.total_results > 0, 'no results'))
             self.asserts.append((self.guiUtility.torrentsearch_manager.gotRemoteHits, 'no remote results'))
             self.quit()
@@ -26,6 +27,7 @@ class TestRemoteQuery(TestGuiAsServer):
         
     def test_ffsearch(self):
         def do_assert():
+            self.screenshot('After doing xxx search')
             self.asserts.append((self.frame.searchlist.total_results == 0, 'got results'))
             self.quit()
         
@@ -38,9 +40,13 @@ class TestRemoteQuery(TestGuiAsServer):
         
     def test_remotedownload(self):
         def do_assert():
+            self.screenshot('After doing vodo search + pioneer filter + selecting item + download')
+            
             self.quit()
             
         def do_download():
+            self.screenshot('After doing vodo search + pioneer filter + selecting item')
+            
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             defaultDLConfig.set_show_saveas(False)
         
@@ -48,6 +54,7 @@ class TestRemoteQuery(TestGuiAsServer):
             wx.CallLater(5000, do_assert)  
             
         def do_select():
+            self.screenshot('After doing vodo search + pioneer filter')
             self.asserts.append((self.frame.searchlist.total_results > 0, 'no hits matching vodo + pioneer'))
             items = self.frame.searchlist.GetItems()
             keys = items.keys()
@@ -56,6 +63,7 @@ class TestRemoteQuery(TestGuiAsServer):
             wx.CallLater(5000, do_download)
         
         def do_filter():
+            self.screenshot('After doing vodo search')
             self.asserts.append((self.frame.searchlist.total_results > 0, 'no hits matching vodo'))
             self.frame.searchlist.GotFilter('pioneer')
             wx.CallLater(5000, do_select)

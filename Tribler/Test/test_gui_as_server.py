@@ -6,6 +6,7 @@ import os
 import sys
 import wx
 import gc
+import Image
 
 from threading import Thread, enumerate as enumerate_threads
 from time import sleep, time
@@ -108,3 +109,33 @@ class TestGuiAsServer(unittest.TestCase):
         print >>sys.stderr,"teardown: Number of threads still running",len(ts)
         for t in ts:
             print >>sys.stderr,"teardown: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
+    
+    def screenshot(self, title = None, destdir = "."):
+        wx.CallAfter(self._screenshot, title, destdir)
+        
+    def _screenshot(self, title, destdir):
+        app = wx.App()
+        window = app.GetTopWindow()
+        rect = window.GetRect()
+        
+        screen = wx.ScreenDC()
+        bmp = wx.EmptyBitmap(rect.GetWidth(), rect.GetHeight())
+        
+        mem = wx.MemoryDC(bmp)
+        mem.Blit(0, 0, rect.GetWidth(), rect.GetHeight(), screen, rect.GetX(), rect.GetY())
+        if title:
+            titlerect = wx.Rect(0, 0, rect.GetWidth(), 30)
+            mem.DrawRectangleRect(titlerect)
+            mem.DrawLabel(title, titlerect, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
+        del mem
+        
+        myWxImage = wx.ImageFromBitmap(bmp)
+        im = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()))
+        im.fromstring(myWxImage.GetData())
+        
+        index = 1
+        filename = os.path.join(destdir, 'Screenshot-%d.png'%index)
+        while os.path.exists(filename):
+            index += 1
+            filename = os.path.join(destdir, 'Screenshot-%d.png'%index)
+        im.save(filename)
