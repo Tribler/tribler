@@ -133,7 +133,8 @@ class TestGuiAsServer(unittest.TestCase):
         im = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()))
         im.fromstring(myWxImage.GetData())
         
-        os.makedirs(destdir)
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
         index = 1
         filename = os.path.join(destdir, 'Screenshot-%d.png'%index)
         while os.path.exists(filename):
