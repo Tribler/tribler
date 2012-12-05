@@ -110,7 +110,7 @@ class TestGuiAsServer(unittest.TestCase):
         for t in ts:
             print >>sys.stderr,"teardown: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
     
-    def screenshot(self, title = None, destdir = "."):
+    def screenshot(self, title = None, destdir = "output"):
         wx.CallAfter(self._screenshot, title, destdir)
         
     def _screenshot(self, title, destdir):
@@ -133,6 +133,7 @@ class TestGuiAsServer(unittest.TestCase):
         im = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()))
         im.fromstring(myWxImage.GetData())
         
+        os.makedirs(destdir)
         index = 1
         filename = os.path.join(destdir, 'Screenshot-%d.png'%index)
         while os.path.exists(filename):
