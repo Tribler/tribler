@@ -22,8 +22,8 @@ if test $# -lt 5; then
 else
 	HEAD_IP=$5
 fi
-cat $EXPERIMENT_CONFIG | grep HEAD_IP || (echo "" >> $EXPERIMENT_CONFIG && echo HEAD_IP=$HEAD_IP >> $EXPERIMENT_CONFIG)
-sed -i "s/^HEAD\_IP=.*/HEAD\_IP=$HEAD_IP/" $EXPERIMENT_CONFIG
+cat "$EXPERIMENT_CONFIG" | grep HEAD_IP || (echo "" >> "$EXPERIMENT_CONFIG" && echo HEAD_IP=$HEAD_IP >> "$EXPERIMENT_CONFIG")
+sed -i "s/^HEAD\_IP=.*/HEAD\_IP=$HEAD_IP/" "$EXPERIMENT_CONFIG"
 
 if test $# -lt 6; then
 	TRACKER_PORT=6666
@@ -31,10 +31,10 @@ else
 	TRACKER_PORT=$6
 fi
 # create bootstraptribler files for local tracker and peers 
-echo $HEAD_IP $TRACKER_PORT > $BRANCH/bootstraptribler.txt
-echo $HEAD_IP $TRACKER_PORT > $BRANCH/Tribler/bootstraptribler.txt
+echo $HEAD_IP $TRACKER_PORT > "$BRANCH/bootstraptribler.txt"
+echo $HEAD_IP $TRACKER_PORT > "$BRANCH/Tribler/bootstraptribler.txt"
 
-cd $2
+cd "$2"
 PEERS_DIRECTORY=$(pwd)
 NODE_COUNT=$3
 EXPERIMENT_LENGTH=$4
@@ -48,18 +48,18 @@ if test $current_hour -lt 20 && test $current_hour -gt 8 && test $day_of_week -l
     # EXPERIMENT_LENGTH=14
 fi
 
-rm -rf $PEERS_DIRECTORY/control
-rm -f $PEERS_DIRECTORY/peers
+rm -rf "$PEERS_DIRECTORY/control"
+rm -f "$PEERS_DIRECTORY/peers"
 
-cd $PEERS_DIRECTORY
+cd "$PEERS_DIRECTORY"
 rm -rf `find . -type d -name 'output'`
-mkdir -p $PEERS_DIRECTORY/output
+mkdir -p "$PEERS_DIRECTORY/output"
 
 # save SVN version of ${BRANCH}
-cd ${BRANCH}
-svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > $PEERS_DIRECTORY/output/svn_version.txt
+cd "${BRANCH}"
+svnversion | sed 's/.*:\([0-9]*\)*[A-Z]*$/\1/g' > "$PEERS_DIRECTORY/output/svn_version.txt"
 
-cd ${BRANCH}
+cd "${BRANCH}"
 echo "* Cleaning up *.pyc files..."
 find . -iregex '.*\(dispersy\|Community\).*\.py[co]' -delete
 echo "* Recompiling python classes..."
@@ -75,24 +75,24 @@ import re
 compile_dir('.', rx=re.compile('/[.]svn'), force=False)
 END
 
-cd $PEERS_DIRECTORY
+cd "$PEERS_DIRECTORY"
 PEER_COUNT=$(cat peer.count)
 
-cd ${BRANCH}/Tribler
-export PYTHONPATH=${BRANCH}:~/3rd-party/lib/python2.6/site-packages:~/3rd-party/lib64/python2.6/site-packages:$PYTHONPATH
-export LD_LIBRARY_PATH=~/3rd-party/lib:$LD_LIBRARY_PATH
+cd "${BRANCH}/Tribler"
+export PYTHONPATH="${BRANCH}:~/3rd-party/lib/python2.6/site-packages:~/3rd-party/lib64/python2.6/site-packages:$PYTHONPATH"
+export LD_LIBRARY_PATH="~/3rd-party/lib:$LD_LIBRARY_PATH"
 
 echo "* Starting a DAS4 tracker in the background... --port $TRACKER_PORT"
-python -O -c "from dispersy.tool.tracker import main; main()" --port $TRACKER_PORT --silent &> $PEERS_DIRECTORY/output/tracker_out.log &
+python -O -c "from dispersy.tool.tracker import main; main()" --port $TRACKER_PORT --silent &> "$PEERS_DIRECTORY/output/tracker_out.log" &
 TRACKER_PID=$!
 
-cd ${BRANCH}
+cd "${BRANCH}"
 echo "* Starting the DAS4 config sync server in the background..."
 ./das4-config-sync-server.py $PEER_COUNT $INITIAL_DELAY & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
 #disown  # remove job from the job table of the current bash process
 
-cd $PEERS_DIRECTORY
+cd "$PEERS_DIRECTORY"
 
 echo "* Starting experiment on $NODE_COUNT nodes ("$[$PEER_COUNT / $NODE_COUNT]" peers per node)..."
 
@@ -105,7 +105,7 @@ echo "* Sending job to DAS4..."
 
 JOB_STATUS_FILE=/tmp/das4_job_$USER
 #prun SGE_TASK_LAST=${NODE_COUNT} -v -reserve $RESERVATION_ID -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG ${BRANCH} $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH &
-(prun SGE_TASK_LAST=${NODE_COUNT} -t $reservation_length -v -np ${NODE_COUNT} ${BRANCH}/das4-node $EXPERIMENT_CONFIG ${BRANCH} $PEERS_DIRECTORY $PEER_COUNT $EXPERIMENT_LENGTH 2>&1 | tee $JOB_STATUS_FILE ) &
+(prun SGE_TASK_LAST=${NODE_COUNT} -t $reservation_length -v -np ${NODE_COUNT} "${BRANCH}/das4-node" "$EXPERIMENT_CONFIG" "${BRANCH}" "$PEERS_DIRECTORY" $PEER_COUNT $EXPERIMENT_LENGTH 2>&1 | tee $JOB_STATUS_FILE ) &
 PRUN_PID=$! # well, not really prun's PID, but we'll be using this one to send prun and tee signals
 sleep 2
 RESERVATION_ID=$(head -n1 $JOB_STATUS_FILE | sed 's/Reservation number \([0-9]*\):.*/\1/g')
