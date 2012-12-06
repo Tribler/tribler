@@ -56,10 +56,10 @@ class SearchScript(ScenarioScriptBase):
         return ScenarioScriptBase.do_steps(self)
     
     def get_commands_from_fp(self, fp, step):
-        if step == 200 and int(self._my_name) <= self.late_join:
+        if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
             
-        if step > 0 and (step + 100) % 200 == 0:
+        if step > 0 and step % 100 == 0:
             self._dispersy.callback.persistent_register("do_search", self.perform_searches)
             
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
