@@ -10,7 +10,7 @@ class SearchScript(ScenarioScriptBase):
     def __init__(self, **kargs):
         ScenarioScriptBase.__init__(self, 'barter.log', **kargs)
         
-        self.late_join = kargs.get('latejoin', 1000)
+        self.late_join = int(kargs.get('latejoin', 1000))
         self.community_type = kargs.get('type', 'search')
         self.community_kargs = {}
         if 'ttl' in kargs:
