@@ -44,6 +44,8 @@ if __debug__:
 DEBUG = False
 TTL = 4
 NEIGHBORS = 5
+ENCRYPTION = True
+TASTE_NEIGHBOR = 3
 
 class SearchCommunity(Community):
     """
@@ -56,22 +58,23 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = True):
+    def load_community(cls, master, my_member, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor)
 
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = True):
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR):
         super(SearchCommunity, self).__init__(master)
         
         self.integrate_with_tribler = integrate_with_tribler
         self.ttl = int(ttl)
         self.neighbors = int(neighbors)
         self.encryption = bool(encryption)
+        self.taste_neighbor = int(taste_neighbor)
         
         self.taste_buddies = []
         
@@ -470,7 +473,7 @@ class SearchCommunity(Community):
             else:
                 _ttl = ttl
                 
-            if (_ttl < 3 and taste_buddies) or (taste_buddies and not random_peers):
+            if (_ttl < self.taste_neighbor and taste_buddies) or (taste_buddies and not random_peers):
                 candidate = taste_buddies.pop()
             elif random_peers:
                 candidate = random_peers.pop()
