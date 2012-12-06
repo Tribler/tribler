@@ -85,6 +85,14 @@ export LD_LIBRARY_PATH=~/3rd-party/lib:${LD_LIBRARY_PATH}
 echo "* Starting a DAS4 tracker in the background... --port $TRACKER_PORT"
 python -O -c "from dispersy.tool.tracker import main; main()" --port $TRACKER_PORT --silent &> "$PEERS_DIRECTORY/output/tracker_out.log" &
 TRACKER_PID=$!
+echo "Checking if the tracker is started correctly..."
+sleep 2
+if [ -e /proc/$TRACKER_PID ]; then
+    echo "  Yes it is"
+else
+    echo "  Looks like the tracker crashed. Failing"
+    exit 1
+fi
 
 cd "${BRANCH}"
 echo "* Starting the DAS4 config sync server in the background..."
