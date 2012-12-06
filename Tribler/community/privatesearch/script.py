@@ -130,9 +130,9 @@ class SearchScript(ScenarioScriptBase):
             log(self._logfile, "no results", recall = recall, keywords = keywords, candidate = str(candidate))
         
     def connect_to_taste_buddy(self, sock_addr):
-        candidate = self._dispersy.get_candidate(sock_addr)
+        candidate = self._dispersy.get_candidate(sock_addr, replace = False)
         if not candidate:
-            candidate = self._dispersy.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
+            candidate = self._community.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
         
         while not self._community.is_taste_buddy(candidate):
             log(self._logfile, "sending introduction request to %s"%str(candidate))
@@ -143,7 +143,7 @@ class SearchScript(ScenarioScriptBase):
             
     def monitor_taste_buddy(self, sock_addr):
         while True:
-            candidate = self._dispersy.get_candidate(sock_addr)
+            candidate = self._dispersy.get_candidate(sock_addr, replace = False)
             if candidate and self._community.is_taste_buddy(candidate):
                 self.current_taste_buddies += 1.0
                 break
