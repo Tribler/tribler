@@ -11,8 +11,8 @@ cfg_name=$(basename $1)
 cfg_path=$(dirname $1)
 cd $cfg_path
 cfg_path=$(pwd)
-EXPERIMENT_CONFIG=$cfg_path/$cfg_name
-source $EXPERIMENT_CONFIG
+EXPERIMENT_CONFIG="$cfg_path/$cfg_name"
+source "$EXPERIMENT_CONFIG"
 
 # check if we allready have SGE_KEEP_TMPFILES=no in .bashrc, if not add it
 cat ~/.bashrc | grep SGE_KEEP_TMPFILES || echo SGE_KEEP_TMPFILES=no >> ~/.bashrc
