@@ -128,7 +128,7 @@ def generate(peers_directory, messagestoplot):
         print >> h_stat, "# timestamp timeoffset total-send total-received"
         print >> h_stat, "0 0 0 0"
 
-        print "  *", nodename
+        print  nodename, " ",
         record_count[nodename] = {}
         dispersy_in_out[nodename] = [0,0,0,0]
         for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
@@ -212,6 +212,7 @@ def generate(peers_directory, messagestoplot):
                 record_count[nodename][timeoffset] = [c_received_record, c_created_record, c_received_record + c_created_record, 0.0]
                 measured_record_count[nodename] = record_count[nodename][timeoffset]
 
+        print ""
         if not traffic_start:
             print "!!!! No statistics collected"
         else:
