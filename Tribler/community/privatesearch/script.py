@@ -88,7 +88,7 @@ class SearchScript(ScenarioScriptBase):
                 self._dispersy.callback.register(self.monitor_taste_buddy, args = ((ip,port),))
                 
                 if int(self._my_name) > self.late_join:
-                    self._dispersy.callback.register(self.connect_to_taste_buddy, args = ((ip,port),))
+                    self._dispersy.callback.register(self.connect_to_taste_buddy, args = ((ip,port),), delay = 1.0)
         
     def log_statistics(self):
         while True:
