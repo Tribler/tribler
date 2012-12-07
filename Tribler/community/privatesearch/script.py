@@ -145,7 +145,8 @@ class SearchScript(ScenarioScriptBase):
         while True:
             candidate = self._dispersy.get_candidate(sock_addr, replace = False)
             if candidate and self._community.is_taste_buddy(candidate):
-                self.not_connected_taste_buddies.remove(sock_addr)
+                if sock_addr in self.not_connected_taste_buddies:
+                    self.not_connected_taste_buddies.remove(sock_addr)
             else:
                 self.not_connected_taste_buddies.add(sock_addr)
             yield 5.0
