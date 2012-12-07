@@ -142,6 +142,8 @@ class SearchScript(ScenarioScriptBase):
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
             
     def monitor_taste_buddy(self, sock_addr):
+        self.not_connected_taste_buddies.add(sock_addr)
+        
         while True:
             candidate = self._dispersy.get_candidate(sock_addr, replace = False)
             if candidate and self._community.is_taste_buddy(candidate):
