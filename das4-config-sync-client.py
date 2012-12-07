@@ -48,8 +48,7 @@ class ConfigClientFactory(ClientFactory):
 def main():
     sync_server = argv[1]
     if len(argv) > 2:
-        server_port = argv[2]
-        
+        server_port = int(argv[2])
     else:
         # determine port based on the process owner's username
         md5sum = md5()
