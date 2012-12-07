@@ -4475,6 +4475,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         
         self.new_terms = {}
         self.update_terms = {}
+        self.new_phrases = []
         
         self.termLock = Lock()
         self.extractor.session.lm.database_thread.register(self.__flush_to_database, delay = 5.0 if self.nr_bi_phrases < 100 else 20.0)
@@ -4482,14 +4483,24 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     def __flush_to_database(self):
         while True:
             with self.termLock:
-                add_new_terms_sql = "INSERT INTO TermFrequency (term, freq) VALUES (?, ?);"
-                update_exist_terms_sql = "UPDATE OR REPLACE TermFrequency SET freq = ? WHERE term_id = ?;"
-
-                self._db.executemany(add_new_terms_sql, self.new_terms.values(), commit=False)
-                self._db.executemany(update_exist_terms_sql, self.update_terms.values(), commit=False)
+                try:
+                    add_new_terms_sql = "INSERT INTO TermFrequency (term, freq) VALUES (?, ?);"
+                    update_exist_terms_sql = "UPDATE OR REPLACE TermFrequency SET freq = ? WHERE term_id = ?;"
+                    ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
+                                        SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
+                                        FROM TermFrequency TF1, TermFrequency TF2
+                                        WHERE TF1.term = ? AND TF2.term = ?"""
+                                        
+                    self._db.executemany(add_new_terms_sql, self.new_terms.values(), commit=False)
+                    self._db.executemany(update_exist_terms_sql, self.update_terms.values(), commit=False)
+                    self._db.executemany(ins_phrase_sql, self.new_phrases, commit = False)
+                except:
+                    print_exc()
+                    print >> sys.stderr, "could not insert terms", self.new_terms.values()
 
                 self.new_terms.clear()
                 self.update_terms.clear()
+                self.new_phrases = []
 
             if self.nr_bi_phrases < self.MAX_UNCOLLECTED:
                 self.updateBiPhraseCount()
@@ -4582,16 +4593,8 @@ class NetworkBuzzDBHandler(BasicDBHandler):
                     else:
                         self.update_terms[term_id] = [freq+1, term_id]
             
-            ins_phrase_sql = u"""INSERT OR REPLACE INTO TorrentBiTermPhrase (torrent_id, term1_id, term2_id)
-                                        SELECT ? AS torrent_id, TF1.term_id, TF2.term_id
-                                        FROM TermFrequency TF1, TermFrequency TF2
-                                        WHERE TF1.term = ? AND TF2.term = ?"""
-            
-            if phrase is not None:
-                self._db.execute_write(ins_phrase_sql, (torrent_id,) + phrase, commit=False)
-            
-            if commit:
-                self.commit()
+                if phrase is not None:
+                    self.new_phrases.append((torrent_id, ) + phrase)
     
     def deleteTorrent(self, torrent_id, commit=True):
         """
