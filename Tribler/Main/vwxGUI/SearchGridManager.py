@@ -225,8 +225,7 @@ class TorrentManager:
         self.session.download_torrentmessages_from_peer(candidate, infohashes, callback, prio)
         return True
 
-    @forceWxThread
-    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None, correctedFilename = None):
+    def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
         torrent_filename = self.getCollectedFilename(torrent)
         
         if isinstance(torrent_filename, basestring):
@@ -259,7 +258,7 @@ class TorrentManager:
 
             # Api download
             def do_gui():
-                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles, correctedFilename = correctedFilename) ## remove name=name
+                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
                 if d:
                     if secret:
                         self.torrent_db.setSecret(torrent.infohash, secret)
@@ -268,35 +267,13 @@ class TorrentManager:
                         print >>sys.stderr,'standardDetails: download: download started'
             wx.CallAfter(do_gui)
         else:
-            dlg = None
-            def callback():
-                if dlg:
-                    torrent_filename = self.getCollectedFilename(torrent)
-                    tdef = TorrentDef.load(torrent_filename)
-                    wx.CallAfter(dlg.SetTdef, tdef)
+            callback = lambda: self.downloadTorrent(torrent, dest, secret, vodmode)
             response = self.getTorrent(torrent, callback)
-            
+
             if response[0]:
-                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                useDefault = not defaultDLConfig.get_show_saveas()
-                if not useDefault:
-                    from Tribler.Main.Dialogs.SaveAs import SaveAs
-                    dlg = SaveAs(self.guiUtility.frame, None, DefaultDownloadStartupConfig.getInstance().get_dest_dir(), torrent.name, os.path.join(self.guiUtility.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles, torrent = torrent)
-                    dlg.CenterOnParent()            
-                    if dlg.ShowModal() == wx.ID_OK:
-                        #for multifile we enabled correctedFilenames, use split to remove the filename from the path
-                        if dlg.tdef and dlg.tdef.is_multifile_torrent():
-                            destdir, correctedFilename = os.path.split(dlg.GetPath())
-                            selectedFiles = dlg.GetSelectedFiles()
-                        else:
-                            destdir, correctedFilename = dlg.GetPath(), None
-                            selectedFiles = None
-                        dlg.Destroy()
-                        wx.CallAfter(lambda : self.downloadTorrent(torrent, destdir, secret, vodmode, selectedFiles = selectedFiles, correctedFilename = correctedFilename))
-                        return response[1]
-                    dlg.Destroy()
-                else:
-                    return response[1]
+                #torrent is being requested from peers, using callback this function will be called again
+                return response[1]
+            
             else:
                 #torrent not found
                 def showdialog():
@@ -309,7 +286,7 @@ class TorrentManager:
                     if result == wx.ID_YES:
                         infohash = torrent.infohash
                         self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
-                wx.CallAfter(showdialog)             
+                wx.CallAfter(showdialog)       
     
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):

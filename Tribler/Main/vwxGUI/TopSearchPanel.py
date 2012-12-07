@@ -334,7 +334,9 @@ class TopSearchPanel(GradientPanel):
                 elif self.guiutility.frame.selectedchannellist.IsShownOnScreen():
                     self.guiutility.frame.selectedchannellist.StartDownload(torrent, None)
                 else:
-                    self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = None)
+                    response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = None)
+                    if response:
+                        self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
                 refresh_library = True
                 
         if event:

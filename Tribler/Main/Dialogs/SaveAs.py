@@ -4,13 +4,12 @@
 import wx
 import os
 import sys
-import wx.animate
-from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font
+from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl,\
+    _set_font
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler import LIBRARYNAME
-            
+
 class SaveAs(wx.Dialog):
-    def __init__(self, parent, tdef, defaultdir, defaultname, configfile, selectedFiles = None, torrent = None):
+    def __init__(self, parent, tdef, defaultdir, defaultname, configfile, selectedFiles = None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600,450))
         
         self.filehistory = wx.FileHistory(25)
@@ -27,7 +26,7 @@ class SaveAs(wx.Dialog):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         
-        if tdef or torrent:
+        if tdef:
             line = 'Please select a directory where to save:'
         else:
             line = 'Please select a directory where to save this torrent'
@@ -36,8 +35,8 @@ class SaveAs(wx.Dialog):
         _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        if tdef or torrent:
-            torrentName = wx.StaticText(self, -1, tdef.get_name_as_unicode() if tdef else torrent.name)
+        if tdef:
+            torrentName = wx.StaticText(self, -1, tdef.get_name_as_unicode())
             torrentName.SetMinSize((1, -1))
             vSizer.Add(torrentName, 0, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 3)
         
@@ -64,88 +63,69 @@ class SaveAs(wx.Dialog):
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         if tdef:
-            self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
-        elif torrent:
-            text = wx.StaticText(self, -1, "Attempting to retrieve .torrent. Please wait..")
-            _set_font(text, size_increment = 1)
-            ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif'))
-            ag.Play()
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
-            sizer.AddStretchSpacer()
-            sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 10)
-            sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
-            sizer.AddStretchSpacer()
-            vSizer.Add(sizer, 1, wx.EXPAND|wx.BOTTOM, 3)
+            vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 10)
+            
+            firstLine = wx.StaticText(self, -1, "Content:")
+            _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
+            vSizer.Add(firstLine, 0, wx.BOTTOM, 3)
+            
+            vSizer.Add(wx.StaticText(self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
+            
+            self.listCtrl = CheckSelectableListCtrl(self)
+            self.listCtrl.InsertColumn(0, 'Name')
+            self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
+            
+            #Add files
+            def sort_by_size(a, b):
+                return cmp(a[1],b[1])
+            
+            files = tdef.get_files_as_unicode_with_length()
+            files.sort(sort_by_size, reverse = True)
+            
+            for filename, size in files:
+                try:
+                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
+                except:
+                    try:
+                        pos = self.listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
+                    except:
+                        print >> sys.stderr, "Could not format filename", self.torrent.name
+                self.listCtrl.SetItemData(pos, pos)
+                self.listCtrl.SetStringItem(pos, 1, self.guiutility.utility.size_format(size))
+                
+                if selectedFiles:
+                    self.listCtrl.CheckItem(pos, filename in selectedFiles)
+            
+            if selectedFiles == None:
+                self.listCtrl.doSelectAll()
+            
+            self.listCtrl.setResizeColumn(0)
+            self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
+            vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.BOTTOM, 3)
+
+            self.listCtrl.SetFocus()
+            def OnKeyUp(event):
+                if event.GetKeyCode() == wx.WXK_RETURN:
+                    self.OnOk()
+                else:
+                    event.Skip()                
+            self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
         
-        self.cancel = wx.Button(self, wx.ID_CANCEL)
-        self.cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
+        cancel = wx.Button(self, wx.ID_CANCEL)
+        cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
         
-        self.ok = wx.Button(self, wx.ID_OK)
-        self.ok.Bind(wx.EVT_BUTTON, self.OnOk)
-        self.ok.Enable(not bool(torrent))
+        ok = wx.Button(self, wx.ID_OK)
+        ok.Bind(wx.EVT_BUTTON, self.OnOk)
         
         bSizer = wx.StdDialogButtonSizer()
-        bSizer.AddButton(self.cancel)
-        bSizer.AddButton(self.ok)
+        bSizer.AddButton(cancel)
+        bSizer.AddButton(ok)
         bSizer.Realize()
         vSizer.Add(bSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND|wx.ALL, 10)
         self.SetSizer(sizer)
-        
-    def AddFileList(self, tdef, selectedFiles, sizer, index = None):
-        if index == None: index = len(sizer.GetChildren())
-        sizer.Insert(index, wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 10)
-        index += 1
-        
-        firstLine = wx.StaticText(self, -1, "Content:")
-        _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
-        sizer.Insert(index, firstLine, 0, wx.BOTTOM, 3)
-        index += 1
-                
-        sizer.Insert(index, wx.StaticText(self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
-        index += 1
-                
-        self.listCtrl = CheckSelectableListCtrl(self)
-        self.listCtrl.InsertColumn(0, 'Name')
-        self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
-        
-        #Add files
-        def sort_by_size(a, b):
-            return cmp(a[1],b[1])
-        
-        files = tdef.get_files_as_unicode_with_length()
-        files.sort(sort_by_size, reverse = True)
-        
-        for filename, size in files:
-            try:
-                pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
-            except:
-                try:
-                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
-                except:
-                    print >> sys.stderr, "Could not format filename", self.torrent.name
-            self.listCtrl.SetItemData(pos, pos)
-            self.listCtrl.SetStringItem(pos, 1, self.guiutility.utility.size_format(size))
-            
-            if selectedFiles:
-                self.listCtrl.CheckItem(pos, filename in selectedFiles)
-        
-        if selectedFiles == None:
-            self.listCtrl.doSelectAll()
-        
-        self.listCtrl.setResizeColumn(0)
-        self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
-        sizer.Insert(index, self.listCtrl, 1, wx.EXPAND|wx.BOTTOM, 3)
-        
-        self.listCtrl.SetFocus()
-        def OnKeyUp(event):
-            if event.GetKeyCode() == wx.WXK_RETURN:
-                self.OnOk()
-            else:
-                event.Skip()                
-        self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
         
     def GetPath(self):
         return self.dirTextCtrl.GetValue().strip()
@@ -161,19 +141,6 @@ class SaveAs(wx.Dialog):
                     files.append(self.listCtrl.GetItem(index, 0).GetText())
                 return files
         return None
-    
-    def SetTdef(self, tdef):
-        self.tdef = tdef
-        vSizer = self.GetSizer().GetItem(0).GetSizer()
-        hsizer = vSizer.GetItem(len(vSizer.GetChildren())-2).GetSizer()
-        self.Freeze()
-        hsizer.Clear(deleteWindows = True)
-        vSizer.Remove(hsizer)
-        self.AddFileList(tdef, None, vSizer, len(vSizer.GetChildren())-1)
-        self.ok.Enable(True)
-        self.Layout()
-        self.Refresh()
-        self.Thaw()
         
     def OnOk(self, event = None):
         if self.listCtrl:
