@@ -103,7 +103,7 @@ else
 fi
 
 cd "${BRANCH}"
-echo "* Starting the DAS4 config sync server in the background..."
+echo "* Starting the DAS4 config sync server in the background... --port $SYNC_PORT"
 ./das4-config-sync-server.py $PEER_COUNT $INITIAL_DELAY $SYNC_PORT & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
 #disown  # remove job from the job table of the current bash process
