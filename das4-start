@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if test $# -lt 4; then
-	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min> <ip-of-headnode> <port-of-tracker>"
+	echo "Usage: $0 <experiment-config> <peers-directory> <node-count> <experiment-length-in-min> <ip-of-headnode> <port-of-tracker> <port-of-syncserver>"
 	exit 1
 fi
 BRANCH=$(pwd)
@@ -33,6 +33,14 @@ fi
 # create bootstraptribler files for local tracker and peers 
 echo $HEAD_IP $TRACKER_PORT > "$BRANCH/bootstraptribler.txt"
 echo $HEAD_IP $TRACKER_PORT > "$BRANCH/Tribler/bootstraptribler.txt"
+
+if test $# -lt 7; then
+	SYNC_PORT=''
+else
+	SYNC_PORT=$7
+fi
+cat "$EXPERIMENT_CONFIG" | grep SYNC_PORT || (echo "" >> "$EXPERIMENT_CONFIG" && echo SYNC_PORT=$SYNC_PORT >> "$EXPERIMENT_CONFIG")
+sed -i "s/^SYNC\_PORT=.*/SYNC\_PORT=$SYNC_PORT/" "$EXPERIMENT_CONFIG"
 
 cd "$2"
 PEERS_DIRECTORY=$(pwd)
@@ -96,7 +104,7 @@ fi
 
 cd "${BRANCH}"
 echo "* Starting the DAS4 config sync server in the background..."
-./das4-config-sync-server.py $PEER_COUNT $INITIAL_DELAY & # it automatically stops after all peers received their config
+./das4-config-sync-server.py $PEER_COUNT $INITIAL_DELAY $SYNC_PORT & # it automatically stops after all peers received their config
 CONFIG_SERVER_PID=$!
 #disown  # remove job from the job table of the current bash process
 

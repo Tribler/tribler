@@ -47,17 +47,20 @@ class ConfigClientFactory(ClientFactory):
 
 def main():
     sync_server = argv[1]
-
-    # determine port based on the process owner's username
-    md5sum = md5()
-    md5sum.update(getuser())
-    server_port = int(md5sum.hexdigest()[-16:], 16) % 20000 + 15000
+    if len(argv) > 2:
+        server_port = argv[2]
+        
+    else:
+        # determine port based on the process owner's username
+        md5sum = md5()
+        md5sum.update(getuser())
+        server_port = int(md5sum.hexdigest()[-16:], 16) % 20000 + 15000
 
     reactor.connectTCP(sync_server, server_port, ConfigClientFactory())
     reactor.run()
 
 if __name__ == '__main__':
-    if len(argv) != 3:
-        print "Usage: ./config_sync_client.py <sync_server> <my_ip>"
+    if len(argv) < 2:
+        print "Usage: ./config_sync_client.py <sync_server> (<sync port>)"
         exit(1)
     main()
