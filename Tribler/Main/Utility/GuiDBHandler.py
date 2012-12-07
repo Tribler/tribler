@@ -18,7 +18,6 @@ import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from inspect import isgeneratorfunction
 from random import randint
-from Crypto.Random._UserFriendlyRNG import _singleton_lock
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
 GUI_PRI_DISPERSY = 99
@@ -50,18 +49,17 @@ class GUIDBProducer():
         self.uIdsLock = Lock()
         
         self.nrCallbacks = {}
-        
-    def getInstance(*args, **kw):
-        global _singleton_lock
-        with _singleton_lock:
+    
+    @classmethod
+    def getInstance(cls, *args, **kw):
+        with cls.__singleton_lock:
             if GUIDBProducer.__single is None:
                 GUIDBProducer(*args, **kw)       
         return GUIDBProducer.__single
-    getInstance = staticmethod(getInstance)
-    
-    def delInstance(*args, **kw):
+
+    @classmethod    
+    def delInstance(cls, *args, **kw):
         GUIDBProducer.__single = None
-    delInstance = staticmethod(delInstance)
     
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
