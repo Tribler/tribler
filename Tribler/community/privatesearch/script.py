@@ -94,7 +94,8 @@ class SearchScript(ScenarioScriptBase):
         while True:
             latejoin = taste_ratio = 0
             if self.total_taste_buddies:
-                ratio = self.current_taste_buddies / float(self.total_taste_buddies)
+                current_taste_buddies = (len(self.not_connected_taste_buddies) - self.total_taste_buddies)
+                ratio = current_taste_buddies / float(self.total_taste_buddies)
                 if int(self._my_name) <= self.late_join:
                     latejoin =  ratio / float(self.late_join)
                 else:
@@ -139,16 +140,14 @@ class SearchScript(ScenarioScriptBase):
             self._community.create_introduction_request(candidate, False)
             
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
-        self.not_connected_taste_buddies.remove(sock_addr)
             
     def monitor_taste_buddy(self, sock_addr):
         while True:
             candidate = self._dispersy.get_candidate(sock_addr, replace = False)
             if candidate and self._community.is_taste_buddy(candidate):
-                self.current_taste_buddies += 1.0
-                break
-            
-            self.not_connected_taste_buddies.add(sock_addr)
+                self.not_connected_taste_buddies.remove(sock_addr)
+            else:
+                self.not_connected_taste_buddies.add(sock_addr)
             yield 5.0
             
     def perform_searches(self):
