@@ -140,8 +140,10 @@ def generate(peers_directory, messagestoplot):
             
             if message == "statistics":
                 if "total_down" in kargs:
+                    prev_in_out[0] = dispersy_in_out[nodename][0] 
                     dispersy_in_out[nodename][0] = kargs["total_down"]
                 if "total_up" in kargs:
+                    prev_in_out[1] = dispersy_in_out[nodename][1]
                     dispersy_in_out[nodename][1] = kargs["total_up"]
                 if "total_send" in kargs:
                     dispersy_in_out[nodename][2] = kargs["total_send"]
@@ -155,7 +157,6 @@ def generate(peers_directory, messagestoplot):
                         traffic_stop = dispersy_in_out[nodename][0] + dispersy_in_out[nodename][1]
                         if not traffic_start:
                             traffic_start = traffic_stop
-                    prev_in_out = dispersy_in_out[nodename]
                 
                 if "drop_count" in kargs:
                     c_dropped_record = kargs["drop_count"]
