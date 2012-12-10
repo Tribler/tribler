@@ -125,12 +125,12 @@ def generate(peers_directory, messagestoplot):
         print >> h_drop, "0 0 0"
 
         h_stat = open(node + "/output/stat.txt", "w+")
-        print >> h_stat, "# timestamp timeoffset total-send total-received"
-        print >> h_stat, "0 0 0 0"
+        print >> h_stat, "# timestamp timeoffset total-send total-received diff-send diff-received"
+        print >> h_stat, "0 0 0 0 0 0"
 
         print  nodename, " ",
         record_count[nodename] = {}
-        dispersy_in_out[nodename] = [0,0,0,0]
+        dispersy_in_out[nodename] = prev_in_out = [0,0,0,0]
         for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
             time = int(time)
             timeoffset = time - start
@@ -149,12 +149,13 @@ def generate(peers_directory, messagestoplot):
                     dispersy_in_out[nodename][3] = kargs["received_count"]
                     
                 if "total_down" in kargs or "total_up" in kargs:
-                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0])
+                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0]), str(dispersy_in_out[nodename][1] - prev_in_out[1]), str(dispersy_in_out[nodename][0] - prev_in_out[0])
                     
                     if timeoffset > 0:
                         traffic_stop = dispersy_in_out[nodename][0] + dispersy_in_out[nodename][1]
                         if not traffic_start:
                             traffic_start = traffic_stop
+                    prev_in_out = dispersy_in_out[nodename]
                 
                 if "drop_count" in kargs:
                     c_dropped_record = kargs["drop_count"]
