@@ -210,7 +210,20 @@ class TriblerLaunchMany(Thread):
             self.spm = SwiftProcessMgr(config['swiftpath'],config['swiftcmdlistenport'],config['swiftdlsperproc'],self.session.get_swift_tunnel_listen_port(),self.sesslock)
         else:
             self.spm = None
-
+            
+        self.rtorrent_handler = None
+        if config['torrent_collecting']:
+            # Arno, 2012-05-16: Start default swift process if not already by
+            # dispersy.
+            if config['dispersy-tunnel-over-swift'] == False and self.spm:
+                try:
+                    swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
+                except OSError:
+                    print >> sys.stderr, "lmc: could not start a swift process"
+                    # could not find/run swift
+                    pass
+            
+            self.rtorrent_handler = RemoteTorrentHandler.getInstance()
 
     def init(self):
         config = self.session.sessconfig # Should be safe at startup
@@ -306,22 +319,11 @@ class TriblerLaunchMany(Thread):
             # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
             # required to ensure that the BitTornado core can access the dispersy instance.
             self.dispersy_thread.call(self.start_dispersy, (config, keypair))
-
-        self.rtorrent_handler = None
-        if config['torrent_collecting']:
-            # Arno, 2012-05-16: Start default swift process if not already by
-            # dispersy.
-            if config['dispersy-tunnel-over-swift'] == False and self.spm:
-                try:
-                    swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
-                except OSError:
-                    print >> sys.stderr, "lmc: could not start a swift process"
-                    # could not find/run swift
-                    pass
-            
-            self.rtorrent_handler = RemoteTorrentHandler.getInstance()
+        
+        if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
-            
+        
+        self.initComplete = True
 
     def start_dispersy(self, config, keypair):
         def load_communities():
@@ -399,8 +401,6 @@ class TriblerLaunchMany(Thread):
 
         # notify dispersy finished loading
         self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
-
-        self.initComplete = True
 
     def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, commit=True, setupDelay = 0, hidden=False):
         """ Called by any thread """

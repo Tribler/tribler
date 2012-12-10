@@ -279,7 +279,6 @@ class MainFrame(wx.Frame):
         self.SetStatusBar(self.SRstatusbar)
         
         def preload_data():
-            print >> sys.stderr, "mainframe preload_data"
             if not channelonly:
                 self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)
