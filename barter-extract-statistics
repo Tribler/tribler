@@ -152,7 +152,7 @@ def generate(peers_directory, messagestoplot):
                     dispersy_in_out[nodename][3] = kargs["received_count"]
                     
                 if "total_down" in kargs or "total_up" in kargs:
-                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0]), str(dispersy_in_out[nodename][1] - prev_in_out[1]), str(dispersy_in_out[nodename][0] - prev_in_out[0])
+                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0]), str(max(0, dispersy_in_out[nodename][1] - prev_in_out[1])), str(max(0, dispersy_in_out[nodename][0] - prev_in_out[0]))
                     
                     if timeoffset > 0:
                         traffic_stop = dispersy_in_out[nodename][0] + dispersy_in_out[nodename][1]
