@@ -575,6 +575,7 @@ class AbstractListBody():
         self.data = None
         self.raw_data = None
         self.items = {}
+        self.to_be_removed = set()
         
         # Allow list-items to store the most recent mouse left-down events:
         self.lastMouseLeftDownEvent = None
@@ -777,6 +778,7 @@ class AbstractListBody():
         self.list_cur_max = self.list_item_max
             
         self.items = {}
+        self.to_be_removed = set()
         self.data = None
         self.lastData = 0
         self.raw_data = None
@@ -1082,6 +1084,10 @@ class AbstractListBody():
                     create_method = ListItem
                 
                 if nr_items_to_add > 0 and nr_items_to_create > 0:
+                    if key in self.to_be_removed:
+                        self.DestroyItem(key)
+                        self.to_be_removed.remove(key)
+                    
                     if key not in self.items:
                         try:
                             self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected, list_expanded = self.list_expanded)
@@ -1089,7 +1095,7 @@ class AbstractListBody():
                         except:
                             print_exc()
                             self.items[key] = None
-                        
+                    
                     item = self.items[key]
                     sizer = self.vSizer.GetItem(item) if item else True
                     if not sizer:
@@ -1175,12 +1181,7 @@ class AbstractListBody():
         
         updated = False
         for key in _keys:
-            item = self.items.get(key, None)
-            if item:
-                self.items.pop(key)
-
-                self.vSizer.Detach(item)
-                item.Destroy()
+            if self.DestroyItem(key):
                 updated = True
 
         if updated:
@@ -1194,6 +1195,19 @@ class AbstractListBody():
             
                 if len(_keys) == 0:
                     break
+    
+    def DestroyItem(self, key):
+        item = self.items.get(key, None)
+        if item:
+            self.items.pop(key)
+
+            self.vSizer.Detach(item)
+            item.Destroy()
+            return True
+        return False
+                
+    def MarkForRemoval(self, keys):
+        self.to_be_removed.update(keys)
             
     def GetExpandedItem(self):
         return self.cur_expanded

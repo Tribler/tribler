@@ -52,7 +52,7 @@ class BaseManager:
     def refreshDirty(self):
         if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > MAX_REFRESH_PARTIAL or len(self.dirtyset) == 0:
             if len(self.dirtyset) > 0:
-                self.list.RemoveItems(self.dirtyset)
+                self.list.MarkForRemoval(self.dirtyset)
                 
             self.refresh()
         else:
@@ -627,6 +627,10 @@ class List(wx.BoxSizer):
     def RemoveItems(self, keys):
         assert self.isReady, "List not ready"
         self.list.RemoveKeys(keys)
+        
+    def MarkForRemoval(self, keys):
+        assert self.isReady, "List not ready"
+        self.list.MarkForRemoval(keys)
 
     @warnWxThread
     def SetNrResults(self, nr):
