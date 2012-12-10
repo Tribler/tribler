@@ -130,7 +130,8 @@ def generate(peers_directory, messagestoplot):
 
         print  nodename, " ",
         record_count[nodename] = {}
-        dispersy_in_out[nodename] = prev_in_out = [0,0,0,0]
+        prev_in_out = [0,0,0,0]
+        dispersy_in_out[nodename] = [0,0,0,0]
         for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
             time = int(time)
             timeoffset = time - start
