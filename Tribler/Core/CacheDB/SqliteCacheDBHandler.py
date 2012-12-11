@@ -666,6 +666,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
         self.id2status = dict([(x,y) for (y,x) in self.status_table.items()]) 
+        self.id2status[None] = u'unknown'
         self.torrent_dir = None
         # 0 - unknown
         # 1 - good
