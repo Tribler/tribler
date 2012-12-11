@@ -254,7 +254,10 @@ def generate(peers_directory, messagestoplot):
 
     # returns the first and the last last timetime
     experiment_length = start+last - start
-    sum_total_records(peers_directory)    
+    merge_records(peers_directory, "/output/total-record.txt", '/output/sum_total_records.txt', 2)
+    merge_records(peers_directory, "/output/stat.txt", '/output/send_diff.txt', 4)
+    merge_records(peers_directory, "/output/stat.txt", '/output/received_diff.txt', 5)
+    
     sum_at_experiment_end = sum_created_records(peers_directory)
     
     print "# experiment took", experiment_length, "seconds"
@@ -393,50 +396,46 @@ def sum_created_records(peers_directory):
         print >> fp, "%s %s" % (time, sumr)
         
     return sumr
-
-def sum_total_records(peers_directory):
-    """ I create a file under 'peers/' called 'sum_received_records.txt'
-    with all the available records in the system per timestamp
-    """
+    
+def merge_records(peers_directory, inputfile, outputfile, columnindex):
+    all_nodes = []
     
     sum_records = {}
-    all_nodes = []
     for node in get_nodes(peers_directory):
         _,nodename = os.path.split(node)
         all_nodes.append(nodename)
         
-        fn_total_record = node + "/output/total-record.txt"
-        h_total_record = open(fn_total_record)
-        for line in h_total_record:
+        fn_records = node + inputfile
+        h_records = open(fn_records)
+        for line in h_records:
             if line[0] == "#": continue
             
             parts = line.split()
-            if len(parts) == 3:
-                _, time, records = line.split()
-                time = int(time)
-                records = int(records)
+            if len(parts) > columnindex:
+                time = int(parts[1])
+                record = float(parts[columnindex])
                 if records == 0: continue # skip over lines that do not contain bartercast updates
                 sum_records.setdefault(time, {})[nodename] = records
-        h_total_record.close()
+        h_records.close()
 
     all_nodes.sort()
 
-    fp = open(peers_directory + '/output/sum_total_records.txt', 'wb')
+    fp = open(peers_directory + outputfile, 'wb')
     print >> fp, '#time ', ' '.join(all_nodes)
     
-    max_records = {}
+    prev_records = {}
     for time in sorted(sum_records.iterkeys()):
         print >> fp, time,
         
         nodes = sum_records[time]
         for node in all_nodes:
-            newmax = max(max_records.get(node, 0), nodes.get(node, 0))
-            print >> fp, newmax,
-            max_records[node] = newmax
+            value = nodes.get(node, prev_records.get(node, 0))
+            print >> fp, value,
+            prev_records[node] = value
         print >> fp, ''
         
     fp.close()
-
+    
 def parse_statistics(peers_directory):
     """ I created a file under 'peers/' called 'sum_scenario_statiscitcs.txt'
     with all the available records in the system per timestamp
