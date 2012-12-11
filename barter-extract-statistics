@@ -414,7 +414,7 @@ def merge_records(peers_directory, inputfile, outputfile, columnindex):
             if len(parts) > columnindex:
                 time = int(parts[1])
                 record = float(parts[columnindex])
-                if records == 0: continue # skip over lines that do not contain bartercast updates
+                if record == 0: continue # skip over lines that do not contain bartercast updates
                 sum_records.setdefault(time, {})[nodename] = records
         h_records.close()
 
