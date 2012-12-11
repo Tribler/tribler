@@ -681,7 +681,9 @@ class TorrentDBHandler(BasicDBHandler):
                                 u'other':8,}
         self.category_table.update(self._db.getTorrentCategoryTable())
         self.category_table[u'unknown'] = 0 
+        
         self.id2category = dict([(x,y) for (y,x) in self.category_table.items()])
+        self.id2category[None] = u'unknown'
         # 1 - Video
         # 2 - VideoClips
         # 3 - Audio
@@ -693,6 +695,8 @@ class TorrentDBHandler(BasicDBHandler):
         
         self.src_table = self._db.getTorrentSourceTable()
         self.id2src = dict([(x,y) for (y,x) in self.src_table.items()])
+        self.id2src[None] = u'unknown'
+        
         # 0 - ''    # local added
         # 1 - BC
         # 2,3,4... - URL of RSS feed
