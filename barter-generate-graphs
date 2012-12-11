@@ -133,7 +133,7 @@ def plot_drop(peers_directory, first, last):
 
     print ""
 
-def plot_send(peers_directory, first, last, diff = False):
+def plot_send(peers_directory, first, last):
     """ I plot the kilobytes send per peer """
     print "set ylabel 'number of kilobytes send'"
     print "set xrange [%d:%d]" % (first, last)
@@ -147,16 +147,12 @@ def plot_send(peers_directory, first, last, diff = False):
 
         filename = node + "/output/stat.txt"
         print "'%s'" % filename,
-        if diff:
-            print "using 2:($5/1024):sqrt($5/1024)",
-            print "with circles",
-        else:
-            print "using 2:($3/1024)",
-            print "title '%s'" % get_title(node),
-            print "with steps",
+        print "using 2:($3/1024)",
+        print "title '%s'" % get_title(node),
+        print "with steps",
     print ""
 
-def plot_received(peers_directory, first, last, diff = False):
+def plot_received(peers_directory, first, last):
     """ I plot the kilobytes received per peer """
     print "set ylabel 'number of kilobytes received'"
     print "set xrange [%d:%d]" % (first, last)
@@ -170,13 +166,9 @@ def plot_received(peers_directory, first, last, diff = False):
 
         filename = node + "/output/stat.txt"
         print "'%s'" % filename,
-        if diff:
-            print "using 2:($6/1024):sqrt($6/1024)",
-            print "with cicles",
-        else:
-            print "using 2:($4/1024)",
-            print "title '%s'" % get_title(node),
-            print "with steps",
+        print "using 2:($4/1024)",
+        print "title '%s'" % get_title(node),
+        print "with steps",
     print ""
     
 def plot_statistics(peers_directory, first, last):
@@ -294,14 +286,6 @@ def sent(peers_directory, first, last):
     header(peers_directory, "traffic-sent")
     plot_send(peers_directory, first, last)
     
-def received_diff(peers_directory, first, last):
-    header(peers_directory, "traffic-received-diff")
-    plot_received(peers_directory, first, last, True)
-
-def sent_diff(peers_directory, first, last):
-    header(peers_directory, "traffic-sent-diff")
-    plot_send(peers_directory, first, last, True)
-    
 def statistics(peers_directory, first, last):
     header(peers_directory, "statistics")
     plot_statistics(peers_directory, first, last)
@@ -337,7 +321,7 @@ def main(peers_directory):
     [ first, last ] = [int(i) for i in h_first_last.readline().strip().split()]
     h_first_last.close()
  
-    for func in [records, drops, received, sent, received_diff, sent_diff, received_records, statistics, connections]:
+    for func in [records, drops, received, sent, received_records, statistics, connections]:
         func(peers_directory, first-10, last+10)
         
     received_f = open(peers_directory + "/output/received.txt", "w")
