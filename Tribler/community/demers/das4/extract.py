@@ -17,7 +17,7 @@ for line in f:
     parts = line.split()
     
     time = int(parts[0])
-    peers = [int(part) for part in parts[1:]]
+    peers = [int(float(part)) for part in parts[1:]]
     created = max(peers)
     if created not in piece_created:
         piece_created[created] = time
