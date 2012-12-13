@@ -1005,7 +1005,7 @@ class ABCApp():
             peerdb._db.clean_db(randint(0,24) == 0)
             
             Session.del_instance()
-            GUIUtility.del_instance()
+            GUIUtility.delInstance()
             GUITaskQueue.delInstance()
             SQLiteCacheDB.delInstance()
             GUIDBProducer.delInstance()

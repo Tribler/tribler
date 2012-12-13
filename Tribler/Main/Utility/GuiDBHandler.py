@@ -7,6 +7,7 @@ from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedExceptio
     DelayedResult, SenderNoWx
 
 import threading
+from collections import namedtuple
 from Queue import Queue
 from threading import Event, Lock, RLock
 from thread import get_ident
@@ -43,7 +44,11 @@ class GUIDBProducer():
         
         #Lets get a reference to utility
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        self.utility = GUIUtility.getInstance().utility
+        if GUIUtility.hasInstance():
+            self.utility = GUIUtility.getInstance().utility
+        else:
+            Utility = namedtuple('Utility', ['abcquitting',])
+            self.utility = Utility(False)
         
         self.uIds = set()
         self.uIdsLock = Lock()
