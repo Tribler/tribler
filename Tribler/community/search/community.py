@@ -109,6 +109,8 @@ class SearchCommunity(Community):
         self.taste_bloom_filter = None
         self.taste_bloom_filter_key = None
         
+        self.torrent_cache = None
+        
         self.dispersy.callback.register(self.create_torrent_collect_requests, delay = CANDIDATE_WALK_LIFETIME)
         self.dispersy.callback.register(self.fast_walker)
 
@@ -649,6 +651,33 @@ class SearchCommunity(Community):
         max_len = self.dispersy_sync_bloom_filter_bits/8
         limit = int(max_len/44)
         
+        torrents = self.__get_torrents(limit)
+        for index, candidate in enumerate(candidates):
+            if identifiers:
+                identifier = identifiers[index]
+            else:
+                identifier = self._dispersy.request_cache.claim(SearchCommunity.PingRequestCache(self, candidate))
+    
+            #create torrent-collect-request/response message
+            meta = self.get_meta_message(meta_name)
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,), destination=(candidate,), payload=(identifier, SWIFT_INFOHASHES, torrents))
+            
+            self._dispersy._forward([message])
+    
+            if DEBUG:
+                print >> sys.stderr, "SearchCommunity: send",meta_name,"to", candidate
+        
+        addresses = [candidate.sock_addr for candidate in candidates]
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy[2].sock_addr in addresses:
+                taste_buddy[1] = time()
+    
+    def __get_torrents(self, limit):
+        cache_timeout = CANDIDATE_WALK_LIFETIME
+        if self.torrent_cache and self.torrent_cache[0] > (time() - cache_timeout):
+            return self.torrent_cache[1]
+        
         #we want roughly 1/3 random, 2/3 recent
         limitRecent = int(limit * 0.66)
         limitRandom = limit - limitRecent
@@ -675,26 +704,9 @@ class SearchCommunity(Community):
             if torrent[4] > max_value or torrent[4] < 0:
                 torrent[4] = max_value
         
-        for index, candidate in enumerate(candidates):
-            if identifiers:
-                identifier = identifiers[index]
-            else:
-                identifier = self._dispersy.request_cache.claim(SearchCommunity.PingRequestCache(self, candidate))
+        self.torrent_cache = (time(), torrents)
+        return torrents            
     
-            #create torrent-collect-request/response message
-            meta = self.get_meta_message(meta_name)
-            message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), destination=(candidate,), payload=(identifier, SWIFT_INFOHASHES, torrents))
-            
-            self._dispersy._forward([message])
-    
-            if DEBUG:
-                print >> sys.stderr, "SearchCommunity: send",meta_name,"to", candidate
-        
-        addresses = [candidate.sock_addr for candidate in candidates]
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy[2].sock_addr in addresses:
-                taste_buddy[1] = time()
     
     def create_torrent(self, filename, store=True, update=True, forward=True):
         if path.exists(filename):
