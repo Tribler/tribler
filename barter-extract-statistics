@@ -421,7 +421,7 @@ def merge_records(peers_directory, inputfile, outputfile, columnindex):
     all_nodes.sort()
 
     fp = open(peers_directory + outputfile, 'wb')
-    print >> fp, '#time ', ' '.join(all_nodes)
+    print >> fp, 'time', ' '.join(all_nodes)
     
     prev_records = {}
     for time in sorted(sum_records.iterkeys()):
