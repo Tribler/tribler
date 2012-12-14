@@ -14,8 +14,6 @@ from twisted.internet import reactor
 class ConfigClientProtocol(LineReceiver):
     def connectionMade(self):
         self.state = 1
-        
-        my_ip = argv[2]
         self.sendLine("TIME "+str(time()))
 
     def lineReceived(self, data):
