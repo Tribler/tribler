@@ -54,7 +54,9 @@ def main():
         md5sum = md5()
         md5sum.update(getuser())
         server_port = int(md5sum.hexdigest()[-16:], 16) % 20000 + 15000
-
+    
+    print "* Config client connecting to %s:%d"%(sync_server, server_port)
+    
     reactor.connectTCP(sync_server, server_port, ConfigClientFactory())
     reactor.run()
 
