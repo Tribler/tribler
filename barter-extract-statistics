@@ -121,8 +121,8 @@ def generate(peers_directory, messagestoplot):
         print >> h_statistics, "# timestamp timeoffset key value"
 
         h_drop = open(node + "/output/drop.txt", "w+")
-        print >> h_drop, "# timestamp timeoffset num-drops"
-        print >> h_drop, "0 0 0"
+        print >> h_drop, "# timestamp timeoffset num-drops diff-drops"
+        print >> h_drop, "0 0 0 0"
 
         h_stat = open(node + "/output/stat.txt", "w+")
         print >> h_stat, "# timestamp timeoffset total-send total-received diff-send diff-received"
@@ -160,8 +160,9 @@ def generate(peers_directory, messagestoplot):
                             traffic_start = traffic_stop
                 
                 if "drop_count" in kargs:
+                    diff_dropped = kargs["drop_count"] - c_dropped_record
                     c_dropped_record = kargs["drop_count"]
-                    print >> h_drop, str(time), str(timeoffset), str(c_dropped_record)
+                    print >> h_drop, str(time), str(timeoffset), str(c_dropped_record), str(max(0, diff_dropped))
                     
                 if 'candidates' in kargs:
                     for community, nrcandidates in kargs['candidates']:
@@ -255,8 +256,12 @@ def generate(peers_directory, messagestoplot):
     # returns the first and the last last timetime
     experiment_length = start+last - start
     merge_records(peers_directory, "/output/total-record.txt", '/output/sum_total_records.txt', 2)
+    merge_records(peers_directory, "/output/stat.txt", '/output/send.txt', 2)
+    merge_records(peers_directory, "/output/stat.txt", '/output/received.txt', 3)
     merge_records(peers_directory, "/output/stat.txt", '/output/send_diff.txt', 4)
     merge_records(peers_directory, "/output/stat.txt", '/output/received_diff.txt', 5)
+    merge_records(peers_directory, "/output/drop.txt", '/output/dropped.txt', 2)
+    merge_records(peers_directory, "/output/drop.txt", '/output/dropped_diff.txt', 3)
     
     sum_at_experiment_end = sum_created_records(peers_directory)
     
