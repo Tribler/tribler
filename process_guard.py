@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # Mircea Bardac
+# Partial rewrite by Elric Milon (Dec. 2012)
 # TODO: needs documentation
 
 import subprocess
 from time import sleep, time
 from sys import argv, exit
-from os import setpgrp, getpgrp, killpg, getpid
+from os import setpgrp, getpgrp, killpg, getpid, access, R_OK, path
 from signal import SIGKILL, SIGTERM, signal
+from glob import iglob
 
 class ResourceMonitor(object):
     # adapted after http://stackoverflow.com/questions/276052/how-to-get-current-cpu-and-ram-usage-in-python
@@ -23,35 +25,13 @@ class ResourceMonitor(object):
         self.pid_list = pid_list
         self.process_group_id = getpgrp()
         self.own_pid = getpid()
+        #print "PGRP ID:", self.process_group_id
 
     def get_raw_stats(self):
-        return self.usage_pids(self.pid_list)
-
-    def get_pid_tree(self,parent_pids):
-        """Build a list of all PIDs in the process tree starting from a given set of parent PIDs)"""
-        if len(parent_pids) == 0: return []
-        #print 'i',parent_pids
-        return_pid_list = []
-        return_pid_list.extend(parent_pids)
-        current_parent_pids = []
-        current_parent_pids.extend(parent_pids)
-        while len(current_parent_pids) > 0:
-            #pid_list = self.make_string_list(current_parent_pids)
-            pid_list = current_parent_pids
-            process = subprocess.Popen("ps h --ppid %s -o pid" %pid_list, shell = True, stdout = subprocess.PIPE)
-            r = process.communicate()[0]
-            if len(r) == 0:
-                break
-            pid_strings = r.strip().split('\n')
-            current_parent_pids = [ int(p) for p in pid_strings ]
-            return_pid_list.extend(current_parent_pids)
-        #print 'r',return_pid_list
-        return return_pid_list
-
-    def usage_pids(self, pid_list):
         pid_stats = []
-        for pid in pid_list:
+        for pid in self.pid_list:
             if pid == self.own_pid:
+                self.pid_list.remove(pid)
                 continue
             try:
                 status = open('/proc/%s/stat' % pid, 'r' ).read().strip()
@@ -61,9 +41,33 @@ class ResourceMonitor(object):
                         iostats.append(line.split(':')[1].strip())
                 pid_stats.append("%s %s" % ( status, ' '.join(iostats)))
             except IOError:
-                pass
+                #print "Process with PID %s died." % pid
+                self.pid_list.remove(pid)
             #self.monitor_file.flush()
         return pid_stats
+
+    def is_everyone_dead(self):
+        if len(self.pid_list) == 0:
+            #If the process list is empty, update it just in case a subprocess fork()ed in the last moment.
+            self.update_pid_tree()
+        return len(self.pid_list) == 0
+
+    def update_pid_tree(self):
+        """Update the list of all PIDs in the process group"""
+        #print 'i',parent_pids
+        for pid_dir in iglob('/proc/[1-9]*'):
+            pid = int(pid_dir.split('/')[-1])
+            if pid in self.pid_list or pid == self.own_pid:
+                continue
+            stat_file = path.join(pid_dir, 'stat')
+            io_file = path.join(pid_dir, 'io')
+            if access(stat_file, R_OK) and access(io_file, R_OK):
+                pgrp = int(open(stat_file, 'r').read().split()[4]) # 4 is PGRP
+                if pgrp == self.process_group_id:
+                    #This process if from our process group, add it to the pid list.
+                    #print "New process with PID %s found in the group, adding it" % pid
+                    #print "   ", open(stat_file, 'r').read()
+                    self.pid_list.append(pid)
 
 class ProcessController(object):
     def __init__(self, output_dir):
@@ -141,20 +145,21 @@ class ProcessMonitor(object):
     def monitoring_loop(self):
         time_start = time()
         sleep_time = self._cadence
+        last_subprocess_update = time_start
         while True:
-            sleep(sleep_time)
-            next_wake = time() + self._cadence
-            #resource_usage = self._rm.usage()
-            """
-            if resource_usage['memory'] == 0:
-                print "All child processes have finished."
-                self.stop()
+            if self._rm.is_everyone_dead():
+                print "All child processes have died, exiting"
                 break
-            """
+            next_wake = time() + self._cadence
 
             timestamp = time()
             for line in self._rm.get_raw_stats():
                 self.monitor_file.write("%f %s\n" % (timestamp, line))
+            #Look for new subprocesses only once in a second and during the first 10 seconds
+            #if (timestamp < time_start+10) and (timestamp - last_subprocess_update >= 1):
+            if timestamp - last_subprocess_update >= 1:
+                self._rm.update_pid_tree()
+                last_subprocess_update = timestamp
 
             if time() > self.end_time:
                 print "End time reached, killing monitored processes."
@@ -165,7 +170,7 @@ class ProcessMonitor(object):
                 print "Can't keep up with this cadence, try a higher value!", sleep_time
                 self.stop()
                 break
-
+            sleep(sleep_time)
 
     def terminate(self):
         self._pc.terminate()
