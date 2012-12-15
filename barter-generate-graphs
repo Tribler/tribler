@@ -324,17 +324,17 @@ def main(peers_directory):
     for func in [records, drops, received, sent, received_records, statistics, connections]:
         func(peers_directory, first-10, last+10)
         
-    received_f = open(peers_directory + "/output/received.txt", "w")
-    avg_received_f = open(peers_directory + "/output/avgreceived.txt", "w")
-    write_stat(received_f, avg_received_f, peers_directory, 3)
-    avg_received_f.close()
-    received_f.close()
-
-    send_f = open(peers_directory + "/output/send.txt", "w")
-    avg_send_f = open(peers_directory + "/output/avgsend.txt", "w")
-    write_stat(send_f, avg_send_f, peers_directory, 2)
-    avg_send_f.close()
-    send_f.close()
+#    received_f = open(peers_directory + "/output/received.txt", "w")
+#    avg_received_f = open(peers_directory + "/output/avgreceived.txt", "w")
+#    write_stat(received_f, avg_received_f, peers_directory, 3)
+#    avg_received_f.close()
+#    received_f.close()
+#
+#    send_f = open(peers_directory + "/output/send.txt", "w")
+#    avg_send_f = open(peers_directory + "/output/avgsend.txt", "w")
+#    write_stat(send_f, avg_send_f, peers_directory, 2)
+#    avg_send_f.close()
+#    send_f.close()
 
 if __name__ == "__main__":
     main(argv[1])
