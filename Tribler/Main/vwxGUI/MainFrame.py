@@ -416,7 +416,7 @@ class MainFrame(wx.Frame):
     
     def startDownloadFromSwift(self, url, destdir = None):
         cdef = SwiftDef.load_from_url(url)
-        cdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.gmtime()))
+        cdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
         wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)
         return True
     
