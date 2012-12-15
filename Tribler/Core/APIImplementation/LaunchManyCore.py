@@ -714,6 +714,8 @@ class TriblerLaunchMany(Thread):
             dlconfig = pstate['dlconfig']
             if isinstance(dlconfig['saveas'], tuple):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
+            if dlconfig.has_key('name') and isinstance(dlconfig['name'], basestring) and sdef:
+                sdef.set_name(dlconfig['name'])
             dscfg = DownloadStartupConfig(dlconfig)
 
         except:

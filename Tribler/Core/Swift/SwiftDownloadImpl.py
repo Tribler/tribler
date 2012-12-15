@@ -535,6 +535,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
         pstate['metainfo'] = self.sdef.get_url_with_meta() # assumed immutable
         dlconfig = copy.copy(self.dlconfig)
+        dlconfig['name'] = self.sdef.get_name()
         # Reset unpicklable params
         dlconfig['vod_usercallback'] = None
         dlconfig['mode'] = DLMODE_NORMAL # no callback, no VOD

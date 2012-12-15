@@ -416,6 +416,7 @@ class MainFrame(wx.Frame):
     
     def startDownloadFromSwift(self, url, destdir = None):
         cdef = SwiftDef.load_from_url(url)
+        cdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.gmtime()))
         wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)
         return True
     
@@ -535,7 +536,12 @@ class MainFrame(wx.Frame):
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
                 
                 if result and not hidden:
-                    self.show_saved(tdef.get_name_as_unicode() if tdef else '')
+                    dlname = ''
+                    if tdef:
+                        dlname = tdef.get_name_as_unicode()
+                    elif cdef: 
+                        dlname = cdef.get_name()
+                    self.show_saved(dlname)
                     
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile)
