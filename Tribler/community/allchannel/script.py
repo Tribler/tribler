@@ -25,7 +25,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         self.torrentindex = 1
 
         self._dispersy.define_auto_load(ChannelCommunity, (), {"integrate_with_tribler":False})
-        self._dispersy.define_auto_load(PreviewChannelCommunity)
+        self._dispersy.define_auto_load(PreviewChannelCommunity, (), {"integrate_with_tribler":False})
         
     def join_community(self, my_member):
         self.my_member = my_member
