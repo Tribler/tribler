@@ -25,6 +25,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         self.torrentindex = 1
 
         self._dispersy.define_auto_load(ChannelCommunity, (), {"integrate_with_tribler":False})
+        self._dispersy.define_auto_load(PreviewChannelCommunity)
         
     def join_community(self, my_member):
         self.my_member = my_member
@@ -81,8 +82,10 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             
             log(self._logfile, "trying-to-join-community")
             
-            for community in dispersy.get_communities():
-                if isinstance(community, PreviewChannelCommunity) and community._channel_id:
+            cid = self._community._channelcast_db.getChannelIdFromDispersyCID(None)
+            if cid:
+                community = self._get_channel_community(cid)
+                if community._channel_id:
                     self._community.disp_create_votecast(community.cid, 2, int(time()))
                     
                     log(self._logfile, "joining-community")

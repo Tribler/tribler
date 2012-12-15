@@ -142,7 +142,7 @@ class ChannelCommunity(Community):
                 try:
                     message = self._get_latest_channel_message()
                     if message:
-                        self._channel_id = self._master_member.mid
+                        self._channel_id = self.cid
                 except:
                     pass
             
