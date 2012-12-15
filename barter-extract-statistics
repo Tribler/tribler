@@ -121,16 +121,15 @@ def generate(peers_directory, messagestoplot):
         print >> h_statistics, "# timestamp timeoffset key value"
 
         h_drop = open(node + "/output/drop.txt", "w+")
-        print >> h_drop, "# timestamp timeoffset num-drops diff-drops"
-        print >> h_drop, "0 0 0 0"
+        print >> h_drop, "# timestamp timeoffset num-drops"
+        print >> h_drop, "0 0 0"
 
         h_stat = open(node + "/output/stat.txt", "w+")
-        print >> h_stat, "# timestamp timeoffset total-send total-received diff-send diff-received"
-        print >> h_stat, "0 0 0 0 0 0"
+        print >> h_stat, "# timestamp timeoffset total-send total-received"
+        print >> h_stat, "0 0 0 0"
 
         print  nodename, " ",
         record_count[nodename] = {}
-        prev_in_out = [0,0,0,0]
         dispersy_in_out[nodename] = [0,0,0,0]
         for lineno, time, message, kargs in parse(node + "/output/dispersy.log"):
             time = int(time)
@@ -141,10 +140,8 @@ def generate(peers_directory, messagestoplot):
             
             if message == "statistics":
                 if "total_down" in kargs:
-                    prev_in_out[0] = dispersy_in_out[nodename][0] 
                     dispersy_in_out[nodename][0] = kargs["total_down"]
                 if "total_up" in kargs:
-                    prev_in_out[1] = dispersy_in_out[nodename][1]
                     dispersy_in_out[nodename][1] = kargs["total_up"]
                 if "total_send" in kargs:
                     dispersy_in_out[nodename][2] = kargs["total_send"]
@@ -152,7 +149,7 @@ def generate(peers_directory, messagestoplot):
                     dispersy_in_out[nodename][3] = kargs["received_count"]
                     
                 if "total_down" in kargs or "total_up" in kargs:
-                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0]), str(max(0, dispersy_in_out[nodename][1] - prev_in_out[1])), str(max(0, dispersy_in_out[nodename][0] - prev_in_out[0]))
+                    print >> h_stat, str(time), str(timeoffset), str(dispersy_in_out[nodename][1]) , str(dispersy_in_out[nodename][0])
                     
                     if timeoffset > 0:
                         traffic_stop = dispersy_in_out[nodename][0] + dispersy_in_out[nodename][1]
@@ -160,9 +157,8 @@ def generate(peers_directory, messagestoplot):
                             traffic_start = traffic_stop
                 
                 if "drop_count" in kargs:
-                    diff_dropped = kargs["drop_count"] - c_dropped_record
                     c_dropped_record = kargs["drop_count"]
-                    print >> h_drop, str(time), str(timeoffset), str(c_dropped_record), str(max(0, diff_dropped))
+                    print >> h_drop, str(time), str(timeoffset), str(c_dropped_record)
                     
                 if 'candidates' in kargs:
                     for community, nrcandidates in kargs['candidates']:
@@ -256,12 +252,9 @@ def generate(peers_directory, messagestoplot):
     # returns the first and the last last timetime
     experiment_length = start+last - start
     merge_records(peers_directory, "/output/total-record.txt", '/output/sum_total_records.txt', 2)
-    merge_records(peers_directory, "/output/stat.txt", '/output/send.txt', 2)
-    merge_records(peers_directory, "/output/stat.txt", '/output/received.txt', 3)
-    merge_records(peers_directory, "/output/stat.txt", '/output/send_diff.txt', 4)
-    merge_records(peers_directory, "/output/stat.txt", '/output/received_diff.txt', 5)
-    merge_records(peers_directory, "/output/drop.txt", '/output/dropped.txt', 2)
-    merge_records(peers_directory, "/output/drop.txt", '/output/dropped_diff.txt', 3)
+    merge_records(peers_directory, "/output/stat.txt", '/output/send.txt', 2, '/output/send_diff.txt')
+    merge_records(peers_directory, "/output/stat.txt", '/output/received.txt', 3, '/output/received_diff.txt')
+    merge_records(peers_directory, "/output/drop.txt", '/output/dropped.txt', 2, '/output/dropped_diff.txt')
     
     sum_at_experiment_end = sum_created_records(peers_directory)
     
@@ -402,7 +395,7 @@ def sum_created_records(peers_directory):
         
     return sumr
     
-def merge_records(peers_directory, inputfile, outputfile, columnindex):
+def merge_records(peers_directory, inputfile, outputfile, columnindex, diffoutputfile = None):
     all_nodes = []
     
     sum_records = {}
@@ -426,20 +419,35 @@ def merge_records(peers_directory, inputfile, outputfile, columnindex):
     all_nodes.sort()
 
     fp = open(peers_directory + outputfile, 'wb')
+    fp2 = open(peers_directory + diffoutputfile, 'wb') if diffoutputfile else None
+    
     print >> fp, 'time', ' '.join(all_nodes)
+    if fp2:
+        print >> fp2, 'time', ' '.join(all_nodes)
     
     prev_records = {}
     for time in sorted(sum_records.iterkeys()):
         print >> fp, time,
+        if fp2:
+            print >> fp2, time,
         
         nodes = sum_records[time]
         for node in all_nodes:
             value = nodes.get(node, prev_records.get(node, 0))
             print >> fp, value,
+            
+            if fp2:
+                diff = value - prev_records.get(node, 0)
+                print >> fp, diff,
+            
             prev_records[node] = value
         print >> fp, ''
+        if fp2:
+            print >> fp2, ''
         
     fp.close()
+    if fp2:
+        fp2.close()
     
 def parse_statistics(peers_directory):
     """ I created a file under 'peers/' called 'sum_scenario_statiscitcs.txt'
