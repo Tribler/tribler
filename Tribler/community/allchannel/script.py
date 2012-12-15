@@ -92,7 +92,6 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                     self.joined_community = community
                     
                     self.want_to_join = False
-                    break
                 
         if len(torrents) > 0:
             log(self._logfile, "creating-torrents")
