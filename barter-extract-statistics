@@ -438,7 +438,7 @@ def merge_records(peers_directory, inputfile, outputfile, columnindex, diffoutpu
             
             if fp2:
                 diff = value - prev_records.get(node, 0)
-                print >> fp, diff,
+                print >> fp2, diff,
             
             prev_records[node] = value
         print >> fp, ''
