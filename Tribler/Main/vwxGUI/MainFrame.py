@@ -398,6 +398,8 @@ class MainFrame(wx.Frame):
                 self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
             elif url_filename.startswith("http"):
                 self.startDownloadFromUrl(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
+            elif url_filename.startswith("tswift") or url_filename.startswith("ppsp"):
+                self.startDownloadFromSwift(url_filename)
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
 
@@ -415,6 +417,7 @@ class MainFrame(wx.Frame):
         return True
     
     def startDownloadFromSwift(self, url, destdir = None):
+        url = url.replace("ppsp://", "tswift://127.0.0.1:9999/") if url.startswith("ppsp://") else url
         cdef = SwiftDef.load_from_url(url)
         cdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
         wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)

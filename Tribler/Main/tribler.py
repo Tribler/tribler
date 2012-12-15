@@ -1062,6 +1062,8 @@ class ABCApp():
             def start_asked_download():
                 if torrentfilename.startswith("magnet:"):
                     self.frame.startDownloadFromMagnet(torrentfilename)
+                elif torrentfilename.startswith("tswift://") or torrentfilename.startswith("ppsp://"):
+                    self.frame.startDownloadFromSwift(torrentfilename)
                 else:
                     self.frame.startDownload(torrentfilename)
                 self.guiUtility.ShowPage('my_files')

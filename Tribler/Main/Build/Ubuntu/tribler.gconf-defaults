@@ -1,3 +1,6 @@
 /desktop/gnome/url-handlers/magnet/command tribler %s
 /desktop/gnome/url-handlers/magnet/enabled true
 /desktop/gnome/url-handlers/magnet/needs_terminal false
+/desktop/gnome/url-handlers/ppsp/command tribler %s
+/desktop/gnome/url-handlers/ppsp/enabled true
+/desktop/gnome/url-handlers/ppsp/needs_terminal false
