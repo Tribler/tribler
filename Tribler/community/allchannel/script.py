@@ -84,7 +84,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
             
             cid = self._community._channelcast_db.getChannelIdFromDispersyCID(None)
             if cid:
-                community = self._get_channel_community(cid)
+                community = self._community._get_channel_community(cid)
                 if community._channel_id:
                     self._community.disp_create_votecast(community.cid, 2, int(time()))
                     
