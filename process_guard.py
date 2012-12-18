@@ -36,7 +36,12 @@ class ResourceMonitor(object):
                 status = open('/proc/%s/stat' % pid, 'r' ).read()[:-1] #Skip the newline
                 stats = [status]
                 for line in open('/proc/%s/io' % pid, 'r' ).readlines():
-                    stats.append(line.split(': ')[1][:-1]) #Skip the newline
+                    try:
+                        stats.append(line.split(': ')[1][:-1]) #Skip the newline
+                    except Exception, e:
+                        print "Got exception while reading/splitting line:"
+                        print e
+                        print "Line contents are:", line
                 yield ' '.join(stats)
             except IOError:
                 #print "Process with PID %s died." % pid
