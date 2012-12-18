@@ -539,12 +539,7 @@ class MainFrame(wx.Frame):
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
                 
                 if result and not hidden:
-                    dlname = ''
-                    if tdef:
-                        dlname = tdef.get_name_as_unicode()
-                    elif cdef: 
-                        dlname = cdef.get_name()
-                    self.show_saved(dlname)
+                    self.show_saved(tdef.get_name_as_unicode() if tdef else '')
                     
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile)
@@ -656,7 +651,10 @@ class MainFrame(wx.Frame):
     @forceWxThread
     def show_saved(self, torrentname):
         if self.ready and self.librarylist.isReady:
-            self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon = wx.ART_INFORMATION)
+            if torrentname:
+                self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon = wx.ART_INFORMATION)
+            else:
+                self.guiUtility.Notify("Download started", "A new torrent has been added to the download queue.", icon = wx.ART_INFORMATION)
             
             print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27

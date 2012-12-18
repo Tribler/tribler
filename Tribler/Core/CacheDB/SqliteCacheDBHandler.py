@@ -833,13 +833,10 @@ class TorrentDBHandler(BasicDBHandler):
         assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
         
         torrent_id = self._db.getTorrentIDRoot(roothash)
-        infohash = 'swift'+bin2str(roothash)[5:]
         if torrent_id is None:
+            infohash = 'swift'+bin2str(roothash)[5:]
             self._db.insert('Torrent', commit=True, infohash=infohash, swift_hash=bin2str(roothash), name=name, status_id = self._getStatusID("good"))
             torrent_id = self._db.getTorrentIDRoot(roothash)
-        else:
-            # Update the name in case it has changed using SwiftDef.set_name
-            self._db.update('Torrent', commit=True, where='torrent_id=%d'%torrent_id, name=name)
         return torrent_id
 
     def addOrGetTorrentIDS(self, infohashes):
