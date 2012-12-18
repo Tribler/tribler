@@ -28,23 +28,20 @@ class ResourceMonitor(object):
         #print "PGRP ID:", self.process_group_id
 
     def get_raw_stats(self):
-        pid_stats = []
         for pid in self.pid_list:
             if pid == self.own_pid:
                 self.pid_list.remove(pid)
                 continue
             try:
-                status = open('/proc/%s/stat' % pid, 'r' ).read().strip()
-                iostats = []
+                status = open('/proc/%s/stat' % pid, 'r' ).read()[:-1] #Skip the newline
+                stats = [status]
                 for line in open('/proc/%s/io' % pid, 'r' ).readlines():
-                    if line:
-                        iostats.append(line.split(':')[1].strip())
-                pid_stats.append("%s %s" % ( status, ' '.join(iostats)))
+                    stats.append(line.split(': ')[1][:-1]) #Skip the newline
+                yield ' '.join(stats)
             except IOError:
                 #print "Process with PID %s died." % pid
                 self.pid_list.remove(pid)
             #self.monitor_file.flush()
-        return pid_stats
 
     def is_everyone_dead(self):
         if len(self.pid_list) == 0:
@@ -156,8 +153,7 @@ class ProcessMonitor(object):
             for line in self._rm.get_raw_stats():
                 self.monitor_file.write("%f %s\n" % (timestamp, line))
             #Look for new subprocesses only once in a second and during the first 10 seconds
-            #if (timestamp < time_start+10) and (timestamp - last_subprocess_update >= 1):
-            if timestamp - last_subprocess_update >= 1:
+            if (timestamp < time_start+10) and (timestamp - last_subprocess_update >= 1):
                 self._rm.update_pid_tree()
                 last_subprocess_update = timestamp
 
