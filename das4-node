@@ -54,7 +54,7 @@ ${BRANCH}/process_guard.py \
 	$PEERS_DIRECTORY/control/$(hostname)/start_commands \
 	$PEERS_DIRECTORY/control/$(hostname)/output/ \
 	$EXPERIMENT_LENGTH \
-    110.1 # This is the sampling cadence in secons (IE once every 0.1 secs)
+    0.1 # This is the sampling cadence in secons (IE once every 0.1 secs)
 
 # save the output of the run for all peers on this node
 # take the output from the temporary directory
