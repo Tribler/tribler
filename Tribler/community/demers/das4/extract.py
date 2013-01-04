@@ -13,8 +13,10 @@ took_list = []
 for line in f:
     if line[0] == '#':
         continue
-    
+
     parts = line.split()
+    if not parts[0].isdigit():
+        continue
     
     time = int(parts[0])
     peers = [int(float(part)) for part in parts[1:]]
