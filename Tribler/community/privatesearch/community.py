@@ -92,6 +92,8 @@ class SearchCommunity(Community):
         self.search_cycle_detected = 0
         self.search_megacachesize = 0
         
+        self.search_time_encryption = 0.0
+        
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
             from Tribler.Core.CacheDB.Notifier import Notifier
@@ -231,9 +233,13 @@ class SearchCommunity(Community):
         
         def get_overlap(self):
             myList = [long_to_bytes(infohash) for infohash in self.myList]
-            myList = [self.key.decrypt(infohash) for infohash in myList]
+            
             if self.community.encryption:
+                t1 = time()
+                myList = [self.key.decrypt(infohash) for infohash in myList]
                 myList = [sha1(infohash).digest() for infohash in myList]
+                
+                self.search_time_encryption += time() - t1
             
             assert all(len(infohash) == 20 for infohash in myList) 
             
@@ -277,9 +283,14 @@ class SearchCommunity(Community):
             
             if len(myPreferences) > num_prefs:
                 myPreferences = sample(myPreferences, num_prefs)
-            myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
-            myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
             shuffle(myPreferences)
+                
+            if self.encryption:
+                t1 = time()
+                myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
+                self.search_time_encryption += time() - t1
+                
+            myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
             
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: sending introduction request to",destination,"containing", len(myPreferences),"hashes", self._mypref_db.getMyPrefListInfohash()
@@ -333,6 +344,8 @@ class SearchCommunity(Community):
                 print >> sys.stderr, "SearchCommunity: got introduction request from", message.candidate
            
             if self.encryption:
+                t1 = time()
+                
                 #3. construct a rsa key to encrypt my preferences
                 his_n = message.payload.key_n
                 fake_phi = his_n/2
@@ -346,6 +359,8 @@ class SearchCommunity(Community):
                 hisList = [compatible_key.encrypt(infohash,1)[0] for infohash in message.payload.preference_list]
                 myList = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
                 myList = [sha1(infohash).digest() for infohash in myList]
+                
+                self.search_time_encryption += time() - t1
             else:
                 hisList = message.payload.preference_list
                 myList = myPreferences
@@ -903,7 +918,10 @@ class HSearchCommunity(SearchCommunity):
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: got introduction request from", message.candidate
             
+            shuffle(myPreferences)
             if self.encryption:
+                t1 = time()
+                
                 #2. construct a rsa key to encrypt my preferences
                 his_n = message.payload.key_n
                 his_e = message.payload.key_e
@@ -912,7 +930,7 @@ class HSearchCommunity(SearchCommunity):
                 #3. encrypt and hash my preferences
                 myPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
                 myPreferences = [sha1(infohash).digest() for infohash in myPreferences]
-                shuffle(myPreferences)
+                self.search_time_encryption += time() - t1
             
             #4. create the response message
             meta = self.get_meta_message(u"encrypted-hashes")
@@ -936,8 +954,10 @@ class HSearchCommunity(SearchCommunity):
             def get_overlap(self):
                 myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
                 if self.encryption:
+                    t1 = time()
                     myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
                     myPreferences = [sha1(infohash).digest() for infohash in myPreferences]
+                    self.search_time_encryption += time() - t1
         
                 myPrefs = len(myPreferences)
                 hisPrefs = self.message.payload.len_preference_list
