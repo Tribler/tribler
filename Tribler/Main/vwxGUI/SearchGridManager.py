@@ -1025,6 +1025,10 @@ class LibraryManager:
         
     def updateTorrent(self, infohash, roothash):
         self.torrent_db.updateTorrent(infohash, swift_hash = roothash)
+        
+        # Niels 09-01-2013: we need to commit now to prevent possibly forgetting the link between this torrent and the roothash
+        dispersy = Dispersy.get_instance()
+        startWorker(None, dispersy._commit_now)
     
     def deleteTorrent(self, torrent, removecontent = False):
         if torrent.dslist:
