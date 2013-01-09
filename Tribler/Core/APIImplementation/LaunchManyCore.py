@@ -1133,6 +1133,9 @@ class TriblerLaunchMany(Thread):
             dest_path = d.get_dest_dir()
             data = {'destination_path':dest_path}
             mypref_db.addMyPreference(torrent_id, data)
+            
+            # Niels 09-01-2013: we need to commit now to prevent possibly forgetting the link between this torrent and the swift-download
+            self.dispersy._commit_now()
         
         if d and not hidden and self.torrent_db != None and self.mypref_db != None:
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash, sdef, d))
