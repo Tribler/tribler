@@ -46,6 +46,7 @@ TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
 TASTE_NEIGHBOR = 3
+PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class SearchCommunity(Community):
     """
@@ -115,8 +116,6 @@ class SearchCommunity(Community):
             self._mypref_db = self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
             self._notifier = None
             self._rtorrent_handler = None
-            
-        self.dispersy.callback.register(self.create_ping_requests, delay = CANDIDATE_WALK_LIFETIME)
 
     def fast_walker(self):
         for cycle in xrange(10):
@@ -191,7 +190,11 @@ class SearchCommunity(Community):
                     new_taste_buddies.remove(new_tb_tuple)
                     break
             else:
-                self.taste_buddies.append(new_tb_tuple)
+                if new_tb_tuple[0] > self.taste_buddies[-1][0] or len(self.taste_buddies) < self.taste_neighbor:
+                    self.taste_buddies.append(new_tb_tuple)
+                    self.dispersy.callback.register(self.create_ping_request, args = (new_tb_tuple[-1],), delay = PING_INTERVAL)
+                    
+        #self._create_pingpong("ping", [tb_tuple[-1] for tb_tuple in new_taste_buddies])
                     
         self.taste_buddies.sort(reverse = True)
         self.taste_buddies = self.taste_buddies[:self.taste_neighbor]
@@ -199,8 +202,6 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: current tastebuddy list", self.taste_buddies
         
-        if new_taste_buddies:
-            self._create_pingpong("ping", [tb_tuple[-1] for tb_tuple in new_taste_buddies])
     
     def yield_taste_buddies(self):
         taste_buddies = self.taste_buddies[:]
@@ -656,17 +657,11 @@ class SearchCommunity(Community):
             if taste_buddy[2].sock_addr in candidate.sock_addr:
                 taste_buddy[1] = time()
     
-    def create_ping_requests(self):
-        while True:
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME - 10
-            try:
-                #determine to which peers we need to send a ping
-                candidates = [taste_buddy[-1] for taste_buddy in self.taste_buddies if taste_buddy[1] < refreshIf]
-                self._create_pingpong("ping", candidates)
-            except:
-                print_exc()
-                
-            yield 5.0
+    def create_ping_request(self, candidate):
+        while self.is_taste_buddy(candidate):
+            self._create_pingpong("ping", candidate)
+            
+            yield PING_INTERVAL
     
     def on_ping(self, messages):
         candidates = [message.candidate for message in messages]
@@ -678,7 +673,7 @@ class SearchCommunity(Community):
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
         
-        self.resteTastebuddy(message.candidate)
+            self.resteTastebuddy(message.candidate)
                 
     def check_pong(self, messages):
         for message in messages:
