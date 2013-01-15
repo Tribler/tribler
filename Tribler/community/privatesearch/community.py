@@ -190,7 +190,7 @@ class SearchCommunity(Community):
                     new_taste_buddies.remove(new_tb_tuple)
                     break
             else:
-                if new_tb_tuple[0] > self.taste_buddies[-1][0] or len(self.taste_buddies) < self.taste_neighbor:
+                if len(self.taste_buddies) < self.taste_neighbor or new_tb_tuple[0] > self.taste_buddies[-1][0]:
                     self.taste_buddies.append(new_tb_tuple)
                     self.dispersy.callback.register(self.create_ping_request, args = (new_tb_tuple[-1],), delay = PING_INTERVAL)
                     
@@ -677,7 +677,7 @@ class SearchCommunity(Community):
                 
     def check_pong(self, messages):
         for message in messages:
-            accepted, proof = self._timeline.check(message)
+            accepted, _ = self._timeline.check(message)
             if not accepted:
                 yield DelayMessageByProof(message)
                 continue
