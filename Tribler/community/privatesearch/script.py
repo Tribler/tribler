@@ -93,6 +93,9 @@ class SearchScript(ScenarioScriptBase):
                 
                 if len(self.taste_buddies) < self._community.taste_neighbor:
                     self.taste_buddies.add((ip,port))
+                    self.not_connected_taste_buddies.add((ip, port))
+                    
+                    log(self._logfile, "new taste buddy %s:%d"%(ip, port))
                     
                     if int(self._my_name) > self.late_join:
                         self._dispersy.callback.register(self.connect_to_taste_buddy, args = ((ip,port),), delay = 1.0)
@@ -141,8 +144,7 @@ class SearchScript(ScenarioScriptBase):
     def monitor_taste_buddy(self):
         while True:
             for sock_addr in self.taste_buddies:
-                candidate = self._dispersy.get_candidate(sock_addr, replace = False)
-                if candidate and self._community.is_taste_buddy(candidate):
+                if self._community.is_taste_buddy_sock(sock_addr):
                     if sock_addr in self.not_connected_taste_buddies:
                         self.not_connected_taste_buddies.remove(sock_addr)
                 else:

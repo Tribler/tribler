@@ -216,8 +216,11 @@ class SearchCommunity(Community):
         return len(tbuddies) > 0
         
     def is_taste_buddy(self, candidate):
+        return self.is_taste_buddy_sock(candidate.sock_addr)
+            
+    def is_taste_buddy_sock(self, sock_addr):
         for tb in self.yield_taste_buddies():
-            if tb.sock_addr == candidate.sock_addr:
+            if tb.sock_addr == sock_addr:
                 return True
             
     class SimilarityRequest(IntroductionRequestCache):
