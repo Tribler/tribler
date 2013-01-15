@@ -322,7 +322,6 @@ class SearchCommunity(Community):
         return request
     
     def on_intro_request(self, messages):
-        self._disp_intro_handler(messages)
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: got %d introduction requests"%len(messages)
         
@@ -386,6 +385,8 @@ class SearchCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
+                
+        self._disp_intro_handler(messages)
     
     def check_ecnr_response(self, messages):
         for message in messages:
