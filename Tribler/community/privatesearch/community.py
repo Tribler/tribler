@@ -659,6 +659,11 @@ class SearchCommunity(Community):
         for message in messages:
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
+        
+        addresses = [candidate.sock_addr for candidate in candidates]
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy[2].sock_addr in addresses:
+                taste_buddy[1] = time()
     
     def on_pong(self, messages):
         for message in messages:
@@ -666,6 +671,11 @@ class SearchCommunity(Community):
             
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
+                
+        addresses = [message.candidate.sock_addr for message in messages]
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy[2].sock_addr in addresses:
+                taste_buddy[1] = time()
     
     def _create_pingpong(self, meta_name, candidates, identifiers = None):
 #        max_len = self.dispersy_sync_bloom_filter_bits/8
@@ -703,11 +713,6 @@ class SearchCommunity(Community):
     
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: send", meta_name, "to", candidate
-        
-        addresses = [candidate.sock_addr for candidate in candidates]
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy[2].sock_addr in addresses:
-                taste_buddy[1] = time()
                 
     def create_torrent_request(self, torrents, candidate):
         torrentdict = {}
