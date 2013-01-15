@@ -321,11 +321,11 @@ class SearchCommunity(Community):
         self._dispersy.store_update_forward([request], False, False, True)
         return request
     
-    def on_intro_request(self, messages):
+    def on_intro_request(self, orig_messages):
         if DEBUG:
-            print >> sys.stderr, "SearchCommunity: got %d introduction requests"%len(messages)
+            print >> sys.stderr, "SearchCommunity: got %d introduction requests"%len(orig_messages)
         
-        messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
+        messages = [message for message in orig_messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
                     
         #1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
@@ -386,7 +386,7 @@ class SearchCommunity(Community):
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
                 
-        self._disp_intro_handler(messages)
+        self._disp_intro_handler(orig_messages)
     
     def check_ecnr_response(self, messages):
         for message in messages:
