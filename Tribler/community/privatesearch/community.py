@@ -143,7 +143,7 @@ class SearchCommunity(Community):
                 Message(self, u"torrent-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentRequestPayload(), self._dispersy._generic_timeline_check, self.on_torrent_request),
                 Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self._dispersy._generic_timeline_check, self.on_torrent),
                 Message(self, u"ping", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
-                Message(self, u"pong", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self._dispersy._generic_timeline_check, self.on_pong),
+                Message(self, u"pong", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self._dispersy.check_pong, self.on_pong),
                 Message(self, u"encrypted-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedResponsePayload(), self.check_ecnr_response, self.on_encr_response),
                 Message(self, u"encrypted-hashes", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedHashResponsePayload(), self.check_ecnr_response, self.on_encr_hash_response)
                 ]
@@ -622,26 +622,40 @@ class SearchCommunity(Community):
 
     class PingRequestCache(IntroductionRequestCache):
         def __init__(self, community, candidate):
-            self.candidate = candidate
             IntroductionRequestCache.__init__(self, community, None)
+            self.candidate = candidate
+            self.processed = False
+        
+        def on_success(self):
+            self.processed = True
         
         def on_timeout(self):
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME
-            remove = None
-            for taste_buddy in self.community.taste_buddies:
-                if taste_buddy[-1] == self.candidate:
-                    if taste_buddy[1] < refreshIf:
-                        remove = taste_buddy
-                    break
-            
-            if remove:
+            if not self.processed:
                 if DEBUG:
-                    print >> sys.stderr, "SearchCommunity: no response on ping, removing from taste_buddies",self.candidate
-                self.community.taste_buddies.remove(remove)
+                    print >> sys.stderr, "SearchCommunity: no response on ping, removing from taste_buddies", self.candidate
+                self.community.removeTastebuddy(self.candidate)
+    
+    def removeTastebuddy(self, candidate):
+        remove = None
+
+        removeIf = time() - CANDIDATE_WALK_LIFETIME
+        for taste_buddy in self.community.taste_buddies:
+            if taste_buddy[-1] == candidate:
+                if taste_buddy[1] < removeIf:
+                    remove = taste_buddy
+                break
+    
+        if remove:
+            self.community.taste_buddies.remove(remove)
+        
+    def resteTastebuddy(self, candidate):
+        for taste_buddy in self.taste_buddies:
+            if taste_buddy[2].sock_addr in candidate.sock_addr:
+                taste_buddy[1] = time()
     
     def create_ping_requests(self):
         while True:
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME + 10
+            refreshIf = time() - CANDIDATE_WALK_LIFETIME - 10
             try:
                 #determine to which peers we need to send a ping
                 candidates = [taste_buddy[-1] for taste_buddy in self.taste_buddies if taste_buddy[1] < refreshIf]
@@ -661,22 +675,30 @@ class SearchCommunity(Community):
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
         
-        addresses = [candidate.sock_addr for candidate in candidates]
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy[2].sock_addr in addresses:
-                taste_buddy[1] = time()
+        self.resteTastebuddy(message.candidate)
+                
+    def check_pong(self, messages):
+        for message in messages:
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
+                yield DelayMessageByProof(message)
+                continue
+            
+            if not self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.PingRequestCache):
+                yield DropMessage(message, "invalid response identifier")
+                continue
+            
+            yield message
     
     def on_pong(self, messages):
         for message in messages:
-            self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.PingRequestCache)
+            request = self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.PingRequestCache)
+            request.on_success()
             
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
-                
-        addresses = [message.candidate.sock_addr for message in messages]
-        for taste_buddy in self.taste_buddies:
-            if taste_buddy[2].sock_addr in addresses:
-                taste_buddy[1] = time()
+            
+            self.resteTastebuddy(message.candidate)
     
     def _create_pingpong(self, meta_name, candidates, identifiers = None):
 #        max_len = self.dispersy_sync_bloom_filter_bits/8
