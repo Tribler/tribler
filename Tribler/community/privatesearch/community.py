@@ -194,7 +194,7 @@ class SearchCommunity(Community):
                 self.taste_buddies.append(new_tb_tuple)
                     
         self.taste_buddies.sort(reverse = True)
-        self.taste_buddies = self.taste_buddies[:10]
+        self.taste_buddies = self.taste_buddies[:self.taste_neighbor]
         
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: current tastebuddy list", self.taste_buddies
