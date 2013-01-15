@@ -640,7 +640,7 @@ class SearchCommunity(Community):
     
     def create_ping_requests(self):
         while True:
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME
+            refreshIf = time() - CANDIDATE_WALK_LIFETIME + 10
             try:
                 #determine to which peers we need to send a ping
                 candidates = [taste_buddy[-1] for taste_buddy in self.taste_buddies if taste_buddy[1] < refreshIf]
