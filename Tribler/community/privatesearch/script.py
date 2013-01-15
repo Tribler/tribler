@@ -98,7 +98,7 @@ class SearchScript(ScenarioScriptBase):
         while True:
             latejoin = taste_ratio = 0
             
-            if len(len(self.taste_buddies)):
+            if len(self.taste_buddies):
                 current_taste_buddies = (len(self.taste_buddies) - len(self.not_connected_taste_buddies))
                 ratio = current_taste_buddies / float(len(self.taste_buddies))
                 if int(self._my_name) <= self.late_join:
