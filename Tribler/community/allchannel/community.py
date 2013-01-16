@@ -596,7 +596,7 @@ class ChannelCastDBStub():
         self._cachedTorrents[message.payload.infohash] = message
 
         self.recentTorrents.append((message.distribution.global_time, message.payload))
-        self.recentTorrents.sort(revert = True)
+        self.recentTorrents.sort(reverse = True)
         self.recentTorrents[:50]
         
         self.latest_result = time()
@@ -637,7 +637,7 @@ class ChannelCastDBStub():
             self._cachedTorrents[message.payload.infohash] = message
             self.recentTorrents.append((message.distribution.global_time, message.payload))
             
-        self.recentTorrents.sort(revert = True)
+        self.recentTorrents.sort(reverse = True)
         self.recentTorrents[:50]
 
 class VoteCastDBStub():
