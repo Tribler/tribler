@@ -24,6 +24,7 @@ from Tribler.community.allchannel.payload import ChannelCastRequestPayload,\
     ChannelCastPayload, VoteCastPayload, ChannelSearchPayload, ChannelSearchResponsePayload
 from traceback import print_exc
 import sys
+from random import sample
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -554,7 +555,9 @@ class ChannelCastDBStub():
         self._dispersy = dispersy
         self.channel_id = None
         self.latest_result = 0
+        
         self.cachedTorrents = None
+        self.recentTorrents = []
     
     def convert_to_messages(self, results):
         messages = self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
@@ -573,46 +576,29 @@ class ChannelCastDBStub():
     
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
-        last_result_time = None
-        
-        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' ORDER BY global_time DESC LIMIT ?"
-        results = list(self._dispersy.database.execute(sql, (NUM_OWN_RECENT_TORRENTS, )))
-        
-        messages = list(self.convert_to_messages(results))
-        for cid, message in messages:
-            torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
-            last_result_time = message.payload.timestamp
+
+        for _, payload in self.recentTorrents[:NUM_OWN_RECENT_TORRENTS]:
+            torrent_dict.setdefault(self.channel_id,set()).add(payload.infohash)
             
-            if message.payload.infohash not in self._cachedTorrents:
-                self._cachedTorrents[message.payload.infohash] = message
-            
-        if len(messages) == NUM_OWN_RECENT_TORRENTS:
-            sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' AND global_time < ? ORDER BY random() DESC LIMIT ?"
-            results = list(self._dispersy.database.execute(sql, (last_result_time, NUM_OWN_RANDOM_TORRENTS)))
-            
-            messages = self.convert_to_messages(results)
-            for cid, message in messages:
-                torrent_dict.setdefault(cid,set()).add(message.payload.infohash)
-                last_result_time = message.payload.timestamp
-                
-                if message.payload.infohash not in self._cachedTorrents:
-                    self._cachedTorrents[message.payload.infohash] = message
+        if len(self.recentTorrents) >= NUM_OWN_RECENT_TORRENTS:
+            for infohash in self.getRandomTorrents(self.channel_id, NUM_OWN_RANDOM_TORRENTS):
+                torrent_dict.setdefault(self.channel_id,set()).add(infohash)
                 
         return torrent_dict
     
     def getRandomTorrents(self, channel_id, limit = 15):
-        sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE community.classification = 'ChannelCommunity' AND meta_message.name = 'torrent' ORDER BY random() DESC LIMIT ?"
-        results = list(self._dispersy.database.execute(sql, (limit,)))
-        messages = self.convert_to_messages(results)
-        
-        for _, message in messages:
-            if message.payload.infohash not in self._cachedTorrents:
-                self._cachedTorrents[message.payload.infohash] = message
-        
-        return [message.payload.infohash for _, message in messages]
-            
+        torrents = self._cachedTorrents.keys()
+        if len(torrents) > limit:
+            return sample(torrents, limit)
+        return torrents
+    
     def newTorrent(self, message):
         self._cachedTorrents[message.payload.infohash] = message
+
+        self.recentTorrents.append((message.distribution.global_time, message.payload))
+        self.recentTorrents.sort(revert = True)
+        self.recentTorrents[:50]
+        
         self.latest_result = time()
     
     def setChannelId(self, channel_id):
@@ -649,6 +635,10 @@ class ChannelCastDBStub():
         
         for _, message in messages:
             self._cachedTorrents[message.payload.infohash] = message
+            self.recentTorrents.append((message.distribution.global_time, message.payload))
+            
+        self.recentTorrents.sort(revert = True)
+        self.recentTorrents[:50]
 
 class VoteCastDBStub():
     def __init__(self, dispersy):
