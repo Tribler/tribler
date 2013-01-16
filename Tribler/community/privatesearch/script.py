@@ -21,17 +21,11 @@ class SearchScript(ScenarioScriptBase):
             self.community_kargs['taste_neighbor'] = kargs['taste_neighbor']
         
         self.community_kargs['encryption'] = kargs.get('encryption', False)
-        
-        def str2bool(v):
-            return v.lower() in ("yes", "true", "t", "1")
-        self.perform_search = str2bool(kargs.get('dosearch', 'yes'))
-        
-        self.current_taste_buddies = 0
-        
+
         self.taste_buddies = set()
         self.not_connected_taste_buddies = set()
-        self.did_reply = set()
         
+        self.did_reply = set()
         self.test_set = set()
         self.test_reply = set()
     
@@ -65,7 +59,7 @@ class SearchScript(ScenarioScriptBase):
         if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
             
-        if self.perform_search and step > 0 and step % 100 == 0:
+        if self._community.ttl and step > 0 and step % 100 == 0:
             self._dispersy.callback.persistent_register("do_search", self.perform_searches)
             
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
