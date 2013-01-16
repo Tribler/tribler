@@ -577,11 +577,11 @@ class ChannelCastDBStub():
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
 
-        for _, payload in self.recentTorrents[:NUM_OWN_RECENT_TORRENTS]:
+        for _, payload in self.recentTorrents[:max(NUM_OWN_RECENT_TORRENTS, NUM_OTHERS_RECENT_TORRENTS)]:
             torrent_dict.setdefault(self.channel_id,set()).add(payload.infohash)
             
         if len(self.recentTorrents) >= NUM_OWN_RECENT_TORRENTS:
-            for infohash in self.getRandomTorrents(self.channel_id, NUM_OWN_RANDOM_TORRENTS):
+            for infohash in self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS)):
                 torrent_dict.setdefault(self.channel_id,set()).add(infohash)
                 
         return torrent_dict
