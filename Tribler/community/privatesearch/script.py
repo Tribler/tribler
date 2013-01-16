@@ -85,7 +85,7 @@ class SearchScript(ScenarioScriptBase):
                 peer_id = int(cur_command[1])
                 ip, port = self.get_peer_ip_port(peer_id)
                 
-                if len(self.taste_buddies) < self._community.taste_neighbor:
+                if len(self.taste_buddies) < 10:
                     self.taste_buddies.add((ip,port))
                     self.not_connected_taste_buddies.add((ip, port))
                     

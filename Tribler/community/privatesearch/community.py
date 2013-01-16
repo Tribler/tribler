@@ -197,7 +197,7 @@ class SearchCommunity(Community):
         #self._create_pingpong("ping", [tb_tuple[-1] for tb_tuple in new_taste_buddies])
                     
         self.taste_buddies.sort(reverse = True)
-        self.taste_buddies = self.taste_buddies[:self.taste_neighbor]
+        self.taste_buddies = self.taste_buddies[:10]
         
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: current tastebuddy list", self.taste_buddies
