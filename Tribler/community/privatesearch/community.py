@@ -660,7 +660,7 @@ class SearchCommunity(Community):
     
     def create_ping_request(self, candidate):
         while self.is_taste_buddy(candidate):
-            self._create_pingpong("ping", candidate)
+            self._create_pingpong("ping", [candidate])
             
             yield PING_INTERVAL
     
