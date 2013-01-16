@@ -653,7 +653,7 @@ class VoteCastDBStub():
         try:
             id,  = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
             self._votecache[public_key] = int(id)
-            return int(id)
+            return self._votecache[public_key]
         except StopIteration:
             return
         
