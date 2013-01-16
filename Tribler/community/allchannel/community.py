@@ -643,11 +643,16 @@ class ChannelCastDBStub():
 class VoteCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
+        self._votecache = {}
         
     def getDispersyId(self, cid, public_key):
+        if public_key in self._votecache:
+            return self._votecache[public_key]
+        
         sql = u"SELECT sync.id FROM sync JOIN member ON sync.member = member.id JOIN community ON community.id = sync.community JOIN meta_message ON sync.meta_message = meta_message.id WHERE community.classification = 'AllChannelCommunity' AND meta_message.name = 'votecast' AND member.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
             id,  = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
+            self._votecache[public_key] = int(id)
             return int(id)
         except StopIteration:
             return
