@@ -221,7 +221,8 @@ class SearchCommunity(Community):
             
     def is_taste_buddy_sock(self, sock_addr):
         for tb in self.yield_taste_buddies():
-            if tb.sock_addr == sock_addr:
+            #TODO: change this for deployment
+            if tb.sock_addr[1] == sock_addr[1]:
                 return True
             
     class SimilarityRequest(IntroductionRequestCache):
