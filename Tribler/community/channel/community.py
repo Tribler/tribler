@@ -111,9 +111,6 @@ class ChannelCommunity(Community):
         self.integrate_with_tribler = integrate_with_tribler
         
         self._channel_id = None
-        # self._last_sync_range = None
-        # self._last_sync_space_remaining = 0
-        
         super(ChannelCommunity, self).__init__(master)
         
         if self.integrate_with_tribler:
@@ -185,8 +182,11 @@ class ChannelCommunity(Community):
                     self._channelcast_db.newTorrent(message)
                         
             def handled_channel_function(messages):
-                self._channel_id = self._master_member.mid
-                self._channelcast_db.setChannelId(self._channel_id)
+                for message in messages:
+                    self._channel_id = self._master_member.mid
+                    authentication_member = message.authentication.member
+                    
+                    self._channelcast_db.setChannelId(self._channel_id, authentication_member == self._my_member)
             
             disp_on_channel = handled_channel_function
             disp_on_torrent = handled_function
@@ -247,7 +247,7 @@ class ChannelCommunity(Community):
             if isinstance(policy, PublicResolution):
                 public.add(meta.name)
             else:
-                allowed, proofs = self._timeline.allowed(meta)
+                allowed, _ = self._timeline.allowed(meta)
                 if allowed:
                     permitted.add(meta.name)
                     

@@ -100,9 +100,6 @@ class AllChannelCommunity(Community):
             self._peer_db = PeerDBStub(self._dispersy)
         
         self._register_task = self.dispersy.callback.register
-        # TODO: rewrite create_channelcast to use a generator and add the callback id to
-        # _pending_callbacks for memory cleanup (otherwise the community will still exist in memory
-        # once unloaded)
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
         # 15/02/12 Boudewijn: add the callback id to _pending_callbacks to allow the task to be
         # unregistered when the community is unloaded
@@ -134,79 +131,86 @@ class AllChannelCommunity(Community):
         return 25 * 1024
 
     def create_channelcast(self):
-        try:
-            now = time()
-            
-            favoriteTorrents = None
-            normalTorrents = None
-
-            #cleanup blocklist
-            for candidate in self._blocklist.keys():
-                if self._blocklist[candidate] + CHANNELCAST_BLOCK_PERIOD < now: #unblock address
-                    self._blocklist.pop(candidate)
-            
-            #loop through all candidates to see if we can find a non-blocked address
-            for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once = True) if not candidate in self._blocklist]:
-                if not candidate:
-                    continue
+        mychannel_id = None
+        while True:
+            try:
+                now = time()
+                
+                favoriteTorrents = None
+                normalTorrents = None
+    
+                #cleanup blocklist
+                for candidate in self._blocklist.keys():
+                    if self._blocklist[candidate] + CHANNELCAST_BLOCK_PERIOD < now: #unblock address
+                        self._blocklist.pop(candidate)
+                        
+                #fetch mychannel_id if neccesary
+                if mychannel_id == None:
+                    mychannel_id = self._channelcast_db.getMyChannelId()
+                
+                #loop through all candidates to see if we can find a non-blocked address
+                for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once = True) if not candidate in self._blocklist]:
+                    if not candidate:
+                        continue
                     
-                peer_ids = set()
-                for member in candidate.get_members(self):
-                    key = member.public_key
-                    peer_ids.add(self._peer_db.addOrGetPeerID(key))
+                    didFavorite = False
+                    #only check if we actually have a channel
+                    if mychannel_id:
+                        peer_ids = set()
+                        for member in candidate.get_members(self):
+                            key = member.public_key
+                            peer_ids.add(self._peer_db.addOrGetPeerID(key))
                         
-                #see if all members on this address are subscribed to my channel
-                didFavorite = len(peer_ids) > 0
-                for peer_id in peer_ids:
-                    vote = self._votecast_db.getVoteForMyChannel(peer_id)
-                    if vote != 2:
-                        didFavorite = False
-                        break
+                        #see if all members on this address are subscribed to my channel
+                        didFavorite = len(peer_ids) > 0
+                        for peer_id in peer_ids:
+                            vote = self._votecast_db.getVoteForMyChannel(peer_id)
+                            if vote != 2:
+                                didFavorite = False
+                                break
+                            
+                    #Modify type of message depending on if all peers have marked my channels as their favorite
+                    if didFavorite:
+                        if not favoriteTorrents:
+                            favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5)
+                        torrents = favoriteTorrents
+                    else:
+                        if not normalTorrents:
+                            normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
+                        torrents = normalTorrents
+                                
+                    if len(torrents) > 0:
+                        meta = self.get_meta_message(u"channelcast")
+                        message = meta.impl(authentication=(self._my_member,),
+                                            distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
+                                
+                        self._dispersy._forward([message])
+                                
+                        #we've send something to this address, add to blocklist
+                        self._blocklist[candidate] = now
+                                
+                        if DEBUG:
+                            nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                            print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.sock_addr,"didFavorite",didFavorite
+    
+                        if __debug__:
+                            if not self.integrate_with_tribler:
+                                nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                                log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.sock_addr,didFavorite))
                         
-                #Modify type of message depending on if all peers have marked my channels as their favorite
-                if didFavorite:
-                    if not favoriteTorrents:
-                        favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25 ,5)
-                    torrents = favoriteTorrents
+                        #we're done
+                        break       
+    
                 else:
-                    if not normalTorrents:
-                        normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
-                    torrents = normalTorrents
-                            
-                if len(torrents) > 0:
-                    meta = self.get_meta_message(u"channelcast")
-                    message = meta.impl(authentication=(self._my_member,),
-                                        distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
-                            
-                    self._dispersy._forward([message])
-                            
-                    #we've send something to this address, add to blocklist
-                    self._blocklist[candidate] = now
-                            
                     if DEBUG:
-                        nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                        print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.sock_addr,"didFavorite",didFavorite
-
+                        print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
                     if __debug__:
                         if not self.integrate_with_tribler:
-                            nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                            log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.sock_addr,didFavorite))
-                    
-                    #we're done
-                    break       
-
-            else:
-                if DEBUG:
-                    print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
-                if __debug__:
-                    if not self.integrate_with_tribler:
-                        log("dispersy.log", "Could not send channelcast message, no candidates")
-        except:
-            print_exc()
-            raise
-        
-        finally:
-            self._register_task(self.create_channelcast, delay=CHANNELCAST_INTERVAL)
+                            log("dispersy.log", "Could not send channelcast message, no candidates")
+            except:
+                print_exc()
+            
+            yield CHANNELCAST_INTERVAL
 
     def check_channelcast(self, messages):
         # no timeline check because PublicResolution policy is used
@@ -554,6 +558,7 @@ class ChannelCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
         self.channel_id = None
+        self.mychannel = False
         self.latest_result = 0
         
         self.cachedTorrents = None
@@ -572,7 +577,6 @@ class ChannelCastDBStub():
     def getCountMaxFromChannelId(self, channel_id):
         if self.cachedTorrents:
             return len(self.cachedTorrents), self.latest_result
-        pass
     
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
@@ -601,8 +605,13 @@ class ChannelCastDBStub():
         
         self.latest_result = time()
     
-    def setChannelId(self, channel_id):
+    def setChannelId(self, channel_id, mychannel):
         self.channel_id = channel_id
+        self.mychannel = mychannel
+        
+    def getMyChannelId(self):
+        if self.mychannel:
+            return self.channel_id
 
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
