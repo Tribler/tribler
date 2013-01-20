@@ -879,8 +879,8 @@ class SearchCommunity(Community):
 
 class HSearchCommunity(SearchCommunity):
     
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = True):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption)
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor)
         self.preference_cache = []
     
     def _initialize_meta_messages(self):
