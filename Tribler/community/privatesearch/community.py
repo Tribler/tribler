@@ -975,7 +975,7 @@ class HSearchCommunity(SearchCommunity):
                     
     def on_encr_hash_response(self, messages):
         class SimilarityObject():
-            def init(self, message):
+            def __init__(self, message):
                 self.message = message
                 
             def get_overlap(self):
