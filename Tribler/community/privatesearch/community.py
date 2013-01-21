@@ -24,7 +24,7 @@ from payload import SearchRequestPayload,\
     SearchResponsePayload, TorrentRequestPayload, \
     PingPayload, PongPayload,\
     EncryptedHashResponsePayload, EncryptedResponsePayload,\
-    EncryptedIntroPayload, KeyIntroPayload, TorrentPayload
+    EncryptedIntroPayload, KeyPayload, TorrentPayload, RequestKeyPayload
     
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
@@ -883,38 +883,26 @@ class HSearchCommunity(SearchCommunity):
         SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor)
         self.preference_cache = []
     
-    def _initialize_meta_messages(self):
-        Community._initialize_meta_messages(self)
-
-        ori = self._meta_messages[u"dispersy-introduction-request"]
-        self._disp_intro_handler = ori.handle_callback
+    def initiate_meta_messages(self):
+        messages = SearchCommunity.initiate_meta_messages(self)
+        messages.append(Message(self, u"request-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), RequestKeyPayload(), self.check_key, self.on_key_request))
+        messages.append(Message(self, u"encryption-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), KeyPayload(), self.check_key, self.on_key))
         
-        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, KeyIntroPayload(), ori.check_callback, self.on_intro_request)
-        self._meta_messages[u"dispersy-introduction-request"] = new
-    
     def create_introduction_request(self, destination, allow_sync):
+        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination):
+            self.send_keyrequest(destination)
+        else:
+            self.send_introduction_request(destination)
+    
+    def send_introduction_request(self, destination, preference_list = None):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         self._dispersy.statistics.walk_attempt += 1
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
-
-        advice = True
-        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination):
-            identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(self.key, self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, self.key_n, self.key_e)
         
-        else:
-            if DEBUG:
-                reason = ''
-                if isinstance(destination, BootstrapCandidate):
-                    reason = 'being bootstrapserver'
-                else:
-                    reason = 'being a tastebuddy'
-
-                print >> sys.stderr, "SearchCommunity: sending empty-introduction request to",destination,"due to",reason
-            
-            identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, None)
+        advice = True
+        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, preference_list)
                 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -926,24 +914,48 @@ class HSearchCommunity(SearchCommunity):
         return request
 
     def on_intro_request(self, messages):
+        for message in messages:
+            if message.payload.preference_list:
+                self.preference_cache.append((time(), message.payload.preference_list, message.candidate))
+        
         self._disp_intro_handler(messages)
         
-        if DEBUG:
-            print >> sys.stderr, "SearchCommunity: got %d introduction requests"%len(messages)
-        
-        messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.key_n]
-        
+        if self._notifier:
+            from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
+            for message in messages:
+                self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
+    
+    def send_keyrequest(self, destination):
+        meta_request = self.get_meta_message(u"request-key")
+        request = meta_request.impl(authentication=(self.my_member,),
+                                distribution=(self.global_time,),
+                                destination=(destination,),
+                                payload=())
+
+        self._dispersy.store_update_forward([request], False, False, True)
+        return request
+    
+    def on_keyrequest(self, messages):
+        for message in messages:
+            meta_request = self.get_meta_message(u"encryption-key")
+            response = meta_request.impl(authentication=(self.my_member,),
+                                    distribution=(self.global_time,),
+                                    destination=(message.candidate,),
+                                    payload=(self.key_n, self.key_e))
+    
+            self._dispersy.store_update_forward([response], False, False, True)
+    
+    def on_key(self, messages):
         #1. fetch my preferences
         max_len = self.dispersy_sync_bloom_filter_bits/8
         num_prefs = int(max_len/20)
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
-        myPreferencesLen = len(myPreferences)
         if len(myPreferences) > num_prefs:
             myPreferences = sample(myPreferences, num_prefs)
         
         for message in messages:
             if DEBUG:
-                print >> sys.stderr, "SearchCommunity: got introduction request from", message.candidate
+                print >> sys.stderr, "SearchCommunity: got key from", message.candidate
             
             shuffle(myPreferences)
             if self.encryption:
@@ -959,54 +971,10 @@ class HSearchCommunity(SearchCommunity):
                 myPreferences = [sha1(infohash).digest() for infohash in myPreferences]
                 self.search_time_encryption += time() - t1
             
-            #4. create the response message
-            meta = self.get_meta_message(u"encrypted-hashes")
-            hash_response_message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), payload=(message.payload.identifier, myPreferences, myPreferencesLen))
-            self._dispersy._send([message.candidate], [hash_response_message])
+            self.send_introduction_request(message.candidate, myPreferences)
             
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: sending one message too", message.candidate
-                
-        if self._notifier:
-            from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
-            for message in messages:
-                self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
-                    
-    def on_encr_hash_response(self, messages):
-        class SimilarityObject():
-            def __init__(self, community, message):
-                self.community = community
-                self.key = community.key
-                self.myList = community._mypref_db.getMyPrefListInfohash()
-                self.message = message
-                
-            def get_overlap(self):
-                myPreferences = [preference for preference in self.myList if preference]
-                if self.community.encryption:
-                    t1 = time()
-                    myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
-                    myPreferences = [sha1(infohash).digest() for infohash in myPreferences]
-                    self.search_time_encryption += time() - t1
-        
-                myPrefs = len(myPreferences)
-                hisPrefs = self.message.payload.len_preference_list
-                overlap = 0
-                for myPref in myPreferences:
-                    if myPref in message.payload.preference_list:
-                        overlap += 1
-                
-                return myPrefs, hisPrefs, overlap
-                
-        for message in messages:
-            s = SimilarityObject(self, message)
-            self._process(message.candidate, s)
-            
-            self.preference_cache.append((time(), set(message.payload.preference_list), message.candidate))
-        
-            my_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SimilarityRequest)
-            if my_request:
-                my_request.isProcessed = True
     
     def get_preferences(self, candidate):
         for time, preferenceset, pref_candidate in self.preference_cache:

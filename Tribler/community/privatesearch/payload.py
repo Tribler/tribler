@@ -79,13 +79,11 @@ class EncryptedHashResponsePayload(Payload):
         def len_preference_list(self):
             return self._len_preference_list
         
-class KeyIntroPayload(IntroductionRequestPayload):
-    class Implementation(IntroductionRequestPayload.Implementation):
-        
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, key_n = None, key_e = None):
-            IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
-            assert not key_n or isinstance(key_n, long), 'key_n should be long'
-            assert not key_e or isinstance(key_e, long), 'key_e should be long'
+class KeyPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key_n, key_e):
+            assert isinstance(key_n, long), 'key_n should be long'
+            assert isinstance(key_e, long), 'key_e should be long'
             
             self._key_n = key_n
             self._key_e = key_e
@@ -105,6 +103,9 @@ class KeyIntroPayload(IntroductionRequestPayload):
         @property
         def key_e(self):
             return self._key_e
+        
+class RequestKeyPayload(Payload):
+    pass
         
 class SearchRequestPayload(Payload):
     class Implementation(Payload.Implementation):
