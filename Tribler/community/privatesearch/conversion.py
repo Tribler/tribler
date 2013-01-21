@@ -29,7 +29,7 @@ class SearchConversion(BinaryConversion):
 
         if message.payload.preference_list:
             fmt = '128s'* (len(message.payload.preference_list) + 1)
-            if not message.payload.key_n:
+            if message.payload.key_n:
                 str_n = long_to_bytes(message.payload.key_n, 128)
             else:
                 str_n = long_to_bytes(-1l, 128)
