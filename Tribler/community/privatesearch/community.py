@@ -201,7 +201,6 @@ class SearchCommunity(Community):
         
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: current tastebuddy list", self.taste_buddies
-        
     
     def yield_taste_buddies(self):
         taste_buddies = self.taste_buddies[:]
@@ -931,11 +930,13 @@ class HSearchCommunity(SearchCommunity):
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
     
     def send_keyrequest(self, destination):
+        identifier = self._dispersy.request_cache.claim(HSearchCommunity.HSimilarityRequest(self.key, self, destination))
+        
         meta_request = self.get_meta_message(u"request-key")
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
                                 destination=(destination,),
-                                payload=())
+                                payload=(identifier, self.key_n, self.key_e))
 
         self._dispersy.store_update_forward([request], False, False, True)
         return request
@@ -947,10 +948,43 @@ class HSearchCommunity(SearchCommunity):
                                     distribution=(self.global_time,),
                                     destination=(message.candidate,),
                                     payload=(self.key_n, self.key_e))
-    
+            
             self._dispersy.store_update_forward([response], False, False, True)
+        self.__encrypt_myprefs(messages, self.send_encrypted_hashes)
     
     def on_key(self, messages):
+        self.__encrypt_myprefs(messages, lambda message, preference_list: self.send_introduction_request(message.candidate, preference_list))
+    
+    class HSimilarityRequest(SearchCommunity.SimilarityRequest):
+        def __init__(self, key, community, helper_candidate):
+            SearchCommunity.SimilarityRequest.__init__(self, key, community, helper_candidate)
+            self.myList = [preference for preference in community._mypref_db.getMyPrefListInfohash() if preference] 
+        
+        def get_overlap(self):
+            if self.community.encryption:
+                t1 = time()
+                self.myList = [self.key.encrypt(infohash,1)[0] for infohash in self.myList]
+                self.myList = [sha1(infohash).digest() for infohash in self.myList]
+                self.search_time_encryption += time() - t1
+    
+            overlap = 0
+            for myPref in self.myList:
+                if myPref in self.hisList:
+                    overlap += 1
+            
+            return len(self.myList), self.hisListLen, overlap
+        
+    def send_encrypted_hashes(self, message, preferences):
+        meta = self.get_meta_message(u"encrypted-hashes")
+        request = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.global_time,), 
+                            destination=(message.candidate,),
+                            payload=(message.payload.identifier, preferences, len(preferences)))
+        
+        self._dispersy.store_update_forward([request], False, False, True)
+        return request
+    
+    def __encrypt_myprefs(self, messages, callback):
         #1. fetch my preferences
         max_len = self.dispersy_sync_bloom_filter_bits/8
         num_prefs = int(max_len/20)
@@ -959,9 +993,6 @@ class HSearchCommunity(SearchCommunity):
             myPreferences = sample(myPreferences, num_prefs)
         
         for message in messages:
-            if DEBUG:
-                print >> sys.stderr, "SearchCommunity: got key from", message.candidate
-            
             shuffle(myPreferences)
             if self.encryption:
                 t1 = time()
@@ -976,7 +1007,7 @@ class HSearchCommunity(SearchCommunity):
                 myPreferences = [sha1(infohash).digest() for infohash in myPreferences]
                 self.search_time_encryption += time() - t1
             
-            self.send_introduction_request(message.candidate, myPreferences)
+            callback(message, myPreferences)
             
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: sending one message too", message.candidate

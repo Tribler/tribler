@@ -343,8 +343,21 @@ class HSearchConversion(SearchConversion):
         return offset, placeholder.meta.payload.implement(key_n, key_e)
     
     def _encode_request_key(self, message):
-        return tuple()
+        str_n = long_to_bytes(message.payload.key_n, 128)
+        str_e = long_to_bytes(message.payload.key_e, 128)
+            
+        packet = pack('!H128s128s', message.payload.identifier, str_n, str_e)
+        return packet,
     
     def _decode_request_key(self, placeholder, offset, data):
-        return offset, placeholder.meta.payload.implement()
+        length = len(data) - offset
+        if length != 258:
+            raise DropPacket("Invalid number of bytes available (ecnr_key)")
+        
+        identifier, str_n, str_e = unpack_from('!H128s128s', data, offset)
+                
+        key_n = bytes_to_long(str_n)
+        key_e = bytes_to_long(str_e)
     
+        offset += length
+        return offset, placeholder.meta.payload.implement(identifier, key_n, key_e)
