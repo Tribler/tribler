@@ -885,7 +885,7 @@ class HSearchCommunity(SearchCommunity):
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
-        messages.append(Message(self, u"request-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), RequestKeyPayload(), self._dispersy._generic_timeline_check, self.on_key_request))
+        messages.append(Message(self, u"request-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), RequestKeyPayload(), self._dispersy._generic_timeline_check, self.on_keyrequest))
         messages.append(Message(self, u"encryption-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), KeyPayload(), self._dispersy._generic_timeline_check, self.on_key))
         
     def create_introduction_request(self, destination, allow_sync):
