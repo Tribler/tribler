@@ -21,6 +21,8 @@ class SearchConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
         self.define_meta_message(chr(6), community.get_meta_message(u"encrypted-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
         self.define_meta_message(chr(7), community.get_meta_message(u"encrypted-hashes"), lambda message: self._encode_decode(self._encode_encr_hash_response, self._decode_encr_hash_response, message), self._decode_encr_hash_response)
+        self.define_meta_message(chr(8), community.get_meta_message(u"request-key"), lambda message: self._encode_decode(self._encode_request_key, self._decode_request_key, message), self._decode_request_key)
+        self.define_meta_message(chr(9), community.get_meta_message(u"encryption-key"), lambda message: self._encode_decode(self._encode_encr_key, self._decode_encr_key, message), self._decode_encr_key)
         
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
@@ -31,11 +33,6 @@ class SearchConversion(BinaryConversion):
             str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
             
             data.append(pack('!'+fmt, str_n, *str_prefs))
-        elif message.payload.key_n:
-            str_n = long_to_bytes(message.payload.key_n, 128)
-            str_e = long_to_bytes(message.payload.key_e, 128)
-            
-            data.append(pack('!128s128s', str_n, str_e))
             
         return data
     
@@ -45,33 +42,20 @@ class SearchConversion(BinaryConversion):
         #if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
-            if isinstance(payload._meta, EncryptedIntroPayload):
-                length = len(data) - offset
-                if length % 128 != 0 or length < 128:
-                    raise DropPacket("Invalid number of bytes available (ir)")
-                
-                hashpack = '128s' * (length/128)
-                hashes = unpack_from('!'+hashpack, data, offset)
-    
-                str_n = hashes[0]
-                payload.set_key_n(bytes_to_long(str_n))
-                
-                hashes = [bytes_to_long(hash) for hash in hashes[1:]]
-                payload.set_preference_list(hashes)
-                
-                offset += length
-            else:
-                length = len(data) - offset
-                if length != 256:
-                    raise DropPacket("Invalid number of bytes available (ir)")
-                
-                str_n, str_e = unpack_from('!128s128s', data, offset)
-                
-                payload.set_key_n(bytes_to_long(str_n))
-                payload.set_key_e(bytes_to_long(str_e))
+            length = len(data) - offset
+            if length % 128 != 0 or length < 128:
+                raise DropPacket("Invalid number of bytes available (ir)")
             
-                offset += length
+            hashpack = '128s' * (length/128)
+            hashes = unpack_from('!'+hashpack, data, offset)
+
+            str_n = hashes[0]
+            payload.set_key_n(bytes_to_long(str_n))
             
+            hashes = [bytes_to_long(hash) for hash in hashes[1:]]
+            payload.set_preference_list(hashes)
+            
+            offset += length
         return offset, payload
     
     def _encode_encr_response(self, message):
@@ -324,6 +308,32 @@ class SearchConversion(BinaryConversion):
                 if not (isinstance(infohash, str) and len(infohash) == 20):
                     raise DropPacket("Invalid 'infohash' type or value")
         return offset, placeholder.meta.payload.implement(payload)
+    
+    def _encode_encr_key(self, message):
+        str_n = long_to_bytes(message.payload.key_n, 128)
+        str_e = long_to_bytes(message.payload.key_e, 128)
+            
+        packet = pack('!128s128s', str_n, str_e)
+        return packet,
+        
+    def _decode_encr_key(self, placeholder, offset, data):
+        length = len(data) - offset
+        if length != 256:
+            raise DropPacket("Invalid number of bytes available (ecnr_key)")
+        
+        str_n, str_e = unpack_from('!128s128s', data, offset)
+                
+        key_n = bytes_to_long(str_n)
+        key_e = bytes_to_long(str_e)
+    
+        offset += length
+        return offset, placeholder.meta.payload.implement(key_n, key_e)
+    
+    def _encode_request_key(self, message):
+        return tuple()
+    
+    def _decode_request_key(self, placeholder, offset, data):
+        return offset, placeholder.meta.payload.implement()
     
     def _encode_decode(self, encode, decode, message):
         result = encode(message)

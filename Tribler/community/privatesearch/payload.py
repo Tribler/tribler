@@ -88,17 +88,9 @@ class KeyPayload(Payload):
             self._key_n = key_n
             self._key_e = key_e
             
-        def set_key_n(self, key_n):
-            assert isinstance(key_n, long), 'key_n should be long'
-            self._key_n = key_n
-        
         @property
         def key_n(self):
             return self._key_n
-        
-        def set_key_e(self, key_e):
-            assert isinstance(key_e, long), 'key_e should be long'
-            self._key_e = key_e
         
         @property
         def key_e(self):
