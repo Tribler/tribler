@@ -1,15 +1,10 @@
 from struct import pack, unpack_from
 from random import choice, sample
-from math import ceil
-
 from Tribler.dispersy.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-import zlib
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from payload import EncryptedIntroPayload
 
 class SearchConversion(BinaryConversion):
     def __init__(self, community):
@@ -21,8 +16,6 @@ class SearchConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
         self.define_meta_message(chr(6), community.get_meta_message(u"encrypted-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
         self.define_meta_message(chr(7), community.get_meta_message(u"encrypted-hashes"), lambda message: self._encode_decode(self._encode_encr_hash_response, self._decode_encr_hash_response, message), self._decode_encr_hash_response)
-        self.define_meta_message(chr(8), community.get_meta_message(u"request-key"), lambda message: self._encode_decode(self._encode_request_key, self._decode_request_key, message), self._decode_request_key)
-        self.define_meta_message(chr(9), community.get_meta_message(u"encryption-key"), lambda message: self._encode_decode(self._encode_encr_key, self._decode_encr_key, message), self._decode_encr_key)
         
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
@@ -311,7 +304,24 @@ class SearchConversion(BinaryConversion):
                 if not (isinstance(infohash, str) and len(infohash) == 20):
                     raise DropPacket("Invalid 'infohash' type or value")
         return offset, placeholder.meta.payload.implement(payload)
+
+    def _encode_decode(self, encode, decode, message):
+        result = encode(message)
+        try:
+            decode(None, 0, result[0])
+            
+        except DropPacket:
+            raise
+        except:
+            pass
+        return result
     
+class HSearchConversion(SearchConversion):
+    def __init__(self, community):
+        SearchConversion.__init__(self, community)
+        self.define_meta_message(chr(8), community.get_meta_message(u"request-key"), lambda message: self._encode_decode(self._encode_request_key, self._decode_request_key, message), self._decode_request_key)
+        self.define_meta_message(chr(9), community.get_meta_message(u"encryption-key"), lambda message: self._encode_decode(self._encode_encr_key, self._decode_encr_key, message), self._decode_encr_key)
+        
     def _encode_encr_key(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)
         str_e = long_to_bytes(message.payload.key_e, 128)
@@ -338,13 +348,3 @@ class SearchConversion(BinaryConversion):
     def _decode_request_key(self, placeholder, offset, data):
         return offset, placeholder.meta.payload.implement()
     
-    def _encode_decode(self, encode, decode, message):
-        result = encode(message)
-        try:
-            decode(None, 0, result[0])
-            
-        except DropPacket:
-            raise
-        except:
-            pass
-        return result

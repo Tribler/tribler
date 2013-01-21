@@ -19,7 +19,7 @@ from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 
-from conversion import SearchConversion
+from conversion import SearchConversion, HSearchConversion
 from payload import SearchRequestPayload,\
     SearchResponsePayload, TorrentRequestPayload, \
     PingPayload, PongPayload,\
@@ -888,6 +888,9 @@ class HSearchCommunity(SearchCommunity):
         messages.append(Message(self, u"request-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), RequestKeyPayload(), self._dispersy._generic_timeline_check, self.on_keyrequest))
         messages.append(Message(self, u"encryption-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), KeyPayload(), self._dispersy._generic_timeline_check, self.on_key))
         return messages
+    
+    def initiate_conversions(self):
+        return [DefaultConversion(self), SearchConversion(self), HSearchConversion(self)]
         
     def create_introduction_request(self, destination, allow_sync):
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination):
