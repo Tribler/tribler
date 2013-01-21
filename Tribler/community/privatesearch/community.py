@@ -975,11 +975,13 @@ class HSearchCommunity(SearchCommunity):
                     
     def on_encr_hash_response(self, messages):
         class SimilarityObject():
-            def __init__(self, message):
+            def __init__(self, key, myList, message):
+                self.key = key
+                self.myList = myList
                 self.message = message
                 
             def get_overlap(self):
-                myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
+                myPreferences = [preference for preference in self.myList if preference]
                 if self.encryption:
                     t1 = time()
                     myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
@@ -996,7 +998,7 @@ class HSearchCommunity(SearchCommunity):
                 return myPrefs, hisPrefs, overlap
                 
         for message in messages:
-            s = SimilarityObject(message)
+            s = SimilarityObject(self.key, self._mypref_db.getMyPrefListInfohash(), message)
             self._process(message.candidate, s)
             
             self.preference_cache.append((time(), set(message.payload.preference_list), message.candidate))
