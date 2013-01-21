@@ -259,7 +259,7 @@ class SearchCommunity(Community):
             if not self.isProcessed and not self.community.integrate_with_tribler:
                 log('barter.log', "Not processed", candidate = str(self.helper_candidate), mylist = self.myList != None, hislist = self.hisList != None)
             
-    def __process(self, candidate, similarity_request):
+    def _process(self, candidate, similarity_request):
         myPrefs, hisPrefs, overlap = similarity_request.get_overlap()
         similarity_request.isProcessed = True
         
@@ -412,7 +412,7 @@ class SearchCommunity(Community):
             if my_request:
                 my_request.myList = message.payload.preference_list
                 if my_request.is_complete():
-                    self.__process(message.candidate, my_request)
+                    self._process(message.candidate, my_request)
             elif not self.integrate_with_tribler:
                 log('barter.log', 'identifier not found!')
                     
@@ -423,7 +423,7 @@ class SearchCommunity(Community):
                 my_request.hisList = message.payload.preference_list
                 my_request.hisListLen = message.payload.len_preference_list
                 if my_request.is_complete():
-                    self.__process(message.candidate, my_request)
+                    self._process(message.candidate, my_request)
             elif not self.integrate_with_tribler:
                 log('barter.log', 'identifier not found!')
             
@@ -997,7 +997,7 @@ class HSearchCommunity(SearchCommunity):
                 
         for message in messages:
             s = SimilarityObject(message)
-            self.__process(message.candidate, s)
+            self._process(message.candidate, s)
             
             self.preference_cache.append((time(), set(message.payload.preference_list), message.candidate))
         
