@@ -919,8 +919,9 @@ class HSearchCommunity(SearchCommunity):
 
     def on_intro_request(self, messages):
         for message in messages:
-            if message.payload.preference_list:
-                self.preference_cache.append((time(), set(message.payload.preference_list), message.candidate))
+            candidate = self._dispersy.get_walkcandidate(message, self)
+            if candidate and message.payload.preference_list:
+                self.preference_cache.append([time(), set(message.payload.preference_list), candidate])
         
         self._disp_intro_handler(messages)
         
