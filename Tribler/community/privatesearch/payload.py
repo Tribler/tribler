@@ -81,7 +81,7 @@ class EncryptedHashResponsePayload(Payload):
         
 class KeyPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, key_n, key_e):
+        def __init__(self, meta, key_n, key_e):
             assert isinstance(key_n, long), 'key_n should be long'
             assert isinstance(key_e, long), 'key_e should be long'
             
