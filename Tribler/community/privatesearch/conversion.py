@@ -27,9 +27,12 @@ class SearchConversion(BinaryConversion):
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        if isinstance(message.payload._meta, EncryptedIntroPayload) and message.payload.preference_list:
+        if message.payload.preference_list:
             fmt = '128s'* (len(message.payload.preference_list) + 1)
-            str_n = long_to_bytes(message.payload.key_n, 128)
+            if not message.payload.key_n:
+                str_n = long_to_bytes(message.payload.key_n, 128)
+            else:
+                str_n = long_to_bytes(-1l, 128)
             str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
             
             data.append(pack('!'+fmt, str_n, *str_prefs))
