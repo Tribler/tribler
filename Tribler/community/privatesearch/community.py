@@ -917,7 +917,7 @@ class HSearchCommunity(SearchCommunity):
     def on_intro_request(self, messages):
         for message in messages:
             if message.payload.preference_list:
-                self.preference_cache.append((time(), message.payload.preference_list, message.candidate))
+                self.preference_cache.append((time(), set(message.payload.preference_list), message.candidate))
         
         self._disp_intro_handler(messages)
         
