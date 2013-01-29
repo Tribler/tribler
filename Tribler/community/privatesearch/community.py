@@ -905,8 +905,12 @@ class HSearchCommunity(SearchCommunity):
         
         advice = True
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+        
+        if preference_list:
+            preference_list = [bytes_to_long(infohash) for infohash in preference_list]
+        
         payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, preference_list)
-                
+        
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
@@ -1006,8 +1010,6 @@ class HSearchCommunity(SearchCommunity):
                 #3. encrypt and hash my preferences
                 encMyPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
                 encMyPreferences = [sha1(infohash).digest() for infohash in encMyPreferences]
-                encMyPreferences = [bytes_to_long(infohash) for infohash in encMyPreferences]
-
                 self.search_time_encryption += time() - t1
             else:
                 encMyPreferences = myPreferences
