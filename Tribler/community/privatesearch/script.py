@@ -19,8 +19,10 @@ class SearchScript(ScenarioScriptBase):
             self.community_kargs['neighbors'] = kargs['neighbors']
         if 'taste_neighbor' in kargs:
             self.community_kargs['taste_neighbor'] = kargs['taste_neighbor']
-        
-        self.community_kargs['encryption'] = kargs.get('encryption', False)
+            
+        def str2bool(v):
+            return v.lower() in ("yes", "true", "t", "1") 
+        self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
         self.taste_buddies = set()
         self.not_connected_taste_buddies = set()
