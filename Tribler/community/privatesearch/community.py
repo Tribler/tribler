@@ -965,7 +965,7 @@ class HSearchCommunity(SearchCommunity):
                 t1 = time()
                 self.myList = [self.key.encrypt(infohash,1)[0] for infohash in self.myList]
                 self.myList = [sha1(infohash).digest() for infohash in self.myList]
-                self.search_time_encryption += time() - t1
+                self.community.search_time_encryption += time() - t1
     
             overlap = 0
             for myPref in self.myList:
@@ -994,6 +994,7 @@ class HSearchCommunity(SearchCommunity):
         
         for message in messages:
             shuffle(myPreferences)
+            
             if self.encryption:
                 t1 = time()
                 
@@ -1003,11 +1004,15 @@ class HSearchCommunity(SearchCommunity):
                 compatible_key = RSA.construct((his_n, his_e))
                 
                 #3. encrypt and hash my preferences
-                myPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
-                myPreferences = [sha1(infohash).digest() for infohash in myPreferences]
+                encMyPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
+                encMyPreferences = [sha1(infohash).digest() for infohash in encMyPreferences]
+                encMyPreferences = [bytes_to_long(infohash) for infohash in encMyPreferences]
+
                 self.search_time_encryption += time() - t1
+            else:
+                encMyPreferences = myPreferences
             
-            callback(message, myPreferences)
+            callback(message, encMyPreferences)
             
             if DEBUG:
                 print >> sys.stderr, "SearchCommunity: sending one message too", message.candidate
