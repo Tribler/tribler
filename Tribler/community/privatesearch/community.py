@@ -1084,9 +1084,6 @@ class PSearchCommunity(SearchCommunity):
              
             test = self._pallier_decrypt(self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2))
             assert test == 1l, test
-            
-            test = self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2)
-            
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
