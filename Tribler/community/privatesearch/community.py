@@ -44,7 +44,7 @@ from Tribler.community.privatesearch.conversion import PSearchConversion
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = False
+DEBUG = True
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
@@ -1076,6 +1076,17 @@ class PSearchCommunity(SearchCommunity):
         self.key_decryption = inverse(self.key_decryption, self.key_n)
         
         self.possible_taste_buddies = []
+        
+        if DEBUG:
+            #lets check if this pallier thing works
+            test = self._pallier_decrypt(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2))
+            assert test == 0l, test
+             
+            test = self._pallier_decrypt(self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2))
+            assert test == 1l, test
+            
+            test = self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2)
+            
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
@@ -1271,7 +1282,7 @@ class PSearchCommunity(SearchCommunity):
         
         def get_sum(self):
             if not self.isProcessed:
-                _sum = 0
+                _sum = 1
                 my_vector = self.community.get_my_vector(self.global_vector)
     
                 if self.encryption:
@@ -1279,12 +1290,13 @@ class PSearchCommunity(SearchCommunity):
                     user_g = self.user_n + 1
                     user_n2 = pow(self.user_n, 2)
                     
-                    for i, element in enumerate(self.global_vector):
+                    for i, element in enumerate(self.user_vector):
                         if my_vector[i]:
-                            _sum += self.community._pallier_encrypt(element, user_g, self.user_n, user_n2)
+                            #self.community._pallier_encrypt(element, user_g, self.user_n, user_n2)
+                            _sum *= element
                     self.community.search_time_encryption += time() - t1
                 else:
-                    for i, element in enumerate(self.global_vector):
+                    for i, element in enumerate(self.user_vector):
                         if my_vector[i] and element:
                             _sum += 1
                 return _sum
