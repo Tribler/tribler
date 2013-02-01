@@ -1312,8 +1312,8 @@ class PSearchCommunity(SearchCommunity):
                 _sum = self.get_sum()
             
                 meta_request = self.community.get_meta_message(u"encrypted-sum")
-                response = meta_request.impl(authentication=(self.my_member,),
-                                        distribution=(self.global_time,),
+                response = meta_request.impl(authentication=(self.community.my_member,),
+                                        distribution=(self.community.global_time,),
                                         destination=(self.requesting_candidate,),
                                         payload=(self.identifier, _sum))
         
@@ -1347,8 +1347,8 @@ class PSearchCommunity(SearchCommunity):
                 _sum = self.get_sum()
             
                 meta_request = self.community.get_meta_message(u"encrypted-sums")
-                response = meta_request.impl(authentication=(self.my_member,),
-                                        distribution=(self.global_time,),
+                response = meta_request.impl(authentication=(self.community.my_member,),
+                                        distribution=(self.community.global_time,),
                                         destination=(self.requesting_candidate,),
                                         payload=(self.identifier, _sum, self.received_sums))
         
