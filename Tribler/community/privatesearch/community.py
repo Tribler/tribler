@@ -1328,12 +1328,12 @@ class PSearchCommunity(SearchCommunity):
         
         def get_sum(self):
             if not self.isProcessed:
-                _sum = 1
                 my_vector = self.community.get_my_vector(self.global_vector)
-                
                 assert_(len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(self.global_vector), len(self.user_vector), len(my_vector)))
     
                 if self.community.encryption:
+                    _sum = 1
+                    
                     t1 = time()
                     user_g = self.user_n + 1
                     user_n2 = pow(self.user_n, 2)
@@ -1345,6 +1345,7 @@ class PSearchCommunity(SearchCommunity):
                             
                     self.community.search_time_encryption += time() - t1
                 else:
+                    _sum = 0
                     for i, element in enumerate(self.user_vector):
                         if my_vector[i] and element:
                             _sum += 1
