@@ -1423,7 +1423,7 @@ class PSearchCommunity(SearchCommunity):
                 print >> sys.stderr, "PSearchCommunity: received sum"
             
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
-            request.add_sum(message.candidate, message.payload.sums)
+            request.add_sum(message.candidate, message.payload._sum)
             
             if request.is_complete():
                 request.process()
