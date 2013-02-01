@@ -1298,7 +1298,8 @@ class PSearchCommunity(SearchCommunity):
                     for i, element in enumerate(self.user_vector):
                         if my_vector[i]:
                             #self.community._pallier_encrypt(element, user_g, self.user_n, user_n2)
-                            _sum *= element
+                            _sum = (_sum * element) % user_n2
+                            
                     self.community.search_time_encryption += time() - t1
                 else:
                     for i, element in enumerate(self.user_vector):
