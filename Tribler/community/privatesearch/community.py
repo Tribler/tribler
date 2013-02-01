@@ -1355,6 +1355,8 @@ class PSearchCommunity(SearchCommunity):
                 
                 if DEBUG:
                     print >> sys.stderr, "PSearchCommunity: processed PSimilarityRequest"
+                    
+                self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.PSimilarityRequest)
     
         def on_timeout(self):
             if DEBUG:
@@ -1391,6 +1393,8 @@ class PSearchCommunity(SearchCommunity):
                 
                 if DEBUG:
                     print >> sys.stderr, "PSearchCommunity: processed RPSimilarityRequest"
+                    
+                self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.RPSimilarityRequest)
                 
         def on_timeout(self):
             if PSearchCommunity.PSimilarityRequest.is_complete(self):
