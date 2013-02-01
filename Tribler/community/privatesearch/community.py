@@ -40,6 +40,7 @@ from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesearch.payload import GlobalVectorPayload, EncryptedVectorPayload, EncryptedSumPayload,\
     ExtendedIntroPayload
 from Tribler.community.privatesearch.conversion import PSearchConversion
+from Tribler.dispersy.script import assert_
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -1080,10 +1081,10 @@ class PSearchCommunity(SearchCommunity):
         if DEBUG:
             #lets check if this pallier thing works
             test = self._pallier_decrypt(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2))
-            assert test == 0l, test
+            assert_(test == 0l, test)
              
             test = self._pallier_decrypt(self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2))
-            assert test == 1l, test
+            assert_(test == 1l, test)
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
@@ -1202,6 +1203,8 @@ class PSearchCommunity(SearchCommunity):
         
         elif len(global_vector) < self.max_prefs:
             global_vector += [1l] * (self.max_prefs - len(global_vector))
+            
+        assert_(len(global_vector) == self.max_prefs, 'vector sizes not equal')
         
         meta_request = self.get_meta_message(u"global-vector")
         request = meta_request.impl(authentication=(self.my_member,),
@@ -1285,7 +1288,7 @@ class PSearchCommunity(SearchCommunity):
                 _sum = 1
                 my_vector = self.community.get_my_vector(self.global_vector)
                 
-                assert len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector)
+                assert_(len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" (len(self.global_vector), len(self.user_vector), len(my_vector)))
     
                 if self.community.encryption:
                     t1 = time()
