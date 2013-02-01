@@ -1172,7 +1172,7 @@ class PSearchCommunity(SearchCommunity):
         else:
             encrypted_vector = my_vector
         
-        meta_request = self.get_meta_message(u"sum-request")
+        meta_request = self.get_meta_message(u"sums-request")
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
                                 destination=(destination,),
@@ -1219,6 +1219,14 @@ class PSearchCommunity(SearchCommunity):
             #process this request as a normal sum request
             self.on_sum_request([message])
             
+            #forward it to others
+            meta_request = self.get_meta_message(u"sum-request")
+            request = meta_request.impl(authentication=(self.my_member,),
+                                distribution=(self.global_time,),
+                                payload=(message.identifier, message.payload.key_n, message.payload.preference_list))
+            
+            self._dispersy._send(candidates, [request])
+            
     def on_sum_request(self, messages):
         for message in messages:
             #create a PSimilarityRequest to store this request for sum
@@ -1227,8 +1235,8 @@ class PSearchCommunity(SearchCommunity):
 
             #fetch request object, and store user_n and user_vector            
             request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
-            request.user_n = message.key_n
-            request.user_vector = message.preference_list
+            request.user_n = message.payload.key_n
+            request.user_vector = message.payload.preference_list
             
             #if request is complete, process it
             if request.is_complete():
@@ -1240,7 +1248,7 @@ class PSearchCommunity(SearchCommunity):
                 self._dispersy.request_cache.set(message.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
             
             request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
-            request.global_vector = message.preference_list
+            request.global_vector = message.payload.preference_list
             
             if request.is_complete():
                 request.process()
