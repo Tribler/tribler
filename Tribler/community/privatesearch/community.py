@@ -1134,13 +1134,16 @@ class PSearchCommunity(SearchCommunity):
         
         #TODO: remove all possibles which cannot be contacted anymore, for now limit to 50
         self.possible_taste_buddies = self.possible_taste_buddies[:50]
+        
+        if DEBUG:
+            print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", self.possible_taste_buddies
     
     def get_most_similar(self):
         most_similar = self.possible_taste_buddies.pop(0)
         return most_similar[2], most_similar[1]
     
     def create_introduction_request(self, destination, allow_sync):
-        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination):
+        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and allow_sync:
             self.send_sums_request(destination)
         else:
             self.send_introduction_request(destination)
@@ -1310,6 +1313,9 @@ class PSearchCommunity(SearchCommunity):
         
                 self._dispersy._forward([response])
                 self.isProcessed = True
+                
+                if DEBUG:
+                    print >> sys.stderr, "PSearchCommunity: processed PSimilarityRequest"
     
         def on_timeout(self):
             pass
@@ -1342,6 +1348,9 @@ class PSearchCommunity(SearchCommunity):
         
                 self._dispersy._forward([response])
                 self.isProcessed = True
+                
+                if DEBUG:
+                    print >> sys.stderr, "PSearchCommunity: processed RPSimilarityRequest"
                 
         def on_timeout(self):
             if PSearchCommunity.PSimilarityRequest.is_complete(self):

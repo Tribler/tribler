@@ -159,7 +159,7 @@ class SearchScript(ScenarioScriptBase):
         
         while not self._community.is_taste_buddy(candidate):
             log(self._logfile, "sending introduction request to %s"%str(candidate))
-            self._community.create_introduction_request(candidate, False)
+            self._community.create_introduction_request(candidate, True)
             
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
             
