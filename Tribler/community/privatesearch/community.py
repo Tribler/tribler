@@ -93,6 +93,9 @@ class SearchCommunity(Community):
             max_len = self.dispersy_sync_bloom_filter_bits
             max_prefs = max_len/self.key.size()
             max_hprefs = max_len/20
+        else:
+            max_hprefs = max_prefs 
+            
         self.max_prefs = max_prefs
         self.max_h_prefs = max_hprefs
         
