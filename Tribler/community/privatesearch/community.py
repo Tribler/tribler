@@ -1284,6 +1284,8 @@ class PSearchCommunity(SearchCommunity):
             if not self.isProcessed:
                 _sum = 1
                 my_vector = self.community.get_my_vector(self.global_vector)
+                
+                assert len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector)
     
                 if self.community.encryption:
                     t1 = time()
