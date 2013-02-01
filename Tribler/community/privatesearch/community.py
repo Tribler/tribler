@@ -1330,7 +1330,8 @@ class PSearchCommunity(SearchCommunity):
                     print >> sys.stderr, "PSearchCommunity: processed PSimilarityRequest"
     
         def on_timeout(self):
-            pass
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: timeout PSimilarityRequest", self.global_vector, self.user_vector
     
     class RPSimilarityRequest(PSimilarityRequest):
         def __init__(self, community, requesting_candidate, requested_candidates):
