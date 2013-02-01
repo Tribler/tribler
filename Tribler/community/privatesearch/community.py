@@ -1077,6 +1077,7 @@ class PSearchCommunity(SearchCommunity):
         self.key_decryption = inverse(self.key_decryption, self.key_n)
         
         self.possible_taste_buddies = []
+        self.requested_introductions = {}
         
         if DEBUG:
             #lets check if this pallier thing works
@@ -1169,6 +1170,30 @@ class PSearchCommunity(SearchCommunity):
                                 payload=payload)
 
         self._dispersy._forward([request])
+    
+    def on_intro_request(self, messages):
+        for message in messages:
+            if message.payload.introduce_me_to:
+                candidate = self._dispersy.get_walkcandidate(message, self)
+                introduce_me_candidate = self._dispersy.get_candidate(message.payload.introduce_me_to)
+                self.requested_introductions[candidate] = introduce_me_candidate
+        
+        self._disp_intro_handler(messages)
+        
+        if self._notifier:
+            from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
+            for message in messages:
+                self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
+                
+    def dispersy_yield_random_candidates(self, candidate = None):
+        if candidate:
+            if candidate in self.requested_introductions:
+                intro_me_candidate = self.requested_introductions[candidate]
+                del self.requested_introductions[candidate]
+                yield intro_me_candidate
+        
+        for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
+            yield random_candidate
     
     def send_sums_request(self, destination):
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
