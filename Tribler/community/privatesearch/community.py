@@ -1367,11 +1367,18 @@ class PSearchCommunity(SearchCommunity):
             PSearchCommunity.PSimilarityRequest.__init__(self, community, requesting_candidate)
             
             self.requested_candidates = requested_candidates
+            self.requested_sock_addrs = [candidate.sock_addr for candidate in self.requested_candidates]
             self.received_candidates = []
             self.received_sums = []
         
         def add_sum(self, candidate, _sum):
-            if candidate in self.requested_candidates and candidate not in self.received_candidates:
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: got sum in RPSimilarityRequest"
+            
+            if candidate.sock_addr in self.requested_sock_addrs:
+                if DEBUG:
+                    print >> sys.stderr, "PSearchCommunity: added sum in RPSimilarityRequest"
+                
                 self.received_candidates.append(candidate)
                 self.received_sums.append((candidate.sock_addr, _sum))
         
@@ -1404,6 +1411,9 @@ class PSearchCommunity(SearchCommunity):
         for message in messages:
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
             request.add_sum(message.candidate, message.payload.sums)
+            
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: received sum"
             
             if request.is_complete():
                 request.process()
