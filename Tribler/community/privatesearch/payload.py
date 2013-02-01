@@ -178,7 +178,7 @@ class EncryptedSumPayload(Payload):
                     
             super(EncryptedSumPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
-            self._sum = _sum
+            self.__sum = _sum
 
         @property
         def identifier(self):
@@ -186,7 +186,7 @@ class EncryptedSumPayload(Payload):
         
         @property
         def _sum(self):
-            return self._sum
+            return self.__sum
         
 class EncryptedSumsPayload(Payload):
     class Implementation(Payload.Implementation):
