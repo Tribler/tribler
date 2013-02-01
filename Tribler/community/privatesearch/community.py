@@ -1139,9 +1139,12 @@ class PSearchCommunity(SearchCommunity):
         if DEBUG:
             print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", self.possible_taste_buddies
     
-    def get_most_similar(self):
-        most_similar = self.possible_taste_buddies.pop(0)
-        return most_similar[2], most_similar[1]
+    def get_most_similar(self, candidate):
+        if self.possible_taste_buddies:
+            most_similar = self.possible_taste_buddies.pop(0)
+            return most_similar[2], most_similar[1]
+        
+        return None, candidate
     
     def create_introduction_request(self, destination, allow_sync):
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and allow_sync:
@@ -1381,7 +1384,7 @@ class PSearchCommunity(SearchCommunity):
             _sums = [[self._pallier_decrypt(_sum), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
             self.add_possible_taste_buddies(_sums)
             
-            destination, introduce_me_to = self.get_most_similar()
+            destination, introduce_me_to = self.get_most_similar(message.candidate)
             self.send_introduction_request(destination, introduce_me_to)
         
 class Das4DBStub():
