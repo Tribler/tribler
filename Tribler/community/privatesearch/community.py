@@ -1320,7 +1320,7 @@ class PSearchCommunity(SearchCommunity):
                                         destination=(self.requesting_candidate,),
                                         payload=(self.identifier, _sum))
         
-                self._dispersy._forward([response])
+                self.community._dispersy._forward([response])
                 self.isProcessed = True
                 
                 if DEBUG:
@@ -1355,7 +1355,7 @@ class PSearchCommunity(SearchCommunity):
                                         destination=(self.requesting_candidate,),
                                         payload=(self.identifier, _sum, self.received_sums))
         
-                self._dispersy._forward([response])
+                self.community._dispersy._forward([response])
                 self.isProcessed = True
                 
                 if DEBUG:
