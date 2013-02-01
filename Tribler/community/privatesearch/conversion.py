@@ -383,7 +383,7 @@ class PSearchConversion(SearchConversion):
     
     def _decode_vector(self, placeholder, offset, data):
         identifier, str_n = unpack_from('!H128s', data, offset)
-        offset += 2
+        offset += 130
        
         length = len(data) - offset
         if length % 128 != 0:
