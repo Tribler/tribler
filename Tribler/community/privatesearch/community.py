@@ -1285,7 +1285,7 @@ class PSearchCommunity(SearchCommunity):
                 _sum = 1
                 my_vector = self.community.get_my_vector(self.global_vector)
     
-                if self.encryption:
+                if self.community.encryption:
                     t1 = time()
                     user_g = self.user_n + 1
                     user_n2 = pow(self.user_n, 2)
