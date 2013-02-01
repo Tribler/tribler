@@ -1144,7 +1144,7 @@ class PSearchCommunity(SearchCommunity):
             most_similar = self.possible_taste_buddies.pop(0)
             return most_similar[2], most_similar[1]
         
-        return None, candidate
+        return candidate, None
     
     def create_introduction_request(self, destination, allow_sync):
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and allow_sync:
