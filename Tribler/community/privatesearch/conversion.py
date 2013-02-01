@@ -434,8 +434,7 @@ class PSearchConversion(SearchConversion):
             for i in range(len(raw_values)/3):
                 ip = inet_ntoa(raw_values[i])
                 port = raw_values[i+1]
-                _sum = bytes_to_long(raw_values[i+2])
-                _sums.append([(ip, port), _sum])
+                _sums.append([(ip, port), bytes_to_long(raw_values[i+2])])
                 
             offset += length
         
