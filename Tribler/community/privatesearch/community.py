@@ -1310,7 +1310,7 @@ class PSearchCommunity(SearchCommunity):
             if not self.isProcessed:
                 _sum = self.get_sum()
             
-                meta_request = self.get_meta_message(u"encrypted-sum")
+                meta_request = self.community.get_meta_message(u"encrypted-sum")
                 response = meta_request.impl(authentication=(self.my_member,),
                                         distribution=(self.global_time,),
                                         destination=(self.requesting_candidate,),
@@ -1345,7 +1345,7 @@ class PSearchCommunity(SearchCommunity):
             if not self.isProcessed:
                 _sum = self.get_sum()
             
-                meta_request = self.get_meta_message(u"encrypted-sums")
+                meta_request = self.community.get_meta_message(u"encrypted-sums")
                 response = meta_request.impl(authentication=(self.my_member,),
                                         distribution=(self.global_time,),
                                         destination=(self.requesting_candidate,),
