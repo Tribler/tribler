@@ -1309,8 +1309,8 @@ class PSearchCommunity(SearchCommunity):
             self.requesting_candidate = requesting_candidate
             
             self.user_n = None
-            self.global_vector = None
             self.user_vector = None
+            self.global_vector = None
             self.isProcessed = False
         
         def is_complete(self):
