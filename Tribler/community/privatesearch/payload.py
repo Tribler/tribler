@@ -141,6 +141,33 @@ class GlobalVectorPayload(Payload):
         @property
         def preference_list(self):
             return self._preference_list
+
+class EncryptedVectorPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key_n, preference_list):
+            if __debug__:
+                assert isinstance(identifier, int), type(identifier)
+                assert isinstance(key_n, long), 'key_n should be long'
+                assert isinstance(preference_list, list), 'preferencelist should be list not %s'%type(preference_list)
+                for preference in preference_list:
+                    assert isinstance(preference, long), type(preference)
+                    
+            super(EncryptedVectorPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._key_n = key_n
+            self._preference_list = preference_list
+
+        @property
+        def identifier(self):
+            return self._identifier
+        
+        @property
+        def key_n(self):
+            return self._key_n
+
+        @property
+        def preference_list(self):
+            return self._preference_list
         
 class EncryptedSumPayload(Payload):
     class Implementation(Payload.Implementation):
