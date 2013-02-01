@@ -1264,6 +1264,9 @@ class PSearchCommunity(SearchCommunity):
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.PSimilarityRequest)
             request.global_vector = message.payload.preference_list
             
+            if isinstance(request, PSearchCommunity.RPSimilarityRequest):
+                self._dispersy._send(request.requested_candidates, [message])
+            
             if request.is_complete():
                 request.process()
     
