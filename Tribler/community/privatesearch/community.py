@@ -1255,6 +1255,9 @@ class PSearchCommunity(SearchCommunity):
         candidates = self.get_connections(10)
 
         for message in messages:
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: got sums request"
+            
             #create RPSimilarityRequest to use as object to collect all sums
             self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
             
@@ -1271,6 +1274,9 @@ class PSearchCommunity(SearchCommunity):
             
     def on_sum_request(self, messages):
         for message in messages:
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: got sum request"
+            
             #create a PSimilarityRequest to store this request for sum
             if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
                 self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
@@ -1286,6 +1292,9 @@ class PSearchCommunity(SearchCommunity):
                 
     def on_global_vector(self, messages):
         for message in messages:
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: got global vector"
+            
             if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
                 self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
             
@@ -1294,7 +1303,7 @@ class PSearchCommunity(SearchCommunity):
             
             if isinstance(request, PSearchCommunity.RPSimilarityRequest):
                 if DEBUG:
-                    print >> sys.stderr, "PSearchCommunity: forwarding global vector"
+                    print >> sys.stderr, "PSearchCommunity: forwarding global vector", request.requested_candidates
                 self._dispersy._send(request.requested_candidates, [message])
             
             if request.is_complete():
@@ -1409,23 +1418,26 @@ class PSearchCommunity(SearchCommunity):
 
     def on_encr_sum(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
-            request.add_sum(message.candidate, message.payload.sums)
-            
             if DEBUG:
                 print >> sys.stderr, "PSearchCommunity: received sum"
+            
+            request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
+            request.add_sum(message.candidate, message.payload.sums)
             
             if request.is_complete():
                 request.process()
     
     def on_encr_sums(self, messages):
         for message in messages:
+            if DEBUG:
+                print >> sys.stderr, "PSearchCommunity: received sums"
+            
             _sum = self._pallier_decrypt(message.payload._sum)
             self.add_taste_buddies([[_sum, time(), message.candidate]])
             
             _sums = [[self._pallier_decrypt(_sum), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
             self.add_possible_taste_buddies(_sums)
-            
+
             destination, introduce_me_to = self.get_most_similar(message.candidate)
             self.send_introduction_request(destination, introduce_me_to)
         
