@@ -1322,7 +1322,7 @@ class PSearchCommunity(SearchCommunity):
     
     class RPSimilarityRequest(PSimilarityRequest):
         def __init__(self, community, requesting_candidate, requested_candidates):
-            PSearchCommunity.PSimilarityRequest.__init__(community, requesting_candidate)
+            PSearchCommunity.PSimilarityRequest.__init__(self, community, requesting_candidate)
             
             self.requested_candidates = requested_candidates
             self.received_candidates = []
