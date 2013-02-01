@@ -1288,7 +1288,7 @@ class PSearchCommunity(SearchCommunity):
                 _sum = 1
                 my_vector = self.community.get_my_vector(self.global_vector)
                 
-                assert_(len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" (len(self.global_vector), len(self.user_vector), len(my_vector)))
+                assert_(len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(self.global_vector), len(self.user_vector), len(my_vector)))
     
                 if self.community.encryption:
                     t1 = time()
