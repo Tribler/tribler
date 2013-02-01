@@ -1268,6 +1268,8 @@ class PSearchCommunity(SearchCommunity):
             request.global_vector = message.payload.preference_list
             
             if isinstance(request, PSearchCommunity.RPSimilarityRequest):
+                if DEBUG:
+                    print >> sys.stderr, "PSearchCommunity: forwarding global vector"
                 self._dispersy._send(request.requested_candidates, [message])
             
             if request.is_complete():
