@@ -132,7 +132,7 @@ class GlobalVectorPayload(Payload):
                     
             super(GlobalVectorPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
-            self.item_list = item_list
+            self._item_list = item_list
 
         @property
         def identifier(self):
