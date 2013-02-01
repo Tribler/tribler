@@ -1222,7 +1222,7 @@ class PSearchCommunity(SearchCommunity):
 
         for message in messages:
             #create RPSimilarityRequest to use as object to collect all sums
-            self._dispersy.request_cache.set(message.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
+            self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
             
             #process this request as a normal sum request
             self.on_sum_request([message])
@@ -1231,18 +1231,18 @@ class PSearchCommunity(SearchCommunity):
             meta_request = self.get_meta_message(u"sum-request")
             request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
-                                payload=(message.identifier, message.payload.key_n, message.payload.preference_list))
+                                payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
             
             self._dispersy._send(candidates, [request])
             
     def on_sum_request(self, messages):
         for message in messages:
             #create a PSimilarityRequest to store this request for sum
-            if not self._dispersy.request_cache.has(message.identifier, PSearchCommunity.PSimilarityRequest):
-                self._dispersy.request_cache.set(message.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
+            if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
+                self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
 
             #fetch request object, and store user_n and user_vector            
-            request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
+            request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.PSimilarityRequest)
             request.user_n = message.payload.key_n
             request.user_vector = message.payload.preference_list
             
@@ -1252,10 +1252,10 @@ class PSearchCommunity(SearchCommunity):
                 
     def on_global_vector(self, messages):
         for message in messages:
-            if not self._dispersy.request_cache.has(message.identifier, PSearchCommunity.PSimilarityRequest):
-                self._dispersy.request_cache.set(message.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
+            if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
+                self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
             
-            request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
+            request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.PSimilarityRequest)
             request.global_vector = message.payload.preference_list
             
             if request.is_complete():
@@ -1349,7 +1349,7 @@ class PSearchCommunity(SearchCommunity):
 
     def on_encr_sum(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.RPSimilarityRequest)
+            request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
             request.add_sum(message.candidate, message.payload.sums)
             
             if request.is_complete():
