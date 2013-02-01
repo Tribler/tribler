@@ -5,6 +5,7 @@ from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Crypto.Util.number import long_to_bytes, bytes_to_long
+from socket import inet_ntoa, inet_aton
 
 class SearchConversion(BinaryConversion):
     def __init__(self, community):
@@ -361,3 +362,107 @@ class HSearchConversion(SearchConversion):
     
         offset += length
         return offset, placeholder.meta.payload.implement(identifier, key_n, key_e)
+    
+class PSearchConversion(SearchConversion):
+    def __init__(self, community):
+        SearchConversion.__init__(self, community)
+        self.define_meta_message(chr(8), community.get_meta_message(u"sum-request"), lambda message: self._encode_decode(self._encode_vector, self._decode_vector, message), self._decode_vector)
+        self.define_meta_message(chr(9), community.get_meta_message(u"sums-request"), lambda message: self._encode_decode(self._encode_vector, self._decode_vector, message), self._decode_vector)
+        self.define_meta_message(chr(10), community.get_meta_message(u"global-vector"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
+        self.define_meta_message(chr(11), community.get_meta_message(u"encrypted-sum"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
+        self.define_meta_message(chr(12), community.get_meta_message(u"encrypted-sums"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
+        self.define_meta_message(chr(13), community.get_meta_message(u"encrypted-sums"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
+    
+    def _encode_vector(self, message):
+        str_n = long_to_bytes(message.payload.key_n, 128)    
+        str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
+        
+        fmt = "!H128s" + "128s"*len(str_prefs)
+        packet = pack(fmt, message.payload.identifier, str_n, *str_prefs)
+        return packet,
+    
+    def _decode_vector(self, placeholder, offset, data):
+        identifier, str_n = unpack_from('!H128s', data, offset)
+        offset += 2
+       
+        length = len(data) - offset
+        if length % 128 != 0:
+            raise DropPacket("Invalid number of bytes available (encr_res)")
+        
+        if length:
+            hashpack = '128s' * (length/128)
+            hashes = unpack_from('!'+hashpack, data, offset)
+            hashes = [bytes_to_long(hash) for hash in hashes]
+            offset += length
+        
+        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), hashes)
+    
+    def _encode_sum(self, message):
+        str_sum = long_to_bytes(message.payload._sum, 128)
+        return pack("!H128s", message.payload.identifier, str_sum),
+    
+    def _decode_sum(self, placeholder, offset, data):
+        identifier, _sum = unpack_from('!H128s', data, offset)
+        offset += 130
+        
+        _sum = bytes_to_long(_sum)
+        return offset, placeholder.meta.payload.implement(identifier, _sum)
+    
+    def _encode_sums(self, message):
+        str_sum = long_to_bytes(message.payload._sum, 128)
+        sums = []
+        for address, address_sum in message.payload.sums:
+            sums.append(inet_aton(address[0]))
+            sums.append(address[1])
+            sums.append(long_to_bytes(address_sum, 128))
+        
+        fmt = "!H128s" + "4sH128s" * len(message.payload.sums)
+        packet = pack(fmt, message.payload.identifier, str_sum, *sums)
+        return packet,
+    
+    def _decode_sums(self, placeholder, offset, data):
+        identifier, _sum = unpack_from('!H128s', data, offset)
+        offset += 130
+        
+        length = len(data) - offset
+        if length % 134 != 0:
+            raise DropPacket("Invalid number of bytes available (encr_sums)")
+        
+        _sums = []
+        if length:
+            hashpack = '4sH128s' * (length/134)
+            raw_values = unpack_from('!'+hashpack, data, offset)
+            for i in range(len(raw_values)/3):
+                ip = inet_ntoa(raw_values[i])
+                port = raw_values[i+1]
+                _sum = bytes_to_long(raw_values[i+2])
+                _sums.append([(ip, port), _sum])
+                
+            offset += length
+        
+        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(_sum), _sums)
+    
+    def _encode_introduction_request(self, message):
+        data = BinaryConversion._encode_introduction_request(self, message)
+
+        if message.payload.introduce_me_to:
+            data.append(pack('!4sH', inet_aton(message.payload.introduce_me_to[0]), message.payload.introduce_me_to[1]))
+        return data
+    
+    def _decode_introduction_request(self, placeholder, offset, data):
+        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+        
+        #if there's still bytes in this request, treat them as taste_bloom_filter
+        has_stuff = len(data) > offset
+        if has_stuff:
+            length = len(data) - offset
+            if length != 6:
+                raise DropPacket("Invalid number of bytes available (ir)")
+            
+            ip, port = unpack_from('!4sH', data, offset)
+            ip = inet_ntoa(ip)
+            
+            payload.set_introduce_me_to((ip, port))
+            
+            offset += length
+        return offset, payload

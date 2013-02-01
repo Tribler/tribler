@@ -85,6 +85,7 @@ class KeyPayload(Payload):
             assert isinstance(key_n, long), 'key_n should be long'
             assert isinstance(key_e, long), 'key_e should be long'
             
+            super(KeyPayload.Implementation, self).__init__(meta)
             self._key_n = key_n
             self._key_e = key_e
             
@@ -103,6 +104,7 @@ class RequestKeyPayload(Payload):
             assert isinstance(key_n, long), 'key_n should be long'
             assert isinstance(key_e, long), 'key_e should be long'
             
+            super(RequestKeyPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._key_n = key_n
             self._key_e = key_e
@@ -118,6 +120,123 @@ class RequestKeyPayload(Payload):
         @property
         def key_e(self):
             return self._key_e
+        
+class GlobalVectorPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, item_list):
+            if __debug__:
+                assert isinstance(identifier, int), type(identifier)
+                assert isinstance(item_list, list), 'item_list should be list not %s'%type(item_list)
+                for item in item_list:
+                    assert isinstance(item, long), type(item)
+                    
+            super(GlobalVectorPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self.item_list = item_list
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def item_list(self):
+            return self._item_list
+        
+class EncryptedVectorPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, key_n, preference_list):
+            if __debug__:
+                assert isinstance(identifier, int), type(identifier)
+                assert isinstance(key_n, long), 'key_n should be long'
+                assert isinstance(preference_list, list), 'preferencelist should be list not %s'%type(preference_list)
+                for preference in preference_list:
+                    assert isinstance(preference, long), type(preference)
+                    
+            super(EncryptedVectorPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._key_n = key_n
+            self._preference_list = preference_list
+
+        @property
+        def identifier(self):
+            return self._identifier
+        
+        @property
+        def key_n(self):
+            return self._key_n
+
+        @property
+        def preference_list(self):
+            return self._preference_list
+        
+class EncryptedSumPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, _sum):
+            if __debug__:
+                assert isinstance(identifier, int), type(identifier)
+                assert isinstance(_sum, long), 'sum should be long'
+                    
+            super(EncryptedSumPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._sum = sum
+
+        @property
+        def identifier(self):
+            return self._identifier
+        
+        @property
+        def _sum(self):
+            return self._sum
+        
+class EncryptedSumsPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier, _sum, sums):
+            if __debug__:
+                assert isinstance(identifier, int), type(identifier)
+                assert isinstance(_sum, long), type(_sum)
+                assert isinstance(sums, list), type(sums)
+                for address, address_sum in sums:
+                    assert isinstance(address, tuple), 'address should be tuple'
+                    assert len(address) == 2, len(address)
+                    assert isinstance(address[0], str), type(address[0])
+                    assert isinstance(address[1], int), type(address[1])
+                    assert isinstance(address_sum, long), 'address_sum should be long'
+                    
+            super(EncryptedSumsPayload.Implementation, self).__init__(meta)
+            self._identifier = identifier
+            self._sums = sums
+
+        @property
+        def identifier(self):
+            return self._identifier
+        
+        @property
+        def _sum(self):
+            return self._sum
+        
+        @property
+        def sums(self):
+            return self._sums
+        
+class ExtendedIntroPayload(IntroductionRequestPayload):
+    class Implementation(IntroductionRequestPayload.Implementation):
+        
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, introduce_me_to = None):
+            IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+            if introduce_me_to:
+                assert isinstance(introduce_me_to, tuple), 'introduce_me_to should be tuple'
+                assert len(introduce_me_to) == 2, len(introduce_me_to)
+                assert isinstance(introduce_me_to[0], str), type(introduce_me_to[0])
+                assert isinstance(introduce_me_to[1], int), type(introduce_me_to[1])
+            
+            self._introduce_me_to = introduce_me_to
+        
+        def set_introduce_me_to(self, introduce_me_to):
+            self._introduce_me_to = introduce_me_to
+        
+        @property
+        def introduce_me_to(self):
+            return self._introduce_me_to
         
 class SearchRequestPayload(Payload):
     class Implementation(Payload.Implementation):

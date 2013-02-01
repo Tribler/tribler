@@ -5,6 +5,7 @@ from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 
 from random import random
+from Tribler.community.privatesearch.community import PSearchCommunity
 
 class SearchScript(ScenarioScriptBase):
     def __init__(self, **kargs):
@@ -19,6 +20,8 @@ class SearchScript(ScenarioScriptBase):
             self.community_kargs['neighbors'] = kargs['neighbors']
         if 'taste_neighbor' in kargs:
             self.community_kargs['taste_neighbor'] = kargs['taste_neighbor']
+        if 'max_prefs' in kargs:
+            self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
             
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1") 
@@ -39,8 +42,10 @@ class SearchScript(ScenarioScriptBase):
         
         if self.community_type == 'search':
             community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
-        else:
+        elif self.community_type == 'hsearch':
             community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
+        else:
+            community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
             
         self._add_taste_buddies = community.add_taste_buddies
         community.add_taste_buddies = self.log_taste_buddies

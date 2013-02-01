@@ -4,7 +4,7 @@ from os import path
 from time import time
 from random import random, sample, randint, shuffle, choice
 from traceback import print_exc
-from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
+from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
 from hashlib import sha1
 
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -37,6 +37,9 @@ from Crypto.PublicKey import RSA
 from Crypto.Random.random import StrongRandom
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.tool.lencoder import log
+from Tribler.community.privatesearch.payload import GlobalVectorPayload, EncryptedVectorPayload, EncryptedSumPayload,\
+    ExtendedIntroPayload
+from Tribler.community.privatesearch.conversion import PSearchConversion
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -59,16 +62,16 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR):
+    def load_community(cls, master, my_member, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor, max_prefs=max_prefs)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor, max_prefs=max_prefs)
 
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR):
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
         super(SearchCommunity, self).__init__(master)
         
         self.integrate_with_tribler = integrate_with_tribler
@@ -85,6 +88,13 @@ class SearchCommunity(Community):
         self.key = RSA.generate(1024)
         self.key_n = self.key.key.n
         self.key_e = self.key.key.e
+        
+        if not max_prefs:
+            max_len = self.dispersy_sync_bloom_filter_bits
+            max_prefs = max_len/self.key.size()
+            max_hprefs = max_len/20
+        self.max_prefs = max_prefs
+        self.max_h_prefs = max_hprefs
         
         self.search_forward = 0
         self.search_forward_success = 0
@@ -282,11 +292,8 @@ class SearchCommunity(Community):
         advice = True
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and len(myPreferences):
-            max_len = self.dispersy_sync_bloom_filter_bits
-            num_prefs = max_len/self.key.size()
-            
-            if len(myPreferences) > num_prefs:
-                myPreferences = sample(myPreferences, num_prefs)
+            if len(myPreferences) > self.max_prefs:
+                myPreferences = sample(myPreferences, self.max_prefs)
             shuffle(myPreferences)
                 
             if self.encryption:
@@ -336,11 +343,8 @@ class SearchCommunity(Community):
         myListLen = len(myPreferences)
         
         #2. use subset if we have to many preferences
-        max_len = self.dispersy_sync_bloom_filter_bits/8
-        max_len = int(max_len/20)
-        
-        if len(myPreferences) > max_len:
-            myPreferences = sample(myPreferences, max_len)
+        if len(myPreferences) > self.max_h_prefs:
+            myPreferences = sample(myPreferences, self.max_h_prefs)
     
         for message in messages:
             if DEBUG:
@@ -878,8 +882,8 @@ class SearchCommunity(Community):
 
 class HSearchCommunity(SearchCommunity):
     
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor)
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs=max_prefs)
         self.preference_cache = []
     
     def initiate_meta_messages(self):
@@ -990,11 +994,9 @@ class HSearchCommunity(SearchCommunity):
     
     def __encrypt_myprefs(self, messages, callback):
         #1. fetch my preferences
-        max_len = self.dispersy_sync_bloom_filter_bits/8
-        num_prefs = int(max_len/20)
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
-        if len(myPreferences) > num_prefs:
-            myPreferences = sample(myPreferences, num_prefs)
+        if len(myPreferences) > self.max_h_prefs:
+            myPreferences = sample(myPreferences, self.max_h_prefs)
         
         for message in messages:
             shuffle(myPreferences)
@@ -1050,7 +1052,300 @@ class HSearchCommunity(SearchCommunity):
         
         for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
             yield random_candidate
+            
+class PSearchCommunity(SearchCommunity):
+    
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs)
+        
+        self.key_g = self.key_n + 1
+        self.key_n2 = pow(self.key.key.n, 2)
 
+        #LCM from https://github.com/kmcneelyshaw/pycrypto/commit/98c22cc691c1840db380ad04c22169721a946b50
+        x = self.key.key.p - 1
+        y = self.key.key.q - 1
+        if y > x:
+            x, y = y, x
+        self.key_lambda = (x / GCD(x, y)) * y
+        
+        self.key_decryption = pow(self.key_g, self.key_lambda, self.key_n2)
+        self.key_decryption = (self.key_decryption - 1) / self.key_n
+        self.key_decryption = inverse(self.key_decryption)
+        
+        self.possible_taste_buddies = []
+    
+    def initiate_meta_messages(self):
+        messages = SearchCommunity.initiate_meta_messages(self)
+        messages.append(Message(self, u"sum-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self._dispersy._generic_timeline_check, self.on_sum_request))
+        messages.append(Message(self, u"sums-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self._dispersy._generic_timeline_check, self.on_sums_request))
+        messages.append(Message(self, u"global-vector", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), GlobalVectorPayload(), self._dispersy._generic_timeline_check, self.on_global_vector))
+        messages.append(Message(self, u"encrypted-sum", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumPayload(), self._dispersy._generic_timeline_check, self.on_encr_sum))
+        messages.append(Message(self, u"encrypted-sums", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumPayload(), self._dispersy._generic_timeline_check, self.on_encr_sums))
+        return messages
+
+    def _initialize_meta_messages(self):
+        Community._initialize_meta_messages(self)
+
+        ori = self._meta_messages[u"dispersy-introduction-request"]
+        self._disp_intro_handler = ori.handle_callback
+        
+        new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, self.on_intro_request)
+        self._meta_messages[u"dispersy-introduction-request"] = new
+    
+    def initiate_conversions(self):
+        return [DefaultConversion(self), SearchConversion(self), PSearchConversion(self)]
+    
+    def _pallier_encrypt(self, element, g, n, n2):
+        while True:
+            r = StrongRandom().randint(1, n)
+            if GCD(r, n) == 1: break
+        
+        #using same variable names as implementation by Zeki
+        #key_g < n2, so no need for modulo
+        t1 = g if element else 1l
+        t2 = pow(r, n, n2)
+        
+        t1 = t1 * t2
+        cipher = t1 % n2
+        return cipher
+
+    def _pallier_decrypt(self, cipher):
+        t1 = pow(cipher, self.key_lambda, self.key_n2)
+        t1 = (t1 - 1) / self.key_n
+        
+        value = t1 * self.key_decryption
+        value = value % self.key_n
+        return value
+    
+    def add_possible_taste_buddies(self, possibles):
+        self.possible_taste_buddies.extend(possibles)
+        self.possible_taste_buddies.sort(reverse = True)
+        
+        #TODO: remove all possibles which cannot be contacted anymore, for now limit to 50
+        self.possible_taste_buddies = self.possible_taste_buddies[:50]
+    
+    def get_most_similar(self):
+        most_similar = self.possible_taste_buddies.pop(0)
+        return most_similar[2], most_similar[1]
+    
+    def create_introduction_request(self, destination, allow_sync):
+        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination):
+            self.send_sums_request(destination)
+        else:
+            self.send_introduction_request(destination)
+            
+    def send_introduction_request(self, destination, introduce_me_to = None):
+        assert isinstance(destination, WalkCandidate), [type(destination), destination]
+
+        self._dispersy.statistics.walk_attempt += 1
+        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        
+        advice = True
+        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, introduce_me_to)
+        
+        meta_request = self.get_meta_message(u"dispersy-introduction-request")
+        request = meta_request.impl(authentication=(self.my_member,),
+                                distribution=(self.global_time,),
+                                destination=(destination,),
+                                payload=payload)
+
+        self._dispersy._forward([request])
+    
+    def send_sums_request(self, destination):
+        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+        
+        global_vector_request, global_vector = self.create_global_vector(destination, identifier)
+        my_vector = self.get_my_vector(global_vector)
+        if self.encryption:
+            t1 = time()
+            
+            encrypted_vector = []
+            for element in my_vector:
+                cipher = self._pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
+                encrypted_vector.append(cipher)
+            
+            self.search_time_encryption += time() - t1
+        else:
+            encrypted_vector = my_vector
+        
+        meta_request = self.get_meta_message(u"sum-request")
+        request = meta_request.impl(authentication=(self.my_member,),
+                                distribution=(self.global_time,),
+                                destination=(destination,),
+                                payload=(identifier, self.key_n, encrypted_vector))
+
+        self._dispersy._forward([request])
+        self._dispersy._forward([global_vector_request])
+    
+    def create_global_vector(self, destination, identifier):
+        #1. fetch my preferences
+        global_vector = [long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
+        
+        #2. reduce/extend the vector in size
+        if len(global_vector) > self.max_prefs:
+            global_vector = sample(global_vector, self.max_prefs)
+        
+        elif len(global_vector) < self.max_prefs:
+            global_vector += [1l] * (self.max_prefs - len(global_vector))
+        
+        meta_request = self.get_meta_message(u"global-vector")
+        request = meta_request.impl(authentication=(self.my_member,),
+                                distribution=(self.global_time,),
+                                destination=(destination,),
+                                payload=(identifier, global_vector))
+
+        return request, global_vector
+    
+    def get_my_vector(self, global_vector):
+        my_preferences = set([long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference])
+        my_vector = [0l] * len(global_vector)
+        for i, element in enumerate(global_vector):
+            if element in my_preferences:
+                my_vector[i] = 1l 
+        return my_vector
+    
+    def on_sums_request(self, messages):
+        #get candidates to forward requests to
+        candidates = self.get_connections(10)
+
+        for message in messages:
+            #create RPSimilarityRequest to use as object to collect all sums
+            self._dispersy.request_cache.set(message.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
+            
+            #process this request as a normal sum request
+            self.on_sum_request([message])
+            
+    def on_sum_request(self, messages):
+        for message in messages:
+            #create a PSimilarityRequest to store this request for sum
+            if not self._dispersy.request_cache.has(message.identifier, PSearchCommunity.PSimilarityRequest):
+                self._dispersy.request_cache.set(message.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
+
+            #fetch request object, and store user_n and user_vector            
+            request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
+            request.user_n = message.key_n
+            request.user_vector = message.preference_list
+            
+            #if request is complete, process it
+            if request.is_complete():
+                request.process()
+                
+    def on_global_vector(self, messages):
+        for message in messages:
+            if not self._dispersy.request_cache.has(message.identifier, PSearchCommunity.PSimilarityRequest):
+                self._dispersy.request_cache.set(message.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
+            
+            request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
+            request.global_vector = message.item_list
+            
+            if request.is_complete():
+                request.process()
+    
+    class PSimilarityRequest(Cache):
+        # we will accept the response at most 10.5 seconds after our request
+        timeout_delay = 3.5
+        
+        def __init__(self, community, requesting_candidate):
+            self.community = community
+            self.requesting_candidate = requesting_candidate
+            
+            self.user_n = None
+            self.global_vector = None
+            self.user_vector = None
+            self.isProcessed = False
+        
+        def is_complete(self):
+            return self.global_vector != None and self.user_vector != None and self.user_n != None and not self.isProcessed
+        
+        def get_sum(self):
+            if not self.isProcessed:
+                _sum = 0
+                my_vector = self.community.get_my_vector(self.global_vector)
+    
+                if self.encryption:
+                    t1 = time()
+                    user_g = self.user_n + 1
+                    user_n2 = pow(self.user_n, 2)
+                    
+                    for i, element in enumerate(self.global_vector):
+                        if my_vector[i]:
+                            _sum += self.community._pallier_encrypt(element, user_g, self.user_n, user_n2)
+                    self.community.search_time_encryption += time() - t1
+                else:
+                    for i, element in enumerate(self.global_vector):
+                        if my_vector[i] and element:
+                            _sum += 1
+                return _sum
+            
+        def process(self):
+            if not self.isProcessed:
+                _sum = self.get_sum()
+            
+                meta_request = self.get_meta_message(u"encrypted-sum")
+                response = meta_request.impl(authentication=(self.my_member,),
+                                        distribution=(self.global_time,),
+                                        destination=(self.requesting_candidate,),
+                                        payload=(self.identifier, _sum))
+        
+                self._dispersy._forward([response])
+                self.isProcessed = True
+    
+        def on_timeout(self):
+            pass
+    
+    class RPSimilarityRequest(PSearchCommunity.PSimilarityRequest):
+        def __init__(self, community, requesting_candidate, requested_candidates):
+            PSearchCommunity.PSimilarityRequest.__init__(community, requesting_candidate)
+            
+            self.requested_candidates = requested_candidates
+            self.received_candidates = []
+            self.received_sums = []
+        
+        def add_sum(self, candidate, _sum):
+            if candidate in self.requested_candidates and candidate not in self.received_candidates:
+                self.received_candidates.append(candidate)
+                self.received_sums.append((candidate.sock_addr, _sum))
+        
+        def is_complete(self):
+            return PSearchCommunity.PSimilarityRequest.is_complete(self) and len(self.received_sums) == len(self.requested_candidates)
+        
+        def process(self):
+            if not self.isProcessed:
+                _sum = self.get_sum()
+            
+                meta_request = self.get_meta_message(u"encrypted-sums")
+                response = meta_request.impl(authentication=(self.my_member,),
+                                        distribution=(self.global_time,),
+                                        destination=(self.requesting_candidate,),
+                                        payload=(self.identifier, _sum, self.received_sums))
+        
+                self._dispersy._forward([response])
+                self.isProcessed = True
+                
+        def on_timeout(self):
+            if PSearchCommunity.PSimilarityRequest.is_complete(self):
+                self.process()
+
+    def on_encr_sum(self, messages):
+        for message in messages:
+            request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.RPSimilarityRequest)
+            request.add_sum(message.candidate, message.payload.sums)
+            
+            if request.is_complete():
+                request.process()
+    
+    def on_encr_sums(self, messages):
+        for message in messages:
+            _sum = self._pallier_decrypt(message._sum)
+            self.add_taste_buddies([[_sum, time(), message.candidate]])
+            
+            _sums = [[self._pallier_decrypt(_sum), sock_addr, message.candidate] for sock_addr, _sum in message.sums]
+            self.add_possible_taste_buddies(_sums)
+            
+            destination, introduce_me_to = self.get_most_similar()
+            self.send_introduction_request(destination, introduce_me_to)
+        
 class Das4DBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
