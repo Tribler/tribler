@@ -1294,7 +1294,7 @@ class PSearchCommunity(SearchCommunity):
         def on_timeout(self):
             pass
     
-    class RPSimilarityRequest(PSearchCommunity.PSimilarityRequest):
+    class RPSimilarityRequest(PSimilarityRequest):
         def __init__(self, community, requesting_candidate, requested_candidates):
             PSearchCommunity.PSimilarityRequest.__init__(community, requesting_candidate)
             
