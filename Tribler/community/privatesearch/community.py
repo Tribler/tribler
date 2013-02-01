@@ -1073,7 +1073,7 @@ class PSearchCommunity(SearchCommunity):
         
         self.key_decryption = pow(self.key_g, self.key_lambda, self.key_n2)
         self.key_decryption = (self.key_decryption - 1) / self.key_n
-        self.key_decryption = inverse(self.key_decryption)
+        self.key_decryption = inverse(self.key_decryption, self.key_n)
         
         self.possible_taste_buddies = []
     
