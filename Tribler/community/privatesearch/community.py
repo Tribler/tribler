@@ -1240,7 +1240,7 @@ class PSearchCommunity(SearchCommunity):
                 self._dispersy.request_cache.set(message.identifier, PSearchCommunity.PSimilarityRequest(self, message.candidate))
             
             request = self._dispersy.request_cache.get(message.identifier, PSearchCommunity.PSimilarityRequest)
-            request.global_vector = message.item_list
+            request.global_vector = message.preference_list
             
             if request.is_complete():
                 request.process()
