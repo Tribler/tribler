@@ -371,7 +371,6 @@ class PSearchConversion(SearchConversion):
         self.define_meta_message(chr(10), community.get_meta_message(u"global-vector"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
         self.define_meta_message(chr(11), community.get_meta_message(u"encrypted-sum"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
         self.define_meta_message(chr(12), community.get_meta_message(u"encrypted-sums"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
-        self.define_meta_message(chr(13), community.get_meta_message(u"encrypted-sums"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
     
     def _encode_vector(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)    
