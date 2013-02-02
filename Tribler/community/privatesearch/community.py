@@ -1438,10 +1438,14 @@ class PSearchCommunity(SearchCommunity):
             if DEBUG:
                 print >> sys.stderr, "PSearchCommunity: received sums", message.payload._sum
             
-            _sum = self._pallier_decrypt(message.payload._sum)
+            if self.encryption:
+                _sums = [[self._pallier_decrypt(_sum), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sum = self._pallier_decrypt(message.payload._sum)
+            else:
+                _sums = [[_sum, sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sum = message.payload._sum
+
             self.add_taste_buddies([[_sum, time(), message.candidate]])
-            
-            _sums = [[self._pallier_decrypt(_sum), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
             self.add_possible_taste_buddies(_sums)
 
             destination, introduce_me_to = self.get_most_similar(message.candidate)
