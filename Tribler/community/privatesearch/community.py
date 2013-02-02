@@ -1138,7 +1138,7 @@ class PSearchCommunity(SearchCommunity):
         self.possible_taste_buddies = self.possible_taste_buddies[:50]
         
         if DEBUG:
-            print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", self.possible_taste_buddies
+            print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
     
     def get_most_similar(self, candidate):
         if self.possible_taste_buddies:
@@ -1349,6 +1349,10 @@ class PSearchCommunity(SearchCommunity):
                     for i, element in enumerate(self.user_vector):
                         if my_vector[i] and element:
                             _sum += 1
+                
+                if DEBUG:
+                    print >> sys.stderr, "PSearchCommunity: calculated sum", _sum
+                        
                 return _sum
             
         def process(self):
@@ -1421,7 +1425,7 @@ class PSearchCommunity(SearchCommunity):
     def on_encr_sum(self, messages):
         for message in messages:
             if DEBUG:
-                print >> sys.stderr, "PSearchCommunity: received sum"
+                print >> sys.stderr, "PSearchCommunity: received sum", message.payload._sum
             
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
             request.add_sum(message.candidate, message.payload._sum)
@@ -1432,7 +1436,7 @@ class PSearchCommunity(SearchCommunity):
     def on_encr_sums(self, messages):
         for message in messages:
             if DEBUG:
-                print >> sys.stderr, "PSearchCommunity: received sums"
+                print >> sys.stderr, "PSearchCommunity: received sums", message.payload._sum
             
             _sum = self._pallier_decrypt(message.payload._sum)
             self.add_taste_buddies([[_sum, time(), message.candidate]])

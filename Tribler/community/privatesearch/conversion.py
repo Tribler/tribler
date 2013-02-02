@@ -404,8 +404,7 @@ class PSearchConversion(SearchConversion):
         identifier, _sum = unpack_from('!H128s', data, offset)
         offset += 130
         
-        _sum = bytes_to_long(_sum)
-        return offset, placeholder.meta.payload.implement(identifier, _sum)
+        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(_sum))
     
     def _encode_sums(self, message):
         str_sum = long_to_bytes(message.payload._sum, 128)
