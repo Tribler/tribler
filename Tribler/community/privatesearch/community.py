@@ -1083,6 +1083,9 @@ class PSearchCommunity(SearchCommunity):
             #lets check if this pallier thing works
             test = self._pallier_decrypt(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2))
             assert_(test == 0l, test)
+            
+            test = bytes_to_long(long_to_bytes(test, 128))
+            assert_(test == 0l, test)
              
             test = self._pallier_decrypt(self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2))
             assert_(test == 1l, test)
@@ -1311,7 +1314,6 @@ class PSearchCommunity(SearchCommunity):
                 request.process()
     
     class PSimilarityRequest(Cache):
-        # we will accept the response at most 10.5 seconds after our request
         timeout_delay = 3.5
         
         def __init__(self, community, requesting_candidate):
@@ -1378,6 +1380,7 @@ class PSearchCommunity(SearchCommunity):
                 print >> sys.stderr, "PSearchCommunity: timeout PSimilarityRequest", self.global_vector != None, self.user_vector != None
     
     class RPSimilarityRequest(PSimilarityRequest):
+        timeout_delay = 7.0
         def __init__(self, community, requesting_candidate, requested_candidates):
             PSearchCommunity.PSimilarityRequest.__init__(self, community, requesting_candidate)
             
