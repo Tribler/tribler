@@ -1230,7 +1230,7 @@ class PSearchCommunity(SearchCommunity):
             global_vector = sample(global_vector, self.max_prefs)
         
         elif len(global_vector) < self.max_prefs:
-            global_vector += [1l] * (self.max_prefs - len(global_vector))
+            global_vector += [0l] * (self.max_prefs - len(global_vector))
             
         assert_(len(global_vector) == self.max_prefs, 'vector sizes not equal')
         
@@ -1371,7 +1371,7 @@ class PSearchCommunity(SearchCommunity):
     
         def on_timeout(self):
             if DEBUG:
-                print >> sys.stderr, "PSearchCommunity: timeout PSimilarityRequest", self.global_vector, self.user_vector
+                print >> sys.stderr, "PSearchCommunity: timeout PSimilarityRequest", self.global_vector != None, self.user_vector != None
     
     class RPSimilarityRequest(PSimilarityRequest):
         def __init__(self, community, requesting_candidate, requested_candidates):
