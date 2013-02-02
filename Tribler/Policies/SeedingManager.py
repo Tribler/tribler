@@ -38,10 +38,10 @@ class GlobalSeedingManager:
             os.mkdir(self.storage_dir)
 
     def write_all_storage(self):
-        for infohash, seeding_manager in self.seeding_managers.iteritems():
+        for infohash, seeding_manager in self.seeding_managers.items():
             self.write_storage(infohash, seeding_manager.get_updated_storage())
 
-        for infohash, download_statistics in self.download_statistics.iteritems():
+        for infohash, download_statistics in self.download_statistics.items():
             self.write_storage(infohash, download_statistics.get_updated_storage())
 
     def read_storage(self, infohash):
@@ -84,73 +84,46 @@ class GlobalSeedingManager:
         for download_state in dslist:
             # Arno, 2012-05-07: ContentDef support
             cdef = download_state.get_download().get_def()
-            if cdef.get_def_type() == 'torrent':
-                infohash = cdef.get_infohash()
-            else:
-                continue # Swift knows not of seeding managers yet
-
+            hash = cdef.get_infohash() if cdef.get_def_type() == 'torrent' else cdef.get_roothash()
             if download_state.get_status() == DLSTATUS_SEEDING:
-                if infohash in self.seeding_managers:
-                    self.seeding_managers[infohash].update_download_state(download_state)
+                if hash in self.seeding_managers:
+                    self.seeding_managers[hash].update_download_state(download_state)
 
                 else:
                     # apply new seeding manager
-                    if DEBUG: print >>sys.stderr, "SeedingManager: apply seeding manager", infohash.encode("HEX")
-                    seeding_manager = SeedingManager(download_state, self.read_storage(infohash))
+                    if DEBUG: print >>sys.stderr, "SeedingManager: apply seeding manager", hash.encode("HEX")
+                    seeding_manager = SeedingManager(download_state, self.read_storage(hash))
 
-                    t4t_option = self.Read('t4t_option', "int")
-                    if t4t_option == 0:
-                        # No Bittorrent leeching, seeding until sharing ratio = 1.0
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: TitForTatRatioBasedSeeding"
-                        seeding_manager.set_t4t_policy(TitForTatRatioBasedSeeding(self.Read))
+                    policy = self.Read('t4t_option', "int") if cdef.get_def_type() == 'torrent' else self.Read('g2g_option', "int")
+                    if policy == 0:
+                        # No leeching, seeding until sharing ratio is met
+                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: RatioBasedSeeding"
+                        seeding_manager.set_policy(TitForTatRatioBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetRatioBasedSeeding(self.Read))
 
-                    elif t4t_option == 1:
+                    elif policy == 1:
                         # Unlimited seeding
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: UnlimitedSeeding (for t4t)"
-                        seeding_manager.set_t4t_policy(UnlimitedSeeding())
+                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: UnlimitedSeeding"
+                        seeding_manager.set_policy(UnlimitedSeeding())
 
-                    elif t4t_option == 2:
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: TitForTatTimeBasedSeeding"
-                            # Time based seeding
-                        seeding_manager.set_t4t_policy(TitForTatTimeBasedSeeding(self.Read))
-
-                    else:
-                        # t4t_option == 3, no seeding
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: NoSeeding (for t4t)"
-                        seeding_manager.set_t4t_policy(NoSeeding())
-
-                    g2g_option = self.Read('g2g_option', "int")
-                    if g2g_option == 0:
-                        # Seeding to peers with large sharing ratio
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: GiveToGetRatioBasedSeeding"
-                        seeding_manager.set_g2g_policy(GiveToGetRatioBasedSeeding(self.Read))
-
-                    elif g2g_option == 1:
-                        # Boost your reputation
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: UnlimitedSeeding (for g2g)"
-                        seeding_manager.set_g2g_policy(UnlimitedSeeding())
-
-                    elif g2g_option == 2:
-                        # Seeding for sometime
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: GiveToGetTimeBasedSeeding"
-                        seeding_manager.set_g2g_policy(GiveToGetTimeBasedSeeding(self.Read))
+                    elif policy == 2:
+                        # Time based seeding
+                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: TimeBasedSeeding"
+                        seeding_manager.set_policy(TitForTatTimeBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetTimeBasedSeeding(self.Read))
 
                     else:
-                        # g2g_option == 3, no seeding
-                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: NoSeeding (for g2g)"
-                        seeding_manager.set_g2g_policy(NoSeeding())
-
+                        # No seeding
+                        if DEBUG: print >>sys.stderr, "GlobalSeedingManager: NoSeeding"
+                        seeding_manager.set_policy(NoSeeding())
+                        
                     # Apply seeding manager
-                    download_state.get_download().set_seeding_policy(seeding_manager)
-                    self.seeding_managers[infohash] = seeding_manager
-
+                    self.seeding_managers[hash] = seeding_manager
+                            
             else:
-                if DEBUG: print >>sys.stderr, "SeedingManager: updating download statistics (for future use)", infohash.encode("HEX")
-                if infohash in self.download_statistics:
-                    self.download_statistics[infohash].update_download_state(download_state)
-
+                if DEBUG: print >>sys.stderr, "SeedingManager: updating download statistics (for future use)", hash.encode("HEX")
+                if hash in self.download_statistics:
+                    self.download_statistics[hash].update_download_state(download_state)
                 else:
-                    self.download_statistics[infohash] = DownloadStatistics(download_state, self.read_storage(infohash))
+                    self.download_statistics[hash] = DownloadStatistics(download_state, self.read_storage(hash))
 
         # if DEBUG: print >>sys.stderr,"GlobalSeedingManager: current seedings: ", len(self.seeding_managers), "out of", len(dslist), "downloads"
 
@@ -178,12 +151,7 @@ class SeedingManager:
     def __init__(self, download_state, storage):
         self.storage = storage
         self.download_state = download_state
-        self.t4t_policy = None
-        self.g2g_policy = None
-
-        self.t4t_eligible = True
-        self.g2g_eligible = True
-
+        self.policy = None
         self.time_start = time.time()
 
     def get_updated_storage(self):
@@ -199,44 +167,16 @@ class SeedingManager:
     def update_download_state(self, download_state):
         self.download_state = download_state
         self.download_state.set_seeding_statistics(self.get_updated_storage())
-
-    def is_conn_eligible(self, conn):
-        if conn.use_g2g:
-            self.g2g_eligible = self.g2g_policy.apply(conn, self.download_state, self.storage)
-            if DEBUG:
-                if self.g2g_eligible:
-                    print >>sys.stderr,"AllowSeeding to g2g peer: ",self.download_state.get_download().get_dest_files()
-                else:
-                    print >>sys.stderr,"DenySeeding to g2g peer: ",self.download_state.get_download().get_dest_files()
-
-            # stop download when neither t4t_eligible nor g2g_eligible
-            if not (self.t4t_eligible or self.g2g_eligible):
-                if DEBUG: print >>sys.stderr,"Stop seedings: ",self.download_state.get_download().get_dest_files()
+        
+        download = self.download_state.get_download()
+        if download.get_def().get_def_type() == 'torrent':
+            if not self.policy.apply(None, self.download_state, self.storage):
+                if DEBUG: print >>sys.stderr,"Stop seeding: ",self.download_state.get_download().get_dest_files()
                 self.download_state.get_download().stop()
-
-            return self.g2g_eligible
-
-        else:
-            self.t4t_eligible = self.t4t_policy.apply(conn, self.download_state, self.storage)
-
-            if DEBUG:
-                if self.t4t_eligible:
-                    print >>sys.stderr,"AllowSeeding to t4t peer: ",self.download_state.get_download().get_dest_files()
-                else:
-                    print >>sys.stderr,"DenySeeding to t4t peer: ",self.download_state.get_download().get_dest_files()
-            # stop download when neither t4t_eligible nor g2g_eligible
-            if not (self.t4t_eligible or self.g2g_eligible):
-                if DEBUG: print >>sys.stderr,"Stop seedings: ",self.download_state.get_download().get_dest_files()
-                self.download_state.get_download().stop()
-
-            return self.t4t_eligible
-
-
-    def set_t4t_policy(self, policy):
-        self.t4t_policy = policy
-
-    def set_g2g_policy(self, policy):
-        self.g2g_policy = policy
+        # No swift, for now
+        
+    def set_policy(self, policy):
+        self.policy = policy
 
 class SeedingPolicy:
     def __init__(self):

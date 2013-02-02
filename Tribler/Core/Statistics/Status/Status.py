@@ -22,6 +22,15 @@ def get_status_holder(name):
         return status_holders[name]
     finally:
         status_lock.release()
+        
+def delete_status_holders():
+    global status_lock
+    global status_holders
+    status_lock.acquire()
+    try:
+        status_holders = {}
+    finally:
+        status_lock.release()
 
 class StatusException(Exception):
     """

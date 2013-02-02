@@ -24,8 +24,8 @@ from traceback import print_exc
 from M2Crypto import EC
 
 from btconn import BTConnection
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import CHALLENGE,RESPONSE1,RESPONSE2
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import CHALLENGE,RESPONSE1,RESPONSE2
 import Tribler.Core.Overlay.permid as permid
 from Tribler.Core.Utilities.Crypto import sha
 

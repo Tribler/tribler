@@ -11,8 +11,8 @@ import shutil
 
 from M2Crypto import EC
 from Tribler.__init__ import LIBRARYNAME
-from Tribler.Core.BitTornado.bencode import bencode
-from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST, DIALBACK_REPLY, getMessageName
+from Tribler.Core.Utilities.bencode import bencode
+from Tribler.Core.MessageID import DIALBACK_REQUEST, DIALBACK_REPLY, getMessageName
 from Tribler.Core.Utilities.utilities import show_permid
 from Tribler.Core.NATFirewall.ReturnConnHandler import dialback_infohash
 from Tribler.Core.CacheDB.sqlitecachedb import CURRENT_MAIN_DB_VERSION

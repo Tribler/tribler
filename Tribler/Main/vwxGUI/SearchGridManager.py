@@ -11,7 +11,7 @@ from time import time
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, forceAndReturnDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -58,10 +58,10 @@ class TorrentManager:
     def __init__(self, guiUtility):
         if TorrentManager.__single:
             raise RuntimeError, "TorrentManager is singleton"
-        TorrentManager.__single = self
         self.guiUtility = guiUtility
         self.dispersy = None
         self.col_torrent_dir = None
+        self.connected = False
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
@@ -69,6 +69,7 @@ class TorrentManager:
         
         # Remote results for current keywords
         self.remoteHits = []
+        self.gotRemoteHits = False
         self.remoteLock = threading.Lock()
         
         # Requests for torrents
@@ -87,13 +88,19 @@ class TorrentManager:
         self.bundler = Bundler()
         self.bundle_mode = None
         self.bundle_mode_changed = True
+        
         self.category = Category.getInstance()
+        self.xxx_category = 0
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
-            TorrentManager(*args, **kw)       
+            TorrentManager.__single = TorrentManager(*args, **kw)       
         return TorrentManager.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        TorrentManager.__single = None
+    delInstance = staticmethod(delInstance)
     
     def getCollectedFilename(self, torrent, retried = False):
         """
@@ -107,7 +114,6 @@ class TorrentManager:
             return torrent_filename
         
         #.torrent not found
-        
         if torrent.swift_torrent_hash:
             sdef = SwiftDef(torrent.swift_torrent_hash)
             torrent_filename = torrent_filename = os.path.join(self.col_torrent_dir, sdef.get_roothash_as_hex()) 
@@ -139,7 +145,7 @@ class TorrentManager:
         if torrent:
             return self.getCollectedFilename(torrent)
     
-    def getTorrent(self, torrent, callback):
+    def getTorrent(self, torrent, callback, prio = 0):
         """
         TORRENT is a dictionary containing torrent information used to
         display the entry on the UI. it is NOT the torrent file!
@@ -155,7 +161,7 @@ class TorrentManager:
         if torrent_filename:
             return torrent_filename
         
-        if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio = 0):
+        if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio = prio):
             candidates = torrent.query_candidates
             if candidates and len(candidates) > 0:
                 return (True, "from peers")
@@ -222,7 +228,7 @@ class TorrentManager:
         infohashes = set([torrent.infohash for torrent in torrents])
         self.session.download_torrentmessages_from_peer(candidate, infohashes, callback, prio)
         return True
-    
+
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
         torrent_filename = self.getCollectedFilename(torrent)
         
@@ -284,7 +290,7 @@ class TorrentManager:
                     if result == wx.ID_YES:
                         infohash = torrent.infohash
                         self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
-                wx.CallAfter(showdialog)
+                wx.CallAfter(showdialog)       
     
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):
@@ -310,6 +316,9 @@ class TorrentManager:
                             trackers.extend(trs)
                 
                 if len(files) > 0:
+                    #We still call getTorrent to fetch .torrent
+                    self.getTorrent(torrent, None, prio = 1)
+                    
                     torrent = NotCollectedTorrent(torrent, files, trackers)
                 else:
                     torrent_callback = lambda: self.loadTorrent(torrent, callback)
@@ -356,25 +365,31 @@ class TorrentManager:
         self.gridmgr = gridmgr
     
     def connect(self, session, library_manager, channel_manager):
-        self.session = session
-        self.col_torrent_dir = self.session.get_torrent_collecting_dir()
-        
-        self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
-        self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
-        self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
-        self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
-        
-        self.library_manager = library_manager
-        self.channel_manager = channel_manager
-        
-        if Dispersy.has_instance():
-            self.dispersy = Dispersy.get_instance()
-        else:
-            def dispersy_started(subject,changeType,objectID):
-                self.dispersy = Dispersy.get_instance()
-                self.session.remove_observer(dispersy_started)
+        if not self.connected:
+            self.connected = True
+            self.session = session
+            self.col_torrent_dir = self.session.get_torrent_collecting_dir()
             
-            self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+            self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
+            self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
+            self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
+            self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
+            
+            self.library_manager = library_manager
+            self.channel_manager = channel_manager
+            
+            if Dispersy.has_instance():
+                self.dispersy = Dispersy.get_instance()
+            else:
+                def dispersy_started(subject,changeType,objectID):
+                    self.dispersy = Dispersy.get_instance()
+                    self.session.remove_observer(dispersy_started)
+                
+                self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+                
+            self.xxx_category = self.torrent_db.category_table.get('xxx', 0)
+        else:
+            raise RuntimeError('TorrentManager already connected')
         
     def getSearchSuggestion(self, keywords, limit = 1):
         return self.torrent_db.getSearchSuggestion(keywords, limit)
@@ -420,7 +435,6 @@ class TorrentManager:
     
             if DEBUG:
                 beginsort = time()
-            
 
             if new_local_hits or new_remote_hits:
                 if sort == 'rameezmetric':
@@ -471,7 +485,6 @@ class TorrentManager:
         chance to be received and sorted before prefetching a subset.
         """
         if DEBUG: begin_time = time()
-        torrent_dir = Session.get_instance().get_torrent_collecting_dir()
         
         def sesscb_prefetch_done(infohash):
             if DEBUG:
@@ -533,7 +546,7 @@ class TorrentManager:
                 
                 self.hits = []
                 self.remoteHits = []
-                
+                self.gotRemoteHits = False
                 self.oldsearchkeywords = None
             finally:
                 self.hitsLock.release()
@@ -607,7 +620,7 @@ class TorrentManager:
             begintime = time()
         try:
             self.remoteLock.acquire()
-            
+
             hitsUpdated = False
             hitsModified = set()
             for remoteItem in self.remoteHits:
@@ -643,12 +656,20 @@ class TorrentManager:
                                 
                                 if this_rating > current_rating:
                                     item.updateChannel(remoteItem.channel)
-                            
-                                hitsModified.add(item.infohash)
+                                    hitsModified.add(item.infohash)
+                                    
                         known = True
                         break
             
                 if not known:
+                    #Niels 26-10-2012: override category if name is xxx
+                    if remoteItem.category_id != self.xxx_category:
+                        local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
+                        if local_category == 'xxx':
+                            if DEBUG:
+                                print >> sys.stderr, 'TorrentSearchGridManager:', remoteItem.name, "is xxx"
+                            remoteItem.category_id = self.xxx_category
+                    
                     self.hits.append(remoteItem)
                     hitsUpdated = True
                     
@@ -674,6 +695,8 @@ class TorrentManager:
             self.remoteLock.acquire()
             
             if self.searchkeywords == keywords:
+                self.gotRemoteHits = True
+                
                 channeldict = {}
                 channels = set([result[-1] for result in results if result[-1]])
                 if len(channels) > 0:
@@ -803,9 +826,9 @@ class LibraryManager:
     def __init__(self, guiUtility):
         if LibraryManager.__single:
             raise RuntimeError, "LibraryManager is singleton"
-        LibraryManager.__single = self
         self.guiUtility = guiUtility
         self.guiserver = GUITaskQueue.getInstance()
+        self.connected = False
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = []
@@ -827,9 +850,13 @@ class LibraryManager:
 
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:
-            LibraryManager(*args, **kw)       
+            LibraryManager.__single = LibraryManager(*args, **kw)       
         return LibraryManager.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        LibraryManager.__single = None
+    delInstance = staticmethod(delInstance)
 
     def _get_videoplayer(self, exclude=None):
         """
@@ -943,10 +970,9 @@ class LibraryManager:
         
         ds = torrent.get('ds')
         
-        #Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
-        self.guiUtility.frame.videoframe.recreate_videopanel()
         #videoplayer calls should be on gui thread, hence forceWxThread
         videoplayer = self._get_videoplayer(ds)
+        videoplayer.recreate_videopanel()
         videoplayer.stop_playback()
         videoplayer.show_loading()
         
@@ -1066,13 +1092,17 @@ class LibraryManager:
             self.user_download_choice.remove_download_state(id)
     
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
-        self.session = session
-        self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
-        self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
-        self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
-        
-        self.torrentsearch_manager = torrentsearch_manager
-        self.channelsearch_manager = channelsearch_manager
+        if not self.connected:
+            self.session = session
+            self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
+            self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
+            self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
+            
+            self.torrentsearch_manager = torrentsearch_manager
+            self.channelsearch_manager = channelsearch_manager
+            self.connected = True
+        else:
+            raise RuntimeError('LibrarySearchGridManager is already connected')
     
     def getHitsInCategory(self):
         if DEBUG: begintime = time()
@@ -1164,7 +1194,7 @@ class ChannelManager:
     def __init__(self):
         if ChannelManager.__single:
             raise RuntimeError, "ChannelManager is singleton"
-        ChannelManager.__single = self
+        self.connected = False
         
         # Contains all matches for keywords in DB, not filtered by category
         self.hits = {}
@@ -1186,31 +1216,39 @@ class ChannelManager:
         
     def getInstance(*args, **kw):
         if ChannelManager.__single is None:
-            ChannelManager(*args, **kw)       
+            ChannelManager.__single = ChannelManager(*args, **kw)       
         return ChannelManager.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        ChannelManager.__single = None
+    delInstance = staticmethod(delInstance)
 
     def connect(self, session, library_manager, torrentsearch_manager):
-        self.session = session
-        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
-        self.torrentsearch_manager = torrentsearch_manager
-        self.library_manager = library_manager
-        self.remote_th = RemoteTorrentHandler.getInstance()
-
-        if Dispersy.has_instance():
-            self.dispersy = Dispersy.get_instance()
-            self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
-
-        else:
-            def dispersy_started(subject,changeType,objectID):
+        if not self.connected:
+            self.connected = True
+            self.session = session
+            self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+            self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+            self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
+            self.torrentsearch_manager = torrentsearch_manager
+            self.library_manager = library_manager
+            self.remote_th = RemoteTorrentHandler.getInstance()
+    
+            if Dispersy.has_instance():
                 self.dispersy = Dispersy.get_instance()
                 self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
+    
+            else:
+                def dispersy_started(subject,changeType,objectID):
+                    self.dispersy = Dispersy.get_instance()
+                    self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
+                    
+                    self.session.remove_observer(dispersy_started)
                 
-                self.session.remove_observer(dispersy_started)
-            
-            self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+                self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+        else:
+            raise RuntimeError('ChannelManager already connected')
         
     def set_gridmgr(self,gridmgr):
         self.gridmgr = gridmgr
@@ -1285,6 +1323,11 @@ class ChannelManager:
     def getUpdatedChannels(self):
         lchannels = self.channelcast_db.getLatestUpdated()
         return self._createChannels(lchannels)
+    
+    def getMyChannels(self):
+        if self.channelcast_db._channel_id:
+            return 1, [self.getChannel(self.channelcast_db._channel_id)]
+        return 0, []
     
     def _createChannel(self, hit):
         return Channel(*hit)
@@ -1834,11 +1877,6 @@ class ChannelManager:
             
             finally:
                 self.remoteLock.release()
-        try:
-            self.searchDispersy()
-        except TypeError:
-            #Dispersy not loaded yet
-            pass
         
     def getChannelHits(self):
         if DEBUG: begintime = time()

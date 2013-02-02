@@ -83,7 +83,7 @@ class SwiftProcess:
             args.append("180") # seconds
         #args.append("-B") # Enable debugging on swift        
         
-        if DEBUG:
+        if True or DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
         
         if sys.platform == "win32":
@@ -348,9 +348,13 @@ class SwiftProcess:
                 self.popen.terminate()
                 self.popen.wait()
                 self.popen = None
+            except WindowsError:
+                pass
             except:
                 print_exc()
-        # self.fastconn auto closed by killing proc.
+        
+        if self.fastconn:
+            self.fastconn.stop()
     
     #
     # Internal methods

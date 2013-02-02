@@ -10,11 +10,6 @@ from time import sleep
 from traceback import print_exc
 #from cStringIO import StringIO
 
-from Tribler.Core.BitTornado.bencode import bdecode
-from Tribler.Core.defaults import dldefaults as BTDefaults
-from Tribler.Core.BitTornado.parseargs import parseargs
-from Tribler.Core.BitTornado.zurllib import urlopen
-
 DEBUG = False
 ################################################################
 #

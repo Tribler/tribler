@@ -344,59 +344,6 @@ class DownloadConfigInterface:
         return self.dlconfig['max_connections']
 
     #
-    # ProxyService_ parameters
-    #
-    def set_proxyservice_role(self, role):
-        """ Sets the download config proxyservice_role property 
-        """
-        if role == PROXYSERVICE_ROLE_NONE or role == PROXYSERVICE_ROLE_DOE or role == PROXYSERVICE_ROLE_PROXY:
-            self.dlconfig['proxyservice_role'] = role
-        else:
-            self.dlconfig['proxyservice_role'] = PROXYSERVICE_ROLE_NONE
-
-    def get_proxyservice_role(self):
-        """ Returns the role which the download plays in a proxy download,
-        """
-        return self.dlconfig['proxyservice_role']
-
-
-    def set_doe_mode(self, mode):
-        """ Set the doe mode for current download
-        .
-        @param mode: the doe mode: DOE_MODE_OFF, DOE_MODE_PRIVATE or DOE_MODE_SPEED
-        """
-        if mode == DOE_MODE_OFF or mode == DOE_MODE_PRIVATE or mode == DOE_MODE_SPEED:
-            self.dlconfig['doe_mode'] = mode
-        else:
-            # If the method is called with an incorrect value, turn off the ProxyMode for this download
-            self.dlconfig['doe_mode'] = DOE_MODE_OFF
-
-    def get_doe_mode(self):
-        """ Returns the doemode of the client.
-        @return: one of the possible three values: DOE_MODE_OFF, DOE_MODE_PRIVATE, DOE_MODE_SPEED
-        """
-        return self.dlconfig['doe_mode']
-    
-    def set_no_proxies(self,value):
-        """ Set the maximum number of proxies used for a download.
-        @param value: a positive integer number
-        """
-        if value >= 0:
-            self.dlconfig['max_proxies'] = value
-        else:
-            self.dlconfig['max_proxies'] = 0
-
-    def get_no_proxies(self):
-        """ Returns the maximum number of proxies used for a download. 
-        @return: a positive integer number
-        """
-        return self.dlconfig['max_proxies']
-    #
-    # _ProxyService
-    #
-        
-
-    #
     # Advanced download parameters
     # 
     def set_max_uploads(self,value):
@@ -818,26 +765,7 @@ class DownloadConfigInterface:
         via ut_pex. 
         @return A number of addresses.
         """
-        return self.dlconfig['ut_pex_max_addrs_from_peer']
-
-    def set_poa(self, poa):
-        if poa:
-            from base64 import encodestring
-            self.dlconfig['poa'] = encodestring(poa.serialize()).replace("\n","")
-            import sys
-            print >> sys.stderr,"POA is set:",self.dlconfig['poa']
-        
-    def get_poa(self):
-        if 'poa' in self.dlconfig:
-            if not self.dlconfig['poa']:
-                raise Exception("No POA specified")
-            from Tribler.Core.ClosedSwarm import ClosedSwarm
-            from base64 import decodestring
-            print >> sys.stderr,"get_poa:",self.dlconfig['poa']
-            poa = ClosedSwarm.POA.deserialize(decodestring(self.dlconfig['poa']))
-            return poa
-        return None
-        
+        return self.dlconfig['ut_pex_max_addrs_from_peer']    
     
     def set_same_nat_try_internal(self,value):
         """ Whether to try to detect if a peer is behind the same NAT as
@@ -963,6 +891,11 @@ def get_default_dest_dir():
         else: Home\TriblerDownloads
     </pre>
     """
+    downloaddir = 'TriblerDownloads'
+
+    if os.path.isdir(downloaddir):
+        return os.path.abspath(downloaddir)
+
     uhome = get_desktop_dir()
-    return os.path.join(uhome,u'TriblerDownloads')
+    return os.path.join(uhome,downloaddir)
     

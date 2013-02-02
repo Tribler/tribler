@@ -10,7 +10,7 @@ try:
 except ImportError,e:
     prctlimported = False
 
-from Tribler.Core.BitTornado.natpunch import UPnPWrapper, UPnPError
+from natpunch import UPnPWrapper, UPnPError
 
 DEBUG = False
 

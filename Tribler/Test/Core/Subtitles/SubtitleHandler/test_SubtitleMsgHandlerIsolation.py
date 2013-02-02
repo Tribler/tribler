@@ -10,8 +10,8 @@ from Tribler.Test.Core.Subtitles.simple_mocks import MockOverlayBridge, MockToke
 from Tribler.Core.Overlay.permid import generate_keypair
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
-from Tribler.Core.BitTornado.BT1.MessageID import GET_SUBS, SUBS
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.MessageID import GET_SUBS, SUBS
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_FOURTEENTH
 
 

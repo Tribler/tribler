@@ -19,10 +19,10 @@ from olconn import OLConnection
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
 from Tribler.Core.BitTornado.bitfield import Bitfield
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 from Tribler.Core.Merkle.merkle import MerkleTree
 
 from Tribler.Core.Utilities.utilities import isValidIP

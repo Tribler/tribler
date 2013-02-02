@@ -4,9 +4,9 @@ import sys
 import os.path
 from base64 import decodestring
 
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.ClosedSwarm import ClosedSwarm
 from Tribler.Core.TorrentDef import TorrentDef
 
@@ -60,7 +60,7 @@ def get_usage(defs):
 if __name__ == "__main__":
     
 
-    config, fileargs = parseargs.parseargs(sys.argv, defaults, presets = {})
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, defaults, presets = {})
 
     if len(fileargs) < 2:
         get_usage(defaults)

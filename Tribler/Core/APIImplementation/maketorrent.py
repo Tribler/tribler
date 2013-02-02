@@ -14,13 +14,13 @@ from time import time
 from traceback import print_exc
 from types import LongType
 
-from Tribler.Core.BitTornado.bencode import bencode
-from Tribler.Core.BitTornado.BT1.btformats import check_info
+from Tribler.Core.Utilities.bencode import bencode
 from Tribler.Core.Merkle.merkle import MerkleTree
 from Tribler.Core.Utilities.unicode import str2unicode,bin2unicode
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs,offset2piece
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
+from Tribler.Core.Utilities.utilities import validTorrentFile
 
 
 ignore = [] # Arno: was ['core', 'CVS']
@@ -41,7 +41,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     #if DEBUG:
     #    print >>sys.stderr,"mktorrent: makeinfo returned",`info`
     
-    check_info(info)
+    validTorrentFile(info)
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
 
     # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes

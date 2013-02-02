@@ -3,6 +3,7 @@
 
 import sys
 import os
+from os import environ
 from time import sleep, time
 from base64 import encodestring, decodestring
 import threading
@@ -45,10 +46,11 @@ except ImportError:
 ##Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
 ##Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
 ##Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
+##Changed from 17 to 18 added swift-thumbnails/video-info metadatatypes
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is 
 # written to the DB in the schema_sdb_v*.sql file!!!
-CURRENT_MAIN_DB_VERSION = 17
+CURRENT_MAIN_DB_VERSION = 18
 
 TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
@@ -72,6 +74,16 @@ DEBUG_TIME = True
 
 TRHEADING_DEBUG = False
 DEPRECATION_DEBUG = False
+
+__DEBUG_QUERIES__ = environ.has_key('TRIBLER_DEBUG_DATABASE_QUERIES')
+if __DEBUG_QUERIES__:
+    from random import randint
+    from os.path import exists
+    from time import time
+    DB_DEBUG_FILE="tribler_database_queries_%d.txt" % randint(1,9999999)
+    while exists(DB_DEBUG_FILE):
+        DB_DEBUG_FILE="tribler_database_queries_%d.txt" % randint(1,9999999)
+
 
 class Warning(Exception):
     pass
@@ -98,10 +110,7 @@ def init(config, db_exception_handler = None):
     CREATE_SQL_FILE = os.path.join(install_dir,CREATE_SQL_FILE_POSTFIX)
     sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)
     
-    if config['superpeer']:
-        sqlite_db_path = ':memory:'
-    else:   
-        sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
+    sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     print >>sys.stderr,"cachedb: init: SQL FILE",sqlite_db_path        
 
     icon_dir = os.path.abspath(config['peer_icon_path'])
@@ -2240,6 +2249,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("DROP INDEX IF EXISTS Torrent_creation_date_idx")
             self.execute_write("DROP INDEX IF EXISTS Torrent_relevance_idx")
             self.execute_write("DROP INDEX IF EXISTS Torrent_name_idx")
+            
+        if fromver < 18:
+            self.execute_write("DROP TABLE IF EXISTS BarterCast")
+            self.execute_write("DROP INDEX IF EXISTS bartercast_idx")
+            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails')")
+            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('video-info')")
 
 
     def clean_db(self, vacuum = False):
@@ -2273,16 +2288,22 @@ def try_register(db, callback = None):
                     if dispersy:
                         callback = dispersy.callback
                     
-                if callback:
-                    print >> sys.stderr, "Using actual DB thread"
+                if callback and callback.is_running:
+                    print >> sys.stderr, "Using actual DB thread", callback
                     _callback = callback
-                    if currentThread().getName()== 'Dispersy' and db:
-                        db.initialBegin()
-                    else:
-                        #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
-                        _callback.register(db.initialBegin, priority = 1024)
+                    
+                    if db:
+                        if currentThread().getName()== 'Dispersy':
+                            db.initialBegin()
+                        else:
+                            #Niels: 15/05/2012: initalBegin HAS to be on the dispersy thread, as transactions are not shared across threads.
+                            _callback.register(db.initialBegin, priority = 1024)
         finally:
             _callback_lock.release()
+            
+def unregister():
+    global _callback
+    _callback = None
     
 def register_task(db, *args, **kwargs):
     global _callback
@@ -2295,49 +2316,19 @@ def register_task(db, *args, **kwargs):
         return fakeDispersy(*args)
     return _callback.register(*args, **kwargs)
 
+def call_task(db, *args, **kwargs):
+    global _callback
+    if not _callback:
+        try_register(db)
+                
+    if not _callback or not _callback.is_running:
+        def fakeDispersy(call, args=(), kwargs = {}):
+            return call(*args, **kwargs)
+        return fakeDispersy(*args)
+    return _callback.call(*args, **kwargs)   
+
 def onDBThread():
     return currentThread().getName()== 'Dispersy'
-
-def forceAndReturnDBThread(func):
-    def invoke_func(*args,**kwargs):
-        global _callback
-        
-        if not onDBThread():
-            if TRHEADING_DEBUG:
-                stack = inspect.stack()
-                callerstr = ""
-                for i in range(1, min(4, len(stack))):
-                    caller = stack[i]
-                    callerstr += "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            
-            event = Event()
-            
-            result = [None]
-            def dispersy_thread():
-                try:
-                    result[0] = func(*args, **kwargs)
-                except Exception, exception:
-                    result[0] = exception
-                finally:
-                    event.set()
-            
-            dispersy_thread.__name__ = func.__name__
-            register_task(args[0], dispersy_thread, priority=1024)
-            
-            if event.wait(15) or event.isSet():
-                if isinstance(result[0], Exception):
-                    raise result[0]
-                else:
-                    return result[0]
-            
-            print_stack()
-            print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnDBThread", func.__name__
-        else:
-            return func(*args, **kwargs)
-            
-    invoke_func.__name__ = func.__name__
-    return invoke_func
 
 def forceDBThread(func):
     def invoke_func(*args,**kwargs):
@@ -2353,6 +2344,44 @@ def forceDBThread(func):
             register_task(None, func, args, kwargs)
         else:
             func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forcePrioDBThread(func):
+    def invoke_func(*args,**kwargs):
+        if not onDBThread():
+            if TRHEADING_DEBUG:
+                stack = inspect.stack()
+                callerstr = ""
+                for i in range(1, min(4, len(stack))):
+                    caller = stack[i]
+                    callerstr += "%s %s:%s "%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            register_task(None, func, args, kwargs, priority = 99)
+        else:
+            func(*args, **kwargs)
+            
+    invoke_func.__name__ = func.__name__
+    return invoke_func
+
+def forceAndReturnDBThread(func):
+    def invoke_func(*args,**kwargs):
+        global _callback
+        
+        if not onDBThread():
+            if TRHEADING_DEBUG:
+                stack = inspect.stack()
+                callerstr = ""
+                for i in range(1, min(4, len(stack))):
+                    caller = stack[i]
+                    callerstr += "%s %s:%s"%(caller[3],caller[1],caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO DBTHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            
+            return call_task(None, func, args, kwargs, timeout = 15.0, priority = 99)
+        else:
+            return func(*args, **kwargs)
             
     invoke_func.__name__ = func.__name__
     return invoke_func
@@ -2375,6 +2404,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             finally:
                 cls.lock.release()
         return cls.__single
+    
+    @classmethod
+    def delInstance(cls, *args, **kw):
+        cls.__single = None
     
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object
@@ -2401,7 +2434,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         _shouldCommit = True
     
     @forceDBThread
-    def commitNow(self, vacuum = False):
+    def commitNow(self, vacuum = False, exiting = False):
         global _shouldCommit, _cacheCommit
         if _cacheCommit and _shouldCommit and onDBThread():
             try:
@@ -2409,18 +2442,20 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
+                print_exc()                
                 raise
             _shouldCommit = False
             
             if vacuum:
                 self._execute("VACUUM;")
 
-            try:
-                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
-                self._execute("BEGIN;")
-            except:
-                print >> sys.stderr, "BEGIN FAILED"
-                raise
+            if not exiting:
+                try:
+                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
+                    self._execute("BEGIN;")
+                except:
+                    print >> sys.stderr, "BEGIN FAILED"
+                    raise
             
         elif vacuum:
             self._execute("VACUUM;")
@@ -2428,7 +2463,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def execute_write(self, sql, args=None, commit=True):
         global _shouldCommit, _cacheCommit
         if _cacheCommit and not _shouldCommit:
-            # sql = "BEGIN;"+sql
             _shouldCommit = True
             
         self._execute(sql, args)
@@ -2436,7 +2470,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
     def executemany(self, sql, args, commit=True):
         global _shouldCommit, _cacheCommit
         if _cacheCommit and not _shouldCommit:
-            # sql = "BEGIN;"+sql
             _shouldCommit = True
         
         return self._executemany(sql, args)
@@ -2479,11 +2512,29 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
             
+        if __DEBUG_QUERIES__:
+            f = open(DB_DEBUG_FILE, 'a')
+            
+            if args is None:
+                f.write('QueryDebug: (%f) %s\n' % (time(), sql))
+                for row in cur.execute('EXPLAIN QUERY PLAN '+sql).fetchall():
+                    f.write('%s %s %s\t%s\n' % row)
+            else:
+                f.write('QueryDebug: (%f) %s %s\n' % (time(), sql, str(args)))
+                for row in cur.execute('EXPLAIN QUERY PLAN '+sql, args).fetchall():
+                    f.write('%s %s %s\t%s\n' % row[:4])
+        
         try:
             if args is None:
-                return cur.execute(sql)
+                result = cur.execute(sql)
             else:
-                return cur.execute(sql, args)
+                result = cur.execute(sql, args)
+            
+            if __DEBUG_QUERIES__:
+                f.write('QueryDebug: (%f) END\n' % time())
+                f.close()
+            
+            return result
             
         except Exception, msg:
             if DEBUG:
@@ -2501,12 +2552,30 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         if SHOW_ALL_EXECUTE or self.show_execute:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+        
+        if __DEBUG_QUERIES__:
+            f = open(DB_DEBUG_FILE, 'a')
             
+            if args is None:                    
+                f.write('QueryDebug-executemany: (%f) %s\n' % (time(), sql))
+                for row in cur.executemany('EXPLAIN QUERY PLAN '+sql).fetchall():
+                    f.write('%s %s %s\t%s\n' % row)
+            else:
+                f.write('QueryDebug-executemany: (%f) %s %d times\n' % (time(), sql, len(args)))
+                for row in cur.executemany('EXPLAIN QUERY PLAN '+sql, args).fetchall():
+                    f.write('%s %s %s\t%s\n' % row)
+
         try:
             if args is None:
-                return cur.executemany(sql)
+                result = cur.executemany(sql)
             else:
-                return cur.executemany(sql, args)
+                result = cur.executemany(sql, args)
+            
+            if __DEBUG_QUERIES__:
+                f.write('QueryDebug: (%f) END\n' % time())
+                f.close()
+            
+            return result
             
         except Exception, msg:
             if DEBUG:
@@ -2552,4 +2621,3 @@ if __name__ == '__main__':
     config['peer_icon_path'] = u'.'
     sqlite_test = init(config)
     sqlite_test.test()
-

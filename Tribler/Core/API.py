@@ -193,14 +193,9 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.Base import *
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
-from Tribler.Core.Download import *
 from Tribler.Core.DownloadConfig import *
 from Tribler.Core.DownloadState import *
 from Tribler.Core.exceptions import *
-try:
-    from Tribler.Core.RequestPolicy import *
-except ImportError:
-    pass
 from Tribler.Core.TorrentDef import *
 try:
     import M2Crypto

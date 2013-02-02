@@ -1,3 +1,4 @@
+#Written by Niels Zeilemaker
 from struct import pack, unpack_from
 from random import choice, sample
 from math import ceil
@@ -19,18 +20,12 @@ class SearchConversion(BinaryConversion):
         self.define_meta_message(chr(4), community.get_meta_message(u"torrent-collect-request"), lambda message: self._encode_decode(self._encode_torrent_collect_request, self._decode_torrent_collect_request, message), self._decode_torrent_collect_request)
         self.define_meta_message(chr(5), community.get_meta_message(u"torrent-collect-response"), lambda message: self._encode_decode(self._encode_torrent_collect_response, self._decode_torrent_collect_response, message), self._decode_torrent_collect_response)
         self.define_meta_message(chr(6), community.get_meta_message(u"torrent"), lambda message: self._encode_decode(self._encode_torrent, self._decode_torrent, message), self._decode_torrent)
-        self.define_meta_message(chr(7), community.get_meta_message(u"xor-request"), lambda message: self._encode_decode(self._encode_xor_request, self._decode_xor_request, message), self._decode_xor_request)
-        self.define_meta_message(chr(8), community.get_meta_message(u"xor-response"), lambda message: self._encode_decode(self._encode_xor_response, self._decode_xor_response, message), self._decode_xor_response)
         
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
 
-        if isinstance(message.payload._meta, TasteIntroPayload):
-            if message.payload.taste_bloom_filter:
-                data.extend((pack('!IBH', message.payload.num_preferences, message.payload.taste_bloom_filter.functions, message.payload.taste_bloom_filter.size), message.payload.taste_bloom_filter.prefix, message.payload.taste_bloom_filter.bytes))
-        elif message.payload.preference_list:
-            fmt = '20s'*len(message.payload.preference_list)
-            data.append(pack('!'+fmt, *message.payload.preference_list))
+        if message.payload.taste_bloom_filter:
+            data.extend((pack('!IBH', message.payload.num_preferences, message.payload.taste_bloom_filter.functions, message.payload.taste_bloom_filter.size), message.payload.taste_bloom_filter.prefix, message.payload.taste_bloom_filter.bytes))
         return data
     
     def _decode_introduction_request(self, placeholder, offset, data):
@@ -39,45 +34,33 @@ class SearchConversion(BinaryConversion):
         #if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
-            if isinstance(payload._meta, TasteIntroPayload):
-                if len(data) < offset + 8:
-                    raise DropPacket("Insufficient packet size")
-                
-                num_preferences, functions, size = unpack_from('!IBH', data, offset)
-                offset += 7
-    
-                prefix = data[offset]
-                offset += 1
-    
-                if not 0 < num_preferences:
-                    raise DropPacket("Invalid num_preferences value")
-                if not 0 < functions:
-                    raise DropPacket("Invalid functions value")
-                if not 0 < size:
-                    raise DropPacket("Invalid size value")
-                if not size % 8 == 0:
-                    raise DropPacket("Invalid size value, must be a multiple of eight")
-        
-                length = int(ceil(size / 8))
-                if not length == len(data) - offset:
-                    raise DropPacket("Invalid number of bytes available (irq) %d, %d, %d"%(length, len(data) - offset, size))
-        
-                taste_bloom_filter = BloomFilter(data[offset:offset + length], functions, prefix=prefix)
-                offset += length
+            if len(data) < offset + 8:
+                raise DropPacket("Insufficient packet size")
             
-                payload.set_num_preferences(num_preferences)
-                payload.set_taste_bloom_filter(taste_bloom_filter)
-                
-            else:
-                length = len(data) - offset
-                if length % 20 != 0:
-                    raise DropPacket("Invalid number of bytes available (ir)")
-                
-                hashpack = '20s' * (length/20)
-                hashes = unpack_from('!'+hashpack, data, offset)
-                offset += length
-                
-                payload.set_preference_list(hashes)
+            num_preferences, functions, size = unpack_from('!IBH', data, offset)
+            offset += 7
+
+            prefix = data[offset]
+            offset += 1
+
+            if not 0 < num_preferences:
+                raise DropPacket("Invalid num_preferences value")
+            if not 0 < functions:
+                raise DropPacket("Invalid functions value")
+            if not 0 < size:
+                raise DropPacket("Invalid size value")
+            if not size % 8 == 0:
+                raise DropPacket("Invalid size value, must be a multiple of eight")
+    
+            length = int(ceil(size / 8))
+            if not length == len(data) - offset:
+                raise DropPacket("Invalid number of bytes available (irq) %d, %d, %d"%(length, len(data) - offset, size))
+    
+            taste_bloom_filter = BloomFilter(data[offset:offset + length], functions, prefix=prefix)
+            offset += length
+        
+            payload.set_num_preferences(num_preferences)
+            payload.set_taste_bloom_filter(taste_bloom_filter)
             
         return offset, payload
         
@@ -92,31 +75,6 @@ class SearchConversion(BinaryConversion):
             pass
         return result
     
-    def _encode_xor_request(self, message):
-        fmt = "!H" + "20s"*len(message.payload.preference_list)
-        packet = pack(fmt, message.payload.identifier, *message.payload.preference_list)
-        return packet,
-    
-    def _decode_xor_request(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
-       
-        length = len(data) - offset
-        if length % 20 != 0:
-            raise DropPacket("Invalid number of bytes available (xor_req)")
-        
-        if length:
-            hashpack = '20s' * (length/20)
-            hashes = unpack_from('!'+hashpack, data, offset)
-            offset += length
-        
-        return offset, placeholder.meta.payload.implement(identifier, hashes)
-    
-    def _encode_xor_response(self, message):
-        return self._encode_xor_request(message)
-    def _decode_xor_response(self, placeholder, offset, data):
-        return self._decode_xor_request(placeholder, offset, data)
-        
     def _encode_search_request(self, message):
         packet = pack('!H', message.payload.identifier), message.payload.keywords
         if message.payload.bloom_filter:

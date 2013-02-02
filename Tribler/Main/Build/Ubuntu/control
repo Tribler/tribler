@@ -8,7 +8,7 @@ Homepage: http://www.tribler.org/
 
 Package: tribler
 Architecture: all
-Depends: ${misc:Depends}, python, python-wxgtk2.8, python-m2crypto, python-apsw, python-netifaces, vlc (>= 2.0.0), ffmpeg, tribler-swift (>= 5.9.23)
+Depends: ${misc:Depends}, python, python-wxgtk2.8, python-m2crypto, python-apsw, python-netifaces, vlc (>= 2.0.0), ffmpeg, tribler-swift (>= 6.0.0), python-cherrypy3, python-libtorrent
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download
  content. Tribler aims to combine the ease of

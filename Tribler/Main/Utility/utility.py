@@ -12,15 +12,15 @@ from random import gauss
 from wx.lib import masked
 
 from Tribler.Lang.lang import Lang
-from Tribler.Core.BitTornado.bencode import bdecode
+from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.defaults import dldefaults as BTDefaults
 from Tribler.Core.defaults import DEFAULTPORT
 from Tribler.Core.defaults import trackerdefaults as TrackerDefaults
 from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults 
-from Tribler.Core.BitTornado.parseargs import parseargs
-from Tribler.Core.BitTornado.zurllib import urlopen
-from Tribler.Core.BitTornado.__init__ import version_id
+from Tribler.Core.Utilities.parseargs import parseargs
+from Tribler.Core.__init__ import version_id
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 if sys.platform == 'win32':
     from Tribler.Main.Utility.regchecker import RegChecker
@@ -344,11 +344,12 @@ class Utility:
         return str(maxdownloadrate)
     
     def setMaxDown(self, valdown):
+        libtorrentmgr = LibtorrentMgr.getInstance()
         if valdown == 'unlimited':
-            self.ratelimiter.set_global_max_speed(DOWNLOAD, 0)
+            libtorrentmgr.set_download_rate_limit(-1)
             self.config.Write('maxdownloadrate', '0')
         else:
-            self.ratelimiter.set_global_max_speed(DOWNLOAD, int(valdown))
+            libtorrentmgr.set_download_rate_limit(int(valdown)*1024)
             self.config.Write('maxdownloadrate', valdown)
     
     def getMaxUp(self):
@@ -360,19 +361,17 @@ class Utility:
         return str(maxuploadrate)
         
     def setMaxUp(self, valup):
+        libtorrentmgr = LibtorrentMgr.getInstance()
         if valup == 'unlimited':
-            self.ratelimiter.set_global_max_speed(UPLOAD, 0)
-            self.ratelimiter.set_global_max_seedupload_speed(0)
+            libtorrentmgr.set_upload_rate_limit(-1)
             self.config.Write('maxuploadrate', '0')
             self.config.Write('maxseeduploadrate', '0')
         elif valup == '0':
-            self.ratelimiter.set_global_max_speed(UPLOAD, 0.0001)
-            self.ratelimiter.set_global_max_seedupload_speed(0.0001)
+            libtorrentmgr.set_upload_rate_limit(0.0001)
             self.config.Write('maxuploadrate', '-1')
             self.config.Write('maxseeduploadrate', '-1')
         else: 
-            self.ratelimiter.set_global_max_speed(UPLOAD, int(valup))
-            self.ratelimiter.set_global_max_seedupload_speed(int(valup))
+            libtorrentmgr.set_upload_rate_limit(int(valup)*1024)
             self.config.Write('maxuploadrate', valup)
             self.config.Write('maxseeduploadrate', valup)
 
@@ -843,8 +842,6 @@ def getMetainfo(src, openoptions = 'rb', style = "file"):
         # We're getting a url
         if style == "rawdata":
             return bdecode(src)
-        elif style == "url":
-            metainfo_file = urlopen(src)
         # We're getting a file that exists
         elif os.access(src, os.R_OK):
             metainfo_file = open(src, openoptions)

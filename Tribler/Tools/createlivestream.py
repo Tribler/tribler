@@ -14,7 +14,7 @@ from base64 import encodestring
 
 from Tribler.Core.API import *
 from Tribler.Video.Ogg import ogg_grab_page,is_ogg
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 
@@ -153,7 +153,7 @@ def publish_key(torrent, keypair, target_directory = "./"):
 
 if __name__ == "__main__":
 
-    config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
     
     print >>sys.stderr,"config is",config
     print >>sys.stderr,"fileargs is",fileargs

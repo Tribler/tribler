@@ -58,9 +58,6 @@ class DownloadState(Serializable):
         self.haveslice = None
         self.stats = None
         self.length = None
-
-        # self.stats:          BitTornado.BT1.DownloaderFeedback.py (return from gather method)
-        # self.stats["stats"]: BitTornado.BT1.Statistics.py (Statistics_Response instance)
         
         if stats is None:
             # No info available yet from download engine
@@ -113,23 +110,27 @@ class DownloadState(Serializable):
                 if self.filepieceranges is None or len(self.filepieceranges) == 0:
                     self.haveslice = statsobj.have # is copy of network engine list
                 else:
+                    self.haveslice_total = statsobj.have
+                    selected_files = self.download.get_selected_files()
                     # Show only pieces complete for the selected ranges of files
                     totalpieces =0
                     for t,tl,f in self.filepieceranges:
-                        diff = tl-t
-                        totalpieces += diff
+                        if f in selected_files or not selected_files:
+                            diff = tl-t
+                            totalpieces += diff
                         
                     #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
                     haveslice = [False] * totalpieces
                     have = 0
                     index = 0
                     for t,tl,f in self.filepieceranges:
-                        for piece in range(t,tl):
-                            haveslice[index] = statsobj.have[piece]
-                            if haveslice[index]:
-                                have += 1
+                        if f in selected_files or not selected_files:
+                            for piece in range(t,tl):
+                                haveslice[index] = statsobj.have[piece]
+                                if haveslice[index]:
+                                    have += 1
 
-                            index += 1
+                                index += 1
                     self.haveslice = haveslice
                     if have == len(haveslice):
                         # we have all pieces of the selected files
@@ -315,30 +316,27 @@ class DownloadState(Serializable):
         for every file selected using set_selected_files. Progress is a float
         between 0 and 1
         """
-        completion = []
-        if self.progress == 1.0:
-            if len(self.download.get_selected_files()) > 0:
-                files = self.download.get_selected_files() 
-            else:
-                files = self.download.get_def().get_files()
-                
-            for file_in_torrent in files:
-                completion.append((file_in_torrent, 1.0))
+        if len(self.download.get_selected_files()) > 0:
+            files = self.download.get_selected_files() 
         else:
-            if self.filepieceranges:
-                index = 0
-                for t,tl,f in self.filepieceranges:
+            files = self.download.get_def().get_files()
+
+        completion = []        
+        if self.filepieceranges:
+            for t,tl,f in self.filepieceranges:
+                if f in files and self.progress == 1.0:
+                    completion.append((f, 1.0))
+                else:
                     #niels: ranges are from-to (inclusive ie if a file consists one piece t and tl will be the same)
                     total_pieces = tl - t
-                    if total_pieces and getattr(self, 'haveslice', False):
+                    if total_pieces and getattr(self, 'haveslice_total', False):
                         completed = 0
-                        for i in range(total_pieces):
-                            if self.haveslice[index]:
+                        for index in range(t, tl):
+                            if self.haveslice_total[index]:
                                 completed += 1
-                            index += 1
                         
                         completion.append((f, completed/(total_pieces*1.0)))
-                    else:
+                    elif f in files:
                         completion.append((f, 0.0))
         return completion
     
@@ -371,15 +369,17 @@ class DownloadState(Serializable):
         
         peers = self.get_peerlist()
         for peer in peers:
-            if peer['completed'] == 1 or peer['have'].complete():
+            completed = peer.get('completed', 0)
+            have = peer.get('have', [])
+            
+            if completed == 1 or have and all(have):
                 nr_seeders_complete += 1
             else:
-                boollist = peer['have'].toboollist()
                 if merged_bitfields == None:
-                    merged_bitfields = [0]*len(boollist)
+                    merged_bitfields = [0]*len(have)
                 
-                for i in range(len(boollist)):
-                    if boollist[i]:
+                for i in range(len(have)):
+                    if have[i]:
                         merged_bitfields[i] += 1
         
         if merged_bitfields:

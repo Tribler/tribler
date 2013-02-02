@@ -21,17 +21,12 @@ from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeCo
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_SIXTH
 from Tribler.Core import NoDispersyRLock
-
-# ProxyService 90s Test_
-#import time
-# _ProxyService 90s Test
 
 GOTM2CRYPTO=False
 try:
     import M2Crypto
-    import Tribler.Core.Overlay.permid as permidmod
+    import Tribler.Core.permid as permidmod
     GOTM2CRYPTO=True
 except ImportError:
     pass
@@ -65,9 +60,6 @@ class Session(SessionRuntimeConfig):
         at a time in a process. The ignore_singleton flag is used for testing.
         """
         
-        # ProxyService 90s Test_
-#        self.start_time = time.time()
-        # _ProxyService 90s Test
         
         if not ignore_singleton:
             if Session.__single:
@@ -174,12 +166,6 @@ class Session(SessionRuntimeConfig):
                 sink = '/dev/null'
             self.sessconfig['tracker_logfile'] = sink
 
-        # 4. superpeer.txt and crawler.txt
-        if self.sessconfig['superpeer_file'] is None:
-            self.sessconfig['superpeer_file'] = os.path.join(self.sessconfig['install_dir'],LIBRARYNAME,'Core','superpeer.txt')
-        if 'crawler_file' not in self.sessconfig or self.sessconfig['crawler_file'] is None:
-            self.sessconfig['crawler_file'] = os.path.join(self.sessconfig['install_dir'], LIBRARYNAME,'Core','Statistics','crawler.txt')
-
         # 5. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
@@ -192,15 +178,6 @@ class Session(SessionRuntimeConfig):
         for key,defvalue in sessdefaults.iteritems():
             if key not in self.sessconfig:
                 self.sessconfig[key] = defvalue
-
-        # 7. proxyservice_dir
-        if self.sessconfig['overlay']: #NIELS: proxyservice_on/off is set at runtime, always make sure proxyservice_ and self.sessconfig['proxyservice_status'] == PROXYSERVICE_ON:
-            if self.sessconfig['proxyservice_dir'] is None:
-                self.sessconfig['proxyservice_dir'] = os.path.join(get_default_dest_dir(), PROXYSERVICE_DESTDIR)
-            # Jelle: under linux, default_dest_dir can be /tmp. Then proxyservice_dir can be deleted in between
-            # sessions.
-            if not os.path.isdir(self.sessconfig['proxyservice_dir']):
-                os.makedirs(self.sessconfig['proxyservice_dir'])
 
         if not 'live_aux_seeders' in self.sessconfig:
             # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
@@ -247,7 +224,15 @@ class Session(SessionRuntimeConfig):
             Session(*args, **kw)
         return Session.__single
     get_instance = staticmethod(get_instance)
+    
+    def has_instance():
+        return Session.__single != None
+    has_instance = staticmethod(has_instance)
 
+    def del_instance():
+        Session.__single = None
+    del_instance = staticmethod(del_instance)
+    
     def get_default_state_dir(homedirpostfix='.Tribler'):
         """ Returns the factory default directory for storing session state
         on the current platform (Win32,Mac,Unix).
@@ -259,6 +244,9 @@ class Session(SessionRuntimeConfig):
         if statedir and statedir != statedirvar:
             return statedir
         
+        if os.path.isdir(homedirpostfix):
+            return os.path.abspath(homedirpostfix)
+
         appdir = get_appstate_dir() 
         statedir = os.path.join(appdir, homedirpostfix)
         return statedir
@@ -412,9 +400,7 @@ class Session(SessionRuntimeConfig):
           @return A boolean. """
 
         # Arno, LICHT: make it throw exception when used in LITE versie.
-        from Tribler.Core.NATFirewall.DialbackMsgHandler import DialbackMsgHandler
-        
-        return DialbackMsgHandler.getInstance().isConnectable()
+        raise NotYetImplementedException()
 
     def get_current_startup_config_copy(self):
         """ Returns a SessionStartupConfig that is a copy of the current runtime 
@@ -556,10 +542,7 @@ class Session(SessionRuntimeConfig):
         None when the Session was not started with megacaches enabled. 
         <pre> NTFY_PEERS -> PeerDBHandler
         NTFY_TORRENTS -> TorrentDBHandler
-        NTFY_SUPERPEERS -> SuperpeerDBHandler
-        NTFY_FRIENDS -> FriendsDBHandler
         NTFY_MYPREFERENCES -> MyPreferenceDBHandler
-        NTFY_BARTERCAST -> BartercastDBHandler
         NTFY_VOTECAST -> VotecastDBHandler
         NTFY_CHANNELCAST -> ChannelCastDBHandler
         </pre>
@@ -571,12 +554,8 @@ class Session(SessionRuntimeConfig):
                 return self.lm.peer_db
             elif subject == NTFY_TORRENTS:
                 return self.lm.torrent_db
-            elif subject == NTFY_FRIENDS:
-                return self.lm.friend_db
             elif subject == NTFY_MYPREFERENCES:
                 return self.lm.mypref_db
-            elif subject == NTFY_BARTERCAST:
-                return self.lm.bartercast_db
             elif subject == NTFY_SEEDINGSTATS:
                 return self.lm.seedingstats_db
             elif subject == NTFY_SEEDINGSTATSSETTINGS:
@@ -594,33 +573,7 @@ class Session(SessionRuntimeConfig):
     def close_dbhandler(self,dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
-    
 
-    #
-    # Access control
-    #
-    def set_overlay_request_policy(self, reqpol):
-        """
-        Set a function which defines which overlay requests (e.g. proxy relay request, rquery msg) 
-        will be answered or will be denied.
-        
-        The function will be called by a network thread and must return 
-        as soon as possible to prevent performance problems.
-        
-        @param reqpol is a Tribler.Core.RequestPolicy.AbstractRequestPolicy 
-        object.
-        """
-        # Called by any thread
-        # to protect self.sessconfig
-        self.sesslock.acquire()
-        try:
-            overlay_loaded = self.sessconfig['overlay']
-        finally:
-            self.sesslock.release()
-        if overlay_loaded:
-            self.lm.overlay_apps.setRequestPolicy(reqpol) # already threadsafe
-        elif DEBUG:
-            print >>sys.stderr,"Session: overlay is disabled, so no overlay request policy needed"
 
 
     #
@@ -674,127 +627,6 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
 
-    #
-    # Tribler Core special features
-    #
-    def query_connected_peers(self,query,usercallback,max_peers_to_query=None):
-        """ Ask all Tribler peers we're currently connected to resolve the
-        specified query and return the hits. For each peer that returns
-        hits the usercallback method is called with first parameter the
-        permid of the peer, as second parameter the query string and
-        as third parameter a dictionary of hits. The number of times the 
-        usercallback method will be called is undefined.
-
-        The callback will be called by a popup thread which can be used
-        indefinitely (within reason) by the higher level code.
-
-        At the moment we support three types of query, which are all queries for
-        torrent files that match a set of keywords. The format of the
-        query string is "SIMPLE kw1 kw2 kw3" (type 1) or "SIMPLE+METADATA kw1 kw2 
-        kw3" (type 3). In the future we plan to support full SQL queries.
-        
-        For SIMPLE queries the dictionary of hits consists of 
-        (infohash,torrentrecord) pairs. The torrentrecord is a 
-        dictionary that contains the following keys:
-        <pre>
-        * 'content_name': The 'name' field of the torrent as Unicode string.
-        * 'length': The total size of the content in the torrent.
-        * 'leecher': The currently known number of downloaders.
-        * 'seeder': The currently known number of seeders.
-        * 'category': A list of category strings the torrent was classified into
-          by the remote peer.
-        </pre>
-        
-        From Session API version 1.0.2 the following keys were added
-        to the torrentrecord:
-        <pre>
-        * 'torrent_size': The size of the .torrent file.
-        </pre>
-
-        From Session API version 1.0.4 the following keys were added
-        to the torrentrecord:
-        <pre>
-        * 'channel_permid': PermID of the channel this torrent belongs to (or '')
-        * 'channel_name': channel name as Unicode string (or '').
-       
-
-        For SIMPLE+METADATA queries there is an extra field
-        <pre>
-        * 'torrent_file': Bencoded contents of the .torrent file. 
-        </pre>
-        The torrents *not* be automatically added to the TorrentDBHandler 
-        (if enabled) at the time of the call.
-
-        
-        The third type of query: search for channels. It is used to query for 
-        channels: either a particular channel matching the permid in the query, 
-        or a list of channels whose names match the keywords in the query
-        by sending the query to connected peers. 
-        
-        The format of the query in the corresponding scenarios should be: 
-        a. keyword-based query: "CHANNEL k bbc"     
-            ('k' stands for keyword-based and ' '{space} is a separator followed by 
-            the keywords)
-        b. permid-based query: "CHANNEL p f34wrf2345wfer2345wefd3r34r54" 
-            ('p' stands for permid-based and ' '{space} is a separator followed by
-            the permid)
-        
-        In each of the above 2 cases, the format of the hits that is returned 
-        by the queried peer is a dictionary of hits of (signature,channelrecord). 
-        The channelrecord is a dictionary the contains following keys: 
-        <pre>
-        * 'publisher_id': a PermID
-        * 'publisher_name': as Unicode string
-        * 'infohash': 20-byte SHA1 hash
-        * 'torrenthash': 20-byte SHA1 hash
-        * 'torrentname': as Unicode string
-        * 'time_stamp': as integer
-        </pre>
-
-        
-        @param query A Unicode query string adhering to the above spec.
-        @param usercallback A function adhering to the above spec.
-        @return currently connected peers with olversion 6 or higher
-        """
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['overlay']:
-                if not (query.startswith('SIMPLE ') or query.startswith('SIMPLE+METADATA ')) and not query.startswith('CHANNEL '):
-                    raise ValueError("Query does not start with SIMPLE or SIMPLE+METADATA or CHANNEL (%s)"%query)
-                
-                from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
-                
-                rqmh = RemoteQueryMsgHandler.getInstance()
-                rqmh.send_query(query,usercallback,max_peers_to_query=max_peers_to_query)
-                
-                return len(rqmh.get_connected_peers(OLPROTO_VER_SIXTH))
-            else:
-                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
-        finally:
-            self.sesslock.release()
-        
-        return 0
-    
-    def query_peers(self,query,peers,usercallback):
-        """ Equal to query_connected_peers only now for a limited subset of peers.
-        If there is no active connnection to a peer in the list, a connection
-        will be made.
-        """
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['overlay']:
-                if not (query.startswith('SIMPLE ') or query.startswith('SIMPLE+METADATA ')) and not query.startswith('CHANNEL '):
-                    raise ValueError('Query does not start with SIMPLE or SIMPLE+METADATA or CHANNEL')
-                
-                from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
-                
-                rqmh = RemoteQueryMsgHandler.getInstance()
-                rqmh.send_query_to_peers(query,peers,usercallback)
-            else:
-                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
-        finally:
-            self.sesslock.release()
-    
     def download_torrentfile(self, infohash = None, roothash = None, usercallback = None, prio = 0):
         """ Try to download the torrentfile without a known source.
         A possible source could be the DHT.
@@ -937,102 +769,3 @@ class Session(SessionRuntimeConfig):
             return ConnectionCheck.getInstance(self).get_nat_type(callback=callback)
         finally:
             self.sesslock.release()
-
-    #
-    # Friendship functions
-    #
-    def send_friendship_message(self,permid,mtype,approved=None):
-        """ Send friendship msg to the specified peer 
-        
-        F_REQUEST_MSG:
-        
-        F_RESPONSE_MSG:
-        @param approved Whether you want him as friend or not.
-        
-        """
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['overlay']:
-                if mtype == F_FORWARD_MSG:
-                    raise ValueError("User cannot send FORWARD messages directly")
-                
-                from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
-                
-                fmh = FriendshipMsgHandler.getInstance()
-                params = {}
-                if approved is not None:
-                    params['response'] = int(approved)
-                fmh.anythread_send_friendship_msg(permid,mtype,params)
-            else:
-                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
-        finally:
-            self.sesslock.release()
-
-
-    def set_friendship_callback(self,usercallback):
-        """ When a new friendship request is received the given
-        callback function is called with as first parameter the
-        requester's permid and as second parameter a dictionary of
-        request arguments:
-            callback(requester_permid,params)
-
-        The callback is called by a popup thread which can be used
-        indefinitely (within reason) by the higher level code.
-        
-        @param usercallback A callback function adhering to the above spec.
-        """
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['overlay']:
-                from Tribler.Core.SocialNetwork.FriendshipMsgHandler import FriendshipMsgHandler
-                
-                fmh = FriendshipMsgHandler.getInstance()
-                fmh.register_usercallback(usercallback)
-            else:
-                raise OperationNotEnabledByConfigurationException("Overlay not enabled")
-        finally:
-            self.sesslock.release()
-        
-    # ProxyService_
-    #
-    def get_active_services(self):
-        """ Returns an integer that contains information about the current active services
-        
-        @return: an integer that encodes the active services.
-        """
-        #Current bit reservation:
-        # bit 0 - reserved
-        # bit 1 - regular proxy
-        
-        # Set all 32-bits to 0
-        my_services = 0
-        
-        # Get ProxySevice status
-        proxy_status = self.sessconfig['proxyservice_status']
-        
-        # Check if i am connectable
-        if self.lm.overlay_apps.proxy_peer_manager is not None:
-            if self.lm.overlay_apps.proxy_peer_manager.connectable == None:
-                proxy_status = PROXYSERVICE_OFF
-        
-        if proxy_status == PROXYSERVICE_ON:
-            proxy = 2
-        else:
-            proxy = 0
-        # Store ProxyService status in my_services
-        my_services = my_services | proxy
-        
-        return my_services
-
-    # ProxyService 90s Test_
-#    def set_90stest_state(self, state):
-#        self.proxytest_state = state
-
-#    def get_90stest_state(self):
-#        return self.proxytest_state
-    # _ProxyService 90s Test
-
-    #
-    # _ProxyService
-    
-    

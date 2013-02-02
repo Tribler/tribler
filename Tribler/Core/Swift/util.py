@@ -4,8 +4,8 @@
 # Author: Arno Bakker
 #
 
-from Tribler.Core.BitTornado.bencode import *
-
+import sys
+from Tribler.Core.Utilities.bencode import bdecode
 
 MULTIFILE_PATHNAME = "META-INF-multifilespec.txt"
 

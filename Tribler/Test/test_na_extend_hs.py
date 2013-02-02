@@ -14,8 +14,8 @@ from types import DictType,IntType
 
 from Tribler.Test.test_extend_hs import TestExtendHandshake
 from btconn import BTConnection
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import *
 from Tribler.Core.BitTornado.BT1.track import compact_ip
 from Tribler.Core.Utilities.Crypto import sha
 

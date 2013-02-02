@@ -9,7 +9,7 @@ from Tribler.Core.API import *
 from Tribler.Core.TorrentDef import *
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 
 FIRST_ITERATION = True
 QUIT_NOW = False
@@ -188,7 +188,7 @@ def state_callback(ds):
 
 if __name__ == "__main__":
 
-  config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+  config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
   print >>sys.stderr,"config is",config
   print "fileargs is",fileargs
     

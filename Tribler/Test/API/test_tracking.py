@@ -15,7 +15,7 @@ from Tribler.Core.BitTornado.zurllib import urlopen
 from Tribler.Core.simpledefs import STATEDIR_ITRACKER_DIR
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 
 from Tribler.Core.API import *
 

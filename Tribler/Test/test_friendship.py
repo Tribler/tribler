@@ -23,8 +23,8 @@ from M2Crypto import EC
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 import btconn
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import *
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Test.test_social_overlap import TestSocialOverlap

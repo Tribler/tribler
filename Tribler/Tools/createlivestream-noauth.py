@@ -13,7 +13,7 @@ from traceback import print_exc
 from threading import Condition
 
 from Tribler.Core.API import *
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 
 argsdef = [('name', '', 'name of the stream'),
            ('source', '-', 'source to stream (url, file or "-" to indicate stdin)'),
@@ -44,7 +44,7 @@ def get_usage(defs):
 
 if __name__ == "__main__":
 
-    config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
     print >>sys.stderr,"config is",config
     print "fileargs is",fileargs
     

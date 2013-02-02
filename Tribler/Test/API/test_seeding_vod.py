@@ -11,7 +11,7 @@ import tempfile
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 
 from Tribler.Core.TorrentDef import *
 from Tribler.Core.DownloadConfig import *

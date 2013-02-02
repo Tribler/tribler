@@ -27,16 +27,15 @@ from struct import unpack_from
 from maxflow import Network
 from math import atan, pi
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Notifier import Notifier
 from Tribler.Core.simpledefs import *
-from Tribler.Core.Overlay.permid import sign_data, verify_data, permid_for_user
 from Tribler.Core.Search.SearchManager import split_into_keywords,\
     filter_keywords
 from Tribler.Core.Utilities.unicode import name2unicode, dunno2unicode
 from Tribler.Category.Category import Category
 from Tribler.Core.defaults import DEFAULTPORT
-from threading import currentThread, Lock
+from threading import currentThread, RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler 
 import binascii
 
@@ -63,10 +62,25 @@ def show_permid_shorter(permid):
     return s[-5:]
 
 class BasicDBHandler:
+    _singleton_lock = RLock()
+    _single = None
+    
     def __init__(self,db, table_name): ## self, table_name
         self._db = db ## SQLiteCacheDB.getInstance()
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
+
+    @classmethod
+    def getInstance(cls, *args, **kargs):
+        with cls._singleton_lock:
+            if not cls._single:
+                cls._single = cls(*args, **kargs)
+            return cls._single
+
+    @classmethod
+    def delInstance(cls):
+        with cls._singleton_lock:
+            cls._single = None
         
     def __del__(self):
         try:
@@ -97,92 +111,19 @@ class BasicDBHandler:
     def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
         return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
-class FriendDBHandler(BasicDBHandler):
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if FriendDBHandler.__single is None:
-            FriendDBHandler.lock.acquire()   
-            try:
-                if FriendDBHandler.__single is None:
-                    FriendDBHandler(*args, **kw)
-            finally:
-                FriendDBHandler.lock.release()
-        return FriendDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
-    
-    def __init__(self):
-        if FriendDBHandler.__single is not None:
-            raise RuntimeError, "FriendDBHandler is singleton"
-        FriendDBHandler.__single = self
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self,db, 'Peer') ## self,db,'Peer'
-        
-    def setFriendState(self, permid, state=1, commit=True):
-        self._db.update(self.table_name,  'permid='+repr(bin2str(permid)), commit=commit, friend=state)
-        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid, 'friend', state)
-
-    def getFriends(self,state=1):
-        where = 'friend=%d ' % state
-        res = self._db.getAll('Friend', 'permid',where=where)
-        return [str2bin(p[0]) for p in res]
-        #raise Exception('Use PeerDBHandler getGUIPeers(category = "friend")!')
-
-    def getFriendState(self, permid):
-        res = self.getOne('friend', permid=bin2str(permid))
-        return res
-        
-    def deleteFriend(self,permid):
-        self.setFriendState(permid,0)
-        
-    def searchNames(self,kws):
-        return doPeerSearchNames(self,'Friend',kws)
-        
-    def getRanks(self):
-        # TODO
-        return []
-    
-    def size(self):
-        return self._db.size('Friend')
-    
-    def addExternalFriend(self, peer):
-        peerdb = PeerDBHandler.getInstance()
-        peerdb.addPeer(peer['permid'], peer)
-        self.setFriendState(peer['permid'])
         
 NETW_MIME_TYPE = 'image/jpeg'
 
 class PeerDBHandler(BasicDBHandler):
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
 
     gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
                       'num_peers', 'num_torrents', 'num_prefs', 
                       'connected_times', 'buddycast_times', 'last_connected',
                       'is_local', 'services')
     
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if PeerDBHandler.__single is None:
-            PeerDBHandler.lock.acquire()   
-            try:
-                if PeerDBHandler.__single is None:
-                    PeerDBHandler(*args, **kw)
-            finally:
-                PeerDBHandler.lock.release()
-        return PeerDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
-    
     def __init__(self):
-        if PeerDBHandler.__single is not None:
+        if PeerDBHandler._single:
             raise RuntimeError, "PeerDBHandler is singleton"
-        PeerDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db,'Peer') ## self, db ,'Peer'
 
@@ -554,118 +495,20 @@ class PeerDBHandler(BasicDBHandler):
 
     def searchNames(self,kws):
         return doPeerSearchNames(self,'Peer',kws)
-
-class CrawlerDBHandler:
-    """
-    The CrawlerDBHandler is not an actual handle to a
-    database. Instead it uses a local file (usually crawler.txt) to
-    identify crawler processes.
-    """
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if CrawlerDBHandler.__single is None:
-            CrawlerDBHandler.lock.acquire()   
-            try:
-                if CrawlerDBHandler.__single is None:
-                    CrawlerDBHandler(*args, **kw)
-            finally:
-                CrawlerDBHandler.lock.release()
-        return CrawlerDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
-    
-    def __init__(self):
-        if CrawlerDBHandler.__single is not None:
-            raise RuntimeError, "CrawlerDBHandler is singleton"
-        CrawlerDBHandler.__single = self
-        self._crawler_list = []
-        
-    def loadCrawlers(self, config, refresh=False):
-        filename = os.path.join(config['crawler_file'])
-        self._crawler_list = self.readCrawlerList(filename)
-
-    def readCrawlerList(self, filename=''):
-        """
-        read (permid [, name]) lines from a text file
-        returns a list containing permids
-        """
-        
-        try:
-            filepath = os.path.abspath(filename)
-            file = open(filepath, "r")
-        except IOError:
-            print >> sys.stderr, "crawler: cannot open crawler file", filepath
-            return []
-            
-        crawlers = file.readlines()
-        file.close()
-        crawlers_info = []
-        for crawler in crawlers:
-            if crawler.strip().startswith("#"):    # skip commended lines
-                continue
-            crawler_info = [a.strip() for a in crawler.split(",")]
-            try:
-                crawler_info[0] = base64.decodestring(crawler_info[0]+'\n')
-            except:
-                print_exc()
-                continue
-            crawlers_info.append(str2bin(crawler))
-                    
-        return crawlers_info
-
-    def temporarilyAddCrawler(self, permid):
-        """
-        Because of security reasons we will not allow crawlers to be
-        added to the crawler.txt list. This temporarilyAddCrawler
-        method can be used to add one for the running session. Usefull
-        for debugging and testing.
-        """
-        if not permid in self._crawler_list:
-            self._crawler_list.append(permid)
-
-    def getCrawlers(self):
-        """
-        returns a list with permids of crawlers
-        """
-        return self._crawler_list
         
 class TorrentDBHandler(BasicDBHandler):
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if TorrentDBHandler.__single is None:
-            TorrentDBHandler.lock.acquire()   
-            try:
-                if TorrentDBHandler.__single is None:
-                    TorrentDBHandler(*args, **kw)
-            finally:
-                TorrentDBHandler.lock.release()
-        return TorrentDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
 
     def __init__(self):
-        if TorrentDBHandler.__single is not None:
+        if TorrentDBHandler._single is not None:
             raise RuntimeError, "TorrentDBHandler is singleton"
-        TorrentDBHandler.__single = self
+        
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self,db, 'Torrent') ## self,db,torrent
-        
-        self.mypref_db = MyPreferenceDBHandler.getInstance()
-        self.votecast_db = VoteCastDBHandler.getInstance()
-        self.channelcast_db = ChannelCastDBHandler.getInstance()
-        self._rtorrent_handler = RemoteTorrentHandler.getInstance()
         
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
         self.id2status = dict([(x,y) for (y,x) in self.status_table.items()]) 
+        self.id2status[None] = 'unknown'
         self.torrent_dir = None
         # 0 - unknown
         # 1 - good
@@ -681,7 +524,9 @@ class TorrentDBHandler(BasicDBHandler):
                                 u'other':8,}
         self.category_table.update(self._db.getTorrentCategoryTable())
         self.category_table[u'unknown'] = 0 
+        
         self.id2category = dict([(x,y) for (y,x) in self.category_table.items()])
+        self.id2category[None] = u'unknown'
         # 1 - Video
         # 2 - VideoClips
         # 3 - Audio
@@ -693,6 +538,8 @@ class TorrentDBHandler(BasicDBHandler):
         
         self.src_table = self._db.getTorrentSourceTable()
         self.id2src = dict([(x,y) for (y,x) in self.src_table.items()])
+        self.id2src[None] = u'unknown'
+        
         # 0 - ''    # local added
         # 1 - BC
         # 2,3,4... - URL of RSS feed
@@ -715,6 +562,11 @@ class TorrentDBHandler(BasicDBHandler):
     def register(self, category, torrent_dir):
         self.category = category
         self.torrent_dir = torrent_dir
+        
+        self.mypref_db = MyPreferenceDBHandler.getInstance()
+        self.votecast_db = VoteCastDBHandler.getInstance()
+        self.channelcast_db = ChannelCastDBHandler.getInstance()
+        self._rtorrent_handler = RemoteTorrentHandler.getInstance()
         
     def getTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -1595,9 +1447,7 @@ class TorrentDBHandler(BasicDBHandler):
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
         
     def getRandomlyCollectedSwiftHashes(self, insert_time, limit = 50):
-        # 19/07/12 Boudewijn: sacrifice randomness to improve performance (i.e. use random() instead of ORDER BY RANDOM)
-        # sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' ORDER BY RANDOM() DESC LIMIT ?"
-        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' AND CollectedTorrent.torrent_id >= (abs(random()) % (SELECT MAX(torrent_id) FROM CollectedTorrent)) LIMIT ?"
+        sql = "SELECT swift_torrent_hash, infohash, num_seeders, num_leechers, last_check FROM CollectedTorrent LEFT JOIN TorrentTracker ON CollectedTorrent.torrent_id = TorrentTracker.torrent_id WHERE insert_time < ? AND swift_torrent_hash IS NOT NULL AND swift_torrent_hash <> '' ORDER BY RANDOM() DESC LIMIT ?"
         results = self._db.fetchall(sql, (insert_time, limit))
         return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
         
@@ -1632,11 +1482,10 @@ class TorrentDBHandler(BasicDBHandler):
                 select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
                 from CollectedTorrent
-                where  torrent_id not in (select torrent_id from MyPreference)
+                where torrent_id not in (select torrent_id from MyPreference)
                 order by weight  
                 limit %d  
             """ % (int(time()), torrents2del)
-        
         
         res_list = self._db.fetchall(sql)
         if len(res_list) == 0: 
@@ -1781,13 +1630,13 @@ class TorrentDBHandler(BasicDBHandler):
         for result in results:
             channel_id = result[-2]
             channel = channel_dict.get(channel_id, False)
+            
+            infohash = result[infohash_index]
             if channel:
-
                 #ignoring spam channels
                 if channel[7] < 0:
                     continue
 
-                infohash = result[infohash_index]
                 #see if we have a better channel in torrents_dict
                 if infohash in result_dict:
                     old_channel = channel_dict.get(result_dict[infohash][-2], False)
@@ -1806,6 +1655,9 @@ class TorrentDBHandler(BasicDBHandler):
                         if votes < oldvotes:
                             continue
 
+                result_dict[infohash] = result
+            
+            elif infohash not in result_dict:
                 result_dict[infohash] = result
         
         t4 = time()
@@ -2097,42 +1949,16 @@ class TorrentDBHandler(BasicDBHandler):
         
 
 class MyPreferenceDBHandler(BasicDBHandler):
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if MyPreferenceDBHandler.__single is None:
-            MyPreferenceDBHandler.lock.acquire()   
-            try:
-                if MyPreferenceDBHandler.__single is None:
-                    MyPreferenceDBHandler(*args, **kw)
-            finally:
-                MyPreferenceDBHandler.lock.release()
-        return MyPreferenceDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
-    
     def __init__(self):
-        if MyPreferenceDBHandler.__single is not None:
+        if MyPreferenceDBHandler._single is not None:
             raise RuntimeError, "MyPreferenceDBHandler is singleton"
-        MyPreferenceDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self,db, 'MyPreference') ## self,db,'MyPreference'
 
         self.status_table = {'good':1, 'unknown':0, 'dead':2}
         self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
-        # Arno, 2010-02-04: ARNOCOMMENT ARNOTODO Get rid of this g*dd*mn caching
-        # or keep it consistent with the DB!
-#        self.recent_preflist = None
-#        self.recent_preflist_with_clicklog = None
-#        self.recent_preflist_with_swarmsize = None
         self.rlock = threading.RLock()
-        
-        #self.popularity_db = PopularityDBHandler.getInstance()
-        
         
     def loadData(self):
         """ Arno, 2010-02-04: Brute force update method for the self.recent_
@@ -2319,59 +2145,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         for term in terms:
             eterms.append(term.encode("UTF-8"))
         return eterms
-    
-    
-#    def _getRecentLivePrefListOL11(self, num=0): 
-#        """
-#        first calls the previous method to get a list of torrents and related info from MyPreference db 
-#        (_getRecentLivePrefListWithClicklog) and then appendes it with swarm size info or ( num_seeders, num_leechers, calc_age, num_seeders).
-#        @author: Rahim
-#        @param num: if num=0 it returns all items otherwise it restricts the return result to num.
-#        @return: a list that each item conatins below info:
-#        [infohash, [seach terms], click position, reranking strategy, num_seeders, num_leechers, calc_age, num_of_sources] 
-#        """
-#        
-#        sql = """
-#        select infohash, click_position, reranking_strategy, m.torrent_id from MyPreference m, Torrent t 
-#        where m.torrent_id == t.torrent_id 
-#        and status_id == %d
-#        order by creation_time desc
-#        """ % self.status_good
-#        
-#        recent_preflist_with_swarmsize = self._db.fetchall(sql)
-#        if recent_preflist_with_swarmsize is None:
-#            recent_preflist_with_swarmsize = []
-#        else:
-#            recent_preflist_with_swarmsize = [[str2bin(t[0]),
-#                                              t[3],   # insert search terms in next step, only for those actually required, store torrent id for now
-#                                              t[1], # click position
-#                                              t[2]]  # reranking strategy
-#                                             for t in recent_preflist_with_swarmsize]
-#
-#        if num != 0:
-#            recent_preflist_with_swarmsize = recent_preflist_with_swarmsize[:num]
-#
-#        # now that we only have those torrents left in which we are actually interested, 
-#        # replace torrent id by user's search terms for torrent id
-#        searchdb = SearchDBHandler.getInstance()
-#        
-#        tempTorrentList = [pref[1] for pref in recent_preflist_with_swarmsize]
-#        terms_dict = searchdb.getMyTorrentsSearchTermsStr(tempTorrentList)
-#        
-#        for pref in recent_preflist_with_swarmsize:
-#            search_terms = [term.encode("UTF-8") for term in terms_dict[pref[1]]]
-#            pref[1] = search_terms
-#        
-#        #Step 3: appending swarm size info to the end of the inner lists
-#        swarmSizeInfoList= self.popularity_db.calculateSwarmSize(tempTorrentList, 'TorrentIds', toBC=True) # returns a list of items [torrent_id, num_seeders, num_leechers, num_sources_seen]
-#
-#        index = 0
-#        for index in range(0,len(swarmSizeInfoList)):
-#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][1]) # number of seeders
-#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][2])# number of leechers
-#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][3])  # age of the report 
-#            recent_preflist_with_swarmsize[index].append(swarmSizeInfoList[index][4]) # number of sources seen this torrent 
-#        return recent_preflist_with_swarmsize
         
     def _getRecentLivePrefList(self, num=0):    # num = 0: all files
         # get recent and live torrents
@@ -2467,500 +2240,10 @@ class MyPreferenceDBHandler(BasicDBHandler):
             
         if torrent_id:
             self.updateDestDir(torrent_id, destdir, commit=commit)
-            
-class BarterCastDBHandler(BasicDBHandler):
-
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        
-        if BarterCastDBHandler.__single is None:
-            BarterCastDBHandler.lock.acquire()   
-            try:
-                if BarterCastDBHandler.__single is None:
-                    BarterCastDBHandler(*args, **kw)
-            finally:
-                BarterCastDBHandler.lock.release()
-        return BarterCastDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
-
-    def __init__(self):
-        BarterCastDBHandler.__single = self
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db,'BarterCast') ## self,db,'BarterCast'
-        self.peer_db = PeerDBHandler.getInstance()
-        
-        # create the maxflow network
-        self.network = Network({})
-        self.update_network()
-                   
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb:"
-
-        
-    ##def registerSession(self, session):
-    ##    self.session = session
-
-        # Retrieve MyPermid
-    ##    self.my_permid = session.get_permid()
-
-
-    def registerSession(self, session):
-        self.session = session
-
-        # Retrieve MyPermid
-        self.my_permid = session.get_permid()
-
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: MyPermid is ", `self.my_permid`
-
-        if self.my_permid is None:
-            raise ValueError('Cannot get permid from Session')
-
-        # Keep administration of total upload and download
-        # (to include in BarterCast message)
-        self.my_peerid = self.getPeerID(self.my_permid)
-        
-        if self.my_peerid != None:
-            where = "peer_id_from=%s" % (self.my_peerid)
-            item = self.getOne(('sum(uploaded)', 'sum(downloaded)'), where=where)
-        else:
-            item = None
-        
-        if item != None and len(item) == 2 and item[0] != None and item[1] != None:
-            self.total_up = int(item[0])
-            self.total_down = int(item[1])
-        else:
-            self.total_up = 0
-            self.total_down = 0
-            
-#         if DEBUG:
-#             print >> sys.stderr, "My reputation: ", self.getMyReputation()
-            
-    
-    def getTotals(self):
-        return (self.total_up, self.total_down)
-                        
-    def getName(self, permid):
-
-        if permid == 'non-tribler':
-            return "non-tribler"
-        elif permid == self.my_permid:
-            return "local_tribler"
-
-        name = self.peer_db.getPeer(permid, 'name')
-        
-        if name == None or name == '':
-            return 'peer %s' % show_permid_shorter(permid) 
-        else:
-            return name
-
-    def getNameByID(self, peer_id):
-        permid = self.getPermid(peer_id)
-        return self.getName(permid)
-
-
-    def getPermid(self, peer_id):
-
-        # by convention '-1' is the id of non-tribler peers
-        if peer_id == -1:
-            return 'non-tribler'
-        else:
-            return self.peer_db.getPermid(peer_id)
-        
-    def getPermids(self, peer_ids):
-        to_select = []
-        to_return = []
-        
-        for peer_id in peer_ids:
-            # by convention '-1' is the id of non-tribler peers
-            if peer_id == -1:
-                to_return.append("non-tribler")
-            else:
-                to_select.append(peer_id)
-                to_return.append(None)
-        
-        if len(to_select) > 0:
-            permids = self.peer_db.getPermids(to_select)
-            for i in xrange(len(to_return)):
-                if to_return[i] == None:
-                    to_return[i] = permids.pop()
-        return to_return
-
-    def getPeerID(self, permid):
-        
-        # by convention '-1' is the id of non-tribler peers
-        if permid == "non-tribler":
-            return -1
-        else:
-            return self.peer_db.getPeerID(permid)
-        
-    def getPeerIDS(self, permids):
-        to_select = []
-        to_return = []
-        
-        for permid in permids:
-            # by convention '-1' is the id of non-tribler peers
-            if permid == "non-tribler":
-                to_return.append(-1)
-            else:
-                to_select.append(permid)
-                to_return.append(None)
-        
-        if len(to_select) > 0:
-            peer_ids = self.peer_db.getPeerIDS(to_select)
-            for i in xrange(len(to_return)):
-                if to_return[i] == -1:
-                    to_return[i] = peer_ids.pop()
-        return to_return
-        
-
-    def getItem(self, (permid_from, permid_to), default=False):
-
-        # ARNODB: now converting back to dbid! just did reverse in getItemList
-        peer_id1 = self.getPeerID(permid_from)
-        peer_id2 = self.getPeerID(permid_to)
-        
-        if peer_id1 is None:
-            self._db.insertPeer(permid_from) # ARNODB: database write
-            peer_id1 = self.getPeerID(permid_from) # ARNODB: database write
-        
-        if peer_id2 is None:
-            self._db.insertPeer(permid_to)
-            peer_id2 = self.getPeerID(permid_to)
-            
-        return self.getItemByIDs((peer_id1,peer_id2),default=default)
-
-
-    def getItemByIDs(self, (peer_id_from, peer_id_to), default=False):
-        if peer_id_from is not None and peer_id_to is not None:
-            
-            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id_from, peer_id_to)
-            item = self.getOne(('downloaded', 'uploaded', 'last_seen'), where=where)
-        
-            if item is None:
-                return None
-        
-            if len(item) != 3:
-                return None
-            
-            itemdict = {}
-            itemdict['downloaded'] = item[0]
-            itemdict['uploaded'] = item[1]
-            itemdict['last_seen'] = item[2]
-            itemdict['peer_id_from'] = peer_id_from
-            itemdict['peer_id_to'] = peer_id_to
-
-            return itemdict
-
-        else:
-            return None
-
-
-    def getItemList(self):    # get the list of all peers' permid
-        
-        keys = self.getAll(('peer_id_from','peer_id_to'))
-        # ARNODB: this dbid -> permid translation is more efficiently done
-        # on the final top-N list.
-        keys = map(lambda (id_from, id_to): (self.getPermid(id_from), self.getPermid(id_to)), keys)
-        return keys
-
-
-    def addItem(self, (permid_from, permid_to), item, commit=True):
-
-#        if value.has_key('last_seen'):    # get the latest last_seen
-#            old_last_seen = 0
-#            old_data = self.getPeer(permid)
-#            if old_data:
-#                old_last_seen = old_data.get('last_seen', 0)
-#            last_seen = value['last_seen']
-#            value['last_seen'] = max(last_seen, old_last_seen)
-
-        # get peer ids
-        peer_id1 = self.getPeerID(permid_from)
-        peer_id2 = self.getPeerID(permid_to)
-                
-        # check if they already exist in database; if not: add
-        if peer_id1 is None:
-            self._db.insertPeer(permid_from)
-            peer_id1 = self.getPeerID(permid_from)
-        if peer_id2 is None:
-            self._db.insertPeer(permid_to)
-            peer_id2 = self.getPeerID(permid_to)
-            
-        item['peer_id_from'] = peer_id1
-        item['peer_id_to'] = peer_id2    
-            
-        self._db.insert(self.table_name, commit=commit, **item)
-
-    def updateItem(self, (permid_from, permid_to), key, value, commit=True):
-        
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: update (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
-
-        itemdict = self.getItem((permid_from, permid_to))
-
-        # if item doesn't exist: add it
-        if itemdict == None:
-            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=True)
-            itemdict = self.getItem((permid_from, permid_to))
-
-        # get peer ids
-        peer_id1 = itemdict['peer_id_from']
-        peer_id2 = itemdict['peer_id_to']
-
-        if key in itemdict.keys():
-            
-            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-            item = {key: value}
-            self._db.update(self.table_name, where = where, commit=commit, **item)            
-
-    def incrementItem(self, (permid_from, permid_to), key, value, commit=True):
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: increment (%s, %s) [%s] += %s" % (self.getName(permid_from), self.getName(permid_to), key, str(value))
-
-        # adjust total_up and total_down
-        if permid_from == self.my_permid:
-            if key == 'uploaded':
-                self.total_up += int(value)
-            if key == 'downloaded':
-                self.total_down += int(value)
-    
-        itemdict = self.getItem((permid_from, permid_to))
-
-        # if item doesn't exist: add it
-        if itemdict == None:
-            self.addItem((permid_from, permid_to), {'uploaded':0, 'downloaded': 0, 'last_seen': int(time())}, commit=True)
-            itemdict = self.getItem((permid_from, permid_to))
-            
-        # get peer ids
-        peer_id1 = itemdict['peer_id_from']
-        peer_id2 = itemdict['peer_id_to']
-
-        if key in itemdict.keys():
-            old_value = itemdict[key]
-            new_value = old_value + value
-            
-            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-
-            item = {key: new_value}
-            self._db.update(self.table_name, where = where, commit=commit, **item)            
-            return new_value
-
-        return None
-
-    def addPeersBatch(self,permids):
-        """ Add unknown permids as batch -> single transaction """
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: addPeersBatch: n=",len(permids)
-        
-        for permid in permids:
-            peer_id = self.getPeerID(permid)
-            # check if they already exist in database; if not: add
-            if peer_id is None:
-                self._db.insertPeer(permid, update=False, commit=False)
-        self._db.commit()
-
-    def updateULDL(self, (permid_from, permid_to), ul, dl, commit=True):
-        """ Add ul/dl record to database as a single write """
-        
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: updateULDL (%s, %s) ['ul'] += %s ['dl'] += %s" % (self.getName(permid_from), self.getName(permid_to), str(ul), str(dl))
-
-        itemdict = self.getItem((permid_from, permid_to))
-
-        # if item doesn't exist: add it
-        if itemdict == None:
-            itemdict =  {'uploaded':ul, 'downloaded': dl, 'last_seen': int(time())}
-            self.addItem((permid_from, permid_to), itemdict, commit=commit)
-            return
-
-        # get peer ids
-        peer_id1 = itemdict['peer_id_from']
-        peer_id2 = itemdict['peer_id_to']
-
-        if 'uploaded' in itemdict.keys() and 'downloaded' in itemdict.keys():
-            where = "peer_id_from=%s and peer_id_to=%s" % (peer_id1, peer_id2)
-            item = {'uploaded': ul, 'downloaded':dl, 'last_seen':int(time())}
-            self._db.update(self.table_name, where = where, commit=commit, **item)            
-
-    def getPeerIDPairs(self):
-        keys = self.getAll(('peer_id_from','peer_id_to'))
-        return keys
-        
-    def getTopNPeers(self, n, local_only = False):
-        """
-        Return (sorted) list of the top N peers with the highest (combined) 
-        values for the given keys. This version uses batched reads and peer_ids
-        in calculation
-        @return a dict containing a 'top' key with a list of (permid,up,down) 
-        tuples, a 'total_up', 'total_down', 'tribler_up', 'tribler_down' field. 
-        Sizes are in kilobytes.
-        """
-        
-        # TODO: this won't scale to many interactions, as the size of the DB
-        # is NxN
-        
-        if DEBUG:
-            print >> sys.stderr, "bartercastdb: getTopNPeers: local = ", local_only
-            #print_stack()
-        
-        n = max(1, n)
-        my_peer_id = self.getPeerID(self.my_permid)
-        total_up = {}
-        total_down = {}
-        # Arno, 2008-10-30: I speculate this is to count transfers only once,
-        # i.e. the DB stored (a,b) and (b,a) and we want to count just one.
-        
-        processed =  set()
-
-        value_name = '*'
-        nrecs = self.size()
-        if local_only:
-            increment = nrecs
-        else:
-            increment = max(500, nrecs/1000)
-                
-        #print >>sys.stderr,"NEXTtopN: size is",nrecs
-        
-        if nrecs > 0:
-            for offset in range(0,nrecs,increment):
-                if offset+increment > nrecs:
-                    limit = nrecs-offset
-                else:
-                    limit = increment
-                #print >>sys.stderr,"NEXTtopN: get",offset,limit
-            
-                if local_only:
-                    sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast WHERE (peer_id_from = ? or peer_id_to = ?) LIMIT ? OFFSET ?"
-                    reslist = self._db.fetchall(sql, (my_peer_id, my_peer_id, limit, offset))
-                else:
-                    sql = "SELECT peer_id_from, peer_id_to, downloaded, uploaded, last_seen, value FROM BarterCast LIMIT ? OFFSET ?"
-                    reslist = self._db.fetchall(sql, (limit, offset))
-            
-                #print >>sys.stderr,"NEXTtopN: res len is",len(reslist),`reslist`
-                for res in reslist:
-                    (peer_id_from,peer_id_to,downloaded,uploaded,last_seen,value) = res
-                
-                    if (not (peer_id_to, peer_id_from) in processed) and (not peer_id_to == peer_id_from):
-                    #if (not peer_id_to == peer_id_from):
-            
-                        up = uploaded *1024 # make into bytes
-                        down = downloaded *1024
-        
-                        if DEBUG:
-                            print >> sys.stderr, "bartercastdb: getTopNPeers: DB entry: (%s, %s) up = %d down = %d" % (self.getNameByID(peer_id_from), self.getNameByID(peer_id_to), up, down)
-        
-                        processed.add((peer_id_from, peer_id_to))
-        
-                        # fix for multiple my_permids
-                        if peer_id_from == -1: # 'non-tribler':
-                            peer_id_to = my_peer_id
-                        if peer_id_to == -1: # 'non-tribler':
-                            peer_id_from = my_peer_id
-        
-                        # process peer_id_from
-                        total_up[peer_id_from] = total_up.get(peer_id_from, 0) + up
-                        total_down[peer_id_from] = total_down.get(peer_id_from, 0) + down
-        
-                        # process peer_id_to
-                        total_up[peer_id_to] = total_up.get(peer_id_to, 0) + down
-                        total_down[peer_id_to] = total_down.get(peer_id_to, 0) +  up
-                    
-        # create top N peers
-        top = []
-        min = 0
-
-        for peer_id in total_up.keys():
-
-            up = total_up[peer_id]
-            down = total_down[peer_id]
-
-            if DEBUG:
-                print >> sys.stderr, "bartercastdb: getTopNPeers: total of %s: up = %d down = %d" % (self.getName(peer_id), up, down)
-
-            # we know rank on total upload?
-            value = up
-
-            # check if peer belongs to current top N
-            if peer_id != -1 and peer_id != my_peer_id and (len(top) < n or value > min):
-
-                top.append((peer_id, up, down))
-
-                # sort based on value
-                top.sort(cmp = lambda (p1, u1, d1), (p2, u2, d2): cmp(u2, u1))
-
-                # if list contains more than N elements: remove the last (=lowest value)
-                if len(top) > n:
-                    del top[-1]
-
-                # determine new minimum of values    
-                min = top[-1][1]
-
-        # Now convert to permid
-        peer_ids = [val[0] for val in top]
-        perm_ids = self.getPermids(peer_ids)
-        
-        permidtop = []
-        for i in xrange(len(top)):
-            peer_id,up,down = top[i]
-            permid = perm_ids[i]
-            permidtop.append((permid,up,down))
-
-        result = {}
-
-        result['top'] = permidtop
-
-        # My total up and download, including interaction with non-tribler peers
-        result['total_up'] = total_up.get(my_peer_id, 0)
-        result['total_down'] = total_down.get(my_peer_id, 0)
-
-        # My up and download with tribler peers only
-        result['tribler_up'] = result['total_up'] - total_down.get(-1, 0) # -1 = 'non-tribler'
-        result['tribler_down'] = result['total_down'] - total_up.get(-1, 0) # -1 = 'non-tribler'
-
-        if DEBUG:
-            print >> sys.stderr, result
-
-        return result
-        
-        
-    ################################
-    def update_network(self):
-
-        #Niels: This seems useless, removing...
-        #keys = self.getPeerIDPairs() #getItemList()
-        pass
-
-    ################################
-    def getMyReputation(self, alpha = ALPHA):
-
-        rep = atan((self.total_up - self.total_down) * alpha)/(0.5 * pi)
-        return rep   
-
 
 class VoteCastDBHandler(BasicDBHandler):
-    
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        
-        if VoteCastDBHandler.__single is None:
-            VoteCastDBHandler.lock.acquire()   
-            try:
-                if VoteCastDBHandler.__single is None:
-                    VoteCastDBHandler(*args, **kw)
-            finally:
-                VoteCastDBHandler.lock.release()
-        return VoteCastDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
 
     def __init__(self):
-        VoteCastDBHandler.__single = self
         try:
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self,db,'VoteCast')
@@ -2968,14 +2251,15 @@ class VoteCastDBHandler(BasicDBHandler):
         except: 
             print >> sys.stderr, "votecast: couldn't make the table"
         
-        self.peer_db = PeerDBHandler.getInstance()
-        self.channelcast_db = ChannelCastDBHandler.getInstance()
         self.my_votes = None
         if DEBUG:
             print >> sys.stderr, "votecast: "
     
     def registerSession(self, session):
         self.session = session
+        
+        self.peer_db = PeerDBHandler.getInstance()
+        self.channelcast_db = ChannelCastDBHandler.getInstance()
         
     def on_vote_from_dispersy(self, channel_id, voter_id, dispersy_id, vote, timestamp):
         if not voter_id:
@@ -3199,34 +2483,15 @@ class VoteCastDBHandler(BasicDBHandler):
                         
 #end votes
 
-class ChannelCastDBHandler(object):
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):        
-        if ChannelCastDBHandler.__single is None:
-            ChannelCastDBHandler.lock.acquire()   
-            try:
-                if ChannelCastDBHandler.__single is None:
-                    ChannelCastDBHandler(*args, **kw)
-            finally:
-                ChannelCastDBHandler.lock.release()
-        return ChannelCastDBHandler.__single
-    
-    getInstance = staticmethod(getInstance)
+class ChannelCastDBHandler(BasicDBHandler):
 
     def __init__(self):
-        ChannelCastDBHandler.__single = self
         try:
-            self._db = SQLiteCacheDB.getInstance()
-            
-            self.peer_db = PeerDBHandler.getInstance()
-            self.votecast_db = VoteCastDBHandler.getInstance()
-            self.torrent_db = TorrentDBHandler.getInstance()
-            self.notifier = Notifier.getInstance()
+            db = SQLiteCacheDB.getInstance()
+            BasicDBHandler.__init__(self, db,'_Channels')
+            if DEBUG: print >> sys.stderr, "Channels: DB made" 
         except:
-            print_exc()
-            print >> sys.stderr, "Channels: could not make a connection to table"
+            print >> sys.stderr, "Channels: couldn't make the table"
         
         self._channel_id = None
         self.shouldCommit = True
@@ -3241,18 +2506,13 @@ class ChannelCastDBHandler(object):
     
     def commit(self):
         self._db.commit()
-
-# Niels 12-10-2011, disabling correct db thread check
-#    def get_db(self):
-#        if not currentThread().getName().startswith('Dispersy'):
-#            print  >> sys.stderr,"ChannelCastDBHandler: thread",currentThread().getName(),"is NOT Dispersy"
-#            print_stack()
-#        
-#        return self.__db
-#    _db = property(get_db, None, None, None)
     
     def registerSession(self, session):
         self.session = session
+        
+        self.peer_db = PeerDBHandler.getInstance()
+        self.votecast_db = VoteCastDBHandler.getInstance()
+        self.torrent_db = TorrentDBHandler.getInstance()
         
         def updateNrTorrents():
             while True:
@@ -4358,25 +3618,9 @@ class ChannelCastDBHandler(object):
         
 class SearchDBHandler(BasicDBHandler):
     
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if SearchDBHandler.__single is None:
-            SearchDBHandler.lock.acquire()   
-            try:
-                if SearchDBHandler.__single is None:
-                    SearchDBHandler(*args, **kw)
-            finally:
-                SearchDBHandler.lock.release()
-        return SearchDBHandler.__single
-    getInstance = staticmethod(getInstance)
-    
     def __init__(self):
-        if SearchDBHandler.__single is not None:
+        if SearchDBHandler._single is not None:
             raise RuntimeError, "SearchDBHandler is singleton"
-        SearchDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self,db, 'ClicklogSearch') ## self,db,'Search'
         
@@ -4400,13 +3644,8 @@ class SearchDBHandler(BasicDBHandler):
         # and again we cannot assume that user/torrent/term only occurs once
         
         # vliegendhart: only store 1 query per (peer_id,torrent_id)
-        # Step 1: fetch current stored term_ids, if any, and decrease count
-        old_term_ids = self.getTorrentSearchTerms(torrent_id, peer_id) # list of 1-tuples
-        sql_update_term_popularity= u"UPDATE ClicklogTerm SET times_seen = times_seen-1 WHERE term_id=?"        
-        self._db.executemany(sql_update_term_popularity, old_term_ids, commit=commit)
-        
-        # Step 2: delete (peer_id,torrent_id) records, if any
-        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id,torrent_id])
+        # Step 1: delete (peer_id,torrent_id) records, if any
+        self._db.execute_write("DELETE FROM ClicklogSearch WHERE peer_id=? AND torrent_id=?", [peer_id, torrent_id])
         
         # create insert data
         values = [(peer_id, torrent_id, term_id, term_order) 
@@ -4433,7 +3672,7 @@ class SearchDBHandler(BasicDBHandler):
             return_dict[torrent_id] = set()
         
         parameters = '?,'*len(torrent_ids)
-        sql = "SELECT torrent_id, term FROM ClicklogSearch, ClicklogTerm WHERE ClicklogSearch.term_id = ClicklogTerm.term_id AND torrent_id IN ("+parameters[:-1]+") AND peer_id = ? ORDER BY term_order"
+        sql = "SELECT torrent_id, term FROM ClicklogSearch, TermFrequency WHERE ClicklogSearch.term_id = TermFrequency.term_id AND torrent_id IN ("+parameters[:-1]+") AND peer_id = ? ORDER BY freq"
         
         parameters = torrent_ids[:]
         parameters.append(0)
@@ -4446,25 +3685,10 @@ class NetworkBuzzDBHandler(BasicDBHandler):
     The Network Buzz database handler singleton for sampling the TermFrequency table
     and maintaining the TorrentBiTermPhrase table.
     """
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if NetworkBuzzDBHandler.__single is None:
-            NetworkBuzzDBHandler.lock.acquire()   
-            try:
-                if NetworkBuzzDBHandler.__single is None:
-                    NetworkBuzzDBHandler(*args, **kw)
-            finally:
-                NetworkBuzzDBHandler.lock.release()
-        return NetworkBuzzDBHandler.__single
-    getInstance = staticmethod(getInstance)
     
     def __init__(self):
-        if NetworkBuzzDBHandler.__single is not None:
+        if NetworkBuzzDBHandler._single is not None:
             raise RuntimeError, "NetworkBuzzDBHandler is singleton"
-        NetworkBuzzDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()      
         BasicDBHandler.__init__(self,db, 'TermFrequency')
         
@@ -4765,7 +3989,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
 
             catobj = Category.getInstance()
             if catobj.family_filter_enabled():
-                return filter(lambda term: not catobj.xxx_filter.foundXXXTerm(term), terms)[:num]
+                return filter(lambda term: not catobj.xxx_filter.isXXXTerm(term), terms)[:num]
             else:
                 return terms[:num]
         else:
@@ -4775,29 +3999,13 @@ class UserEventLogDBHandler(BasicDBHandler):
     """
     The database handler for logging user events.
     """
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
     # maximum number of events to store
     # when this maximum is reached, approx. 50% of the entries are deleted.
     MAX_EVENTS = 2*10000
     
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if UserEventLogDBHandler.__single is None:
-            UserEventLogDBHandler.lock.acquire()   
-            try:
-                if UserEventLogDBHandler.__single is None:
-                    UserEventLogDBHandler(*args, **kw)
-            finally:
-                UserEventLogDBHandler.lock.release()
-        return UserEventLogDBHandler.__single
-    getInstance = staticmethod(getInstance)
-    
     def __init__(self):
-        if UserEventLogDBHandler.__single is not None:
+        if UserEventLogDBHandler._single is not None:
             raise RuntimeError, "UserEventLogDBHandler is singleton"
-        UserEventLogDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()      
         BasicDBHandler.__init__(self,db, 'UserEventLog')
         
@@ -4842,25 +4050,10 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
     The Bundler Preference database handler singleton for 
     storing a chosen bundle method for a particular query.
     """
-    __single = None    # used for multithreaded singletons pattern
-    lock = threading.Lock()
-    
-    def getInstance(*args, **kw):
-        # Singleton pattern with double-checking
-        if BundlerPreferenceDBHandler.__single is None:
-            BundlerPreferenceDBHandler.lock.acquire()   
-            try:
-                if BundlerPreferenceDBHandler.__single is None:
-                    BundlerPreferenceDBHandler(*args, **kw)
-            finally:
-                BundlerPreferenceDBHandler.lock.release()
-        return BundlerPreferenceDBHandler.__single
-    getInstance = staticmethod(getInstance)
     
     def __init__(self):
-        if BundlerPreferenceDBHandler.__single is not None:
+        if BundlerPreferenceDBHandler._single is not None:
             raise RuntimeError, "BundlerPreferenceDBHandler is singleton"
-        BundlerPreferenceDBHandler.__single = self
         db = SQLiteCacheDB.getInstance()      
         BasicDBHandler.__init__(self,db, 'BundlerPreference')
     

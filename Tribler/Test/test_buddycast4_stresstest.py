@@ -8,7 +8,7 @@ import time as T
 from M2Crypto import Rand,EC
 
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.simpledefs import *
 from Tribler.Core.Utilities.Crypto import sha

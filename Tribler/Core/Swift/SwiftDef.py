@@ -5,7 +5,6 @@ import sys
 import urlparse
 import binascii
 from traceback import print_exc,print_stack
-import tempfile
 import subprocess
 import random
 import time
@@ -25,7 +24,8 @@ class SwiftDef(ContentDefinition):
         self.chunksize = chunksize
         self.duration = duration
         self.files = []
-        self.multifilespec = None 
+        self.multifilespec = None
+        self.name = None
     
     #
     # Class methods for creating a SwiftDef from an URL or .spec file (multi-file swarm)
@@ -75,7 +75,13 @@ class SwiftDef(ContentDefinition):
         """ Returns the user-friendly name of this Definition
         @return string
         """
-        return self.get_roothash_as_hex()
+        return self.name or self.get_roothash_as_hex()
+
+    def set_name(self, name):
+        """ Sets the user-friendly name of this Definition
+        @param name
+        """
+        self.name = name
     
     def get_id(self):
         """ Returns a identifier for this Definition

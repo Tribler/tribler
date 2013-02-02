@@ -7,7 +7,7 @@ import Tribler.Core.Subtitles.MetadataDomainObjects.MetadataDTO as MDUtil
 from Tribler.Core.Overlay.permid import generate_keypair
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 import time
-from Tribler.Core.BitTornado.bencode import bdecode
+from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.Subtitles.MetadataDomainObjects.SubtitleInfo import SubtitleInfo
 from Tribler.Core.Subtitles.MetadataDomainObjects.Languages import LanguagesProvider
 from Tribler.Core.Utilities.utilities import str2bin

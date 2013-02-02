@@ -20,9 +20,9 @@ from threading import Event, Thread, currentThread
 from socket import error as socketerror
 from time import sleep
 
-from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
-from Tribler.Core.BitTornado.BT1.MessageID import DIALBACK_REQUEST
+from Tribler.Core.MessageID import DIALBACK_REQUEST
 
 from Tribler.Core.NATFirewall.ReturnConnHandler import ReturnConnHandler
 

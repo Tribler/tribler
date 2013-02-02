@@ -5,7 +5,7 @@ import sys
 import unittest
 import cPickle
 
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import *
 

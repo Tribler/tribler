@@ -45,40 +45,20 @@ sessdefaults['timeout'] = 300.0
 sessdefaults['timeout_check_interval'] = 60.0
 sessdefaults['eckeypairfilename'] = None
 sessdefaults['megacache'] = True
-sessdefaults['overlay'] = False
-sessdefaults['crawler'] = False
-sessdefaults['buddycast'] = False
 sessdefaults['magnetlink'] = True
-sessdefaults['start_recommender'] = True
 sessdefaults['torrent_collecting'] = True
-sessdefaults['superpeer'] = False
-sessdefaults['overlay_log'] = None
-sessdefaults['buddycast_interval'] = 15
-sessdefaults['buddycast_max_peers'] = 2500  # max number of peers to use for recommender. 
 sessdefaults['torrent_collecting_max_torrents'] = 50000
 sessdefaults['torrent_collecting_dir'] = None
 sessdefaults['torrent_collecting_rate'] = 5 * 10
 sessdefaults['torrent_checking'] = 1
 sessdefaults['torrent_checking_period'] = 31 #will be changed to min(max(86400/ntorrents, 15), 300) at runtime
-sessdefaults['dialback'] = True
-sessdefaults['dialback_active'] = True  # do active discovery (needed to disable for testing only) (0 = disabled)
-sessdefaults['dialback_trust_superpeers'] = True # trust superpeer replies (needed to disable for testing only) (0 = disabled)
-sessdefaults['socnet'] = True
-sessdefaults['rquery'] = True
+#sessdefaults['rquery'] = True
 sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['internaltracker'] = True
 sessdefaults['nickname'] = '__default_name__' # is replaced with hostname in LaunchManyCore.py
 sessdefaults['mugshot'] = None
 sessdefaults['videoanalyserpath'] = None
-sessdefaults['overlay_max_message_length'] = 2 ** 23
-sessdefaults['proxyservice_dir'] = None
-sessdefaults['bartercast'] = True
-sessdefaults['superpeer_file'] = None
-sessdefaults['crawler_file'] = None
-sessdefaults['buddycast_collecting_solution'] = BCCOLPOLICY_SIMPLE
 sessdefaults['peer_icon_path'] = None
-sessdefaults['stop_collecting_threshold'] = 200
-sessdefaults['proxy_default_dlcfg'] = None
 sessdefaults['family_filter'] = True
 sessdefaults['nat_detect'] = True
 sessdefaults['puncturing_internal_port'] = 6700
@@ -86,30 +66,9 @@ sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',
 sessdefaults['pingback_servers'] = [('pingback.tribler.org',6703),('pingback2.tribler.org',6703)]
 sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
-sessdefaults['multicast_local_peer_discovery'] = False
-sessdefaults['votecast_recent_votes']=25
-sessdefaults['votecast_random_votes']=25
-sessdefaults['channelcast_recent_own_subscriptions'] = 13
-sessdefaults['channelcast_random_own_subscriptions'] = 12 
 sessdefaults['dispersy'] = True
 sessdefaults['dispersy-tunnel-over-swift'] = False
 sessdefaults['dispersy_port'] = 7759
-
-# 14-04-2010, Andrea: settings to limit the results for a remote query in channels
-# if there are too many results the gui got freezed for a considerable amount of
-# time
-sessdefaults['max_channel_query_results'] = 25
-
-# 13-04-2010 Andrea, config for subtitle dissemination subsytem
-sessdefaults['subtitles_collecting'] = True
-sessdefaults['subtitles_collecting_dir'] = None
-sessdefaults['subtitles_upload_rate'] = 1024 # KB/s 
-
-# ProxyService_
-#
-sessdefaults['proxyservice_status'] = PROXYSERVICE_OFF
-#
-# _ProxyService
 
 # 18-07-2011 Niels: call callback even if remote search response is empty
 sessdefaults['remote_search_empty_call'] = True
@@ -229,10 +188,6 @@ dldefaults['auto_flush'] = 0
 #
 # Tribler per-download opts
 #
-dldefaults['proxyservice_role'] = PROXYSERVICE_ROLE_NONE
-dldefaults['doe_mode'] = DOE_MODE_OFF
-dldefaults['proxyservice_status'] = PROXYSERVICE_OFF
-dldefaults['max_proxies'] = 10
 dldefaults['exclude_ips'] = ''
 dldefaults['mode'] = 0
 dldefaults['vod_usercallback'] = None

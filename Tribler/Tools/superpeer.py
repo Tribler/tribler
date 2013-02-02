@@ -18,7 +18,7 @@ from threading import Condition
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import *
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 import Tribler.Core.BuddyCast.buddycast as BuddyCastMod
 BuddyCastMod.debug = True
@@ -67,7 +67,7 @@ def olthread_start_session():
 if __name__ == "__main__":
     """ This code is run by the MainThread """
 
-    config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
     print >>sys.stderr,"superpeer: config is",config
 
     if config['overlaylogpostfix'] == '':

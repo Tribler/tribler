@@ -16,7 +16,7 @@ from threading import Condition
 from Tribler.Core.API import *
 from Tribler.Core.Statistics.Status import *
 
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 
 
 argsdef = [('nuploads', 200, 'the max number of peers to serve directly'),
@@ -48,7 +48,7 @@ class PrintStatusReporter(Status.OnChangeStatusReporter):
 
 if __name__ == "__main__":
 
-    config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
 
     if len(sys.argv) < 2:
         raise SystemExit("Missing .torrent or .tstream to seed")

@@ -91,8 +91,6 @@ from Tribler.Video.Ogg import is_ogg,OggMagicLiveStream
 
 from Tribler.Core.Statistics.Status import Status, LivingLabReporter
 from Tribler.WebUI.WebUI import WebIFPathMapper
-from Tribler.Core.ClosedSwarm.ClosedSwarm import InvalidPOAException
-
 
 DEBUG = True
 PHONEHOME = True
@@ -325,20 +323,8 @@ class BackgroundApp(BaseApp):
                             # Stop current
                             self.gui_connection_lost(ic,switchp2ptarget=True)
                     
-                    # Here we need to drag the POA off the torrenturl,
-                    # if one is given
-                    (url, params) = self.split_params(torrenturl)
-                    if "poa" in params:
-                        poa_serialized = decodestring(params["poa"])
-                        try:
-                            poa = ClosedSwarm.POA.deserialize(poa_serialized)
-                            poa.verify()
-                        except:
-                            print >>sys.stderr,"Bad POA, ignoring"
-                            poa = None
-                    else:
-                        poa = None
-                        url = torrenturl
+                    poa = None
+                    url = torrenturl
                     self.get_torrent_start_download(ic,url,poa=poa)
         
             # SHUTDOWN command

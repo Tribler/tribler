@@ -158,56 +158,10 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         self.sconfig.set_overlay(False)
         self.sconfig.set_megacache(False)
 
-
-    def _get_poa(self, tdef):
-        """Try to load a POA - possibly trigger a GUI-thing or should the plugin handle getting it if none is already available?"""
-        
-        from Tribler.Core.ClosedSwarm import ClosedSwarm,PaymentIntegration
-        print >>sys.stderr, "Swarm_id:",encodestring(tdef.infohash).replace("\n","")
-        try:
-            poa = ClosedSwarm.trivial_get_poa(self.s.get_state_dir(),
-                                              self.s.get_permid(),
-                                              tdef.infohash)
-            
-            poa.verify()
-            if not poa.torrent_id == tdef.infohash:
-                raise Exception("Bad POA - wrong infohash")
-            print >> sys.stderr,"Loaded poa from ",self.s.get_state_dir()
-        except:
-            # Try to get it or just let the plugin handle it?
-            swarm_id = encodestring(tdef.infohash).replace("\n","")
-            my_id = encodestring(self.s.get_permid()).replace("\n", "")
-            try:
-                # TODO: Support URLs from torrents?
-                poa = PaymentIntegration.wx_get_poa(None,
-                                                    swarm_id,
-                                                    my_id,
-                                                    swarm_title=tdef.get_name())
-            except Exception,e:
-                print >> sys.stderr, "Failed to get POA:",e
-                poa = None
-
-        try:
-            ClosedSwarm.trivial_save_poa(self.s.get_state_dir(),
-                                         self.s.get_permid(),
-                                         tdef.infohash,
-                                         poa)
-        except Exception,e:
-            print >> sys.stderr,"Failed to save POA",e
-            
-        if poa:
-            if not poa.torrent_id == tdef.infohash:
-                raise Exception("Bad POA - wrong infohash")
-
-        return poa
-
-
     def start_download(self,tdef,dlfile,poa=None,supportedvodevents=None):
         """ Start download of torrent tdef and play video file dlfile from it """
         if poa:
-            from Tribler.Core.ClosedSwarm import ClosedSwarm
-            if not poa.__class__ == ClosedSwarm.POA:
-                raise InvalidPOAException("Not a POA")
+            raise Exception("Not a POA")
             
         # Free diskspace, if needed
         destdir = self.get_default_destdir()
@@ -292,8 +246,6 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
             if d not in self.downloads_in_vodmode:
                 d.stop()
-
-        self.s.lm.h4xor_reset_init_conn_counter()
 
         # ARNOTODO: does this work with Plugin's duplicate download facility?
 

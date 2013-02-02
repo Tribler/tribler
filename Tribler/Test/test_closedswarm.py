@@ -8,7 +8,7 @@ import unittest
 
 import os.path
 from Tribler.Core.Overlay import permid
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 
 from Tribler.Core.ClosedSwarm import ClosedSwarm
 

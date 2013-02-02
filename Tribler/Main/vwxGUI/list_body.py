@@ -196,7 +196,7 @@ class ListItem(wx.Panel):
             control = control.GetWindow() or control.GetSizer()
         
         if getattr(control, 'Bind', False):
-            if not isinstance(control, wx.Button) and not isinstance(control, ActionButton):
+            if not isinstance(control, (wx.Button, ActionButton, wx.StaticLine)):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
                 control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             else:
@@ -228,12 +228,13 @@ class ListItem(wx.Panel):
         
         self.Freeze()
         for i in xrange(len(self.columns)):
-            i_new_controls, i_has_changed = self.RefreshColumn(i, data[1][i])
+            if self.columns[i].get('autoRefresh', True):
+                i_new_controls, i_has_changed = self.RefreshColumn(i, data[1][i])
             
-            if i_new_controls:
-                new_controls = True
-            if i_has_changed:
-                has_changed = True
+                if i_new_controls:
+                    new_controls = True
+                if i_has_changed:
+                    has_changed = True
                     
         if new_controls:
             self.hSizer.Layout()
@@ -462,7 +463,8 @@ class ListItem(wx.Panel):
             #panel.SetFont(panel.GetDefaultAttributes().font)
         
         panel.Show()
-        self.vSizer.Add(panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
+        if not self.vSizer.GetItem(panel, recursive = True):
+            self.vSizer.Add(panel, 0, wx.EXPAND|wx.LEFT|wx.RIGHT|wx.BOTTOM, 3)
         self.Layout()
         
     def GetExpandedPanel(self):
@@ -574,6 +576,7 @@ class AbstractListBody():
         self.data = None
         self.raw_data = None
         self.items = {}
+        self.to_be_removed = set()
         
         # Allow list-items to store the most recent mouse left-down events:
         self.lastMouseLeftDownEvent = None
@@ -776,6 +779,7 @@ class AbstractListBody():
         self.list_cur_max = self.list_item_max
             
         self.items = {}
+        self.to_be_removed = set()
         self.data = None
         self.lastData = 0
         self.raw_data = None
@@ -822,9 +826,9 @@ class AbstractListBody():
             self.Scroll(-1, sy)
     
     @warnWxThread
-    def ShowMessage(self, message, header = None, altControl = None):
+    def ShowMessage(self, message, header = None, altControl = None, clearitems = True):
         if DEBUG:
-            print >> sys.stderr, "ListBody: ShowMessage", message
+            print >> sys.stderr, "ListBody: ShowMessage", message, header
 
         self.Freeze()
         
@@ -846,10 +850,11 @@ class AbstractListBody():
         if altControl:
             self.messageText.altControl = altControl
             self.messageText.sizer.Insert(2, altControl, 0, wx.EXPAND)
-            
-        self.loadNext.Hide()
-        self.vSizer.ShowItems(False)
-        self.vSizer.Clear()
+        
+        if clearitems:
+            self.loadNext.Hide()
+            self.vSizer.ShowItems(False)
+            self.vSizer.Clear()
 
         self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
         self.messagePanel.Layout()
@@ -889,7 +894,7 @@ class AbstractListBody():
                 
                 panel.RefreshData(data)
                 
-        else:
+        elif self.data:
             self.data.append(data)
             self.CreateItem(key)
     
@@ -934,7 +939,7 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "ListBody: __SetData", time()
         
-        if __debug__ and currentThread().getName() != "MainThread":
+        if __debug__ and not wx.Thread_IsMain():
             print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
         
@@ -986,9 +991,9 @@ class AbstractListBody():
                 pass
             
         elif self.filter:
-            ffmessage = self.filterMessage(empty = True)
-            if ffmessage: 
-                self.ShowMessage(ffmessage+ '.')
+            header, message = self.filterMessage(empty = True)
+            if message: 
+                self.ShowMessage(message+ '.', header)
         
         if self.done:
             self.Unbind(wx.EVT_IDLE) #unbinding unnecessary event handler seems to improve visual performance
@@ -1067,12 +1072,9 @@ class AbstractListBody():
             self.loadNext.Show(False)
             self.vSizer.Remove(self.messagePanel)
 
-            message = ''            
-            if self.filter:
-                message = self.filterMessage() or ''
-                if message:
-                    message += '.'
-            
+            message = ''
+            header = None
+                  
             revertList = []
             #Add created/cached items
             for curdata in self.data:
@@ -1083,6 +1085,10 @@ class AbstractListBody():
                     create_method = ListItem
                 
                 if nr_items_to_add > 0 and nr_items_to_create > 0:
+                    if key in self.to_be_removed:
+                        self.DestroyItem(key)
+                        self.to_be_removed.remove(key)
+                    
                     if key not in self.items:
                         try:
                             self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data, self.leftSpacer, self.rightSpacer, showChange = self.showChange, list_selected=self.list_selected, list_expanded = self.list_expanded)
@@ -1090,7 +1096,7 @@ class AbstractListBody():
                         except:
                             print_exc()
                             self.items[key] = None
-                        
+                    
                     item = self.items[key]
                     sizer = self.vSizer.GetItem(item) if item else True
                     if not sizer:
@@ -1105,6 +1111,7 @@ class AbstractListBody():
                                 revertList.append(key)
                                                 
                     nr_items_to_add -= 1
+                    
                 else:
                     done = nr_items_to_add == 0 or initial_nr_items_to_add == sys.maxint
     
@@ -1114,21 +1121,22 @@ class AbstractListBody():
                         else:
                             message = 'Only showing the first %d of %d items in this list.'%(len(self.vSizer.GetChildren()), len(self.data))
                             if self.hasFilter:
-                                message +='\nSearch within results to reduce the number of items, or click the button below.'
+                                message +='\nFilter results to reduce the number of items, or click the button below.'
                             
                         remainingItems = min(LIST_ITEM_MAX_SIZE, len(self.data) - len(self.vSizer.GetChildren()))
                         self.loadNext.SetLabel("Show next %d items"%remainingItems)
                         self.loadNext.Enable()
                         self.loadNext.Show()
                     break
-           
-            if len(message) > 12:
-                self.messageText.SetLabel(message)
-                
-                self.vSizer.Add(self.messagePanel, 0, wx.EXPAND|wx.BOTTOM, 1)
-                self.messagePanel.Layout()
-                self.messagePanel.Show()
             
+            if done and self.filter:
+                header, message_start = self.filterMessage()
+                if message_start:
+                    message = message_start + '.' + message
+            
+            if len(message) > 12:
+                self.ShowMessage(message, header, clearitems = False)
+                
             if didAdd:
                 self.OnChange()
                 
@@ -1136,9 +1144,6 @@ class AbstractListBody():
             
             if len(revertList) > 0:
                 wx.CallLater(1000, self.Revert, revertList)
-        
-        if len(revertList) > 0:
-            wx.CallLater(1000, self.Revert, revertList)
         
         self.done = done
         if DEBUG:
@@ -1177,12 +1182,7 @@ class AbstractListBody():
         
         updated = False
         for key in _keys:
-            item = self.items.get(key, None)
-            if item:
-                self.items.pop(key)
-
-                self.vSizer.Detach(item)
-                item.Destroy()
+            if self.DestroyItem(key):
                 updated = True
 
         if updated:
@@ -1196,6 +1196,19 @@ class AbstractListBody():
             
                 if len(_keys) == 0:
                     break
+    
+    def DestroyItem(self, key):
+        item = self.items.get(key, None)
+        if item:
+            self.items.pop(key)
+
+            self.vSizer.Detach(item)
+            item.Destroy()
+            return True
+        return False
+                
+    def MarkForRemoval(self, keys):
+        self.to_be_removed.update(keys)
             
     def GetExpandedItem(self):
         return self.cur_expanded

@@ -72,7 +72,7 @@ class TimeoutFinder:
 
 
 if __name__ == "__main__":
-    import Tribler.Core.BitTornado.RawServer as RawServer
+    import Tribler.Core.RawServer.RawServer as RawServer
     from threading import Event
     import thread
     from traceback import print_exc

@@ -608,7 +608,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.show_loading()
             
     def __check_thread(self):
-        if __debug__ and currentThread().getName() != "MainThread":
+        if __debug__ and not wx.Thread_IsMain():
             print  >> sys.stderr,"EmbeddedPlayer: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
 

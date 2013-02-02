@@ -18,7 +18,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
-    ProgressButton, GradientPanel, TransparentText, LinkText
+    ProgressButton, GradientPanel, TransparentText, LinkText, StaticBitmaps
 
 from list_body import ListBody
 from widgets import _set_font
@@ -28,6 +28,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel, Torrent,\
     LibraryTorrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
 from Tribler.community.channel.community import ChannelCommunity
+from Tribler.Video.VideoUtility import limit_resolution
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
@@ -116,7 +117,7 @@ class TorrentDetails(AbstractDetails):
     MINCOMMENTHEIGHT = 230
 
     @warnWxThread
-    def __init__(self, parent, torrent, createAd = None, compact=False, noChannel=False):
+    def __init__(self, parent, torrent, compact=False, noChannel=False):
         GradientPanel.__init__(self, parent)
         self.Hide()
 
@@ -128,7 +129,6 @@ class TorrentDetails(AbstractDetails):
         self.torrent = torrent
         self.state = -1
         self.vod_log = None
-        self.createAd = createAd
 
         self.isReady = False
         self.noChannel = noChannel
@@ -142,6 +142,7 @@ class TorrentDetails(AbstractDetails):
         self.messageIcon = wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
         self.messagePanel = TransparentText(self, -1, "Loading details, please wait.")
         self.messageGauge = None
+        self.messageButton = None        
         _set_font(self.messagePanel, size_increment = 2, fontweight = wx.FONTWEIGHT_NORMAL)
         
         for colour, height in [(SEPARATOR_GREY, 1), (FILTER_GREY, 25), (SEPARATOR_GREY, 1)]:
@@ -182,6 +183,9 @@ class TorrentDetails(AbstractDetails):
         if DEBUG:
             print >> sys.stderr, "TorrentDetails: loading", self.torrent['name']
             
+        if self.messageButton:
+            self.messageButton.Show(False)            
+            
         #is this torrent collected?
         filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent, retried = True)
         if filename:
@@ -198,7 +202,7 @@ class TorrentDetails(AbstractDetails):
                 
                 self.timeouttimer = wx.CallLater(10000, self._timeout)
            
-            startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback':self.showTorrent}, priority = 1024)
+            startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback':self.showTorrent}, priority = GUI_PRI_DISPERSY)
     
     @forceWxThread
     def showRequestType(self, requesttype):
@@ -244,11 +248,8 @@ class TorrentDetails(AbstractDetails):
                 if self.messageGauge: self.messageGauge.Show(False) 
             
                 self.notebook = SimpleNotebook(self, style = wx.NB_NOPAGETHEME, name = "TorrentDetailsNotebook")
-                self._addTabs(ds, "Torrent details")
-                
-                if self.createAd:
-                    panel = self.createAd(self.notebook)
-                    self.notebook.SetAdSpace(panel)
+                showTab = getattr(self.parent, self.__class__.__name__+'_tab', None) if self.parent else None
+                self._addTabs(ds, showTab)
                 
                 self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
                 
@@ -273,8 +274,16 @@ class TorrentDetails(AbstractDetails):
                 if DEBUG:
                     print >> sys.stderr, "TorrentDetails: timeout on loading", self.torrent.name
             
-                self.messagePanel.SetLabel("Failed loading torrent.\nPlease collapse and expand to retry or wait to allow other peers to respond.")
-                if self.messageGauge: self.messageGauge.Show(False) 
+                self.messagePanel.SetLabel("Failed loading torrent.\nPlease click retry or wait to allow other peers to respond.")
+                if self.messageGauge:
+                    self.messageGauge.Show(False)
+                if self.messageButton:
+                    self.messageButton.Show(True)
+                else:
+                    self.messageButton = wx.Button(self, -1, "Retry")
+                    self.messageButton.Bind(wx.EVT_BUTTON, lambda evt: self._doLoad())
+                    self.vSizer.Insert(5, self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
+                
                 self.Layout()
         except wx.PyDeadObjectError:
             pass
@@ -285,6 +294,7 @@ class TorrentDetails(AbstractDetails):
         
         self.overview, self.torrentSizer = self._create_tab(self.notebook, 'Torrent details', border = 10)
         self.overview.SetBackgroundColour(wx.WHITE)
+        self.overview.Bind(wx.EVT_LEFT_DCLICK, self.OnOverviewToggle)        
         self._addOverview(self.overview, self.torrentSizer)
 
         if self.canEdit:
@@ -360,7 +370,8 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.InsertColumn(1, 'Size', wx.LIST_FORMAT_RIGHT)
             
             if isinstance(self, LibraryDetails):
-                self.listCtrl.InsertColumn(2, 'Status', wx.LIST_FORMAT_RIGHT)
+                self.listCtrl.InsertColumn(2, 'Priority', wx.LIST_FORMAT_RIGHT)
+                self.listCtrl.InsertColumn(3, 'Status', wx.LIST_FORMAT_RIGHT)
                 
             self.listCtrl.Bind(wx.EVT_LEFT_DCLICK, self.OnDoubleClick)
             self.listCtrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnFilesSelected)
@@ -430,21 +441,12 @@ class TorrentDetails(AbstractDetails):
             if isinstance(self, LibraryDetails):
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
                 vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
-                self.filesFooter = StaticText(parent, -1, 'Double click on any file to modify which files should be downloaded.')
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.LEFT)
-                
-            elif isinstance(self, LibraryDetails):
-                vSizer = wx.BoxSizer(wx.VERTICAL)
-                vSizer.Add(self.listCtrl, 1, wx.EXPAND)
-                
-                vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
-                
-                self.filesFooter = StaticText(parent, -1, 'Double click on any file to modify which files should be downloaded.')
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND)
-                parent.SetSizer(vSizer)
-                self.notebook.AddPage(parent, "Files")
+                ulfont = self.GetFont()
+                ulfont.SetUnderlined(True)
+                self.filesFooter = LinkText(parent, 'Click here to modify which files should be downloaded.', fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
+                self.filesFooter.Bind(wx.EVT_LEFT_UP, self.OnChangeSelection)
+                vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.ALL, 3)
             else:
-                vSizer = wx.BoxSizer(wx.VERTICAL)
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
             parent.SetSizer(vSizer)
             self.notebook.AddPage(parent, "Files")
@@ -522,6 +524,8 @@ class TorrentDetails(AbstractDetails):
                 if self.notebook.GetPageText(i) == showTab:
                     self.notebook.SetSelection(i)
                     break
+        else:
+            self.notebook.SetSelection(0)
             
     @warnWxThread
     def _addOverview(self, panel, sizer):
@@ -580,11 +584,6 @@ class TorrentDetails(AbstractDetails):
         if not self.torrent.state:
             overviewColumnsOrder.remove("Status")
             
-        if self.showDetails:
-            textCtrl = wx.TextCtrl(panel, -1, self.torrent.infohash_as_hex)
-            textCtrl.SetEditable(False)
-            self._add_row(panel, vSizer, "Infohash", textCtrl)
-                
         self.status = None
         self.health = None
         for column in overviewColumnsOrder:
@@ -597,6 +596,11 @@ class TorrentDetails(AbstractDetails):
                 self.status = value
             if column == "Health":
                 self.health = value
+
+        if self.showDetails:
+            textCtrl = wx.TextCtrl(panel, -1, self.torrent.infohash_as_hex)
+            textCtrl.SetEditable(False)
+            self._add_row(panel, vSizer, "Infohash", textCtrl)
                 
         if self.torrent.get('channel', False):
             channel = self.torrent.get('channel')
@@ -607,15 +611,25 @@ class TorrentDetails(AbstractDetails):
             link.Bind(wx.EVT_LEFT_UP, lambda evt:  self.guiutility.showChannel(channel))
             self._add_row(panel, vSizer, 'Channel', link, flags = 0)                
 
-        sizer.Add(vSizer, 1, wx.EXPAND)
-            
         if self.canEdit:
             modifications = self.guiutility.channelsearch_manager.getTorrentModifications(self.torrent)
             for modification in modifications:
                 if modification.name == 'swift-url':
                     value = wx.TextCtrl(panel, -1, modification.value, style = wx.TE_READONLY)
                     self._add_row(panel, vSizer, 'Swift URL', value)
-        
+                
+        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-'+binascii.hexlify(self.torrent.infohash))
+        if os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0:
+            bmps = [wx.Bitmap(os.path.join(thumb_dir, thumb), wx.BITMAP_TYPE_ANY) for thumb in os.listdir(thumb_dir)[:4]]
+            tp = self.GetThumbnailPanel(panel, bmps)
+           
+            tSizer = wx.BoxSizer(wx.HORIZONTAL)
+            tSizer.Add(vSizer, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.EXPAND)
+            tSizer.Add(tp, 0, wx.ALIGN_RIGHT|wx.ALIGN_TOP|wx.EXPAND)
+            sizer.Add(tSizer, 1, wx.EXPAND)
+        else:
+            sizer.Add(vSizer, 1, wx.EXPAND)        
+
         if self.canComment:
             sizer.Add(wx.StaticLine(panel, -1, style = wx.LI_HORIZONTAL), 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 5)
             self.markingSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -636,6 +650,15 @@ class TorrentDetails(AbstractDetails):
         panel.OnChange()
         
         self.Thaw()
+        
+    def GetThumbnailPanel(self, parent, bitmaps):
+        res = limit_resolution(bitmaps[0].GetSize(), (175, 175)) if bitmaps else None
+        bmps = [bmp.ConvertToImage().Scale(*res, quality = wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() for bmp in bitmaps if bmp.IsOk()] if res else []
+            
+        sbmp = StaticBitmaps(parent, -1)
+        sbmp.SetBackgroundColour(parent.GetBackgroundColour())
+        sbmp.SetBitmaps(bmps)
+        return sbmp
     
     @warnWxThread
     def DownloadStarted(self):
@@ -672,6 +695,8 @@ class TorrentDetails(AbstractDetails):
             self.modificationList.Show()
             self.modificationList.SetupScrolling()
             self.modificationList.SetFocus()
+            
+        setattr(self.parent, self.__class__.__name__+'_tab', title)
 
         event.Skip()
     
@@ -905,15 +930,15 @@ class TorrentDetails(AbstractDetails):
                 else:
                     self.ShowHealth(False)
             else:
-                self.ShowHealth(False)
+                self.ShowHealth(False, ', no trackers found')
         except wx.PyDeadObjectError:
             pass
 
     @forceWxThread
-    def ShowHealth(self, updating):
+    def ShowHealth(self, updating, no_update_reason = ''):
         if getattr(self, 'health', False):
-            updating = ', updating now' if updating else ''
-            
+            updating = ', updating now' if updating else no_update_reason
+                        
             diff = time() - self.torrent.last_check
             if self.torrent.num_seeders < 0 and self.torrent.num_leechers < 0:
                 if self.torrent.status == 'good':
@@ -1071,6 +1096,10 @@ class TorrentDetails(AbstractDetails):
             state = TorrentDetails.INACTIVE
         return state
     
+    def OnOverviewToggle(self, event):
+        self.showDetails = not self.showDetails
+        self._addOverview(self.overview, self.torrentSizer)
+    
     @warnWxThread
     def Layout(self):
         returnValue = wx.Panel.Layout(self)
@@ -1119,8 +1148,16 @@ class LibraryDetails(TorrentDetails):
             
                 self.Freeze()
                 
-                self.messagePanel.SetLabel("Failed loading torrent. Please collapse and expand to retry or wait to allow other peers to respond.\nAlternatively you could remove this torrent from your Downloads.")
-                if self.messageGauge: self.messageGauge.Show(False)
+                self.messagePanel.SetLabel("Failed loading torrent. Please click retry or wait to allow other peers to respond.\nAlternatively you could remove this torrent from your Downloads.")
+                if self.messageGauge:
+                    self.messageGauge.Show(False)
+                if self.messageButton:
+                    self.messageButton.Show(True)
+                else:
+                    self.messageButton = wx.Button(self, -1, "Retry")
+                    self.messageButton.Bind(wx.EVT_BUTTON, lambda evt: self._doLoad())
+                    self.vSizer.Insert(5, self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
+
                 self.Layout()
 
                 self.guiutility.frame.top_bg.SetButtonHandler(self.guiutility.frame.top_bg.delete_btn, self.guiutility.frame.top_bg.OnDelete, 'Delete this torrent.')
@@ -1173,43 +1210,34 @@ class LibraryDetails(TorrentDetails):
                 if self.notebook.GetPageText(i) == showTab:
                     self.notebook.SetSelection(i)
                     break
+        else:
+            self.notebook.SetSelection(0)
     
-    @warnWxThread
-    def OnDoubleClick(self, event):
-        selected = self.listCtrl.GetFirstSelected()
+    def OnChangeSelection(self, event):
+        files = []
+        for i in range(self.listCtrl.GetItemCount()):
+            files.append(self.listCtrl.GetItem(i, 0).GetText())
         
-        if selected != -1:
-            selected_file = self.listCtrl.GetItem(selected, 0).GetText()
-            selected_state = self.listCtrl.GetItem(selected, 2).GetText()
+        dlg = wx.MultiChoiceDialog(self, "Select which files you would like to download", "File selection", files)
+        
+        selected = []
+        for i in range(self.listCtrl.GetItemCount()):
+            if self.listCtrl.GetItem(i, 2).GetText() != "Excluded":
+                selected.append(i)
+        dlg.SetSelections(selected)
+        
+        if (dlg.ShowModal() == wx.ID_OK):
+            newselections = dlg.GetSelections()
+            selectedFiles = []
+            for index in newselections:
+                selectedFiles.append(files[index])
+                
+            self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
+            def reset_selection():
+                self.old_progress = -1
+            wx.CallLater(1000, reset_selection())
             
-            if selected_state == 'Excluded':
-                files = []
-                for i in range(self.listCtrl.GetItemCount()):
-                    files.append(self.listCtrl.GetItem(i, 0).GetText())
-                
-                dlg = wx.MultiChoiceDialog(self, "Select which files you would like to download", "File selection", files)
-                
-                selected = []
-                for i in range(self.listCtrl.GetItemCount()):
-                    if self.listCtrl.GetItem(i, 2).GetText() != "Excluded":
-                        selected.append(i)
-                dlg.SetSelections(selected)
-                
-                if (dlg.ShowModal() == wx.ID_OK):
-                    newselections = dlg.GetSelections()
-                    selectedFiles = []
-                    for index in newselections:
-                        selectedFiles.append(files[index])
-                        
-                    self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
-                    def reset_selection():
-                        self.old_progress = -1
-                    wx.CallLater(1000, reset_selection())
-                    
-                dlg.Destroy()
-            else:
-                TorrentDetails.OnDoubleClick(self, event)
-    
+        dlg.Destroy() 
 
     @warnWxThread
     def ShowPanel(self, newState = None):
@@ -1271,7 +1299,7 @@ class LibraryDetails(TorrentDetails):
                     
                     if 'extended_version' in peer_dict:
                         try:
-                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'])
+                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('ascii'))
                         except:
                             try:
                                 self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
@@ -1295,8 +1323,8 @@ class LibraryDetails(TorrentDetails):
                     completion = {}
                     
                     useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
+                    selected_files = ds.get_download().get_selected_files()
                     if useSimple:
-                        selected_files = ds.get_download().get_selected_files()
                         if selected_files:
                             for i in range(self.listCtrl.GetItemCount()):
                                 file = self.listCtrl.GetItem(i, 0).GetText()
@@ -1312,11 +1340,14 @@ class LibraryDetails(TorrentDetails):
                     for i in range(self.listCtrl.GetItemCount()):
                         listfile = self.listCtrl.GetItem(i, 0).GetText()
                         
+                        if listfile in selected_files or not selected_files:
+                            self.listCtrl.SetStringItem(i, 2, 'Included')
+                        else:
+                            self.listCtrl.SetStringItem(i, 2, 'Excluded')                            
+                        
                         progress = completion.get(listfile, None)
                         if isinstance(progress, float) or isinstance(progress, int):
-                            self.listCtrl.SetStringItem(i, 2, "%.2f%%"%(progress*100))
-                        else:
-                            self.listCtrl.SetStringItem(i, 2, 'Excluded')
+                            self.listCtrl.SetStringItem(i, 3, "%.2f%%"%(progress*100))
                     
                     self.old_progress = dsprogress
                 
@@ -1336,7 +1367,7 @@ class LibraryDetails(TorrentDetails):
 
 class ChannelDetails(AbstractDetails):
 
-    def __init__(self, parent, channel, createAd = None):
+    def __init__(self, parent, channel):
         GradientPanel.__init__(self, parent)
         self.Hide()
 
@@ -1344,7 +1375,6 @@ class ChannelDetails(AbstractDetails):
         self.utility = self.guiutility.utility
         self.uelog = UserEventLogDBHandler.getInstance()
         
-        self.createAd = createAd
         self.parent = parent
         self.isReady = False
         self.SetBackgroundColour(wx.Colour(246,246,246))
@@ -1390,10 +1420,6 @@ class ChannelDetails(AbstractDetails):
             
                 self.notebook = SimpleNotebook(self, style = wx.NB_NOPAGETHEME, name = "ChannelDetailsNotebook")
                 
-                if self.createAd:
-                    panel = self.createAd(self.notebook)
-                    self.notebook.SetAdSpace(panel)
-                
                 self.overview, self.overviewSizer = self._create_tab(self.notebook, 'Channel details', border = 10)
                 self.overview.SetBackgroundColour(wx.WHITE)
                 
@@ -1437,17 +1463,13 @@ class ChannelDetails(AbstractDetails):
                 self.channel.nr_torrents = data[2].nr_torrents
                 self.channel.modified = data[2].modified
                 self.channel.nr_favorites = data[2].nr_favorites
-                             
-            if self.createAd:
-                panel = self.createAd(self.notebook)
-                self.notebook.SetAdSpace(panel) 
 
             self._addOverview(self.overview, self.overviewSizer)
                 
 
 class PlaylistDetails(AbstractDetails):
 
-    def __init__(self, parent, playlist, createAd = None):
+    def __init__(self, parent, playlist):
         GradientPanel.__init__(self, parent)
         self.Hide()
 
@@ -1455,10 +1477,10 @@ class PlaylistDetails(AbstractDetails):
         self.utility = self.guiutility.utility
         self.uelog = UserEventLogDBHandler.getInstance()
 
-        self.createAd = createAd
         self.parent = parent
         self.isReady = False
         self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.torrents = None
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.messageIcon = wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
@@ -1499,10 +1521,6 @@ class PlaylistDetails(AbstractDetails):
                 if self.messageGauge: self.messageGauge.Show(False)
             
                 self.notebook = SimpleNotebook(self, style = wx.NB_NOPAGETHEME, name = "ChannelDetailsNotebook")
-                
-                if self.createAd:
-                    panel = self.createAd(self.notebook)
-                    self.notebook.SetAdSpace(panel)
                     
                 self.overview, self.overviewSizer = self._create_tab(self.notebook, 'Playlist details', border = 10)
                 self.overview.SetBackgroundColour(wx.WHITE)
@@ -1532,9 +1550,72 @@ class PlaylistDetails(AbstractDetails):
         if self.playlist.description:
             self._add_row(self.overview, vSizer, "Description", self.playlist.description)
         self._add_row(self.overview, vSizer, "Torrents", str(self.playlist.nr_torrents))
+        
+        if self.playlist and self.playlist.nr_torrents > 0:
+            if self.torrents == None:
+                def do_db():
+                    from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
+                    return ChannelManager.getInstance().getTorrentsFromPlaylist(self.playlist)[2]
+            
+                def do_gui(delayedResult):
+                    self.torrents = delayedResult.get()
+                    bmps = []
+                    for torrent in self.torrents:
+                        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-'+binascii.hexlify(torrent.infohash))
+                        if os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0:
+                            bmps.append(wx.Bitmap(os.path.join(thumb_dir, os.listdir(thumb_dir)[1]), wx.BITMAP_TYPE_ANY))
+                        if len(bmps) > 3: break
+                    self.Freeze()
+                    tp = self.GetThumbnailPanel(panel, bmps)
+                    tSizer.Insert(1, tp, 0, wx.ALIGN_RIGHT|wx.ALIGN_TOP|wx.EXPAND)
+                    self.overviewSizer.Layout()
+                    self.Thaw()
 
-        sizer.Add(vSizer, 1, wx.EXPAND)
+                startWorker(do_gui, do_db, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+
+            tSizer = wx.BoxSizer(wx.HORIZONTAL)
+            tSizer.Add(vSizer, 1, wx.ALIGN_LEFT|wx.ALIGN_TOP|wx.EXPAND)
+            sizer.Add(tSizer, 1, wx.EXPAND)
+        else:
+            sizer.Add(vSizer, 1, wx.EXPAND)
+                                          
         sizer.Layout()
+        
+    def GetThumbnailPanel(self, parent, bmps):
+        panel = wx.Panel(parent, -1)
+        panel.SetBackgroundColour(parent.GetBackgroundColour())
+        
+        if bmps:
+            bmps_large = []
+            bmps_small = []
+        
+            res_large = limit_resolution(bmps[0].GetSize(), (175, 175))
+            res_small = limit_resolution(bmps[0].GetSize(), (85, 85))
+        
+            for bmp in bmps:
+                if bmp.IsOk():
+                    bmp = bmp.ConvertToImage().Scale(*res_large, quality = wx.IMAGE_QUALITY_HIGH).ConvertToBitmap()
+                    bmps_large.append(bmp)
+                    bmp = bmp.ConvertToImage().Scale(*res_small, quality = wx.IMAGE_QUALITY_HIGH).ConvertToBitmap()
+                    bmps_small.append(bmp)
+    
+            fgSizer = wx.FlexGridSizer(2, 2, 5, 5)
+            hSizer = wx.BoxSizer(wx.HORIZONTAL)
+            hSizer.Add(fgSizer, 1, 0)
+            
+            for bmp in bmps_small:
+                sbmp = wx.StaticBitmap(panel, -1)
+                sbmp.SetBitmap(bmp)
+                fgSizer.Add(sbmp, 0, 0)
+                
+            hSizer.AddSpacer((5, -1))
+                
+            sbmp = StaticBitmaps(panel, -1)
+            sbmp.SetBitmaps(bmps_large)
+            hSizer.Add(sbmp, 1, 0)
+            panel.SetSizer(hSizer)
+            
+        return panel
         
     @warnWxThread
     def RefreshData(self, data):
@@ -1543,10 +1624,6 @@ class PlaylistDetails(AbstractDetails):
                 self.playlist.name = data[2].name
                 self.playlist.description = data[2].description
                 self.playlist.nr_torrents = data[2].nr_torrents
-                             
-            if self.createAd:
-                panel = self.createAd(self.notebook)
-                self.notebook.SetAdSpace(panel) 
 
             self._addOverview(self.overview, self.overviewSizer)
         
@@ -1618,6 +1695,7 @@ class AbstractInfoPanel(GradientPanel):
 class SearchInfoPanel(AbstractInfoPanel):
 
     def Set(self, num_items):
+        self.AddMessage('A channel is a collection of torrents made by users to share their favorite torrents.')
         self.AddMessage('Channels may contain torrents associated with your search.')
         if num_items > 0:
             self.AddMessage('Please click on a channel or a torrent for more details.')
@@ -1672,25 +1750,23 @@ class SelectedchannelInfoPanel(AbstractInfoPanel):
             msg1 = ""
             msg2 = ""
             
+            if iamModerator:
+                msg1 = "You are looking at the contents of your channel."         
+            elif vote == -1:
+                msg1 = "You have marked this Channel as Spam."
+            elif vote == 2:
+                msg1 = 'You are looking at the full content of one of your favorite channels.'
+            
             if open2edit:
                 msg1 = "You can now enable community-features for this Channel."
-                msg2 = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit your channel settings to get started."
+                msg2 = "Allowing other users to comment, modify and improve meta-data will increase the overall community feel. Try it now.\nEdit the channel settings to get started."
 
             elif allow2edit:
                 msg1 = "This is an open community channel. You can modify it, comment on it and add new content."
-                            
-            if vote == -1:
-                msg1 = ""
-                msg2 = "You have marked this Channel as Spam."
-                
-            elif vote != 2:
                 msg2 = "You can edit this channel" if not msg2 else msg2
 
             if msg1:
                 self.AddMessage(msg1)
-            else:
-                self.AddMessage('You are looking at the full content of one of your favorite channels.')
-
             if msg2:
                 self.AddMessage(msg2)
 
@@ -2167,6 +2243,7 @@ class ChannelsExpandedPanel(wx.Panel):
                     width, _ = self.GetTextExtent(newText)
                     if width <= maxWidth:
                         return newText
+                return ""
                     
             def CreateLinkStaticText():
                 link = LinkStaticText(self, '', icon = None, font_colour = self.fg_colour)

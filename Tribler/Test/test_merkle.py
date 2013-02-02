@@ -10,7 +10,7 @@ from math import ceil
 
 from Tribler.Core.API import *
 from Tribler.Core.Merkle.merkle import *
-from Tribler.Core.BitTornado.bencode import bdecode
+from Tribler.Core.Utilities.bencode import bdecode
 
 from traceback import print_exc
 

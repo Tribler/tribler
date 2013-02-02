@@ -27,8 +27,8 @@ from btconn import BTConnection
 from olconn import OLConnection
 from Tribler.Core.TorrentDef import *
 from Tribler.Core.DownloadConfig import *
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import *
 
 DEBUG=True
 

@@ -36,8 +36,11 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
         try:
             # Don't need to throw an exception when stopped, we then just save the new value and
             # use it at (re)startup.
-            if self.sd is not None:
-                set_max_speed_lambda = lambda:self.sd is not None and self.sd.set_max_speed(direct,speed,None)
+            if self.handle is not None:
+                if direct == UPLOAD:
+                    set_max_speed_lambda = lambda:self.handle is not None and self.handle.set_upload_limit(int(speed * 1024))
+                else:
+                    set_max_speed_lambda = lambda:self.handle is not None and self.handle.set_download_limit(int(speed * 1024))
                 self.session.lm.rawserver.add_task(set_max_speed_lambda,0)
                 
             # At the moment we can't catch any errors in the engine that this 

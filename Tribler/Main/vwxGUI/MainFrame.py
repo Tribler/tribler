@@ -135,6 +135,7 @@ class FileDropTarget(wx.FileDropTarget):
 class MainFrame(wx.Frame):
     def __init__(self, parent, channelonly, internalvideo, progress):
         # Do all init here
+        self.ready = False
         self.guiUtility = GUIUtility.getInstance()
         self.guiUtility.frame = self
         self.utility = self.guiUtility.utility
@@ -164,7 +165,7 @@ class MainFrame(wx.Frame):
         self.Freeze()
         self.SetDoubleBuffered(True)
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
-        
+         
         themeColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
         r, g, b = themeColour.Get(False)
         if r > 190 or g > 190 or b > 190: #Grey == 190,190,190
@@ -185,20 +186,27 @@ class MainFrame(wx.Frame):
 
             self.splitter = wx.SplitterWindow(self, style=wx.SP_NOBORDER)
             self.splitter.SetMinimumPaneSize(1)
+            self.splitter.SetForegroundColour(self.GetForegroundColour())
             self.splitter_top_window = wx.Panel(self.splitter, style=wx.NO_BORDER)
+            self.splitter_top_window.SetForegroundColour(self.GetForegroundColour())
             self.splitter_top = wx.BoxSizer(wx.HORIZONTAL)
             self.splitter_top_window.SetSizer(self.splitter_top)
-            
             self.splitter_bottom_window = wx.Panel(self.splitter)
+            self.splitter_bottom_window.SetMinSize((-1,25))
+            self.splitter_bottom_window.SetForegroundColour(self.GetForegroundColour())
             self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
             self.splitter_bottom_window.parent_list = self.splitter_bottom_window
             self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
             self.splitter_bottom_window.SetSizer(self.splitter_bottom)
             self.splitter.SetSashGravity(0.8)
             self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
-            # The initial sash position of a SplitterWindow does not always work, so use CallAfter and set the position again once the frame is loaded. 
-            wx.CallAfter(self.splitter.SetSashPosition, sashpos)
             self.splitter.Show(False)
+            # Reset the sash position after the splitter has been made visible
+            def OnShowSplitter(event):
+                wx.CallAfter(self.splitter.SetSashPosition, sashpos)
+                self.splitter.Unbind(wx.EVT_SHOW)
+                event.Skip()
+            self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
 
             self.searchlist = SearchList(self.splitter_top_window)
             self.searchlist.Show(False)
@@ -246,7 +254,7 @@ class MainFrame(wx.Frame):
             separator.SetBackgroundColour(SEPARATOR_GREY)
             hSizer.Add(separator, 0, wx.EXPAND)
             hSizer.Add(self.home, 1, wx.EXPAND)
-            hSizer.Add(self.stats, 1, wx.EXPAND|wx.ALL, 20)
+            hSizer.Add(self.stats, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL) 
@@ -390,6 +398,8 @@ class MainFrame(wx.Frame):
                 self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
             elif url_filename.startswith("http"):
                 self.startDownloadFromUrl(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
+            elif url_filename.startswith("tswift") or url_filename.startswith("ppsp"):
+                self.startDownloadFromSwift(url_filename)
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
 
@@ -407,7 +417,9 @@ class MainFrame(wx.Frame):
         return True
     
     def startDownloadFromSwift(self, url, destdir = None):
+        url = url.replace("ppsp://", "tswift://127.0.0.1:9999/") if url.startswith("ppsp://") else url
         cdef = SwiftDef.load_from_url(url)
+        cdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
         wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)
         return True
     
@@ -504,7 +516,7 @@ class MainFrame(wx.Frame):
                         selectedFile = None
                     
                     #Swift requires swarmname to be part of the selectedfile
-                    if cdef.get_def_type() == 'swift' and tdef:
+                    if cdef.get_def_type() == 'swift' and tdef and selectedFile:
                         swift_selectedFile = tdef.get_name_as_unicode()+"/"+selectedFile
                     else:
                         swift_selectedFile = selectedFile
@@ -639,11 +651,14 @@ class MainFrame(wx.Frame):
     @forceWxThread
     def show_saved(self, torrentname):
         if self.ready and self.librarylist.isReady:
-            self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon = wx.ART_INFORMATION)
+            if torrentname:
+                self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon = wx.ART_INFORMATION)
+            else:
+                self.guiUtility.Notify("Download started", "A new torrent has been added to the download queue.", icon = wx.ART_INFORMATION)
             
             print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
-
+            
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
 
@@ -979,7 +994,7 @@ class MainFrame(wx.Frame):
         self.utility.config.Write("window_x", x)
         self.utility.config.Write("window_y", y)
         
-        if self.splitter.IsShownOnScreen() and not self.splitter.Unsplit():
+        if self.splitter.IsShownOnScreen() and self.splitter.IsSplit():
             self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
 
         self.utility.config.Flush()
@@ -988,7 +1003,7 @@ class MainFrame(wx.Frame):
     # Close Program
     ##################################
                
-    def OnCloseWindow(self, event = None):
+    def OnCloseWindow(self, event = None, force = False):
         found = False
         if event != None:
             nr = event.GetEventType()
@@ -1065,8 +1080,9 @@ class MainFrame(wx.Frame):
             print_exc()
             
         print >>sys.stderr, "mainframe: Calling quit"
-        self.quit(event != None)
-
+        self.quit(event != None or force)
+        self.Destroy()
+        
         if DEBUG:
             print >>sys.stderr,"mainframe: OnCloseWindow END"
             ts = enumerate()
@@ -1129,8 +1145,8 @@ class MainFrame(wx.Frame):
                 if DEBUG:
                     print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
                 return
-                
-            if currentThread().getName() != "MainThread":
+            
+            if not wx.Thread_IsMain():
                 if DEBUG:
                     print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
                     print_stack()

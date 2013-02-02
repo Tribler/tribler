@@ -12,6 +12,7 @@ from list_body import *
 from list_item import *
 from list_details import *
 from __init__ import *
+
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity,\
@@ -24,6 +25,7 @@ from wx._controls import StaticLine
 from shutil import copyfile
 from Tribler.Main.vwxGUI.list_details import PlaylistDetails
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
 
 DEBUG = False
 
@@ -118,18 +120,9 @@ class ChannelManager(BaseManager):
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
-        #sometimes a channel has some torrents in the torrents variable, merge them here
-        if self.list.channel.torrents:
-            remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
-            for torrent in torrents:
-                if torrent.infohash in remoteTorrents:
-                    remoteTorrents.discard(torrent.infohash)
-            
-            self.list.channel.torrents = set([torrent for torrent in self.list.channel.torrents if torrent.infohash in remoteTorrents])
-            torrents = torrents + list(self.list.channel.torrents)
-        
         #only show a small random selection of available content for non-favorite channels
-        if not self.list.channel.isFavorite() and not self.list.channel.isMyChannel():
+        inpreview = not self.list.channel.isFavorite() and not self.list.channel.isMyChannel()
+        if inpreview:
             if len(playlists) > 3:
                 playlists = sample(playlists, 3)
                 
@@ -139,6 +132,17 @@ class ChannelManager(BaseManager):
                 
                 torrents = sample(torrents, CHANNEL_MAX_NON_FAVORITE)
                 torrents.sort(cmp=cmp_torrent, reverse = True)
+        
+        #sometimes a channel has some torrents in the torrents variable, merge them here
+        if self.list.channel.torrents:
+            remoteTorrents = set(torrent.infohash for torrent in self.list.channel.torrents)
+            for i in xrange(len(torrents), 0, -1):
+                if torrents[i-1].infohash in remoteTorrents:
+                    torrents.pop(i-1)
+            
+            torrents = list(self.list.channel.torrents) + torrents
+            if inpreview:
+                torrents = torrents[:CHANNEL_MAX_NON_FAVORITE]
         
         self.list.SetData(playlists, torrents)
         if DEBUG:    
@@ -227,7 +231,7 @@ class SelectedChannelList(GenericSearchList):
         columns = [{'name':'Name', 'sortAsc': True},
                    {'name':'Torrents', 'width': '14em', 'fmt': lambda x: '?' if x == -1 else str(x)}]
         
-        columns = self.guiutility.SetHideColumnInfo(PlaylistItem, columns)
+        columns = self.guiutility.SetColumnInfo(PlaylistItem, columns)
         ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
@@ -340,6 +344,11 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def Reset(self):
+        self.title = None
+        self.channel = None
+        self.iamModerator = False
+        self.my_channel = False
+        
         if GenericSearchList.Reset(self):
             self.commentList.Reset()
             self.activityList.Reset()
@@ -394,6 +403,7 @@ class SelectedChannelList(GenericSearchList):
                 self.notebook.RemovePage(i-1)
         
         #Update header + list ids
+        self.ResetBottomWindow()
         self.header.SetHeadingButtons(self.channel)
         self.commentList.GetManager().SetIds(channel = self.channel)
         self.activityList.GetManager().SetIds(channel = self.channel)
@@ -401,7 +411,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def SetTitle(self, channel):
-        self.ResetBottomWindow()
+        self.title = channel.name
         self.header.SetHeading(channel)
         self.Layout()
    
@@ -421,8 +431,7 @@ class SelectedChannelList(GenericSearchList):
             if shouldDrag:
                 data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, DragItem) for torrent in torrents]
             else:
-                for torrent in torrents:
-                    data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem)]
+                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem) for torrent in torrents] 
             self.list.SetData(data)
             
         else:
@@ -457,7 +466,7 @@ class SelectedChannelList(GenericSearchList):
         
         if data:
             if isinstance(data, Torrent):
-                if self.state == ChannelCommunity.CHANNEL_OPEN or self.channel.iamModerator:
+                if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
                     data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data, DragItem)
                 else:
                     data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data)
@@ -500,6 +509,8 @@ class SelectedChannelList(GenericSearchList):
             num_items = len(self.list.raw_data) if self.list.raw_data else 1
             panel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
             self.guiutility.SetBottomSplitterWindow(panel)
+        else:
+            self.guiutility.SetBottomSplitterWindow()
         
     @warnWxThread
     def OnSaveTorrent(self, channel, panel):
@@ -1755,6 +1766,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
                 if dlg.ShowModal() == wx.ID_YES:
                     self.OnSave(playlist_id, panel)
         ManageChannelFilesList.OnCollapse(self, item, panel)
+        self.list.Layout()
         
     def OnSave(self, playlist_id, panel):
         name, description, _ = panel.GetInfo()
@@ -1992,7 +2004,7 @@ class CommentManager(BaseManager):
                 self.list.header.SetTitle('Comments for this channel')
             
             if channel:
-                self.list.EnableCommeting(channel.isFavorite())
+                self.list.EnableCommeting(channel.isSemiOpen())
             else:
                 self.list.EnableCommeting(False)
                 
@@ -2017,6 +2029,12 @@ class CommentManager(BaseManager):
             self.do_or_schedule_refresh()
     
     def refresh(self):
+        channel = self.channel
+        if self.playlist:
+            channel = self.playlist.channel
+        elif self.channeltorrent:
+            channel = self.channeltorrent.channel
+        
         def db_callback():
             self.list.dirty = False
             
@@ -2026,7 +2044,7 @@ class CommentManager(BaseManager):
                 return self.channelsearch_manager.getCommentsFromChannelTorrent(self.channeltorrent)
             return self.channelsearch_manager.getCommentsFromChannel(self.channel)
         
-        if self.channel.isFavorite():
+        if channel.isFavorite() or channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2058,7 +2076,6 @@ class CommentManager(BaseManager):
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
         startWorker(None, workerFn=db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
-            
     def removeComment(self, comment):
         self.channelsearch_manager.removeComment(comment, self.channel)
 
@@ -2226,7 +2243,7 @@ class ActivityManager(BaseManager):
             self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
             self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations, recent_markings)
         
-        if self.channel.isFavorite():
+        if self.channel.isFavorite() or self.channel.isMyChannel():
             startWorker(do_gui, db_callback, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2313,7 +2330,7 @@ class ModificationManager(BaseManager):
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentModifications(self.torrent)
         
-        if self.torrent.channel.isFavorite():
+        if self.torrent.channel.isFavorite() or self.torrent.channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()
@@ -2329,11 +2346,10 @@ class ModificationManager(BaseManager):
 class ModificationList(List):
     def __init__(self, parent, canModify = True):
         List.__init__(self, [], LIST_GREY, [7,7], parent = parent, singleSelect = True, borders = False)
-        self.header.SetTitle('Modifications of this torrent')
         self.canModify = canModify
     
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius = 0, spacers = [4,7])
+        return None
     
     def CreateFooter(self, parent):
         return None
@@ -2445,7 +2461,7 @@ class ModerationManager(BaseManager):
                 return self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, 25)
             return self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, 25)
         
-        if self.channel.isFavorite():
+        if self.channel.isFavorite() or self.channel.isMyChannel():
             startWorker(self.list.SetDelayedData, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
             self.list.ShowPreview()

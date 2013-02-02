@@ -34,6 +34,7 @@ class GUIUtility:
         if GUIUtility.__single:
             raise RuntimeError, "GUIUtility is singleton"
         GUIUtility.__single = self 
+        self.registered = False
         
         # do other init
         self.utility = utility
@@ -71,16 +72,34 @@ class GUIUtility:
         return GUIUtility.__single
     getInstance = staticmethod(getInstance)
     
-    def register(self):
-        self.torrentsearch_manager = TorrentManager.getInstance(self)
-        self.channelsearch_manager = ChannelManager.getInstance()
-        self.library_manager = LibraryManager.getInstance(self)
-        self.torrentstate_manager = TorrentStateManager.getInstance(self)
+    def hasInstance():
+        return GUIUtility.__single != None
+    hasInstance = staticmethod(hasInstance)
+    
+    def delInstance():
+        if GUIUtility.__single:
+            GUIUtility.__single.library_manager.delInstance()
+            GUIUtility.__single.channelsearch_manager.delInstance()
+            GUIUtility.__single.torrentsearch_manager.delInstance()
         
-        self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
-        self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
-        self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
-        self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
+        GUIUtility.__single = None
+    delInstance = staticmethod(delInstance)
+    
+    def register(self):
+        if not self.registered:
+            self.registered = True
+            
+            self.torrentsearch_manager = TorrentManager.getInstance(self)
+            self.channelsearch_manager = ChannelManager.getInstance()
+            self.library_manager = LibraryManager.getInstance(self)
+            self.torrentstate_manager = TorrentStateManager.getInstance(self)
+            
+            self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
+            self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
+            self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
+            self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
+        else:
+            raise RuntimeError('GuiUtility is already registered')
     
     def ShowPlayer(self):
         if self.frame.videoparentpanel:        
@@ -170,7 +189,9 @@ class GUIUtility:
             if page == 'playlist':
                 self.SetTopSplitterWindow(self.frame.playlist)
                 items = self.frame.playlist.GetExpandedItems()
-                if not items:
+                if items:
+                    self.frame.playlist.Select(items[0][0])
+                else:
                     self.frame.playlist.ResetBottomWindow()
                 channelmenu = self.frame.actlist.GetItem(3)
                 if channelmenu and channelmenu.expandedPanel:
@@ -287,8 +308,9 @@ class GUIUtility:
         self.frame.splitter_bottom.Layout()
         self.frame.splitter_bottom_window.Refresh()
         
-    def SetHideColumnInfo(self, itemtype, columns, defaults = []):
+    def SetColumnInfo(self, itemtype, columns, hide_defaults = []):
         fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        # Load hidden column info
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns = hide_columns.get(itemtype.__name__, {})
@@ -296,14 +318,31 @@ class GUIUtility:
             if hide_columns.has_key(column['name']):
                 column['show'] = hide_columns[column['name']]
             else:
-                column['show'] = not (index in defaults)
+                column['show'] = not (index in hide_defaults)
+
+        # Load column width info                
+        column_sizes = fileconfig.Read("column_sizes")
+        column_sizes = json.loads(column_sizes) if column_sizes else {}
+        column_sizes = column_sizes.get(itemtype.__name__, {})
+        for index, column in enumerate(columns):
+            if column_sizes.has_key(column['name']):
+                column['width'] = column_sizes[column['name']]
+
         return columns
-    
-    def HideDownloadButton(self):
+
+    def ReadGuiSetting(self, setting_name, default = None, do_json = True):
         fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
-        hide_buttons = fileconfig.Read("hide_buttons")
-        hide_buttons = json.loads(hide_buttons) if hide_buttons else True
-        return hide_buttons
+        setting_value = fileconfig.Read(setting_name)
+        if do_json and setting_value:
+            setting_value = json.loads(setting_value)
+        elif not setting_value:
+            setting_value = default
+        return setting_value
+    
+    def WriteGuiSetting(self, setting_name, setting_value, do_json = True):
+        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+        fileconfig.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
+        fileconfig.Flush()           
 
     @forceWxThread
     def GoBack(self, scrollTo = None, topage = None):
@@ -354,7 +393,7 @@ class GUIUtility:
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
         
-        elif input.startswith(SWIFT_URL_SCHEME):
+        elif input.startswith(SWIFT_URL_SCHEME) or input.startswith("ppsp://"):
             if self.frame.startDownloadFromSwift(str(input)):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
@@ -364,7 +403,7 @@ class GUIUtility:
             keywords = [keyword for keyword in keywords if len(keyword) > 1]
             
             if len(keywords)  == 0:
-                self.Notify('Please enter a search term', wx.ART_INFORMATION)
+                self.Notify('Please enter a search term', "Your search term '%s' was either to small or to general." % input , icon = wx.ART_INFORMATION)
                 
             else:
                 self.frame.top_bg.StartSearch()
@@ -504,11 +543,10 @@ class GUIUtility:
             lists[self.guiPage].ScrollToId(id)
             
     def Notify(self, title, msg = '', icon = 0):
-        fallback_notifier = True
-        if sys.platform == 'win32':
-            fallback_notifier = not self.frame.tbicon.Notify(title, msg, icon)
-        if fallback_notifier:
-            self.frame.actlist.Notify(title, icon)
+        if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
+            self.frame.tbicon.Notify(title, msg, icon)
+        else:
+            self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):
         if self.frame.ready:

@@ -6,8 +6,8 @@ import time
 import unittest
 import socket
 
-from Tribler.Core.BitTornado.BT1.MessageID import *
-from Tribler.Core.BitTornado.bencode import bdecode
+from Tribler.Core.MessageID import *
+from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 
 from olconn import OLConnection

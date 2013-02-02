@@ -14,7 +14,7 @@ import time
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 import re
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-from Tribler.Core.BitTornado.bencode import bdecode, bencode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
 

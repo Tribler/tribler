@@ -16,24 +16,18 @@ from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl,\
     TextCtrlAutoComplete, BetterText as StaticText, _set_font
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.SocialNetwork.RemoteQueryMsgHandler import RemoteQueryMsgHandler
 
 from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, UserEventLogDBHandler, TorrentDBHandler, BarterCastDBHandler, PeerDBHandler, ChannelCastDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler,  ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_PROXYDISCOVERY
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT 
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
 from traceback import print_exc, print_stack
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceDBThread
-from Tribler.Core.BitTornado.BT1.Encrypter import IncompleteCounter
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.Tag.Extraction import TermExtraction
-
-# ProxyService 90s Test_
-#from Tribler.Core.simpledefs import *
-# _ProxyService 90s Test
 
 class Home(XRCPanel):
 
@@ -43,7 +37,6 @@ class Home(XRCPanel):
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-
         vSizer.AddStretchSpacer()
 
         text = StaticText(self, -1, self.guiutility.utility.lang.get('title'))
@@ -98,14 +91,35 @@ class Home(XRCPanel):
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
         
-        buzzpanel = BuzzPanel(self)
-        buzzpanel.SetMinSize((-1,180))
-        vSizer.Add(buzzpanel, 0, wx.EXPAND)
-
+        self.buzzpanel = BuzzPanel(self)
+        self.buzzpanel.SetMinSize((-1,180))
+        self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
+        vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
+        
         self.SetSizer(vSizer)
         self.Layout()
+        
+        self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
 
         self.SearchFocus()
+    
+    def OnRightClick(self, event):
+        menu = wx.Menu()
+        itemid = wx.NewId()
+        menu.AppendCheckItem(itemid, 'Show "what\'s hot"')
+        menu.Check(itemid, self.buzzpanel.IsShown())
+        
+        def toggleBuzz(event):
+            show = not self.buzzpanel.IsShown()
+            self.buzzpanel.Show(show)
+            self.guiutility.WriteGuiSetting("show_buzz", show)
+            self.Layout()
+            
+        menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
+
+        if menu:
+            self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
+            menu.Destroy()
 
     def OnClick(self, event):
         term = self.searchBox.GetValue()
@@ -156,31 +170,20 @@ class Stats(XRCPanel):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         hSizer.Add(self.dowserButton)
-        hSizer.Add(self.memdumpButton)
-        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.BOTTOM, 10)
+        hSizer.Add(self.memdumpButton, 0, wx.RIGHT, 3)
+        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.TOP|wx.BOTTOM, 3)
         
-        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 10)
+        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
+        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.RIGHT, 7)
         self.activity = ActivityPanel(self)
-        hSizer.Add(self.activity, 1, wx.EXPAND|wx.BOTTOM, 10)
+        hSizer.Add(self.activity, 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
 
-        # ProxyService 90s Test_
-        #
-#        hSizer = wx.BoxSizer(wx.HORIZONTAL)
-#        hSizer.Add(NetworkTestPanel(self), 1, wx.EXPAND|wx.BOTTOM|wx.RIGHT, 10)
-#        hSizer.Add(ProxyDiscoveryPanel(self), 1, wx.EXPAND|wx.BOTTOM, 10)
-#        vSizer.Add(hSizer, 0, wx.EXPAND)
-        #
-        # _ProxyService 90s Test
-
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 10)
-        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 10)
-        # boudewijn: disabled TopContributorsPanel, getTopNPeers is a very expensive call
-        # hSizer.Add(TopContributorsPanel(self), 1, wx.EXPAND)
+        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 7)
+        hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 7)
         vSizer.Add(hSizer, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
@@ -293,34 +296,41 @@ class Stats(XRCPanel):
         XRCPanel.Show(self, show)
 
 class HomePanel(wx.Panel):
-    def __init__(self, parent, title, background):
+    def __init__(self, parent, title, background, hspacer = (0,0)):
         wx.Panel.__init__(self, parent)
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.SetBackgroundColour(background)
         self.SetForegroundColour(parent.GetForegroundColour())
+        
+        spacerFlags = 0
+        if hspacer[0]:
+            spacerFlags |= wx.LEFT
+        if hspacer[1]:
+            spacerFlags |= wx.RIGHT
+        spacer = max(hspacer)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.header = self.CreateHeader()
         self.header.SetTitle(title)
         self.header.SetBackgroundColour(background)
-        vSizer.Add(self.header, 0, wx.EXPAND)
+        vSizer.Add(self.header, 0, wx.EXPAND|spacerFlags, spacer)
 
         self.panel = self.CreatePanel()
         if self.panel:
-            vSizer.Add(self.panel, 1, wx.EXPAND|wx.LEFT|wx.RIGHT, 1)
+            vSizer.Add(self.panel, 1, wx.EXPAND|spacerFlags, spacer)
 
         self.footer = self.CreateFooter()
         self.footer.SetBackgroundColour(background)
-        vSizer.Add(self.footer, 0, wx.EXPAND)
+        vSizer.Add(self.footer, 0, wx.EXPAND|spacerFlags, spacer)
 
         self.SetSizer(vSizer)
         self.Layout()
 
     def CreateHeader(self):
-        return TitleHeader(self, self, [], radius=LIST_RADIUS)
+        return DetailHeader(self)
     def CreatePanel(self):
         pass
     def CreateFooter(self):
@@ -334,13 +344,11 @@ class HomePanel(wx.Panel):
 
 class NetworkPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Network info' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Network info' , SEPARATOR_GREY, (0, 1))
 
         self.torrentdb = TorrentDBHandler.getInstance()
         self.channelcastdb = ChannelCastDBHandler.getInstance()
         self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
-        self.remotequerymsghandler = RemoteQueryMsgHandler.getInstance()
-        self.incompleteCounter = IncompleteCounter.getInstance()
 
         self.timer = None
 
@@ -357,8 +365,8 @@ class NetworkPanel(HomePanel):
         self.nrFiles = StaticText(panel)
         self.totalSize = StaticText(panel)
         self.queueSize = StaticText(panel)
+        self.queueSuccess = StaticText(panel)
         self.nrChannels = StaticText(panel)
-        self.incomplete = StaticText(panel)
 
         self.freeMem = None
         try:
@@ -378,15 +386,15 @@ class NetworkPanel(HomePanel):
         gridSizer.Add(self.nrTorrents, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Torrents in queue'))
         gridSizer.Add(self.queueSize, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Torrent queue success'))
+        gridSizer.Add(self.queueSuccess, 0, wx.EXPAND)
         gridSizer.Add(StaticText(panel, -1, 'Channels found'))
         gridSizer.Add(self.nrChannels, 0, wx.EXPAND)
-        gridSizer.Add(StaticText(panel, -1, 'Incomplete limit (cur, max, history, maxhistory)'))
-        gridSizer.Add(self.incomplete, 0, wx.EXPAND)
         if self.freeMem:
             gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'))
             gridSizer.Add(self.freeMem, 0, wx.EXPAND)
 
-        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
         panel.SetSizer(vSizer)
         return panel
 
@@ -414,8 +422,8 @@ class NetworkPanel(HomePanel):
             self.totalSize.SetLabel(self.guiutility.utility.size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
         self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
+        self.queueSuccess.SetLabel(self.remotetorrenthandler.getQueueSuccess())
         self.nrChannels.SetLabel(str(nr_channels))
-        self.incomplete.SetLabel(", ".join(map(str, self.incompleteCounter.getstats())))
         
         if self.freeMem:
             self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
@@ -432,7 +440,7 @@ class DispersyPanel(HomePanel):
         if not self.dispersy:
             raise RuntimeError("Dispersy has not started yet")
 
-        HomePanel.__init__(self, parent, 'Dispersy info' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Dispersy info' , SEPARATOR_GREY)
 
         self.SetMinSize((-1, 200))
 
@@ -480,7 +488,7 @@ class DispersyPanel(HomePanel):
 
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
-        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
         
         vSumSizer = wx.BoxSizer(wx.VERTICAL)
         self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
@@ -673,7 +681,7 @@ class DispersyPanel(HomePanel):
 
 class NewTorrentPanel(HomePanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Newest Torrents' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Newest Torrents' , SEPARATOR_GREY, (0, 1))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -718,7 +726,7 @@ class NewTorrentPanel(HomePanel):
 
 class PopularTorrentPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Popular Torrents' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Popular Torrents' , SEPARATOR_GREY, (1,0))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -752,58 +760,9 @@ class PopularTorrentPanel(NewTorrentPanel):
                 self.list.InsertStringItem(sys.maxint, item[1])
         self.list.Thaw()
 
-class TopContributorsPanel(HomePanel):
-    def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Top Contributors' , LIST_LIGHTBLUE)
-        self.Layout()
-
-        self.peerdb = PeerDBHandler.getInstance()
-        self.barterdb = BarterCastDBHandler.getInstance()
-
-        self.timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
-        self.timer.Start(10000, False)
-        self.RefreshList()
-
-    def CreatePanel(self):
-        self.list = BetterListCtrl(self)
-        self.list.InsertColumn(0, 'Name')
-        self.list.InsertColumn(1, 'Up', wx.LIST_FORMAT_RIGHT)
-        self.list.setResizeColumn(0)
-
-        return self.list
-
-    def _onTimer(self, event):
-        if self.IsShownOnScreen():
-            self.RefreshList()
-
-    def RefreshList(self):
-        def db_callback():
-            topTen = self.barterdb.getTopNPeers(10)
-            self._RefreshList(topTen)
-
-        startWorker(None, db_callback, uId ="TopContributorsPanel_RefreshList",priority=GUI_PRI_DISPERSY)
-
-    @forceWxThread
-    def _RefreshList(self, topTen):
-        self.list.Freeze()
-        self.list.DeleteAllItems()
-        for item in topTen['top']:
-            name = self.peerdb.getPeer(item[0], 'name')
-            if name:
-                pos = self.list.InsertStringItem(sys.maxint, name)
-                self.list.SetStringItem(pos, 1, self.guiutility.utility.size_format(item[1], 1))
-
-        self.list.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-        self.list.Layout()
-        self.list.Thaw()
-
-    def OnDoubleClick(self, event):
-        pass
-
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Recent Activity' , LIST_LIGHTBLUE)
+        HomePanel.__init__(self, parent, 'Recent Activity' , SEPARATOR_GREY, (1,0))
 
     @forceWxThread
     def onActivity(self, msg):
@@ -834,19 +793,8 @@ class BuzzPanel(wx.Panel):
         self.guiutility = GUIUtility.getInstance()
         self.utility    = self.guiutility.utility
 
-        vSizer = wx.BoxSizer(wx.VERTICAL)        
-        for colour, height, text in [(SEPARATOR_GREY, 1, None), (FILTER_GREY, 25, "Click below to explore what's hot"), (SEPARATOR_GREY, 1, None)]:
-            panel = wx.Panel(self)
-            panel.SetMinSize((-1,height))
-            panel.SetBackgroundColour(colour)
-            panel.Bind(wx.EVT_ENTER_WINDOW, lambda event: self.OnLeaveWindow())
-            if text:
-                stext = wx.StaticText(panel, label = text)
-                _set_font(stext, fontweight = wx.FONTWEIGHT_BOLD, fontcolour = wx.BLACK)
-                sizer = wx.BoxSizer(wx.HORIZONTAL)
-                sizer.Add(stext, 0, wx.CENTER|wx.LEFT, 5)
-                panel.SetSizer(sizer)
-            vSizer.Add(panel, 0, wx.EXPAND)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(DetailHeader(self, "Click below to explore what's hot"), 0, wx.EXPAND)
         vSizer.AddSpacer((-1,10))
 
         self.panel = wx.Panel(self)
@@ -1079,151 +1027,3 @@ class BuzzPanel(wx.Panel):
 #                uelog.addEvent(message=repr((term, last_shown_buzz)))
 #            last_shown_buzz = self.last_shown_buzz
 #            self.guiserver.add_task(db_callback)
-
-# ProxyService 90s Test_
-#
-#class NetworkTestPanel(HomePanel):
-#    def __init__(self, parent):
-#        HomePanel.__init__(self, parent, 'Network Test' , LIST_LIGHTBLUE)
-#
-#        self.timer = None
-#
-#        self.UpdateStats()
-#
-#    def CreatePanel(self):
-#        panel = wx.Panel(self)
-#        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
-#        vSizer = wx.BoxSizer(wx.VERTICAL)
-#
-#        self.eligibleCandidate = wx.StaticText(panel)
-#        self.activeCandidate = wx.StaticText(panel)
-#        self.testProgress = wx.StaticText(panel)
-#        self.testDuration = wx.StaticText(panel)
-#        self.nrPeers = wx.StaticText(panel)
-##        self.smallestChunk = wx.StaticText(panel)
-#
-#        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
-#        gridSizer.AddGrowableCol(1)
-#
-#        gridSizer.Add(wx.StaticText(panel, -1, 'Eligible Candidate'), 0, wx.LEFT, 10)
-#        gridSizer.Add(self.eligibleCandidate, 0, wx.EXPAND|wx.LEFT, 10)
-#        gridSizer.Add(wx.StaticText(panel, -1, 'Active Candidate'), 0, wx.LEFT, 10)
-#        gridSizer.Add(self.activeCandidate, 0, wx.EXPAND|wx.LEFT, 10)
-#        gridSizer.Add(wx.StaticText(panel, -1, 'Test status'), 0, wx.LEFT, 10)
-#        gridSizer.Add(self.testProgress, 0, wx.EXPAND|wx.LEFT, 10)
-#        gridSizer.Add(wx.StaticText(panel, -1, 'Test duration'), 0, wx.LEFT, 10)
-#        gridSizer.Add(self.testDuration, 0, wx.EXPAND|wx.LEFT, 10)
-#        gridSizer.Add(wx.StaticText(panel, -1, '# of peers used'), 0, wx.LEFT, 10)
-#        gridSizer.Add(self.nrPeers, 0, wx.EXPAND|wx.LEFT, 10)
-##        gridSizer.Add(wx.StaticText(panel, -1, 'Smallest chunk (MB)'), 0, wx.LEFT, 10)
-##        gridSizer.Add(self.smallestChunk, 0, wx.EXPAND|wx.LEFT, 10)
-#
-#        vSizer.Add(gridSizer, 0, wx.EXPAND)
-#        panel.SetSizer(vSizer)
-#        return panel
-#
-#    def OnNotify(self, subject, type, infohash):
-#        if self.IsShownOnScreen():
-#            self.UpdateStats()
-#
-#    def UpdateStats(self):
-#        def stats_callback():
-#            #candidate
-#            from Tribler.Core.Session import Session
-#            session = Session.get_instance()
-#            if session.lm.overlay_apps.proxy_peer_manager.am_i_connectable():
-#                eligibleCandidate = "Y"
-#            else:
-#                eligibleCandidate = "N"
-#
-#            #active candidate
-#            if session.get_proxyservice_status() == PROXYSERVICE_ON:
-#                activeCandidate = "Y"
-#            else:
-#                activeCandidate = "N"
-#            if eligibleCandidate == "N":
-#                activeCandidate = "N"
-#
-#            #testProgress
-#            if session.get_90stest_state():
-#                progress = "in progress..."
-#            else:
-#                progress = "done"
-#
-#            # testDuration
-#            if session.get_90stest_state():
-#                duration = long(round(time() - session.start_time))
-#            else:
-#                duration = 0
-#
-#            # nrPeers
-#            nrPeers = 0
-#            guiUtility = GUIUtility.getInstance()
-#            dlist = guiUtility.utility.session.get_downloads()
-#            for d in dlist:
-#                safename = `d.get_def().get_name()`
-#                if safename == "'Data.90s-test.8M.bin'":
-#                    nrPeers = d.sd.dow.proxydownloader.doe.get_nr_used_proxies()
-#
-#            stats = []
-#            stats.append(eligibleCandidate)
-#            stats.append(activeCandidate)
-#            stats.append(progress)
-#            stats.append(duration)
-#            stats.append(nrPeers)
-#
-#            wx.CallAfter(self._UpdateStats, stats)
-#
-#        self.guiserver.add_task(stats_callback, id = "NetworkTest_UpdateStats")
-#
-#    def _UpdateStats(self, stats):
-#        self.eligibleCandidate.SetLabel(str(stats[0]))
-#        self.activeCandidate.SetLabel(str(stats[1]))
-#        self.testProgress.SetLabel(str(stats[2]))
-#        self.testDuration.SetLabel(str(stats[3])+" sec")
-#        self.nrPeers.SetLabel(str(stats[4]))
-##        self.largestChunk.SetLabel(str("0"+" MB"))
-##        self.smallestChunk.SetLabel(str("0"+" MB"))
-#
-#        if self.timer:
-#            self.timer.Restart(1000)
-#        else:
-#            self.timer = wx.CallLater(1000, self.UpdateStats)
-#
-# _ProxyService 90s Test
-
-# ProxyService 90s Test_
-#
-#class ProxyDiscoveryPanel(NewTorrentPanel):
-#    def __init__(self, parent):
-#        HomePanel.__init__(self, parent, 'Peer Discovery' , LIST_LIGHTBLUE)
-#
-#        session = Session.get_instance()
-#        session.add_observer(self.OnNotify, NTFY_PROXYDISCOVERY, [NTFY_INSERT])
-#
-#        self.proxies=[]
-#        self.OnNotify(None, None, None, session.lm.overlay_apps.proxy_peer_manager.available_proxies.keys())
-#
-#    def OnNotify(self, subject, changeType, objectID, *args):
-#        """  Handler registered with the session observer
-#
-#        @param subject The subject to observe, one of NTFY_* subjects (see simpledefs).
-#        @param changeTypes The list of events to be notified of one of NTFY_* events.
-#        @param objectID The specific object in the subject to monitor (e.g. a specific primary key in a database to monitor for updates.)
-#        @param args: A list of optional arguments.
-#        """
-#        proxy_permid_list=args[0]
-#        wx.CallAfter(self._OnNotify, proxy_permid_list)
-#
-#    def _OnNotify(self, proxy_permid_list):
-#        for proxy_permid in proxy_permid_list:
-#            if proxy_permid not in self.proxies:
-#                self.proxies.append(proxy_permid)
-#
-#                msg = strftime("%H:%M:%S ") + show_permid_short(proxy_permid)
-#                self.list.InsertStringItem(0, msg)
-#                size = self.list.GetItemCount()
-#                if size > 50:
-#                    self.list.DeleteItem(size-1)
-#
-# _ProxyService 90s Test

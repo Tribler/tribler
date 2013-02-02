@@ -14,7 +14,7 @@ from Tribler.dispersy.authentication import MemberAuthentication, NoAuthenticati
 from Tribler.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
-
+        
 from message import DelayMessageReqChannelMessage
 from threading import currentThread, Event
 from traceback import print_stack, print_exc
@@ -22,6 +22,10 @@ import sys
 from Tribler.dispersy.dispersy import Dispersy
 from time import time
 from Tribler.community.channel.payload import ModerationPayload
+from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
+import json
+import binascii
+from Tribler.Core.Utilities.utilities import str2bin
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -115,15 +119,11 @@ class ChannelCommunity(Community):
         
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
-            from Tribler.Core.SocialNetwork.RemoteTorrentHandler import RemoteTorrentHandler
             from Tribler.Core.CacheDB.Notifier import Notifier
             
             # tribler channelcast database
             self._peer_db = PeerDBHandler.getInstance()
             self._channelcast_db = ChannelCastDBHandler.getInstance()
-            
-            # torrent collecting
-            self._rtorrent_handler = RemoteTorrentHandler.getInstance()
             
             # notifier
             self._notifier = Notifier.getInstance().notify
@@ -635,6 +635,11 @@ class ChannelCommunity(Community):
         return message
 
     def _disp_check_modification(self, messages):
+        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler  
+        from Tribler.community.search.community import SearchCommunity      
+        
+        th_handler = RemoteTorrentHandler.getInstance()
+        
         for message in messages:
             if not self._channel_id:
                 yield DelayMessageReqChannelMessage(message)
@@ -644,6 +649,27 @@ class ChannelCommunity(Community):
             if not accepted:
                 yield DelayMessageByProof(message)
                 continue
+            
+            if message.payload.modification_on.name ==  u"torrent" and message.payload.modification_type == "swift-thumbnails":
+                hex_roothash = json.loads(message.payload.modification_value)[1]
+                roothash = binascii.unhexlify(hex_roothash)
+                modifying_dispersy_id = message.payload.modification_on.packet_id
+                torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
+                infohash = self._channelcast_db._db.fetchone(u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
+                if infohash:
+                    infohash = str2bin(infohash)
+                    if __debug__:
+                        print >> sys.stderr, "Incoming swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]
+                    
+                    if not th_handler.has_thumbnail(infohash):
+                        @forceDispersyThread
+                        def callback(message = message):
+                            self._dispersy.on_messages([message])
+                        if __debug__:
+                            print >> sys.stderr, "Will try to download swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]                        
+                        th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout = CANDIDATE_WALK_LIFETIME, usercallback = callback)
+                        continue
+                
             yield message
 
     def _disp_on_modification(self, messages):
@@ -726,6 +752,11 @@ class ChannelCommunity(Community):
 
         # this might be a response to a dispersy-missing-message
         self._dispersy.handle_missing_messages(messages, MissingMessageCache)
+
+        if __debug__:
+            for message in messages:
+                if message.payload.modification_on.name ==  u"torrent" and message.payload.modification_type == "video-info":
+                    print >> sys.stderr, "Incomming video-info with value", message.payload.modification_value
 
     def _disp_undo_modification(self, descriptors, redo=False):
         for _, _, packet in descriptors:

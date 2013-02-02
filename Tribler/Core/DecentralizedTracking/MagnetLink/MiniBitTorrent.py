@@ -24,10 +24,10 @@ except ImportError,e:
     prctlimported = False
 
 
-from Tribler.Core.BitTornado.BT1.MessageID import protocol_name, EXTEND 
-from Tribler.Core.BitTornado.BT1.convert import toint, tobinary
-from Tribler.Core.BitTornado.SocketHandler import SocketHandler
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.MessageID import protocol_name, EXTEND 
+from Tribler.Core.Utilities.convert import toint, tobinary
+from Tribler.Core.RawServer.SocketHandler import SocketHandler
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MAGNET_STARTED,\

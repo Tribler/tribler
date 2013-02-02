@@ -32,8 +32,8 @@ ran BitTorrent and was downloading this swarm (assuming the tracker is trustwort
 """
 import sys
 from types import DictType,StringType
-from Tribler.Core.BitTornado.BT1.track import compact_peer_info
-from Tribler.Core.BitTornado.bencode import bencode
+from Tribler.Core.InternalTracker.track import compact_peer_info
+from Tribler.Core.Utilities.bencode import bencode
 
 EXTEND_MSG_UTORRENT_PEX_ID = chr(1) # Can be any value, the name 'ut_pex' is standardized
 EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive

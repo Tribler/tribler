@@ -13,8 +13,8 @@ from olconn import OLConnection
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import getMessageName, protocol_name, EXTEND
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import getMessageName, protocol_name, EXTEND
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 

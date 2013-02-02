@@ -12,7 +12,7 @@ import sys
 import socket
 from traceback import print_exc
 from threading import Thread, Event, currentThread
-from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.RawServer.RawServer import RawServer
 try:
     prctlimported = True
     import prctl
@@ -30,18 +30,18 @@ class Instance2InstanceServer(Thread):
         self.i2iport = i2iport
         self.connhandler = connhandler
         
-
+        print >> sys.stderr, "Instance2Instance binding to %s:%d"%("127.0.0.1", self.i2iport)
         self.i2idoneflag = Event()
-        
         self.rawserver = RawServer(self.i2idoneflag,
                                    timeout/5.0, 
                                    timeout,
                                    ipv6_enable = False,
                                    failfunc = self.rawserver_fatalerrorfunc,
                                    errorfunc = self.rawserver_nonfatalerrorfunc)
-        self.rawserver.add_task(self.rawserver_keepalive,1)
+        
         # Only accept local connections
-        self.rawserver.bind(self.i2iport,bind=['127.0.0.1'],reuse=True) 
+        self.rawserver.bind(self.i2iport,bind=['127.0.0.1'],reuse=True)
+        self.rawserver.add_task(self.rawserver_keepalive, 10) 
         
     def rawserver_keepalive(self):
         """ Hack to prevent rawserver sleeping in select() for a long time, not
@@ -49,7 +49,6 @@ class Instance2InstanceServer(Thread):
         
         Called by Instance2Instance thread """
         self.rawserver.add_task(self.rawserver_keepalive,1)
-        
         
     def shutdown(self):
         self.connhandler.shutdown()

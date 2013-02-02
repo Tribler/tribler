@@ -3,13 +3,14 @@ from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, NativeIcon
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import BundlerPreferenceDBHandler, UserEventLogDBHandler
 
 from __init__ import SEPARATOR_GREY, FILTER_GREY
 import sys
 import wx
 import os
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread, forceDBThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, warnWxThread
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.community.channel.community import ChannelCommunity
@@ -362,7 +363,7 @@ class SearchHeaderHelper():
     @warnWxThread
     def GetRightTitlePanel(self, parent):
         self.filter = wx.SearchCtrl(parent)
-        self.filter.SetDescriptiveText('Search within results')
+        self.filter.SetDescriptiveText('Filter results')
         self.filter.Bind(wx.EVT_TEXT, self.OnKey)
         self.filter.SetMinSize((175,-1))
         
@@ -536,6 +537,7 @@ class BaseFilter(wx.Panel):
         self.columns = columns
 
         self.SetBackgroundColour(FILTER_GREY)
+        self.SetForegroundColour(parent.GetForegroundColour())      
         self.AddComponents(spacers)
         
     @warnWxThread
@@ -603,6 +605,7 @@ class TorrentFilter(BaseFilter):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
         panel.SetBackgroundColour(self.GetBackgroundColour())
+        panel.SetForegroundColour(self.GetForegroundColour())        
         
         self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
@@ -625,7 +628,7 @@ class TorrentFilter(BaseFilter):
         self.filesize.SetFormatter(self.guiutility.utility.size_format)
         
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within results')
+        self.search.SetDescriptiveText('Filter results')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))
@@ -887,7 +890,7 @@ class SelectedChannelFilter(TorrentFilter):
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
         
-        self.search.SetDescriptiveText('Search within channel')
+        self.search.SetDescriptiveText('Filter channel content')
         
         self.heading_list = self.GetHeadingList(self)
 
@@ -962,7 +965,7 @@ class SelectedPlaylistFilter(SelectedChannelFilter):
     def AddComponents(self, spacers):
         SelectedChannelFilter.AddComponents(self, spacers)
         
-        self.search.SetDescriptiveText('Search within playlist')
+        self.search.SetDescriptiveText('Filter playlist content')
 
     @warnWxThread
     def SetHeading(self, item):
@@ -1007,7 +1010,7 @@ class ChannelFilter(BaseFilter):
     def __init__(self, parent, parent_list, spacers = [10,3]):
         self.guiutility =  GUIUtility.getInstance()
         self.channellist_manager = parent_list.GetManager()
-        self.channel_categories = ["All","Popular","New","Updated"]
+        self.channel_categories = ["All","Popular","New","Updated","Mine"]
 
         BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(ChannelListItem), spacers)
 
@@ -1015,6 +1018,7 @@ class ChannelFilter(BaseFilter):
         panel = wx.Panel(parent)
         panel.SetMinSize((-1, 25))
         panel.SetBackgroundColour(self.GetBackgroundColour())
+        panel.SetForegroundColour(self.GetForegroundColour())
         
         self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
@@ -1028,7 +1032,7 @@ class ChannelFilter(BaseFilter):
         self.channeltype.Bind(wx.EVT_LEFT_UP, self.OnPopupChannelType)
         
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within channels')
+        self.search.SetDescriptiveText('Filter channels')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))
@@ -1175,7 +1179,7 @@ class DownloadFilter(BaseFilter):
         self.state.Bind(wx.EVT_LEFT_UP, self.OnPopupState)
         
         self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Search within downloads')
+        self.search.SetDescriptiveText('Filter downloads')
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
             self.search.SetMinSize((175,20))
@@ -1358,5 +1362,26 @@ class DownloadFilter(BaseFilter):
     def ResizeColumn(self, *args, **kwargs):
         pass
 
+class DetailHeader(wx.Panel):
+    def __init__(self, parent, title = ""):
+        wx.Panel.__init__(self, parent)
+        self.SetBackgroundColour(SEPARATOR_GREY)
 
-    
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
+        panel = wx.Panel(self)
+        panel.SetMinSize((-1, 25))
+        panel.SetBackgroundColour(FILTER_GREY)
+        if hasattr(parent, 'OnLeaveWindow'):
+            panel.Bind(wx.EVT_ENTER_WINDOW, lambda event: parent.OnLeaveWindow())
+        self.title = wx.StaticText(panel, label = title)
+        _set_font(self.title, fontweight = wx.FONTWEIGHT_BOLD, fontcolour = wx.BLACK)
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.title, 0, wx.CENTER|wx.LEFT, 7)
+        panel.SetSizer(sizer)
+
+        vSizer.Add(panel, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 1)
+        self.SetSizer(vSizer)
+            
+    def SetTitle(self, title):
+        self.title.SetLabel(title)  

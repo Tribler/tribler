@@ -94,7 +94,6 @@ def isValidName(name):
     except:
         return False
     
-    
 def validTorrentFile(metainfo):
     # Jie: is this function too strict? Many torrents could not be downloaded
     if type(metainfo) != DictType:
@@ -269,7 +268,6 @@ def validTorrentFile(metainfo):
                     print >>sys.stderr, "Warning: httpseeds url is not valid: ",`url`, "HTTP seeding disabled"
                     break
 
-
 def isValidTorrentFile(metainfo):
     try:
         validTorrentFile(metainfo)
@@ -277,8 +275,7 @@ def isValidTorrentFile(metainfo):
     except:
         if DEBUG:
             print_exc()
-        return False
-    
+        return False 
     
 def isValidURL(url):
     if url.lower().startswith('udp'):    # exception for udp
@@ -311,101 +308,6 @@ def show_permid_shorter(permid):
         return 'None'
     s = encodestring(permid).replace("\n","")
     return s[-5:]
-
-def readableBuddyCastMsg(buddycast_data,selversion):
-    """ Convert msg to readable format.
-    As this copies the original dict, and just transforms it,
-    most added info is already present and therefore logged
-    correctly. Exception is the OLPROTO_VER_EIGHTH which
-    modified the preferences list. """
-    prefxchg_msg = copy.deepcopy(buddycast_data)
-    
-    if prefxchg_msg.has_key('permid'):
-        prefxchg_msg.pop('permid')
-    if prefxchg_msg.has_key('ip'):
-        prefxchg_msg.pop('ip')
-    if prefxchg_msg.has_key('port'):
-        prefxchg_msg.pop('port')
-        
-    name = repr(prefxchg_msg['name'])    # avoid coding error
-
-    if prefxchg_msg['preferences']:
-        prefs = []
-        if selversion < 8: # OLPROTO_VER_EIGHTH: Can't use constant due to recursive import
-            for pref in prefxchg_msg['preferences']:
-                prefs.append(show_permid(pref))
-        else:
-            for preftuple in prefxchg_msg['preferences']:
-                # Copy tuple and escape infohash
-                newlist = []
-                for i in range(0,len(preftuple)):
-                    if i == 0:
-                        val = show_permid(preftuple[i])
-                    else:
-                        val = preftuple[i]
-                    newlist.append(val)
-                prefs.append(newlist)
-                    
-        prefxchg_msg['preferences'] = prefs
-
-        
-    if prefxchg_msg.get('taste buddies', []):
-        buddies = []
-        for buddy in prefxchg_msg['taste buddies']:
-            buddy['permid'] = show_permid(buddy['permid'])
-            if buddy.get('preferences', []):
-                prefs = []
-                for pref in buddy['preferences']:
-                    prefs.append(show_permid(pref))
-                buddy['preferences'] = prefs
-            buddies.append(buddy)
-        prefxchg_msg['taste buddies'] = buddies
-        
-    if prefxchg_msg.get('random peers', []):
-        peers = []
-        for peer in prefxchg_msg['random peers']:
-            peer['permid'] = show_permid(peer['permid'])
-            peers.append(peer)
-        prefxchg_msg['random peers'] = peers
-        
-    return prefxchg_msg
-    
-def print_prefxchg_msg(prefxchg_msg):
-    def show_permid(permid):
-        return permid
-    print "------- preference_exchange message ---------"
-    print prefxchg_msg
-    print "---------------------------------------------"
-    print "permid:", show_permid(prefxchg_msg['permid'])
-    print "name", prefxchg_msg['name']
-    print "ip:", prefxchg_msg['ip']
-    print "port:", prefxchg_msg['port']
-    print "preferences:"
-    if prefxchg_msg['preferences']:
-        for pref in prefxchg_msg['preferences']:
-            print "\t", pref#, prefxchg_msg['preferences'][pref]
-    print "taste buddies:"
-    if prefxchg_msg['taste buddies']:
-        for buddy in prefxchg_msg['taste buddies']:
-            print "\t permid:", show_permid(buddy['permid'])
-            #print "\t permid:", buddy['permid']
-            print "\t ip:", buddy['ip']
-            print "\t port:", buddy['port']
-            print "\t age:", buddy['age']
-            print "\t preferences:"
-            if buddy['preferences']:
-                for pref in buddy['preferences']:
-                    print "\t\t", pref#, buddy['preferences'][pref]
-            print
-    print "random peers:"
-    if prefxchg_msg['random peers']:
-        for peer in prefxchg_msg['random peers']:
-            print "\t permid:", show_permid(peer['permid'])
-            #print "\t permid:", peer['permid']
-            print "\t ip:", peer['ip']
-            print "\t port:", peer['port']
-            print "\t age:", peer['age']
-            print    
             
 def print_dict(data, level=0):
     if isinstance(data, dict):

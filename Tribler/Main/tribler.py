@@ -22,6 +22,9 @@
 # This must be done in the first python file that is started.
 #
 import urllib
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -31,7 +34,7 @@ import Tribler.Debug.console
 
 import os, sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
-from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
@@ -92,7 +95,8 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
 from Tribler.Core.Utilities.utilities import show_permid_short
-from Tribler.Core.Statistics.Status.Status import get_status_holder
+from Tribler.Core.Statistics.Status.Status import get_status_holder,\
+    delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
 from Tribler.Video.defs import *
@@ -152,6 +156,13 @@ class ABCApp():
         self.dispersy = None
         # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
         self.effort_community = None
+        
+        self.seedingmanager = None
+        self.i2is = None
+        self.torrentfeed = None    
+        self.webUI = None
+        self.utility = None
+        self.videoplayer = None
 
         try:
             bm = wx.Bitmap(os.path.join(self.installdir,'Tribler','Images','splash.png'),wx.BITMAP_TYPE_ANY)
@@ -159,21 +170,16 @@ class ABCApp():
             self.splash.setTicks(10)
             self.splash.Show()
 
-            self.utility = Utility(self.installdir,Session.get_default_state_dir())
+            self.utility = Utility(self.installdir, Session.get_default_state_dir())
             self.utility.app = self
+            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
 
             sys.stderr.write('Client Starting Up.\n')
             sys.stderr.write('Tribler Version: '+self.utility.lang.get('version') + ' Build: ' + self.utility.lang.get('build') + '\n')
             
-            # Arno, 2009-08-18: Don't delay postinit anymore, gives problems on Ubuntu 9.04
-            self.PostInit()
-                
-        except Exception,e:
-            self.onError(e)
-            return False
-
-    def PostInit(self):
-        try:
+            self.splash.tick('Starting API')
+            self.startAPI(self.splash.tick)
+            
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
             
             cat = Category.getInstance(self.utility.getPath())
@@ -199,11 +205,6 @@ class ABCApp():
             self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
 
             notification_init(self.utility)
-            
-            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
-            
-            self.splash.tick('Starting API')
-            self.startAPI(self.splash.tick)
             self.guiUtility.register()
             
             channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
@@ -293,8 +294,6 @@ class ABCApp():
             self.onError(e)
             return False
 
-        return True
-
     def PostInit2(self):
         self.frame.Raise()
         self.startWithRightView()
@@ -334,18 +333,24 @@ class ABCApp():
         startWorker(wx_thread, db_thread, delay = 5.0)
 
     def startAPI(self, progress):
-        
         # Start Tribler Session
         state_dir = Session.get_default_state_dir()
-        
         cfgfilename = Session.get_default_config_filename(state_dir)
+        
         if DEBUG:
             print >>sys.stderr,"main: Session config",cfgfilename
-        try:
-            self.sconfig = SessionStartupConfig.load(cfgfilename)
+        
+        create_new = False
+        if os.path.exists(cfgfilename):    
+            try:
+                self.sconfig = SessionStartupConfig.load(cfgfilename)
+            except:
+                print_exc()
+                create_new = True
+        else:
+            create_new = True
             
-        except:
-            print_exc()
+        if create_new:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
             
@@ -417,6 +422,9 @@ class ABCApp():
             
             self.sconfig.set_install_dir(module_path())
             
+        else:
+            self.sconfig.set_install_dir(self.installdir)
+            
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
 
         # Arno, 2012-05-21: Swift part II
@@ -484,10 +492,13 @@ class ABCApp():
         maxdown = self.utility.config.Read('maxdownloadrate', "int")
         self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
 
-
 #        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
 #        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
         self.utility.ratelimiter = self.ratelimiter
+
+        ltmgr = LibtorrentMgr.getInstance(s, self.utility)
+        ltmgr.set_upload_rate_limit(maxup*1024)
+        ltmgr.set_download_rate_limit(maxdown*1024)
  
 # SelectiveSeeding _       
         self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, os.path.join(state_dir, STATEDIR_SEEDINGMANAGER_DIR))
@@ -508,13 +519,9 @@ class ABCApp():
         # Only allow updates to come in after we defined ratelimiter
         self.prevActiveDownloads = []
         s.set_download_states_callback(self.sesscb_states_callback)
-        
-        # Load friends from friends.txt
-        #friends.init(s)
 
         # Schedule task for checkpointing Session, to avoid hash checks after
         # crashes.
-        #
         self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         
         progress('Starting repexer')
@@ -538,7 +545,6 @@ class ABCApp():
             manager.downloadStarted(objectID)
 
     def set_reputation(self):
-        bc_db = self.utility.session.lm.bartercast_db
         def do_db():
             nr_connections = 0
             if Dispersy.has_instance():
@@ -548,10 +554,10 @@ class ABCApp():
                     if isinstance(community, SearchCommunity):
                         nr_connections = community.get_nr_connections()
             
-            return bc_db.getMyReputation(), bc_db.total_down, bc_db.total_up, nr_connections
+            return nr_connections
             
         def do_wx(delayedResult):
-            myRep, total_down, total_up, nr_connections = delayedResult.get()
+            nr_connections = delayedResult.get()
             
             #self.frame.SRstatusbar.set_reputation(myRep, total_down, total_up)
             
@@ -594,9 +600,8 @@ class ABCApp():
                 self.rateprintcount += 1
 
             # Pass DownloadStates to libaryView
+            no_collected_list = []
             try:
-                no_collected_list = []
-                
                 coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
                 for ds in dslist:
                     destdir = os.path.basename(ds.get_download().get_dest_dir())
@@ -614,7 +619,7 @@ class ABCApp():
             if not self.effort_community:
                 self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
 
-            if not isinstance(self.effort_community, HardKilledCommunity):
+            if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
                 if self.effort_community.has_been_killed:
                     # set EFFORT_COMMUNITY to None.  next state callback we will again get the
                     # effort community resulting in the HardKilledCommunity instead
@@ -708,13 +713,13 @@ class ABCApp():
             #     applyseedingpolicy = True
             # self.seedingcount += 1
             # if applyseedingpolicy:
-            self.seedingmanager.apply_seeding_policy(dslist)
+            self.seedingmanager.apply_seeding_policy(no_collected_list)
             # _SelectiveSeeding
 
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
             # occurs.
-            self.videoplayer.restart_other_downloads(dslist)
+            self.videoplayer.restart_other_downloads(no_collected_list)
                      
             # Adjust speeds once every 4 seconds
             adjustspeeds = False
@@ -723,7 +728,8 @@ class ABCApp():
             self.rateadjustcount += 1
     
             if adjustspeeds:
-                self.ratelimiter.add_downloadstatelist(dslist)
+                swift_dslist = [ds for ds in no_collected_list if ds.get_download().get_def().get_def_type() == 'swift']
+                self.ratelimiter.add_downloadstatelist(swift_dslist)
                 self.ratelimiter.adjust_speeds()
                 
                 if DEBUG_DOWNLOADS:
@@ -954,32 +960,59 @@ class ABCApp():
         self.done = True
 
         # write all persistent data to disk
-        self.seedingmanager.write_all_storage()
-        
-        self.i2is.shutdown()
-                
-        self.torrentfeed.shutdown()
+        if self.seedingmanager:
+            self.seedingmanager.write_all_storage()
+        if self.i2is:
+            self.i2is.shutdown()
+        if self.torrentfeed:    
+            self.torrentfeed.shutdown()
         if self.webUI:
             self.webUI.stop()
+        if self.guiserver:
+            self.guiserver.shutdown()
+        if self.videoplayer:
+            self.videoplayer.shutdown()
+            
+        delete_status_holders()
+        
+        if self.frame:
+            del self.frame
         
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()
         
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
-        self.utility.session.shutdown(hacksessconfcheckpoint=False)
+        if self.utility:
+            self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
-        # Arno, 2012-07-12: Shutdown should be quick
-        waittime = 5
-        while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < waittime:
-            diff = time() - session_shutdown_start
-            print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
-            sleep(3)
-        print >>sys.stderr,"main: ONEXIT Session is shutdown"
-        
-        print >>sys.stderr,"main: ONEXIT cleaning database"
-        peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-        peerdb._db.clean_db(randint(0,24) == 0)
+            # Arno, 2012-07-12: Shutdown should be quick
+            waittime = 5
+            while not self.utility.session.has_shutdown() and (time() - session_shutdown_start) < waittime:
+                diff = time() - session_shutdown_start
+                print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
+                sleep(3)
+            print >>sys.stderr,"main: ONEXIT Session is shutdown"
+            
+            # Shutdown libtorrent session after checkpoints have been made
+            LibtorrentMgr.getInstance().shutdown()
+            
+            try:
+                print >>sys.stderr,"main: ONEXIT cleaning database"
+                peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+                peerdb._db.clean_db(randint(0,24) == 0)
+            except:
+                print_exc()
+            
+            print >>sys.stderr,"main: ONEXIT deleting instances"
+            
+            Session.del_instance()
+            GUIUtility.delInstance()
+            GUITaskQueue.delInstance()
+            SQLiteCacheDB.delInstance()
+            GUIDBProducer.delInstance()
+            LibtorrentMgr.delInstance()
+            TorrentChecking.delInstance()
         
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
@@ -1033,6 +1066,8 @@ class ABCApp():
             def start_asked_download():
                 if torrentfilename.startswith("magnet:"):
                     self.frame.startDownloadFromMagnet(torrentfilename)
+                elif torrentfilename.startswith("tswift://") or torrentfilename.startswith("ppsp://"):
+                    self.frame.startDownloadFromSwift(torrentfilename)
                 else:
                     self.frame.startDownload(torrentfilename)
                 self.guiUtility.ShowPage('my_files')
@@ -1277,6 +1312,8 @@ def run(params = None):
             if params[0] != "":
                 torrentfilename = params[0]
                 i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
+                
+            print "Client shutting down. Detected another instance."
         else:
             arg0 = sys.argv[0].lower()
             if arg0.endswith('.exe'):
@@ -1289,19 +1326,20 @@ def run(params = None):
             #os.chdir(installdir)
     
             # Launch first abc single instance
-            app = wx.PySimpleApp(redirect = False)
+            app = wx.GetApp()
+            if not app:
+                app = wx.PySimpleApp(redirect = False)
             abc = ABCApp(params, single_instance_checker, installdir)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)
-            
                 app.MainLoop()
 
             # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
             abc.OnExit()
 
             #Niels: No code should be present here, only executed after gui closes
-            
+
         print "Client shutting down. Sleeping for a few seconds to allow other threads to finish"
         sleep(5)
 

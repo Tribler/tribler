@@ -56,6 +56,16 @@ class Singleton:
                 
             finally:
                 cls._singleton_lock.release()
+    
+    @classmethod
+    def del_instance(cls, *args, **kargs):
+        with cls._singleton_lock:
+            if hasattr(cls, "_singleton_instance"):
+                delattr(cls, "_singleton_instance")
+                
+    @classmethod
+    def has_instance(cls, *args, **kargs):
+        return hasattr(cls, "_singleton_instance")
 
 class MagnetHandler(Singleton):
     def __init__(self, raw_server):
@@ -102,9 +112,9 @@ class MagnetLink:
 
         # _swarm is a MiniBitTorrent.MiniSwarm instance that connects
         # to peers to retrieve the metadata.
-        magnet_handler = MagnetHandler.get_instance()
-        magnet_handler.add_magnet(self, timeout)
-        self._swarm = MiniSwarm(self._info_hash, magnet_handler.get_raw_server(), self.metainfo_retrieved, max_connections=max_connections)
+        self.magnet_handler = MagnetHandler.get_instance()
+        self.magnet_handler.add_magnet(self, timeout)
+        self._swarm = MiniSwarm(self._info_hash, self.magnet_handler.get_raw_server(), self.metainfo_retrieved, max_connections=max_connections)
 
     def get_infohash(self):
         return self._info_hash
@@ -175,8 +185,7 @@ class MagnetLink:
         self.close()
 
     def close(self):
-        magnet_handler = MagnetHandler.get_instance()
-        magnet_handler.remove_magnet(self)
+        self.magnet_handler.remove_magnet(self)
 
         if DEBUG:
             print >> sys.stderr, "Magnet.close()"

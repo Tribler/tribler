@@ -7,8 +7,9 @@ from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedExceptio
     DelayedResult, SenderNoWx
 
 import threading
+from collections import namedtuple
 from Queue import Queue
-from threading import Event, Lock
+from threading import Event, Lock, RLock
 from thread import get_ident
 from time import time
 import sys
@@ -28,32 +29,44 @@ DEBUG = False
 class GUIDBProducer():
     # Code to make this a singleton
     __single = None
+    __singleton_lock = RLock()
     
     def __init__(self):
         if GUIDBProducer.__single:
             raise RuntimeError, "GuiDBProducer is singleton"
-        GUIDBProducer.__single = self
         
         #Lets get the reference to the shared database_thread
         from Tribler.Core.Session import Session
-        self.database_thread = Session.get_instance().lm.database_thread
+        if Session.has_instance():
+            self.database_thread = Session.get_instance().lm.database_thread
+        else:
+            raise RuntimeError('Session not initialized')
         
         self.guitaskqueue = GUITaskQueue.getInstance()
         
         #Lets get a reference to utility
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        self.utility = GUIUtility.getInstance().utility
+        if GUIUtility.hasInstance():
+            self.utility = GUIUtility.getInstance().utility
+        else:
+            Utility = namedtuple('Utility', ['abcquitting',])
+            self.utility = Utility(False)
         
         self.uIds = set()
         self.uIdsLock = Lock()
         
         self.nrCallbacks = {}
-        
-    def getInstance(*args, **kw):
-        if GUIDBProducer.__single is None:
-            GUIDBProducer(*args, **kw)       
+    
+    @classmethod
+    def getInstance(cls, *args, **kw):
+        with cls.__singleton_lock:
+            if GUIDBProducer.__single is None:
+                GUIDBProducer.__single = GUIDBProducer(*args, **kw)       
         return GUIDBProducer.__single
-    getInstance = staticmethod(getInstance)
+
+    @classmethod    
+    def delInstance(cls, *args, **kw):
+        GUIDBProducer.__single = None
     
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
@@ -67,6 +80,8 @@ class GUIDBProducer():
         workerFn(*args, **kwargs) to the main thread.
         """
         if self.utility.abcquitting:
+            if DEBUG:
+                print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)"%name
             return
         
         if uId:
@@ -84,6 +99,9 @@ class GUIDBProducer():
             callbackId = uId
         else:
             callbackId = name
+    
+        if DEBUG:
+            print >> sys.stderr, "GUIDBHandler: adding Task(%s)"%callbackId
     
         if __debug__:
             self.uIdsLock.acquire()

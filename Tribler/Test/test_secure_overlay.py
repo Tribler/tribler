@@ -24,9 +24,9 @@ import tempfile
 from traceback import print_exc
 import shutil
 
-from Tribler.Core.BitTornado.RawServer import RawServer
+from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.BitTornado.ServerPortHandler import MultiHandler
-from Tribler.Core.BitTornado.BT1.MessageID import GET_METADATA
+from Tribler.Core.MessageID import GET_METADATA
 
 from M2Crypto import EC
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay, OLPROTO_VER_CURRENT

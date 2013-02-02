@@ -39,8 +39,7 @@ from Tribler.Core.API import *
 
 import sha
 
-from Tribler.Core.BitTornado.bencode import bdecode,bencode
-from Tribler.Core.Overlay.permid import permid_for_user,sign_data,verify_data
+from Tribler.Core.Utilities.bencode import bdecode,bencode
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 

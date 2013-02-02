@@ -25,9 +25,9 @@ from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from olconn import OLConnection
 from Tribler.Core.RequestPolicy import AllowAllRequestPolicy
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.BitTornado.bitfield import Bitfield
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 from Tribler.Core.BitTornado.BT1.convert import toint
 from Tribler.Core.CacheDB.CacheDBHandler import FriendDBHandler, TorrentDBHandler
 from Tribler.Test.test_connect_overlay import MyTracker

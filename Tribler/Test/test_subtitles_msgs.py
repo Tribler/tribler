@@ -9,8 +9,8 @@ import os
 import sys
 import shutil
 import hashlib
-from Tribler.Core.BitTornado.BT1.MessageID import GET_SUBS, SUBS
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.MessageID import GET_SUBS, SUBS
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Overlay.permid import generate_keypair
 from Tribler.Core.simpledefs import NTFY_RICH_METADATA
 from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataDTO import MetadataDTO

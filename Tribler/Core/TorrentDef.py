@@ -14,7 +14,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import *
@@ -25,7 +25,6 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
 
-from Tribler.Core.ClosedSwarm import ClosedSwarm
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 
 class TorrentDef(ContentDefinition,Serializable,Copyable):
@@ -558,36 +557,6 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """ Returns the number of pieces.
         @return A number of pieces. """
         return len(self.metainfo['info']['pieces']) / 20
-
-    #
-    # ClosedSwarm fields
-    #
-    def set_cs_keys(self, keys):
-        """ Keys is a list of DER encoded keys
-        """
-        self.input['cs_keys'] = ",".join(keys)
-
-    def get_cs_keys_as_ders(self):
-        """Returns a list of DER encoded keys
-        @return A list of DER encoded keys or [] if not a CS
-        """
-        if 'cs_keys' in self.input and len(self.input['cs_keys']) > 0:
-            return self.input['cs_keys'].split(",")
-        return []
-            
-    def get_cs_keys(self):
-        """ Get the Closed swarm keys for this torrent.
-        @return A list of key objects ready to be used or [] if not a CS
-        """
-        if 'cs_keys' in self.input:
-            keys = self.input['cs_keys'].split(",")
-            
-            cs_keys = []
-            for key in keys:
-                k = ClosedSwarm.pubkey_from_der(key)
-                cs_keys.append(k)
-            return cs_keys
-        return []
 
     def set_add_md5hash(self,value):
         """ Whether to add an end-to-end MD5 checksum to the def.

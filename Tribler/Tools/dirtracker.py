@@ -17,7 +17,7 @@ from traceback import print_exc
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.API import *
-from Tribler.Core.BitTornado.__init__ import version, report_email
+from Tribler.Core.__init__ import version, report_email
 
 
 checkpointedwhenseeding = False

@@ -5,8 +5,8 @@ import sys
 
 from Tribler.Test.test_permid import TestPermIDs
 from btconn import BTConnection
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import *
 from Tribler.Core.Utilities.Crypto import sha
 
 DEBUG=False

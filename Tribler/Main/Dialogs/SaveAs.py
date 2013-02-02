@@ -12,7 +12,7 @@ class SaveAs(wx.Dialog):
     def __init__(self, parent, tdef, defaultdir, defaultname, configfile, selectedFiles = None):
         wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600,450))
         
-        self.filehistory = wx.FileHistory(10)
+        self.filehistory = wx.FileHistory(25)
         self.config = wx.FileConfig(appName = "Tribler", localFilename = configfile)
         self.filehistory.Load(self.config)
         self.defaultdir = defaultdir
@@ -102,6 +102,14 @@ class SaveAs(wx.Dialog):
             self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
             vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.BOTTOM, 3)
+
+            self.listCtrl.SetFocus()
+            def OnKeyUp(event):
+                if event.GetKeyCode() == wx.WXK_RETURN:
+                    self.OnOk()
+                else:
+                    event.Skip()                
+            self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
         
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)

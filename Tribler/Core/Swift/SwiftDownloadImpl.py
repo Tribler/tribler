@@ -70,21 +70,17 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
         self.numleech = 0
         self.numseeds = 0
-        self.done = False
+        self.done = False  # when set it means this download is being removed
         self.midict = {}
         
         self.lm_network_vod_event_callback = None
         self.askmoreinfo = False
-        
-        self.session.lm.rawserver.add_task(self.network_check_swift_alive,SWIFT_ALIVE_CHECK_INTERVAL)
 
     #
     # Download Interface
     #
     def get_def(self):
         return self.sdef
-    
-    
 
     #
     # DownloadImpl
@@ -142,11 +138,13 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             print >>sys.stderr,"SwiftDownloadImpl: create_engine_wrapper()"
 
         if self.get_mode() == DLMODE_VOD:        
-            self.lm_network_vod_event_callback = lm_network_vod_event_callback 
+            self.lm_network_vod_event_callback = lm_network_vod_event_callback
             
         # Synchronous: starts process if needed
         self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port() )
         self.sp.start_download(self)
+    
+        self.session.lm.rawserver.add_task(self.network_check_swift_alive,SWIFT_ALIVE_CHECK_INTERVAL)
         
         # Arno: if used, make sure to switch to network thread first!
         #if lm_network_engine_wrapper_created_callback is not None:
@@ -401,9 +399,9 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by SessionCallbackThread """
         self.dllock.acquire()
         try:
-            if when > 0.0:
+            if when > 0.0 and not self.done:
                 # Schedule next invocation, either on general or DL specific
-                # TODO: ensure this continues when dl is stopped. Should be OK.
+                # Note this continues when dl is stopped. 
                 network_get_state_lambda = lambda:self.network_get_state(usercallback,newgetpeerlist)
                 self.session.lm.rawserver.add_task(network_get_state_lambda,when)
         finally:
@@ -415,11 +413,12 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     def stop(self):
         """ Called by any thread """
-        self.stop_remove(removestate=False,removecontent=False)
+        self.stop_remove(False,removestate=False,removecontent=False)
 
-    def stop_remove(self,removestate=False,removecontent=False):
+    def stop_remove(self,removedl,removestate=False,removecontent=False):
         """ Called by any thread. Called on Session.remove_download() """
-        self.done = removestate
+        # Arno, 2013-01-29: This download is being removed, not just stopped.
+        self.done = removedl
         self.network_stop(removestate=removestate,removecontent=removecontent)
 
     def network_stop(self,removestate,removecontent):
@@ -538,6 +537,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
         pstate['metainfo'] = self.sdef.get_url_with_meta() # assumed immutable
         dlconfig = copy.copy(self.dlconfig)
+        dlconfig['name'] = self.sdef.get_name()
         # Reset unpicklable params
         dlconfig['vod_usercallback'] = None
         dlconfig['mode'] = DLMODE_NORMAL # no callback, no VOD
@@ -611,7 +611,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     def network_check_swift_alive(self):
         self.dllock.acquire()
         try:
-            if self.sp is not None:
+            if self.sp is not None and not self.done:
                 if not self.sp.is_alive():
                     print >>sys.stderr,"SwiftDownloadImpl: network_check_swift_alive: Restarting",`self.sdef.get_name()`
                     self.sp = None
@@ -621,9 +621,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         finally:
             self.dllock.release()
         
-        self.session.lm.rawserver.add_task(self.network_check_swift_alive,SWIFT_ALIVE_CHECK_INTERVAL)
-
-        
+        if not self.done:
+            self.session.lm.rawserver.add_task(self.network_check_swift_alive,SWIFT_ALIVE_CHECK_INTERVAL)
         
 class SwiftStatisticsResponse:
     

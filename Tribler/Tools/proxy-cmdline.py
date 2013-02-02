@@ -18,7 +18,7 @@ import getopt
 from traceback import print_exc
 
 from Tribler.Core.API import *
-from Tribler.Core.BitTornado.__init__ import version, report_email
+from Tribler.Core.__init__ import version, report_email
 from Tribler.Core.Utilities.utilities import show_permid_short
 from M2Crypto import EC
 

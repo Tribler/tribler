@@ -9,9 +9,9 @@ from M2Crypto import EC
 
 from Tribler.Test.test_crawler import TestCrawler
 from olconn import OLConnection
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 
-from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_FRIENDSHIP_STATS
+from Tribler.Core.MessageID import CRAWLER_FRIENDSHIP_STATS
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 from Tribler.Core.CacheDB.SqliteFriendshipStatsCacheDB import FriendshipStatisticsDBHandler

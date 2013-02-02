@@ -9,8 +9,8 @@ from types import DictType, StringType
 
 from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import CHALLENGE,RESPONSE1,RESPONSE2
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import CHALLENGE,RESPONSE1,RESPONSE2
 from Tribler.Core.Utilities.Crypto import sha
 from M2Crypto import EC
 

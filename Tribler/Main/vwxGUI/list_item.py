@@ -2,13 +2,14 @@
 import wx
 import sys
 import json
-
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
 from list_body import *
 from list_details import *
 from _abcoll import Iterable
+from datetime import timedelta
 import urllib
 
 class ColumnsManager:
@@ -84,13 +85,73 @@ class DoubleLineListItem(ListItem):
         if column_index == 0:
             self.titleSizer.Add(control, 1, wx.CENTER)
             
+            if getattr(control, 'icon', None):
+                #Remove the spacer and replace it with the icon
+                self.hSizer.Remove(0)
+                self.hSizer.Insert(0, control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, (33-control.icon.GetSize().x)/2)            
         else:
             self.descrSizer.Add(control, 0, wx.CENTER|wx.TOP, spacing)
             
             if column_index >= 0:
                 sline = wx.StaticLine(self, -1, style=wx.LI_VERTICAL)
+                if sys.platform == 'win32':
+                    self._add_columnresizing(sline, column_index)
                 self.descrSizer.Add(sline, 0, wx.EXPAND|wx.RIGHT|wx.LEFT, 7)
-                
+            
+    def _add_columnresizing(self, sline, column_index):
+        sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
+        # Take hidden columns into account
+        control_index = len([column for column in self.columns[:column_index] if column['show']])
+                    
+        def OnLeftDown(event):
+            eo = event.GetEventObject()
+            eo.CaptureMouse()
+            eo.Unbind(wx.EVT_ENTER_WINDOW)
+            eo.Unbind(wx.EVT_LEAVE_WINDOW)
+            eo.Bind(wx.EVT_MOTION, OnMotion)
+
+        def OnMotion(event, control_index = control_index):
+            control = self.controls[control_index]
+            mouse_x = event.GetPosition().x
+            width = max(0, control.GetSize().x + mouse_x)
+            if getattr(self, 'buttonSizer', False):
+                width = min(width, self.buttonSizer.GetPosition().x - self.descrSizer.GetPosition().x - sum([child.GetSize().x for child in self.descrSizer.GetChildren()]) + control.GetSize().x)
+            else:
+                pass
+            control.SetMinSize((width, -1))
+            self.hSizer.Layout()
+
+        def OnLeftUp(event, column_index = column_index, control_index = control_index):
+            eo = event.GetEventObject()
+            eo.ReleaseMouse()
+            eo.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
+            eo.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
+            eo.Unbind(wx.EVT_MOTION)
+            self.columns[column_index]['width'] = self.controls[control_index].GetSize().x
+            
+            # If we are dealing with a control with a label in front of it, we need to add the width of the label to the column width.
+            if self.columns[column_index].get('showColumname', True) and \
+               self.columns[column_index].get('name', False) and \
+               self.columns[column_index].get('type', '') == 'method':
+                for index, child in enumerate(self.descrSizer.GetChildren()):
+                    if child.IsWindow() and child.GetWindow() == self.controls[control_index]:
+                        if index > 1:
+                            self.columns[column_index]['width'] += self.descrSizer.GetChildren()[index-1].GetSize().x
+                        break
+
+            fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
+            column_sizes = fileconfig.Read("column_sizes")
+            column_sizes = json.loads(column_sizes) if column_sizes else {}
+            column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
+            column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
+            fileconfig.Write("column_sizes", json.dumps(column_sizes))
+            fileconfig.Flush()
+            
+            wx.CallAfter(self.parent_list.Rebuild)
+
+        sline.Bind(wx.EVT_LEFT_DOWN, OnLeftDown)
+        sline.Bind(wx.EVT_LEFT_UP, OnLeftUp)
+
     def _replace_control(self, columnindex, newcontrol):
         oldcontrol = self.controls[columnindex]
         if columnindex == 0:
@@ -155,7 +216,12 @@ class DoubleLineListItem(ListItem):
             itemid = wx.NewId()
             show.AppendCheckItem(itemid, column['name']).Enable(column['name'] != 'Name')
             show.Check(itemid, column.get('show', True))
-            menu.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
+            
+            #Niels: 16-10-2012, apparently windows requires this event to be bound to menu, ubuntu requires it to be bound to show?
+            if sys.platform == 'win32':
+                menu.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
+            else:
+                show.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
             
         menu.AppendMenu(wx.ID_ANY, 'Show labels..', show)
         return menu
@@ -208,7 +274,28 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
 
 
 class TorrentListItem(DoubleLineListItemWithButtons):
-        
+
+    def __init__(self, *args, **kwargs):
+        DoubleLineListItem.__init__(self, *args, **kwargs)        
+
+        torcoldir    = self.guiutility.utility.session.get_torrent_collecting_dir()
+        rel_thumbdir = 'thumbs-'+binascii.hexlify(self.original_data.infohash)
+        abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
+        if os.path.exists(abs_thumbdir):
+            if not os.listdir(abs_thumbdir):
+                return
+            # Override the settings flags set by AddComponents
+            self.controls[0].SetMinSize(self.controls[0].GetBestSize())
+            self.titleSizer.Detach(self.controls[0])
+            self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
+            
+            # Add icon right after the torrent title, indicating that the torrent has thumbnails
+            snapshot = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
+            snapshot = wx.StaticBitmap(self, -1, snapshot)
+            snapshot.SetToolTipString("This torrent has thumbnails.")
+            self.AddEvents(snapshot)
+            self.titleSizer.Add(snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
+
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows = True)
         
@@ -219,7 +306,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 break
         
         if do_add:
-            button = self.AddButton("Download", lambda evt, data = self.original_data: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
+            button = self.AddButton("Download", lambda evt: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
             button.Enable('completed' not in self.original_data.state)
             
     @warnWxThread        
@@ -287,9 +374,10 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             if isinstance(item, TorrentListItem):
                 item.AddButtons()
 
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.guiutility.frame.utility.session.get_state_dir(), "gui_settings"))
-        fileconfig.Write("hide_buttons", json.dumps(not show))
-        fileconfig.Flush()        
+        self.guiutility.WriteGuiSetting("hide_buttons", not show)      
+        
+    def OnDClick(self, event):
+        self.guiutility.frame.top_bg.OnDownload(None, [self.original_data])
         
         
 class ChannelListItem(DoubleLineListItemWithButtons):
@@ -309,7 +397,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
             if self.original_data.my_vote == 2:
                 self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.RemoveFavorite(evt, data))
-            else:
+            elif not self.original_data.isMyChannel():
                 self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.MarkAsFavorite(evt, data))
             self.last_my_vote = self.original_data.my_vote
         
@@ -323,7 +411,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
     def GetIcons(self):
         return [self.guiutility.frame.channellist._special_icon(self)]
         
-    def OnDClick(self, event):
+    def OnDClick(self, event = None):
         self.guiutility.showChannel(self.original_data)
         
     @warnWxThread        
@@ -358,14 +446,19 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         highlight = event and event.GetEventObject() == self.controls[self.at_index] and not event.Leaving()
         
         if self.at_index >= 0:
-            for infohash in self.data[-1]:
+            for torrent in self.data[-1]:
+                infohash = torrent.infohash
                 if infohash in self.parent_list.items:
                     torrent_item = self.parent_list.GetItem(infohash)
                     if highlight:
                         torrent_item.Highlight(colour = LIST_AT_HIGHLIST, timeout = 5, revert = True)
                     else:
                         torrent_item.ShowSelected()
-        
+                        
+    def OnDClick(self, event = None):
+        for torrent in self.data[4]:
+            self.original_data.addTorrent(torrent)
+        ChannelListItem.OnDClick(self, event)
 
 class ChannelListItemNoButton(ChannelListItem):
     def AddButtons(self):
@@ -415,18 +508,10 @@ class LibraryListItem(DoubleLineListItem):
         return [self.parent_list.parent_list._swift_icon(self)]        
 
     def GetContextMenu(self):
-        menu = wx.Menu()
-        show = wx.Menu()
-        for index, column in enumerate(self.columns):
-            itemid = wx.NewId()
-            label = column['name'] if column['name'] else 'Progress'
-            show.AppendCheckItem(itemid, label).Enable(label != 'Name')
-            show.Check(itemid, column.get('show', True))
-            menu.Bind(wx.EVT_MENU, lambda event, index=index: self.OnShowColumn(event, index), id = itemid)
-            
-        menu.AppendMenu(wx.ID_ANY, 'Show labels..', show)
+        menu = DoubleLineListItem.GetContextMenu(self)
         
         menu_items = [('Explore files', self.OnExplore)]
+            
         if 'seeding' in self.original_data.state:
             menu_items.append(('Add to my channel', self.OnAddToMyChannel))
         
@@ -482,9 +567,7 @@ class ActivityListItem(ListItem):
             self.hSizer.Layout()
         
 
-class DragItem(DoubleLineListItem):
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer = 0, rightSpacer = 0, showChange = False, list_selected = LIST_SELECTED, list_expanded = LIST_EXPANDED):
-        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+class DragItem(TorrentListItem):
 
     def AddEvents(self, control):
         if getattr(control, 'GetWindow', False): #convert sizeritems
@@ -493,7 +576,7 @@ class DragItem(DoubleLineListItem):
         if getattr(control, 'Bind', False):
             control.Bind(wx.EVT_MOTION, self.OnDrag)
             
-        ListItem.AddEvents(self, control)
+        TorrentListItem.AddEvents(self, control)
         
     def OnDrag(self, event):
         if event.LeftIsDown():
@@ -520,6 +603,7 @@ class AvantarItem(ListItem):
         
         header = wx.StaticText(self, -1, self.header)
         _set_font(header, -1, wx.FONTWEIGHT_BOLD)
+        header.SetMinSize((1, -1))
         
         vSizer.Add(header, 0, wx.EXPAND)
         vSizer.Add(wx.StaticLine(self, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.RIGHT, 5)
@@ -528,20 +612,28 @@ class AvantarItem(ListItem):
         if len(self.additionalButtons) > 0:
             self.moreButton = wx.Button(self, style = wx.BU_EXACTFIT)
             
-        self.desc = MaxBetterText(self, self.body, maxLines = self.maxlines, button = self.moreButton)
-        self.desc.SetMinSize((1, -1))
-        vSizer.Add(self.desc, 0, wx.EXPAND)
-        
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
         if len(self.additionalButtons) > 0:
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            hSizer.Add(self.moreButton, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            hSizer.Add(self.moreButton, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_BOTTOM)
         
             for button in self.additionalButtons:
-                hSizer.Add(button, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+                hSizer.Add(button, 0, wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.ALIGN_BOTTOM)
                 button.Show(False)
                 
             self.moreButton.Show(False)
-            vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT)
+                
+        if isinstance(self.body, basestring):
+            self.desc = MaxBetterText(self, self.body, maxLines = self.maxlines, button = self.moreButton)
+            self.desc.SetMinSize((1, -1))
+            vSizer.Add(self.desc, 0, wx.EXPAND)
+            vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT)            
+        else:
+            self.desc = None
+            for index, bmp in enumerate(self.body):
+                sbmp = wx.StaticBitmap(self, -1, bmp)
+                hSizer.Insert(index, sbmp, 0, wx.ALIGN_RIGHT|wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 6)
+            hSizer.InsertStretchSpacer(len(self.body))
+            vSizer.Add(hSizer, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 5)
         
         titleRow.Add(vSizer, 1)
         
@@ -554,7 +646,7 @@ class AvantarItem(ListItem):
         changed = ListItem.BackgroundColor(self, color)
         
         if len(self.additionalButtons) > 0 and changed:
-            if self.desc.hasMore:
+            if self.desc and self.desc.hasMore:
                 self.moreButton.Show(color == self.list_selected)
                 
             for button in self.additionalButtons:
@@ -675,7 +767,29 @@ class ModificationActivityItem(AvantarItem):
         modification = self.original_data
 
         self.header = "Discovered a modification by %s at %s"%(modification.peer_name, format_time(modification.inserted).lower())
-        self.body = "Modified %s in '%s'"%(modification.name, modification.value)
+
+        if modification.name == "swift-thumbnails":
+            self.guiutility = GUIUtility.getInstance()                    
+            self.session    = self.guiutility.utility.session
+
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-'+hexlify(modification.torrent.infohash))
+            self.body = []
+            if os.path.exists(thumb_dir):
+                for single_thumb in os.listdir(thumb_dir)[:4]:
+                    bmp = wx.Bitmap(os.path.join(thumb_dir, single_thumb), wx.BITMAP_TYPE_ANY)
+                    if bmp.IsOk():
+                        res = limit_resolution(bmp.GetSize(), (100, 100))
+                        self.body.append(bmp.ConvertToImage().Scale(*res, quality = wx.IMAGE_QUALITY_HIGH).ConvertToBitmap())
+            if not self.body:
+                self.body = "WARNING: The thumbnails related to this modification could not be found on the filesystem."
+        elif modification.name == "video-info":
+            video_info = json.loads(modification.value)
+            duration = timedelta(seconds=video_info['duration'])
+            duration = str(duration).split('.')[0]
+            self.body = "Modified the bitrate in '%s kb/s', the duration in '%s', and the resolution in '%dx%d'" % \
+                        (video_info['bitrate'], duration, video_info['resolution'][0], video_info['resolution'][1])
+        else: 
+            self.body = "Modified %s in '%s'"%(modification.name, modification.value)
         
         if modification.torrent:
             self.header += " for torrent '%s'"%modification.torrent.colt_name
@@ -703,7 +817,28 @@ class ModificationItem(AvantarItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
-        self.body = modification.value
+        if modification.name == "swift-thumbnails":
+            self.guiutility = GUIUtility.getInstance()                    
+            self.session    = self.guiutility.utility.session
+
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-'+hexlify(modification.torrent.infohash))
+            self.body = []
+            if os.path.exists(thumb_dir):
+                for single_thumb in os.listdir(thumb_dir)[:4]:
+                    bmp = wx.Bitmap(os.path.join(thumb_dir, single_thumb), wx.BITMAP_TYPE_ANY)
+                    if bmp.IsOk():
+                        res = limit_resolution(bmp.GetSize(), (100, 100))
+                        self.body.append(bmp.ConvertToImage().Scale(*res, quality = wx.IMAGE_QUALITY_HIGH).ConvertToBitmap())
+            if not self.body:
+                self.body = "WARNING: The thumbnails related to this modification could not be found on the filesystem."
+        elif modification.name == "video-info":
+            video_info = json.loads(modification.value)
+            duration = timedelta(seconds=video_info['duration'])
+            duration = str(duration).split('.')[0]
+            self.body = "Modified the bitrate in '%s kb/s', the duration in '%s', and the resolution in '%dx%d'" % \
+                        (video_info['bitrate'], duration, video_info['resolution'][0], video_info['resolution'][1])
+        else:
+            self.body = modification.value
         
         im = IconsManager.getInstance()
         if modification.moderation:

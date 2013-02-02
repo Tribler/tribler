@@ -26,7 +26,6 @@ except ImportError:
 
 
 from Tribler.Core.API import *
-from Tribler.Core.BitTornado.bencode import *
 from Tribler.Video.VideoServer import AbstractPathMapper
 
 try:

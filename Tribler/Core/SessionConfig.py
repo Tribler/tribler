@@ -19,7 +19,7 @@ import pickle
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
-from Tribler.Core.BitTornado.RawServer import autodetect_socket_style
+from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
 

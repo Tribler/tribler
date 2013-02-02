@@ -20,8 +20,8 @@ import socket
 from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from olconn import OLConnection
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import *
 from Tribler.Core.BitTornado.BT1.convert import toint
 
 DEBUG=True

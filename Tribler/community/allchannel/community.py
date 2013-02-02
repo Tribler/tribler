@@ -274,11 +274,12 @@ class AllChannelCommunity(Community):
                             distribution=(self.global_time,),
                             payload=(keywords, ))
         
-        self._dispersy._forward([message])
-        
         if DEBUG:
             print >> sys.stderr, "AllChannelCommunity: searching for",query
-    
+        
+        return self._dispersy._forward([message])
+       
+     
     def check_channelsearch(self, messages):
         #no timeline check because PublicResolution policy is used
         return messages
@@ -396,12 +397,15 @@ class AllChannelCommunity(Community):
                     # at this point we should NOT have the channel message for this community
                     if __debug__:
                         try:
-                            self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ?", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                            self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                            
+                            print >> sys.stderr, "!!!We already have the channel message... no need to wait for it", community.cid.encode("HEX")
+                            yield DropMessage(message, "Tribler and Dispersy databases not in sync...")
+                            continue
+                        
                         except StopIteration:
                             pass
-                        else:
-                            import thread
-                            assert False, ["We already have the channel message... no need to wait for it", community.cid.encode("HEX"), thread.get_ident()]
+                            
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
                 else:
                     message.channel_id = channel_ids[message.payload.cid]
@@ -474,7 +478,7 @@ class AllChannelCommunity(Community):
             cleanpoint = time() - 300
             inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
             if __debug__:
-                print("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
+                dprint("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
                 
             for community in inactive:
                 community.unload_community()

@@ -28,6 +28,7 @@ class UserCallbackHandler:
 
     def shutdown(self):
         # stop threadpool
+        Notifier.delInstance()
         self.threadpool.joinAll()
 
     def perform_vod_usercallback(self,d,usercallback,event,params):

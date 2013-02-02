@@ -14,9 +14,9 @@ from threading import currentThread
 from socket import gethostbyname
 from traceback import print_exc,print_stack
 
-from Tribler.Core.BitTornado.__init__ import createPeerID
-from Tribler.Core.BitTornado.BT1.MessageID import protocol_name,option_pattern,getMessageName
-from Tribler.Core.BitTornado.BT1.convert import tobinary,toint
+from Tribler.Core.__init__ import createPeerID
+from Tribler.Core.MessageID import protocol_name,option_pattern,getMessageName
+from Tribler.Core.Utilities.convert import tobinary,toint
 
 
 DEBUG = False

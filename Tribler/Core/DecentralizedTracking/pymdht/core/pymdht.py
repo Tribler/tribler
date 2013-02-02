@@ -65,9 +65,11 @@ class Pymdht:
             self.controller.main_loop,
             my_node.addr[1], self.controller.on_datagram_received)
         self.reactor.start()
+        self.swift_tracker_thread = None
         if swift_port:
             print 'Creating SwiftTracker'
-            swift_tracker.SwiftTracker(self, swift_port).start()
+            self.swift_tracker_thread = swift_tracker.SwiftTracker(self, swift_port)
+            self.swift_tracker_thread.start()
         self.timestamps = []
         self.max_num_sec = 0
         self.max_num_min = 0
@@ -79,6 +81,7 @@ class Pymdht:
         self.reactor.stop()
         # No need to call_asap because the minitwisted thread is dead by now
         self.controller.on_stop()
+        self.swift_tracker_thread.stop()
     
     def get_peers(self, lookup_id, info_hash, callback_f,
                   bt_port=0, use_cache=False):

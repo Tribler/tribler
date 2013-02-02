@@ -13,8 +13,8 @@ from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import P2PURL_SCHEME,NTFY_TORRENTS,URL_MIME_TYPE
-from Tribler.Core.BitTornado.BT1.MessageID import getMessageName,GET_METADATA,METADATA
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
+from Tribler.Core.MessageID import getMessageName,GET_METADATA,METADATA
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 # TODO: use reimplementations

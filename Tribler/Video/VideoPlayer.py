@@ -91,6 +91,10 @@ class VideoPlayer:
             
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback
+                
+    def shutdown(self):
+        if self.videohttpserv:
+            self.videohttpserv.shutdown()
 
     def set_other_downloads(self, other_downloads):
         """A boolean indicating whether there are other downloads running at this time"""
@@ -250,6 +254,11 @@ class VideoPlayer:
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().ShowLoading()
             self.videoframe.ShowLoading()
+            
+    def recreate_videopanel(self):
+        if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
+            #Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
+            self.videoframe.recreate_videopanel()
 
     def close(self):
         """ Stop playback and close current video window """

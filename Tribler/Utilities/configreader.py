@@ -9,7 +9,7 @@ from cStringIO import StringIO
 
 from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError, ParsingError, DEFAULTSECT
 
-from Tribler.Core.BitTornado.bencode import bencode, bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.defaults import dldefaults,DEFAULTPORT
 
 # TODO: remove these defaults, config doesn't work this way with Tribler Core.

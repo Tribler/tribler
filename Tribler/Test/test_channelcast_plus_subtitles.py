@@ -6,7 +6,7 @@ import unittest
 from copy import deepcopy
 from olconn import OLConnection
 from Tribler.Core.API import *
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.MessageID import *
 from Tribler.Core.BuddyCast.moderationcast_util import validChannelCastMsg
 from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
 from Tribler.Test.test_channelcast import TestChannels

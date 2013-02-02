@@ -12,7 +12,7 @@ import cPickle
 
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
-from Tribler.Core.BitTornado.BT1.MessageID import CRAWLER_REQUEST, CRAWLER_REPLY, CRAWLER_DATABASE_QUERY, getMessageName
+from Tribler.Core.MessageID import CRAWLER_REQUEST, CRAWLER_REPLY, CRAWLER_DATABASE_QUERY, getMessageName
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 
@@ -260,7 +260,7 @@ class TestCrawler(TestAsServer):
     def send_crawler_request(self, sock, message_id, channel_id, frequency, payload):
         # Sending a request from a Crawler to a Tribler peer
         #     SIZE    INDEX
-        #     1 byte: 0      CRAWLER_REQUEST (from Tribler.Core.BitTornado.BT1.MessageID)
+        #     1 byte: 0      CRAWLER_REQUEST (from Tribler.Core.MessageID)
         #     1 byte: 1      --MESSAGE-SPECIFIC-ID--
         #     1 byte: 2      Channel id
         #     2 byte: 3+4    Frequency
@@ -274,7 +274,7 @@ class TestCrawler(TestAsServer):
     def receive_crawler_reply(self, sock, message_id, channel_id):
         # Sending a reply from a Tribler peer to a Crawler
         #     SIZE    INDEX
-        #     1 byte: 0      CRAWLER_REPLY (from Tribler.Core.BitTornado.BT1.MessageID)
+        #     1 byte: 0      CRAWLER_REPLY (from Tribler.Core.MessageID)
         #     1 byte: 1      --MESSAGE-SPECIFIC-ID--
         #     1 byte: 2      Channel id
         #     1 byte: 3      Parts left

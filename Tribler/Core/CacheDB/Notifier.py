@@ -33,6 +33,12 @@ class Notifier:
         return Notifier.__single
     getInstance = staticmethod(getInstance)
     
+    def delInstance(*args, **kw):
+        if Notifier.__single:
+            Notifier.__single.remove_observers()
+        Notifier.__single = None
+    delInstance = staticmethod(delInstance)
+    
     def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None, cache = 0):
         """
         Add observer function which will be called upon certain event
@@ -64,6 +70,11 @@ class Notifier:
             else:
                 i+=1
         self.observerLock.release()
+    
+    def remove_observers(self):
+        with self.observerLock:
+            self.observerscache = {}
+            self.observers = []
         
     def notify(self, subject, changeType, obj_id, *args):
         """
@@ -87,17 +98,22 @@ class Notifier:
                         if ofunc not in self.observerscache:
                             def doQueue(ofunc):
                                 self.observerLock.acquire()
-                                events = self.observerscache[ofunc]
-                                del self.observerscache[ofunc]
+                                if ofunc in self.observerscache:
+                                    events = self.observerscache[ofunc]
+                                    del self.observerscache[ofunc]
+                                else:
+                                    events = []
                                 self.observerLock.release()
                                 
-                                if self.pool:
-                                    self.pool.queueTask(ofunc, (events,))
-                                else:
-                                    ofunc(events)
+                                if events:
+                                    if self.pool:
+                                        self.pool.queueTask(ofunc, (events,))
+                                    else:
+                                        ofunc(events)
                             
                             self.observerscache[ofunc] = []
                             t = Timer(cache, doQueue, (ofunc, ))
+                            t.setName("Notifier-timer")
                             t.start()
                             
                         self.observerscache[ofunc].append(args)

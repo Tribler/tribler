@@ -15,8 +15,8 @@ from copy import deepcopy
 from Tribler.Test.test_as_server import TestAsServer
 from olconn import OLConnection
 from Tribler.Core.API import *
-from Tribler.Core.BitTornado.bencode import bencode,bdecode
-from Tribler.Core.BitTornado.BT1.MessageID import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.MessageID import *
 from Tribler.Core.BuddyCast.moderationcast_util import validChannelCastMsg, validVoteCastMsg
 from Tribler.Core.BuddyCast.channelcast import ChannelCastCore
 from Tribler.Core.BuddyCast.buddycast import BuddyCastCore

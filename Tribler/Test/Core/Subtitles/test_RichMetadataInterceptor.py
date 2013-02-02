@@ -8,7 +8,7 @@ from Tribler.Core.Overlay.permid import generate_keypair, sign_data
 from random import randint
 import hashlib
 import time
-from Tribler.Core.BitTornado.bencode import bencode
+from Tribler.Core.Utilities.bencode import bencode
 from Tribler.Core.Subtitles.MetadataDomainObjects.MetadataDTO import MetadataDTO
 from Tribler.Core.Subtitles.RichMetadataInterceptor import RichMetadataInterceptor
 from Tribler.Test.Core.Subtitles.simple_mocks import MockMetadataDBHandler,\

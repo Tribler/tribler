@@ -14,7 +14,7 @@ from threading import Condition
 from base64 import encodestring
 
 from Tribler.Core.API import *
-import Tribler.Core.BitTornado.parseargs as parseargs
+import Tribler.Core.Utilities.parseargs as parseargs
 
 argsdef = [('source', '', 'source file or directory'),
            ('tracker', 'http://127.0.0.1:6969/announce', 'tracker URL'),
@@ -72,7 +72,7 @@ def progress(perc):
         
 if __name__ == "__main__":
 
-    config, fileargs = parseargs.parseargs(sys.argv, argsdef, presets = {})
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
     print >>sys.stderr,"config is",config
     
     if config['source'] == '':

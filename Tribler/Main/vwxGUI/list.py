@@ -52,7 +52,7 @@ class BaseManager:
     def refreshDirty(self):
         if 'COMPLETE_REFRESH' in self.dirtyset or len(self.dirtyset) > MAX_REFRESH_PARTIAL or len(self.dirtyset) == 0:
             if len(self.dirtyset) > 0:
-                self.list.RemoveItems(self.dirtyset)
+                self.list.MarkForRemoval(self.dirtyset)
                 
             self.refresh()
         else:
@@ -143,7 +143,7 @@ class RemoteSearchManager(BaseManager):
             if modified_hits:
                 self.list.RemoveItems(modified_hits)
             
-            if new_items:
+            if new_items or modified_hits:
                 self.list.SetData(data_files)
             else:
                 if DEBUG:
@@ -248,6 +248,7 @@ class LocalSearchManager(BaseManager):
             
     def downloadStarted(self, infohash):
         self.prev_refresh_if = 0
+        self.refresh()
         
 class ChannelSearchManager(BaseManager):
     def __init__(self, list):
@@ -310,6 +311,8 @@ class ChannelSearchManager(BaseManager):
                     total_items, data = self.channelsearch_manager.getAllChannels()
                 elif category == 'Favorites':
                     total_items, data = self.channelsearch_manager.getMySubscriptions()
+                elif category == 'Mine':
+                    total_items, data = self.channelsearch_manager.getMyChannels()                   
                 return data, category
             
             startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
@@ -474,6 +477,7 @@ class List(wx.BoxSizer):
         self.filter = ''
         
         self.footer = self.header = self.list = None
+        self.nr_results = 0
         self.nr_filtered = 0
         self.cur_nr_filtered = 0
 
@@ -546,7 +550,7 @@ class List(wx.BoxSizer):
     def Reset(self):
         assert self.isReady, "List not ready"
 
-        self.nr_filtered = 0
+        self.nr_filtered = self.nr_results = 0
         if self.isReady and self.hasData:
             self.rawfilter = ''
             self.filter = ''
@@ -623,15 +627,23 @@ class List(wx.BoxSizer):
     def RemoveItems(self, keys):
         assert self.isReady, "List not ready"
         self.list.RemoveKeys(keys)
+        
+    def MarkForRemoval(self, keys):
+        assert self.isReady, "List not ready"
+        self.list.MarkForRemoval(keys)
 
-    @warnWxThread        
+    @warnWxThread
     def SetNrResults(self, nr):
         assert self.isReady, "List not ready"
+        self.nr_results = nr
         
         #ff uses two variables, cur_nr_filtered is used to count the total number in the loop
         #nr_filtered is the total number filtered from the previous run
         self.nr_filtered = self.cur_nr_filtered
         self.cur_nr_filtered = 0
+        
+    def GetNrResults(self):
+        return self.nr_results
             
     def InList(self, key, onlyCreated = True):
         assert self.isReady, "List not ready"
@@ -798,26 +810,24 @@ class List(wx.BoxSizer):
     
     def MatchFFilter(self, item):
         result = True
-        if isinstance(item[2], Torrent):
-            torrent = item[2]
-            if self.guiutility.getFamilyFilter():
+        if self.guiutility.getFamilyFilter():
+            if isinstance(item[2], (Torrent, CollectedTorrent)):
+                torrent = item[2]
                 category = torrent.category_id if torrent.category_id else 0
-                okCategory = category in self.enabled_category_ids
-            else:
-                okCategory = True
-            okGood = torrent.status_id != self.deadstatus_id
-            result = okCategory and okGood
+                result = category in self.enabled_category_ids
+                    
+            elif isinstance(item[2], Channel):
+                result = not self.category.xxx_filter.isXXX(item[2].name, False)
                 
-        elif isinstance(item[2], Channel):
-            if self.guiutility.getFamilyFilter():
-                okCategory = not self.category.xxx_filter.isXXX(item[2].name, False)
-            else:
-                okCategory = True
-            result = okCategory
-            
         if not result:
             self.cur_nr_filtered += 1
+            
         return result
+    
+    def GetFFilterMessage(self):
+        if self.guiutility.getFamilyFilter() and self.nr_filtered:
+            return None, '%d items were blocked by the Familiy filter'%self.nr_filtered
+        return None, ''
     
     def MatchFilter(self, item):
         ff = self.MatchFFilter(item)
@@ -833,8 +843,10 @@ class List(wx.BoxSizer):
                 message = 'Only showing items'
             
             if self.filter:
-                return message + ' matching "%s"'%self.filter
-            return message
+                return None, message + ' matching "%s"'%self.filter
+            return None, message
+        else:
+            return self.GetFFilterMessage()
         
     @warnWxThread
     def Layout(self):
@@ -906,7 +918,7 @@ class SizeList(List):
         return listmf
     
     def GetFilterMessage(self, empty = False):
-        message = List.GetFilterMessage(self, empty)
+        header, message = List.GetFilterMessage(self, empty)
         
         if self.sizefilter:
             if self.sizefilter[0] == self.sizefilter[1]:
@@ -917,7 +929,7 @@ class SizeList(List):
                 message += " larger than %d MB in size"%self.sizefilter[0]
             else:
                 message += " between %d and %d MB in size"%(self.sizefilter[0], self.sizefilter[1])
-        return message
+        return header, message
     
     def SetData(self, data):
         List.SetData(self, data)
@@ -940,7 +952,7 @@ class SizeList(List):
         
         if getattr(self.header, 'SetSliderMinMax', None):
             if nr != 0:
-                self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else self.curMax)
+                self.header.SetSliderMinMax(0, max(0, self.filteredMax) if self.sizefilter or self.guiutility.getFamilyFilter() else max(0, self.curMax))
             self.filteredMax = -1
         
     @warnWxThread
@@ -1139,10 +1151,10 @@ class GenericSearchList(SizeList):
             message = 'Try leaving Tribler running for a longer time to allow it to discover new torrents, or use less specific search terms.'
             
             if self.guiutility.getFamilyFilter():
-                message += '\n\nAdditionally, you could disable the "Family Filter".'
+                message += '\n\nAdditionally, you could disable the "Family filter".'
                 
                 suggestionSizer = wx.BoxSizer(wx.VERTICAL)
-                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family Filter', None)
+                ffbutton = LinkStaticText(self.list.messagePanel, 'Turn off Family filter', None)
                 ffbutton.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.toggleFamilyFilter(setCheck = True))
                 suggestionSizer.Add(ffbutton)
                 
@@ -1330,12 +1342,12 @@ class GenericSearchList(SizeList):
         return SizeList.MatchFilter(self, item)
     
     def GetFilterMessage(self, empty = False):
-        message = SizeList.GetFilterMessage(self, empty)
+        header, message = SizeList.GetFilterMessage(self, empty)
         
         if self.categoryfilter:
             message = message.rstrip('.')
             message += " matching category '%s'"%self.categoryfilter
-        return message
+        return header, message
         
 class SearchList(GenericSearchList):
     def __init__(self, parent=None):
@@ -1344,20 +1356,22 @@ class SearchList(GenericSearchList):
         self.session    = self.guiutility.utility.session
         self.category   = Category.getInstance()
         
-        self.total_results = None
         self.total_channels = None
         self.keywords = None
         self.categoryfilter = None
+        self.keywords = None
+        self.xxx_keywords = False
         
-        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.HideDownloadButton()}, \
+        columns = [{'name':'Name', 'sortAsc': True, 'fontSize': 2, 'showColumname': False, 'dlbutton': not self.guiutility.ReadGuiSetting('hide_buttons', True)}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
                    {'name':'File type', 'width': '24em', 'sortAsc': True}, \
                    {'name':'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
         
-        columns = self.guiutility.SetHideColumnInfo(TorrentListItem, columns, [3,4])
+        columns = self.guiutility.SetColumnInfo(TorrentListItem, columns, hide_defaults = [3,4])
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
+        ColumnsManager.getInstance().setColumns(DragItem, columns)        
         
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         self.category_names = {}
@@ -1447,7 +1461,7 @@ class SearchList(GenericSearchList):
                     associated[channel.id] = [0, [], channel]
                 if channel.nr_favorites > 0 or channel.isFavorite():
                     associated[channel.id][0] += 1
-                associated[channel.id][1].append(torrent.infohash)
+                associated[channel.id][1].append(torrent)
                     
         #Determine the channels results
         results = self.GetManager().data_channels
@@ -1492,8 +1506,6 @@ class SearchList(GenericSearchList):
     def SetNrResults(self, nr):
         SizeList.SetNrResults(self, nr)
         
-        self.total_results = nr
-        
         actitem = self.guiutility.frame.actlist.GetItem(2)
         num_items = getattr(actitem, 'num_items', None)
         if num_items:
@@ -1502,11 +1514,21 @@ class SearchList(GenericSearchList):
         
     def SetNrChannels(self, nr_channels):
         self.total_channels = nr_channels
+    
+    def GetNrChannels(self):
+        return self.total_channels
         
     def SetKeywords(self, keywords):
         self.GetManager().SetKeywords(keywords)
-        
         self.keywords = keywords
+        
+        self.CalcXXXKeywords()
+        
+    def CalcXXXKeywords(self):
+        if self.keywords and self.guiutility.getFamilyFilter():
+            self.xxx_keywords = any(self.category.xxx_filter.isXXX(keyword, False) for keyword in self.keywords)
+        else:
+            self.xxx_keywords = False
     
     @warnWxThread
     def ShowSuggestions(self, suggestions):
@@ -1526,7 +1548,6 @@ class SearchList(GenericSearchList):
         wx.CallLater(10000, self.SetFinished, keywords)
         wx.CallLater(250, self.FakeResult)
     
-    @forceWxThread
     @forceWxThread
     def FakeResult(self, times = 1):
         maxValue = self.guiutility.frame.top_bg.go.GetRange()
@@ -1558,12 +1579,12 @@ class SearchList(GenericSearchList):
                 self.uelog.addEvent(message="Search: nothing found for query: "+" ".join(keywords), type = 2)
                 self.GetManager().showSearchSuggestions(keywords)
         
-            if self.total_results == 0 and self.nr_filtered == 0:
+            if self.nr_results == 0 and self.nr_filtered == 0:
                 startWorker(None, db_callback, wargs = (self.keywords,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     @warnWxThread
     def _ShowSuggestions(self, delayedResult, keywords):
-        if keywords == self.keywords and  self.total_results == 0 and self.nr_filtered == 0:
+        if keywords == self.keywords and self.nr_results == 0 and self.nr_filtered == 0 and not self.xxx_keywords:
             suggestions = delayedResult.get()
             
             if len(suggestions) > 0:
@@ -1584,18 +1605,30 @@ class SearchList(GenericSearchList):
     
     def Reset(self):
         if GenericSearchList.Reset(self):
-            self.total_results = None
             self.total_channels = None
             self.keywords = None
+            self.xxx_keywords = False
             return True
         return False
 
-    def SetBackgroundColour(self, colour):
-        GenericSearchList.SetBackgroundColour(self, colour)
-        
     def OnSize(self, event):
         event.Skip()
+    
+    def GotFilter(self, keyword = None):
+        self.CalcXXXKeywords()
+        
+        GenericSearchList.GotFilter(self, keyword)
+    
+    def GetFFilterMessage(self):
+        if self.xxx_keywords and self.guiutility.getFamilyFilter():
+            return 'At least one of the keywords that you used has been blocked by the family filter.', 'If you would still like to see the results, please disable the "Family filter" in the bottom left of your screen.' 
+        return GenericSearchList.GetFFilterMessage(self)
+    
+    def MatchFFilter(self, item):
+        if self.xxx_keywords:
+            return False
 
+        return GenericSearchList.MatchFFilter(self, item)
 
 class LibraryList(SizeList):
     def __init__(self, parent):
@@ -1608,18 +1641,20 @@ class LibraryList(SizeList):
         self.statefilter = None
         self.newfilter = False
         self.prevStates = {}
+        
+        self.initnumitems = False
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
-                   {'type':'method', 'name':'', 'width': '20em', 'method': self.CreateProgress}, \
+                   {'name':'Progress', 'type':'method', 'width': '20em', 'method': self.CreateProgress, 'showColumname': False, 'autoRefresh': False}, \
                    {'name':'Size', 'width': '16em', 'fmt': self.guiutility.utility.size_format}, \
-                   {'name':'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True}, \
-                   {'name':'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new}, \
-                   {'name':'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new}, \
-                   {'name':'Connections', 'width': '15em'},
-                   {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio},
-                   {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value}]
+                   {'name':'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False}, \
+                   {'name':'Down speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False}, \
+                   {'name':'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False}, \
+                   {'name':'Connections', 'width': '15em', 'autoRefresh': False},
+                   {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
+                   {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value, 'autoRefresh': False}]
         
-        columns = self.guiutility.SetHideColumnInfo(LibraryListItem, columns, [2, 7, 8])
+        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
@@ -1845,7 +1880,7 @@ class LibraryList(SizeList):
                 
                 seeds, peers = ds.get_num_seeds_peers() if ds else (0,0)
                 item.RefreshColumn(6, seeds+peers)
-                item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers.\nInitiated %d, %d candidates remaining."%(seeds, peers, ds.get_num_con_initiated(), ds.get_num_con_candidates()) if ds else '')
+                item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers."%(seeds, peers) if ds else '')
                 
                 item.RefreshColumn(7, ratio)
                 item.RefreshColumn(8, time_seeding)
@@ -1858,7 +1893,7 @@ class LibraryList(SizeList):
         SizeList.SetData(self, data)
         
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, -1], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1872,10 +1907,11 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, -1], data)
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
+        highlight = nr > self.nr_results and self.initnumitems
         SizeList.SetNrResults(self, nr)
         
         actitem = self.guiutility.frame.actlist.GetItem(4)
@@ -1883,7 +1919,9 @@ class LibraryList(SizeList):
         if num_items:
             num_items.SetValue(str(nr))
             actitem.hSizer.Layout()
-    
+            if highlight: actitem.Highlight()
+            self.initnumitems = True
+
     @warnWxThread
     def OnFilter(self, keyword):
         self.statefilter = None
@@ -1921,14 +1959,14 @@ class LibraryList(SizeList):
         return True
     
     def GetFilterMessage(self, empty = False):
-        message = SizeList.GetFilterMessage(self, empty)
+        header, message = SizeList.GetFilterMessage(self, empty)
         
         if self.statefilter:
             message += " with state %s"%self.statefilter
             if self.statefilter == 'active'and self.utility.config.Read('t4t_option', 'int') == 0:
                 t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
                 message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f"%t4t_ratio
-        return message
+        return header, message
 
 class ChannelList(List):
     def __init__(self, parent):
@@ -1940,12 +1978,12 @@ class ChannelList(List):
                    {'name':'Torrents', 'width': '13em'}, \
                    {'type':'method', 'width': '20em', 'method': self.CreatePopularity, 'name':'Popularity', 'defaultSorted': True}]
         
-        columns = self.guiutility.SetHideColumnInfo(ChannelListItem, columns)
+        columns = self.guiutility.SetColumnInfo(ChannelListItem, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItem, columns)
 
         columns = [copy.copy(column) for column in columns]
         columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
-        columns = self.guiutility.SetHideColumnInfo(ChannelListItemAssociatedTorrents, columns)
+        columns = self.guiutility.SetColumnInfo(ChannelListItemAssociatedTorrents, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItemAssociatedTorrents, columns)
         
         self.favorite = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
@@ -2117,7 +2155,7 @@ class ActivitiesList(List):
         self.settings = {}
         self.expandedPanel = None
         columns = [{'width': wx.LIST_AUTOSIZE}]
-        List.__init__(self, columns, wx.WHITE, [10,10], True, parent = parent)
+        List.__init__(self, columns, parent.GetBackgroundColour(), [10,10], True, parent = parent)
 
     def _PostInit(self):
         self.list = self.CreateList(self.parent)

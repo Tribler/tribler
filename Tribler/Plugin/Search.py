@@ -72,7 +72,7 @@ from traceback import print_exc,print_stack
 from threading import RLock
 
 from Tribler.Core.API import *
-from Tribler.Core.BitTornado.bencode import *
+from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Video.VideoServer import AbstractPathMapper
 

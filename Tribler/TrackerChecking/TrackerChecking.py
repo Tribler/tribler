@@ -3,7 +3,7 @@
 
 # single torrent checking without Thread
 import sys
-from Tribler.Core.BitTornado.bencode import bdecode
+from Tribler.Core.Utilities.bencode import bdecode
 from urlparse import urlparse
 from random import shuffle, randint, choice
 from struct import *
@@ -97,7 +97,7 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
                 
             if dict:    
                 if DEBUG:
-                    print >>sys.stderr,"TrackerChecking: Result", dict
+                    print >>sys.stderr,"TrackerChecking: Result", announce, dict
                 return dict
         except:
             if DEBUG:
