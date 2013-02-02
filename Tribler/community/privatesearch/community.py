@@ -651,16 +651,16 @@ class SearchCommunity(Community):
         remove = None
 
         removeIf = time() - CANDIDATE_WALK_LIFETIME
-        for taste_buddy in self.community.taste_buddies:
+        for taste_buddy in self.taste_buddies:
             if taste_buddy[-1] == candidate:
                 if taste_buddy[1] < removeIf:
                     remove = taste_buddy
                 break
     
         if remove:
-            self.community.taste_buddies.remove(remove)
+            self.taste_buddies.remove(remove)
         
-    def resteTastebuddy(self, candidate):
+    def resetTastebuddy(self, candidate):
         for taste_buddy in self.taste_buddies:
             if taste_buddy[2].sock_addr in candidate.sock_addr:
                 taste_buddy[1] = time()
@@ -681,7 +681,7 @@ class SearchCommunity(Community):
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
         
-            self.resteTastebuddy(message.candidate)
+            self.resetTastebuddy(message.candidate)
                 
     def check_pong(self, messages):
         for message in messages:
@@ -704,7 +704,7 @@ class SearchCommunity(Community):
             if len(message.payload.torrents)> 0:
                 self.search_megacachesize = self._torrent_db.on_pingpong(message.payload.torrents)
             
-            self.resteTastebuddy(message.candidate)
+            self.resetTastebuddy(message.candidate)
     
     def _create_pingpong(self, meta_name, candidates, identifiers = None):
 #        max_len = self.dispersy_sync_bloom_filter_bits/8
@@ -1084,7 +1084,7 @@ class PSearchCommunity(SearchCommunity):
             test = self._pallier_decrypt(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2))
             assert_(test == 0l, test)
             
-            test = bytes_to_long(long_to_bytes(test, 128))
+            test = self._pallier_decrypt(bytes_to_long(long_to_bytes(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2), 128)))
             assert_(test == 0l, test)
              
             test = self._pallier_decrypt(self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2))
@@ -1095,7 +1095,7 @@ class PSearchCommunity(SearchCommunity):
         messages.append(Message(self, u"sum-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self._dispersy._generic_timeline_check, self.on_sum_request))
         messages.append(Message(self, u"sums-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self._dispersy._generic_timeline_check, self.on_sums_request))
         messages.append(Message(self, u"global-vector", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), GlobalVectorPayload(), self._dispersy._generic_timeline_check, self.on_global_vector))
-        messages.append(Message(self, u"encrypted-sum", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumPayload(), self._dispersy._generic_timeline_check, self.on_encr_sum))
+        messages.append(Message(self, u"encrypted-sum", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumPayload(), self.check_encr_sum, self.on_encr_sum))
         messages.append(Message(self, u"encrypted-sums", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedSumsPayload(), self._dispersy._generic_timeline_check, self.on_encr_sums))
         return messages
 
@@ -1425,6 +1425,19 @@ class PSearchCommunity(SearchCommunity):
             if PSearchCommunity.PSimilarityRequest.is_complete(self):
                 self.process()
 
+    def check_encr_sum(self, messages):
+        for message in messages:
+            accepted, proof = self._timeline.check(message)
+            if not accepted:
+                yield DelayMessageByProof(message)
+                continue
+            
+            if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.RPSimilarityRequest):
+                yield DropMessage(message, "invalid response identifier")
+                continue
+            
+            yield message
+    
     def on_encr_sum(self, messages):
         for message in messages:
             if DEBUG:
