@@ -1,3 +1,4 @@
+# Written by Egbert Bouman
 import os
 import sys
 import time
@@ -28,6 +29,9 @@ class LibtorrentMgr:
         settings.user_agent = 'Tribler/' + version_id
         self.ltsession = lt.session()
         self.ltsession.set_settings(settings)
+        self.ltsession.add_extension(lt.create_ut_metadata_plugin)
+        self.ltsession.add_extension(lt.create_ut_pex_plugin)
+        self.ltsession.add_extension(lt.create_smart_ban_plugin)
         self.ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
