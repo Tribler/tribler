@@ -109,18 +109,18 @@ def meanstdv(x):
     std = sqrt(std / float(n-1))
     return mean, std
 
-def considered_xxx(image):
-    return skinratio(image) > 0.50 
-
-def skinratio(image):
-    image_data = image.GetData()
-    skin_pixels = total_pixels = 0
-    
-    for index in range(0, len(image_data), 3):
-        r, g, b = map(ord, image_data[index:index+3])
-        h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
-        if h >= 0 and h <= 25 and s >= 0.15 and s <= 0.90 and v >= 0.20 and v <= 0.95:
-            skin_pixels += 1
-        total_pixels += 1
-        
-    return skin_pixels/float(total_pixels)
+#def considered_xxx(image):
+#    return skinratio(image) > 0.50 
+#
+#def skinratio(image):
+#    image_data = image.GetData()
+#    skin_pixels = total_pixels = 0
+#    
+#    for index in range(0, len(image_data), 3):
+#        r, g, b = map(ord, image_data[index:index+3])
+#        h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
+#        if h >= 0 and h <= 25 and s >= 0.15 and s <= 0.90 and v >= 0.20 and v <= 0.95:
+#            skin_pixels += 1
+#        total_pixels += 1
+#        
+#    return skin_pixels/float(total_pixels)
