@@ -35,6 +35,7 @@ from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Category.Category import Category
+from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -2063,9 +2064,18 @@ class ChannelList(List):
                 button.Enable(False)
                 wx.CallLater(5000, button.Enable, True)
 
-            self.guiutility.channelsearch_manager.favorite(channel.id)
-            self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-            wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
+            dlgname = 'MFdialog'
+            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                dlg = ConfirmationDialog(None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
+                                         "If you mark this channel as your favourite, you will be able to access its full content.")
+                response = dlg.ShowModal() 
+                
+            if response == wx.ID_OK:
+                self.guiutility.channelsearch_manager.favorite(channel.id)
+                self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
+                wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
             
     @warnWxThread
     def RemoveFavorite(self, event, channel):
@@ -2074,9 +2084,18 @@ class ChannelList(List):
                 button = event.GetEventObject()
                 button.Enable(False)
                 wx.CallLater(5000, button.Enable, True)
+
+            dlgname = 'RFdialog'
+            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                dlg = ConfirmationDialog(None, dlgname, "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
+                                         "If you remove this channel from your favourites, you will no longer be able to access its full content.")
+                response = dlg.ShowModal() 
                 
-            self.guiutility.channelsearch_manager.remove_vote(channel.id)
-            wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
+            if response == wx.ID_OK:          
+                self.guiutility.channelsearch_manager.remove_vote(channel.id)
+                wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
     
     def OnExpand(self, item):
         List.OnExpand(self, item)
