@@ -10,8 +10,8 @@ from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
 
-from widgets import ActionButton, GradientPanel, RoundedPanel, TextCtrlAutoComplete, ProgressButton
-from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED
+from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
+from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
@@ -37,7 +37,7 @@ class TopSearchPanelStub():
     def Layout(self):
         pass
 
-class TopSearchPanel(GradientPanel):
+class TopSearchPanel(FancyPanel):
     def __init__(self, parent):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
@@ -51,13 +51,14 @@ class TopSearchPanel(GradientPanel):
         self.nbdb = None
         self.collectedTorrents = {}
 
-        GradientPanel.__init__(self, parent, border = wx.BOTTOM)
+        FancyPanel.__init__(self, parent, border = wx.BOTTOM)
+        self.SetBorderColour(SEPARATOR_GREY)
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.AddComponents()
         self.Bind(wx.EVT_SIZE, self.OnResize)
         
     def AddComponents(self):
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
-        self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND))
         
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnCreate"
@@ -69,7 +70,8 @@ class TopSearchPanel(GradientPanel):
             self.searchField.SetDescriptiveText('Search Files or Channels')
             self.searchField.SetMinSize((400, 20))
         else:
-            self.searchFieldPanel = RoundedPanel(self)            
+            self.searchFieldPanel = FancyPanel(self, radius = 5, border = wx.ALL)        
+            self.searchFieldPanel.SetBorderColour(SEPARATOR_GREY, highlight = TRIBLER_RED)  
             self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
             # Since we have set the style to wx.NO_BORDER, the default height will be too large. Therefore, we need to set the correct height.
             _, height = self.GetTextExtent("Gg")

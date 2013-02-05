@@ -18,7 +18,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
-    ProgressButton, GradientPanel, TransparentText, LinkText, StaticBitmaps
+    ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps
 
 from list_body import ListBody
 from widgets import _set_font
@@ -33,7 +33,7 @@ from Tribler.Video.VideoUtility import limit_resolution
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
 
-class AbstractDetails(GradientPanel):
+class AbstractDetails(FancyPanel):
     
     @warnWxThread
     def _create_tab(self, notebook, tabname, header = None, spacer = 0, border = 0):
@@ -118,7 +118,7 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def __init__(self, parent, torrent, compact=False, noChannel=False):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
 
         self.guiutility = GUIUtility.getInstance()
@@ -133,7 +133,7 @@ class TorrentDetails(AbstractDetails):
         self.isReady = False
         self.noChannel = noChannel
         
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.timeouttimer = None
@@ -1368,7 +1368,7 @@ class LibraryDetails(TorrentDetails):
 class ChannelDetails(AbstractDetails):
 
     def __init__(self, parent, channel):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
 
         self.guiutility = GUIUtility.getInstance()
@@ -1377,7 +1377,7 @@ class ChannelDetails(AbstractDetails):
         
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1470,7 +1470,7 @@ class ChannelDetails(AbstractDetails):
 class PlaylistDetails(AbstractDetails):
 
     def __init__(self, parent, playlist):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
 
         self.guiutility = GUIUtility.getInstance()
@@ -1479,7 +1479,7 @@ class PlaylistDetails(AbstractDetails):
 
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.torrents = None
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1628,10 +1628,10 @@ class PlaylistDetails(AbstractDetails):
             self._addOverview(self.overview, self.overviewSizer)
         
 
-class AbstractInfoPanel(GradientPanel):
+class AbstractInfoPanel(FancyPanel):
 
     def __init__(self, parent):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
         
         self.guiutility = GUIUtility.getInstance()
@@ -1640,7 +1640,7 @@ class AbstractInfoPanel(GradientPanel):
         
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         self.mainSizer = wx.BoxSizer(wx.HORIZONTAL)

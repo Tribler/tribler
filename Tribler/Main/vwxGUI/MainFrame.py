@@ -273,7 +273,7 @@ class MainFrame(wx.Frame):
         #set sizes
         if not channelonly:
             self.top_bg.SetMinSize((-1,45))
-            self.actlist.SetMinSize((180,-1))
+            self.actlist.SetMinSize((200,-1))
         
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)

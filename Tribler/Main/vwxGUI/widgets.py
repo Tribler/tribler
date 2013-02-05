@@ -1590,61 +1590,37 @@ class ProgressButton(ActionButton):
             x = (width-textWidth)/2
             y = (height-textHeight)/2
             dc.DrawText(self.label, x, y)
+            
 
-
-class GradientPanel(wx.Panel):
+class FancyPanel(wx.Panel):
 
     def __init__(self, *args, **kwargs):
+        self.radius = kwargs.pop('radius', 0)
         self.border = kwargs.pop('border', 0)
-        self.colour1 = kwargs.pop('colour1', GRADIENT_LGREY)
-        self.colour2 = kwargs.pop('colour2', GRADIENT_DGREY)
         wx.Panel.__init__(self, *args, **kwargs)
+        self.focus = None
+        self.colour1 = self.colour2 = None
+        self.border_colour = self.border_highlight = None
         self.bitmap = wx.EmptyBitmap(*self.GetClientSizeTuple())
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         
-    def OnEraseBackground(self, event):
-        pass
-
-    def OnPaint(self, event):
-        x, y, width, height = self.GetClientRect()
-        buffer = wx.EmptyBitmap(width, height)
-        dc = wx.BufferedPaintDC(self, buffer)
-        gc = wx.GraphicsContext.Create(dc)
-        gc.SetPen(wx.TRANSPARENT_PEN)
-        br = gc.CreateLinearGradientBrush(x, y, x, y+height, self.colour1, self.colour2)
-        gc.SetBrush(br)
-        path = gc.CreatePath()
-        path.AddRectangle(x, y, width, height)
-        path.CloseSubpath()
-        gc.DrawPath(path)
-        dc.SetPen(wx.Pen(SEPARATOR_GREY, 1, wx.SOLID))
-        if bool(self.border & wx.RIGHT):
-            dc.DrawLine(x+width-1, y, x+width-1, y+height-1)
-        if bool(self.border & wx.LEFT):
-            dc.DrawLine(x, y, x, y+height-1)
-        if bool(self.border & wx.TOP):
-            dc.DrawLine(x, y, x+width-1, y)
-        if bool(self.border & wx.BOTTOM):
-            dc.DrawLine(x, y+height-1, x+width-1, y+height-1)
-        self.bitmap = buffer
+    def SetBorderColour(self, colour, highlight = None):
+        self.border_colour = colour
+        if highlight:
+            self.border_highlight = highlight
+            self.focus = False
+            self.Bind(wx.EVT_SET_FOCUS, self.OnSetFocus)
+            self.Bind(wx.EVT_CHILD_FOCUS, self.OnSetFocus)
+            self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
+        self.Refresh()
         
-
-class RoundedPanel(wx.Panel):
-
-    def __init__(self, *args, **kwargs):
-        self.border_colour = kwargs.pop('border_colour', None)
-        wx.Panel.__init__(self, *args, **kwargs)
-        self.focus = False
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SET_FOCUS, self.OnSetFocus)
-        self.Bind(wx.EVT_CHILD_FOCUS, self.OnSetFocus)
-        self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def OnEraseBackground(self, event):
-        pass
+    def SetBackgroundColour(self, colour1, colour2 = None):
+        self.colour1 = colour1
+        self.colour2 = colour2 if colour2 else colour1
+        wx.Panel.SetBackgroundColour(self, self.colour1)
+        self.Refresh()
 
     def OnSetFocus(self, event):
         self.focus = True
@@ -1658,31 +1634,60 @@ class RoundedPanel(wx.Panel):
         if event.Entering() or event.Leaving():
             self.Refresh()
         event.Skip()
+        
+    def OnEraseBackground(self, event):
+        pass
 
     def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self)
-        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
-        dc.Clear()
-        if getattr(self.GetParent(), 'bitmap', None):
-            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect) 
-            dc.DrawBitmap(sub, 0, 0)
-        gc = wx.GraphicsContext.Create(dc)
         x, y, width, height = self.GetClientRect()
-        gc.SetBrush(wx.Brush(self.GetBackgroundColour()))
-        if not self.border_colour:
-            if self.focus:
-                gc.SetPen(wx.Pen(GRADIENT_LRED, 1, wx.SOLID))
-            elif self.GetScreenRect().Contains(wx.GetMousePosition()):
-                gc.SetPen(wx.Pen(AdjustColour(SEPARATOR_GREY, -10), 1, wx.SOLID))
+        
+        # Use buffered drawing and save the buffer to a bitmap
+        buffer = wx.EmptyBitmap(width, height)
+        dc = wx.BufferedPaintDC(self, buffer)
+        
+        # For rounded panels, paint the background for the corners first
+        if self.radius > 0:
+            if getattr(self.GetParent(), 'bitmap', None):
+                rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+                sub = self.GetParent().bitmap.GetSubBitmap(rect) 
+                dc.DrawBitmap(sub, 0, 0)
             else:
-                gc.SetPen(wx.Pen(SEPARATOR_GREY, 1, wx.SOLID))
+                dc.SetBackground(wx.Brush(self.GetParent().GetBackgroundColour()))
+                dc.Clear()
+            
+        # Next, draw gradient/bitmap/regular background
+        gc = wx.GraphicsContext.Create(dc)
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        if self.colour1 != self.colour2:
+            gc.SetBrush(gc.CreateLinearGradientBrush(x, y, x, y+height, self.colour1, self.colour2))
+            gc.DrawRoundedRectangle(x, y, width, height, self.radius)
         else:
-            gc.SetPen(wx.Pen(self.border_colour, 1, wx.SOLID))
-        path = gc.CreatePath()
-        path.AddRoundedRectangle(x, y, width-1, height-1, 5)
-        path.CloseSubpath()
-        gc.DrawPath(path)
+            gc.SetBrush(wx.Brush(self.colour1 if self.colour1 else self.GetBackgroundColour()))
+            gc.DrawRoundedRectangle(x, y, width, height, self.radius)
+            
+        # Set border colour
+        gc.SetPen(wx.Pen(self.border_colour, 1, wx.SOLID) if self.border_colour else wx.TRANSPARENT_PEN)
+        if self.focus != None:
+            if self.focus:
+                gc.SetPen(wx.Pen(self.border_highlight, 1, wx.SOLID))
+            elif self.GetScreenRect().Contains(wx.GetMousePosition()):
+                gc.SetPen(wx.Pen(AdjustColour(self.border_colour, -10), 1, wx.SOLID))
+            
+        # Draw border
+        if self.radius > 0:
+            if self.border > 0:
+                gc.DrawRoundedRectangle(x, y, width-1, height-1, self.radius)
+        else:
+            if bool(self.border & wx.RIGHT):
+                gc.DrawLines([(x+width-1, y), (x+width-1, y+height-1)])
+            if bool(self.border & wx.LEFT):
+                gc.DrawLines([(x, y), (x, y+height-1)])
+            if bool(self.border & wx.TOP):
+                gc.DrawLines([(x, y), (x+width-1, y)])
+            if bool(self.border & wx.BOTTOM):
+                gc.DrawLines([(x, y+height-1), (x+width-1, y+height-1)])
+
+        self.bitmap = buffer
             
 
 class DottedBetterText(BetterText):

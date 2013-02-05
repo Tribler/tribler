@@ -7,12 +7,12 @@ from math import log
 
 import wx
 from wx import html
+from wx.lib.wordwrap import wordwrap
 from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge,\
-    TorrentStatus, RoundedPanel
+from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -2163,22 +2163,23 @@ class ActivitiesList(List):
         listSizer.Add(self.list, 1, wx.EXPAND)
         self.Add(listSizer, 0, wx.EXPAND)
         
-        self.notifyPanel = RoundedPanel(self.parent, border_colour = wx.Colour(80,80,80))
-        self.notifyPanel.SetBackgroundColour(wx.WHITE)
+        self.notifyPanel = FancyPanel(self.parent, radius = 5, border = wx.ALL)
+        self.notifyPanel.SetBorderColour(SEPARATOR_GREY)
+        self.notifyPanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.notifyPanel.SetForegroundColour(wx.Colour(80,80,80))
         self.notifyBmp = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_FRAME_ICON)
         self.notifyIcon = wx.StaticBitmap(self.notifyPanel, -1, self.notifyBmp)
-        self.notify = wx.StaticText(self.notifyPanel, style = wx.ALIGN_LEFT)
-        _set_font(self.notify, fontweight = wx.FONTWEIGHT_BOLD, size_increment = 2)
+        self.notify = TransparentText(self.notifyPanel)
+        _set_font(self.notify, fontweight = wx.FONTWEIGHT_NORMAL, size_increment = 0)
         
         notifySizer = wx.BoxSizer(wx.HORIZONTAL)
-        notifySizer.Add(self.notifyIcon, 0, wx.ALL|wx.BOTTOM, 5)
-        notifySizer.Add(self.notify, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        notifySizer.Add(self.notifyIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        notifySizer.Add(self.notify, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.notifyPanel.SetSizer(notifySizer)
         self.notifyPanel.Hide()
         
         self.AddStretchSpacer()
-        self.Add(self.notifyPanel, 0, wx.EXPAND|wx.ALIGN_BOTTOM|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
+        self.Add(self.notifyPanel, 0, wx.EXPAND|wx.ALIGN_BOTTOM|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
         
         self.SetBackgroundColour(self.background)
         self.Layout()
@@ -2284,16 +2285,17 @@ class ActivitiesList(List):
         self.list.Refresh()
         
     @forceWxThread
-    def Notify(self, msg, icon= -1):
-        if icon != -1:
+    def Notify(self, msg, icon = None):
+        if icon:
             self.notifyIcon.Show()
             self.notifyIcon.SetBitmap(self.notifyBmp)
         else:
             self.notifyIcon.Hide()
         
         self.notifyPanel.Layout()
-        from wx.lib.wordwrap import wordwrap
-        wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], wx.ClientDC(self.notify), breakLongWords = True, margin = 0)
+        cdc = wx.ClientDC(self.notify)
+        cdc.SetFont(self.notify.GetFont())
+        wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords = True, margin = 0)
         self.notify.SetLabel(wrapped_msg)
         self.notify.SetSize(self.notify.GetBestSize())        
         
@@ -2303,7 +2305,13 @@ class ActivitiesList(List):
         self.Layout()
         self.Thaw()
         
-        wx.CallLater(5000, self.notifyPanel.Hide)
+        wx.CallLater(5000, self.HideNotify)
+        
+    def HideNotify(self):
+        if self.notifyPanel.GetScreenRect().Contains(wx.GetMousePosition()):
+            wx.CallLater(1000, self.HideNotify)
+        else:
+            wx.CallLater(500, self.notifyPanel.Hide)
 
     def selectTab(self, tab):
         itemKey = 0
