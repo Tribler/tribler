@@ -17,10 +17,6 @@ from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
-
-import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
-if mainlineDHT.dht_imported:
-    from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
             
 DEBUG = False
 
