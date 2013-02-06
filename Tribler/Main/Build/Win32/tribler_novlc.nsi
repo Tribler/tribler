@@ -116,9 +116,6 @@ Section "!Main EXE" SecMain
  File Tribler\*.sql
  CreateDirectory "$INSTDIR\Tribler\Core"
  CreateDirectory "$INSTDIR\Tribler\Core\Statistics"
- SetOutPath "$INSTDIR\Tribler\Core\Statistics"
- File Tribler\Core\Statistics\*.txt
- File Tribler\Core\Statistics\*.sql
  CreateDirectory "$INSTDIR\Tribler\Core\Tag"
  SetOutPath "$INSTDIR\Tribler\Core\Tag"
  File Tribler\Core\Tag\*.filter
