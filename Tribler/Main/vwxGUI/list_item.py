@@ -311,8 +311,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             
     @warnWxThread        
     def GetIcons(self):
-        if getattr(self.parent_list.parent_list, '_special_icon', None) and getattr(self.parent_list.parent_list, '_status_icon', None):
-            return [self.parent_list.parent_list._special_icon(self), self.parent_list.parent_list._status_icon(self)]
+        if getattr(self.parent_list.parent_list, '_status_icon', None):
+            return [self.parent_list.parent_list._status_icon(self)]
         else:
             return []
         

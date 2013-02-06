@@ -59,7 +59,7 @@ class ListItem(wx.Panel):
             self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
-            if self.columns[i].get('show', True):
+            if self.columns[i].get('show', True) and (self.columns[i].get('showEmpty', True) or bool(self.data[i])):
                 width = self.columns[i].get('width', wx.LIST_AUTOSIZE)
                 if isinstance(width, basestring) and width.endswith('em'):
                     test_string = 'T' * int(self.columns[i]['width'][:-2])
@@ -253,7 +253,7 @@ class ListItem(wx.Panel):
         prevdata = self.data[columnindex]
         self.data[columnindex] = data
         
-        if column.get('show', True):
+        if column.get('show', True) and (column.get('showEmpty', True) or bool(data)):
             control_index = column['controlindex']
             self.controls[control_index].icon = self._get_icon(columnindex, 'icon', self.controls[control_index].icon)
             self.controls[control_index].icon_right = self._get_icon(columnindex, 'icon_right', self.controls[control_index].icon_right)

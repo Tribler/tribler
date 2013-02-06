@@ -1087,6 +1087,16 @@ class GenericSearchList(SizeList):
         return control, 3
 
     @warnWxThread
+    def CreateFrom(self, parent, item):
+        channel = getattr(item.original_data, 'channel', None)
+        control = wx.BoxSizer(wx.HORIZONTAL)
+        if channel:
+            if channel.isFavorite():
+                control.Add(wx.StaticBitmap(parent, bitmap = self.favorite), 0, wx.RIGHT, 5)
+            control.Add(wx.StaticText(parent, label = channel.name))
+        return control, 0
+    
+    @warnWxThread
     def OnDownload(self, event):
         item = event.GetEventObject().item
         key = self.infohash2key.get(item.original_data.infohash, item.original_data.infohash)
@@ -1138,9 +1148,9 @@ class GenericSearchList(SizeList):
                             del self.infohash2key[key]
 
                     if DEBUG_RELEVANCE:
-                        item_data = ["%s %s"%(head.name,head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0]
+                        item_data = ["%s %s"%(head.name,head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, getattr(head, 'channel', None)]
                     else:
-                        item_data = [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0]
+                        item_data = [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, getattr(head, 'channel', None)]
                     original_data = item
                     
                     list_data.append((key, item_data, original_data, create_method))
@@ -1193,9 +1203,9 @@ class GenericSearchList(SizeList):
                 
             # Update primary columns with new data
             if DEBUG_RELEVANCE:
-                data = (head.infohash, ["%s %s"%(head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0], original_data)
+                data = (head.infohash, ["%s %s"%(head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, getattr(head, 'channel', None)], original_data)
             else:
-                data = (head.infohash, [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0], original_data)
+                data = (head.infohash, [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, getattr(head, 'channel', None)], original_data)
             
             self.list.RefreshData(key, data)
             
@@ -1368,7 +1378,8 @@ class SearchList(GenericSearchList):
                    {'name':'File type', 'width': '24em', 'sortAsc': True}, \
                    {'name':'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
-                   {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
+                   {'name':'Health', 'width': 100, 'type':'method', 'method': self.CreateRatio}, \
+                   {'name':'From', 'width': '15em', 'type':'method', 'method': self.CreateFrom, 'showEmpty': False}]
         
         columns = self.guiutility.SetColumnInfo(TorrentListItem, columns, hide_defaults = [3,4])
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)

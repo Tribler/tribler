@@ -429,9 +429,9 @@ class SelectedChannelList(GenericSearchList):
             
             shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
-                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, DragItem) for torrent in torrents]
+                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, DragItem) for torrent in torrents]
             else:
-                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem) for torrent in torrents] 
+                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, TorrentListItem) for torrent in torrents] 
             self.list.SetData(data)
             
         else:
@@ -467,9 +467,9 @@ class SelectedChannelList(GenericSearchList):
         if data:
             if isinstance(data, Torrent):
                 if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
-                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data, DragItem)
+                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0, None], data, DragItem)
                 else:
-                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data)
+                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0, None], data)
             else:
                 data = (data.id,[data.name, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
@@ -536,8 +536,17 @@ class SelectedChannelList(GenericSearchList):
                 button = event.GetEventObject()
                 button.Enable(False)
                 wx.CallLater(5000, button.Enable, True)
+
+            dlgname = 'RFdialog'
+            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                dlg = ConfirmationDialog(None, dlgname, "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
+                                         "If you remove this channel from your favourites, you will no longer be able to access its full content.")
+                response = dlg.ShowModal() 
                 
-            self._DoRemoveVote(channel)
+            if response == wx.ID_OK:                 
+                self._DoRemoveVote(channel)
     
     @forceDBThread    
     def _DoRemoveVote(self, channel):
@@ -562,8 +571,17 @@ class SelectedChannelList(GenericSearchList):
                 button = event.GetEventObject()
                 button.Enable(False)
                 wx.CallLater(5000, button.Enable, True)
-    
-            self._DoFavorite(channel)
+
+            dlgname = 'MFdialog'
+            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                dlg = ConfirmationDialog(None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
+                                         "If you mark this channel as your favourite, you will be able to access its full content.")
+                response = dlg.ShowModal() 
+                
+            if response == wx.ID_OK: 
+                self._DoFavorite(channel)
 
     @forcePrioDBThread    
     def _DoFavorite(self, channel):
