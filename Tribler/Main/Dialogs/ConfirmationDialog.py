@@ -17,7 +17,7 @@ class ConfirmationDialog(wx.Dialog):
         messageSizer.Add(messageText2, 1, wx.EXPAND)
         messageSizer.Add(self.checkbox, 0, wx.EXPAND | wx.TOP, 15)
         bodySizer = wx.BoxSizer(wx.HORIZONTAL)
-        bodySizer.Add(wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION)), 0, wx.ALIGN_TOP | wx.RIGHT, 15)
+        bodySizer.Add(wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_CMN_DIALOG)), 0, wx.ALIGN_TOP | wx.RIGHT, 15)
         bodySizer.Add(messageSizer, 1, wx.EXPAND)
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
         confirmButton = wx.Button(self, label = 'Confirm')
