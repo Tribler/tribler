@@ -1411,7 +1411,7 @@ class PSearchCommunity(SearchCommunity):
                 print >> sys.stderr, "PSearchCommunity: got sum in RPSimilarityRequest"
             
             if candidate.sock_addr in self.requested_sock_addrs:
-                if DEBUG:
+                if DEBUG_VERBOSE:
                     print >> sys.stderr, "PSearchCommunity: added sum in RPSimilarityRequest"
                 
                 self.received_candidates.append(candidate)
@@ -1434,7 +1434,7 @@ class PSearchCommunity(SearchCommunity):
                 self.community._dispersy._forward([response])
                 self.isProcessed = True
                 
-                if DEBUG:
+                if DEBUG_VERBOSE:
                     print >> sys.stderr, "PSearchCommunity: processed RPSimilarityRequest"
                     
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.RPSimilarityRequest)
