@@ -216,13 +216,14 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: current tastebuddy list", self.taste_buddies
     
-    def yield_taste_buddies(self):
+    def yield_taste_buddies(self, ignore_candidate = None):
         taste_buddies = self.taste_buddies[:]
-        #taste_buddies.reverse()
         shuffle(taste_buddies)
         
+        ignore_sock_addr = ignore_candidate.sock_addr if ignore_candidate else None
+        
         for tb_tuple in taste_buddies:
-            if tb_tuple[0]:
+            if tb_tuple[0] and tb_tuple[-1].sock_addr != ignore_sock_addr:
                 yield tb_tuple[-1]
     
     def has_taste_buddies(self):
@@ -853,11 +854,13 @@ class SearchCommunity(Community):
     def get_nr_connections(self):
         return len(self.get_connections())
     
-    def get_connections(self, nr = 10):
+    def get_connections(self, nr = 10, ignore_candidate = None):
         #use taste buddies and fill with random candidates
-        candidates = set(self.yield_taste_buddies())
+        candidates = set(self.yield_taste_buddies(ignore_candidate))
         if len(candidates) < nr:
             sock_addresses = set(candidate.sock_addr for candidate in candidates)
+            if ignore_candidate:
+                sock_addresses.add(ignore_candidate.sock_addr)
             
             for candidate in self.dispersy_yield_candidates():
                 if candidate.sock_addr not in sock_addresses:
@@ -1137,21 +1140,31 @@ class PSearchCommunity(SearchCommunity):
         self.possible_taste_buddies.extend(possibles)
         self.possible_taste_buddies.sort(reverse = True)
         
-        #TODO: remove all possibles which cannot be contacted anymore, for now limit to 50
         self.possible_taste_buddies = self.possible_taste_buddies[:50]
-        
         if DEBUG:
             print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
     
+    def has_possible_taste_buddies(self, candidate):
+        for _,_,_,from_candidate in self.possible_taste_buddies:
+            if from_candidate.sock_addr == candidate.sock_addr:
+                return True
+        return False
+        
     def get_most_similar(self, candidate):
         if self.possible_taste_buddies:
+            #clean possible taste buddies, remove all entries older than 60s
+            to_be_removed = time() - 60
+            for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
+                if self.possible_taste_buddies[i][1] < to_be_removed:
+                    self.possible_taste_buddies.pop(i)
+                        
             most_similar = self.possible_taste_buddies.pop(0)
-            return most_similar[2], most_similar[1]
+            return most_similar[3], most_similar[2]
         
         return candidate, None
     
     def create_introduction_request(self, destination, allow_sync):
-        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and allow_sync:
+        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
             self.send_sums_request(destination)
         else:
             self.send_introduction_request(destination)
@@ -1254,12 +1267,12 @@ class PSearchCommunity(SearchCommunity):
         return my_vector
     
     def on_sums_request(self, messages):
-        #get candidates to forward requests to
-        candidates = self.get_connections(10)
-
         for message in messages:
             if DEBUG:
                 print >> sys.stderr, "PSearchCommunity: got sums request"
+            
+            #get candidates to forward requests to, excluding the requesting peer
+            candidates = self.get_connections(10, message.candidate)
             
             #create RPSimilarityRequest to use as object to collect all sums
             self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
@@ -1455,10 +1468,10 @@ class PSearchCommunity(SearchCommunity):
                 print >> sys.stderr, "PSearchCommunity: received sums", message.payload._sum
             
             if self.encryption:
-                _sums = [[self._pallier_decrypt(_sum), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sums = [[self._pallier_decrypt(_sum), time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = self._pallier_decrypt(message.payload._sum)
             else:
-                _sums = [[_sum, sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sums = [[_sum, time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = message.payload._sum
 
             self.add_taste_buddies([[_sum, time(), message.candidate]])
