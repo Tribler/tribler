@@ -1139,7 +1139,7 @@ class PSearchCommunity(SearchCommunity):
     
     def add_possible_taste_buddies(self, possibles):
         #filter all sum == 0 possibles
-        possibles = [possible for possible in possibles if possible[0]]
+        possibles = [possible for possible in possibles if possible[0] > self.get_low_sum()]
         
         #add all possibles and sort descending by sum, time received
         self.possible_taste_buddies.extend(possibles)
@@ -1153,6 +1153,11 @@ class PSearchCommunity(SearchCommunity):
             if from_candidate.sock_addr == candidate.sock_addr:
                 return True
         return False
+    
+    def get_low_sum(self):
+        if len(self.taste_buddies) == 10:
+            return self.taste_buddies[-1][0]
+        return 0
         
     def get_most_similar(self, candidate):
         if self.possible_taste_buddies:
