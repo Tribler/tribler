@@ -46,6 +46,7 @@ if __debug__:
     from Tribler.dispersy.dprint import dprint
 
 DEBUG = True
+DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
@@ -1137,10 +1138,13 @@ class PSearchCommunity(SearchCommunity):
         return value
     
     def add_possible_taste_buddies(self, possibles):
+        #filter all sum == 0 possibles
+        possibles = [possible for possible in possibles if possible[0]]
+        
+        #add all possibles and sort descending by sum, time received
         self.possible_taste_buddies.extend(possibles)
         self.possible_taste_buddies.sort(reverse = True)
         
-        self.possible_taste_buddies = self.possible_taste_buddies[:50]
         if DEBUG:
             print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
     
@@ -1365,7 +1369,7 @@ class PSearchCommunity(SearchCommunity):
                         if my_vector[i] and element:
                             _sum += 1
                 
-                if DEBUG:
+                if DEBUG_VERBOSE:
                     print >> sys.stderr, "PSearchCommunity: calculated sum", _sum
                         
                 return _sum
@@ -1383,7 +1387,7 @@ class PSearchCommunity(SearchCommunity):
                 self.community._dispersy._forward([response])
                 self.isProcessed = True
                 
-                if DEBUG:
+                if DEBUG_VERBOSE:
                     print >> sys.stderr, "PSearchCommunity: processed PSimilarityRequest"
                     
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.PSimilarityRequest)
@@ -1403,7 +1407,7 @@ class PSearchCommunity(SearchCommunity):
             self.received_sums = []
         
         def add_sum(self, candidate, _sum):
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: got sum in RPSimilarityRequest"
             
             if candidate.sock_addr in self.requested_sock_addrs:
@@ -1419,7 +1423,8 @@ class PSearchCommunity(SearchCommunity):
         def process(self):
             if not self.isProcessed:
                 _sum = self.get_sum()
-            
+                
+                #TODO: instead of sock_addr, we should reply with the identifier of a peer
                 meta_request = self.community.get_meta_message(u"encrypted-sums")
                 response = meta_request.impl(authentication=(self.community.my_member,),
                                         distribution=(self.community.global_time,),
@@ -1453,7 +1458,7 @@ class PSearchCommunity(SearchCommunity):
     
     def on_encr_sum(self, messages):
         for message in messages:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: received sum", message.payload._sum
             
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
@@ -1464,16 +1469,20 @@ class PSearchCommunity(SearchCommunity):
     
     def on_encr_sums(self, messages):
         for message in messages:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: received sums", message.payload._sum
             
             if self.encryption:
+                t1 = time()
+                
                 _sums = [[self._pallier_decrypt(_sum), time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = self._pallier_decrypt(message.payload._sum)
+                
+                self.community.search_time_encryption += time() - t1
             else:
                 _sums = [[_sum, time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = message.payload._sum
-
+                
             self.add_taste_buddies([[_sum, time(), message.candidate]])
             self.add_possible_taste_buddies(_sums)
 
