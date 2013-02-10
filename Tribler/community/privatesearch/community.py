@@ -1160,13 +1160,13 @@ class PSearchCommunity(SearchCommunity):
         return 0
         
     def get_most_similar(self, candidate):
-        if self.possible_taste_buddies:
-            #clean possible taste buddies, remove all entries older than 60s
-            to_be_removed = time() - 60
-            for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
-                if self.possible_taste_buddies[i][1] < to_be_removed:
-                    self.possible_taste_buddies.pop(i)
-                        
+        #clean possible taste buddies, remove all entries older than 60s
+        to_be_removed = time() - 60
+        for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
+            if self.possible_taste_buddies[i][1] < to_be_removed:
+                self.possible_taste_buddies.pop(i)
+                    
+        if self.possible_taste_buddies:                
             most_similar = self.possible_taste_buddies.pop(0)
             return most_similar[3], most_similar[2]
         
