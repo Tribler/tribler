@@ -1272,7 +1272,7 @@ class PSearchCommunity(SearchCommunity):
     
     def on_sums_request(self, messages):
         for message in messages:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: got sums request"
             
             #get candidates to forward requests to, excluding the requesting peer
@@ -1294,7 +1294,7 @@ class PSearchCommunity(SearchCommunity):
             
     def on_sum_request(self, messages):
         for message in messages:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: got sum request"
             
             #create a PSimilarityRequest to store this request for sum
@@ -1312,7 +1312,7 @@ class PSearchCommunity(SearchCommunity):
                 
     def on_global_vector(self, messages):
         for message in messages:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: got global vector"
             
             if not self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
@@ -1323,7 +1323,7 @@ class PSearchCommunity(SearchCommunity):
             
             if isinstance(request, PSearchCommunity.RPSimilarityRequest):
                 if request.requested_candidates:
-                    if DEBUG:
+                    if DEBUG_VERBOSE:
                         print >> sys.stderr, "PSearchCommunity: forwarding global vector", request.requested_candidates
                     self._dispersy._send(request.requested_candidates, [message])
             
