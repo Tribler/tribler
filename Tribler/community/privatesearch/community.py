@@ -670,7 +670,7 @@ class SearchCommunity(Community):
     
     def create_ping_request(self, candidate):
         while self.is_taste_buddy(candidate):
-            self._create_pingpong("ping", [candidate])
+            self._create_pingpong(u"ping", [candidate])
             
             yield PING_INTERVAL
     
@@ -678,7 +678,7 @@ class SearchCommunity(Community):
         candidates = [message.candidate for message in messages]
         identifiers = [message.payload.identifier for message in messages]
         
-        self._create_pingpong("pong", candidates, identifiers)
+        self._create_pingpong(u"pong", candidates, identifiers)
         
         for message in messages:
             if len(message.payload.torrents)> 0:
