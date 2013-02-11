@@ -46,7 +46,7 @@ from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, p
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = True
+DEBUG = False
 DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
