@@ -1462,7 +1462,7 @@ class PSearchCommunity(SearchCommunity):
             self.send_introduction_request(destination, introduce_me_to)
             
             if DEBUG and introduce_me_to:
-                print >> sys.stderr, "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s"%(destination, introduce_me_to, message.candidate)
+                print >> sys.stderr, "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
         
 class Das4DBStub():
     def __init__(self, dispersy):
