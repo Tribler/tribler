@@ -41,6 +41,7 @@ from Tribler.community.privatesearch.payload import GlobalVectorPayload, Encrypt
     ExtendedIntroPayload, EncryptedSumsPayload
 from Tribler.community.privatesearch.conversion import PSearchConversion
 from Tribler.dispersy.script import assert_
+from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -1065,34 +1066,10 @@ class PSearchCommunity(SearchCommunity):
     
     def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
         SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs)
-        
-        self.key_g = self.key_n + 1
-        self.key_n2 = pow(self.key.key.n, 2)
-
-        #LCM from https://github.com/kmcneelyshaw/pycrypto/commit/98c22cc691c1840db380ad04c22169721a946b50
-        x = self.key.key.p - 1
-        y = self.key.key.q - 1
-        if y > x:
-            x, y = y, x
-        self.key_lambda = (x / GCD(x, y)) * y
-        
-        self.key_decryption = pow(self.key_g, self.key_lambda, self.key_n2)
-        self.key_decryption = (self.key_decryption - 1) / self.key_n
-        self.key_decryption = inverse(self.key_decryption, self.key_n)
+        self.key_n, self.key_n2, self.key_g, self.key_lambda, self.key_decryption = pallier_init(self.key)
         
         self.possible_taste_buddies = []
         self.requested_introductions = {}
-        
-        if DEBUG:
-            #lets check if this pallier thing works
-            test = self._pallier_decrypt(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2))
-            assert_(test == 0l, test)
-            
-            test = self._pallier_decrypt(bytes_to_long(long_to_bytes(self._pallier_encrypt(0l, self.key_g, self.key_n, self.key_n2), 128)))
-            assert_(test == 0l, test)
-             
-            test = self._pallier_decrypt(self._pallier_encrypt(1l, self.key_g, self.key_n, self.key_n2))
-            assert_(test == 1l, test)
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
@@ -1115,28 +1092,6 @@ class PSearchCommunity(SearchCommunity):
     def initiate_conversions(self):
         return [DefaultConversion(self), SearchConversion(self), PSearchConversion(self)]
     
-    def _pallier_encrypt(self, element, g, n, n2):
-        while True:
-            r = StrongRandom().randint(1, n)
-            if GCD(r, n) == 1: break
-        
-        #using same variable names as implementation by Zeki
-        #key_g < n2, so no need for modulo
-        t1 = g if element else 1l
-        t2 = pow(r, n, n2)
-        
-        t1 = t1 * t2
-        cipher = t1 % n2
-        return cipher
-
-    def _pallier_decrypt(self, cipher):
-        t1 = pow(cipher, self.key_lambda, self.key_n2)
-        t1 = (t1 - 1) / self.key_n
-        
-        value = t1 * self.key_decryption
-        value = value % self.key_n
-        return value
-    
     def add_possible_taste_buddies(self, possibles):
         #filter all sum == 0 possibles
         possibles = [possible for possible in possibles if possible[0] > self.get_low_sum()]
@@ -1145,7 +1100,7 @@ class PSearchCommunity(SearchCommunity):
         self.possible_taste_buddies.extend(possibles)
         self.possible_taste_buddies.sort(reverse = True)
         
-        if DEBUG:
+        if DEBUG and possibles:
             print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
     
     def has_possible_taste_buddies(self, candidate):
@@ -1230,7 +1185,7 @@ class PSearchCommunity(SearchCommunity):
             
             encrypted_vector = []
             for element in my_vector:
-                cipher = self._pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
+                cipher = pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
                 encrypted_vector.append(cipher)
             
             self.search_time_encryption += time() - t1
@@ -1359,13 +1314,11 @@ class PSearchCommunity(SearchCommunity):
                     _sum = 1
                     
                     t1 = time()
-                    user_g = self.user_n + 1
                     user_n2 = pow(self.user_n, 2)
                     
                     for i, element in enumerate(self.user_vector):
                         if my_vector[i]:
-                            #self.community._pallier_encrypt(element, user_g, self.user_n, user_n2)
-                            _sum = (_sum * element) % user_n2
+                            _sum = pallier_add(_sum, element, user_n2)
                             
                     self.community.search_time_encryption += time() - t1
                 else:
@@ -1480,8 +1433,8 @@ class PSearchCommunity(SearchCommunity):
             if self.encryption:
                 t1 = time()
                 
-                _sums = [[self._pallier_decrypt(_sum), time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
-                _sum = self._pallier_decrypt(message.payload._sum)
+                _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sum = pallier_decrypt(message.payload._sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption)
                 
                 self.community.search_time_encryption += time() - t1
             else:
@@ -1493,6 +1446,9 @@ class PSearchCommunity(SearchCommunity):
 
             destination, introduce_me_to = self.get_most_similar(message.candidate)
             self.send_introduction_request(destination, introduce_me_to)
+            
+            if DEBUG and introduce_me_to:
+                print >> sys.stderr, "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s"%(destination, introduce_me_to, message.candidate)
         
 class Das4DBStub():
     def __init__(self, dispersy):
