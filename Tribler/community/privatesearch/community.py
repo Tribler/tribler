@@ -1075,6 +1075,7 @@ class PSearchCommunity(SearchCommunity):
         
         self.possible_taste_buddies = []
         self.requested_introductions = {}
+        self.my_vector_cache = [None, None]
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
@@ -1191,14 +1192,21 @@ class PSearchCommunity(SearchCommunity):
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
         
         global_vector_request, global_vector = self.create_global_vector(destination, identifier)
+        
         my_vector = self.get_my_vector(global_vector)
         if self.encryption:
             t1 = time()
             
-            encrypted_vector = []
-            for element in my_vector:
-                cipher = pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
-                encrypted_vector.append(cipher)
+            my_vector_str = ",".join(map(str, my_vector))
+            if self.my_vector_cache[0] == my_vector:
+                encrypted_vector = self.my_vector_cache[1]
+            else:    
+                encrypted_vector = []
+                for element in my_vector:
+                    cipher = pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
+                    encrypted_vector.append(cipher)
+                    
+                self.my_vector_cache = [my_vector_str, encrypted_vector]
             
             self.search_time_encryption += time() - t1
         else:
