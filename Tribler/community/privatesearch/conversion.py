@@ -453,8 +453,7 @@ class PSearchConversion(SearchConversion):
             raw_values = unpack_from('!'+hashpack, data, offset)
             for i in range(len(raw_values)/2):
                 candidate_mid = raw_values[i*2]
-                _sum = bytes_to_long(raw_values[(i*2)+1])
-                _sums.append([candidate_mid, _sum])
+                _sums.append([candidate_mid, bytes_to_long(raw_values[(i*2)+1])])
                 
             offset += length
         
