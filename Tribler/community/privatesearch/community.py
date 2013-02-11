@@ -1093,9 +1093,6 @@ class PSearchCommunity(SearchCommunity):
         return [DefaultConversion(self), SearchConversion(self), PSearchConversion(self)]
     
     def add_possible_taste_buddies(self, possibles):
-        #filter all sum == 0 possibles
-        possibles = [possible for possible in possibles if possible[0] > self.get_low_sum()]
-        
         #add all possibles and sort descending by sum, time received
         self.possible_taste_buddies.extend(possibles)
         self.possible_taste_buddies.sort(reverse = True)
@@ -1117,8 +1114,10 @@ class PSearchCommunity(SearchCommunity):
     def get_most_similar(self, candidate):
         #clean possible taste buddies, remove all entries older than 60s
         to_be_removed = time() - 60
+        low_sum = self.get_low_sum()
+        
         for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
-            if self.possible_taste_buddies[i][1] < to_be_removed:
+            if self.possible_taste_buddies[i][0] <= low_sum or self.possible_taste_buddies[i][1] < to_be_removed:
                 self.possible_taste_buddies.pop(i)
                     
         if self.possible_taste_buddies:                
@@ -1440,6 +1439,8 @@ class PSearchCommunity(SearchCommunity):
             else:
                 _sums = [[_sum, time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = message.payload._sum
+                
+            _sums = [possible for possible in _sums if possible[0]]
                 
             self.add_taste_buddies([[_sum, time(), message.candidate]])
             self.add_possible_taste_buddies(_sums)
