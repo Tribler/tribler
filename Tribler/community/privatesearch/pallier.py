@@ -2,6 +2,11 @@ from Crypto.Random.random import StrongRandom
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
 from Crypto.PublicKey import RSA
 
+from gmpy import mpz
+
+from random import randint
+from time import time
+
 #using same variable names as implementation by Zeki
 def pallier_init(rsa_key):
     key_n = rsa_key.key.n
@@ -32,22 +37,35 @@ def pallier_encrypt(element, g, n, n2):
     
     #key_g < n2, so no need for modulo
     t1 = g if element else 1l
-    t2 = pow(r, n, n2)
+    
+    r_ = mpz(r)
+    n_ = mpz(n)
+    n2_ = mpz(n2)
+    t2 = pow(r_, n_, n2_)
     
     t1 = t1 * t2
-    cipher = t1 % n2
+    cipher = long(t1 % n2)
+    
     return cipher
 
 def pallier_decrypt(cipher, n, n2, key_lambda, key_decryption):
-    t1 = pow(cipher, key_lambda, n2)
-    t1 = (t1 - 1) / n
+    cipher_ = mpz(cipher)
+    n_ = mpz(n)
+    n2_ = mpz(n2)
+    key_lambda_ = mpz(key_lambda)
+    key_decryption_ = mpz(key_decryption)
     
-    value = t1 * key_decryption
-    value = value % n
-    return value
+    t1 = pow(cipher_, key_lambda_, n2_)
+    t1 = (t1 - 1) / n_
+    
+    value = (t1 * key_decryption_) % n_
+    return long(value)
 
 def pallier_multiply(cipher, times,  n2):
-    return pow(cipher, times, n2)
+    cipher_ = mpz(cipher)
+    times_ = mpz(times)
+    n2_ = mpz(n2)
+    return long(pow(cipher_, times_, n2_))
 
 def pallier_add(cipher1, cipher2, n2):
     return (cipher1 * cipher2) % n2
@@ -104,3 +122,10 @@ if __name__ == "__main__":
     
     test = pallier_decrypt(bytes_to_long(long_to_bytes(encrypted10, 128)), key_n, key_n2, key_lambda, key_decryption)
     assert test == 10l, test
+    
+    #performance
+    t1 = time()
+    random_list = [randint(0,1) for _ in xrange(100)]
+    for i, value in enumerate(random_list):
+        pallier_encrypt(value, key_g, key_n, key_n2)
+    print time() - t1
