@@ -1076,6 +1076,7 @@ class PSearchCommunity(SearchCommunity):
         
         self.possible_taste_buddies = []
         self.requested_introductions = {}
+        
         self.my_vector_cache = [None, None]
     
     def initiate_meta_messages(self):
@@ -1194,24 +1195,24 @@ class PSearchCommunity(SearchCommunity):
         
         global_vector_request, global_vector = self.create_global_vector(destination, identifier)
         
-        my_vector = self.get_my_vector(global_vector)
-        if self.encryption:
-            t1 = time()
-            
-            my_vector_str = ",".join(map(str, my_vector))
-            if self.my_vector_cache[0] == my_vector:
-                encrypted_vector = self.my_vector_cache[1]
-            else:    
+        str_global_vector = str(global_vector)
+        if self.my_vector_cache[0] == str_global_vector: 
+            encrypted_vector = self.my_vector_cache[1]
+        else:
+            my_vector = self.get_my_vector(global_vector)
+            if self.encryption:
+                
+                t1 = time()
                 encrypted_vector = []
                 for element in my_vector:
                     cipher = pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
                     encrypted_vector.append(cipher)
-                    
-                self.my_vector_cache = [my_vector_str, encrypted_vector]
-            
-            self.create_time_encryption += time() - t1
-        else:
-            encrypted_vector = my_vector
+
+                self.create_time_encryption += time() - t1
+            else:
+                encrypted_vector = my_vector
+        
+            self.my_vector_cache = [str_global_vector, encrypted_vector]
         
         meta_request = self.get_meta_message(u"sums-request")
         request = meta_request.impl(authentication=(self.my_member,),
