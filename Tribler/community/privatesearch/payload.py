@@ -1,6 +1,8 @@
 from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 
+MAXLONG = (1 << 1024) - 1
+
 class EncryptedIntroPayload(IntroductionRequestPayload):
     class Implementation(IntroductionRequestPayload.Implementation):
         
@@ -83,7 +85,9 @@ class KeyPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, key_n, key_e):
             assert isinstance(key_n, long), 'key_n should be long'
+            assert key_n < MAXLONG
             assert isinstance(key_e, long), 'key_e should be long'
+            assert key_e < MAXLONG
             
             super(KeyPayload.Implementation, self).__init__(meta)
             self._key_n = key_n
@@ -102,7 +106,9 @@ class RequestKeyPayload(Payload):
         def __init__(self, meta, identifier, key_n, key_e):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key_n, long), 'key_n should be long'
+            assert key_n < MAXLONG
             assert isinstance(key_e, long), 'key_e should be long'
+            assert key_e < MAXLONG
             
             super(RequestKeyPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
@@ -129,6 +135,7 @@ class GlobalVectorPayload(Payload):
                 assert isinstance(preference_list, list), 'preference_list should be list not %s'%type(preference_list)
                 for item in preference_list:
                     assert isinstance(item, long), type(item)
+                    assert item < MAXLONG
                     
             super(GlobalVectorPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
@@ -148,9 +155,11 @@ class EncryptedVectorPayload(Payload):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(key_n, long), 'key_n should be long'
+                assert key_n < MAXLONG
                 assert isinstance(preference_list, list), 'preferencelist should be list not %s'%type(preference_list)
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
+                    assert preference < MAXLONG
                     
             super(EncryptedVectorPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
@@ -175,6 +184,7 @@ class EncryptedSumPayload(Payload):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), 'sum should be long'
+                assert _sum < MAXLONG
                     
             super(EncryptedSumPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
@@ -194,12 +204,15 @@ class EncryptedSumsPayload(Payload):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), type(_sum)
+                assert _sum < MAXLONG
+                
                 assert isinstance(sums, list), type(sums)
                 
                 for candidate_mid, address_sum in sums:
                     assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                     assert len(candidate_mid) == 20, len(candidate_mid)
                     assert isinstance(address_sum, long), 'address_sum should be long'
+                    assert address_sum < MAXLONG
                     
             super(EncryptedSumsPayload.Implementation, self).__init__(meta)
             self._identifier = identifier

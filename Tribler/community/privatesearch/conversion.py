@@ -5,7 +5,6 @@ from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Crypto.Util.number import long_to_bytes, bytes_to_long
-from socket import inet_ntoa, inet_aton
 
 class SearchConversion(BinaryConversion):
     def __init__(self, community):
@@ -366,13 +365,13 @@ class HSearchConversion(SearchConversion):
 class PSearchConversion(SearchConversion):
     def __init__(self, community):
         SearchConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"sum-request"), lambda message: self._encode_decode(self._encode_vector, self._decode_vector, message), self._decode_vector)
-        self.define_meta_message(chr(9), community.get_meta_message(u"sums-request"), lambda message: self._encode_decode(self._encode_vector, self._decode_vector, message), self._decode_vector)
-        self.define_meta_message(chr(10), community.get_meta_message(u"global-vector"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
+        self.define_meta_message(chr(8), community.get_meta_message(u"sum-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"sums-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
+        self.define_meta_message(chr(10), community.get_meta_message(u"global-vector"), lambda message: self._encode_decode(self._encode_global_vector, self._decode_global_vector, message), self._decode_global_vector)
         self.define_meta_message(chr(11), community.get_meta_message(u"encrypted-sum"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
         self.define_meta_message(chr(12), community.get_meta_message(u"encrypted-sums"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
     
-    def _encode_vector(self, message):
+    def _encode_sum_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)    
         str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
         
@@ -380,7 +379,7 @@ class PSearchConversion(SearchConversion):
         packet = pack(fmt, message.payload.identifier, str_n, *str_prefs)
         return packet,
     
-    def _decode_vector(self, placeholder, offset, data):
+    def _decode_sum_request(self, placeholder, offset, data):
         identifier, str_n = unpack_from('!H128s', data, offset)
         offset += 130
        
@@ -390,11 +389,34 @@ class PSearchConversion(SearchConversion):
         
         if length:
             hashpack = '128s' * (length/128)
-            hashes = unpack_from('!'+hashpack, data, offset)
-            hashes = [bytes_to_long(hash) for hash in hashes]
+            str_prefs = unpack_from('!'+hashpack, data, offset)
+            prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
         
-        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), hashes)
+        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs)
+    
+    def _encode_global_vector(self, message):
+        str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
+        
+        fmt = "!H" + "128s"*len(str_prefs)
+        packet = pack(fmt, message.payload.identifier, *str_prefs)
+        return packet,
+    
+    def _decode_global_vector(self, placeholder, offset, data):
+        identifier, = unpack_from('!H', data, offset)
+        offset += 2
+       
+        length = len(data) - offset
+        if length % 128 != 0:
+            raise DropPacket("Invalid number of bytes available (global_vector)")
+        
+        if length:
+            hashpack = '128s' * (length/128)
+            str_prefs = unpack_from('!'+hashpack, data, offset)
+            prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
+            offset += length
+        
+        return offset, placeholder.meta.payload.implement(identifier, prefs)
     
     def _encode_sum(self, message):
         str_sum = long_to_bytes(message.payload._sum, 128)

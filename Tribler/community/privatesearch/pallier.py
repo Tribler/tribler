@@ -66,6 +66,18 @@ if __name__ == "__main__":
     test = pallier_decrypt(encrypted1, key_n, key_n2, key_lambda, key_decryption)
     assert test == 1l, test
     
+    encrypted2 = pallier_add(encrypted1, encrypted1, key_n2)
+    test = pallier_decrypt(encrypted2, key_n, key_n2, key_lambda, key_decryption)
+    assert test == 2l, test
+    
+    encrypted4 = pallier_add(encrypted2, encrypted2, key_n2)
+    test = pallier_decrypt(encrypted4, key_n, key_n2, key_lambda, key_decryption)
+    assert test == 4l, test
+    
+    encrypted1_ = pallier_add(1, encrypted1, key_n2)
+    test = pallier_decrypt(encrypted1_, key_n, key_n2, key_lambda, key_decryption)
+    assert test == 1l, test
+    
     encrypted0_ = pallier_multiply(encrypted0, 10, key_n2)
     test = pallier_decrypt(encrypted0_, key_n, key_n2, key_lambda, key_decryption)
     assert test == 0l, test
@@ -73,15 +85,22 @@ if __name__ == "__main__":
     encrypted10 = pallier_multiply(encrypted1, 10, key_n2)
     test = pallier_decrypt(encrypted10, key_n, key_n2, key_lambda, key_decryption)
     assert test == 10l, test
+        
+    #bytes_to_long check
+    test = bytes_to_long(long_to_bytes(key_n, 128))
+    assert test == key_n, test
     
-    encrypted2 = pallier_add(encrypted1, encrypted1, key_n2)
-    test = pallier_decrypt(encrypted2, key_n, key_n2, key_lambda, key_decryption)
-    assert test == 2l, test
+    test = pallier_decrypt(bytes_to_long(long_to_bytes(encrypted0, 128)), key_n, key_n2, key_lambda, key_decryption)
+    assert test == 0l, test
     
-    encrypted1_ = pallier_add(1, encrypted1, key_n2)
-    test = pallier_decrypt(encrypted1_, key_n, key_n2, key_lambda, key_decryption)
+    test = pallier_decrypt(bytes_to_long(long_to_bytes(encrypted1, 128)), key_n, key_n2, key_lambda, key_decryption)
     assert test == 1l, test
     
-    #bytes_to_long check
-    test = pallier_decrypt(bytes_to_long(long_to_bytes(pallier_encrypt(0l, key_g, key_n, key_n2), 128)), key_n, key_n2, key_lambda, key_decryption)
-    assert test == 0l, test
+    test = pallier_decrypt(bytes_to_long(long_to_bytes(encrypted2, 128)), key_n, key_n2, key_lambda, key_decryption)
+    assert test == 2l, test
+    
+    test = pallier_decrypt(bytes_to_long(long_to_bytes(encrypted4, 128)), key_n, key_n2, key_lambda, key_decryption)
+    assert test == 4l, test
+    
+    test = pallier_decrypt(bytes_to_long(long_to_bytes(encrypted10, 128)), key_n, key_n2, key_lambda, key_decryption)
+    assert test == 10l, test
