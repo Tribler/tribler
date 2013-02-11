@@ -267,7 +267,7 @@ class SearchCommunity(Community):
                 myList = [self.key.decrypt(infohash) for infohash in myList]
                 myList = [sha1(infohash).digest() for infohash in myList]
                 
-                self.community.create_time_encryption += time() - t1
+                self.community.create_time_decryption += time() - t1
             
             assert all(len(infohash) == 20 for infohash in myList) 
             
