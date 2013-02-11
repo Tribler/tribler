@@ -1436,7 +1436,7 @@ class PSearchCommunity(SearchCommunity):
                 _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = pallier_decrypt(message.payload._sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption)
                 
-                self.community.search_time_encryption += time() - t1
+                self.search_time_encryption += time() - t1
             else:
                 _sums = [[_sum, time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
                 _sum = message.payload._sum
