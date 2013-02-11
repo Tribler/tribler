@@ -1093,8 +1093,17 @@ class PSearchCommunity(SearchCommunity):
         return [DefaultConversion(self), SearchConversion(self), PSearchConversion(self)]
     
     def add_possible_taste_buddies(self, possibles):
+        possible_mids = {}
+        for i,possible in enumerate(self.possible_taste_buddies):
+            possible_mids[possible[2]] = i 
+
         #add all possibles and sort descending by sum, time received
-        self.possible_taste_buddies.extend(possibles)
+        for possible in possibles:
+            if possible[2] in possible_mids:
+                self.possible_taste_buddies[possible_mids[possible[2]]] = possible
+            else:
+                self.possible_taste_buddies.append(possible)
+        
         self.possible_taste_buddies.sort(reverse = True)
         
         if DEBUG and possibles:
@@ -1154,8 +1163,7 @@ class PSearchCommunity(SearchCommunity):
         for message in messages:
             if message.payload.introduce_me_to:
                 candidate = self._dispersy.get_walkcandidate(message, self)
-                introduce_me_candidate = self._dispersy.get_candidate(message.payload.introduce_me_to)
-                self.requested_introductions[candidate] = introduce_me_candidate
+                self.requested_introductions[candidate] = self.get_candidate_mid(message.payload.introduce_me_to)
         
         self._disp_intro_handler(messages)
         
@@ -1432,18 +1440,19 @@ class PSearchCommunity(SearchCommunity):
             if self.encryption:
                 t1 = time()
                 
-                _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = pallier_decrypt(message.payload._sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption)
                 
                 self.search_time_encryption += time() - t1
             else:
-                _sums = [[_sum, time(), sock_addr, message.candidate] for sock_addr, _sum in message.payload.sums]
+                _sums = [[_sum, time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = message.payload._sum
                 
-            _sums = [possible for possible in _sums if possible[0]]
-                
             self.add_taste_buddies([[_sum, time(), message.candidate]])
-            self.add_possible_taste_buddies(_sums)
+            
+            _sums = [possible for possible in _sums if possible[0]]
+            if _sums:
+                self.add_possible_taste_buddies(_sums)
 
             destination, introduce_me_to = self.get_most_similar(message.candidate)
             self.send_introduction_request(destination, introduce_me_to)

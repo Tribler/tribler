@@ -409,12 +409,11 @@ class PSearchConversion(SearchConversion):
     def _encode_sums(self, message):
         str_sum = long_to_bytes(message.payload._sum, 128)
         sums = []
-        for address, address_sum in message.payload.sums:
-            sums.append(inet_aton(address[0]))
-            sums.append(address[1])
+        for candidate_mid, address_sum in message.payload.sums:
+            sums.append(candidate_mid)
             sums.append(long_to_bytes(address_sum, 128))
         
-        fmt = "!H128s" + "4sH128s" * len(message.payload.sums)
+        fmt = "!H128s" + "20s128s" * len(message.payload.sums)
         packet = pack(fmt, message.payload.identifier, str_sum, *sums)
         return packet,
     
@@ -423,17 +422,17 @@ class PSearchConversion(SearchConversion):
         offset += 130
         
         length = len(data) - offset
-        if length % 134 != 0:
+        if length % 148 != 0:
             raise DropPacket("Invalid number of bytes available (encr_sums)")
         
         _sums = []
         if length:
-            hashpack = '4sH128s' * (length/134)
+            hashpack = '20s128s' * (length/148)
             raw_values = unpack_from('!'+hashpack, data, offset)
-            for i in range(len(raw_values)/3):
-                ip = inet_ntoa(raw_values[i*3])
-                port = raw_values[(i*3)+1]
-                _sums.append([(ip, port), bytes_to_long(raw_values[(i*3)+2])])
+            for i in range(len(raw_values)/2):
+                candidate_mid = raw_values[i*2]
+                _sum = bytes_to_long(raw_values[(i*2)+1])
+                _sums.append([candidate_mid, _sum])
                 
             offset += length
         
@@ -443,7 +442,7 @@ class PSearchConversion(SearchConversion):
         data = BinaryConversion._encode_introduction_request(self, message)
 
         if message.payload.introduce_me_to:
-            data.append(pack('!4sH', inet_aton(message.payload.introduce_me_to[0]), message.payload.introduce_me_to[1]))
+            data.append(pack('!20s', message.payload.introduce_me_to))
         return data
     
     def _decode_introduction_request(self, placeholder, offset, data):
@@ -453,13 +452,11 @@ class PSearchConversion(SearchConversion):
         has_stuff = len(data) > offset
         if has_stuff:
             length = len(data) - offset
-            if length != 6:
+            if length != 20:
                 raise DropPacket("Invalid number of bytes available (ir)")
             
-            ip, port = unpack_from('!4sH', data, offset)
-            ip = inet_ntoa(ip)
-            
-            payload.set_introduce_me_to((ip, port))
+            candidate_mid, = unpack_from('!20s', data, offset)
+            payload.set_introduce_me_to(candidate_mid)
             
             offset += length
         return offset, payload

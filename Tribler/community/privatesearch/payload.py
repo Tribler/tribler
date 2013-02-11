@@ -195,11 +195,10 @@ class EncryptedSumsPayload(Payload):
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), type(_sum)
                 assert isinstance(sums, list), type(sums)
-                for address, address_sum in sums:
-                    assert isinstance(address, tuple), 'address should be tuple'
-                    assert len(address) == 2, len(address)
-                    assert isinstance(address[0], str), type(address[0])
-                    assert isinstance(address[1], int), type(address[1])
+                
+                for candidate_mid, address_sum in sums:
+                    assert isinstance(candidate_mid, str), 'candidate_mid should be str'
+                    assert len(candidate_mid) == 20, len(candidate_mid)
                     assert isinstance(address_sum, long), 'address_sum should be long'
                     
             super(EncryptedSumsPayload.Implementation, self).__init__(meta)
@@ -225,10 +224,8 @@ class ExtendedIntroPayload(IntroductionRequestPayload):
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, introduce_me_to = None):
             IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
             if introduce_me_to:
-                assert isinstance(introduce_me_to, tuple), 'introduce_me_to should be tuple'
-                assert len(introduce_me_to) == 2, len(introduce_me_to)
-                assert isinstance(introduce_me_to[0], str), type(introduce_me_to[0])
-                assert isinstance(introduce_me_to[1], int), type(introduce_me_to[1])
+                assert isinstance(introduce_me_to, str), 'introduce_me_to should be str'
+                assert len(introduce_me_to) == 20, len(introduce_me_to)
             
             self._introduce_me_to = introduce_me_to
         
