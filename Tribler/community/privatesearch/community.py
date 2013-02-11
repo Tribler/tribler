@@ -1101,7 +1101,7 @@ class PSearchCommunity(SearchCommunity):
         self.possible_taste_buddies.sort(reverse = True)
         
         if DEBUG and possibles:
-            print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies)
+            print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
     
     def has_possible_taste_buddies(self, candidate):
         for _,_,_,from_candidate in self.possible_taste_buddies:
