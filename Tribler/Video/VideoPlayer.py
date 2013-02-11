@@ -343,7 +343,8 @@ class VideoPlayer:
         oldselectedfile = None
         if not cdef.get_live() and ds.is_vod() and (cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent()):
             oldselectedfiles = d.get_selected_files()
-            oldselectedfile = oldselectedfiles[0]
+            if oldselectedfiles:
+                oldselectedfile = oldselectedfiles[0]
         
         # 1. (Re)Start torrent in VOD mode
         switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
