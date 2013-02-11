@@ -317,14 +317,14 @@ class SearchCommunity(Community):
                 
             myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
             
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "SearchCommunity: sending introduction request to",destination,"containing", len(myPreferences),"hashes", self._mypref_db.getMyPrefListInfohash()
             
             identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(self.key, self, destination))
             payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences, self.key_n)
 
         else:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 reason = ''
                 if isinstance(destination, BootstrapCandidate):
                     reason = 'being bootstrapserver'
@@ -347,7 +347,7 @@ class SearchCommunity(Community):
         return request
     
     def on_intro_request(self, orig_messages):
-        if DEBUG:
+        if DEBUG_VERBOSE:
             print >> sys.stderr, "SearchCommunity: got %d introduction requests"%len(orig_messages)
         
         messages = [message for message in orig_messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
@@ -361,7 +361,7 @@ class SearchCommunity(Community):
             myPreferences = sample(myPreferences, self.max_h_prefs)
     
         for message in messages:
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "SearchCommunity: got introduction request from", message.candidate
            
             if self.encryption:
@@ -400,7 +400,7 @@ class SearchCommunity(Community):
             
             self._dispersy._send([message.candidate], [resp_message, requ_message])
             
-            if DEBUG:
+            if DEBUG_VERBOSE:
                 print >> sys.stderr, "SearchCommunity: sending two messages too", message.candidate
             
         if self._notifier:
@@ -485,7 +485,8 @@ class SearchCommunity(Community):
                     self.callback(self.keywords, self.results, self.candidate)
                     self.community.search_forward_timeout += 1
                     
-                    print >> sys.stderr, "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds"%self.timeout_delay
+                    if DEBUG:
+                        print >> sys.stderr, "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds"%self.timeout_delay
                 
     def create_search(self, keywords, callback, identifier = None, ttl = None, nrcandidates = None, bloomfilter = None):
         if identifier == None:
