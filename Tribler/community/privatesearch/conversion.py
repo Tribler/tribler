@@ -373,9 +373,9 @@ class PSearchConversion(SearchConversion):
     
     def _encode_sum_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)    
-        str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
+        str_prefs = [long_to_bytes(preference, 256) for preference in message.payload.preference_list]
         
-        fmt = "!H128s" + "128s"*len(str_prefs)
+        fmt = "!H128s" + "256s"*len(str_prefs)
         packet = pack(fmt, message.payload.identifier, str_n, *str_prefs)
         return packet,
     
@@ -384,11 +384,11 @@ class PSearchConversion(SearchConversion):
         offset += 130
        
         length = len(data) - offset
-        if length % 128 != 0:
+        if length % 256 != 0:
             raise DropPacket("Invalid number of bytes available (encr_res)")
         
         if length:
-            hashpack = '128s' * (length/128)
+            hashpack = '256s' * (length/256)
             str_prefs = unpack_from('!'+hashpack, data, offset)
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
@@ -396,9 +396,9 @@ class PSearchConversion(SearchConversion):
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs)
     
     def _encode_global_vector(self, message):
-        str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
+        str_prefs = [long_to_bytes(preference, 256) for preference in message.payload.preference_list]
         
-        fmt = "!H" + "128s"*len(str_prefs)
+        fmt = "!H" + "256s"*len(str_prefs)
         packet = pack(fmt, message.payload.identifier, *str_prefs)
         return packet,
     
@@ -407,11 +407,11 @@ class PSearchConversion(SearchConversion):
         offset += 2
        
         length = len(data) - offset
-        if length % 128 != 0:
+        if length % 256 != 0:
             raise DropPacket("Invalid number of bytes available (global_vector)")
         
         if length:
-            hashpack = '128s' * (length/128)
+            hashpack = '256s' * (length/256)
             str_prefs = unpack_from('!'+hashpack, data, offset)
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
@@ -419,37 +419,38 @@ class PSearchConversion(SearchConversion):
         return offset, placeholder.meta.payload.implement(identifier, prefs)
     
     def _encode_sum(self, message):
-        str_sum = long_to_bytes(message.payload._sum, 128)
-        return pack("!H128s", message.payload.identifier, str_sum),
+        str_sum = long_to_bytes(message.payload._sum, 256)
+        return pack("!H256s", message.payload.identifier, str_sum),
     
     def _decode_sum(self, placeholder, offset, data):
-        identifier, _sum = unpack_from('!H128s', data, offset)
-        offset += 130
+        identifier, _sum = unpack_from('!H256s', data, offset)
+        offset += 258
         
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(_sum))
     
     def _encode_sums(self, message):
-        str_sum = long_to_bytes(message.payload._sum, 128)
+        str_sum = long_to_bytes(message.payload._sum, 256)
+        
         sums = []
         for candidate_mid, address_sum in message.payload.sums:
             sums.append(candidate_mid)
-            sums.append(long_to_bytes(address_sum, 128))
+            sums.append(long_to_bytes(address_sum, 256))
         
-        fmt = "!H128s" + "20s128s" * len(message.payload.sums)
+        fmt = "!H256s" + "20s256s" * len(message.payload.sums)
         packet = pack(fmt, message.payload.identifier, str_sum, *sums)
         return packet,
     
     def _decode_sums(self, placeholder, offset, data):
-        identifier, _sum = unpack_from('!H128s', data, offset)
-        offset += 130
+        identifier, _sum = unpack_from('!H256s', data, offset)
+        offset += 258
         
         length = len(data) - offset
-        if length % 148 != 0:
+        if length % 276 != 0:
             raise DropPacket("Invalid number of bytes available (encr_sums)")
         
         _sums = []
         if length:
-            hashpack = '20s128s' * (length/148)
+            hashpack = '20s256s' * (length/276)
             raw_values = unpack_from('!'+hashpack, data, offset)
             for i in range(len(raw_values)/2):
                 candidate_mid = raw_values[i*2]
