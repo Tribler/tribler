@@ -117,7 +117,7 @@ class SearchScript(ScenarioScriptBase):
             recall /= float(self._nr_peers)
             
             log("dispersy.log", "scenario-statistics", bootstrapped = taste_ratio, latejoin = latejoin, recall = recall)
-            log("dispersy.log", "scenario-debug", not_connected = list(self.not_connected_taste_buddies), search_forward = self._community.search_forward, search_forward_success = self._community.search_forward_success, search_forward_timeout = self._community.search_forward_timeout, search_endpoint = self._community.search_endpoint, search_cycle_detected = self._community.search_cycle_detected, search_megacachesize = self._community.search_megacachesize, search_time_encryption = self._community.search_time_encryption)
+            log("dispersy.log", "scenario-debug", not_connected = list(self.not_connected_taste_buddies), search_forward = self._community.search_forward, search_forward_success = self._community.search_forward_success, search_forward_timeout = self._community.search_forward_timeout, search_endpoint = self._community.search_endpoint, search_cycle_detected = self._community.search_cycle_detected, search_megacachesize = self._community.search_megacachesize, create_time_encryption = self._community.create_time_encryption, receive_time_encryption = self._community.receive_time_encryption)
             yield 5.0
             
     def log_taste_buddies(self, new_taste_buddies):

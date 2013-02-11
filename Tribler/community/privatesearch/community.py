@@ -109,7 +109,8 @@ class SearchCommunity(Community):
         self.search_cycle_detected = 0
         self.search_megacachesize = 0
         
-        self.search_time_encryption = 0.0
+        self.create_time_encryption = 0.0
+        self.receive_time_encryption = 0.0
         
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
@@ -265,7 +266,7 @@ class SearchCommunity(Community):
                 myList = [self.key.decrypt(infohash) for infohash in myList]
                 myList = [sha1(infohash).digest() for infohash in myList]
                 
-                self.community.search_time_encryption += time() - t1
+                self.community.create_time_encryption += time() - t1
             
             assert all(len(infohash) == 20 for infohash in myList) 
             
@@ -311,7 +312,7 @@ class SearchCommunity(Community):
             if self.encryption:
                 t1 = time()
                 myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
-                self.search_time_encryption += time() - t1
+                self.create_time_encryption += time() - t1
                 
             myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
             
@@ -379,7 +380,7 @@ class SearchCommunity(Community):
                 myList = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
                 myList = [sha1(infohash).digest() for infohash in myList]
                 
-                self.search_time_encryption += time() - t1
+                self.receive_time_encryption += time() - t1
             else:
                 hisList = message.payload.preference_list
                 myList = myPreferences
@@ -987,7 +988,7 @@ class HSearchCommunity(SearchCommunity):
                 t1 = time()
                 self.myList = [self.key.encrypt(infohash,1)[0] for infohash in self.myList]
                 self.myList = [sha1(infohash).digest() for infohash in self.myList]
-                self.community.search_time_encryption += time() - t1
+                self.community.create_time_encryption += time() - t1
     
             overlap = 0
             for myPref in self.myList:
@@ -1026,7 +1027,7 @@ class HSearchCommunity(SearchCommunity):
                 #3. encrypt and hash my preferences
                 encMyPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
                 encMyPreferences = [sha1(infohash).digest() for infohash in encMyPreferences]
-                self.search_time_encryption += time() - t1
+                self.receive_time_encryption += time() - t1
             else:
                 encMyPreferences = myPreferences
             
@@ -1208,7 +1209,7 @@ class PSearchCommunity(SearchCommunity):
                     
                 self.my_vector_cache = [my_vector_str, encrypted_vector]
             
-            self.search_time_encryption += time() - t1
+            self.create_time_encryption += time() - t1
         else:
             encrypted_vector = my_vector
         
@@ -1340,7 +1341,7 @@ class PSearchCommunity(SearchCommunity):
                         if my_vector[i]:
                             _sum = pallier_add(_sum, element, user_n2)
                             
-                    self.community.search_time_encryption += time() - t1
+                    self.community.receive_time_encryption += time() - t1
                 else:
                     _sum = 0l
                     for i, element in enumerate(self.user_vector):
@@ -1460,7 +1461,7 @@ class PSearchCommunity(SearchCommunity):
                 _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = pallier_decrypt(message.payload._sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption)
                 
-                self.search_time_encryption += time() - t1
+                self.create_time_encryption += time() - t1
             else:
                 _sums = [[_sum, time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = message.payload._sum
