@@ -1367,9 +1367,10 @@ class PSearchCommunity(SearchCommunity):
             PSearchCommunity.PSimilarityRequest.__init__(self, community, requesting_candidate)
             
             self.requested_candidates = requested_candidates
-            self.requested_mids = []
+            self.requested_mids = set()
             for candidate in self.requested_candidates:
-                self.requested_mids.extend(candidate.get_members(community))
+                for member in candidate.get_members(community):
+                    self.requested_mids.add(member.mid)
                 
             self.received_candidates = []
             self.received_sums = []
