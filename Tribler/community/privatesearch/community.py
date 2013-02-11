@@ -241,6 +241,11 @@ class SearchCommunity(Community):
             if tb.sock_addr[1] == sock_addr[1]:
                 return True
             
+    def is_taste_buddy_mid(self, mid):
+        for tb in self.yield_taste_buddies():
+            if mid in [member.mid for member in tb.get_members(self)]:
+                return True
+            
     class SimilarityRequest(IntroductionRequestCache):
         def __init__(self, key, community, helper_candidate):
             IntroductionRequestCache.__init__(self, community, helper_candidate)
@@ -1095,7 +1100,7 @@ class PSearchCommunity(SearchCommunity):
     def add_possible_taste_buddies(self, possibles):
         possible_mids = {}
         for i,possible in enumerate(self.possible_taste_buddies):
-            possible_mids[possible[2]] = i 
+            possible_mids[possible[2]] = i
 
         #add all possibles and sort descending by sum, time received
         for possible in possibles:
@@ -1126,7 +1131,7 @@ class PSearchCommunity(SearchCommunity):
         low_sum = self.get_low_sum()
         
         for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
-            if self.possible_taste_buddies[i][0] <= low_sum or self.possible_taste_buddies[i][1] < to_be_removed:
+            if self.possible_taste_buddies[i][0] <= low_sum or self.possible_taste_buddies[i][1] < to_be_removed or self.is_taste_buddy_mid(self.possible_taste_buddies[i][2]):
                 self.possible_taste_buddies.pop(i)
                     
         if self.possible_taste_buddies:                
