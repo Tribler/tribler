@@ -1367,20 +1367,23 @@ class PSearchCommunity(SearchCommunity):
             PSearchCommunity.PSimilarityRequest.__init__(self, community, requesting_candidate)
             
             self.requested_candidates = requested_candidates
-            self.requested_sock_addrs = [candidate.sock_addr for candidate in self.requested_candidates]
+            self.requested_mids = []
+            for candidate in self.requested_candidates:
+                self.requested_mids.extend(candidate.get_members(community))
+                
             self.received_candidates = []
             self.received_sums = []
         
-        def add_sum(self, candidate, _sum):
+        def add_sum(self, candidate_mid, _sum):
             if DEBUG_VERBOSE:
                 print >> sys.stderr, "PSearchCommunity: got sum in RPSimilarityRequest"
             
-            if candidate.sock_addr in self.requested_sock_addrs:
+            if candidate_mid in self.requested_mids:
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, "PSearchCommunity: added sum in RPSimilarityRequest"
                 
-                self.received_candidates.append(candidate)
-                self.received_sums.append((candidate.sock_addr, _sum))
+                self.received_candidates.append(candidate_mid)
+                self.received_sums.append((candidate_mid, _sum))
         
         def is_complete(self):
             return PSearchCommunity.PSimilarityRequest.is_complete(self) and len(self.received_sums) == len(self.requested_candidates)
@@ -1427,7 +1430,7 @@ class PSearchCommunity(SearchCommunity):
                 print >> sys.stderr, "PSearchCommunity: received sum", message.payload._sum
             
             request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.RPSimilarityRequest)
-            request.add_sum(message.candidate, message.payload._sum)
+            request.add_sum(message.authentication.member.mid, message.payload._sum)
             
             if request.is_complete():
                 request.process()
