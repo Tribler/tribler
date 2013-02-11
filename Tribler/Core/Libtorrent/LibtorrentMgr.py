@@ -27,7 +27,8 @@ class LibtorrentMgr:
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
-        self.ltsession = lt.session()
+        fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
+        self.ltsession = lt.session(lt.fingerprint(*fingerprint))
         self.ltsession.set_settings(settings)
         self.ltsession.add_extension(lt.create_ut_metadata_plugin)
         self.ltsession.add_extension(lt.create_ut_pex_plugin)
