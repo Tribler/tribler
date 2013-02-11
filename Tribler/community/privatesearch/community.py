@@ -111,6 +111,7 @@ class SearchCommunity(Community):
         
         self.create_time_encryption = 0.0
         self.receive_time_encryption = 0.0
+        self.create_time_decryption = 0.0
         
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
@@ -1462,7 +1463,7 @@ class PSearchCommunity(SearchCommunity):
                 _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = pallier_decrypt(message.payload._sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption)
                 
-                self.create_time_encryption += time() - t1
+                self.create_time_decryption += time() - t1
             else:
                 _sums = [[_sum, time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = message.payload._sum
