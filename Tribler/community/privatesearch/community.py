@@ -1266,7 +1266,14 @@ class PSearchCommunity(SearchCommunity):
             candidates = self.get_connections(10, message.candidate)
             
             #create RPSimilarityRequest to use as object to collect all sums
-            self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
+            if self._dispersy.request_cache.has(message.payload.identifier, PSearchCommunity.PSimilarityRequest):
+                prev_request = self._dispersy.request_cache.get(message.payload.identifier, PSearchCommunity.PSimilarityRequest)
+                
+                request = PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates)
+                request.global_vector = prev_request.global_vector
+                self._dispersy.request_cache.replace(message.payload.identifier, request)
+            else:
+                self._dispersy.request_cache.set(message.payload.identifier, PSearchCommunity.RPSimilarityRequest(self, message.candidate, candidates))
             
             #process this request as a normal sum request
             self.on_sum_request([message])
