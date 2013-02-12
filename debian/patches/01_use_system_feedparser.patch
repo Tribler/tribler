@@ -1,0 +1,25 @@
+Description: Use system feedparser
+ Upstream embedded an feerparser python library. We make a patch to use the
+ system one.
+Author: Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
+Last-Update: 2012-08-23
+Index: tribler-6.0.0+svn20121015.r28821/Tribler/Main/Utility/Feeds/rssparser.py
+===================================================================
+--- tribler-6.0.0+svn20121015.r28821.orig/Tribler/Main/Utility/Feeds/rssparser.py	2012-10-16 00:50:41.002505159 +0800
++++ tribler-6.0.0+svn20121015.r28821/Tribler/Main/Utility/Feeds/rssparser.py	2012-10-16 00:54:57.125138782 +0800
+@@ -7,7 +7,7 @@
+ from copy import deepcopy
+ from shutil import copyfile
+ from Tribler.Subscriptions.rss_client import URLHistory
+-from Tribler.Main.Utility.Feeds import feedparser
++import feedparser
+ from Tribler.Core.TorrentDef import TorrentDef
+ from traceback import print_exc
+ import time
+@@ -315,4 +315,4 @@
+     r.addCallback('test', callback)
+     r.addURL('http://www.vodo.net/feeds/public', 'test', dowrite=False)
+     
+-    r.join()
+\ No newline at end of file
++    r.join()

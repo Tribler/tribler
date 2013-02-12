@@ -1,0 +1,44 @@
+Source: tribler
+Section: net
+Priority: optional
+Maintainer: Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
+Build-Depends: debhelper (>= 9), dpkg-dev (>= 1.16.1~), python, libevent-dev
+Standards-Version: 3.9.3
+Homepage: http://www.tribler.org/
+
+Package: tribler
+Architecture: all
+Depends: ffmpeg,
+         libjs-mootools,
+         python-apsw,
+         python-feedparser,
+         python-m2crypto,
+         python-netifaces,
+         python-wxgtk2.8,
+         tribler-swift,
+         vlc (>= 1.1.0),
+         python-libtorrent,
+         ${misc:Depends},
+         ${python:Depends}
+Description: Python based Bittorrent/Internet TV application
+ It allows you to watch videos and download content. Tribler aims to combine
+ the ease of Youtube.com with the performance of peer-to-peer.
+ .
+ Tribler is backwards compatible with the Bittorrent download protocol. To
+ discover interesting content standard RSS feeds with .torrent links are
+ supported plus the "Tribe protocol" which automatically scans the network for
+ available Bittorrent swarms upon startup. Tribler uses an embedded web
+ browser to access video clips of Youtube.com and Liveleak.com. Other features
+ are "People who like this also like" for recommending related swarms, the
+ ability to make friends, and to donate idle upload capacity to friends. The
+ later can improve download speed by a factor of two on asymmetric Internet
+ links. The fastest way of social file sharing.
+
+Package: tribler-swift
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Fast peer-to-peer file distribution helper program for tribler.
+ Swift is a fast peer-to-peer file distribution protocol used to disseminate
+ data within Tribler.
+ .
+ This package contains a helper program used by tribler.
