@@ -92,10 +92,11 @@ class SearchScript(ScenarioScriptBase):
                 peer_id = int(cur_command[1])
                 ip, port = self.get_peer_ip_port(peer_id)
                 
+                self.taste_buddies.add((ip,port))
+                self.not_connected_taste_buddies.add((ip, port))
+                
+                #connect to first 10
                 if len(self.taste_buddies) < 10:
-                    self.taste_buddies.add((ip,port))
-                    self.not_connected_taste_buddies.add((ip, port))
-                    
                     log(self._logfile, "new taste buddy %s:%d"%(ip, port))
                     
                     if int(self._my_name) > self.late_join:
@@ -106,8 +107,8 @@ class SearchScript(ScenarioScriptBase):
             latejoin = taste_ratio = 0
             
             if len(self.taste_buddies):
-                current_taste_buddies = (len(self.taste_buddies) - len(self.not_connected_taste_buddies))
-                ratio = current_taste_buddies / float(len(self.taste_buddies))
+                connected_taste_buddies = len(self.taste_buddies) - len(self.not_connected_taste_buddies)
+                ratio = connected_taste_buddies / min(10.0, float(len(self.taste_buddies)))
                 if int(self._my_name) <= self.late_join:
                     latejoin =  ratio / float(self.late_join)
                 else:
