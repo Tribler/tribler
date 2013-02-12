@@ -287,11 +287,14 @@ class SearchCommunity(Community):
         similarity_request.isProcessed = True
         
         if myPrefs > 0 and hisPrefs > 0:
-            myRoot = 1.0/(myPrefs ** .5)
-            sim = overlap * (myRoot * (1.0/(hisPrefs ** .5)))
+            #for now only use overlap
+            sim = overlap
             
-            if hisPrefs < 40:
-                sim = (hisPrefs/40.0) * sim
+#            myRoot = 1.0/(myPrefs ** .5)
+#            sim = overlap * (myRoot * (1.0/(hisPrefs ** .5)))
+#            
+#            if hisPrefs < 40:
+#                sim = (hisPrefs/40.0) * sim
             
             self.add_taste_buddies([[sim, time(), candidate]])
         else:
