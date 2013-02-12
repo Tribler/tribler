@@ -276,25 +276,8 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
 class TorrentListItem(DoubleLineListItemWithButtons):
 
     def __init__(self, *args, **kwargs):
-        DoubleLineListItem.__init__(self, *args, **kwargs)        
-
-        torcoldir    = self.guiutility.utility.session.get_torrent_collecting_dir()
-        rel_thumbdir = 'thumbs-'+binascii.hexlify(self.original_data.infohash)
-        abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
-        if os.path.exists(abs_thumbdir):
-            if not os.listdir(abs_thumbdir):
-                return
-            # Override the settings flags set by AddComponents
-            self.controls[0].SetMinSize(self.controls[0].GetBestSize())
-            self.titleSizer.Detach(self.controls[0])
-            self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
-            
-            # Add icon right after the torrent title, indicating that the torrent has thumbnails
-            snapshot = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
-            snapshot = wx.StaticBitmap(self, -1, snapshot)
-            snapshot.SetToolTipString("This torrent has thumbnails.")
-            self.AddEvents(snapshot)
-            self.titleSizer.Add(snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
+        DoubleLineListItem.__init__(self, *args, **kwargs)
+        self.SetThumbnailIcon()
 
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows = True)
@@ -315,6 +298,32 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             return [self.parent_list.parent_list._status_icon(self)]
         else:
             return []
+        
+    @warnWxThread
+    def RefreshData(self, data):
+        DoubleLineListItem.RefreshData(self, data)
+        self.SetThumbnailIcon()
+            
+    def SetThumbnailIcon(self):
+        torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
+        rel_thumbdir = 'thumbs-'+binascii.hexlify(self.original_data.infohash)
+        abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
+        has_thumbnails = os.path.exists(abs_thumbdir) and os.listdir(abs_thumbdir)
+        
+        if has_thumbnails and not getattr(self, 'snapshot', None):
+            # Override the settings flags set by AddComponents
+            self.controls[0].SetMinSize(self.controls[0].GetBestSize())
+            self.titleSizer.Detach(self.controls[0])
+            self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
+            
+            # Add icon right after the torrent title, indicating that the torrent has thumbnails
+            snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
+            self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
+            self.snapshot.SetToolTipString("This torrent has thumbnails.")
+            self.AddEvents(self.snapshot)
+            self.titleSizer.Add(self.snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
+            self.Layout()
+            wx.CallAfter(self.Refresh)
         
     @warnWxThread        
     def GetContextMenu(self):

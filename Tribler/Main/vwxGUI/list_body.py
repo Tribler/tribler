@@ -254,6 +254,9 @@ class ListItem(wx.Panel):
         self.data[columnindex] = data
         
         if column.get('show', True) and (column.get('showEmpty', True) or bool(data)):
+            if not column.has_key('controlindex') or not column['controlindex'] < len(self.controls):
+                return False, False
+
             control_index = column['controlindex']
             self.controls[control_index].icon = self._get_icon(columnindex, 'icon', self.controls[control_index].icon)
             self.controls[control_index].icon_right = self._get_icon(columnindex, 'icon_right', self.controls[control_index].icon_right)
