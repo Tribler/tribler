@@ -1212,7 +1212,7 @@ class PSearchCommunity(SearchCommunity):
         if self.my_vector_cache[0] == str_global_vector: 
             encrypted_vector = self.my_vector_cache[1]
         else:
-            my_vector = self.get_my_vector(global_vector)
+            my_vector = self.get_my_vector(global_vector, local = True)
             if self.encryption:
                 
                 t1 = time()
@@ -1257,8 +1257,8 @@ class PSearchCommunity(SearchCommunity):
 
         return request, global_vector
     
-    def get_my_vector(self, global_vector):
-        my_preferences = set([long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference])
+    def get_my_vector(self, global_vector, local = False):
+        my_preferences = set([long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local = local) if preference])
         my_vector = [0l] * len(global_vector)
         for i, element in enumerate(global_vector):
             if element in my_preferences:
