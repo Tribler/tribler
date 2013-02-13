@@ -78,6 +78,9 @@ if __name__ == "__main__":
     encrypted0 = pallier_encrypt(0l, key_g, key_n, key_n2)
     encrypted1 = pallier_encrypt(1l, key_g, key_n, key_n2)
     
+    test = pallier_decrypt(1l, key_n, key_n2, key_lambda, key_decryption)
+    assert test == 0l, test
+    
     test = pallier_decrypt(encrypted0, key_n, key_n2, key_lambda, key_decryption)
     assert test == 0l, test
              
