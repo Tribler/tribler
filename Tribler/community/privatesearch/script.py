@@ -96,7 +96,7 @@ class SearchScript(ScenarioScriptBase):
                 self.not_connected_taste_buddies.add((ip, port))
                 
                 #connect to first 10
-                if len(self.taste_buddies) < 10:
+                if len(self.taste_buddies) <= 10:
                     log(self._logfile, "new taste buddy %s:%d"%(ip, port))
                     
                     if int(self._my_name) > self.late_join:
