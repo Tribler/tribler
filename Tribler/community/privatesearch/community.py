@@ -84,6 +84,7 @@ class SearchCommunity(Community):
         self.taste_neighbor = int(taste_neighbor)
         
         self.taste_buddies = []
+        self.my_preference_cache = [None, None]
         
         #To always perform searches using a peer uncomment/modify the following line
         #self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
@@ -309,16 +310,21 @@ class SearchCommunity(Community):
         advice = True
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and len(myPreferences):
-            if len(myPreferences) > self.max_prefs:
-                myPreferences = sample(myPreferences, self.max_prefs)
-            shuffle(myPreferences)
+            str_myPreferences = str(myPreferences)
+            if self.my_preference_cache[0] == str_myPreferences:
+                myPreferences = self.my_preference_cache[1]
+            else:
+                if len(myPreferences) > self.max_prefs:
+                    myPreferences = sample(myPreferences, self.max_prefs)
+                shuffle(myPreferences)
                 
-            if self.encryption:
-                t1 = time()
-                myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
-                self.create_time_encryption += time() - t1
-                
-            myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
+                if self.encryption:
+                    t1 = time()
+                    myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
+                    self.create_time_encryption += time() - t1
+                    
+                myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
+                self.my_vector_cache = [str_myPreferences, myPreferences]
             
             if DEBUG_VERBOSE:
                 print >> sys.stderr, "SearchCommunity: sending introduction request to",destination,"containing", len(myPreferences),"hashes", self._mypref_db.getMyPrefListInfohash()
