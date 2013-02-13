@@ -208,8 +208,10 @@ class SearchCommunity(Community):
                     tb_tuple[0] = max(new_tb_tuple[0], tb_tuple[0])
                     new_taste_buddies.remove(new_tb_tuple)
                     break
+            
+            #new peer
             else:
-                if len(self.taste_buddies) < self.taste_neighbor or new_tb_tuple[0] > self.taste_buddies[-1][0]:
+                if len(self.taste_buddies) < 10 or new_tb_tuple[0] > self.taste_buddies[-1][0]:
                     self.taste_buddies.append(new_tb_tuple)
                     self.dispersy.callback.register(self.create_ping_request, args = (new_tb_tuple[-1],), delay = PING_INTERVAL)
                     
