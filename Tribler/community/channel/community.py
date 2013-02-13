@@ -653,26 +653,25 @@ class ChannelCommunity(Community):
             if message.payload.modification_on.name ==  u"torrent" and message.payload.modification_type == "swift-thumbnails":
                 try:
                     hex_roothash = json.loads(message.payload.modification_value)[1]
-                except:
-                    # Some messages are still being received that use the old-style format
-                    hex_roothash = message.payload.modification_value
-                roothash = binascii.unhexlify(hex_roothash)
-                modifying_dispersy_id = message.payload.modification_on.packet_id
-                torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
-                infohash = self._channelcast_db._db.fetchone(u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
-                if infohash:
-                    infohash = str2bin(infohash)
-                    if __debug__:
-                        print >> sys.stderr, "Incoming swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]
-                    
-                    if not th_handler.has_thumbnail(infohash):
-                        @forceDispersyThread
-                        def callback(message = message):
-                            self._dispersy.on_messages([message])
+                    roothash = binascii.unhexlify(hex_roothash)
+                    modifying_dispersy_id = message.payload.modification_on.packet_id
+                    torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
+                    infohash = self._channelcast_db._db.fetchone(u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
+                    if infohash:
+                        infohash = str2bin(infohash)
                         if __debug__:
-                            print >> sys.stderr, "Will try to download swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]                        
-                        th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout = CANDIDATE_WALK_LIFETIME, usercallback = callback)
-                        continue
+                            print >> sys.stderr, "Incoming swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]
+                        
+                        if not th_handler.has_thumbnail(infohash):
+                            @forceDispersyThread
+                            def callback(message = message):
+                                self._dispersy.on_messages([message])
+                            if __debug__:
+                                print >> sys.stderr, "Will try to download swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]                        
+                            th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout = CANDIDATE_WALK_LIFETIME, usercallback = callback)
+                            continue
+                except:
+                    continue
                 
             yield message
 
@@ -760,7 +759,7 @@ class ChannelCommunity(Community):
         if __debug__:
             for message in messages:
                 if message.payload.modification_on.name ==  u"torrent" and message.payload.modification_type == "video-info":
-                    print >> sys.stderr, "Incomming video-info with value", message.payload.modification_value
+                    print >> sys.stderr, "Incoming video-info with value", message.payload.modification_value
 
     def _disp_undo_modification(self, descriptors, redo=False):
         for _, _, packet in descriptors:
