@@ -1238,7 +1238,7 @@ class PSearchCommunity(SearchCommunity):
     
     def create_global_vector(self, destination, identifier):
         #1. fetch my preferences
-        global_vector = [long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
+        global_vector = [long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local = True) if preference]
         
         #2. reduce/extend the vector in size
         if len(global_vector) > self.max_prefs:
