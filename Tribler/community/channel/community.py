@@ -651,7 +651,11 @@ class ChannelCommunity(Community):
                 continue
             
             if message.payload.modification_on.name ==  u"torrent" and message.payload.modification_type == "swift-thumbnails":
-                hex_roothash = json.loads(message.payload.modification_value)[1]
+                try:
+                    hex_roothash = json.loads(message.payload.modification_value)[1]
+                except:
+                    # Some messages are still being received that use the old-style format
+                    hex_roothash = message.payload.modification_value
                 roothash = binascii.unhexlify(hex_roothash)
                 modifying_dispersy_id = message.payload.modification_on.packet_id
                 torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
