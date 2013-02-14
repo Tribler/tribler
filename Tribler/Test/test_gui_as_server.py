@@ -122,28 +122,26 @@ class TestGuiAsServer(unittest.TestCase):
         del self.lm
         del self.session
         
-        for object in gc.get_objects():
-            if isinstance(object, Singleton):
-                if object.has_instance():
-                    print >> sys.stderr, "teardown: Deleting %s singleton"%str(type(object))
-                    object.del_instance()
-                    
-            if isinstance(object, OrderedDict):
-                keys = object.keys()
-                if keys:
-                    value = object[keys[0]]
-                else:
-                    value = None
-                print >> sys.stderr, "teardown: Clearing %s contained %s"%(str(type(object)), str(type(value)))
-                
-                object.clear()
-                
-            if isinstance(object, dict):
-                keys = object.keys()
-                if keys:
-                    if isinstance(object[keys[0]], Member):
-                        object.clear()
-                        print >> sys.stderr, "teardown: Clearing %s contains Member objects"%str(type(object))
+#        for object in gc.get_objects():
+#            if isinstance(object, Singleton):
+#                if object.has_instance():
+#                    print >> sys.stderr, "teardown: Deleting %s singleton"%str(type(object))
+#                    object.del_instance()
+#                    
+#            if isinstance(object, OrderedDict):
+#                keys = object.keys()
+#                if keys:
+#                    value = object[keys[0]]
+#                    print >> sys.stderr, "teardown: Clearing %s contained %s"%(str(type(object)), str(type(value)))
+#                
+#                    object.clear()
+#                
+#            if isinstance(object, dict):
+#                keys = object.keys()
+#                if keys:
+#                    if isinstance(object[keys[0]], Member):
+#                        object.clear()
+#                        print >> sys.stderr, "teardown: Clearing %s contains Member objects"%str(type(object))
     
         from Tribler.Core.CacheDB.sqlitecachedb import unregister
         unregister()
