@@ -124,9 +124,10 @@ class TestGuiAsServer(unittest.TestCase):
         
         for object in gc.get_objects():
             if isinstance(object, Singleton):
-                print >> sys.stderr, "teardown: Deleting %s singleton"%str(type(object))
-                object.del_instance()
-                
+                if object.has_instance():
+                    print >> sys.stderr, "teardown: Deleting %s singleton"%str(type(object))
+                    object.del_instance()
+                    
             if isinstance(object, OrderedDict):
                 keys = object.keys()
                 if keys:
