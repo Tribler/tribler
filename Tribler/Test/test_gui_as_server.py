@@ -128,7 +128,13 @@ class TestGuiAsServer(unittest.TestCase):
                 object.del_instance()
                 
             if isinstance(object, OrderedDict):
-                print >> sys.stderr, "teardown: Clearing %s"%str(type(object))
+                keys = object.keys()
+                if keys:
+                    value = object[keys[0]]
+                else:
+                    value = None
+                print >> sys.stderr, "teardown: Clearing %s contained %s"%(str(type(object)), str(type(value)))
+                
                 object.clear()
                 
             if isinstance(object, dict):
