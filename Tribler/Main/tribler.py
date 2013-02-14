@@ -1000,7 +1000,7 @@ class ABCApp():
             try:
                 print >>sys.stderr,"main: ONEXIT cleaning database"
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-                peerdb._db.clean_db(randint(0,24) == 0)
+                peerdb._db.clean_db(randint(0,24) == 0, exiting = True)
             except:
                 print_exc()
             

@@ -2456,6 +2456,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 except:
                     print >> sys.stderr, "BEGIN FAILED"
                     raise
+            else:
+                print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
             
         elif vacuum:
             self._execute("VACUUM;")
@@ -2490,11 +2492,11 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         if DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use commit')
 
-    def clean_db(self, vacuum = False):
+    def clean_db(self, vacuum = False, exiting = False):
         SQLiteCacheDBV5.clean_db(self, False)
 
         if vacuum:
-            self.commitNow(vacuum)
+            self.commitNow(vacuum, exiting=exiting)
         
     @forceAndReturnDBThread
     def fetchone(self, sql, args=None):
