@@ -110,16 +110,8 @@ class TriblerLaunchMany(Thread):
                                        ipv6_enable = config['ipv6_enabled'],
                                        failfunc = self.rawserver_fatalerrorfunc,
                                        errorfunc = self.rawserver_nonfatalerrorfunc)
-            self.rawserver.add_task(self.rawserver_keepalive,1)
-    
-            self.listen_port = self.rawserver.find_and_bind(0,
-                        config['minport'], config['maxport'], config['bind'],
-                        reuse = True,
-                        ipv6_socket_style = config['ipv6_binds_v4'],
-                        randomizer = config['random_port'])
-    
-            if DEBUG:
-                print >>sys.stderr,"tlm: Got listen port", self.listen_port
+            self.rawserver.add_task(self.rawserver_keepalive, 1)
+            self.listen_port = config['minport']
     
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
             self.shutdownstarttime = None
