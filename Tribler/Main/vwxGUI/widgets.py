@@ -1414,11 +1414,12 @@ def _set_font(control, size_increment = 0, fontweight = wx.FONTWEIGHT_NORMAL, fo
     
 
 class ActionButton(wx.Panel):
-    def __init__(self, parent, id=-1, bitmap=wx.NullBitmap, **kwargs):
+    def __init__(self, parent, id=-1, bitmap=wx.NullBitmap, hover = True, **kwargs):
         wx.Panel.__init__(self, parent, id, size = bitmap.GetSize(), **kwargs)
+        self.SetBackgroundColour(parent.GetBackgroundColour())
         image = bitmap.ConvertToImage()
         self.bitmaps = [bitmap]
-        self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)))
+        self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if hover else bitmap)
         self.bitmaps.append(wx.BitmapFromImage(image.ConvertToGreyscale().AdjustChannels(1.0, 1.0, 1.0, 0.3)))
         self.enabled = True
         self.handler = None
@@ -1427,25 +1428,46 @@ class ActionButton(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnFocus)
 
+    def GetBitmapLabel(self):
+        return self.bitmaps[0]
+    
+    def SetBitmapLabel(self, bitmap):
+        if bitmap:
+            self.bitmaps[0] = bitmap
+        
+    def GetBitmapHover(self):
+        return self.bitmaps[1]
+    
+    def SetBitmapHover(self, bitmap):
+        if bitmap:
+            self.bitmaps[1] = bitmap
+
+    def GetBitmapDisabled(self):
+        return self.bitmaps[2]
+    
+    def SetBitmapDisabled(self, bitmap):
+        if bitmap:
+            self.bitmaps[2] = bitmap
+
     def OnEraseBackground(self, event):
         pass
 
     def OnPaint(self, event):
-        width, height = self.GetClientSizeTuple()
-        buffer = wx.EmptyBitmap(width, height)
         # Use double duffered drawing to prevent flickering
-        dc = wx.BufferedPaintDC(self, buffer)
+        dc = wx.BufferedPaintDC(self)
         if not getattr(self.GetParent(), 'bitmap', None):
-            # Draw the background using the backgroundcolour from the parent
-            dc.SetBackground(wx.Brush(self.GetParent().GetBackgroundColour()))
+            # Draw the background using the backgroundcolour
+            dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
             dc.Clear()
         else:
             # Draw the background using the bitmap from the parent (TopSearchPanel)
             rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
             sub = self.GetParent().bitmap.GetSubBitmap(rect) 
             dc.DrawBitmap(sub, 0, 0)
-        # Draw the button to the buffer
-        dc.DrawBitmap(self.GetBitmap(), 0, 0)
+        # Draw the button using a gc (dc doesn't do transparency very well)
+        bitmap = self.GetBitmap()
+        gc = wx.GraphicsContext.Create(dc)
+        gc.DrawBitmap(bitmap, 0, 0, *bitmap.GetSize())
 
     def OnMouseAction(self, event):
         if event.Entering() or event.Leaving():

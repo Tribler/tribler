@@ -162,13 +162,31 @@ class RemoteSearchManager(BaseManager):
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
         
-    def refresh_partial(self, ids):
-        for infohash in ids:
+    def refresh_partial(self, infohashes = [], channelids = []):
+        for infohash in infohashes:
             curTorrent = self.list.GetItem(infohash).original_data
             if isinstance(curTorrent, ChannelTorrent):
                 startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel,curTorrent.channeltorrent_id), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
             else:
                 startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+                
+        if channelids:        
+            def do_db():
+                return self.channelsearch_manager.getChannels(channelids)
+        
+            def do_gui(delayedResult):
+                _,newChannels = delayedResult.get()
+                
+                for channel in newChannels:
+                    id = channel.id
+                    if self.list.InList(id):
+                        item = self.list.GetItem(id)
+                        oldChannel = item.original_data
+                        if oldChannel.torrents:
+                            channel.torrents = oldChannel.torrents
+                
+                    self.list.RefreshData(id, channel)
+            startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def showSearchSuggestions(self, keywords):
         startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs = (keywords, ), wargs=(keywords, 3), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
@@ -856,6 +874,7 @@ class List(wx.BoxSizer):
     def SetupScrolling(self, *args, **kwargs):
         return self.list.SetupScrolling(*args, **kwargs)
     
+
 class SizeList(List):
     
     def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
@@ -1036,30 +1055,27 @@ class GenericSearchList(SizeList):
         self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         self.max_votes = 5
     
-    def _favorite_icon(self, item):
-        channel = item.original_data
-        if channel.isMyChannel():
-            return self.mychannel
-        if channel.isFavorite():
-            return self.favorite
-        if channel.isSpam():
-            return self.spam
-        return self.normal
-    
     def _status_icon(self, item):
+        def handler(event, function):
+#            event.GetEventObject().Enable(False) # Button gets enabled again in RefreshData
+            self.list.Select(item.original_data.infohash)
+            function(event)
+
         torrent = item.original_data
         if torrent.magnetstatus:
-            return self.statusDHT, "This torrent being fetched from the DHT"
+            return self.statusDHT, None, "This torrent being fetched from the DHT"
+        elif "checking" in torrent.state:
+            return self.statusDownloading, None, "Checking this torrent"
         elif "downloading" in torrent.state:
-            return self.statusDownloading, "This torrent is downloading"
+            return self.statusDownloading, self.statusStopped, "Stop downloading this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnStop)
         elif "seeding" in torrent.state:
-            return self.statusSeeding, "This torrent is seeding"
+            return self.statusSeeding, self.statusFinished, "Stop seeding this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnStop)
         elif "completed" in torrent.state:
-            return self.statusFinished, "This torrent is finished downloading"
+            return self.statusFinished, self.statusSeeding, "Resume seeding this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnResume)
         elif "stopped" in torrent.state:
-            return self.statusStopped, "This torrent is paused"
+            return self.statusStopped, self.statusDownloading, "Resume downloading this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnResume)
         else:
-            return self.statusInactive, "This torrent is inactive"   
+            return self.statusInactive, self.statusDownloading, "Start downloading this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnDownload)
     
     @warnWxThread
     def CreateDownloadButton(self, parent, item):
@@ -1184,7 +1200,7 @@ class GenericSearchList(SizeList):
         if data:
             if isinstance(data, Channel):
                 self.max_votes = max(data.nr_favorites, self.max_votes)
-                self.list.RefreshData(key, (data.id, [data.name, data.modified, data.nr_torrents, data.nr_favorites], data, ChannelListItem))
+                self.list.RefreshData(key, (data.id, [data.name, data.modified, data.nr_torrents, data.nr_favorites, None], data))
                 return
             
             original_data = data
@@ -1433,16 +1449,11 @@ class SearchList(GenericSearchList):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
     def _special_icon(self, item):
-#        torrent = item.original_data
-#        if torrent.swift_hash:
-#            return self.hasSwift, "This torrent is Swift-enabled"
-#        return self.noSwift
-        
         torrent = item.original_data
         if torrent.hasChannel() and torrent.channel.isFavorite():
-            return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
+            return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
         else:
-            return self.outFavoriteChannel, "This torrent is not part of one of your favorite channels"
+            return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
 
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1692,8 +1703,9 @@ class LibraryList(SizeList):
     def _swift_icon(self, item):
         torrent = item.original_data
         if torrent.swift_hash:
-            return self.hasSwift, "This torrent is Swift-enabled"
-        return self.noSwift, ""
+            return self.hasSwift, None, "This torrent is Swift-enabled"
+        else:
+            return self.noSwift, None, ""
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -1994,7 +2006,7 @@ class ChannelList(List):
         ColumnsManager.getInstance().setColumns(ChannelListItem, columns)
 
         columns = [copy.copy(column) for column in columns]
-        columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
+        columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x)), 'autoRefresh': False})
         columns = self.guiutility.SetColumnInfo(ChannelListItemAssociatedTorrents, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItemAssociatedTorrents, columns)
         
@@ -2010,17 +2022,15 @@ class ChannelList(List):
         List.__init__(self, None, LIST_GREY, [0,0], True, parent = parent)
 
     def _special_icon(self, item):
-        return (self._favorite_icon(item),'')
-            
-    def _favorite_icon(self, item):
         channel = item.original_data
         if channel.isMyChannel():
-            return self.mychannel
-        if channel.isFavorite():
-            return self.favorite
-        if channel.isSpam():
-            return self.spam
-        return self.normal
+            return self.mychannel, None, ''
+        elif channel.isFavorite():
+            return self.favorite, self.normal, 'Remove from favourites', lambda evt, data = item.original_data: self.guiutility.RemoveFavorite(evt, data)
+        elif channel.isSpam():
+            return self.spam, None, ''
+        else:
+            return self.normal, self.favorite, 'Favourite this channel', lambda evt, data = item.original_data: self.guiutility.MarkAsFavorite(evt, data)
     
     def __format(self, val):
         val = int(val)
@@ -2066,47 +2076,6 @@ class ChannelList(List):
             control.SetPercentage(ratio)
             control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
             return control
-
-    @warnWxThread
-    def MarkAsFavorite(self, event, channel):
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-
-            dlgname = 'MFdialog'
-            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
-                response = wx.ID_OK
-            else:
-                dlg = ConfirmationDialog(None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
-                                         "If you mark this channel as your favourite, you will be able to access its full content.")
-                response = dlg.ShowModal() 
-                
-            if response == wx.ID_OK:
-                self.guiutility.channelsearch_manager.favorite(channel.id)
-                self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-                wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
-            
-    @warnWxThread
-    def RemoveFavorite(self, event, channel):
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-
-            dlgname = 'RFdialog'
-            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
-                response = wx.ID_OK
-            else:
-                dlg = ConfirmationDialog(None, dlgname, "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
-                                         "If you remove this channel from your favourites, you will no longer be able to access its full content.")
-                response = dlg.ShowModal() 
-                
-            if response == wx.ID_OK:          
-                self.guiutility.channelsearch_manager.remove_vote(channel.id)
-                wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
     
     def OnExpand(self, item):
         List.OnExpand(self, item)
@@ -2184,6 +2153,7 @@ class ActivitiesList(List):
         self.utility = self.guiutility.utility
         self.settings = {}
         self.expandedPanel = None
+        self.notifyTimer = None
         columns = [{'width': wx.LIST_AUTOSIZE}]
         List.__init__(self, columns, parent.GetBackgroundColour(), [10,10], True, parent = parent)
 
@@ -2316,6 +2286,10 @@ class ActivitiesList(List):
         
     @forceWxThread
     def Notify(self, msg, icon = None):
+        if self.notifyTimer:
+            self.notifyTimer.Stop()
+            self.notifyTimer = None
+            
         if icon:
             self.notifyIcon.Show()
             self.notifyIcon.SetBitmap(self.notifyBmp)
@@ -2335,12 +2309,13 @@ class ActivitiesList(List):
         self.Layout()
         self.Thaw()
         
-        wx.CallLater(5000, self.HideNotify)
+        self.notifyTimer = wx.CallLater(5000, self.HideNotify)
         
     def HideNotify(self):
         if self.notifyPanel.GetScreenRect().Contains(wx.GetMousePosition()):
-            wx.CallLater(1000, self.HideNotify)
+            self.notifyTimer = wx.CallLater(1000, self.HideNotify)
         else:
+            self.notifyTimer = None
             wx.CallLater(500, self.notifyPanel.Hide)
 
     def selectTab(self, tab):

@@ -48,8 +48,11 @@ class DoubleLineListItem(ListItem):
             iconSizer = wx.BoxSizer(wx.VERTICAL)
             for index, icon in enumerate(self.icons):
                 if icon:
-                    bmp = wx.StaticBitmap(self, -1, icon[0])
-                    bmp.SetToolTipString(icon[1])
+                    bmp = ActionButton(self, bitmap = icon[0], hover = False)
+                    bmp.SetBitmapDisabled(icon[1])
+                    bmp.SetBitmapHover(icon[1])
+                    bmp.SetToolTipString(icon[2])
+                    if len(icon) > 3: bmp.Bind(wx.EVT_LEFT_UP, icon[3])
                     if index < len(self.icons)-1:
                         iconSizer.Add(bmp, 0, wx.CENTER|wx.BOTTOM, 7)
                     else:
@@ -174,10 +177,14 @@ class DoubleLineListItem(ListItem):
         
         new_icons = self.GetIcons()
         for index, new_icon in enumerate(new_icons):
-            if new_icon and (new_icon[0].ConvertToImage().GetData() != self.icons[index].GetBitmap().ConvertToImage().GetData() or \
-                             new_icon[1] != self.icons[index].GetToolTip().GetTip()):
-                self.icons[index].SetBitmap(new_icon[0])
-                self.icons[index].SetToolTipString(new_icon[1])
+            if new_icon and (new_icon[0].ConvertToImage().GetData() != self.icons[index].GetBitmapLabel().ConvertToImage().GetData() or \
+                             new_icon[2] != self.icons[index].GetToolTip().GetTip()):
+                self.icons[index].SetBitmapLabel(new_icon[0])
+                self.icons[index].SetBitmapDisabled(new_icon[1])
+                self.icons[index].SetBitmapHover(new_icon[1])
+                self.icons[index].SetToolTipString(new_icon[2])
+                self.icons[index].Enable(True)
+                if len(new_icon) > 3: self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3])
                 self.icons[index].Show(True)
             elif not new_icon and self.icons[index]:
                 self.icons[index].Show(False)
@@ -390,6 +397,9 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         
         
 class ChannelListItem(DoubleLineListItemWithButtons):
+    def __init__(self, *args, **kwargs):
+        DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
+        self.last_my_vote = None
         
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
@@ -405,9 +415,9 @@ class ChannelListItem(DoubleLineListItemWithButtons):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
             if self.original_data.my_vote == 2:
-                self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.RemoveFavorite(evt, data))
+                self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.guiutility.RemoveFavorite(evt, data))
             elif not self.original_data.isMyChannel():
-                self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.MarkAsFavorite(evt, data))
+                self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.guiutility.MarkAsFavorite(evt, data))
             self.last_my_vote = self.original_data.my_vote
         
     @warnWxThread
@@ -430,7 +440,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
 class ChannelListItemAssociatedTorrents(ChannelListItem):
     def __init__(self, *args, **kwargs):
         self.at_index = -1
-        DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
+        ChannelListItem.__init__(self, *args, **kwargs)
         
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)

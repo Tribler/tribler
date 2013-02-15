@@ -2,7 +2,7 @@
 import wx
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel, ActionButton
+from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
 from Tribler.Core.API import *
 
 from list import *
@@ -332,9 +332,9 @@ class SelectedChannelList(GenericSearchList):
     def _special_icon(self, item):
         if not isinstance(item, PlaylistItem) and self.channel:
             if self.channel.isFavorite():
-                return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.channel.name
+                return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.channel.name
             else:
-                return self.outFavoriteChannel, "This torrent is not part of one of your favorite channels"
+                return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
         else:
             pass
 
@@ -530,74 +530,11 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def OnRemoveVote(self, event):
-        channel = self.channel
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-
-            dlgname = 'RFdialog'
-            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
-                response = wx.ID_OK
-            else:
-                dlg = ConfirmationDialog(None, dlgname, "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
-                                         "If you remove this channel from your favourites, you will no longer be able to access its full content.")
-                response = dlg.ShowModal() 
-                
-            if response == wx.ID_OK:                 
-                self._DoRemoveVote(channel)
-    
-    @forceDBThread    
-    def _DoRemoveVote(self, channel):
-        #Set self.channel to None to prevent updating twice
-        id = channel.id
-        self.channel = None
-        self.channelsearch_manager.remove_vote(id)
-        
-        manager = self.GetManager()
-        # Arno, 2012-07-18: Is this correct, ChannelManager.reload is forceDBThread
-        wx.CallAfter(manager.reload, id)
-        
-        # Ensure that ChannelList no longer shows this channel as a favorite
-        self.guiutility.frame.channellist.GetManager().refresh_partial((channel.id, ))
+        self.guiutility.RemoveFavorite(event, self.channel)
     
     @warnWxThread
     def OnFavorite(self, event = None):
-        channel = self.channel
-        
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-
-            dlgname = 'MFdialog'
-            if not self.guiutility.ReadGuiSetting('show_%s' % dlgname, default = True):
-                response = wx.ID_OK
-            else:
-                dlg = ConfirmationDialog(None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
-                                         "If you mark this channel as your favourite, you will be able to access its full content.")
-                response = dlg.ShowModal() 
-                
-            if response == wx.ID_OK: 
-                self._DoFavorite(channel)
-
-    @forcePrioDBThread    
-    def _DoFavorite(self, channel):
-        id = channel.id
-        
-        #Set self.channel to None to prevent updating twice
-        self.channel = None
-        self.channelsearch_manager.favorite(id)
-        
-        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-        
-        manager = self.GetManager()
-        wx.CallAfter(manager.reload, id)
-        
-        # Ensure that ChannelList shows this channel as a favorite        
-        self.guiutility.frame.channellist.GetManager().refresh_partial((channel.id, ))
+        self.guiutility.MarkAsFavorite(event, self.channel)
     
     @warnWxThread
     def OnSpam(self, event):
@@ -896,9 +833,9 @@ class Playlist(SelectedChannelList):
     def _special_icon(self, item):
         if not isinstance(item, PlaylistItem) and self.playlist and self.playlist.channel:
             if self.playlist.channel.isFavorite():
-                return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.playlist.channel.name
+                return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.playlist.channel.name
             else:
-                return self.outFavoriteChannel, "This torrent is not part of one of your favorite channels"
+                return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
         else:
             pass
     

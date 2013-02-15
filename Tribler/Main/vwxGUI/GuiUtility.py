@@ -24,6 +24,7 @@ from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
+from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
 
 DEBUG = False
 
@@ -581,3 +582,68 @@ class GUIUtility:
     
     def set_firewall_restart(self,b):
         self.firewall_restart = b
+
+    @forceWxThread
+    def MarkAsFavorite(self, event, channel):
+        if channel:
+            button = event.GetEventObject()
+            button.Enable(False)
+            
+            dlgname = 'MFdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
+                                         "If you mark this channel as your favourite, you will be able to access its full content.")
+                response = dlg.ShowModal() 
+                
+            if response == wx.ID_OK:
+                @forcePrioDBThread 
+                def add_vote():        
+                    self.channelsearch_manager.favorite(channel.id)
+                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon = wx.ART_INFORMATION)
+                    button.Enable(True)
+                    UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type = 2)
+                    self.RefreshChannel(channel.id)
+                add_vote()
+            else:
+                button.Enable(True)
+            
+    @forceWxThread
+    def RemoveFavorite(self, event, channel):
+        if channel:
+            button = event.GetEventObject()
+            button.Enable(False)
+
+            dlgname = 'RFdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
+                                         "If you remove this channel from your favourites, you will no longer be able to access its full content.")
+                response = dlg.ShowModal() 
+                
+            if response == wx.ID_OK:
+                @forcePrioDBThread 
+                def remove_vote():        
+                    self.channelsearch_manager.remove_vote(channel.id)
+                    wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon = wx.ART_INFORMATION)
+                    button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            else:
+                button.Enable(True)
+                
+    def RefreshChannel(self, channelid):
+        if self.guiPage in ['search_results', 'selectedchannel', 'channels']:
+
+            list = self.GetSelectedPage()
+            if self.guiPage == 'search_results':
+                list.GetManager().refresh_partial(channelids = [channelid])
+            else:
+                list.GetManager().refresh_partial((channelid,))
+
+            if self.guiPage == 'selectedchannel':
+                wx.CallAfter(list.GetManager().reload, channelid)

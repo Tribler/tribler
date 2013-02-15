@@ -345,6 +345,7 @@ class TopSearchPanel(FancyPanel):
         if event:
             button = event.GetEventObject()
             button.Enable(False)
+            wx.CallLater(3000, button.Enable, True)
             
         if refresh_library:
             wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
