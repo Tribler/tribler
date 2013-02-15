@@ -67,6 +67,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
         self.length = 0L
         self.progress = 0.0
+        self.bufferprogress = 0.0
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
         self.done = False
         self.pause_after_next_hashcheck = False
@@ -253,19 +254,19 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             startofbuffer = int(self.vod_readpos / self.handle.get_torrent_info().piece_length())
         endofbuffer = startofbuffer + int(self.prebuffsize / self.handle.get_torrent_info().piece_length() + 1)
         buffer = pieces[startofbuffer:endofbuffer]
-        bufferprogress = float(buffer.count(True))/len(buffer) if len(buffer) > 0 else 1
+        self.bufferprogress = float(buffer.count(True))/len(buffer) if len(buffer) > 0 else 1
 
         if DEBUG:        
-            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
+            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % self.bufferprogress
         
-        if bufferprogress >= 1:
+        if self.bufferprogress >= 1:
             if not self.vod_status:
                 self.vod_pausepos = startofbuffer * self.handle.get_torrent_info().piece_length()
                 self.start_vod(complete = False)
             else:
                 self.resume_vod()
 
-        elif bufferprogress <= 0.1 and self.vod_status:
+        elif self.bufferprogress <= 0.1 and self.vod_status:
             self.pause_vod()
 
         delay = 1.0 if self.handle and not self.handle.is_paused() else 0.0            
@@ -402,8 +403,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        gotbytesf = self.progress * float(self.length)
-        return min(1.0, gotbytesf / self.prebuffsize)
+        return self.bufferprogress
 
     def network_calc_prebuf_eta(self):
         bytestogof = (1.0 - self.network_calc_prebuf_frac()) * float(self.prebuffsize)
