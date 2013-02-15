@@ -403,6 +403,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
+        if self.progress * self.length >= self.prebuffsize:
+            return 1.0
         return self.bufferprogress
 
     def network_calc_prebuf_eta(self):
