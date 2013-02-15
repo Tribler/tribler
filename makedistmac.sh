@@ -17,7 +17,7 @@ PYTHON=/Library/Frameworks/Python.framework/Versions/2.7/bin/python$PYVER
 
 # Niels 2012-01-03 removed py2app, installed 0.6.5 in python 2.7 site-packages. py2app 0.6.5 fixes actual -O running of Tribler
 # Arno 2013-02-12: Added libtorrent
-export PYTHONPATH=${PWD}:${PYTHONPATH}:$HOME/pkgs/M2Crypto-0.20.2-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/apsw-3.7.8-r1-fts3-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/netifaces-0.8-install/lib/python$PYVER/site-packages/:$HOME/pkgs/libtorrent-rasterbar-0.16.6-archi386-macos10.5/lib/python2.7/site-packages/
+export PYTHONPATH=${PWD}:${PYTHONPATH}:$HOME/pkgs/M2Crypto-0.20.2-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/apsw-3.7.8-r1-fts3-py2.7/lib/python$PYVER/site-packages/:$HOME/pkgs/netifaces-0.8-install/lib/python$PYVER/site-packages/:$HOME/pkgs/libtorrent-rasterbar-0.16.6-archi386-macos10.5-incl/lib/python2.7/site-packages/
 
 # Force 32-bit:
 export VERSIONER_PYTHON_PREFER_32_BIT=yes
