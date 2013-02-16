@@ -1057,7 +1057,6 @@ class GenericSearchList(SizeList):
     
     def _status_icon(self, item):
         def handler(event, function):
-#            event.GetEventObject().Enable(False) # Button gets enabled again in RefreshData
             self.list.Select(item.original_data.infohash)
             function(event)
 

@@ -49,10 +49,10 @@ class DoubleLineListItem(ListItem):
             for index, icon in enumerate(self.icons):
                 if icon:
                     bmp = ActionButton(self, bitmap = icon[0], hover = False)
-                    bmp.SetBitmapDisabled(icon[1])
-                    bmp.SetBitmapHover(icon[1])
+                    bmp.SetBitmapDisabled(icon[1] or icon[0])
+                    bmp.SetBitmapHover(icon[1] or icon[0])
                     bmp.SetToolTipString(icon[2])
-                    if len(icon) > 3: bmp.Bind(wx.EVT_LEFT_UP, icon[3])
+                    bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
                     if index < len(self.icons)-1:
                         iconSizer.Add(bmp, 0, wx.CENTER|wx.BOTTOM, 7)
                     else:
@@ -180,11 +180,11 @@ class DoubleLineListItem(ListItem):
             if new_icon and (new_icon[0].ConvertToImage().GetData() != self.icons[index].GetBitmapLabel().ConvertToImage().GetData() or \
                              new_icon[2] != self.icons[index].GetToolTip().GetTip()):
                 self.icons[index].SetBitmapLabel(new_icon[0])
-                self.icons[index].SetBitmapDisabled(new_icon[1])
-                self.icons[index].SetBitmapHover(new_icon[1])
+                self.icons[index].SetBitmapDisabled(new_icon[1] or new_icon[0])
+                self.icons[index].SetBitmapHover(new_icon[1] or new_icon[0])
                 self.icons[index].SetToolTipString(new_icon[2])
+                self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3] if len(new_icon) > 3 else None)
                 self.icons[index].Enable(True)
-                if len(new_icon) > 3: self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3])
                 self.icons[index].Show(True)
             elif not new_icon and self.icons[index]:
                 self.icons[index].Show(False)
