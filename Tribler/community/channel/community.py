@@ -653,6 +653,9 @@ class ChannelCommunity(Community):
             if message.payload.modification_on.name ==  u"torrent" and message.payload.modification_type == "swift-thumbnails":
                 try:
                     hex_roothash = json.loads(message.payload.modification_value)[1]
+                except:
+                    continue
+                else:
                     roothash = binascii.unhexlify(hex_roothash)
                     modifying_dispersy_id = message.payload.modification_on.packet_id
                     torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
@@ -670,8 +673,6 @@ class ChannelCommunity(Community):
                                 print >> sys.stderr, "Will try to download swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]                        
                             th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout = CANDIDATE_WALK_LIFETIME, usercallback = callback)
                             continue
-                except:
-                    continue
                 
             yield message
 

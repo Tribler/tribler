@@ -1484,10 +1484,13 @@ class ActionButton(wx.Panel):
             return self.bitmaps[1]
         return self.bitmaps[0]
 
-    def Bind(self, event, handler, **kwargs):
+    def Bind(self, event, handler):
         if event == wx.EVT_LEFT_UP:
             self.handler = handler
-        wx.Panel.Bind(self, event, handler, **kwargs)
+        if handler:
+            wx.Panel.Bind(self, event, handler)
+        else:
+            wx.Panel.Unbind(self, event)
 
     def Enable(self, enable):
         if enable and self.handler:
@@ -2106,22 +2109,25 @@ class TorrentStatus(wx.Panel):
         self.Refresh()
             
     def Update(self, torrent):
-        progress = torrent.progress
-        torrent_state = torrent.state
-        finished = progress == 1.0
-
-        if torrent.ds.status == 2 or 'checking' in torrent_state:
-            status = 'Checking'
-        elif 'seeding' in torrent_state:
-            status = 'Seeding'
-        elif finished:
-            status = 'Completed'
-        elif 'allocating' in torrent_state:
-            status = 'Waiting'
-        elif 'downloading' in torrent_state:
-            status = 'Downloading'
+        if isinstance(torrent, tuple):
+            status, progress = torrent
         else:
-            status = 'Stopped'
+            progress = torrent.progress
+            torrent_state = torrent.state
+            finished = progress == 1.0
+    
+            if torrent.ds.status == 2 or 'checking' in torrent_state:
+                status = 'Checking'
+            elif 'seeding' in torrent_state:
+                status = 'Seeding'
+            elif finished:
+                status = 'Completed'
+            elif 'allocating' in torrent_state:
+                status = 'Waiting'
+            elif 'downloading' in torrent_state:
+                status = 'Downloading'
+            else:
+                status = 'Stopped'
             
         self.SetValue(progress)
         self.SetStatus(status)
