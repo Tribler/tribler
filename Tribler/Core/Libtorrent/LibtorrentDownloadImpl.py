@@ -16,6 +16,7 @@ from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
             
 DEBUG = False
 
@@ -147,28 +148,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
         
-        filepriorities = []
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
             
-            selected_files = self.dlconfig['selected_files']
             torrent_files = torrentinfo.files()
-            if self.tdef.is_multifile_torrent():
-                swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files])
-            else:
-                swarmname = ''
-            
-            remap_files = torrentinfo.files()
-            for i, file_entry in enumerate(remap_files):
-                filename = file_entry.path[len(swarmname):]
-    
-                if filename in selected_files or not selected_files:
-                    filepriorities.append(1)
-                else:
-                    filepriorities.append(0)
-                
-                if self.tdef.is_multifile_torrent() and swarmname != self.correctedinfoname:
+            swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if self.tdef.is_multifile_torrent() else ''
+
+            if self.tdef.is_multifile_torrent() and swarmname != self.correctedinfoname:
+                for i, file_entry in enumerate(torrent_files):
+                    filename = file_entry.path[len(swarmname):]
                     torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
         
             atp["ti"] = torrentinfo
@@ -182,8 +171,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
         if self.handle:
-            if filepriorities:
-                self.handle.prioritize_files(filepriorities)
+            self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
                 self.set_vod_mode()
             self.handle.resume()
@@ -354,7 +342,31 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.files.append((full, x['length']))
         else:
             self.files.append((self.get_content_dest(), metainfo['info']['length']))
-
+            
+    def set_selected_files(self, selected_files = None):
+        with self.dllock:
+            
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+    
+                if selected_files is None:
+                    selected_files = self.dlconfig['selected_files']
+                else:
+                    self.dlconfig['selected_files'] = selected_files
+                
+                torrent_files = self.handle.get_torrent_info().files()
+                swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if self.tdef.is_multifile_torrent() else ''
+                
+                filepriorities = []
+                for file_entry in torrent_files:
+                    filename = file_entry.path[len(swarmname):]
+        
+                    if filename in selected_files or not selected_files:
+                        filepriorities.append(1)
+                    else:
+                        filepriorities.append(0)
+        
+                self.handle.prioritize_files(filepriorities)
+                
     def get_status(self):
         """ Returns the status of the download.
         @return DLSTATUS_*
