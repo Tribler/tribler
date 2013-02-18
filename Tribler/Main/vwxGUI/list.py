@@ -1061,7 +1061,7 @@ class GenericSearchList(SizeList):
             function(event)
 
         torrent = item.original_data
-        if torrent.magnetstatus:
+        if torrent.magnetstatus or "metadata" in torrent.state:
             return self.statusDHT, None, "This torrent being fetched from the DHT"
         elif "checking" in torrent.state:
             return self.statusDownloading, None, "Checking this torrent"
