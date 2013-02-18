@@ -2101,6 +2101,8 @@ class TorrentStatus(wx.Panel):
             self.fill_colour = DOWNLOADING_COLOUR
         if status == 'Stopped':
             self.fill_colour = STOPPED_COLOUR
+        if status == 'Fetching torrent':
+            self.fill_colour = self.back_colour
             
         self.SetMinSize((-1, -1))
             
@@ -2109,25 +2111,24 @@ class TorrentStatus(wx.Panel):
         self.Refresh()
             
     def Update(self, torrent):
-        if isinstance(torrent, tuple):
-            status, progress = torrent
+        progress = torrent.progress
+        torrent_state = torrent.state
+        finished = progress == 1.0
+
+        if torrent.ds.status == 2 or 'checking' in torrent_state:
+            status = 'Checking'
+        elif 'metadata' in torrent_state:
+            status = 'Fetching torrent'
+        elif 'seeding' in torrent_state:
+            status = 'Seeding'
+        elif finished:
+            status = 'Completed'
+        elif 'allocating' in torrent_state:
+            status = 'Waiting'
+        elif 'downloading' in torrent_state:
+            status = 'Downloading'
         else:
-            progress = torrent.progress
-            torrent_state = torrent.state
-            finished = progress == 1.0
-    
-            if torrent.ds.status == 2 or 'checking' in torrent_state:
-                status = 'Checking'
-            elif 'seeding' in torrent_state:
-                status = 'Seeding'
-            elif finished:
-                status = 'Completed'
-            elif 'allocating' in torrent_state:
-                status = 'Waiting'
-            elif 'downloading' in torrent_state:
-                status = 'Downloading'
-            else:
-                status = 'Stopped'
+            status = 'Stopped'
             
         self.SetValue(progress)
         self.SetStatus(status)
@@ -2184,7 +2185,7 @@ class TorrentStatus(wx.Panel):
         font =  self.GetFont()
         dc.SetFont(font)
         dc.SetTextForeground(colour)
-        if self.value == None:
+        if self.value == None or len(self.status) > 11:
             todraw = self.status
         else:
             todraw = "%s %.1f%%" % (self.status, self.value*100)

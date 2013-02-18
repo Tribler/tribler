@@ -406,7 +406,7 @@ class MainFrame(wx.Frame):
     def startDownloadFromMagnet(self, url, destdir = None, cmdline=False, selectedFiles = [], vodmode = False):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            wx.CallAfter(self.startDownload, cdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
+            wx.CallAfter(self.startDownload, tdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
                 
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
@@ -418,44 +418,40 @@ class MainFrame(wx.Frame):
     
     def startDownloadFromSwift(self, url, destdir = None):
         url = url.replace("ppsp://", "tswift://127.0.0.1:9999/") if url.startswith("ppsp://") else url
-        cdef = SwiftDef.load_from_url(url)
-        cdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
-        wx.CallAfter(self.startDownload, cdef = cdef, destdir = destdir)
+        sdef = SwiftDef.load_from_url(url)
+        sdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
+        wx.CallAfter(self.startDownload, sdef = sdef, destdir = destdir)
         return True
     
     def startDownloadFromUrl(self, url, destdir = None, cmdline=False, selectedFiles = [], vodmode = False):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
-                wx.CallAfter(self.startDownload, cdef=tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
+                wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
                 return True
         except:
             print_exc()
         self.guiUtility.Notify("Download from url failed", icon = wx.ART_WARNING)
         return False
 
-    def startDownload(self,torrentfilename=None,destdir=None,cdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None,hidden=False):
+    def startDownload(self,torrentfilename=None,destdir=None,sdef=None,tdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None,hidden=False):
         if True or DEBUG:
-            print >>sys.stderr,"mainframe: startDownload:",torrentfilename, destdir,cdef,vodmode,selectedFiles
+            print >>sys.stderr,"mainframe: startDownload:",torrentfilename, destdir,sdef,tdef,vodmode,selectedFiles
         
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
             
-        #Niels: if you call startdownload with both a Swift cdef and a torrentfilename, we allow Swift to download the file in the first X seconds
-        if cdef and cdef.get_def_type() == 'swift' and torrentfilename:
+        #Niels: if you call startdownload with both a Swift sdef and a tdef/torrentfilename, we allow Swift to download the file in the first X seconds
+        if sdef and (torrentfilename or tdef):
             monitorSwiftProgress = True
         else:
             monitorSwiftProgress = False
             
         try:
-            if cdef is None:
-                cdef = tdef = TorrentDef.load(torrentfilename)
-            elif cdef.get_def_type() == 'torrent':
-                tdef = cdef
-            elif torrentfilename:
+            if torrentfilename and tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
-            else:
-                tdef = None
+                
+            cdef = sdef or tdef
                 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
@@ -588,7 +584,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
         
         # 2. Start swift download reseeding BitTorrent content
-        self.startDownload(destdir=storagepath,cdef=sdef,hidden=True)
+        self.startDownload(destdir=storagepath,sdef=sdef,hidden=True)
                 
         # 3. Checkpoint Session
         self.utility.session.checkpoint()

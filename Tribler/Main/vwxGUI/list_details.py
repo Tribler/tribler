@@ -200,7 +200,7 @@ class TorrentDetails(AbstractDetails):
                     self.vSizer.Insert(5, self.messageGauge, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
                     self.Layout()
                 
-                self.timeouttimer = wx.CallLater(10000, self._timeout)
+                self.timeouttimer = wx.CallLater(10000, self._timeout) if not self.guiutility.frame.librarylist.IsShownOnScreen() else None
            
             startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback':self.showTorrent}, priority = GUI_PRI_DISPERSY)
     
@@ -1039,7 +1039,7 @@ class TorrentDetails(AbstractDetails):
         finished   = progress == 1.0
         status     = None
 
-        if self.torrent.magnetstatus:
+        if self.torrent.magnetstatus or statusflag == DLSTATUS_METADATA:
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up')*1024
