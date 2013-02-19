@@ -654,6 +654,7 @@ class ChannelCommunity(Community):
                 try:
                     hex_roothash = json.loads(message.payload.modification_value)[1]
                 except:
+                    yield DropMessage(message, "Not compatible json format")
                     continue
                 else:
                     roothash = binascii.unhexlify(hex_roothash)
