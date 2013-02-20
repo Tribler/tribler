@@ -2449,6 +2449,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             if vacuum:
                 self._execute("VACUUM;")
 
+
             if not exiting:
                 try:
                     print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
@@ -2458,6 +2459,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                     raise
             else:
                 print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
+                
+            print_stack()
             
         elif vacuum:
             self._execute("VACUUM;")
