@@ -367,6 +367,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         
                 self.handle.prioritize_files(filepriorities)
                 
+    def move_storage(self, new_dir):
+        with self.dllock:
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+                self.handle.move_storage(new_dir)
+                self.dlconfig['saveas'] = new_dir
+                return True
+        return False
+                
     def get_status(self):
         """ Returns the status of the download.
         @return DLSTATUS_*

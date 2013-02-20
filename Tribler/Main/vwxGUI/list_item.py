@@ -11,6 +11,7 @@ from list_details import *
 from _abcoll import Iterable
 from datetime import timedelta
 import urllib
+from Tribler.Main.Utility.GuiDBTuples import MergedDs
 
 class ColumnsManager:
     __single = None
@@ -529,15 +530,18 @@ class LibraryListItem(DoubleLineListItem):
     def GetContextMenu(self):
         menu = DoubleLineListItem.GetContextMenu(self)
         
-        menu_items = [('Explore files', self.OnExplore)]
-            
-        if 'seeding' in self.original_data.state:
-            menu_items.append(('Add to my channel', self.OnAddToMyChannel))
+        menu_items = [('Add to my channel', self.OnAddToMyChannel)] if 'seeding' in self.original_data.state else []
+        menu_items += [None, ('Explore files', self.OnExplore)]
+        menu_items += [('Change download location..', self.OnMove)] if self.original_data.infohash else []
         
-        for label, handler in menu_items:
-            itemid = wx.NewId()
-            menu.Append(itemid, label)
-            menu.Bind(wx.EVT_MENU, handler, id=itemid)
+        for item in menu_items:
+            if not item:
+                menu.AppendSeparator()
+            else:
+                label, handler = item
+                itemid = wx.NewId()
+                menu.Append(itemid, label)
+                menu.Bind(wx.EVT_MENU, handler, id=itemid)
         return menu
 
     @forceDBThread    
@@ -553,6 +557,89 @@ class LibraryListItem(DoubleLineListItem):
             def gui_call():
                 self.guiutility.Notify('New torrent added to My Channel', "Torrent '%s' has been added to My Channel" % self.original_data.name, icon = wx.ART_INFORMATION)
             wx.CallAfter(gui_call)
+            
+    def OnMove(self, event):
+        items = self.guiutility.frame.librarylist.GetExpandedItems()
+        torrents = [item[1].original_data for item in items if isinstance(item[1].original_data, Torrent) or isinstance(item[1].original_data, CollectedTorrent)]
+        
+        dlg = wx.DirDialog(self, "Choose where to move the selected torrent(s)", style = wx.DEFAULT_DIALOG_STYLE)
+        dlg.SetPath(self.original_data.ds.get_download().get_dest_dir())
+        if dlg.ShowModal() == wx.ID_OK:
+            new_dir = dlg.GetPath()
+            for torrent in torrents:
+                if torrent.ds:
+                    self._MoveDownload(torrent.ds, new_dir)
+            
+    def _MoveDownload(self, download_state, new_dir):
+        def modify_config(download):
+            self.guiutility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+            
+            cdef = download.get_def()
+            dscfg = DownloadStartupConfig(download.dlconfig)
+            dscfg.set_dest_dir(new_dir)
+            
+            return cdef, dscfg
+        
+        def rename_or_merge(old, new):
+            if os.path.exists(old):
+                if os.path.exists(new):
+                    files = os.listdir(old)
+                    for file in files:
+                        oldfile = os.path.join(old, file)
+                        newfile = os.path.join(new, file)
+                        
+                        if os.path.isdir(oldfile):
+                            self.rename_or_merge(oldfile, newfile)
+                            
+                        elif os.path.exists(newfile):
+                            os.remove(newfile)
+                            os.rename(oldfile, newfile)
+                        else:
+                            os.rename(oldfile, newfile)
+                else:
+                    os.renames(old, new)
+                
+        destdirs = download_state.get_download().get_dest_files()
+        if len(destdirs) > 1:
+            old = os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
+            _, old_dir = new = os.path.split(old)
+            new = os.path.join(new_dir, old_dir)
+        else:
+            old = destdirs[0][1]
+            _, old_file = os.path.split(old)
+            new = os.path.join(new_dir, old_file)
+        
+        print >> sys.stderr, "Creating new downloadconfig"
+        if isinstance(download_state, MergedDs):
+            dslist = download_state.dslist
+        else:
+            dslist = [download_state]
+        
+        # Remove Swift downloads
+        to_start = []
+        for ds in dslist:
+            download = ds.get_download()
+            if download.get_def().get_def_type() == 'swift':
+                to_start.append(modify_config(download))
+        
+        # Move torrents
+        storage_moved = False
+        for ds in dslist:
+            download = ds.get_download()
+            if download.get_def().get_def_type() == 'torrent':
+                print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+                storage_moved = download.move_storage(new_dir)
+                
+        # If libtorrent hasn't moved the files yet, move them now
+        if not storage_moved:
+            print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+            movelambda = lambda: rename_or_merge(old, new)
+            self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
+                
+        # Start Swift downloads again..
+        for cdef, dscfg in to_start:
+            startlambda = lambda cdef=cdef, dscfg=dscfg: self.guiutility.utility.session.start_download(cdef, dscfg)
+            self.guiutility.utility.session.lm.rawserver.add_task(startlambda, 0.0)
         
     def OnExplore(self, event):
         path = self._GetPath()
