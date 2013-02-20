@@ -546,7 +546,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle"
                 if removestate:
-                    self.ltmgr.remove_torrent(self)
+                    self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
                     self.handle.pause()
@@ -573,10 +573,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     
             # Offload the removal of the dlcheckpoint to another thread
             if removestate:
-                #self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None, False)
-                dest_files = self.get_dest_files()
-                contentdests = [filename for _,filename in dest_files]
-                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), contentdests, removecontent)
+                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None, False)
                 
             return (self.tdef.get_infohash(), pstate)
 

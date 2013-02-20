@@ -135,13 +135,13 @@ class LibtorrentMgr:
             print >> sys.stderr, "LibtorrentMgr: added torrent", infohash
         return handle
 
-    def remove_torrent(self, torrentdl, removestate = False, removecontent = False):
+    def remove_torrent(self, torrentdl, removecontent = False):
         handle = torrentdl.handle
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
             with self.torlock:
                 if infohash in self.torrents:
-                    self.ltsession.remove_torrent(handle, 1)
+                    self.ltsession.remove_torrent(handle, int(removecontent))
                     del self.torrents[infohash]
                     if DEBUG:
                         print >> sys.stderr, "LibtorrentMgr: remove torrent", infohash
