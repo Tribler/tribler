@@ -154,42 +154,6 @@
                                         </object>
 										<object class="sizeritem">
                                             <object class="wxStaticText">
-                                                <label>Family Filter</label>
-                                                <font>
-                                                    <weight>bold</weight>
-                                                </font>
-                                            </object>
-                                        </object>
-										<object class="sizeritem">
-											 <object class="wxBoxSizer">
-                                                <orient>wxHORIZONTAL</orient>
-                                                <object class="sizeritem">
-			                                    	<object class="wxStaticText">
-			                                        	<label>Filter search results</label>
-			                                    	</object>
-													<minsize>100,-1</minsize>
-													<flag>wxALIGN_CENTER_VERTICAL</flag>
-												</object>
-												<object class="sizeritem">
-													<object class="wxChoice" name="familyFilter">
-														<content>
-															<item>On</item>
-															<item>Off</item>
-														</content>
-													</object>
-												</object>
-											</object>
-										</object>
-										<object class="sizeritem">
-                                            <object class="wxStaticLine">
-                                                <size>-1, 1</size>
-                                                <style>wxLI_HORIZONTAL</style>
-                                            </object>
-                                            <flag>wxEXPAND|wxTOP|wxBOTTOM</flag>
-                                            <border>7</border>
-                                        </object>
-										<object class="sizeritem">
-                                            <object class="wxStaticText">
                                                 <label>Minimize</label>
                                                 <font>
                                                     <weight>bold</weight>

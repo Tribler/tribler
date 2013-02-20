@@ -33,7 +33,6 @@ class SettingsDialog(wx.Dialog):
                              'firewallValue', \
                              'firewallStatusText', \
                              'firewallStatus', \
-                             'familyFilter', \
                              'uploadCtrl', \
                              'downloadCtrl', \
                              'zeroUp', \
@@ -141,11 +140,6 @@ class SettingsDialog(wx.Dialog):
             self.elements['firewallStatus'].setSelected(2)
             self.elements['firewallStatusText'].SetLabel('Port is working')
         
-        if self.utility.config.Read('family_filter', "boolean"):
-            self.elements['familyFilter'].SetSelection(0)
-        else:
-            self.elements['familyFilter'].SetSelection(1)
-
         self.currentPopup = self.utility.config.Read('popup_player', "boolean")
         if self.currentPopup:
             self.elements['externalplayer'].SetSelection(1)
@@ -362,7 +356,6 @@ class SettingsDialog(wx.Dialog):
                     print_exc()
                     
             scfg.save(cfgfilename)
-            self.guiUtility.toggleFamilyFilter(self.elements['familyFilter'].GetSelection() == 0)
             
             selectedPopup = self.elements['externalplayer'].GetSelection() == 1
             if self.currentPopup != selectedPopup:
