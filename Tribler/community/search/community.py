@@ -352,33 +352,35 @@ class SearchCommunity(Community):
         return messages
     
     def on_search_response(self, messages):
-        for message in messages:
-            #fetch callback using identifier
-            search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SearchRequest)
-            if search_request:
-                if DEBUG:
-                    print >> sys.stderr, "SearchCommunity: got search response for",search_request.keywords, len(message.payload.results), message.candidate
-                
-                if len(message.payload.results)> 0:
-                    self._torrent_db.on_search_response(message.payload.results)
-                
-                
-                search_request.callback(search_request.keywords, message.payload.results, message.candidate)
-                
-                #see if we need to join some channels
-                channels = set([result[10] for result in message.payload.results if result[10]])
-                if channels:
-                    channels = self._get_unknown_channels(channels)
-                
+        # _get_channel_community could cause multiple commits, using this with clause this is reduced to only one.
+        with self._dispersy.database:
+            for message in messages:
+                #fetch callback using identifier
+                search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SearchRequest)
+                if search_request:
                     if DEBUG:
-                        print >> sys.stderr, "SearchCommunity: joining %d preview communities"%len(channels)
+                        print >> sys.stderr, "SearchCommunity: got search response for",search_request.keywords, len(message.payload.results), message.candidate
                     
-                    for cid in channels:
-                        community = self._get_channel_community(cid)
-                        community.disp_create_missing_channel(message.candidate, includeSnapshot = False)
-            else:
-                if DEBUG:
-                    print >> sys.stderr, "SearchCommunity: got search response identifier not found", message.payload.identifier
+                    if len(message.payload.results)> 0:
+                        self._torrent_db.on_search_response(message.payload.results)
+                    
+                    
+                    search_request.callback(search_request.keywords, message.payload.results, message.candidate)
+                    
+                    #see if we need to join some channels
+                    channels = set([result[10] for result in message.payload.results if result[10]])
+                    if channels:
+                        channels = self._get_unknown_channels(channels)
+                    
+                        if DEBUG:
+                            print >> sys.stderr, "SearchCommunity: joining %d preview communities"%len(channels)
+                        
+                        for cid in channels:
+                            community = self._get_channel_community(cid)
+                            community.disp_create_missing_channel(message.candidate, includeSnapshot = False)
+                else:
+                    if DEBUG:
+                        print >> sys.stderr, "SearchCommunity: got search response identifier not found", message.payload.identifier
     
     def create_torrent_request(self, torrents, candidate):
         torrentdict = {}
