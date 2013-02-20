@@ -50,14 +50,15 @@ class TestGuiAsServer(unittest.TestCase):
         
         self.annotate(self._testMethodName, start = True)
         
-    def assert_(self, boolean, reason):
+    def assert_(self, boolean, reason, doassert = True):
         if not boolean:
             self.screenshot("ASSERT: %s"%reason)
             self.quit()
             
             self.asserts.append((boolean, reason))
             
-            assert boolean, reason
+            if doassert:
+                assert boolean, reason
         
     def startTest(self, callback):
         self.quitting = False
@@ -100,7 +101,7 @@ class TestGuiAsServer(unittest.TestCase):
                         self.Call(0.5, DoCheck)
                 else:
                     print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds"%timeout
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds"%timeout)
+                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds"%timeout, doassert = False)
         wx.CallAfter(DoCheck)
     
     def quit(self):
