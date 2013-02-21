@@ -469,14 +469,14 @@ class DispersyPanel(HomePanel):
             
             ("Candidates reuse", 'Candidates discovered (intro or stumbled) vs Candidates active in more than one community', lambda stats: ratio(stats.total_candidates_overlapped, stats.total_candidates_discovered)),
             
-            ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being send', lambda stats: ratio(stats.delay_send, stats.delay_count)),
+            ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being sent', lambda stats: ratio(stats.delay_send, stats.delay_count)),
             ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
-            ("Bloom reuse", '', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
+            ("Bloom reuse", 'Total number of bloomfilters reused vs bloomfilters sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send for c in stats.communities))),
             ("Revision", '', lambda stats: str(max(stats.revision.itervalues()))),
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
             ]
