@@ -345,7 +345,6 @@ class SocketHandler:
     def set_handler(self, handler):
         self.handler = handler
 
-
     def start_connection_raw(self, dns, socktype = socket.AF_INET, handler = None):
         # handler = Encoder, self.handler = Multihandler
         if handler is None:
@@ -386,13 +385,13 @@ class SocketHandler:
             if DEBUG:
                 print >> sys.stderr,"SocketHandler: Exception in connect_ex",str(e)      
             raise socket.error(str(e))
-        self.poll.register(sock, POLLIN)
+        
         s = SingleSocket(self, sock, handler, dns[0])    # create socket to connect the peers obtained from tracker
         self.single_sockets[sock.fileno()] = s
+        self.poll.register(sock, POLLIN)
         #if DEBUG:
         #    print >> sys.stderr,"SocketHandler: Created Socket"
         return s
-
 
     def start_connection(self, dns, handler = None, randomize = False):
         if handler is None:
