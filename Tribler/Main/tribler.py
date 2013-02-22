@@ -867,7 +867,7 @@ class ABCApp():
                 manager.torrentsUpdated(infohashes)
             
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
-        self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading." % args[0], icon = wx.ART_INFORMATION)
+        self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon = 'seed')
         
         if self.ready and self.frame.ready:
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)

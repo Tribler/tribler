@@ -1487,10 +1487,7 @@ class ActionButton(wx.Panel):
     def Bind(self, event, handler):
         if event == wx.EVT_LEFT_UP:
             self.handler = handler
-        if handler:
-            wx.Panel.Bind(self, event, handler)
-        else:
-            wx.Panel.Unbind(self, event)
+        wx.Panel.Bind(self, event, handler)
 
     def Enable(self, enable):
         if enable and self.handler:
@@ -2219,7 +2216,38 @@ class TransparentText(wx.StaticText):
     def OnSize(self, event):
         self.Refresh()
         event.Skip()
-        
+
+
+class TransparentStaticBitmap(wx.StaticBitmap):
+
+    def __init__(self, *args, **kwargs):
+        wx.StaticBitmap.__init__(self, *args, **kwargs)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+    
+    def OnPaint(self, event):
+        # Use double duffered drawing to prevent flickering
+        dc = wx.BufferedPaintDC(self)
+        if not getattr(self.GetParent(), 'bitmap', None):
+            # Draw the background using the backgroundcolour
+            dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+            dc.Clear()
+        else:
+            # Draw the background using the bitmap from the parent
+            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            sub = self.GetParent().bitmap.GetSubBitmap(rect) 
+            dc.DrawBitmap(sub, 0, 0)
+        # Draw the bitmap using a gc (dc doesn't do transparency very well)
+        bitmap = self.GetBitmap()
+        gc = wx.GraphicsContext.Create(dc)
+        gc.DrawBitmap(bitmap, 0, 0, *bitmap.GetSize())
+
+
+    def OnSize(self, event):
+        self.Refresh()
+        event.Skip()        
+
 
 class TextCtrl(wx.TextCtrl):
 

@@ -94,6 +94,9 @@ class TopSearchPanel(FancyPanel):
         download_bmp = self.Bitmap("images/download.png", wx.BITMAP_TYPE_ANY)
         self.download_btn = ActionButton(self, -1, download_bmp)
         self.download_btn.Enable(False)
+        upload_bmp = self.Bitmap("images/upload.png", wx.BITMAP_TYPE_ANY)
+        self.upload_btn = ActionButton(self, -1, upload_bmp)
+        self.upload_btn.Enable(False)
         stop_bmp = self.Bitmap("images/pause.png", wx.BITMAP_TYPE_ANY)
         self.stop_btn = ActionButton(self, -1, stop_bmp)
         self.stop_btn.Enable(False)
@@ -135,24 +138,18 @@ class TopSearchPanel(FancyPanel):
         mainSizer.AddSpacer((40,0))
 
         #add buttons
-        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        #add buttons horizontally
-        buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonBoxSizer.Add(self.download_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.stop_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.delete_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.play_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(wx.StaticLine(self, -1, style=wx.LI_VERTICAL), 0, wx.EXPAND|wx.ALL, 5)
-        buttonBoxSizer.Add(self.add_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.settings_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        self.buttonSizer.Add(buttonBoxSizer, 1)
-        mainSizer.Add(self.buttonSizer,0,wx.EXPAND)
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(self.download_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.upload_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.stop_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.delete_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.play_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.AddSpacer((35,0))
+        buttonSizer.AddStretchSpacer()
+        buttonSizer.Add(self.add_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.settings_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        mainSizer.Add(buttonSizer, 1, wx.EXPAND)
 
-        #niels: add strechingspacer, all controls added before 
-        #this spacer will be aligned to the left of the screen
-        #all controls added after, will be to the right
-        mainSizer.AddStretchSpacer()
         self.SetSizer(mainSizer)
         self.Layout()
     
@@ -235,6 +232,7 @@ class TopSearchPanel(FancyPanel):
         inDownloads = self.guiutility.guiPage == 'my_files'
         
         if torrents:
+            isMultiple = len(torrents) > 1
             usedCollectedTorrents = set()
             states = [0,0,0,0,0,0,0] #we have 7 different states, able to resume seeding, resume downloading, download, stop seeding, stop downloading, delete, or play
             for torrent in torrents:
@@ -263,12 +261,10 @@ class TopSearchPanel(FancyPanel):
                         
                     usedCollectedTorrents.add(torrent.infohash)
             
-            enableDownload = states[0] + states[1] + states[2]
+            enableDownload = states[1] + states[2]
             if enableDownload:
-                if enableDownload > 1:
-                    self.SetButtonHandler(self.download_btn, self.OnDownload, 'Resume downloading/seeding the selected torrents.')
-                elif states[0]:
-                    self.SetButtonHandler(self.download_btn, self.OnResume, 'Resume seeding this torrent.')
+                if isMultiple:
+                    self.SetButtonHandler(self.download_btn, self.OnDownload, 'Resume downloading %d torrent(s).' % enableDownload)
                 elif states[1]:
                     self.SetButtonHandler(self.download_btn, self.OnResume, 'Resume downloading this torrent.')
                 else:
@@ -276,10 +272,19 @@ class TopSearchPanel(FancyPanel):
             else:
                 self.SetButtonHandler(self.download_btn, None)
                     
+            enableUpload = states[0]
+            if enableUpload:
+                if isMultiple:
+                    self.SetButtonHandler(self.upload_btn, self.OnResume, 'Resume seeding %d torrent(s).' % enableUpload)
+                else:
+                    self.SetButtonHandler(self.upload_btn, self.OnResume, 'Resume seeding this torrent.')
+            else:
+                self.SetButtonHandler(self.upload_btn, None)
+            
             enableStop = states[3] + states[4]
             if enableStop:
-                if enableStop > 1:
-                    self.SetButtonHandler(self.stop_btn, self.OnStop, 'Stop downloading/seeding the selected torrents.')
+                if isMultiple:
+                    self.SetButtonHandler(self.stop_btn, self.OnStop, 'Stop %d torrent(s).' % enableStop)
                 elif states[3]:
                     self.SetButtonHandler(self.stop_btn, self.OnStop, 'Stop seeding this torrent.')
                 else:
@@ -288,13 +293,13 @@ class TopSearchPanel(FancyPanel):
                 self.SetButtonHandler(self.stop_btn, None)
             
             if states[5] > 1:
-                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete the selected torrents.')
+                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete %d torrent(s).' % states[5])
             elif states[5]:
-                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete the selected torrent.')
+                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete this torrent.')
             else:
                 self.SetButtonHandler(self.delete_btn, None)
             
-            if states[6] > 1:
+            if isMultiple:
                 self.SetButtonHandler(self.play_btn, self.OnPlay, 'Start playing one of the selected torrents.')
             elif states[6]:
                 self.SetButtonHandler(self.play_btn, self.OnPlay, 'Start playing this torrent.')
@@ -331,14 +336,10 @@ class TopSearchPanel(FancyPanel):
             if 'stopped' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
             else:
-                if self.guiutility.frame.searchlist.IsShownOnScreen():
-                    self.guiutility.frame.searchlist.StartDownload(torrent, None)
-                elif self.guiutility.frame.selectedchannellist.IsShownOnScreen():
+                if self.guiutility.frame.selectedchannellist.IsShownOnScreen():
                     self.guiutility.frame.selectedchannellist.StartDownload(torrent, None)
                 else:
-                    response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = None)
-                    if response:
-                        self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
+                    self.guiutility.frame.searchlist.StartDownload(torrent, None)
 
                 refresh_library = True
                 

@@ -12,7 +12,7 @@ from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel
+from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -1318,9 +1318,7 @@ class GenericSearchList(SizeList):
             self.uelog.addEvent(message=relevance_msg, type = 4)
 
         startWorker(None, db_callback, retryOnBusy=True)
-        response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
-        if response:
-            self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
+        return self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):
         key = self.infohash2key.get(key, key)
@@ -2166,8 +2164,7 @@ class ActivitiesList(List):
         self.notifyPanel.SetBorderColour(SEPARATOR_GREY)
         self.notifyPanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.notifyPanel.SetForegroundColour(wx.Colour(80,80,80))
-        self.notifyBmp = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_FRAME_ICON)
-        self.notifyIcon = wx.StaticBitmap(self.notifyPanel, -1, self.notifyBmp)
+        self.notifyIcon = TransparentStaticBitmap(self.notifyPanel, -1)
         self.notify = TransparentText(self.notifyPanel)
         _set_font(self.notify, fontweight = wx.FONTWEIGHT_NORMAL, size_increment = 0)
         
@@ -2289,9 +2286,9 @@ class ActivitiesList(List):
             self.notifyTimer.Stop()
             self.notifyTimer = None
             
-        if icon:
+        if icon is not None:
             self.notifyIcon.Show()
-            self.notifyIcon.SetBitmap(self.notifyBmp)
+            self.notifyIcon.SetBitmap(icon if isinstance(icon, wx.Bitmap) else wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON))
         else:
             self.notifyIcon.Hide()
         

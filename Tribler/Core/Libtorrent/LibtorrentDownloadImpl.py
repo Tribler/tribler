@@ -318,8 +318,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     
                     self.length = float(status.total_wanted)
                     self.progress = status.progress
-                    self.curspeeds[DOWNLOAD] = float(status.download_rate)
-                    self.curspeeds[UPLOAD] = float(status.upload_rate)
+                    self.curspeeds[DOWNLOAD] = float(status.download_payload_rate)
+                    self.curspeeds[UPLOAD] = float(status.upload_payload_rate)
                     self.error = unicode(status.error) if status.error else None
                     
     def set_files(self):

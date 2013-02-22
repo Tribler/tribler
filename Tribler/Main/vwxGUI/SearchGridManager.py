@@ -252,6 +252,8 @@ class TorrentManager:
                 if DEBUG:
                     print >>sys.stderr,'standardDetails: download: download started'
         wx.CallAfter(do_gui)
+        
+        return bool(tdef)
     
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):

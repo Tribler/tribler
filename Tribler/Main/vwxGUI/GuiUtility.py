@@ -547,6 +547,8 @@ class GUIUtility:
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
         else:
+            if isinstance(icon, basestring):
+                icon = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","notify_%s.png" % icon), wx.BITMAP_TYPE_ANY)
             self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):
@@ -602,7 +604,7 @@ class GUIUtility:
                 @forcePrioDBThread 
                 def add_vote():        
                     self.channelsearch_manager.favorite(channel.id)
-                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon = wx.ART_INFORMATION)
+                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon = 'favourite')
                     button.Enable(True)
                     UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type = 2)
                     self.RefreshChannel(channel.id)
@@ -629,7 +631,7 @@ class GUIUtility:
                 @forcePrioDBThread 
                 def remove_vote():        
                     self.channelsearch_manager.remove_vote(channel.id)
-                    wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon = wx.ART_INFORMATION)
+                    wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon = 'favourite')
                     button.Enable(True)
                     self.RefreshChannel(channel.id)
                 remove_vote()
