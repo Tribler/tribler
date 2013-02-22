@@ -18,7 +18,7 @@ from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilena
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
             
-DEBUG = False
+DEBUG = True
 
 
 class VODFile(object):
