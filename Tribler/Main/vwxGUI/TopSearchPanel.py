@@ -325,6 +325,7 @@ class TopSearchPanel(FancyPanel):
             
     def ClearButtonHandlers(self):
         self.SetButtonHandler(self.download_btn, None)
+        self.SetButtonHandler(self.upload_btn, None)
         self.SetButtonHandler(self.play_btn, None)
         self.SetButtonHandler(self.stop_btn, None)
         self.SetButtonHandler(self.delete_btn, None)
