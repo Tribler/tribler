@@ -533,6 +533,7 @@ class LibraryListItem(DoubleLineListItem):
         menu_items = [('Add to my channel', self.OnAddToMyChannel)] if 'seeding' in self.original_data.state else []
         menu_items += [None, ('Explore files', self.OnExplore)]
         menu_items += [('Change download location..', self.OnMove)] if self.original_data.infohash else []
+        menu_items += [('Force recheck', self.OnRecheck)] if 'metadata' not in self.original_data.state and 'checking' not in self.original_data.state else []
         
         for item in menu_items:
             if not item:
@@ -543,7 +544,10 @@ class LibraryListItem(DoubleLineListItem):
                 menu.Append(itemid, label)
                 menu.Bind(wx.EVT_MENU, handler, id=itemid)
         return menu
-
+    
+    def OnRecheck(self, event):
+        self.original_data.ds.get_download().force_recheck()
+        
     @forceDBThread    
     def OnAddToMyChannel(self, event):
         didAdd = self.guiutility.channelsearch_manager.createTorrent(None, self.original_data)
@@ -628,7 +632,9 @@ class LibraryListItem(DoubleLineListItem):
             download = ds.get_download()
             if download.get_def().get_def_type() == 'torrent':
                 print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
-                storage_moved = download.move_storage(new_dir)
+                download.move_storage(new_dir)
+                if download.get_save_path() == new_dir:
+                    storage_moved = True
                 
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:

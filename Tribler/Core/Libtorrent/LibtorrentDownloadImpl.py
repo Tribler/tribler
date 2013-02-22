@@ -153,9 +153,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             torrentinfo = lt.torrent_info(metainfo)
             
             torrent_files = torrentinfo.files()
-            swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if self.tdef.is_multifile_torrent() else ''
+            is_multifile = len(self.tdef.get_files_as_unicode()) > 1
+            swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
 
-            if self.tdef.is_multifile_torrent() and swarmname != self.correctedinfoname:
+            if is_multifile and swarmname != self.correctedinfoname:
                 for i, file_entry in enumerate(torrent_files):
                     filename = file_entry.path[len(swarmname):]
                     torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
@@ -354,7 +355,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.dlconfig['selected_files'] = selected_files
                 
                 torrent_files = self.handle.get_torrent_info().files()
-                swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if self.tdef.is_multifile_torrent() else ''
+                is_multifile = len(self.tdef.get_files_as_unicode()) > 1
+                swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
                 
                 filepriorities = []
                 for file_entry in torrent_files:
@@ -374,6 +376,19 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.dlconfig['saveas'] = new_dir
                 return True
         return False
+    
+    def get_save_path(self):
+        with self.dllock:
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+                return self.handle.save_path()
+
+    def force_recheck(self):
+        with self.dllock:
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+                if self.dlstate == DLSTATUS_STOPPED:
+                    self.pause_after_next_hashcheck = True
+                self.handle.resume()
+                self.handle.force_recheck()
                 
     def get_status(self):
         """ Returns the status of the download.
