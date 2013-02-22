@@ -162,8 +162,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
         
             atp["ti"] = torrentinfo
-#            if pstate and pstate.get('engineresumedata', None):
-#                atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
+            if pstate and pstate.get('engineresumedata', None):
+                atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
         else:
             atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
             atp["name"] = self.tdef.get_name_as_unicode()
