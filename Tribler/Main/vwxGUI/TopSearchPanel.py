@@ -275,9 +275,9 @@ class TopSearchPanel(FancyPanel):
             enableUpload = states[0]
             if enableUpload:
                 if isMultiple:
-                    self.SetButtonHandler(self.upload_btn, self.OnResume, 'Resume seeding %d torrent(s).' % enableUpload)
+                    self.SetButtonHandler(self.upload_btn, self.OnUpload, 'Resume seeding %d torrent(s).' % enableUpload)
                 else:
-                    self.SetButtonHandler(self.upload_btn, self.OnResume, 'Resume seeding this torrent.')
+                    self.SetButtonHandler(self.upload_btn, self.OnUpload, 'Resume seeding this torrent.')
             else:
                 self.SetButtonHandler(self.upload_btn, None)
             
@@ -351,6 +351,14 @@ class TopSearchPanel(FancyPanel):
             
         if refresh_library:
             wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
+            
+    def OnUpload(self, event):
+        for torrent in self.__getTorrents():
+            if 'completed' in torrent.state:
+                self.guiutility.library_manager.resumeTorrent(torrent)
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
 
     def OnPlay(self, event):
         #Select the first playable torrent. Return if none can be found

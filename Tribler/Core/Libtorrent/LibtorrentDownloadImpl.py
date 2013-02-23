@@ -620,13 +620,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if DEBUG:
             print >>sys.stderr,"LibtorrentDownloadImpl: restart:", self.tdef.get_name()
         with self.dllock:
-            if self.handle is None:
-                self.error = None
-                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, self.session.lm.network_vod_event_callback, initialdlstatus = initialdlstatus)
-            else:
-                self.handle.resume()   
-                if self.get_mode() == DLMODE_VOD:
-                    self.set_vod_mode()
+            if initialdlstatus != DLSTATUS_REPEXING:
+                if self.handle is None:
+                    self.error = None
+                    self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, self.session.lm.network_vod_event_callback, initialdlstatus = initialdlstatus)
+                else:
+                    self.handle.resume()   
+                    if self.get_mode() == DLMODE_VOD:
+                        self.set_vod_mode()
 
     def set_max_desired_speed(self, direct, speed):
         if DEBUG:
