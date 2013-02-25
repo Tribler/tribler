@@ -111,9 +111,6 @@ class SingleSocket:
                 self.ip = 'unknown'
             else:
                 self.ip = ip
-        # RePEX: Measurement TODO: Remove when measurement test has been done
-        self.data_sent = 0
-        self.data_received = 0
         
     def get_ip(self, real=False):
         if real:
@@ -196,7 +193,6 @@ class SingleSocket:
                 while self.buffer:
                     buf = self.buffer[0]
                     amount = self.socket.send(buf)
-                    self.data_sent += amount # RePEX: Measurement TODO: Remove when measurement test has been done
                     if amount == 0:
                         self.skipped += 1
                         break
@@ -547,7 +543,6 @@ class SocketHandler:
                             #    print >> sys.stderr,"SocketHandler: Got data",s.get_ip(),s.get_port(),"len",len(data)
 
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
-                            if hasattr(s, 'data_received'): s.data_received += len(data) # RePEX: Measurement TODO: Remove when measurement test has been done
                             s.handler.data_came_in(s, data)
                     except socket.error, e:
                         if DEBUG:

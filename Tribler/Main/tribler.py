@@ -523,12 +523,6 @@ class ABCApp():
         # Schedule task for checkpointing Session, to avoid hash checks after
         # crashes.
         self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
-        
-        progress('Starting repexer')
-        # RePEX: Start scheduler and logger
-        from Tribler.Core.DecentralizedTracking.repex import RePEXScheduler, RePEXLogger
-        #RePEXLogger.getInstance().start() #no more need for logging
-        RePEXScheduler.getInstance().start()
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):

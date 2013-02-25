@@ -1053,10 +1053,10 @@ class TorrentDetails(AbstractDetails):
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down')*1024
             status = 'Downloading @ %s' % self.utility.speed_format_new(dls)
-        elif statusflag in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
+        elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
             
-        if status and not finished and self.torrent.progress and statusflag in [DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_REPEXING]:           
+        if status and not finished and self.torrent.progress and statusflag in [DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED]:           
             status += " (%.1f%%)" % (self.torrent.progress*100)
 
         if status:
@@ -1853,8 +1853,6 @@ class ProgressPanel(wx.BoxSizer):
             if status == DLSTATUS_SEEDING:
                 eta += ", seeding"
                 return_val = 2
-            elif status == DLSTATUS_REPEXING:
-                eta += ", repexing"
             elif status == DLSTATUS_WAITING4HASHCHECK:
                 eta += ', waiting for hashcheck'
             elif status == DLSTATUS_HASHCHECKING:

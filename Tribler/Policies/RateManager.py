@@ -60,7 +60,6 @@ class RateManager:
         self.statusmap[DLSTATUS_SEEDING] = []
         self.statusmap[DLSTATUS_STOPPED] = []
         self.statusmap[DLSTATUS_STOPPED_ON_ERROR] = []
-        self.statusmap[DLSTATUS_REPEXING] = [] # RePEX: needed to prevent KeyError
         for dir in [UPLOAD,DOWNLOAD]:
             self.currenttotal[dir] = 0
         self.dset.clear()

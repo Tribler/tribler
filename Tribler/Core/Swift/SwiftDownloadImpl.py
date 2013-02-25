@@ -303,9 +303,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         stats['spew'] = self.network_create_spew_from_peerlist()
         
         logmsgs = []
-        coopdl_helpers = None
-        coopdl_coordinator = None
-        return (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
+        return (status,stats,logmsgs)
 
 
     def network_create_statistics_reponse(self):
@@ -379,8 +377,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                     print >>sys.stderr,"SwiftDownloadImpl: network_get_state: Download not running"
                 ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
             else:
-                (status,stats,logmsgs,proxyservice_proxy_list,proxyservice_doe_list) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,self.get_progress(),stats=stats,logmsgs=logmsgs,proxyservice_proxy_list=proxyservice_proxy_list,proxyservice_doe_list=proxyservice_doe_list)
+                (status,stats,logmsgs) = self.network_get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,self.get_progress(),stats=stats,logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
             
             if sessioncalling:

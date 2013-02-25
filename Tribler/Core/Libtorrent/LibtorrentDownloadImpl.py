@@ -450,13 +450,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         seeding_stats['time_seeding'] = self.seeding_time
        
         logmsgs = []
-        coopdl_helpers = None
-        coopdl_coordinator = None
 
         if DEBUG:
             print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.seeding_time
         
-        return (self.dlstate, stats, seeding_stats, logmsgs, coopdl_helpers, coopdl_coordinator)
+        return (self.dlstate, stats, seeding_stats, logmsgs)
 
     def network_create_statistics_reponse(self):
         if self.handle:
@@ -541,8 +539,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
                 ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop)
             else:
-                (status, stats, seeding_stats, logmsgs, proxyservice_proxy_list, proxyservice_doe_list) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, seeding_stats = seeding_stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs, proxyservice_proxy_list = proxyservice_proxy_list, proxyservice_doe_list = proxyservice_doe_list)
+                (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
+                ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, seeding_stats = seeding_stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs)
                 self.progressbeforestop = ds.get_progress()
                         
             if sessioncalling:
@@ -632,14 +630,13 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if DEBUG:
             print >>sys.stderr,"LibtorrentDownloadImpl: restart:", self.tdef.get_name()
         with self.dllock:
-            if initialdlstatus != DLSTATUS_REPEXING:
-                if self.handle is None:
-                    self.error = None
-                    self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, self.session.lm.network_vod_event_callback, initialdlstatus = initialdlstatus)
-                else:
-                    self.handle.resume()   
-                    if self.get_mode() == DLMODE_VOD:
-                        self.set_vod_mode()
+            if self.handle is None:
+                self.error = None
+                self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, self.session.lm.network_vod_event_callback, initialdlstatus = initialdlstatus)
+            else:
+                self.handle.resume()   
+                if self.get_mode() == DLMODE_VOD:
+                    self.set_vod_mode()
 
     def set_max_desired_speed(self, direct, speed):
         if DEBUG:
