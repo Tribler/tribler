@@ -18,7 +18,7 @@ from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilena
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
             
-DEBUG = True
+DEBUG = False
 
 
 class VODFile(object):
@@ -283,7 +283,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD paused"
 
     def process_alert(self, alert, alert_type):
-        if DEBUG:
+        if DEBUG or alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             print >> sys.stderr, "LibtorrentDownloadImpl: alert %s with message %s" % (alert_type, alert)
 
         if self.handle and self.handle.is_valid():
@@ -448,15 +448,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return (self.dlstate, stats, logmsgs, coopdl_helpers, coopdl_coordinator)
 
     def network_create_statistics_reponse(self):
-        status = self.handle.status() if self.handle else None
-        numTotSeeds = status.num_complete
-        numTotPeers = status.num_incomplete
-        numleech = status.list_peers
-        numseeds = status.list_seeds
-        pieces = status.pieces if status else None
-        upTotal = status.total_upload
-        downTotal = status.total_download
-        return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
+        if self.handle:
+            status = self.handle.status()
+            numTotSeeds = status.num_complete
+            numTotPeers = status.num_incomplete
+            numleech = status.list_peers
+            numseeds = status.list_seeds
+            pieces = status.pieces
+            upTotal = status.total_upload
+            downTotal = status.total_download
+            return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
     
     def network_calc_eta(self):
         bytestogof = (1.0 - self.progress) * float(self.length)
