@@ -543,12 +543,13 @@ class GUIUtility:
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
             
-    def Notify(self, title, msg = '', icon = 0):
+    def Notify(self, title, msg = '', icon = wx.ART_INFORMATION):
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
         else:
             if isinstance(icon, basestring):
-                icon = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","notify_%s.png" % icon), wx.BITMAP_TYPE_ANY)
+                icon = wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON) or \
+                       wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","notify_%s.png" % icon), wx.BITMAP_TYPE_ANY)
             self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):

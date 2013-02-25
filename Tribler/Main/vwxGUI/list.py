@@ -1672,7 +1672,7 @@ class LibraryList(SizeList):
                    {'name':'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False}, \
                    {'name':'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value, 'autoRefresh': False}]
+                   {'name':'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
         
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -1693,6 +1693,10 @@ class LibraryList(SizeList):
     def _format_eta(self, value):
         eta = self.utility.eta_value(value, truncate=2)
         return eta or '-'
+
+    def _format_seedingtime(self, value):
+        eta = self.utility.eta_value(value)
+        return eta or '0s'
 
     def _format_ratio(self, value):
         return "%.2f"%value
@@ -2286,9 +2290,9 @@ class ActivitiesList(List):
             self.notifyTimer.Stop()
             self.notifyTimer = None
             
-        if icon is not None:
+        if isinstance(icon, wx.Bitmap):
             self.notifyIcon.Show()
-            self.notifyIcon.SetBitmap(icon if isinstance(icon, wx.Bitmap) else wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON))
+            self.notifyIcon.SetBitmap(icon)
         else:
             self.notifyIcon.Hide()
         
