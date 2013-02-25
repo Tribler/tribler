@@ -23,7 +23,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,proxyservice_proxy_list=[],proxyservice_doe_list=[],peerid=None,videoinfo=None,swarmcache=None):
+    def __init__(self,download,status,error,progress,stats=None,seeding_stats=None,filepieceranges=None,logmsgs=None,proxyservice_proxy_list=[],proxyservice_doe_list=[],peerid=None,videoinfo=None,swarmcache=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -46,7 +46,7 @@ class DownloadState(Serializable):
         self.vod_status_msg = None
         self.proxyservice_proxy_list = proxyservice_proxy_list
         self.proxyservice_doe_list = proxyservice_doe_list
-        self.seedingstats = None #SeedingManager will update downloadstate with seedings stats (version, total_up, total_down, time_seeding)
+        self.seedingstats = seeding_stats
         
         # RePEX: stored swarmcache from Download and store current time
         if swarmcache is not None:

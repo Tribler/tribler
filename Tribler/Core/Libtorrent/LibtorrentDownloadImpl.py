@@ -59,7 +59,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.progressbeforestop = 0.0
         self.filepieceranges = []
 
-        # Libtorrent session manager performing the actual download.
+        # Libtorrent session manager
         self.ltmgr = LibtorrentMgr.getInstance()
 
         # Libtorrent status
@@ -69,6 +69,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.progress = 0.0
         self.bufferprogress = 0.0
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
+        self.all_time_upload = 0.0
+        self.all_time_download = 0.0
+        self.seeding_time = 0.0
         self.done = False
         self.pause_after_next_hashcheck = False
         self.prebuffsize = 5*1024*1024
@@ -316,12 +319,15 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if status.error else DLSTATUS_STOPPED
                     else:
                         self.dlstate = self.dlstates[status.state]
-    
-                    self.length = float(status.total_wanted)
-                    self.progress = status.progress
-                    self.curspeeds[DOWNLOAD] = float(status.download_payload_rate)
-                    self.curspeeds[UPLOAD] = float(status.upload_payload_rate)
-                    self.error = unicode(status.error) if status.error else None
+
+                self.error = unicode(status.error) if status.error else None
+                self.length = float(status.total_wanted)
+                self.progress = status.progress
+                self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
+                self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
+                self.all_time_upload = status.all_time_upload
+                self.all_time_download = status.all_time_download
+                self.seeding_time = status.seeding_time
                     
     def set_files(self):
         metainfo = self.tdef.get_metainfo()
@@ -420,7 +426,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def network_get_stats(self, getpeerlist):
         """
-        @return (status, stats, logmsgs, coopdl_helpers, coopdl_coordinator)
+        @return (status, stats, seeding_stats, logmsgs, coopdl_helpers, coopdl_coordinator)
         """
         # Called by any thread, assume dllock already acquired
 
@@ -429,10 +435,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['up'] = self.curspeeds[UPLOAD]
         stats['frac'] = self.progress
         stats['wanted'] = self.length
-        
-        if DEBUG:
-            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.handle.status().seeding_time
-            
         stats['stats'] = self.network_create_statistics_reponse()
         stats['time'] = self.network_calc_eta()
         stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
@@ -440,12 +442,21 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['vod_playable'] = self.progress == 1.0 or (stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
-        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else []            
-        
+        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else []
+
+        seeding_stats = {}
+        seeding_stats['total_up'] = self.all_time_upload
+        seeding_stats['total_down'] = self.all_time_download
+        seeding_stats['time_seeding'] = self.seeding_time
+       
         logmsgs = []
         coopdl_helpers = None
         coopdl_coordinator = None
-        return (self.dlstate, stats, logmsgs, coopdl_helpers, coopdl_coordinator)
+
+        if DEBUG:
+            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.seeding_time
+        
+        return (self.dlstate, stats, seeding_stats, logmsgs, coopdl_helpers, coopdl_coordinator)
 
     def network_create_statistics_reponse(self):
         if self.handle:
@@ -455,8 +466,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             numleech = status.list_peers
             numseeds = status.list_seeds
             pieces = status.pieces
-            upTotal = status.total_upload
-            downTotal = status.total_download
+            upTotal = status.all_time_upload
+            downTotal = status.all_time_download
             return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
     
     def network_calc_eta(self):
@@ -530,8 +541,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
                 ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop)
             else:
-                (status, stats, logmsgs, proxyservice_proxy_list, proxyservice_doe_list) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs, proxyservice_proxy_list = proxyservice_proxy_list, proxyservice_doe_list = proxyservice_doe_list)
+                (status, stats, seeding_stats, logmsgs, proxyservice_proxy_list, proxyservice_doe_list) = self.network_get_stats(getpeerlist)
+                ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, seeding_stats = seeding_stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs, proxyservice_proxy_list = proxyservice_proxy_list, proxyservice_doe_list = proxyservice_doe_list)
                 self.progressbeforestop = ds.get_progress()
                         
             if sessioncalling:

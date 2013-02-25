@@ -501,7 +501,7 @@ class ABCApp():
         ltmgr.set_download_rate_limit(maxdown*1024)
  
 # SelectiveSeeding _       
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, os.path.join(state_dir, STATEDIR_SEEDINGMANAGER_DIR))
+        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
         # self.seedingcount = 0 
 # _SelectiveSeeding
 
@@ -960,8 +960,6 @@ class ABCApp():
         self.done = True
 
         # write all persistent data to disk
-        if self.seedingmanager:
-            self.seedingmanager.write_all_storage()
         if self.i2is:
             self.i2is.shutdown()
         if self.torrentfeed:    

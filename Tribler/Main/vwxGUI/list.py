@@ -1864,26 +1864,6 @@ class LibraryList(SizeList):
                         tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
                         time_seeding = stats['time_seeding']
                         
-                    else:
-                        dl = ds.get_total_transferred(DOWNLOAD)
-                        ul = ds.get_total_transferred(UPLOAD)
-                        
-                        #set dl at min progress*length
-                        progress = item.original_data.progress or 0
-                        size = item.original_data.length or 0
-                        size_progress = size*progress
-                        dl = max(dl, size_progress)
-                        
-                        if dl == 0L:
-                            if ul != 0L:
-                                ratio = sys.maxint
-                            else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0*ul/dl
-                        
-                        tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
-                        
                     if show_seeding_colours:
                         #t4t_ratio is goal
                         step = ratio / t4t_ratio
