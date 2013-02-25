@@ -799,8 +799,6 @@ class ABCApp():
             print >>sys.stderr,"main: Checkpointing Session"
             self.utility.session.checkpoint()
 
-            # write all persistent data to disk
-            self.seedingmanager.write_all_storage()
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
