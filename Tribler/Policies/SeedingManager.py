@@ -19,7 +19,7 @@ class GlobalSeedingManager:
     def apply_seeding_policy(self, dslist):
         # Remove stopped seeds
         for infohash, seeding_manager in self.seeding_managers.items():
-            if not seeding_manager.download_state.get_status() == DLSTATUS_SEEDING:
+            if not seeding_manager.download_state.get_download().get_status() == DLSTATUS_SEEDING:
                 if DEBUG: print >>sys.stderr, "SeedingManager: removing seeding manager", infohash.encode("HEX")
                 del self.seeding_managers[infohash]
                 

@@ -401,7 +401,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         @return DLSTATUS_*
         """
         with self.dllock:
-            return self.dltate
+            return self.dlstate
     
     def get_length(self):
         """ Returns the size of the torrent content.
