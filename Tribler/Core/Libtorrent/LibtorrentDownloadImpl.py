@@ -442,7 +442,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['vod_playable'] = self.progress == 1.0 or (stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
-        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else []
+        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else None
 
         seeding_stats = {}
         seeding_stats['total_up'] = self.all_time_upload
@@ -459,10 +459,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_create_statistics_reponse(self):
         if self.handle:
             status = self.handle.status()
-            numTotSeeds = status.num_complete
-            numTotPeers = status.num_incomplete
-            numleech = status.list_peers
-            numseeds = status.list_seeds
+            numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds 
+            numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
+            numleech = status.num_peers - status.num_seeds
+            numseeds = status.num_seeds
             pieces = status.pieces
             upTotal = status.all_time_upload
             downTotal = status.all_time_download
