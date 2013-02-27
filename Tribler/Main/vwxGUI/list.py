@@ -1678,7 +1678,8 @@ class LibraryList(SizeList):
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
-        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
+        self.hasTorrent = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bittorrent.png"), wx.BITMAP_TYPE_ANY)
+        self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0,0], False, parent = parent)
         
     def OnDeleteKey(self, event):
@@ -1702,11 +1703,18 @@ class LibraryList(SizeList):
         return "%.2f"%value
     
     def _swift_icon(self, item):
-        torrent = item.original_data
-        if torrent.swift_hash:
-            return self.hasSwift, None, "This torrent is Swift-enabled"
+        ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[1]
+        if ds and ds.get_download().get_def().get_def_type() == 'swift' and ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+            return self.hasSwift, None, "Using Swift for this download"
         else:
-            return self.noSwift, None, ""
+            return self.hasNothing, None, ""
+
+    def _torrent_icon(self, item):
+        ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
+        if ds and ds.get_download().get_def().get_def_type() == 'torrent' and ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+            return self.hasTorrent, None, "Using Bittorrent for this download"
+        else:
+            return self.hasNothing, None, ""
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -1889,6 +1897,16 @@ class LibraryList(SizeList):
                 
                 item.RefreshColumn(7, ratio)
                 item.RefreshColumn(8, time_seeding)
+                
+                # For update torrent icons
+                old_t_ds = oldDS.get(item.original_data.infohash, None)
+                old_t_ds = old_t_ds if not isinstance(old_t_ds, MergedDs) else old_t_ds.dslist[0]
+                new_t_ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
+                if old_t_ds and new_t_ds:
+                    old_status = old_t_ds.get_status()
+                    new_status = new_t_ds.get_status()
+                    if old_status != new_status and (old_status == DLSTATUS_STOPPED or new_status == DLSTATUS_STOPPED):
+                        item.RefreshData([item.original_data.infohash, item.data, item.original_data])
 
         if newFilter:
             self.newfilter = False

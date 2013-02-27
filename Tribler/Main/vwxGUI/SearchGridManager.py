@@ -969,7 +969,7 @@ class LibraryManager:
         elif url.startswith("magnet:"):
             self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
     
-    def resumeTorrent(self, torrent):
+    def resumeTorrent(self, torrent, force_seed = False):
         downloads = self._getDownloads(torrent)
         resumed = False
         for download in downloads:
@@ -978,7 +978,7 @@ class LibraryManager:
                 resumed = True
                 
                 id = download.get_def().get_id()
-                self.user_download_choice.set_download_state(id, "restartseed" if download.get_progress() == 1.0 else "restart")
+                self.user_download_choice.set_download_state(id, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
             
         if not resumed:
             filename = self.torrentsearch_manager.getCollectedFilename(torrent)

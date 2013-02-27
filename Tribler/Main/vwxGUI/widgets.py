@@ -17,6 +17,7 @@ from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR,\
     SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 DEBUG = False
 
@@ -2086,7 +2087,7 @@ class TorrentStatus(wx.Panel):
         if isinstance(status, str):
             self.status = status
             
-        if status == 'Seeding':
+        if status.endswith('Seeding'):
             self.fill_colour = SEEDING_COLOUR
         if status == 'Completed':
             self.fill_colour = COMPLETED_COLOUR
@@ -2118,6 +2119,8 @@ class TorrentStatus(wx.Panel):
             status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
+            if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_id()) == 'restartseed':
+                status = "[F] " + status
         elif finished:
             status = 'Completed'
         elif 'allocating' in torrent_state:

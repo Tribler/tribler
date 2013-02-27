@@ -3,6 +3,7 @@ import wx
 import sys
 import json
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
@@ -525,7 +526,7 @@ class PlaylistItemNoButton(PlaylistItem):
 class LibraryListItem(DoubleLineListItem):
             
     def GetIcons(self):
-        return [self.parent_list.parent_list._swift_icon(self)]        
+        return [self.parent_list.parent_list._torrent_icon(self), self.parent_list.parent_list._swift_icon(self)]        
 
     def GetContextMenu(self):
         menu = DoubleLineListItem.GetContextMenu(self)
@@ -543,8 +544,22 @@ class LibraryListItem(DoubleLineListItem):
                 itemid = wx.NewId()
                 menu.Append(itemid, label)
                 menu.Bind(wx.EVT_MENU, handler, id=itemid)
+
+        if 'completed' in self.original_data.state or 'seeding' in self.original_data.state:
+            torrent = self.original_data
+            tdef = torrent.ds.get_download().get_def() if torrent.ds else None
+            if tdef and tdef.get_def_type() == 'torrent':
+                is_forced = UserDownloadChoice.get_singleton().get_download_state(tdef.get_id()) == 'restartseed'
+                itemid = wx.NewId()
+                menu.AppendCheckItem(itemid, 'Force seed')
+                menu.Check(itemid, is_forced)
+                menu.Bind(wx.EVT_MENU, lambda evt, force_seed = not is_forced: self.OnSeed(evt, force_seed), id=itemid)
+        
         return menu
     
+    def OnSeed(self, event, force_seed):
+        self.guiutility.library_manager.resumeTorrent(self.original_data, force_seed = force_seed)
+
     def OnRecheck(self, event):
         self.original_data.ds.get_download().force_recheck()
         
