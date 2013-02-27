@@ -454,6 +454,8 @@ class HSearchConversion(SearchConversion):
             str_prefs = unpack_from('!'+hashpack, data, offset)
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
+        else:
+            prefs = []
         
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs)
     
