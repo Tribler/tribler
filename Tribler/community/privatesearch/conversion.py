@@ -316,52 +316,6 @@ class SearchConversion(BinaryConversion):
             pass
         return result
     
-class HSearchConversion(SearchConversion):
-    def __init__(self, community):
-        SearchConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"request-key"), lambda message: self._encode_decode(self._encode_request_key, self._decode_request_key, message), self._decode_request_key)
-        self.define_meta_message(chr(9), community.get_meta_message(u"encryption-key"), lambda message: self._encode_decode(self._encode_encr_key, self._decode_encr_key, message), self._decode_encr_key)
-        
-    def _encode_encr_key(self, message):
-        str_n = long_to_bytes(message.payload.key_n, 128)
-        str_e = long_to_bytes(message.payload.key_e, 128)
-            
-        packet = pack('!128s128s', str_n, str_e)
-        return packet,
-        
-    def _decode_encr_key(self, placeholder, offset, data):
-        length = len(data) - offset
-        if length != 256:
-            raise DropPacket("Invalid number of bytes available (ecnr_key)")
-        
-        str_n, str_e = unpack_from('!128s128s', data, offset)
-                
-        key_n = bytes_to_long(str_n)
-        key_e = bytes_to_long(str_e)
-    
-        offset += length
-        return offset, placeholder.meta.payload.implement(key_n, key_e)
-    
-    def _encode_request_key(self, message):
-        str_n = long_to_bytes(message.payload.key_n, 128)
-        str_e = long_to_bytes(message.payload.key_e, 128)
-            
-        packet = pack('!H128s128s', message.payload.identifier, str_n, str_e)
-        return packet,
-    
-    def _decode_request_key(self, placeholder, offset, data):
-        length = len(data) - offset
-        if length != 258:
-            raise DropPacket("Invalid number of bytes available (ecnr_key)")
-        
-        identifier, str_n, str_e = unpack_from('!H128s128s', data, offset)
-                
-        key_n = bytes_to_long(str_n)
-        key_e = bytes_to_long(str_e)
-    
-        offset += length
-        return offset, placeholder.meta.payload.implement(identifier, key_n, key_e)
-    
 class PSearchConversion(SearchConversion):
     def __init__(self, community):
         SearchConversion.__init__(self, community)

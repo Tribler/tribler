@@ -2,10 +2,8 @@
 import sys
 from os import path
 from time import time
-from random import random, sample, randint, shuffle, choice
-from traceback import print_exc
-from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
-from hashlib import sha1
+from random import sample, randint, shuffle
+from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
@@ -19,29 +17,30 @@ from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 
-from conversion import SearchConversion, HSearchConversion
+from conversion import SearchConversion
+
 from payload import SearchRequestPayload,\
     SearchResponsePayload, TorrentRequestPayload, \
     PingPayload, PongPayload,\
     EncryptedHashResponsePayload, EncryptedResponsePayload,\
-    EncryptedIntroPayload, KeyPayload, TorrentPayload, RequestKeyPayload
-    
+    EncryptedIntroPayload, TorrentPayload
+        
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
 from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME,\
-    WalkCandidate, BootstrapCandidate, Candidate
+    WalkCandidate, BootstrapCandidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Crypto.PublicKey import RSA
-from Crypto.Random.random import StrongRandom
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesearch.payload import GlobalVectorPayload, EncryptedVectorPayload, EncryptedSumPayload,\
     ExtendedIntroPayload, EncryptedSumsPayload
 from Tribler.community.privatesearch.conversion import PSearchConversion
 from Tribler.dispersy.script import assert_
+
 from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt
+from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible,\
+    hash_element
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -88,14 +87,11 @@ class SearchCommunity(Community):
         
         #To always perform searches using a peer uncomment/modify the following line
         #self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
-        
-        self.key = RSA.generate(1024)
-        self.key_n = self.key.key.n
-        self.key_e = self.key.key.e
+        self.key = rsa_init() 
         
         if not max_prefs:
             max_len = self.dispersy_sync_bloom_filter_bits
-            max_prefs = max_len/self.key.size()
+            max_prefs = max_len/self.key.size
             max_hprefs = max_len/20
         else:
             max_hprefs = max_prefs 
@@ -111,8 +107,8 @@ class SearchCommunity(Community):
         self.search_megacachesize = 0
         
         self.create_time_encryption = 0.0
-        self.receive_time_encryption = 0.0
         self.create_time_decryption = 0.0
+        self.receive_time_encryption = 0.0
         
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
@@ -267,9 +263,7 @@ class SearchCommunity(Community):
             
             if self.community.encryption:
                 t1 = time()
-                myList = [self.key.decrypt(infohash) for infohash in myList]
-                myList = [sha1(infohash).digest() for infohash in myList]
-                
+                myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in myList]
                 self.community.create_time_decryption += time() - t1
             
             assert all(len(infohash) == 20 for infohash in myList) 
@@ -322,7 +316,7 @@ class SearchCommunity(Community):
                 
                 if self.encryption:
                     t1 = time()
-                    myPreferences = [self.key.encrypt(infohash,1)[0] for infohash in myPreferences]
+                    myPreferences = [rsa_encrypt(self.key, infohash) for infohash in myPreferences]
                     self.create_time_encryption += time() - t1
                     
                 myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
@@ -332,7 +326,7 @@ class SearchCommunity(Community):
                 print >> sys.stderr, "SearchCommunity: sending introduction request to",destination,"containing", len(myPreferences),"hashes", self._mypref_db.getMyPrefListInfohash()
             
             identifier = self._dispersy.request_cache.claim(SearchCommunity.SimilarityRequest(self.key, self, destination))
-            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences, self.key_n)
+            payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, myPreferences, self.key.n)
 
         else:
             if DEBUG_VERBOSE:
@@ -381,16 +375,11 @@ class SearchCommunity(Community):
                 #3. construct a rsa key to encrypt my preferences
                 his_n = message.payload.key_n
                 fake_phi = his_n/2
-                while True:
-                    e = StrongRandom().randint(1, fake_phi-1)
-                    if GCD(e, fake_phi) == 1: break
-                
-                compatible_key = RSA.construct((his_n, e))
+                compatible_key = rsa_compatible(his_n, fake_phi)
                 
                 #4. encrypt hislist and mylist + hash mylist
-                hisList = [compatible_key.encrypt(infohash,1)[0] for infohash in message.payload.preference_list]
-                myList = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
-                myList = [sha1(infohash).digest() for infohash in myList]
+                hisList = [rsa_encrypt(compatible_key, infohash) for infohash in message.payload.preference_list]
+                myList = [hash_element(rsa_encrypt(compatible_key, infohash)) for infohash in myPreferences]
                 
                 self.receive_time_encryption += time() - t1
             else:
@@ -907,185 +896,12 @@ class SearchCommunity(Community):
                 sock_addresses.add(candidate.sock_addr)
         
         return random_peers, taste_buddies
-
-class HSearchCommunity(SearchCommunity):
-    
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs=max_prefs)
-        self.preference_cache = []
-    
-    def initiate_meta_messages(self):
-        messages = SearchCommunity.initiate_meta_messages(self)
-        messages.append(Message(self, u"request-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), RequestKeyPayload(), self._dispersy._generic_timeline_check, self.on_keyrequest))
-        messages.append(Message(self, u"encryption-key", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), KeyPayload(), self._dispersy._generic_timeline_check, self.on_key))
-        return messages
-    
-    def initiate_conversions(self):
-        return [DefaultConversion(self), SearchConversion(self), HSearchConversion(self)]
-        
-    def create_introduction_request(self, destination, allow_sync):
-        if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination):
-            self.send_keyrequest(destination)
-        else:
-            self.send_introduction_request(destination)
-    
-    def send_introduction_request(self, destination, preference_list = None):
-        assert isinstance(destination, WalkCandidate), [type(destination), destination]
-
-        self._dispersy.statistics.walk_attempt += 1
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
-        
-        advice = True
-        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-        
-        if preference_list:
-            preference_list = [bytes_to_long(infohash) for infohash in preference_list]
-        
-        payload = (destination.get_destination_address(self._dispersy._wan_address), self._dispersy._lan_address, self._dispersy._wan_address, advice, self._dispersy._connection_type, None, identifier, preference_list)
-        
-        meta_request = self.get_meta_message(u"dispersy-introduction-request")
-        request = meta_request.impl(authentication=(self.my_member,),
-                                distribution=(self.global_time,),
-                                destination=(destination,),
-                                payload=payload)
-
-        self._dispersy.store_update_forward([request], False, False, True)
-        return request
-
-    def on_intro_request(self, messages):
-        for message in messages:
-            candidate = self._dispersy.get_walkcandidate(message, self)
-            if candidate and message.payload.preference_list:
-                self.preference_cache.append([time(), set(message.payload.preference_list), candidate])
-        
-        self._disp_intro_handler(messages)
-        
-        if self._notifier:
-            from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
-            for message in messages:
-                self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
-    
-    def send_keyrequest(self, destination):
-        identifier = self._dispersy.request_cache.claim(HSearchCommunity.HSimilarityRequest(self.key, self, destination))
-        
-        meta_request = self.get_meta_message(u"request-key")
-        request = meta_request.impl(authentication=(self.my_member,),
-                                distribution=(self.global_time,),
-                                destination=(destination,),
-                                payload=(identifier, self.key_n, self.key_e))
-
-        self._dispersy.store_update_forward([request], False, False, True)
-        return request
-    
-    def on_keyrequest(self, messages):
-        for message in messages:
-            meta_request = self.get_meta_message(u"encryption-key")
-            response = meta_request.impl(authentication=(self.my_member,),
-                                    distribution=(self.global_time,),
-                                    destination=(message.candidate,),
-                                    payload=(self.key_n, self.key_e))
-            
-            self._dispersy.store_update_forward([response], False, False, True)
-        self.__encrypt_myprefs(messages, self.send_encrypted_hashes)
-    
-    def on_key(self, messages):
-        self.__encrypt_myprefs(messages, lambda message, preference_list: self.send_introduction_request(message.candidate, preference_list))
-    
-    class HSimilarityRequest(SearchCommunity.SimilarityRequest):
-        def __init__(self, key, community, helper_candidate):
-            SearchCommunity.SimilarityRequest.__init__(self, key, community, helper_candidate)
-            self.myList = [preference for preference in community._mypref_db.getMyPrefListInfohash() if preference] 
-        
-        def get_overlap(self):
-            if self.community.encryption:
-                t1 = time()
-                self.myList = [self.key.encrypt(infohash,1)[0] for infohash in self.myList]
-                self.myList = [sha1(infohash).digest() for infohash in self.myList]
-                self.community.create_time_encryption += time() - t1
-    
-            overlap = 0
-            for myPref in self.myList:
-                if myPref in self.hisList:
-                    overlap += 1
-            
-            return len(self.myList), self.hisListLen, overlap
-        
-    def send_encrypted_hashes(self, message, preferences):
-        meta = self.get_meta_message(u"encrypted-hashes")
-        request = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), 
-                            destination=(message.candidate,),
-                            payload=(message.payload.identifier, preferences, len(preferences)))
-        
-        self._dispersy.store_update_forward([request], False, False, True)
-        return request
-    
-    def __encrypt_myprefs(self, messages, callback):
-        #1. fetch my preferences
-        myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
-        if len(myPreferences) > self.max_h_prefs:
-            myPreferences = sample(myPreferences, self.max_h_prefs)
-        
-        for message in messages:
-            shuffle(myPreferences)
-            
-            if self.encryption:
-                t1 = time()
-                
-                #2. construct a rsa key to encrypt my preferences
-                his_n = message.payload.key_n
-                his_e = message.payload.key_e
-                compatible_key = RSA.construct((his_n, his_e))
-                
-                #3. encrypt and hash my preferences
-                encMyPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
-                encMyPreferences = [sha1(infohash).digest() for infohash in encMyPreferences]
-                self.receive_time_encryption += time() - t1
-            else:
-                encMyPreferences = myPreferences
-            
-            callback(message, encMyPreferences)
-            
-            if DEBUG:
-                print >> sys.stderr, "SearchCommunity: sending one message too", message.candidate
-    
-    def get_preferences(self, candidate):
-        for time, preferenceset, pref_candidate in self.preference_cache:
-            if pref_candidate.sock_addr == candidate.sock_addr:
-                return preferenceset
-            
-    def match_preferences(self, preference_set):
-        #cleanup of invalid candidates
-        timeout = time() - CANDIDATE_WALK_LIFETIME
-        for i in range(len(self.preference_cache), 0, -1):
-            if self.preference_cache[i-1][0] < timeout and not self.is_taste_buddy(self.preference_cache[i-1][2]):
-                del self.preference_cache[i-1]
-                
-        matches = []
-        for _, other_preference_set, candidate in self.preference_cache:
-            overlap = len(other_preference_set & preference_set)
-            if overlap > 0:
-                matches.append((overlap, candidate))
-                
-        matches.sort(reverse = True)
-        return [candidate for _,candidate in matches]
-            
-    def dispersy_yield_random_candidates(self, candidate = None):
-        if candidate:
-            preferences = self.get_preferences(candidate)
-            if preferences:
-                for matching_candidate in self.match_preferences(preferences):
-                    if matching_candidate.sock_addr != candidate.sock_addr:
-                        yield matching_candidate
-        
-        for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
-            yield random_candidate
             
 class PSearchCommunity(SearchCommunity):
     
     def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
         SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs)
-        self.key_n, self.key_n2, self.key_g, self.key_lambda, self.key_decryption = pallier_init(self.key)
+        self.key = pallier_init(self.key)
         
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -1218,7 +1034,7 @@ class PSearchCommunity(SearchCommunity):
                 t1 = time()
                 encrypted_vector = []
                 for element in my_vector:
-                    cipher = pallier_encrypt(element, self.key_g, self.key_n, self.key_n2)
+                    cipher = pallier_encrypt(self.key, element)
                     encrypted_vector.append(cipher)
 
                 self.create_time_encryption += time() - t1
@@ -1231,7 +1047,7 @@ class PSearchCommunity(SearchCommunity):
         request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
                                 destination=(destination,),
-                                payload=(identifier, self.key_n, encrypted_vector))
+                                payload=(identifier, self.key.n, encrypted_vector))
 
         self._dispersy._forward([request])
         self._dispersy._forward([global_vector_request])
@@ -1290,7 +1106,7 @@ class PSearchCommunity(SearchCommunity):
             meta_request = self.get_meta_message(u"sum-request")
             request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
-                                payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
+                                payload=(message.payload.identifier, long(message.payload.key_n), message.payload.preference_list))
             
             self._dispersy._send(candidates, [request])
             
@@ -1479,8 +1295,8 @@ class PSearchCommunity(SearchCommunity):
             if self.encryption:
                 t1 = time()
                 
-                _sums = [[pallier_decrypt(_sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
-                _sum = pallier_decrypt(message.payload._sum, self.key_n, self.key_n2, self.key_lambda, self.key_decryption)
+                _sums = [[pallier_decrypt(self.key, _sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
+                _sum = pallier_decrypt(self.key, message.payload._sum)
                 
                 self.create_time_decryption += time() - t1
             else:

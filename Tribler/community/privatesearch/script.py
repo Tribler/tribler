@@ -1,11 +1,8 @@
-from community import SearchCommunity, HSearchCommunity
+from community import SearchCommunity, PSearchCommunity
 from Tribler.dispersy.script import ScenarioScriptBase
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.dispersy import IntroductionRequestCache
-
-from random import random
-from Tribler.community.privatesearch.community import PSearchCommunity
 
 class SearchScript(ScenarioScriptBase):
     def __init__(self, **kargs):
@@ -42,8 +39,6 @@ class SearchScript(ScenarioScriptBase):
         
         if self.community_type == 'search':
             community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
-        elif self.community_type == 'hsearch':
-            community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
         else:
             community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
             

@@ -82,52 +82,6 @@ class EncryptedHashResponsePayload(Payload):
         def len_preference_list(self):
             return self._len_preference_list
         
-class KeyPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, key_n, key_e):
-            assert isinstance(key_n, long), 'key_n should be long'
-            assert key_n < MAXLONG128
-            assert isinstance(key_e, long), 'key_e should be long'
-            assert key_e < MAXLONG128
-            
-            super(KeyPayload.Implementation, self).__init__(meta)
-            self._key_n = key_n
-            self._key_e = key_e
-            
-        @property
-        def key_n(self):
-            return self._key_n
-        
-        @property
-        def key_e(self):
-            return self._key_e
-        
-class RequestKeyPayload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, key_n, key_e):
-            assert isinstance(identifier, int), type(identifier)
-            assert isinstance(key_n, long), 'key_n should be long'
-            assert key_n < MAXLONG128
-            assert isinstance(key_e, long), 'key_e should be long'
-            assert key_e < MAXLONG128
-            
-            super(RequestKeyPayload.Implementation, self).__init__(meta)
-            self._identifier = identifier
-            self._key_n = key_n
-            self._key_e = key_e
-        
-        @property
-        def identifier(self):
-            return self._identifier
-         
-        @property
-        def key_n(self):
-            return self._key_n
-        
-        @property
-        def key_e(self):
-            return self._key_e
-        
 class GlobalVectorPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, preference_list):
