@@ -218,15 +218,21 @@ class ExtendedIntroPayload(IntroductionRequestPayload):
 class SimilarityRequest(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, key_n, preference_list):
+            assert isinstance(identifier, int), type(identifier)
             assert not key_n or isinstance(key_n, long), 'key_n should be long'  
             assert not preference_list or isinstance(preference_list, list), 'preferencelist should be list'
             if preference_list:
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
-
+            
+            self._identifier = identifier
             self._key_n = key_n
             self._preference_list = preference_list
-            
+        
+        @property
+        def identifier(self):
+            return self._identifier
+           
         @property
         def key_n(self):
             return self._key_n
