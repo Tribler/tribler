@@ -1325,7 +1325,7 @@ class HSearchCommunity(ForwardCommunity):
             candidates = self.get_connections(10, message.candidate)
             
             #create MSimilarityRequest to use as object to collect all sums
-            self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.MSimilarityRequest(self, message, candidates))
+            self._dispersy.request_cache.set(message.payload.identifier, HSearchCommunity.MSimilarityRequest(self, message, candidates))
             
             #forward it to others
             meta_request = self.get_meta_message(u"similarity-request")
