@@ -46,7 +46,6 @@ class SettingsDialog(wx.Dialog):
                              'diskLocationCtrl', \
                              'diskLocationChoice', \
                              'portChange', \
-                             'externalplayer',\
                              'minimize_to_tray',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
                              'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',\
@@ -93,7 +92,6 @@ class SettingsDialog(wx.Dialog):
         self.tree.AppendItem(root,'Connection',data=wx.TreeItemData(xrc.XRCCTRL(self,"connection_panel")))
         self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
         self.tree.AppendItem(root,'Seeding',data=wx.TreeItemData(xrc.XRCCTRL(self,"seeding_panel")))
-        self.tree.AppendItem(root,'Misc',data=wx.TreeItemData(xrc.XRCCTRL(self,"misc_panel")))
         self.tree.AppendItem(root,'Experimental',data=wx.TreeItemData(xrc.XRCCTRL(self,"exp_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
@@ -132,12 +130,6 @@ class SettingsDialog(wx.Dialog):
         if self.guiUtility.frame.SRstatusbar.IsReachable():
             self.elements['firewallStatus'].setSelected(2)
             self.elements['firewallStatusText'].SetLabel('Port is working')
-        
-        self.currentPopup = self.utility.config.Read('popup_player', "boolean")
-        if self.currentPopup:
-            self.elements['externalplayer'].SetSelection(1)
-        else:
-            self.elements['externalplayer'].SetSelection(0)
         
         self.currentPortValue = str(self.guiUtility.get_port_number())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
@@ -349,11 +341,6 @@ class SettingsDialog(wx.Dialog):
                     print_exc()
                     
             scfg.save(cfgfilename)
-            
-            selectedPopup = self.elements['externalplayer'].GetSelection() == 1
-            if self.currentPopup != selectedPopup:
-                self.utility.config.Write('popup_player', selectedPopup, "boolean")
-                restart = True
             
             # tit-4-tat
             t4t_option = self.utility.config.Read('t4t_option', 'int')

@@ -569,51 +569,6 @@
                         <flag>wxEXPAND</flag>
                         <option>1</option>
                     </object>
-                	<object class="sizeritem">
-	                    <object class="wxPanel" name="misc_panel"> 
-	                        <hidden>1</hidden>
-	                        <object class="wxBoxSizer">
-	                            <orient>wxVERTICAL</orient>
-	                            <object class="sizeritem">
-	                                <object class="wxStaticText">
-	                                    <label>Misc</label>
-	                                    <font>
-	                                        <weight>bold</weight>
-	                                        <size>11</size>
-	                                    </font>
-	                                </object>
-	                            </object>
-								<object class="sizeritem">
-	                                <object class="wxStaticLine">
-	                                    <size>-1, 1</size>
-	                                    <style>wxLI_HORIZONTAL</style>
-	                                </object>
-	                                <flag>wxEXPAND|wxBOTTOM</flag>
-	                                <border>7</border>
-	                            </object>
-								<object class="sizeritem">
-	                                <object class="wxBoxSizer">
-	                                    <orient>wxVERTICAL</orient>
-										<object class="sizeritem">
-											<object class="wxRadioBox" name="externalplayer">
-												<style>wxRA_SPECIFY_ROWS</style>
-												<label>Player</label>
-												<dimension>1</dimension>
-												<content>
-													<item>Use internal player</item>
-													<item>Use popup player</item>
-												</content>
-											</object>
-											<border>3</border>
-											<flag>wxTOP</flag>
-										</object>
-									</object>
-								</object>
-	                        </object>
-	                    </object>
-	                    <flag>wxEXPAND</flag>
-	                    <option>1</option>
-					</object>
 					<object class="sizeritem">
 	                    <object class="wxPanel" name="exp_panel"> 
 	                        <hidden>1</hidden>

@@ -286,7 +286,7 @@ class MainFrame(wx.Frame):
         
         if channelonly:
             self.guiUtility.showChannelFromDispCid(channelonly)
-            if not self.guiUtility.useExternalVideo:
+            if internalvideo:
                 self.guiUtility.ShowPlayer()
 
         if sys.platform != 'darwin':

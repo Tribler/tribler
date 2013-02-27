@@ -47,7 +47,6 @@ class GUIUtility:
 
         # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
-        self.useExternalVideo = False
 
         # current GUI page
         self.guiPage = 'home'

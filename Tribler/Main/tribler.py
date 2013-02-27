@@ -213,26 +213,15 @@ class ABCApp():
                 channel_only = f.readline()
                 f.close()
             
-            internal_frame = False
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
-                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
-                if not self.guiUtility.useExternalVideo:
-                    internal_frame = True
-           
-            self.frame = MainFrame(None, channel_only, internal_frame, self.splash.tick)
+            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
                 vlcwrap = self.videoplayer.get_vlcwrap()
             
-                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
-                if self.guiUtility.useExternalVideo:
-                    self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
-                    self.videoplayer.set_videoframe(self.frame.videoframe)
-                else:
-                    self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
-                    self.videoplayer.set_videoframe(self.frame.videoframe)
+                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
+                self.videoplayer.set_videoframe(self.frame.videoframe)
                 
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)

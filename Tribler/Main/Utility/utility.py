@@ -175,7 +175,6 @@ class Utility:
             'family_filter': 1,
             'window_x': "",
             'window_y': "",
-            'popup_player': 0,
             'use_bundle_magic': 0,
             
             # WebUI
