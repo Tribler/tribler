@@ -508,16 +508,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             peer_dict['optimistic'] = bool(peer_info.flags & 2048) # optimistic_unchoke = 0x800 seems unavailable in python bindings
             peer_dict['direction'] = 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R'
             peer_dict['uprate'] = peer_info.payload_up_speed
-            peer_dict['uinterested'] = bool(peer_info.flags & peer_info.interesting)
-            peer_dict['uchoked'] = bool(peer_info.flags & peer_info.choked)
+            peer_dict['uinterested'] = bool(peer_info.flags & peer_info.remote_interested)
+            peer_dict['uchoked'] = bool(peer_info.flags & peer_info.remote_choked)
             peer_dict['uhasqueries'] = peer_info.upload_queue_length > 0
             peer_dict['uflushed'] = peer_info.used_send_buffer > 0
             peer_dict['downrate'] = peer_info.payload_down_speed
-            peer_dict['dinterested'] = bool(peer_info.flags & peer_info.remote_interested)
-            peer_dict['dchoked'] = bool(peer_info.flags & peer_info.remote_choked)
+            peer_dict['dinterested'] = bool(peer_info.flags & peer_info.interesting)
+            peer_dict['dchoked'] = bool(peer_info.flags & peer_info.choked)
             peer_dict['snubbed'] = bool(peer_info.flags & 4096) # snubbed = 0x1000 seems unavailable in python bindings
-            peer_dict['utotal'] = peer_info.total_download
-            peer_dict['dtotal'] = peer_info.total_upload
+            peer_dict['utotal'] = peer_info.total_upload
+            peer_dict['dtotal'] = peer_info.total_download
             peer_dict['completed'] = peer_info.progress
             peer_dict['have'] = peer_info.pieces
             peer_dict['speed'] = peer_info.remote_dl_rate
