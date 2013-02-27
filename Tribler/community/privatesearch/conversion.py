@@ -74,7 +74,7 @@ class SearchConversion(BinaryConversion):
             raise DropPacket("Invalid number of bytes available (encr_res)")
         if length:
             hashpack = '128s' * (length/128)
-            hashes = unpack_from('!'+hashpack, data, offset)
+            hashes = unpack_from('!'+hashpack, str_prefs, offset)
             hashes = [bytes_to_long(hash) for hash in hashes]
         
         length = len(str_hprefs)
@@ -82,7 +82,7 @@ class SearchConversion(BinaryConversion):
             raise DropPacket("Invalid number of bytes available (encr_res)")
         if length:
             hashpack = '20s' * (length/20)
-            his_hashes = unpack_from('!'+hashpack, data, offset)
+            his_hashes = unpack_from('!'+hashpack, str_hprefs, offset)
             his_hashes = [bytes_to_long(hash) for hash in his_hashes]
         
         return offset, placeholder.meta.payload.implement(identifier, hashes, his_hashes)
