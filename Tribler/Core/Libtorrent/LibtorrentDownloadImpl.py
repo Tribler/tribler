@@ -71,7 +71,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
         self.all_time_upload = 0.0
         self.all_time_download = 0.0
-        self.seeding_time = 0.0
+        self.finished_time = 0.0
         self.done = False
         self.pause_after_next_hashcheck = False
         self.prebuffsize = 5*1024*1024
@@ -327,7 +327,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
                 self.all_time_upload = status.all_time_upload
                 self.all_time_download = status.all_time_download
-                self.seeding_time = status.seeding_time
+                self.finished_time = status.finished_time
                     
     def set_files(self):
         metainfo = self.tdef.get_metainfo()
@@ -447,12 +447,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         seeding_stats = {}
         seeding_stats['total_up'] = self.all_time_upload
         seeding_stats['total_down'] = self.all_time_download
-        seeding_stats['time_seeding'] = self.seeding_time
+        seeding_stats['time_seeding'] = self.finished_time
        
         logmsgs = []
 
         if DEBUG:
-            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.seeding_time
+            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.finished_time
         
         return (self.dlstate, stats, seeding_stats, logmsgs)
 
