@@ -1351,6 +1351,7 @@ class HSearchCommunity(ForwardCommunity):
                 
             self.received_candidates = set()
             self.received_lists = []
+            self.isProcessed = False
         
         def add_response(self, candidate_mid, response):
             if DEBUG_VERBOSE:
