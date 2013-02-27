@@ -353,9 +353,9 @@ class SearchCommunity(Community):
         myListLen = len(myPreferences)
         
         #2. use subset if we have to many preferences
-        if len(myPreferences) > self.max_h_prefs:
+        if myListLen > self.max_h_prefs:
             myPreferences = sample(myPreferences, self.max_h_prefs)
-            
+        
         if self.encryption:
             myPreferences = [bytes_to_long(preference) for preference in myPreferences]
     
