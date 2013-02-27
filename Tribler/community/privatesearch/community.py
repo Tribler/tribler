@@ -18,13 +18,7 @@ from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 
 from conversion import SearchConversion
-
-from payload import SearchRequestPayload,\
-    SearchResponsePayload, TorrentRequestPayload, \
-    PingPayload, PongPayload,\
-    EncryptedHashResponsePayload, EncryptedResponsePayload,\
-    EncryptedIntroPayload, TorrentPayload
-        
+from payload import *
 from Tribler.community.channel.preview import PreviewChannelCommunity
 
 from Tribler.dispersy.requestcache import Cache
@@ -33,14 +27,11 @@ from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME,\
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.tool.lencoder import log
-from Tribler.community.privatesearch.payload import GlobalVectorPayload, EncryptedVectorPayload, EncryptedSumPayload,\
-    ExtendedIntroPayload, EncryptedSumsPayload
 from Tribler.community.privatesearch.conversion import PSearchConversion
 from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt
-from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible,\
-    hash_element
+from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -259,12 +250,12 @@ class SearchCommunity(Community):
             return self.myList != None and self.hisList != None and not self.isProcessed
         
         def get_overlap(self):
-            myList = [long_to_bytes(infohash) for infohash in self.myList]
-            
             if self.community.encryption:
                 t1 = time()
-                myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in myList]
+                myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in self.myList]
                 self.community.create_time_decryption += time() - t1
+            else:
+                myList = [long_to_bytes(infohash) for infohash in self.myList]
             
             assert all(len(infohash) == 20 for infohash in myList) 
             
@@ -314,12 +305,12 @@ class SearchCommunity(Community):
                     myPreferences = sample(myPreferences, self.max_prefs)
                 shuffle(myPreferences)
                 
+                myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
                 if self.encryption:
                     t1 = time()
                     myPreferences = [rsa_encrypt(self.key, infohash) for infohash in myPreferences]
                     self.create_time_encryption += time() - t1
                     
-                myPreferences = [bytes_to_long(infohash) for infohash in myPreferences]
                 self.my_vector_cache = [str_myPreferences, myPreferences]
             
             if DEBUG_VERBOSE:
@@ -364,6 +355,9 @@ class SearchCommunity(Community):
         #2. use subset if we have to many preferences
         if len(myPreferences) > self.max_h_prefs:
             myPreferences = sample(myPreferences, self.max_h_prefs)
+            
+        if self.encryption:
+            myPreferences = [bytes_to_long(preference) for preference in myPreferences]
     
         for message in messages:
             if DEBUG_VERBOSE:
