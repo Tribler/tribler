@@ -591,6 +591,7 @@ class GUIUtility:
         if channel:
             button = event.GetEventObject()
             button.Enable(False)
+            if hasattr(button, 'selected'): button.selected = False
             
             dlgname = 'MFdialog'
             if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
@@ -618,6 +619,7 @@ class GUIUtility:
         if channel:
             button = event.GetEventObject()
             button.Enable(False)
+            if hasattr(button, 'selected'): button.selected = False
 
             dlgname = 'RFdialog'
             if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
