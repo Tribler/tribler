@@ -1310,7 +1310,7 @@ class HSearchCommunity(ForwardCommunity):
                 yield DelayMessageByProof(message)
                 continue
             
-            if not self._dispersy.request_cache.has(message.payload.identifier, HSearchCommunity.MSimilarityRequest):
+            if self._dispersy.request_cache.has(message.payload.identifier, HSearchCommunity.MSimilarityRequest):
                 yield DropMessage(message, "invalid response identifier")
                 continue
             
