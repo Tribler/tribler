@@ -350,7 +350,7 @@ class SearchCommunity(Community):
                 self._dispersy._forward([resp_message])
                 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, "SearchCommunity: sending two messages too", message.candidate
+                    print >> sys.stderr, "SearchCommunity: sending encrypted-response too", message.candidate
             else:
                 return hisList, myList
     
