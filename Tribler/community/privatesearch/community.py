@@ -1389,7 +1389,7 @@ class HSearchCommunity(ForwardCommunity):
     
     def on_encr_response(self, messages):
         for message in messages:
-            request = self.community._dispersy.request_cache.get(self.identifier, HSearchCommunity.MSimilarityRequest)
+            request = self._dispersy.request_cache.get(self.identifier, HSearchCommunity.MSimilarityRequest)
             if request:
                 request.add_response(message.authentication.member.mid, [message.payload.preference_list, message.payload.his_preference_list])
                 
