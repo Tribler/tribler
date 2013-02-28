@@ -37,8 +37,8 @@ from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decry
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = True
-DEBUG_VERBOSE = True
+DEBUG = False
+DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
@@ -317,9 +317,6 @@ class SearchCommunity(Community):
             myPreferences = [bytes_to_long(preference) for preference in myPreferences]
     
         for message in messages:
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, "SearchCommunity: got introduction request from", message.candidate
-           
             if self.encryption:
                 t1 = time()
                 
@@ -382,6 +379,7 @@ class SearchCommunity(Community):
         for pref in myList:
             if pref in his_preference_list:
                 overlap += 1
+        return overlap
                 
     class SearchRequest(Cache):
         timeout_delay = 30.0
