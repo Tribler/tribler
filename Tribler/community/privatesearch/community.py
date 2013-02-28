@@ -914,6 +914,7 @@ class ForwardCommunity(SearchCommunity):
             
     def send_introduction_request(self, destination, introduce_me_to = None):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
+        assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
         self._dispersy.statistics.walk_attempt += 1
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)

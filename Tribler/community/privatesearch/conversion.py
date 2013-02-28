@@ -508,7 +508,7 @@ class HSearchConversion(SearchConversion):
                 his_hashes = []
                 
             if str_mid:
-                str_mid = unpack_from("!20s",str_mid)
+                str_mid, = unpack_from("!20s",str_mid)
                 bundled_responses.append((str_mid, (hashes, his_hashes)))
             else:
                 prefs = hashes
