@@ -84,6 +84,8 @@ class SearchConversion(BinaryConversion):
             hashpack = '20s' * (length/20)
             his_hashes = unpack_from('!'+hashpack, str_hprefs)
             his_hashes = [bytes_to_long(hash) for hash in his_hashes]
+        else:
+            his_hashes = []
         
         return offset, placeholder.meta.payload.implement(identifier, hashes, his_hashes)
         
