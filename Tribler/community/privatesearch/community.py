@@ -1408,12 +1408,13 @@ class HSearchCommunity(ForwardCommunity):
         #process possible taste buddies
         possibles = []
         for message in messages:
+            candidate = self.get_walkcandidate(message, self)
             if DEBUG_VERBOSE:
                 print >> sys.stderr, "HSearchCommunity: received similarities"
             
             for candidate_mid, remote_response in message.payload.bundled_responses:
                 overlap = self.compute_rsa_overlap(remote_response[0], remote_response[1])
-                possibles.append([overlap, time(), candidate_mid, message.candidate])
+                possibles.append([overlap, time(), candidate_mid, candidate])
                 
         self.add_possible_taste_buddies(possibles)
 
