@@ -29,3 +29,10 @@ Now you can run tribler by executing the tribler.sh script on the root of the tr
 ```
 ### Windows
 TODO
+
+
+# Submodule notes
+ - As updated submodules are in detached head state, remember to check out a branch before commiting changes on them.
+ - If you forgot to check out a branch before doing a commit, you should get a warning telling you about it. To get the commit to a branch just check out the branch and do a git cherry-pick of the commit.
+ - Take care of not accidentally commiting a submodule change with git commit -a
+ - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
