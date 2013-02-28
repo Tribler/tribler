@@ -373,7 +373,7 @@ class SearchCommunity(Community):
         if self.encryption:
             t1 = time()
             myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
-            self.community.create_time_decryption += time() - t1
+            self.create_time_decryption += time() - t1
         else:
             myList = [long_to_bytes(infohash) for infohash in self.myList]
     
