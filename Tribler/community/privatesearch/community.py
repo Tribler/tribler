@@ -1327,7 +1327,7 @@ class HSearchCommunity(ForwardCommunity):
                 print >> sys.stderr, "HSearchCommunity: got msimi request from", message.candidate
             
             #get candidates to forward requests to, excluding the requesting peer
-            candidates = self.get_connections(10, message.candidate)
+            candidates = self.get_connections(5, message.candidate)
             
             #create MSimilarityRequest to use as object to collect all sums
             self._dispersy.request_cache.set(message.payload.identifier, HSearchCommunity.MSimilarityRequest(self, message, candidates))
@@ -1424,7 +1424,6 @@ class HSearchCommunity(ForwardCommunity):
             
             if DEBUG and introduce_me_to:
                 print >> sys.stderr, "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
-                
         
 class Das4DBStub():
     def __init__(self, dispersy):
