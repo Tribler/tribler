@@ -907,9 +907,11 @@ class ForwardCommunity(SearchCommunity):
             yield random_candidate
     
     def create_introduction_request(self, destination, allow_sync):
+        send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
-            self.send_similarity_request(destination)
-        else:
+            send = self.send_similarity_request(destination)
+            
+        if not send:
             self.send_introduction_request(destination)
             
     def send_introduction_request(self, destination, introduce_me_to = None):
@@ -995,6 +997,7 @@ class PSearchCommunity(ForwardCommunity):
 
         self._dispersy._forward([request])
         self._dispersy._forward([global_vector_request])
+        return True
     
     def on_sums_request(self, messages):
         for message in messages:
@@ -1290,17 +1293,21 @@ class HSearchCommunity(ForwardCommunity):
                 self.create_time_encryption += time() - t1
                 
             self.my_vector_cache = [str_myPreferences, myPreferences]
-            
-        if DEBUG_VERBOSE:
-            print >> sys.stderr, "HSearchCommunity: sending similarity request to", destination, "containing", len(myPreferences), "hashes", self._mypref_db.getMyPrefListInfohash()
-                
-        meta_request = self.get_meta_message(u"msimilarity-request")
-        request = meta_request.impl(authentication=(self.my_member,),
-                                distribution=(self.global_time,),
-                                destination=(destination,),
-                                payload=(identifier, self.key.n, myPreferences))
-
-        self._dispersy._forward([request])
+        
+        if myPreferences:
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, "HSearchCommunity: sending similarity request to", destination, "containing", len(myPreferences), "hashes", self._mypref_db.getMyPrefListInfohash()
+                    
+            meta_request = self.get_meta_message(u"msimilarity-request")
+            request = meta_request.impl(authentication=(self.my_member,),
+                                    distribution=(self.global_time,),
+                                    destination=(destination,),
+                                    payload=(identifier, self.key.n, myPreferences))
+        
+            self._dispersy._forward([request])
+            return True
+        
+        return False
     
     def check_msimi_request(self, messages):
         for message in messages:
