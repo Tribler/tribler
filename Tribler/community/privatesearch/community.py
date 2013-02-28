@@ -297,13 +297,12 @@ class SearchCommunity(Community):
         
         messages = [message for message in orig_messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
         self.process_rsa_simirequest(messages)
-        
+
+        self._disp_intro_handler(orig_messages)
         if self._notifier:
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in orig_messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
-                
-        self._disp_intro_handler(orig_messages)
         
     def process_rsa_simirequest(self, messages, send_messages = True):
         #1. fetch my preferences
@@ -1389,7 +1388,7 @@ class HSearchCommunity(ForwardCommunity):
     
     def on_encr_response(self, messages):
         for message in messages:
-            request = self._dispersy.request_cache.get(self.identifier, HSearchCommunity.MSimilarityRequest)
+            request = self._dispersy.request_cache.get(message.payload.identifier, HSearchCommunity.MSimilarityRequest)
             if request:
                 request.add_response(message.authentication.member.mid, [message.payload.preference_list, message.payload.his_preference_list])
                 
