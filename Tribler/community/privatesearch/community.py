@@ -371,7 +371,7 @@ class SearchCommunity(Community):
             myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
             self.create_time_decryption += time() - t1
         else:
-            myList = [long_to_bytes(infohash) for infohash in self.myList]
+            myList = [long_to_bytes(infohash) for infohash in preference_list]
     
         assert all(len(infohash) == 20 for infohash in myList) 
     
@@ -1323,7 +1323,7 @@ class HSearchCommunity(ForwardCommunity):
     def on_msimi_request(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, "HSearchCommunity: got msimi request"
+                print >> sys.stderr, "HSearchCommunity: got msimi request from", message.candidate
             
             #get candidates to forward requests to, excluding the requesting peer
             candidates = self.get_connections(10, message.candidate)
@@ -1384,7 +1384,7 @@ class HSearchCommunity(ForwardCommunity):
                 self.isProcessed = True
                 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, "HSearchCommunity: processed MSimilarityRequest"
+                    print >> sys.stderr, "HSearchCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
                     
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
                 

@@ -1,6 +1,6 @@
 from Crypto.PublicKey import RSA
 from Crypto.Random.random import StrongRandom
-from Crypto.Util.number import GCD
+from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
 
 from gmpy import mpz
 
@@ -76,6 +76,9 @@ if __name__ == "__main__":
     
     assert hcompencrypted0 == hash_element(rsa_decrypt(key, twiceencrypted0))
     assert hcompecnrypted1 == hash_element(rsa_decrypt(key, twiceencrypted1))
+    
+    fakeinfohash = '296069              '
+    assert long_to_bytes(rsa_decrypt(key, rsa_encrypt(key, bytes_to_long(fakeinfohash)))) == fakeinfohash
     
     #performance
     random_list = [randint(0,i*1000) for i in xrange(100)]
