@@ -37,8 +37,8 @@ from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decry
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = False
-DEBUG_VERBOSE = False
+DEBUG = True
+DEBUG_VERBOSE = True
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
@@ -1266,7 +1266,7 @@ class HSearchCommunity(ForwardCommunity):
     
     def initiate_meta_messages(self):
         messages = SearchCommunity.initiate_meta_messages(self)
-        messages.append(Message(self, u"similarity-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self.check_msimi_request, self.process_rsa_simirequest))
+        messages.append(Message(self, u"similarity-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self._dispersy._generic_timeline_check, self.process_rsa_simirequest))
         messages.append(Message(self, u"msimilarity-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self.check_msimi_request, self.on_msimi_request))
         messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), BundledEncryptedResponsePayload(), self._dispersy._generic_timeline_check, self.on_msimi_response))
         return messages
@@ -1337,7 +1337,7 @@ class HSearchCommunity(ForwardCommunity):
             meta_request = self.get_meta_message(u"similarity-request")
             request = meta_request.impl(authentication=(self.my_member,),
                                 distribution=(self.global_time,),
-                                payload=(message.payload.identifier, long(message.payload.key_n), message.payload.preference_list))
+                                payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
             
             self._dispersy._send(candidates, [request])
     
@@ -1361,11 +1361,11 @@ class HSearchCommunity(ForwardCommunity):
         
         def add_response(self, candidate_mid, response):
             if DEBUG_VERBOSE:
-                print >> sys.stderr, "PSearchCommunity: got response in MSimilarityRequest"
+                print >> sys.stderr, "HSearchCommunity: got response in MSimilarityRequest"
             
             if candidate_mid in self.requested_mids:
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, "PSearchCommunity: added response in MSimilarityRequest"
+                    print >> sys.stderr, "HSearchCommunity: added response in MSimilarityRequest"
                 
                 if candidate_mid not in self.received_candidates:
                     self.received_candidates.add(candidate_mid)
@@ -1386,11 +1386,14 @@ class HSearchCommunity(ForwardCommunity):
                 self.isProcessed = True
                 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, "PSearchCommunity: processed RPSimilarityRequest"
+                    print >> sys.stderr, "HSearchCommunity: processed MSimilarityRequest"
                     
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
                 
         def on_timeout(self):
+            if DEBUG:
+                print >> sys.stderr, "HSearchCommunity: timeout MSimilarityRequest", len(self.received_lists), len(self.requested_candidates)
+                
             self.process()
     
     def on_encr_response(self, messages):
