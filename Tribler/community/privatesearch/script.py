@@ -39,7 +39,7 @@ class SearchScript(ScenarioScriptBase):
         
         if self.community_type == 'search':
             community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
-        if self.community_type == 'hsearch':
+        elif self.community_type == 'hsearch':
             community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
         else:
             community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
