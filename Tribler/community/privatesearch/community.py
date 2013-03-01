@@ -910,10 +910,25 @@ class ForwardCommunity(SearchCommunity):
         for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
             yield random_candidate
     
+    class ForwardAttempt(Cache):
+        timeout_delay = 10.5
+        cleanup_delay = 0.0
+
+        def __init__(self, community, requested_candidate):
+            self.community = community
+            self.requested_candidate = requested_candidate
+        
+        def on_timeout(self):
+            self.community.send_introduction_request(self.requested_candidate)
+    
     def create_introduction_request(self, destination, allow_sync):
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
-            send = self.send_similarity_request(destination)
+            identifier = self._dispersy.request_cache.claim(ForwardCommunity.ForwardAttempt(self, destination))
+            send = self.send_similarity_request(destination, identifier)
+            
+            if not send:
+                self._dispersy.request_cache.pop(identifier, ForwardCommunity.ForwardAttempt)
             
         if not send:
             self.send_introduction_request(destination)
@@ -970,8 +985,7 @@ class PSearchCommunity(ForwardCommunity):
     def initiate_conversions(self):
         return [DefaultConversion(self), PSearchConversion(self)]
     
-    def send_similarity_request(self, destination):
-        identifier = self._dispersy.request_cache.generate_identifier()
+    def send_similarity_request(self, destination, identifier):
         global_vector_request, global_vector = self.create_global_vector(destination, identifier)
         
         str_global_vector = str(global_vector)
@@ -1278,8 +1292,7 @@ class HSearchCommunity(ForwardCommunity):
     def initiate_conversions(self):
         return [DefaultConversion(self), HSearchConversion(self)]
     
-    def send_similarity_request(self, destination):
-        identifier = self._dispersy.request_cache.generate_identifier()
+    def send_similarity_request(self, destination, identifier):
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         str_myPreferences = str(myPreferences)
         
@@ -1408,7 +1421,7 @@ class HSearchCommunity(ForwardCommunity):
                 request.add_response(message.authentication.member.mid, [message.payload.preference_list, message.payload.his_preference_list])
                 if request.is_complete():
                     request.process()
-                
+                    
     def on_msimi_response(self, messages):
         #process as normal encr_response message
         SearchCommunity.on_encr_response(self, messages)
@@ -1427,11 +1440,15 @@ class HSearchCommunity(ForwardCommunity):
         self.add_possible_taste_buddies(possibles)
 
         for message in messages:
-            destination, introduce_me_to = self.get_most_similar(message.candidate)
-            self.send_introduction_request(destination, introduce_me_to)
+            request = self._dispersy.request_cache.pop(message.payload.identifier, HSearchCommunity.MSimilarityAttempt)
+            if request:
+                destination, introduce_me_to = self.get_most_similar(message.candidate)
+                self.send_introduction_request(destination, introduce_me_to)
             
-            if DEBUG and introduce_me_to:
-                print >> sys.stderr, "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
+                if DEBUG and introduce_me_to:
+                    print >> sys.stderr, "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
+                
+                self._dispersy.request_cache.get(message.payload.identifier, HSearchCommunity.MSimilarityAttempt)
         
 class Das4DBStub():
     def __init__(self, dispersy):
