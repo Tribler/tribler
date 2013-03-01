@@ -612,7 +612,8 @@ class SearchCommunity(Community):
         
     def resetTastebuddy(self, candidate):
         for taste_buddy in self.taste_buddies:
-            if taste_buddy[2].sock_addr in candidate.sock_addr:
+            #TODO: change for deployment
+            if taste_buddy[2].sock_addr[1] == candidate.sock_addr[1]:
                 taste_buddy[1] = time()
     
     def create_ping_request(self, candidate):
