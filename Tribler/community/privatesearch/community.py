@@ -852,7 +852,11 @@ class ForwardCommunity(SearchCommunity):
         self._meta_messages[u"dispersy-introduction-request"] = new
     
     def add_possible_taste_buddies(self, possibles):
+        low_sim = self.get_low_sim()
         for new_pos_tuple in possibles:
+            if new_pos_tuple[0] < low_sim:
+                continue
+            
             for i, pos_tuple in enumerate(self.possible_taste_buddies):
                 if new_pos_tuple[2] == pos_tuple[2]:
                     #max similarity
@@ -876,7 +880,7 @@ class ForwardCommunity(SearchCommunity):
                 return True
         return False
     
-    def get_low_sum(self):
+    def get_low_sim(self):
         if len(self.taste_buddies) == 10:
             return self.taste_buddies[-1][0]
         return 0
@@ -884,7 +888,7 @@ class ForwardCommunity(SearchCommunity):
     def get_most_similar(self, candidate):
         #clean possible taste buddies, remove all entries older than 60s
         to_be_removed = time() - 60
-        low_sum = self.get_low_sum()
+        low_sum = self.get_low_sim()
         
         for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
             if self.possible_taste_buddies[i][0] <= low_sum or self.possible_taste_buddies[i][1] < to_be_removed or self.is_taste_buddy_mid(self.possible_taste_buddies[i][2]):
@@ -1413,7 +1417,7 @@ class HSearchCommunity(ForwardCommunity):
         for message in messages:
             candidate = self._dispersy.get_walkcandidate(message, self)
             if DEBUG_VERBOSE:
-                print >> sys.stderr, "HSearchCommunity: received similarities"
+                print >> sys.stderr, "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
             
             for candidate_mid, remote_response in message.payload.bundled_responses:
                 overlap = self.compute_rsa_overlap(remote_response[0], remote_response[1])
