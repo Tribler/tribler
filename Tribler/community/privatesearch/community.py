@@ -1407,6 +1407,8 @@ class HSearchCommunity(ForwardCommunity):
             request = self._dispersy.request_cache.get(message.payload.identifier, HSearchCommunity.MSimilarityRequest)
             if request:
                 request.add_response(message.authentication.member.mid, [message.payload.preference_list, message.payload.his_preference_list])
+                if request.is_complete():
+                    request.process()
                 
     def on_msimi_response(self, messages):
         #process as normal encr_response message
