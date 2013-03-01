@@ -37,8 +37,8 @@ from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decry
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = True
-DEBUG_VERBOSE = True
+DEBUG = False
+DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
@@ -347,7 +347,7 @@ class SearchCommunity(Community):
                 self._dispersy._forward([resp_message])
                 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, "SearchCommunity: sending encrypted-response too", message.candidate
+                    print >> sys.stderr, "SearchCommunity: sending encrypted-response to", message.candidate
             else:
                 return hisList, myList
     
