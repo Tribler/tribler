@@ -854,7 +854,7 @@ class ForwardCommunity(SearchCommunity):
     def add_possible_taste_buddies(self, possibles):
         low_sim = self.get_low_sim()
         for new_pos_tuple in possibles:
-            if new_pos_tuple[0] < low_sim:
+            if new_pos_tuple[0] <= low_sim:
                 continue
             
             for i, pos_tuple in enumerate(self.possible_taste_buddies):
@@ -891,7 +891,7 @@ class ForwardCommunity(SearchCommunity):
         low_sim = self.get_low_sim()
         
         for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
-            to_low_sim = self.possible_taste_buddies[i][0] < low_sim
+            to_low_sim = self.possible_taste_buddies[i][0] <= low_sim
             to_old = self.possible_taste_buddies[i][1] < to_be_removed
             is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i][2])
             if to_low_sim or to_old or is_tb:
