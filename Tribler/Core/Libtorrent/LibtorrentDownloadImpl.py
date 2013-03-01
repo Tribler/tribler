@@ -167,7 +167,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             atp["ti"] = torrentinfo
             if pstate and pstate.get('engineresumedata', None):
                 atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
-            print >> sys.stderr, self.tdef.get_name_as_unicode(), pstate.get('engineresumedata', None)
+            print >> sys.stderr, self.tdef.get_name_as_unicode(), pstate.get('engineresumedata', None) if pstate else None
         else:
             atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
             atp["name"] = self.tdef.get_name_as_unicode()
