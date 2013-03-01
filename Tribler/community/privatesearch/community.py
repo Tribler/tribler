@@ -208,7 +208,7 @@ class SearchCommunity(Community):
         self.taste_buddies = self.taste_buddies[:10]
         
         if DEBUG:
-            print >> sys.stderr, "SearchCommunity: current tastebuddy list", self.taste_buddies
+            print >> sys.stderr, "SearchCommunity: current tastebuddy list", len(self.taste_buddies), self.taste_buddies
     
     def yield_taste_buddies(self, ignore_candidate = None):
         taste_buddies = self.taste_buddies[:]
