@@ -702,13 +702,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_checkpoint(self):
         """ Called by network thread """
         with self.dllock:
-            pstate = self.network_get_persistent_state() 
+            pstate = self.network_get_persistent_state()
+            resdata = None
             if self.handle == None:
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart['engineresumedata']
-                else:
-                    resdata = None
-            else:
+            elif self.handle.status().has_metadata:
                 resdata = self.handle.write_resume_data()
             pstate['engineresumedata'] = resdata
             return (self.tdef.get_infohash(), pstate)
