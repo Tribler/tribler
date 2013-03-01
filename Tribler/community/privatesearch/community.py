@@ -1413,10 +1413,11 @@ class HSearchCommunity(ForwardCommunity):
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
                 
         def on_timeout(self):
-            if DEBUG:
-                print >> sys.stderr, "HSearchCommunity: timeout MSimilarityRequest", len(self.received_lists), len(self.requested_candidates)
-                
-            self.process()
+            if not self.isProcessed:
+                if DEBUG:
+                    print >> sys.stderr, "HSearchCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates)
+                    
+                self.process()
     
     def on_encr_response(self, messages):
         for message in messages:
