@@ -1452,8 +1452,6 @@ class HSearchCommunity(ForwardCommunity):
             
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
-                
-                self._dispersy.request_cache.get(message.payload.identifier, HSearchCommunity.MSimilarityAttempt)
         
 class Das4DBStub():
     def __init__(self, dispersy):
