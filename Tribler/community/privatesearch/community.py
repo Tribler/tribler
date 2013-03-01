@@ -971,8 +971,7 @@ class PSearchCommunity(ForwardCommunity):
         return [DefaultConversion(self), PSearchConversion(self)]
     
     def send_similarity_request(self, destination):
-        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
-        
+        identifier = self._dispersy.request_cache.generate_identifier()
         global_vector_request, global_vector = self.create_global_vector(destination, identifier)
         
         str_global_vector = str(global_vector)
@@ -1280,7 +1279,7 @@ class HSearchCommunity(ForwardCommunity):
         return [DefaultConversion(self), HSearchConversion(self)]
     
     def send_similarity_request(self, destination):
-        identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
+        identifier = self._dispersy.request_cache.generate_identifier()
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash() if preference]
         str_myPreferences = str(myPreferences)
         
@@ -1301,7 +1300,7 @@ class HSearchCommunity(ForwardCommunity):
         
         if myPreferences:
             if DEBUG_VERBOSE:
-                print >> sys.stderr, "HSearchCommunity: sending similarity request to", destination, "containing", len(myPreferences), "hashes", self._mypref_db.getMyPrefListInfohash()
+                print >> sys.stderr, "HSearchCommunity: sending similarity request to", destination, "containing", len(myPreferences), "hashes"
                     
             meta_request = self.get_meta_message(u"msimilarity-request")
             request = meta_request.impl(authentication=(self.my_member,),
@@ -1333,7 +1332,7 @@ class HSearchCommunity(ForwardCommunity):
                 print >> sys.stderr, "HSearchCommunity: got msimi request from", message.candidate
             
             #get candidates to forward requests to, excluding the requesting peer
-            candidates = self.get_connections(5, message.candidate)
+            candidates = self.get_connections(10, message.candidate)
             
             #create MSimilarityRequest to use as object to collect all sums
             self._dispersy.request_cache.set(message.payload.identifier, HSearchCommunity.MSimilarityRequest(self, message, candidates))
