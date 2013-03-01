@@ -1388,13 +1388,7 @@ class HSearchCommunity(ForwardCommunity):
             self.isProcessed = False
         
         def add_response(self, candidate_mid, response):
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, "HSearchCommunity: got response in MSimilarityRequest"
-            
             if candidate_mid in self.requested_mids:
-                if DEBUG_VERBOSE:
-                    print >> sys.stderr, "HSearchCommunity: added response in MSimilarityRequest"
-                
                 if candidate_mid not in self.received_candidates:
                     self.received_candidates.add(candidate_mid)
                     self.received_lists.append((candidate_mid, response))
