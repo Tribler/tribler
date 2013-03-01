@@ -581,6 +581,8 @@ class SearchCommunity(Community):
                     print >> sys.stderr, "SearchCommunity: got search response identifier not found", message.payload.identifier
 
     class PingRequestCache(IntroductionRequestCache):
+        cleanup_delay = 0.0
+        
         def __init__(self, community, candidate):
             IntroductionRequestCache.__init__(self, community, None)
             self.candidate = candidate
