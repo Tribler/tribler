@@ -1277,11 +1277,13 @@ class PSearchCommunity(ForwardCommunity):
             if _sums:
                 self.add_possible_taste_buddies(_sums)
 
-            destination, introduce_me_to = self.get_most_similar(message.candidate)
-            self.send_introduction_request(destination, introduce_me_to)
-            
-            if DEBUG and introduce_me_to:
-                print >> sys.stderr, "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
+            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.ForwardAttempt)
+            if request:
+                destination, introduce_me_to = self.get_most_similar(message.candidate)
+                self.send_introduction_request(destination, introduce_me_to)
+                
+                if DEBUG and introduce_me_to:
+                    print >> sys.stderr, "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s"%(destination, introduce_me_to.encode("HEX"), message.candidate)
                 
 class HSearchCommunity(ForwardCommunity):
     
@@ -1443,7 +1445,7 @@ class HSearchCommunity(ForwardCommunity):
         self.add_possible_taste_buddies(possibles)
 
         for message in messages:
-            request = self._dispersy.request_cache.pop(message.payload.identifier, HSearchCommunity.MSimilarityAttempt)
+            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.ForwardAttempt)
             if request:
                 destination, introduce_me_to = self.get_most_similar(message.candidate)
                 self.send_introduction_request(destination, introduce_me_to)
