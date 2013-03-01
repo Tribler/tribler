@@ -588,9 +588,10 @@ class GUIUtility:
     @forceWxThread
     def MarkAsFavorite(self, event, channel):
         if channel:
-            button = event.GetEventObject()
-            button.Enable(False)
-            if hasattr(button, 'selected'): button.selected = False
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
             
             dlgname = 'MFdialog'
             if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
@@ -606,19 +607,20 @@ class GUIUtility:
                 def add_vote():        
                     self.channelsearch_manager.favorite(channel.id)
                     wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon = 'favourite')
-                    button.Enable(True)
+                    if event: button.Enable(True)
                     UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type = 2)
                     self.RefreshChannel(channel.id)
                 add_vote()
-            else:
+            elif event:
                 button.Enable(True)
             
     @forceWxThread
     def RemoveFavorite(self, event, channel):
         if channel:
-            button = event.GetEventObject()
-            button.Enable(False)
-            if hasattr(button, 'selected'): button.selected = False
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
 
             dlgname = 'RFdialog'
             if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
@@ -634,10 +636,10 @@ class GUIUtility:
                 def remove_vote():        
                     self.channelsearch_manager.remove_vote(channel.id)
                     wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon = 'favourite')
-                    button.Enable(True)
+                    if event: button.Enable(True)
                     self.RefreshChannel(channel.id)
                 remove_vote()
-            else:
+            elif event:
                 button.Enable(True)
                 
     def RefreshChannel(self, channelid):
