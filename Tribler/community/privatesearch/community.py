@@ -863,7 +863,7 @@ class ForwardCommunity(SearchCommunity):
             
             #new peer
             else:
-                self.possible_taste_buddies.append(pos_tuple)
+                self.possible_taste_buddies.append(new_pos_tuple)
         
         self.possible_taste_buddies.sort(reverse = True)
         
