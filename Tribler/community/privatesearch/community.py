@@ -956,7 +956,10 @@ class ForwardCommunity(SearchCommunity):
         for message in messages:
             if message.payload.introduce_me_to:
                 candidate = self._dispersy.get_walkcandidate(message, self)
-                self.requested_introductions[candidate] = self.get_candidate_mid(message.payload.introduce_me_to)
+                self.requested_introductions[candidate] = introduce_me_to = self.get_candidate_mid(message.payload.introduce_me_to)
+                
+                if not introduce_me_to and DEBUG:
+                    print >> sys.stderr, "Cannot create candidate for mid", message.payload.introduce_me_to
         
         self._disp_intro_handler(messages)
         
