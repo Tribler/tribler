@@ -62,14 +62,16 @@ class SeedingManager:
     def __init__(self, download_state):
         self.download_state = download_state
         self.policy = None
+        self.udc = UserDownloadChoice.get_singleton()
 
     def update_download_state(self, download_state):
         self.download_state = download_state
         download = self.download_state.get_download()
         if download.get_def().get_def_type() == 'torrent':
-            if UserDownloadChoice.get_singleton().get_download_state(download.get_def().get_id()) != 'restartseed':
+            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed':
                 if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
                     if DEBUG: print >>sys.stderr,"Stop seeding: ", self.download_state.get_download().get_dest_files()
+                    self.udc.set_download_state(download.get_def().get_id(), 'stop')
                     self.download_state.get_download().stop()
         #No swift, for now
         

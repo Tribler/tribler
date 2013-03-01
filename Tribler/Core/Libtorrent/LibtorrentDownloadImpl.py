@@ -63,7 +63,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.ltmgr = LibtorrentMgr.getInstance()
 
         # Libtorrent status
-        self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
+        self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
         self.length = 0L
         self.progress = 0.0
@@ -119,9 +119,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: setup: initialdlstatus", self.tdef.get_infohash(), initialdlstatus
-                    
-                if initialdlstatus == DLSTATUS_STOPPED:
-                    self.pause_after_next_hashcheck = True
                     
                 self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus = initialdlstatus, wrapperDelay = wrapperDelay)
                 
@@ -179,7 +176,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
                 self.set_vod_mode()
-            self.handle.resume()
+            if initialdlstatus != DLSTATUS_STOPPED:
+                self.handle.resume()
             
         with self.dllock:
             self.cew_scheduled = False
@@ -319,7 +317,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     if alert_type == 'torrent_paused_alert':
                         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if status.error else DLSTATUS_STOPPED
                     else:
-                        self.dlstate = self.dlstates[status.state]
+                        self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
 
                 self.error = unicode(status.error) if status.error else None
                 self.length = float(status.total_wanted)
@@ -705,7 +703,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         """ Called by network thread """
         with self.dllock:
             pstate = self.network_get_persistent_state() 
-            if self.handle is not None:
+            if self.handle == None:
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart['engineresumedata']
                 else:
