@@ -888,10 +888,15 @@ class ForwardCommunity(SearchCommunity):
     def get_most_similar(self, candidate):
         #clean possible taste buddies, remove all entries older than 60s
         to_be_removed = time() - 60
-        low_sum = self.get_low_sim()
+        low_sim = self.get_low_sim()
         
-        for i in range(len(self.possible_taste_buddies)- 1, -1, -1):
-            if self.possible_taste_buddies[i][0] <= low_sum or self.possible_taste_buddies[i][1] < to_be_removed or self.is_taste_buddy_mid(self.possible_taste_buddies[i][2]):
+        for i in range(len(self.possible_taste_buddies) - 1, -1, -1):
+            to_low_sim = self.possible_taste_buddies[i][0] <= low_sim
+            to_old = self.possible_taste_buddies[i][1] < to_be_removed
+            is_tb = self.is_taste_buddy_mid(self.possible_taste_buddies[i][2])
+            if to_low_sim or to_old or is_tb:
+                if DEBUG:
+                    print >> sys.stderr, "ForwardCommunity: removing possible tastebuddy", long(time()), to_low_sim, to_old, is_tb, self.possible_taste_buddies[i]
                 self.possible_taste_buddies.pop(i)
                     
         if self.possible_taste_buddies:                
