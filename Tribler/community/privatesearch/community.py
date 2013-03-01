@@ -852,21 +852,23 @@ class ForwardCommunity(SearchCommunity):
         self._meta_messages[u"dispersy-introduction-request"] = new
     
     def add_possible_taste_buddies(self, possibles):
-        possible_mids = {}
-        for i,possible in enumerate(self.possible_taste_buddies):
-            possible_mids[possible[2]] = i
-
-        #add all possibles and sort descending by sum, time received
-        for possible in possibles:
-            if possible[2] in possible_mids:
-                self.possible_taste_buddies[possible_mids[possible[2]]] = possible
+        for new_pos_tuple in possibles:
+            for i, pos_tuple in enumerate(self.possible_taste_buddies):
+                if new_pos_tuple[2] == pos_tuple[2]:
+                    #max similarity
+                    new_pos_tuple[0] = max(pos_tuple[0], new_pos_tuple[0])
+                    #replace in list
+                    self.possible_taste_buddies[i] = new_pos_tuple
+                    break
+            
+            #new peer
             else:
-                self.possible_taste_buddies.append(possible)
+                self.possible_taste_buddies.append(pos_tuple)
         
         self.possible_taste_buddies.sort(reverse = True)
         
         if DEBUG and possibles:
-            print >> sys.stderr, "PSearchCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
+            print >> sys.stderr, "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
     
     def has_possible_taste_buddies(self, candidate):
         for _,_,_,from_candidate in self.possible_taste_buddies:
@@ -1342,6 +1344,7 @@ class HSearchCommunity(ForwardCommunity):
     
     class MSimilarityRequest(Cache):
         timeout_delay = 3.5
+        cleanup_delay = 0.0
         
         def __init__(self, community, message, requested_candidates):
             self.community = community
