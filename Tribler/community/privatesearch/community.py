@@ -37,8 +37,8 @@ from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decry
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = False
-DEBUG_VERBOSE = False
+DEBUG = True
+DEBUG_VERBOSE = True
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
@@ -1408,7 +1408,7 @@ class HSearchCommunity(ForwardCommunity):
         #process possible taste buddies
         possibles = []
         for message in messages:
-            candidate = self.get_walkcandidate(message, self)
+            candidate = self._dispersy.get_walkcandidate(message, self)
             if DEBUG_VERBOSE:
                 print >> sys.stderr, "HSearchCommunity: received similarities"
             
