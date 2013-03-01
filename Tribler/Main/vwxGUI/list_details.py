@@ -18,7 +18,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
-    ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps
+    ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps,\
+    TransparentStaticBitmap
 
 from list_body import ListBody
 from widgets import _set_font
@@ -1673,7 +1674,7 @@ class AbstractInfoPanel(FancyPanel):
         
     def AddMessage(self, message, colour = wx.Colour(50,50,50), bold = False):
         if not self.textSizer.GetChildren():
-            self.messageSizer.Insert(0, wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION)), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
+            self.messageSizer.Insert(0, TransparentStaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION)), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
         
         message = TransparentText(self, -1, message)
         _set_font(message, size_increment = 2, fontcolour = colour, fontweight = wx.FONTWEIGHT_NORMAL if not bold else wx.FONTWEIGHT_BOLD)

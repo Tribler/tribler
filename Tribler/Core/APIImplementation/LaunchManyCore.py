@@ -589,7 +589,7 @@ class TriblerLaunchMany(Thread):
                 
             for i, filename in enumerate(filelist):
                 shouldCommit = i+1 == len(filelist)
-                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.5)
+                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.1)
             
     def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
