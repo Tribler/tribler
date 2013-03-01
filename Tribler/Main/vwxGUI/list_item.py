@@ -106,7 +106,7 @@ class DoubleLineListItem(ListItem):
     def _add_columnresizing(self, sline, column_index):
         sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
         # Take hidden columns into account
-        control_index = len([column for column in self.columns[:column_index] if column['show']])
+        control_index = self.columns[column_index]['controlindex']
                     
         def OnLeftDown(event):
             eo = event.GetEventObject()
