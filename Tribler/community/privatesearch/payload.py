@@ -70,6 +70,7 @@ class BundledEncryptedResponsePayload(EncryptedResponsePayload):
             EncryptedResponsePayload.Implementation.__init__(self, meta, identifier, preference_list, his_preference_list)
             
             assert isinstance(bundled_responses, list), 'bundled_responses should be list not %s'%type(bundled_responses)
+            assert len(x) == len(set(mid for mid,_ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
             for candidate_mid, response in bundled_responses:
                 assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                 assert len(candidate_mid) == 20, len(candidate_mid)
