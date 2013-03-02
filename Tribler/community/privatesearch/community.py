@@ -347,7 +347,7 @@ class SearchCommunity(Community):
                 self._dispersy._forward([resp_message])
                 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "SearchCommunity: sending encrypted-response to", message.candidate
+                    print >> sys.stderr, long(time()), "SearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
             else:
                 return hisList, myList
     
@@ -692,7 +692,7 @@ class SearchCommunity(Community):
             self._dispersy._send([candidate], [message])
     
             if DEBUG:
-                print >> sys.stderr, long(time()), long(time()), "SearchCommunity: send", meta_name, "to", candidate
+                print >> sys.stderr, long(time()), "SearchCommunity: send", meta_name, "to", candidate
                 
     def create_torrent_request(self, torrents, candidate):
         torrentdict = {}
@@ -875,7 +875,7 @@ class ForwardCommunity(SearchCommunity):
         self.possible_taste_buddies.sort(reverse = True)
         
         if DEBUG and possibles:
-            print >> sys.stderr, long(time()), long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
+            print >> sys.stderr, long(time()), "ForwardCommunity: got possible taste buddies, current list", len(self.possible_taste_buddies), [possible[0] for possible in self.possible_taste_buddies]
     
     def has_possible_taste_buddies(self, candidate):
         for _,_,_,from_candidate in self.possible_taste_buddies:
@@ -1360,16 +1360,21 @@ class HSearchCommunity(ForwardCommunity):
             #get candidates to forward requests to, excluding the requesting peer
             candidates = self.get_connections(10, message.candidate)
             
-            #create MSimilarityRequest to use as object to collect all sums
-            self._dispersy.request_cache.set(message.payload.identifier, HSearchCommunity.MSimilarityRequest(self, message, candidates))
-            
-            #forward it to others
-            meta_request = self.get_meta_message(u"similarity-request")
-            request = meta_request.impl(authentication=(self.my_member,),
-                                distribution=(self.global_time,),
-                                payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
-            
-            self._dispersy._send(candidates, [request])
+            request_cache = HSearchCommunity.MSimilarityRequest(self, message, candidates)
+            if candidates:
+                #create MSimilarityRequest to use as object to collect all sums
+                self._dispersy.request_cache.set(message.payload.identifier, request_cache)
+                
+                #forward it to others
+                meta_request = self.get_meta_message(u"similarity-request")
+                request = meta_request.impl(authentication=(self.my_member,),
+                                    distribution=(self.global_time,),
+                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
+                
+                self._dispersy._send(candidates, [request])
+                
+            else:
+                request_cache.process()
     
     class MSimilarityRequest(Cache):
         timeout_delay = 3.5
@@ -1438,6 +1443,8 @@ class HSearchCommunity(ForwardCommunity):
         possibles = []
         for message in messages:
             candidate = self._dispersy.get_walkcandidate(message, self)
+            candidate.walk_response(self)
+            
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
             
