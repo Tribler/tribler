@@ -82,7 +82,7 @@ class SearchConversion(BinaryConversion):
             raise DropPacket("Invalid number of bytes available (encr_res)")
         if length:
             hashpack = '20s' * (length/20)
-            his_hashes = unpack_from('!'+hashpack, str_hprefs)
+            his_hashes = list(unpack_from('!'+hashpack, str_hprefs))
         else:
             his_hashes = []
         
@@ -503,7 +503,7 @@ class HSearchConversion(SearchConversion):
                 raise DropPacket("Invalid number of bytes available (encr_res)")
             if length:
                 hashpack = '20s' * (length/20)
-                his_hashes = unpack_from('!'+hashpack, str_hprefs)
+                his_hashes = list(unpack_from('!'+hashpack, str_hprefs))
             else:
                 his_hashes = []
                 
