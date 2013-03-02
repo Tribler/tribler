@@ -856,6 +856,13 @@ class ForwardCommunity(SearchCommunity):
         self._meta_messages[u"dispersy-introduction-request"] = new
     
     def add_possible_taste_buddies(self, possibles):
+        if __debug__:
+            for possible in possibles:
+                assert isinstance(possible[0], (float, int, long)), type(possible[0])
+                assert isinstance(possible[1], (float, long)), type(possible[1])
+                assert isinstance(possible[2], str), type(possible[2])
+                assert isinstance(possible[3], Candidate), type(possible[3])
+        
         low_sim = self.get_low_sim()
         for new_pos_tuple in possibles:
             if new_pos_tuple[0] <= low_sim:
