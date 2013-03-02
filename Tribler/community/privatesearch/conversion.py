@@ -463,8 +463,8 @@ class HSearchConversion(SearchConversion):
     def _encode_simi_response(self, message):
         def _encode_response(mid, preference_list, his_preference_list):
             str_mid = pack("!20s", mid) if mid else ''
-            str_prefs = pack("!"+"128s"*len(message.payload.preference_list), *[long_to_bytes(preference, 128) for preference in message.payload.preference_list])
-            str_hprefs = pack("!"+"20s"*len(message.payload.his_preference_list), *message.payload.his_preference_list)
+            str_prefs = pack("!"+"128s"*len(preference_list), *[long_to_bytes(preference, 128) for preference in preference_list])
+            str_hprefs = pack("!"+"20s"*len(his_preference_list), *his_preference_list)
             return (str_mid, str_prefs, str_hprefs)
         
         responses = []
