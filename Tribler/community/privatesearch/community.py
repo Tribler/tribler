@@ -1454,6 +1454,7 @@ class HSearchCommunity(ForwardCommunity):
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
             
             for candidate_mid, remote_response in message.payload.bundled_responses:
+                print >> sys.stderr, "candidate", candidate_mid
                 overlap = self.compute_rsa_overlap(remote_response[0], remote_response[1])
                 possibles.append([overlap, time(), candidate_mid, candidate])
                 
