@@ -373,6 +373,8 @@ class SearchCommunity(Community):
             self.create_time_decryption += time() - t1
         else:
             myList = [long_to_bytes(infohash) for infohash in preference_list]
+            print >> sys.stderr, "M", myList
+            print >> sys.stderr, "H", his_preference_list
     
         assert all(len(infohash) == 20 for infohash in myList) 
     
