@@ -1378,7 +1378,7 @@ class HSearchCommunity(ForwardCommunity):
                 request_cache.process()
     
     class MSimilarityRequest(Cache):
-        timeout_delay = 3.5
+        timeout_delay = 7.0
         cleanup_delay = 0.0
         
         def __init__(self, community, message, requested_candidates):
