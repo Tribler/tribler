@@ -37,8 +37,8 @@ from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decry
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = True
-DEBUG_VERBOSE = True
+DEBUG = False
+DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
 ENCRYPTION = True
