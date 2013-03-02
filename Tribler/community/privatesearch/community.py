@@ -1374,6 +1374,7 @@ class HSearchCommunity(ForwardCommunity):
                 self._dispersy._send(candidates, [request])
                 
             else:
+                request_cache.identifier = message.payload.identifier
                 request_cache.process()
     
     class MSimilarityRequest(Cache):
