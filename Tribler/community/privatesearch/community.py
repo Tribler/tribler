@@ -1332,7 +1332,7 @@ class HSearchCommunity(ForwardCommunity):
             request = meta_request.impl(authentication=(self.my_member,),
                                     distribution=(self.global_time,),
                                     destination=(destination,),
-                                    payload=(identifier, self.key.n, myPreferences))
+                                    payload=(identifier, long(self.key.n), myPreferences))
         
             self._dispersy._forward([request])
             return True
