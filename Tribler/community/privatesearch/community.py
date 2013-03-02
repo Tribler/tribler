@@ -369,9 +369,13 @@ class SearchCommunity(Community):
         if self.encryption:
             t1 = time()
             myList = [hash_element(rsa_decrypt(self.key, infohash)) for infohash in preference_list]
+            
             self.create_time_decryption += time() - t1
         else:
             myList = [long_to_bytes(infohash) for infohash in preference_list]
+            
+            print >> sys.stderr, "M", myList
+            print >> sys.stderr, "H", his_preference_list
     
         assert all(len(infohash) == 20 for infohash in myList) 
     
