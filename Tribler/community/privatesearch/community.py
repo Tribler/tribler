@@ -993,7 +993,7 @@ class PSearchCommunity(ForwardCommunity):
         self.my_vector_cache = [None, None]
             
     def initiate_meta_messages(self):
-        messages = SearchCommunity.initiate_meta_messages(self)
+        messages = ForwardCommunity.initiate_meta_messages(self)
         messages.append(Message(self, u"sum-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self._dispersy._generic_timeline_check, self.on_sum_request))
         messages.append(Message(self, u"sums-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), EncryptedVectorPayload(), self._dispersy._generic_timeline_check, self.on_sums_request))
         messages.append(Message(self, u"global-vector", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), GlobalVectorPayload(), self._dispersy._generic_timeline_check, self.on_global_vector))
@@ -1134,6 +1134,7 @@ class PSearchCommunity(ForwardCommunity):
     
     class PSimilarityRequest(Cache):
         timeout_delay = 3.5
+        cleanup_delay = 0.0
         
         def __init__(self, community, requesting_candidate):
             self.community = community
@@ -1198,6 +1199,7 @@ class PSearchCommunity(ForwardCommunity):
     
     class RPSimilarityRequest(PSimilarityRequest):
         timeout_delay = 7.0
+        
         def __init__(self, community, requesting_candidate, requested_candidates):
             PSearchCommunity.PSimilarityRequest.__init__(self, community, requesting_candidate)
             
@@ -1304,7 +1306,7 @@ class PSearchCommunity(ForwardCommunity):
 class HSearchCommunity(ForwardCommunity):
     
     def initiate_meta_messages(self):
-        messages = SearchCommunity.initiate_meta_messages(self)
+        messages = ForwardCommunity.initiate_meta_messages(self)
         messages.append(Message(self, u"similarity-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self._dispersy._generic_timeline_check, self.process_rsa_simirequest))
         messages.append(Message(self, u"msimilarity-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SimilarityRequest(), self.check_msimi_request, self.on_msimi_request))
         messages.append(Message(self, u"msimilarity-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), BundledEncryptedResponsePayload(), self._dispersy._generic_timeline_check, self.on_msimi_response))
