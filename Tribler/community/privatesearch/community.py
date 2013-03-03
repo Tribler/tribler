@@ -1418,7 +1418,7 @@ class HSearchCommunity(ForwardCommunity):
         def process(self):
             if not self.isProcessed:
                 meta_request = self.community.get_meta_message(u"msimilarity-response")
-                response = meta_request.impl(authentication=(self.community.my_member,),
+                response = meta_request.impl(authentication=(self.community._my_member,),
                                         distribution=(self.community.global_time,),
                                         destination=(self.requesting_candidate,),
                                         payload=(self.identifier, self.hisList, self.myList, self.received_lists))
