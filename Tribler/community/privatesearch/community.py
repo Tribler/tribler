@@ -1368,7 +1368,7 @@ class HSearchCommunity(ForwardCommunity):
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi request from", message.candidate
             
             #get candidates to forward requests to, excluding the requesting peer
-            candidates = self.get_connections(1, message.candidate)
+            candidates = self.get_connections(5, message.candidate)
             
             request_cache = HSearchCommunity.MSimilarityRequest(self, message, candidates)
             if candidates:
