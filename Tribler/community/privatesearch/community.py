@@ -1449,21 +1449,19 @@ class HSearchCommunity(ForwardCommunity):
         SearchCommunity.on_encr_response(self, messages)
         
         #process possible taste buddies
-        possibles = []
         for message in messages:
-            candidate = self._dispersy.get_walkcandidate(message, self)
-            candidate.walk_response(self)
-            
+#            candidate = self._dispersy.get_walkcandidate(message, self)
+#            candidate.walk_response(self)
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
             
+            possibles = []
             for candidate_mid, remote_response in message.payload.bundled_responses:
                 overlap = self.compute_rsa_overlap(remote_response[0], remote_response[1])
-                possibles.append([overlap, time(), candidate_mid, candidate])
+                possibles.append([overlap, time(), candidate_mid, message.candidate])
                 
-        self.add_possible_taste_buddies(possibles)
+            self.add_possible_taste_buddies(possibles)
 
-        for message in messages:
             request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.ForwardAttempt)
             if request:
                 destination, introduce_me_to = self.get_most_similar(message.candidate)
