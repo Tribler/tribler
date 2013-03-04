@@ -3,6 +3,14 @@
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 
 ## Dependencies
+
+### Debian/Ubuntu/Mint
+sudo apt-get install scons build-essential libevent-dev python-libtorrent python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc
+
+### Windows
+TODO
+
+### OSX
 TODO
 
 ## Running Tribler from this repository
