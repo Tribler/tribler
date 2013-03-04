@@ -1379,7 +1379,7 @@ class HSearchCommunity(ForwardCommunity):
                 meta_request = self.get_meta_message(u"similarity-request")
                 request = meta_request.impl(authentication=(self.my_member,),
                                     distribution=(self.global_time,),
-                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list[:5]))
+                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
                 
                 self._dispersy._send(candidates, [request])
                 
