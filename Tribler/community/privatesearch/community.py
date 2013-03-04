@@ -1046,7 +1046,7 @@ class HSearchCommunity(SearchCommunity):
         matches.sort(reverse = True)
         return [candidate for _,candidate in matches]
             
-    def dispersy_yield_random_candidates(self, candidate = None):
+    def dispersy_yield_introduce_candidates(self, candidate = None):
         if candidate:
             preferences = self.get_preferences(candidate)
             if preferences:
@@ -1054,7 +1054,7 @@ class HSearchCommunity(SearchCommunity):
                     if matching_candidate.sock_addr != candidate.sock_addr:
                         yield matching_candidate
         
-        for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
+        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, candidate):
             yield random_candidate
             
 class PSearchCommunity(SearchCommunity):
@@ -1188,14 +1188,14 @@ class PSearchCommunity(SearchCommunity):
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d"%message.candidate.sock_addr)
                 
-    def dispersy_yield_random_candidates(self, candidate = None):
+    def dispersy_yield_introduce_candidates(self, candidate = None):
         if candidate:
             if candidate in self.requested_introductions:
                 intro_me_candidate = self.requested_introductions[candidate]
                 del self.requested_introductions[candidate]
                 yield intro_me_candidate
         
-        for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
+        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, candidate):
             yield random_candidate
     
     def send_sums_request(self, destination):
