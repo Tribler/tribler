@@ -1368,7 +1368,7 @@ class HSearchCommunity(ForwardCommunity):
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi request from", message.candidate
             
             #get candidates to forward requests to, excluding the requesting peer
-            candidates = self.get_connections(3, message.candidate)
+            candidates = self.get_connections(10, message.candidate)
             
             request_cache = HSearchCommunity.MSimilarityRequest(self, message, candidates)
             if candidates:
@@ -1379,7 +1379,7 @@ class HSearchCommunity(ForwardCommunity):
                 meta_request = self.get_meta_message(u"similarity-request")
                 request = meta_request.impl(authentication=(self.my_member,),
                                     distribution=(self.global_time,),
-                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
+                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list[:1]))
                 
                 self._dispersy._send(candidates, [request])
                 
