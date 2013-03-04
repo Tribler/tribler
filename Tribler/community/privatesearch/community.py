@@ -23,7 +23,7 @@ from Tribler.community.channel.preview import PreviewChannelCommunity
 
 from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME,\
-    WalkCandidate, BootstrapCandidate
+    WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.tool.lencoder import log
@@ -176,8 +176,8 @@ class SearchCommunity(Community):
         return lambda: None
     
 #    #used by dispersy to choose a peer to introduce
-#    def dispersy_yield_random_candidates(self, candidate = None):
-#        for random_candidate in Community.dispersy_yield_random_candidates(self, candidate):
+#    def dispersy_yield_introduce_candidates(self, candidate = None):
+#        for random_candidate in Community.dispersy_yield_introduce_candidates(self, candidate):
 #            if not self.is_taste_buddy(random_candidate):
 #                yield random_candidate
     
@@ -916,14 +916,14 @@ class ForwardCommunity(SearchCommunity):
         
         return candidate, None
     
-    def dispersy_yield_random_candidates(self, candidate = None):
+    def dispersy_yield_introduce_candidates(self, candidate = None):
         if candidate:
             if candidate in self.requested_introductions:
                 intro_me_candidate = self.requested_introductions[candidate]
                 del self.requested_introductions[candidate]
                 yield intro_me_candidate
         
-        for random_candidate in SearchCommunity.dispersy_yield_random_candidates(self, candidate):
+        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, candidate):
             yield random_candidate
     
     class ForwardAttempt(Cache):
@@ -1379,7 +1379,7 @@ class HSearchCommunity(ForwardCommunity):
                 meta_request = self.get_meta_message(u"similarity-request")
                 request = meta_request.impl(authentication=(self.my_member,),
                                     distribution=(self.global_time,),
-                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list[:1]))
+                                    payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list[:5]))
                 
                 self._dispersy._send(candidates, [request])
                 
