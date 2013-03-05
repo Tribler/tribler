@@ -21,7 +21,9 @@ class SearchScript(ScenarioScriptBase):
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
             
         def str2bool(v):
-            return v.lower() in ("yes", "true", "t", "1") 
+            return v.lower() in ("yes", "true", "t", "1")
+        
+        self.manual_connect = str2bool(kargs.get('manual_only', 'false')) 
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
         self.taste_buddies = set()
@@ -46,6 +48,10 @@ class SearchScript(ScenarioScriptBase):
             
         self._add_taste_buddies = community.add_taste_buddies
         community.add_taste_buddies = self.log_taste_buddies
+
+        self._manual_create_introduction_request = community.create_introduction_request
+        if self.manual_connect:
+            community.create_introduction_request = lambda *args: None
         
         if int(self._my_name) <= self.late_join:
             self._create_introduction_request = community.create_introduction_request
@@ -157,7 +163,7 @@ class SearchScript(ScenarioScriptBase):
         
         while not self._community.is_taste_buddy(candidate):
             log(self._logfile, "sending introduction request to %s"%str(candidate))
-            self._community.create_introduction_request(candidate, True)
+            self._manual_create_introduction_request(candidate, True)
             
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
             
