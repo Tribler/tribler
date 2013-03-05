@@ -23,7 +23,8 @@ class SearchScript(ScenarioScriptBase):
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1")
         
-        self.manual_connect = str2bool(kargs.get('manual_only', 'false')) 
+        self.manual_connect = str2bool(kargs.get('manual_only', 'false'))
+        self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0)) 
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
         self.taste_buddies = set()
@@ -99,7 +100,7 @@ class SearchScript(ScenarioScriptBase):
                 self.not_connected_taste_buddies.add((ip, port))
                 
                 #connect to first 10
-                if len(self.taste_buddies) <= 10:
+                if len(self.taste_buddies) <= (10 * self.bootstrap_percentage):
                     log(self._logfile, "new taste buddy %s:%d"%(ip, port))
                     
                     if int(self._my_name) > self.late_join:
