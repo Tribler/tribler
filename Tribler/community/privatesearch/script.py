@@ -41,11 +41,11 @@ class SearchScript(ScenarioScriptBase):
         master = Member(master_key)
         
         if self.community_type == 'search':
-            community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
+            community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, log_searches = True, **self.community_kargs)
         elif self.community_type == 'hsearch':
-            community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
+            community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, log_searches = True, **self.community_kargs)
         else:
-            community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, **self.community_kargs)
+            community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, log_searches = True, **self.community_kargs)
             
         self._add_taste_buddies = community.add_taste_buddies
         community.add_taste_buddies = self.log_taste_buddies
