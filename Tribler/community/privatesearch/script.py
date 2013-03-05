@@ -1,3 +1,5 @@
+import sys
+
 from community import SearchCommunity, PSearchCommunity, HSearchCommunity
 from Tribler.dispersy.script import ScenarioScriptBase
 from Tribler.dispersy.member import Member
@@ -25,6 +27,7 @@ class SearchScript(ScenarioScriptBase):
         
         self.manual_connect = str2bool(kargs.get('manual_only', 'false'))
         self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0)) 
+        self.search_limit = int(kargs.get('search_limit', sys.maxint))
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
         self.taste_buddies = set()
@@ -169,6 +172,7 @@ class SearchScript(ScenarioScriptBase):
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
             
     def perform_searches(self):
+        nr_searches_performed = 0
         for infohash in (self.test_set - self.test_reply):
             candidates, local_results = self._community.create_search([unicode(infohash)], self.log_search_response, nrcandidates = 5)
             candidates = map(str, candidates)
@@ -176,5 +180,9 @@ class SearchScript(ScenarioScriptBase):
             
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
+            
+            nr_searches_performed += 1
+            if self.search_limit < nr_searches_performed:
+                break
             
             yield 5.0
