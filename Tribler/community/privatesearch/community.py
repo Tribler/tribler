@@ -56,16 +56,16 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
+    def load_community(cls, master, my_member, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None, log_searches = False):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor, max_prefs=max_prefs)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor, max_prefs=max_prefs, log_searches=log_searches)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor, max_prefs=max_prefs)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, ttl = ttl, neighbors = neighbors, encryption = encryption, taste_neighbor=taste_neighbor, max_prefs=max_prefs, log_searches=log_searches)
 
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None, log_searches = False):
         super(SearchCommunity, self).__init__(master)
         
         self.integrate_with_tribler = integrate_with_tribler
@@ -73,6 +73,7 @@ class SearchCommunity(Community):
         self.neighbors = int(neighbors)
         self.encryption = bool(encryption)
         self.taste_neighbor = int(taste_neighbor)
+        self.log_searches = bool(log_searches)
         
         self.taste_buddies = []
         self.my_preference_cache = [None, None]
@@ -429,6 +430,8 @@ class SearchCommunity(Community):
     def create_search(self, keywords, callback, identifier = None, ttl = None, nrcandidates = None, bloomfilter = None):
         if identifier == None:
             identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl, callback))
+            if self.log_searches:
+                log("dispersy.log", "search-statistics", identifier = identifier, created_by_me = True)
             
         if nrcandidates == None:
             nrcandidates = self.neighbors
@@ -471,6 +474,9 @@ class SearchCommunity(Community):
     
     def on_search(self, messages):
         for message in messages:
+            if self.log_searches:
+                log("dispersy.log", "search-statistics", identifier = message.payload.identifier, cycle = self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.SearchRequest))
+            
             #detect cycle
             if not self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.SearchRequest):
                 keywords = message.payload.keywords
@@ -840,8 +846,8 @@ class SearchCommunity(Community):
             
 class ForwardCommunity(SearchCommunity):
     
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs)
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None, log_searches = False):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs, log_searches)
         
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -986,8 +992,8 @@ class ForwardCommunity(SearchCommunity):
                 
 class PSearchCommunity(ForwardCommunity):
     
-    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs)
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None, log_searches=False):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs, log_searches)
         
         self.key = pallier_init(self.key)
         self.my_vector_cache = [None, None]
