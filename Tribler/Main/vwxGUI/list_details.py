@@ -19,7 +19,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
     ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps,\
-    TransparentStaticBitmap
+    TransparentStaticBitmap, Graph
 
 from list_body import ListBody
 from widgets import _set_font
@@ -1128,8 +1128,10 @@ class TorrentDetails(AbstractDetails):
 
 class LibraryDetails(TorrentDetails):
     @warnWxThread
-    def __init__(self, parent, torrent):
+    def __init__(self, parent, torrent, bw_history):
         self.old_progress = -1
+        self.refresh_counter = 0
+        self.bw_history = bw_history
         TorrentDetails.__init__(self, parent, torrent)
         
         # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
@@ -1205,6 +1207,13 @@ class LibraryDetails(TorrentDetails):
 
         peersPanel.SetSizer(vSizer)
         self.notebook.InsertPage(2, peersPanel, "Peers")
+        
+        self.speedPanel = Graph(self.notebook)
+        self.speedPanel.SetAxisLabels('Time (5 second update interval)', 'kB/s')
+        self.speedPanel.SetMaxPoints(120)
+        self.speedPanel.AddGraph(wx.Colour(0, 162, 232), [bw[1] for bw in self.bw_history], "Download speed")
+        self.speedPanel.AddGraph(wx.Colour(163, 73, 164), [bw[0] for bw in self.bw_history], "Upload speed")
+        self.notebook.AddPage(self.speedPanel, "Speed")
     
         if showTab:
             for i in range(self.notebook.GetPageCount()):
@@ -1248,6 +1257,11 @@ class LibraryDetails(TorrentDetails):
     @warnWxThread
     def _Refresh(self, ds = None):
         TorrentDetails._Refresh(self, ds)
+
+        self.refresh_counter += 1
+        if self.refresh_counter % 5 == 0:
+            self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
+            self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
         
         if self.isReady:
             #register callback for peerlist update

@@ -2422,3 +2422,135 @@ class HorizontalGradientGauge(wx.Panel):
         x = (self.value / 100.0) * w
         gc.DrawLines([(x-1, 0), (x-1, h)])
         gc.DrawLines([(x+1, 0), (x+1, h)])
+        
+
+class Graph(wx.Panel):
+    def __init__(self, parent, grid_size = 4, max_points = 120, *args, **kwargs):
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+        self.x_margins = (30,10)
+        self.y_margins = (10,20)
+        self.max_range = 0
+        self.grid_size = grid_size
+        self.config = []
+        self.data = []
+        self.font = self.GetFont()
+        self.font.SetPointSize(self.font.GetPointSize()-1)
+        self.SetAxisLabels("", "")
+        self.SetMaxPoints(max_points)
+        self.SetBackgroundColour(wx.WHITE)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        
+    def SetAxisLabels(self, x_label, y_label):
+        self.x_label = x_label
+        self.y_label = y_label
+        
+    def SetMaxPoints(self, max_points):
+        self.max_points = max_points
+        
+    def AddGraph(self, colour, data = [], label = ""):
+        self.data.append(data)
+        self.data[-1] = self.data[-1][-self.max_points:]
+        self.config.append((colour, label))
+        self.max_range = max(self.max_range, max(self.data[-1]) if self.data[-1] else 0)
+        self.Refresh()
+        
+    def SetData(self, graph_id, data):
+        self.data[graph_id] = data
+        self.data[graph_id] = self.data[graph_id][-self.max_points:]
+        self.max_range = max([max(column) for column in self.data if column])
+        self.Refresh()
+
+    def AppendData(self, graph_id, value):
+        self.data[graph_id].append(value)
+        if len(self.data[graph_id]) > self.max_points:
+            dropped_value = self.data[graph_id][0]
+            self.data[graph_id] = self.data[graph_id][-self.max_points:]
+            if dropped_value == self.max_range:
+                self.max_range = max([max(column) for column in self.data if column])
+        else:
+            self.max_range = max(self.max_range, value)
+        self.Refresh()
+    
+    def OnEraseBackground(self, event):
+        pass
+    
+    def OnPaint(self, event):
+        _, _, width, height = self.GetClientRect()
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+        self.DrawAxis(dc, width, height)
+        self.DrawGrid(dc, width, height)
+        self.DrawText(dc, width, height)
+        
+        gc = wx.GraphicsContext.Create(dc)
+        gc.SetBrush(wx.TRANSPARENT_BRUSH)
+        self.DrawGraphs(gc, width, height)
+        self.DrawLegend(gc, width, height)
+
+    def DrawAxis(self, dc, width, height):
+        dc.SetPen(wx.Pen((175, 175, 175), 1, wx.SOLID))
+        dc.DrawLine(self.x_margins[0], height - self.y_margins[1], self.x_margins[0], self.y_margins[0])
+        dc.DrawLine(self.x_margins[0], height - self.y_margins[1], width - self.x_margins[1], height - self.y_margins[1])
+
+    def DrawGrid(self, dc, width, height):
+        dashed_pen = wx.Pen((175, 175, 175), 1, wx.USER_DASH)
+        dashed_pen.SetDashes([4, 4])
+        dc.SetPen(dashed_pen)
+        grid_height = (height - self.y_margins[0] - self.y_margins[1]) / self.grid_size
+        for i in range(1, self.grid_size+1):
+            dc.DrawLine(self.x_margins[0], height - self.y_margins[1] - i * grid_height, width - self.x_margins[1], height - self.y_margins[1] - i * grid_height)
+
+    def DrawText(self, dc, width, height):
+        dc.SetFont(self.font)
+        dc.SetTextForeground(wx.Colour(130, 130, 130))
+        
+        # Draw labels along the x/y axis
+        x_width, _ = self.GetTextExtent(self.x_label)
+        _, y_height = self.GetTextExtent(self.y_label)
+        dc.DrawText(self.x_label, (width - self.x_margins[0] - self.x_margins[1] - x_width) / 2 + self.x_margins[0], height - self.y_margins[1])
+        if sys.platform == 'linux2': 
+            dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 270)
+        else:
+            dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 90)
+            
+        # Draw min/max values along the y axis
+        miny = "0"            
+        maxy = str(int(self.max_range+1))
+        miny_width, miny_height = self.GetTextExtent(miny)
+        maxy_width, maxy_height = self.GetTextExtent(maxy)
+        dc.DrawText(miny, max(0, self.x_margins[0] - miny_width), height - self.y_margins[1] - miny_height/2)
+        dc.DrawText(maxy, max(0, self.x_margins[0] - maxy_width), self.y_margins[0] - maxy_height/2)
+
+    def DrawGraphs(self, gc, width, height):
+        for graph_id, column in enumerate(self.data):
+            if column:
+                colour, _ = self.config[graph_id]
+                gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
+                num_points = len(column)
+                x_coords = [self.x_margins[0] + (i / float(self.max_points)) * (width - self.x_margins[0] - self.x_margins[1]) for i in range(0, num_points)]
+                if self.max_range != 0: 
+                    y_coords = [height - self.y_margins[1] - ((height - self.y_margins[0] - self.y_margins[1]) * column[i] / self.max_range) for i in range(0, num_points)]
+                else:
+                    y_coords = [height - self.y_margins[1] for i in range(0, num_points)]
+                y_coords = [min(height - self.y_margins[1] - 1, y_coord) for y_coord in y_coords]
+                gc.DrawLines(zip(x_coords, y_coords))
+                
+    def DrawLegend(self, gc, width, height):
+        gc.SetFont(self.font)
+        gc.SetPen(wx.Pen(wx.Colour(240, 240, 240, 200)))
+        gc.SetBrush(wx.Brush(wx.Colour(245, 245, 245, 150)))
+
+        rect_width = max([self.GetTextExtent(label)[0] for _, label in self.config]) + 30
+        rect_height = sum([self.GetTextExtent(label)[1] for _, label in self.config]) + 10
+        gc.DrawRectangle(self.x_margins[0] + 5, self.x_margins[1] + 5, rect_width, rect_height)
+                
+        next_y = self.y_margins[0] + 10
+        for colour, label in self.config:
+            label_width, label_height = self.GetTextExtent(label)
+            gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
+            gc.DrawLines([(self.x_margins[0] + 10, next_y + label_height / 2), (self.x_margins[0] + 25, next_y + label_height / 2)])
+            gc.SetPen(wx.BLACK_PEN)
+            gc.DrawText(label, self.x_margins[0] + 30, next_y)
+            next_y += label_height

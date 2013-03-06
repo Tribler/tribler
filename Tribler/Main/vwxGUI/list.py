@@ -1665,6 +1665,9 @@ class LibraryList(SizeList):
         self.newfilter = False
         self.prevStates = {}
         
+        self.bw_history = {}
+        self.refreshitems_counter = 0
+        
         self.initnumitems = False
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
@@ -1752,7 +1755,7 @@ class LibraryList(SizeList):
 
     def OnExpand(self, item):
         List.OnExpand(self, item)
-        ld = LibraryDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
+        ld = LibraryDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, self.bw_history.get(item.original_data.infohash, []))
         item.expandedPanel = ld
         self.guiutility.SetBottomSplitterWindow(ld)
         
@@ -1841,6 +1844,8 @@ class LibraryList(SizeList):
         if didStateChange:
             if self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again
+
+        self.refreshitems_counter += 1
             
         for item in self.list.items.itervalues():
             ds = item.original_data.ds
@@ -1900,8 +1905,14 @@ class LibraryList(SizeList):
                 
                 item.RefreshColumn(7, ratio)
                 item.RefreshColumn(8, time_seeding)
+
+                # Store bandwidth history
+                if self.refreshitems_counter % 5 == 0:                
+                    self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
+                    self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
+                    self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
                 
-                # For update torrent icons
+                # For updating torrent icons
                 old_t_ds = oldDS.get(item.original_data.infohash, None)
                 old_t_ds = old_t_ds if not isinstance(old_t_ds, MergedDs) else old_t_ds.dslist[0]
                 new_t_ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
