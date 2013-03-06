@@ -439,7 +439,7 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.SetMinSize((1,-1))
             
             vSizer = wx.BoxSizer(wx.VERTICAL)
-            if isinstance(self, LibraryDetails):
+            if isinstance(self, LibraryDetails) and self.torrent.progress != 1.0:
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
                 vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
                 ulfont = self.GetFont()
