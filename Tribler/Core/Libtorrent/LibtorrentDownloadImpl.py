@@ -18,6 +18,13 @@ from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
+
+if sys.platform == "win32":
+    try:
+        import win32api
+        import win32con
+    except:
+        pass
             
 DEBUG = False
 
@@ -387,6 +394,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     if cur_path != new_path:
                         if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
                             os.mkdir(unwanteddir_abs)
+                            if sys.platform == "win32":
+                                win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                                                                
                         self.handle.rename_file(index, new_path)
                         
                 self.handle.prioritize_files(filepriorities)
