@@ -453,12 +453,7 @@ class SearchCommunity(Community):
             else:
                 _ttl = ttl
                 
-            if (_ttl < self.taste_neighbor and taste_buddies) or (taste_buddies and not random_peers):
-                candidate = taste_buddies.pop()
-            elif random_peers:
-                candidate = random_peers.pop()
-            else:
-                break
+            candidate = taste_buddies.pop()
             
             #create channelcast request message
             meta = self.get_meta_message(u"search-request")
