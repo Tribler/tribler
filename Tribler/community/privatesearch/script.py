@@ -182,7 +182,7 @@ class SearchScript(ScenarioScriptBase):
                 self.log_search_response([unicode(infohash)], local_results, None)
             
             nr_searches_performed += 1
-            if self.search_limit < nr_searches_performed:
+            if nr_searches_performed >= self.search_limit:
                 break
             
             yield 5.0
