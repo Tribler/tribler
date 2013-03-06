@@ -4,6 +4,7 @@ import sys
 import copy
 import libtorrent as lt
 
+from binascii import hexlify
 from traceback import print_exc
 
 from Tribler.Core import NoDispersyRLock
@@ -153,6 +154,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             torrentinfo = lt.torrent_info(metainfo)
             
             torrent_files = torrentinfo.files()
+            self.orig_files = [torrent_file.path for torrent_file in torrent_files]
+            
             is_multifile = len(self.tdef.get_files_as_unicode()) > 1
             swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
 
@@ -297,6 +300,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if alert_type == 'metadata_received_alert':
                     self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
                     self.tdef = TorrentDef.load_from_dict(self.metadata)
+                    self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
                     self.set_files()
                     
                     if self.session.lm.rtorrent_handler:
@@ -309,6 +313,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
                     self.session.lm.rawserver.add_task(checkpoint, 0)
 
+                if alert_type == 'file_renamed_alert':
+                    if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs):
+                        os.rmdir(self.unwanteddir_abs)
+                        
                 if alert_type == 'torrent_checked_alert' and self.pause_after_next_hashcheck:
                     self.handle.pause()
                     self.pause_after_next_hashcheck = False
@@ -353,26 +361,37 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         with self.dllock:
             
             if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
-    
+
                 if selected_files is None:
                     selected_files = self.dlconfig['selected_files']
                 else:
                     self.dlconfig['selected_files'] = selected_files
                 
-                torrent_files = self.handle.get_torrent_info().files()
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
-                swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
+                swarmname = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
+                unwanteddir = os.path.join(swarmname, '.unwanted')
+                unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
                 
                 filepriorities = []
-                for file_entry in torrent_files:
-                    filename = file_entry.path[len(swarmname):]
+                for index, orig_path in enumerate(self.orig_files):
+                    filename = orig_path[len(swarmname):]
         
                     if filename in selected_files or not selected_files:
                         filepriorities.append(1)
+                        new_path = orig_path
                     else:
                         filepriorities.append(0)
+                        new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
         
+                    cur_path = self.handle.get_torrent_info().files()[index].path
+                    if cur_path != new_path:
+                        if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
+                            os.mkdir(unwanteddir_abs)
+                        self.handle.rename_file(index, new_path)
+                        
                 self.handle.prioritize_files(filepriorities)
+                
+                self.unwanteddir_abs = unwanteddir_abs
                 
     def move_storage(self, new_dir):
         with self.dllock:

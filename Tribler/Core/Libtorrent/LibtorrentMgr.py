@@ -38,6 +38,7 @@ class LibtorrentMgr:
         self.ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
+                                      lt.alert.category_t.storage_notification |
                                       lt.alert.category_t.performance_warning )
         self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port()+10)
         self.set_upload_rate_limit(-1)
