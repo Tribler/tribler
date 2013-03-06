@@ -74,7 +74,9 @@ class SearchScript(ScenarioScriptBase):
             self._community.create_introduction_request = self._create_introduction_request
             
         if self._community.ttl and step > 0 and step % 100 == 0:
-            self._dispersy.callback.persistent_register("do_search", self.perform_searches)
+            nr_search = step / 100
+            if nr_search <= self.search_limit:
+                self._dispersy.callback.persistent_register("do_search", self.perform_searches)
             
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
     
@@ -172,17 +174,12 @@ class SearchScript(ScenarioScriptBase):
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
             
     def perform_searches(self):
-        nr_searches_performed = 0
         for infohash in (self.test_set - self.test_reply):
-            candidates, local_results = self._community.create_search([unicode(infohash)], self.log_search_response, nrcandidates = 5)
+            candidates, local_results = self._community.create_search([unicode(infohash)], self.log_search_response)
             candidates = map(str, candidates)
             log(self._logfile, "send search query for '%s' to %d candidates"%(infohash, len(candidates)), candidates = candidates)
             
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
-            
-            nr_searches_performed += 1
-            if nr_searches_performed >= self.search_limit:
-                break
             
             yield 5.0
