@@ -1258,12 +1258,12 @@ class LibraryDetails(TorrentDetails):
     def _Refresh(self, ds = None):
         TorrentDetails._Refresh(self, ds)
 
-        self.refresh_counter += 1
-        if self.refresh_counter % 5 == 0:
-            self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
-            self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
-        
         if self.isReady:
+            self.refresh_counter += 1
+            if self.refresh_counter % 5 == 0:
+                self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
+                self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
+            
             #register callback for peerlist update
             self.peerList.Freeze()
             
