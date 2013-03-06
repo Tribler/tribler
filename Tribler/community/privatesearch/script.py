@@ -16,9 +16,7 @@ class SearchScript(ScenarioScriptBase):
         if 'ttl' in kargs:
             self.community_kargs['ttl'] = kargs['ttl']
         if 'neighbors' in kargs:
-            self.community_kargs['neighbors'] = kargs['neighbors']
-        if 'taste_neighbor' in kargs:
-            self.community_kargs['taste_neighbor'] = kargs['taste_neighbor']
+            self.community_kargs['neighbors'] = int(kargs['neighbors'])
         if 'max_prefs' in kargs:
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
             
