@@ -16,9 +16,7 @@ class SearchScript(ScenarioScriptBase):
         if 'ttl' in kargs:
             self.community_kargs['ttl'] = kargs['ttl']
         if 'neighbors' in kargs:
-            self.community_kargs['neighbors'] = kargs['neighbors']
-        if 'taste_neighbor' in kargs:
-            self.community_kargs['taste_neighbor'] = kargs['taste_neighbor']
+            self.community_kargs['neighbors'] = int(kargs['neighbors'])
         if 'max_prefs' in kargs:
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
             
@@ -43,6 +41,9 @@ class SearchScript(ScenarioScriptBase):
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404f10c33b03d2a09943d6d6a4b2cf4fe3129e5dce1df446a27d0ce00d48c845a4eff8102ef3becd6bc07c65953c824d227ebc110016d5ba71163bf6fb83fde7cdccf164bb007e27d07da952c47d30cf9c843034dc7a4603af3a84f8997e5d046e6a5f1ad489add6878898079a4663ade502829577c7d1e27302a3d5ea0ae06e83641a093a87465fdd4a3b43e031a9555".decode("HEX")
         master = Member(master_key)
         
+        log(self._logfile, "joining community with kargs", kargs=self.community_kargs)
+        
+        
         if self.community_type == 'search':
             community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False, log_searches = True, **self.community_kargs)
         elif self.community_type == 'hsearch':
@@ -55,7 +56,7 @@ class SearchScript(ScenarioScriptBase):
 
         self._manual_create_introduction_request = community.create_introduction_request
         if self.manual_connect:
-            community.create_introduction_request = lambda *args: None
+            community.create_introduction_request = lambda destination, allow_sync: self._manual_create_introduction_request(destination, False)
         
         if int(self._my_name) <= self.late_join:
             self._create_introduction_request = community.create_introduction_request
@@ -74,7 +75,9 @@ class SearchScript(ScenarioScriptBase):
             self._community.create_introduction_request = self._create_introduction_request
             
         if self._community.ttl and step > 0 and step % 100 == 0:
-            self._dispersy.callback.persistent_register("do_search", self.perform_searches)
+            nr_search = step / 100
+            if nr_search <= self.search_limit:
+                self._dispersy.callback.persistent_register("do_search", self.perform_searches)
             
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
     
@@ -172,17 +175,12 @@ class SearchScript(ScenarioScriptBase):
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
             
     def perform_searches(self):
-        nr_searches_performed = 0
         for infohash in (self.test_set - self.test_reply):
-            candidates, local_results = self._community.create_search([unicode(infohash)], self.log_search_response, nrcandidates = 5)
+            candidates, local_results = self._community.create_search([unicode(infohash)], self.log_search_response)
             candidates = map(str, candidates)
             log(self._logfile, "send search query for '%s' to %d candidates"%(infohash, len(candidates)), candidates = candidates)
             
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
-            
-            nr_searches_performed += 1
-            if self.search_limit < nr_searches_performed:
-                break
             
             yield 5.0

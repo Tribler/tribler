@@ -122,27 +122,6 @@ class TestGuiAsServer(unittest.TestCase):
         del self.frame
         del self.lm
         del self.session
-        
-#        for object in gc.get_objects():
-#            if isinstance(object, Singleton):
-#                if object.has_instance():
-#                    print >> sys.stderr, "teardown: Deleting %s singleton"%str(type(object))
-#                    object.del_instance()
-#                    
-#            if isinstance(object, OrderedDict):
-#                keys = object.keys()
-#                if keys:
-#                    value = object[keys[0]]
-#                    print >> sys.stderr, "teardown: Clearing %s contained %s"%(str(type(object)), str(type(value)))
-#                
-#                    object.clear()
-#                
-#            if isinstance(object, dict):
-#                keys = object.keys()
-#                if keys:
-#                    if isinstance(object[keys[0]], Member):
-#                        object.clear()
-#                        print >> sys.stderr, "teardown: Clearing %s contains Member objects"%str(type(object))
     
         from Tribler.Core.CacheDB.sqlitecachedb import unregister
         unregister()
@@ -171,6 +150,9 @@ class TestGuiAsServer(unittest.TestCase):
         
         for boolean, reason in self.asserts:
             assert boolean, reason
+            
+        assert not os.path.exists(".Tribler"), ".Tribler should not exist"
+        assert not os.path.exists("TriblerDownloads"), "TriblerDownloads should not exist"
             
     def annotate(self, annotation, start = True, destdir = "output"):
         if not os.path.exists(destdir):
