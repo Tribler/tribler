@@ -56,7 +56,7 @@ class SearchScript(ScenarioScriptBase):
 
         self._manual_create_introduction_request = community.create_introduction_request
         if self.manual_connect:
-            community.create_introduction_request = lambda *args: None
+            community.create_introduction_request = lambda destination, allow_sync: self._manual_create_introduction_request(destination, False)
         
         if int(self._my_name) <= self.late_join:
             self._create_introduction_request = community.create_introduction_request
