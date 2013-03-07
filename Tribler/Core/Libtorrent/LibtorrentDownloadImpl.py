@@ -161,8 +161,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             torrentinfo = lt.torrent_info(metainfo)
             
             torrent_files = torrentinfo.files()
-            self.orig_files = [torrent_file.path for torrent_file in torrent_files]
-            
             is_multifile = len(self.tdef.get_files_as_unicode()) > 1
             swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
 
@@ -171,6 +169,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     filename = file_entry.path[len(swarmname):]
                     torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
         
+            self.orig_files = [torrent_file.path for torrent_file in torrentinfo.files()]
+            
             atp["ti"] = torrentinfo
             if pstate and pstate.get('engineresumedata', None):
                 atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
@@ -321,7 +321,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.session.lm.rawserver.add_task(checkpoint, 0)
 
                 if alert_type == 'file_renamed_alert':
-                    if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs):
+                    if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs) and all(self.handle.file_priorities()):
                         os.rmdir(self.unwanteddir_abs)
                         
                 if alert_type == 'torrent_checked_alert' and self.pause_after_next_hashcheck:
@@ -393,7 +393,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     cur_path = self.handle.get_torrent_info().files()[index].path
                     if cur_path != new_path:
                         if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
-                            os.mkdir(unwanteddir_abs)
+                            os.makedirs(unwanteddir_abs)
                             if sys.platform == "win32":
                                 win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
                                                                 
