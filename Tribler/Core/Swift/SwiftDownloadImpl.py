@@ -71,6 +71,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
         self.numleech = 0
         self.numseeds = 0
+        self.contentbytes = {DOWNLOAD:0,UPLOAD:0} # bytes
+
         self.done = False  # when set it means this download is being removed
         self.midict = {}
         self.time_seeding = [0, None]
@@ -166,7 +168,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     # SwiftProcess callbacks
     #
-    def i2ithread_info_callback(self,dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds):
+    def i2ithread_info_callback(self,dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds,contentdl,contentul):
         self.dllock.acquire()
         try:
             if dlstatus == DLSTATUS_SEEDING and self.dlstatus != dlstatus:
@@ -185,6 +187,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.curspeeds[UPLOAD] = ulspeed
             self.numleech = numleech
             self.numseeds = numseeds
+            self.contentbytes = {DOWNLOAD:contentdl,UPLOAD:contentul}
         finally:
             self.dllock.release()
     

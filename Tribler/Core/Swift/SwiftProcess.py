@@ -169,7 +169,12 @@ class SwiftProcess:
                 ulspeed = float(words[5])
                 numleech = int(words[6])
                 numseeds = int(words[7])
-                d.i2ithread_info_callback(dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds)
+                contentdl = 0 # bytes
+                contentul = 0 # bytes
+                if len(words) > 8:
+                    contentdl = int(words[8])
+                    contentul = int(words[9])
+                d.i2ithread_info_callback(dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds,contentdl,contentul)
             elif words[0] == "PLAY":
                 #print >>sys.stderr,"sp: i2ithread_readlinecallback: Got PLAY",cmd
                 httpurl = words[2]
