@@ -302,10 +302,10 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         return self.time_seeding[0] + (time.time() - self.time_seeding[1] if self.time_seeding[1] != None else 0)
     
     def get_total_up(self):
-        return self.total_up + self.midict.get('bytes_up', 0)
+        return self.total_up + self.contentbytes[UPLOAD]
     
     def get_total_down(self):
-        return self.total_down + self.midict.get('bytes_down', 0)
+        return self.total_down + self.contentbytes[DOWNLOAD]
     
     def get_seeding_statistics(self):
         seeding_stats = {}
