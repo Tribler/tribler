@@ -434,7 +434,7 @@ class SearchCommunity(Community):
                 
     def create_search(self, keywords, callback, identifier = None, ttl = None, nrcandidates = None, bloomfilter = None):
         if identifier == None:
-            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl, callback))
+            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl or 7, callback))
             if self.log_searches:
                 log("dispersy.log", "search-statistics", identifier = identifier, created_by_me = True)
             
@@ -504,7 +504,7 @@ class SearchCommunity(Community):
                 
                 else:
                     if random() < self.forwarding_prob:
-                        ttl = 1
+                        ttl = 7
                     else:
                         ttl = 0
                 
