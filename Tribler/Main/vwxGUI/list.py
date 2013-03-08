@@ -1859,16 +1859,34 @@ class LibraryList(SizeList):
                     item.data[1] = -1
 
                 tooltip = ''
-                ratio = 0
-                time_seeding = 0
                 if ds:
-                    if ds.get_seeding_statistics():
-                        stats = ds.get_seeding_statistics()
-                        dl = stats['total_down']
-                        ul = stats['total_up']
+                    torrent_ds, swift_ds = item.original_data.dslist
+
+                    # Set Swift seeding time and ratio
+                    if swift_ds and swift_ds.get_seeding_statistics():
+                        seeding_stats = swift_ds.get_seeding_statistics()
+                        dl = seeding_stats['total_down']
+                        ul = seeding_stats['total_up']
+                        
+                        if dl == 0L:
+                            if ul != 0L:
+                                ratio = sys.maxint
+                            else:
+                                ratio = 0
+                        else:
+                            ratio = 1.0*ul/dl
+                            
+                        item.RefreshColumn(9, ratio)
+                        item.RefreshColumn(10, seeding_stats['time_seeding'])
+
+                    # Set torrent seeding time and ratio
+                    if torrent_ds and torrent_ds.get_seeding_statistics():
+                        seeding_stats = torrent_ds.get_seeding_statistics()
+                        dl = seeding_stats['total_down']
+                        ul = seeding_stats['total_up']
                         
                         #set dl at min progress*length
-                        size_progress = ds.get_length()*ds.get_progress()
+                        size_progress = torrent_ds.get_length()*torrent_ds.get_progress()
                         dl = max(dl, size_progress)                 
                         
                         if dl == 0L:
@@ -1880,18 +1898,20 @@ class LibraryList(SizeList):
                             ratio = 1.0*ul/dl
                             
                         tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
-                        time_seeding = stats['time_seeding']
+
+                        item.RefreshColumn(7, ratio)
+                        item.RefreshColumn(8, seeding_stats['time_seeding'])
                         
-                    if show_seeding_colours:
-                        #t4t_ratio is goal
-                        step = ratio / t4t_ratio
-                        step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
-                        
-                        rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
-                        bgcolour = wx.Colour(*rgbTuple)
-                        item.SetDeselectedColour(bgcolour)
-                    else:
-                        item.SetDeselectedColour(LIST_DESELECTED)
+                        if show_seeding_colours:
+                            #t4t_ratio is goal
+                            step = ratio / t4t_ratio
+                            step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
+                            
+                            rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
+                            bgcolour = wx.Colour(*rgbTuple)
+                            item.SetDeselectedColour(bgcolour)
+                        else:
+                            item.SetDeselectedColour(LIST_DESELECTED)
                     
                 item.RefreshColumn(3, ds.get_eta() if ds else '-')
                 
@@ -1904,29 +1924,6 @@ class LibraryList(SizeList):
                 seeds, peers = ds.get_num_seeds_peers() if ds else (0,0)
                 item.RefreshColumn(6, seeds+peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers."%(seeds, peers) if ds else '')
-                
-                item.RefreshColumn(7, ratio)
-                item.RefreshColumn(8, time_seeding)
-                
-                # Set Swift seeding time and ratio
-                ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[1]
-                if ds and ds.get_download().get_def().get_def_type() == 'swift':
-                    swift_seeding_stats = ds.get_seeding_statistics()
-                    if swift_seeding_stats != None:
-                        st = swift_seeding_stats['time_seeding']
-                        dl = swift_seeding_stats['total_down']
-                        ul = swift_seeding_stats['total_up']
-                        
-                        if dl == 0L:
-                            if ul != 0L:
-                                ratio = sys.maxint
-                            else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0*ul/dl
-
-                        item.RefreshColumn(9, ratio)
-                        item.RefreshColumn(10, st)
 
                 # Store bandwidth history
                 if self.refreshitems_counter % 5 == 0:                
