@@ -538,7 +538,7 @@ class MainFrame(wx.Frame):
                     self.show_saved(tdef)
                     
                     if monitorSwiftProgress:
-                        state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile)
+                        state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile, selectedFiles=selectedFiles: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles)
                         result.set_state_callback(state_lambda, getpeerlist=False, delay=15.0)
 
                 if clicklog is not None:
@@ -613,7 +613,7 @@ class MainFrame(wx.Frame):
         
         return True
     
-    def monitorSwiftProgress(self, ds, vodmode, torrentfilename, dscfg, selectedFile):
+    def monitorSwiftProgress(self, ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles):
         if ds.get_progress() == 0:
             if ds.get_status() == DLSTATUS_ALLOCATING_DISKSPACE:
                 return (5.0, True)
@@ -626,6 +626,7 @@ class MainFrame(wx.Frame):
             
             print >> sys.stderr, "Switching to Bittorrent"
             cdef = TorrentDef.load(torrentfilename)
+            dscfg.set_selected_files(selectedFiles or [])
             if vodmode:
                 videoplayer = VideoPlayer.getInstance()
                 wx.CallAfter(videoplayer.start_and_play, cdef, dscfg, selectedFile)

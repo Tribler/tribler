@@ -1339,6 +1339,8 @@ class LibraryDetails(TorrentDetails):
                     
                     useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
                     selected_files = ds.get_download().get_selected_files()
+                    if ds.get_download().get_def().get_def_type() == 'swift':
+                        selected_files = [file.split('/')[1] for file in selected_files]
                     if useSimple:
                         if selected_files:
                             for i in range(self.listCtrl.GetItemCount()):
