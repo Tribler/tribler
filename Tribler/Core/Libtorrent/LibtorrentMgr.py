@@ -27,8 +27,6 @@ class LibtorrentMgr:
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
-        settings.ignore_resume_timestamps = True
-        
         fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
         self.ltsession = lt.session(lt.fingerprint(*fingerprint))
         self.ltsession.set_settings(settings)
