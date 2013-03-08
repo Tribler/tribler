@@ -1678,7 +1678,9 @@ class LibraryList(SizeList):
                    {'name':'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False}, \
                    {'name':'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name':'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
+                   {'name':'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
+                   {'name':'Swift ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
+                   {'name':'Swift time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
         
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -1905,6 +1907,26 @@ class LibraryList(SizeList):
                 
                 item.RefreshColumn(7, ratio)
                 item.RefreshColumn(8, time_seeding)
+                
+                # Set Swift seeding time and ratio
+                ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[1]
+                if ds and ds.get_download().get_def().get_def_type() == 'swift':
+                    swift_seeding_stats = ds.get_seeding_statistics()
+                    if swift_seeding_stats != None:
+                        st = swift_seeding_stats['time_seeding']
+                        dl = swift_seeding_stats['total_down']
+                        ul = swift_seeding_stats['total_up']
+                        
+                        if dl == 0L:
+                            if ul != 0L:
+                                ratio = sys.maxint
+                            else:
+                                ratio = 0
+                        else:
+                            ratio = 1.0*ul/dl
+
+                        item.RefreshColumn(9, ratio)
+                        item.RefreshColumn(10, st)
 
                 # Store bandwidth history
                 if self.refreshitems_counter % 5 == 0:                
@@ -1930,7 +1952,7 @@ class LibraryList(SizeList):
         SizeList.SetData(self, data)
         
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, -1], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, 0, 0, -1], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1944,7 +1966,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, -1], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, -1], data)
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
