@@ -76,8 +76,9 @@ class SearchScript(ScenarioScriptBase):
             self._community.create_introduction_request = self._create_introduction_request
             
         if self._community.ttl and step > 0 and step % 100 == 0:
-            self.nr_search = step / 100
-            if self.nr_search <= self.search_limit:
+            nr_search = step / 100
+            if nr_search <= self.search_limit:
+                self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
             
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
