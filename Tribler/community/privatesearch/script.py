@@ -75,7 +75,7 @@ class SearchScript(ScenarioScriptBase):
         if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
             
-        if self._community.ttl and step > 0 and step % 100 == 0:
+        if (self._community.ttl or self._community.forwarding_prob) and step > 0 and step % 100 == 0:
             nr_search = step / 100
             if nr_search <= self.search_limit:
                 self.nr_search = nr_search
