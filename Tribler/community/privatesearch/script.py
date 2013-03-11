@@ -30,6 +30,7 @@ class SearchScript(ScenarioScriptBase):
 
         self.taste_buddies = set()
         self.not_connected_taste_buddies = set()
+        self.nr_search = 0
         
         self.did_reply = set()
         self.test_set = set()
@@ -74,9 +75,10 @@ class SearchScript(ScenarioScriptBase):
         if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
             
-        if self._community.ttl and step > 0 and step % 100 == 0:
+        if (self._community.ttl or self._community.forwarding_prob) and step > 0 and step % 100 == 0:
             nr_search = step / 100
             if nr_search <= self.search_limit:
+                self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
             
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
@@ -127,7 +129,7 @@ class SearchScript(ScenarioScriptBase):
             recall = len(self.test_reply) / float(len(self.test_set))
             recall /= float(self._nr_peers)
             
-            log("dispersy.log", "scenario-statistics", bootstrapped = taste_ratio, latejoin = latejoin, recall = recall)
+            log("dispersy.log", "scenario-statistics", bootstrapped = taste_ratio, latejoin = latejoin, recall = recall, nr_search_ = self.nr_search)
             log("dispersy.log", "scenario-debug", not_connected = list(self.not_connected_taste_buddies), search_forward = self._community.search_forward, search_forward_success = self._community.search_forward_success, search_forward_timeout = self._community.search_forward_timeout, search_endpoint = self._community.search_endpoint, search_cycle_detected = self._community.search_cycle_detected, search_megacachesize = self._community.search_megacachesize, create_time_encryption = self._community.create_time_encryption, create_time_decryption = self._community.create_time_decryption, receive_time_encryption = self._community.receive_time_encryption)
             yield 5.0
             

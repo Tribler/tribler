@@ -2,7 +2,7 @@
 import sys
 from os import path
 from time import time
-from random import sample, randint, shuffle
+from random import sample, randint, shuffle, random
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -68,7 +68,14 @@ class SearchCommunity(Community):
         super(SearchCommunity, self).__init__(master)
         
         self.integrate_with_tribler = bool(integrate_with_tribler)
-        self.ttl = int(ttl)
+        
+        self.ttl = None
+        self.forwarding_prob = None
+        if float(ttl) > 1:
+            self.ttl = int(ttl)
+        else:
+            self.forwarding_prob = float(ttl)
+            
         self.neighbors = int(neighbors)
         self.encryption = bool(encryption)
         self.log_searches = bool(log_searches)
@@ -394,8 +401,9 @@ class SearchCommunity(Community):
             
             if self.candidate:
                 self.timeout_delay = 5.0
-                
-            self.timeout_delay += (ttl * 2)
+            
+            #self.timeout_delay += (ttl * 2)
+            self.timeout_delay += 14 #testing if this is influencing recall
             self.processed = False
         
         def on_success(self, keywords, results, candidate):
@@ -427,7 +435,7 @@ class SearchCommunity(Community):
                 
     def create_search(self, keywords, callback, identifier = None, ttl = None, nrcandidates = None, bloomfilter = None):
         if identifier == None:
-            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl, callback))
+            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl or 7, callback))
             if self.log_searches:
                 log("dispersy.log", "search-statistics", identifier = identifier, created_by_me = True)
             
@@ -447,7 +455,10 @@ class SearchCommunity(Community):
         candidates = []
         for _ in xrange(nrcandidates):
             if ttl == None:
-                _ttl = randint(1, self.ttl)
+                if self.ttl:
+                    _ttl = randint(1, self.ttl)
+                else:
+                    _ttl = 1
             else:
                 _ttl = ttl
                 
@@ -488,8 +499,15 @@ class SearchCommunity(Community):
                 if not results and DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: no results"
             
-                ttl = message.payload.ttl
-                ttl -= randint(0, 1)
+                if self.ttl:
+                    ttl = message.payload.ttl
+                    ttl -= randint(0, 1)
+                
+                else:
+                    if random() < self.forwarding_prob:
+                        ttl = 7
+                    else:
+                        ttl = 0
                 
                 if ttl:
                     if DEBUG:
