@@ -401,8 +401,9 @@ class SearchCommunity(Community):
             
             if self.candidate:
                 self.timeout_delay = 5.0
-                
-            self.timeout_delay += (ttl * 2)
+            
+            #self.timeout_delay += (ttl * 2)
+            self.timeout_delay += 14 #testing if this is influencing recall
             self.processed = False
         
         def on_success(self, keywords, results, candidate):
