@@ -162,11 +162,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             
             torrent_files = torrentinfo.files()
             is_multifile = len(self.tdef.get_files_as_unicode()) > 1
-            swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
+            commonprefix = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
+            swarmname = os.path.split(commonprefix)[0] or os.path.split(commonprefix)[1]
 
             if is_multifile and swarmname != self.correctedinfoname:
                 for i, file_entry in enumerate(torrent_files):
-                    filename = file_entry.path[len(swarmname):]
+                    filename = file_entry.path[len(swarmname)+1:]
                     torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
         
             self.orig_files = [torrent_file.path for torrent_file in torrentinfo.files()]
@@ -375,13 +376,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.dlconfig['selected_files'] = selected_files
                 
                 is_multifile = len(self.tdef.get_files_as_unicode()) > 1
-                swarmname = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
+                commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
+                swarmname = os.path.split(commonprefix)[0] or os.path.split(commonprefix)[1]
                 unwanteddir = os.path.join(swarmname, '.unwanted')
                 unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
                 
                 filepriorities = []
                 for index, orig_path in enumerate(self.orig_files):
-                    filename = orig_path[len(swarmname):]
+                    filename = orig_path[len(swarmname)+1:]
         
                     if filename in selected_files or not selected_files:
                         filepriorities.append(1)

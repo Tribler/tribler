@@ -403,7 +403,7 @@ class MainFrame(wx.Frame):
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
 
-    def startDownloadFromMagnet(self, url, destdir = None, cmdline=False, selectedFiles = [], vodmode = False):
+    def startDownloadFromMagnet(self, url, destdir = None, cmdline=False, selectedFiles = None, vodmode = False):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
             wx.CallAfter(self.startDownload, tdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
