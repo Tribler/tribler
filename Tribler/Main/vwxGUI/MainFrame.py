@@ -626,6 +626,7 @@ class MainFrame(wx.Frame):
             
             print >> sys.stderr, "Switching to Bittorrent"
             cdef = TorrentDef.load(torrentfilename)
+            dscfg = dscfg.copy()
             dscfg.set_selected_files(selectedFiles or [])
             if vodmode:
                 videoplayer = VideoPlayer.getInstance()
