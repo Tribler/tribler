@@ -2008,6 +2008,8 @@ class LibraryList(SizeList):
         if self.statefilter:
             if self.statefilter not in item[2].state:
                 return False
+            elif self.statefilter == 'stopped' and 'completed' in item[2].state:
+                return False
         
         return SizeList.MatchFilter(self, item)
     
