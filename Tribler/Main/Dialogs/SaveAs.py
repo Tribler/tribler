@@ -62,7 +62,7 @@ class SaveAs(wx.Dialog):
         
         vSizer.Add(hSizer, 0, wx.EXPAND|wx.BOTTOM, 3)
         
-        if tdef:
+        if tdef and tdef.get_files():
             vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND|wx.BOTTOM, 10)
             
             firstLine = wx.StaticText(self, -1, "Content:")
@@ -110,6 +110,8 @@ class SaveAs(wx.Dialog):
                 else:
                     event.Skip()                
             self.listCtrl.Bind(wx.EVT_KEY_UP, OnKeyUp)
+        else:
+            self.SetSize((600,150))
         
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)

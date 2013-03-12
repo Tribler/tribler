@@ -1,0 +1,9 @@
+tribler for Debian
+------------------
+
+The upstream doesn't provide source tarball. Only svn trees of sources are
+available. Thus we repack the source by the svn tree.
+
+Please use "./debian/rules get-orig-source" to get the source.
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>, Wed, 22 Aug 2012 00:09:03 +0800

@@ -33,7 +33,6 @@ class SettingsDialog(wx.Dialog):
                              'firewallValue', \
                              'firewallStatusText', \
                              'firewallStatus', \
-                             'familyFilter', \
                              'uploadCtrl', \
                              'downloadCtrl', \
                              'zeroUp', \
@@ -47,10 +46,6 @@ class SettingsDialog(wx.Dialog):
                              'diskLocationCtrl', \
                              'diskLocationChoice', \
                              'portChange', \
-                             'externalplayer',\
-                             'batchstart',\
-                             'batchstop',\
-                             'batchmove',\
                              'minimize_to_tray',\
                              't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
                              'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',\
@@ -97,7 +92,6 @@ class SettingsDialog(wx.Dialog):
         self.tree.AppendItem(root,'Connection',data=wx.TreeItemData(xrc.XRCCTRL(self,"connection_panel")))
         self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
         self.tree.AppendItem(root,'Seeding',data=wx.TreeItemData(xrc.XRCCTRL(self,"seeding_panel")))
-        self.tree.AppendItem(root,'Misc',data=wx.TreeItemData(xrc.XRCCTRL(self,"misc_panel")))
         self.tree.AppendItem(root,'Experimental',data=wx.TreeItemData(xrc.XRCCTRL(self,"exp_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
@@ -118,10 +112,6 @@ class SettingsDialog(wx.Dialog):
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
         
-        self.elements['batchstart'].Bind(wx.EVT_BUTTON, self.OnMultiple)
-        self.elements['batchstop'].Bind(wx.EVT_BUTTON, self.OnMultiple)
-        self.elements['batchmove'].Bind(wx.EVT_BUTTON, self.OnMultipleMove)
-        
         self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
         self.Bind(wx.EVT_BUTTON, self.cancelAll, id = xrc.XRCID("wxID_CANCEL"))
         
@@ -140,17 +130,6 @@ class SettingsDialog(wx.Dialog):
         if self.guiUtility.frame.SRstatusbar.IsReachable():
             self.elements['firewallStatus'].setSelected(2)
             self.elements['firewallStatusText'].SetLabel('Port is working')
-        
-        if self.utility.config.Read('family_filter', "boolean"):
-            self.elements['familyFilter'].SetSelection(0)
-        else:
-            self.elements['familyFilter'].SetSelection(1)
-
-        self.currentPopup = self.utility.config.Read('popup_player', "boolean")
-        if self.currentPopup:
-            self.elements['externalplayer'].SetSelection(1)
-        else:
-            self.elements['externalplayer'].SetSelection(0)
         
         self.currentPortValue = str(self.guiUtility.get_port_number())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
@@ -362,12 +341,6 @@ class SettingsDialog(wx.Dialog):
                     print_exc()
                     
             scfg.save(cfgfilename)
-            self.guiUtility.toggleFamilyFilter(self.elements['familyFilter'].GetSelection() == 0)
-            
-            selectedPopup = self.elements['externalplayer'].GetSelection() == 1
-            if self.currentPopup != selectedPopup:
-                self.utility.config.Write('popup_player', selectedPopup, "boolean")
-                restart = True
             
             # tit-4-tat
             t4t_option = self.utility.config.Read('t4t_option', 'int')
@@ -454,128 +427,6 @@ class SettingsDialog(wx.Dialog):
         else:
             pass
     
-    def OnMultiple(self, event):
-        button = event.GetEventObject()
-        button.Enable(False)
-        wx.CallLater(5000, button.Enable, True)
-        
-        start = button == self.elements['batchstart']
-        
-        def do_db():
-            choices = []
-            dstates = []
-            infohashes = []
-            _,downloads = self.guiUtility.library_manager.getHitsInCategory()
-        
-            def sort_by_name(a, b):
-                return cmp(a.name, b.name)
-        
-            downloads.sort(cmp = sort_by_name)
-            for item in downloads:
-                started = 'active' in item.state
-                if start != started:
-                    choices.append(item.name)
-                    dstates.append(item.ds)
-                    infohashes.append(item.infohash)
-            
-            return choices, dstates, infohashes
-                
-        def do_gui(delayedResult):
-            choices, dstates, infohashes = delayedResult.get()
-            user_download_choice = UserDownloadChoice.get_singleton()
-            
-            if len(choices) > 0:
-                message = 'Please select all torrents which should be '
-                if start:
-                    message += 'started.'
-                else:
-                    message += 'stopped.'
-                message += "\nUse ctrl+a to select all/deselect all."
-                
-                def bindAll(control):
-                    control.Bind(wx.EVT_KEY_DOWN, lambda event: self._SelectAll(dlg, event, len(choices)))
-                    func = getattr(control, 'GetChildren', False)
-                    if func:
-                        for child in func():
-                            bindAll(child)
-                
-                dlg = wx.MultiChoiceDialog(self, message, 'Select torrents', choices)
-                dlg.allselected = False
-                bindAll(dlg)
-                
-                if dlg.ShowModal() == wx.ID_OK:
-                    selections = dlg.GetSelections()
-                    for selection in selections:
-                        if start:
-                            if dstates[selection]:
-                                if isinstance(dstates[selection], MergedDs):
-                                    for ds in dstates[selection].dslist:
-                                        ds.get_download().restart()
-                                else:
-                                    dstates[selection].get_download().restart()
-                                
-                                
-                            user_download_choice.set_download_state(infohashes[selection], "restart")
-                            
-                        else:
-                            if dstates[selection]:
-                                if isinstance(dstates[selection], MergedDs):
-                                    for ds in dstates[selection].dslist:
-                                        ds.get_download().stop()
-                                else:
-                                    dstates[selection].get_download().stop()
-                            
-                            user_download_choice.set_download_state(infohashes[selection], "stop")
-                            
-                    user_download_choice.flush()
-            else:
-                message = "No torrents in library which could be "
-                if start:
-                    message += "started."
-                else:
-                    message += "stopped."
-                dlg = wx.MessageDialog(self, message, 'No torrents found.', wx.OK | wx.ICON_INFORMATION)
-                dlg.ShowModal()
-            dlg.Destroy()
-        
-        cancelWorker("OnMultiple")
-        startWorker(do_gui, do_db, uId = "OnMultiple",priority=GUI_PRI_DISPERSY)
-        
-    def OnMultipleMove(self, event):
-        button = event.GetEventObject()
-        button.Enable(False)
-        wx.CallLater(5000, button.Enable, True)
-        
-        start = button == self.elements['batchstart']
-        
-        def do_db():
-            choices = []
-            dstates = []
-            _,downloads = self.guiUtility.library_manager.getHitsInCategory()
-            
-            def sort_by_name(a, b):
-                return cmp(a.name, b.name)
-            
-            downloads.sort(cmp = sort_by_name)
-            for item in downloads:
-                if item.ds:
-                    choices.append(item.name)
-                    dstates.append(item.ds)
-            
-            return choices, dstates
-        
-        def do_gui(delayedResult):
-            choices, dstates = delayedResult.get()
-            
-            dlg = MoveTorrents(self, choices, dstates)
-            if dlg.ShowModal() == wx.ID_OK:
-                selectedDownloads, new_dir, moveFiles, ignoreIfExists = dlg.GetSettings()
-                for download in selectedDownloads:
-                    self.moveDownload(download, new_dir, moveFiles, ignoreIfExists)
-            dlg.Destroy()
-        
-        startWorker(do_gui, do_db, uId="OnMultipleMove",priority=GUI_PRI_DISPERSY)
-        
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():
             if event.GetKeyCode() == 65: #ctrl + a
@@ -659,68 +510,6 @@ class SettingsDialog(wx.Dialog):
         self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir, 'collected_torrent_files'))
         
         busyDlg.Destroy()
-        
-    def moveDownload(self, download_state, new_dir, movefiles, ignore):
-        def modify_config(download):
-            self.guiUtility.library_manager.deleteTorrentDownload(download, None, removestate = False)
-            
-            cdef = download.get_def()
-            dscfg = DownloadStartupConfig(download.dlconfig)
-            dscfg.set_dest_dir(new_dir)
-            
-            return cdef, dscfg
-        
-        def rename_or_merge(old, new, ignore = True):
-            if os.path.exists(old):
-                if os.path.exists(new):
-                    files = os.listdir(old)
-                    for file in files:
-                        oldfile = os.path.join(old, file)
-                        newfile = os.path.join(new, file)
-                        
-                        if os.path.isdir(oldfile):
-                            self.rename_or_merge(oldfile, newfile)
-                            
-                        elif os.path.exists(newfile):
-                            if not ignore:
-                                os.remove(newfile)
-                                os.rename(oldfile, newfile)
-                        else:
-                            os.rename(oldfile, newfile)
-                else:
-                    os.renames(old, new)
-                
-        destdirs = download_state.get_download().get_dest_files()
-        if len(destdirs) > 1:
-            old = os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
-            _, old_dir = new = os.path.split(old)
-            new = os.path.join(new_dir, old_dir)
-        else:
-            old = destdirs[0][1]
-            _, old_file = os.path.split(old)
-            new = os.path.join(new_dir, old_file)
-        
-        print >> sys.stderr, "Creating new donwloadconfig"
-        dslist = []
-        if isinstance(download_state, MergedDs):
-            dslist = download_state.dslist
-        else:
-            dslist.append(download_state)
-        
-        to_start = []
-        for ds in dslist:
-            download = ds.get_download()
-            to_start.append(modify_config(download))
-        
-        if movefiles:
-            print >> sys.stderr, "Moving from",old,"to",new,"newdir",new_dir
-            
-            movelambda = lambda: rename_or_merge(old, new, ignore)
-            self.utility.session.lm.rawserver.add_task(movelambda, 0.0)
-            
-        for cdef, dscfg in to_start:
-            startlambda = lambda cdef=cdef, dscfg=dscfg: self.utility.session.start_download(cdef, dscfg)
-            self.utility.session.lm.rawserver.add_task(startlambda, 0.0)
         
     def process_input(self):
         try:

@@ -11,7 +11,6 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.Base import *
-from Tribler.Core.DecentralizedTracking.repex import REPEX_SWARMCACHE_SIZE
 
 DEBUG = False
 
@@ -23,7 +22,7 @@ class DownloadState(Serializable):
     
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,filepieceranges=None,logmsgs=None,proxyservice_proxy_list=[],proxyservice_doe_list=[],peerid=None,videoinfo=None,swarmcache=None):
+    def __init__(self,download,status,error,progress,stats=None,seeding_stats=None,filepieceranges=None,logmsgs=None,peerid=None,videoinfo=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -34,26 +33,11 @@ class DownloadState(Serializable):
         this range. This is used for playing a video in a multi-torrent file.
         @param logmsgs A list of messages from the BT engine which may be of 
         """
-        # Raynor Vliegendhart, TODO: documentation of DownloadState seems incomplete?
-        # RePEX: @param swarmcache The latest SwarmCache known by Download. This
-        #        cache will be used when the download is not running.
-        # RePEX TODO: instead of being passed the latest SwarmCache, DownloadState could
-        # also query it from Download? Perhaps add get_swarmcache to Download(Impl)?
-        
         self.download = download
         self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.vod_status_msg = None
-        self.proxyservice_proxy_list = proxyservice_proxy_list
-        self.proxyservice_doe_list = proxyservice_doe_list
-        self.seedingstats = None #SeedingManager will update downloadstate with seedings stats (version, total_up, total_down, time_seeding)
-        
-        # RePEX: stored swarmcache from Download and store current time
-        if swarmcache is not None:
-            self.swarmcache = dict(swarmcache)
-        else:
-            self.swarmcache = None
-        self.time = time.time()
+        self.seedingstats = seeding_stats
         
         self.haveslice = None
         self.stats = None
@@ -75,9 +59,9 @@ class DownloadState(Serializable):
             self.progress = 0.0 # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
             
-        elif status is not None and not status in [DLSTATUS_REPEXING,DLSTATUS_DOWNLOADING,DLSTATUS_SEEDING]:
+        elif status is not None and not status in [DLSTATUS_DOWNLOADING,DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: we have status and it is not repexing, downloading, or seeding"
+            if DEBUG: print >> sys.stderr, "DownloadState.__init__: we have status and it is not downloading or seeding"
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -139,11 +123,6 @@ class DownloadState(Serializable):
 
                     else:
                         self.progress = have/float(len(haveslice))
-
-            # RePEX: REPEXING status overrides SEEDING/DOWNLOADING status.
-            if status is not None and status == DLSTATUS_REPEXING:
-                self.status = DLSTATUS_REPEXING
-            
 
     def get_download(self):
         """ Returns the Download object of which this is the state """
@@ -499,62 +478,3 @@ class DownloadState(Serializable):
             return []
         else:
             return self.stats['spew']
-
-    # ProxyService_
-    #
-    def get_proxy_list(self):
-        """ Returns the peers currently proxying.
-        @return A list of PermIDs.
-        """
-        if self.proxyservice_proxy_list is None:
-            return []
-        else:
-            return self.proxyservice_proxy_list 
-
-    def get_doe_list(self):
-        """ Returns the current list of doe nodes.
-        @return A list od PermIDs.
-        """
-        return self.proxyservice_doe_list
-    #
-    # _ProxyService
-
-    #
-    # RePEX: get swarmcache
-    #
-    def get_swarmcache(self):
-        """
-        Gets the SwarmCache of the Download. If the Download was RePEXing,
-        the latest SwarmCache is returned. If the Download was running 
-        normally, a sample of the peerlist is merged with the last
-        known SwarmCache. If the Download was stopped, the last known
-        SwarmCache is returned.
-        
-        @return The latest SwarmCache for this Download, which is a dict 
-        mapping dns to a dict with at least 'last_seen' and 'pex' keys.
-        """
-        swarmcache = {}
-        if self.status == DLSTATUS_REPEXING and self.swarmcache is not None:
-            # the swarmcache given at construction comes from RePEXer 
-            swarmcache = self.swarmcache
-        elif self.status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
-            # get local PEX peers from peerlist and fill swarmcache
-            peerlist = [p for p in self.get_peerlist() if p['direction']=='L' and p.get('pex_received',0)][:REPEX_SWARMCACHE_SIZE]
-            swarmcache = {}
-            for peer in peerlist:
-                dns = (peer['ip'], peer['port'])
-                swarmcache[dns] = {'last_seen':self.time,'pex':[]}
-            # fill remainder with peers from old swarmcache
-            if self.swarmcache is not None:
-                for dns in self.swarmcache.keys()[:REPEX_SWARMCACHE_SIZE-len(swarmcache)]:
-                    swarmcache[dns] = self.swarmcache[dns]
-            
-            # TODO: move peerlist sampling to a different module?
-            # TODO: perform swarmcache computation only once?
-        elif self.swarmcache is not None:
-            # In all other cases, use the old swarmcache
-            swarmcache = self.swarmcache
-            # TODO: rearrange if statement to merge 1st and 3rd case?
-            
-        return swarmcache
-        

@@ -7,5 +7,5 @@
 # > cd mainbranch/Tribler
 # > svn propset svn:externals . -F svn_ext_val.txt
 
-SwiftEngine https://svn.tribler.org/libswift/branches/tribler-6.0.x
+SwiftEngine https://svn.tribler.org/libswift/branches/tribler-6.1.x
 dispersy https://svn.tribler.org/dispersy/trunk
