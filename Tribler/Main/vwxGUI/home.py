@@ -585,7 +585,7 @@ class DispersyPanel(HomePanel):
                 addValue(keyNode, value)
 
         def addDict(parentNode, nodedict):
-            for key, value in nodedict.iteritems():
+            for key, value in nodedict.items():
                 key = str(key)
                 prepend = ''
                 if not isinstance(value, (list, dict)):
