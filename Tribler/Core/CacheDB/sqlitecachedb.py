@@ -2442,7 +2442,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
-                print_exc()                
+                print_exc()        
                 raise
             _shouldCommit = False
             
@@ -2460,7 +2460,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             else:
                 print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
                 
-            print_stack()
+            #print_stack()
             
         elif vacuum:
             self._execute("VACUUM;")
