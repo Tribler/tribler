@@ -1133,3 +1133,45 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         t.metainfo_valid = self.metainfo_valid
         t.set_cs_keys(self.get_cs_keys_as_ders())
         return t
+
+
+class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
+
+    def __init__(self, infohash, name):
+        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
+        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
+        self.infohash = infohash
+        self.name = name
+
+    def get_name(self):
+        return self.name
+
+    def get_def_type(self):
+        return "torrent"
+    
+    def get_id(self):
+        return self.get_infohash()
+    
+    def get_infohash(self):
+        return self.infohash
+    
+    def get_live(self):
+        return False
+    
+    def get_length(self,selectedfiles=None):
+        return 0
+    
+    def get_metainfo(self):
+        return None
+    
+    def is_multifile_torrent(self):
+        return False
+    
+    def get_name_as_unicode(self):
+        return unicode(self.name)
+    
+    def get_files(self, exts = None):
+        return []
+        
+    def copy(self):
+        return TorrentDefNoMetainfo(self.infohash, self.name)

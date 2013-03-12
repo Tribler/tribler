@@ -272,7 +272,7 @@ class Session(SessionRuntimeConfig):
         and the result becomes the runtime config of this Download.
         @param initialdlstatus The initial download status of this Download 
         or None. This enables the caller to create a Download in e.g. 
-        DLSTATUS_REPEXING state instead.
+        DLSTATUS_STOPPED state instead.
         @param hidden Whether this torrent should be added to the mypreference table 
         @return Download
         """

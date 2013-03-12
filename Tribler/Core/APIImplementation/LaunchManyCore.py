@@ -27,7 +27,7 @@ from Tribler.Core.InternalTracker.HTTPHandler import HTTPHandler,DummyHTTPHandle
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
 from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.DecentralizedTracking import mainlineDHT
@@ -95,10 +95,6 @@ class TriblerLaunchMany(Thread):
             # Orig
             self.sessdoneflag = Event()
     
-            # Following two attributes set/get by network thread ONLY
-            self.hashcheck_queue = []
-            self.sdownloadtohashcheck = None
-    
             # Following 2 attributes set/get by UPnPThread
             self.upnp_thread = None
             self.upnp_type = config['upnp_nat_access']
@@ -110,16 +106,8 @@ class TriblerLaunchMany(Thread):
                                        ipv6_enable = config['ipv6_enabled'],
                                        failfunc = self.rawserver_fatalerrorfunc,
                                        errorfunc = self.rawserver_nonfatalerrorfunc)
-            self.rawserver.add_task(self.rawserver_keepalive,1)
-    
-            self.listen_port = self.rawserver.find_and_bind(0,
-                        config['minport'], config['maxport'], config['bind'],
-                        reuse = True,
-                        ipv6_socket_style = config['ipv6_binds_v4'],
-                        randomizer = config['random_port'])
-    
-            if DEBUG:
-                print >>sys.stderr,"tlm: Got listen port", self.listen_port
+            self.rawserver.add_task(self.rawserver_keepalive, 1)
+            self.listen_port = config['minport']
     
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
             self.shutdownstarttime = None
@@ -370,7 +358,7 @@ class TriblerLaunchMany(Thread):
         d = None
         self.sesslock.acquire()
         try:
-            if not tdef.is_finalized():
+            if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
                 raise ValueError("TorrentDef not finalized")
 
             infohash = tdef.get_infohash()
@@ -400,7 +388,10 @@ class TriblerLaunchMany(Thread):
                 data = {'destination_path':d.get_dest_dir()}
                 self.mypref_db.addMyPreference(torrent_id, data,commit=commit)
             
-            if self.rtorrent_handler:
+            if isinstance(tdef, TorrentDefNoMetainfo):
+                self.torrent_db.addInfohash(tdef.get_infohash(), commit=commit)
+                write_my_pref()
+            elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
             else:
                 self.torrent_db.addExternalTorrent(tdef, source='',extra_info={'status':'good'}, commit=commit)
@@ -408,28 +399,15 @@ class TriblerLaunchMany(Thread):
                 
         return d
 
-    def network_engine_wrapper_created_callback(self,d,sd,exc,pstate):
+    def network_engine_wrapper_created_callback(self,d,pstate):
         """ Called by network thread """
-        if exc is None:
-            # Always need to call the hashcheck func, even if we're restarting
-            # a download that was seeding, this is just how the BT engine works.
-            # We've provided the BT engine with its resumedata, so this should
-            # be fast.
-            #
-            try:
-                if sd is not None:
-                    self.queue_for_hashcheck(sd)
-                    if pstate is None and not d.get_def().get_live():
-                        # Checkpoint at startup
-                        (infohash,pstate) = d.network_checkpoint()
-                        self.save_download_pstate(infohash,pstate)
-                else:
-                    raise TriblerException("tlm: network_engine_wrapper_created_callback: sd is None!")
-            except Exception,e:
-                # There was a bug in queue_for_hashcheck that is now fixed.
-                # Leave this in place to catch unexpected errors.
-                print_exc()
-                d.set_error(e)
+        try:
+            if pstate is None:
+                # Checkpoint at startup
+                (infohash,pstate) = d.network_checkpoint()
+                self.save_download_pstate(infohash,pstate)
+        except:
+            print_exc()
 
     def remove(self,d,removecontent=False,removestate=True, hidden=False):
         """ Called by any thread """
@@ -529,42 +507,6 @@ class TriblerLaunchMany(Thread):
             self.internaltracker.parse_allowed(source='Session')
 
     #
-    # Torrent hash checking
-    #
-    def queue_for_hashcheck(self,sd):
-        """ Schedule a SingleDownload for integrity check of on-disk data
-
-        Called by network thread """
-        if hash:
-            self.hashcheck_queue.append(sd)
-            # Check smallest torrents first
-            self.hashcheck_queue.sort(singledownload_size_cmp)
-
-        if not self.sdownloadtohashcheck:
-            self.dequeue_and_start_hashcheck()
-
-    def dequeue_and_start_hashcheck(self):
-        """ Start integriy check for first SingleDownload in queue
-
-        Called by network thread """
-        self.sdownloadtohashcheck = self.hashcheck_queue.pop(0)
-        self.sdownloadtohashcheck.perform_hashcheck(self.hashcheck_done)
-
-    def hashcheck_done(self,success=True):
-        """ Integrity check for first SingleDownload in queue done
-
-        Called by network thread """
-        if DEBUG:
-            print >>sys.stderr,"tlm: hashcheck_done, success",success
-        #Niels, 2012-02-01: sdownloadtohashcheck could be none and throw an error here
-        if success and self.sdownloadtohashcheck:
-            self.sdownloadtohashcheck.hashcheck_done()
-        if self.hashcheck_queue:
-            self.dequeue_and_start_hashcheck()
-        else:
-            self.sdownloadtohashcheck = None
-
-    #
     # State retrieval
     #
     def set_download_states_callback(self,usercallback,getpeerlist,when=0.0):
@@ -647,7 +589,7 @@ class TriblerLaunchMany(Thread):
                 
             for i, filename in enumerate(filelist):
                 shouldCommit = i+1 == len(filelist)
-                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.5)
+                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, commit=shouldCommit, setupDelay=i*0.1)
             
     def load_download_pstate_noexc(self,infohash):
         """ Called by any thread, assume sesslock already held """
@@ -670,6 +612,8 @@ class TriblerLaunchMany(Thread):
             # SWIFTPROC
             if SwiftDef.is_swift_url(pstate['metainfo']):
                 sdef = SwiftDef.load_from_url(pstate['metainfo'])
+            elif pstate['metainfo'].has_key('infohash'):
+                tdef = TorrentDefNoMetainfo(pstate['metainfo']['infohash'], pstate['metainfo']['name'])
             else:
                 tdef = TorrentDef.load_from_dict(pstate['metainfo'])
             

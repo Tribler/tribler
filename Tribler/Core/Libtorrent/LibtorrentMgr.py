@@ -27,7 +27,8 @@ class LibtorrentMgr:
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
-        self.ltsession = lt.session()
+        fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
+        self.ltsession = lt.session(lt.fingerprint(*fingerprint))
         self.ltsession.set_settings(settings)
         self.ltsession.add_extension(lt.create_ut_metadata_plugin)
         self.ltsession.add_extension(lt.create_ut_pex_plugin)
@@ -35,6 +36,7 @@ class LibtorrentMgr:
         self.ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
+                                      lt.alert.category_t.storage_notification |
                                       lt.alert.category_t.performance_warning )
         self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port()+10)
         self.set_upload_rate_limit(-1)
@@ -134,13 +136,13 @@ class LibtorrentMgr:
             print >> sys.stderr, "LibtorrentMgr: added torrent", infohash
         return handle
 
-    def remove_torrent(self, torrentdl, removestate = False, removecontent = False):
+    def remove_torrent(self, torrentdl, removecontent = False):
         handle = torrentdl.handle
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
             with self.torlock:
                 if infohash in self.torrents:
-                    self.ltsession.remove_torrent(handle, 1)
+                    self.ltsession.remove_torrent(handle, int(removecontent))
                     del self.torrents[infohash]
                     if DEBUG:
                         print >> sys.stderr, "LibtorrentMgr: remove torrent", infohash

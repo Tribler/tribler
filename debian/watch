@@ -1,0 +1,6 @@
+# Compulsory line, this is a version 3 file
+version=3
+
+# <Webpage URL> <string match>
+opts=dversionmangle=s/\+svn.*$// \
+http://www.tribler.org/trac/wiki/Download .*tribler_([^-]*).*\.deb

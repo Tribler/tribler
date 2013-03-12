@@ -13,7 +13,7 @@ from Tribler.Core.Search.SearchManager import SearchManager, split_into_keywords
 from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentReranker
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin, NULL, forceAndReturnDBThread
 from Tribler.Core.simpledefs import *
-from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -232,65 +232,28 @@ class TorrentManager:
     def downloadTorrent(self, torrent, dest = None, secret = False, vodmode = False, selectedFiles = None):
         torrent_filename = self.getCollectedFilename(torrent)
         
-        if isinstance(torrent_filename, basestring):
-            #got actual filename
-            name = torrent.get('name', torrent.infohash)
-            clicklog={'keywords': self.searchkeywords,
-                      'reranking_strategy': self.rerankingStrategy.getID()}
-            
-            if torrent.get('name'):
-                name = torrent.name
-            else:
-                name = torrent.infohash
-            
-            clicklog={'keywords': self.searchkeywords,
-                      'reranking_strategy': self.rerankingStrategy.getID()}
-            
-            if "click_position" in torrent:
-                clicklog["click_position"] = torrent["click_position"]
+        name = torrent.get('name', torrent.infohash)
+        clicklog = {'keywords': self.searchkeywords,
+                   'reranking_strategy': self.rerankingStrategy.getID()}
+        
+        if "click_position" in torrent:
+            clicklog["click_position"] = torrent["click_position"]
 
-            #TESTING
-#            from Tribler.Core.Swift.SwiftDef import SwiftDef
-#            sdef = SwiftDef(torrent.infohash, '127.0.0.1:9999')
-#            torrent.swift_hash = sdef.get_roothash()
-#            self.torrent_db.updateTorrent(torrent.infohash, swift_hash = torrent.swift_hash)
-            
-            if torrent.swift_hash:
-                sdef = SwiftDef(torrent.swift_hash, "127.0.0.1:9999")
-            else:
-                sdef = None
+        sdef = SwiftDef(torrent.swift_hash, "127.0.0.1:9999") if torrent.swift_hash else None
+        tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) if not isinstance(torrent_filename, basestring) else None
 
-            # Api download
-            def do_gui():
-                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
-                if d:
-                    if secret:
-                        self.torrent_db.setSecret(torrent.infohash, secret)
+        # Api download
+        def do_gui():
+            d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, tdef=tdef, destdir=dest,clicklog=clicklog,name=name,vodmode=vodmode, selectedFiles = selectedFiles) ## remove name=name
+            if d:
+                if secret:
+                    self.torrent_db.setSecret(torrent.infohash, secret)
 
-                    if DEBUG:
-                        print >>sys.stderr,'standardDetails: download: download started'
-            wx.CallAfter(do_gui)
-        else:
-            callback = lambda: self.downloadTorrent(torrent, dest, secret, vodmode)
-            response = self.getTorrent(torrent, callback)
-
-            if response[0]:
-                #torrent is being requested from peers, using callback this function will be called again
-                return response[1]
-            
-            else:
-                #torrent not found
-                def showdialog():
-                    str = self.guiUtility.utility.lang.get('delete_torrent') % torrent['name']
-                    dlg = wx.MessageDialog(self.guiUtility.frame, str, self.guiUtility.utility.lang.get('delete_dead_torrent'), 
-                                    wx.YES_NO|wx.NO_DEFAULT|wx.ICON_QUESTION)
-                    result = dlg.ShowModal()
-                    dlg.Destroy()
-            
-                    if result == wx.ID_YES:
-                        infohash = torrent.infohash
-                        self.torrent_db.deleteTorrent(infohash, delete_file=True, commit = True)
-                wx.CallAfter(showdialog)       
+                if DEBUG:
+                    print >>sys.stderr,'standardDetails: download: download started'
+        wx.CallAfter(do_gui)
+        
+        return bool(tdef)
     
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):
@@ -985,7 +948,7 @@ class LibraryManager:
                     sdef = None
                 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                d = self.guiUtility.frame.startDownload(torrent_filename, cdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles = [selectedinfilename])
+                d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, destdir=defaultDLConfig.get_dest_dir(), vodmode=True, selectedFiles = [selectedinfilename])
                 
             else:
                 print >> sys.stderr, ".TORRENT MISSING REQUESTING FROM PEERS"
@@ -1006,7 +969,7 @@ class LibraryManager:
         elif url.startswith("magnet:"):
             self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
     
-    def resumeTorrent(self, torrent):
+    def resumeTorrent(self, torrent, force_seed = False):
         downloads = self._getDownloads(torrent)
         resumed = False
         for download in downloads:
@@ -1015,7 +978,7 @@ class LibraryManager:
                 resumed = True
                 
                 id = download.get_def().get_id()
-                self.user_download_choice.set_download_state(id, "restart")
+                self.user_download_choice.set_download_state(id, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
             
         if not resumed:
             filename = self.torrentsearch_manager.getCollectedFilename(torrent)
@@ -1026,7 +989,7 @@ class LibraryManager:
                 destdir = destdirs.get(torrent.torrent_id, None)
                 if destdir:
                     destdir = destdir[-1]
-                self.guiUtility.frame.startDownload(cdef=tdef, destdir=destdir)
+                self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
             else:
                 callback = lambda: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.getTorrent(torrent, callback)

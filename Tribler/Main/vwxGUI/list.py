@@ -7,12 +7,12 @@ from math import log
 
 import wx
 from wx import html
+from wx.lib.wordwrap import wordwrap
 from time import time
 from datetime import date, datetime
 from colorsys import hsv_to_rgb, rgb_to_hsv
 
-from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge,\
-    TorrentStatus, RoundedPanel
+from Tribler.Main.vwxGUI.widgets import ProgressStaticText, HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -35,6 +35,7 @@ from Tribler.Main.Utility.GuiDBTuples import ChannelTorrent, Channel
 from Tribler.Main.vwxGUI.list_footer import ChannelListFooter
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Category.Category import Category
+from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 
 DEBUG = False
 DEBUG_RELEVANCE = False
@@ -161,13 +162,31 @@ class RemoteSearchManager(BaseManager):
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
         
-    def refresh_partial(self, ids):
-        for infohash in ids:
+    def refresh_partial(self, infohashes = [], channelids = []):
+        for infohash in infohashes:
             curTorrent = self.list.GetItem(infohash).original_data
             if isinstance(curTorrent, ChannelTorrent):
                 startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getTorrentFromChannelTorrentId, cargs=(infohash,), wargs=(curTorrent.channel,curTorrent.channeltorrent_id), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
             else:
                 startWorker(self.list.RefreshDelayedData, self.torrentsearch_manager.getTorrentByInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+                
+        if channelids:        
+            def do_db():
+                return self.channelsearch_manager.getChannels(channelids)
+        
+            def do_gui(delayedResult):
+                _,newChannels = delayedResult.get()
+                
+                for channel in newChannels:
+                    id = channel.id
+                    if self.list.InList(id):
+                        item = self.list.GetItem(id)
+                        oldChannel = item.original_data
+                        if oldChannel.torrents:
+                            channel.torrents = oldChannel.torrents
+                
+                    self.list.RefreshData(id, channel)
+            startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def showSearchSuggestions(self, keywords):
         startWorker(self.list._ShowSuggestions, self.torrentsearch_manager.getSearchSuggestion, cargs = (keywords, ), wargs=(keywords, 3), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
@@ -855,6 +874,7 @@ class List(wx.BoxSizer):
     def SetupScrolling(self, *args, **kwargs):
         return self.list.SetupScrolling(*args, **kwargs)
     
+
 class SizeList(List):
     
     def __init__(self, columns, background, spacers = [0,0], singleSelect = False, showChange = False, borders = True, parent = None):
@@ -1035,30 +1055,26 @@ class GenericSearchList(SizeList):
         self.spam = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bug.png"), wx.BITMAP_TYPE_ANY)
         self.max_votes = 5
     
-    def _favorite_icon(self, item):
-        channel = item.original_data
-        if channel.isMyChannel():
-            return self.mychannel
-        if channel.isFavorite():
-            return self.favorite
-        if channel.isSpam():
-            return self.spam
-        return self.normal
-    
     def _status_icon(self, item):
+        def handler(event, function):
+            self.list.Select(item.original_data.infohash)
+            function(event)
+
         torrent = item.original_data
-        if torrent.magnetstatus:
-            return self.statusDHT, "This torrent being fetched from the DHT"
+        if torrent.magnetstatus or "metadata" in torrent.state:
+            return self.statusDHT, None, "This torrent being fetched from the DHT"
+        elif "checking" in torrent.state:
+            return self.statusDownloading, None, "Checking this torrent"
         elif "downloading" in torrent.state:
-            return self.statusDownloading, "This torrent is downloading"
+            return self.statusDownloading, self.statusStopped, "Stop downloading this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnStop)
         elif "seeding" in torrent.state:
-            return self.statusSeeding, "This torrent is seeding"
+            return self.statusSeeding, self.statusFinished, "Stop seeding this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnStop)
         elif "completed" in torrent.state:
-            return self.statusFinished, "This torrent is finished downloading"
+            return self.statusFinished, self.statusSeeding, "Resume seeding this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnResume)
         elif "stopped" in torrent.state:
-            return self.statusStopped, "This torrent is paused"
+            return self.statusStopped, self.statusDownloading, "Resume downloading this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnResume)
         else:
-            return self.statusInactive, "This torrent is inactive"   
+            return self.statusInactive, self.statusDownloading, "Start downloading this torrent", lambda evt: handler(evt, self.guiutility.frame.top_bg.OnDownload)
     
     @warnWxThread
     def CreateDownloadButton(self, parent, item):
@@ -1085,6 +1101,19 @@ class GenericSearchList(SizeList):
         control.SetRatio(seeders, leechers)
         return control, 3
 
+    @warnWxThread
+    def CreateFrom(self, parent, item):
+        channel = getattr(item.original_data, 'channel', None)
+        if channel:
+            control = wx.Panel(item)
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            if channel.isFavorite():
+                sizer.Add(wx.StaticBitmap(control, bitmap = self.favorite), 0, wx.RIGHT, 5)
+            sizer.Add(wx.StaticText(control, label = channel.name))
+            control.SetSizer(sizer)
+            return control, 0
+        return None
+    
     @warnWxThread
     def OnDownload(self, event):
         item = event.GetEventObject().item
@@ -1137,9 +1166,9 @@ class GenericSearchList(SizeList):
                             del self.infohash2key[key]
 
                     if DEBUG_RELEVANCE:
-                        item_data = ["%s %s"%(head.name,head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0]
+                        item_data = ["%s %s"%(head.name,head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None]
                     else:
-                        item_data = [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0]
+                        item_data = [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None]
                     original_data = item
                     
                     list_data.append((key, item_data, original_data, create_method))
@@ -1173,7 +1202,7 @@ class GenericSearchList(SizeList):
         if data:
             if isinstance(data, Channel):
                 self.max_votes = max(data.nr_favorites, self.max_votes)
-                self.list.RefreshData(key, (data.id, [data.name, data.modified, data.nr_torrents, data.nr_favorites], data, ChannelListItem))
+                self.list.RefreshData(key, (data.id, [data.name, data.modified, data.nr_torrents, data.nr_favorites, None], data))
                 return
             
             original_data = data
@@ -1192,9 +1221,9 @@ class GenericSearchList(SizeList):
                 
             # Update primary columns with new data
             if DEBUG_RELEVANCE:
-                data = (head.infohash, ["%s %s"%(head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0], original_data)
+                data = (head.infohash, ["%s %s"%(head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None], original_data)
             else:
-                data = (head.infohash, [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, 0], original_data)
+                data = (head.infohash, [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None], original_data)
             
             self.list.RefreshData(key, data)
             
@@ -1292,9 +1321,7 @@ class GenericSearchList(SizeList):
             self.uelog.addEvent(message=relevance_msg, type = 4)
 
         startWorker(None, db_callback, retryOnBusy=True)
-        response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
-        if response:
-            self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
+        return self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = files)
         
     def InList(self, key):
         key = self.infohash2key.get(key, key)
@@ -1367,7 +1394,8 @@ class SearchList(GenericSearchList):
                    {'name':'File type', 'width': '24em', 'sortAsc': True}, \
                    {'name':'Seeders', 'width': '14em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
                    {'name':'Leechers', 'width': '15em', 'fmt': lambda x: '?' if x < 0 else str(x)}, \
-                   {'name':'Health', 'type':'method', 'width': 100, 'method': self.CreateRatio}]
+                   {'name':'Health', 'width': 100, 'type':'method', 'method': self.CreateRatio}, \
+                   {'name':'From', 'width': '25em', 'type':'method', 'method': self.CreateFrom, 'showEmpty': False}]
         
         columns = self.guiutility.SetColumnInfo(TorrentListItem, columns, hide_defaults = [3,4])
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
@@ -1421,16 +1449,11 @@ class SearchList(GenericSearchList):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
     
     def _special_icon(self, item):
-#        torrent = item.original_data
-#        if torrent.swift_hash:
-#            return self.hasSwift, "This torrent is Swift-enabled"
-#        return self.noSwift
-        
         torrent = item.original_data
         if torrent.hasChannel() and torrent.channel.isFavorite():
-            return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
+            return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%torrent.channel.name
         else:
-            return self.outFavoriteChannel, "This torrent is not part of one of your favorite channels"
+            return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
 
     def GetManager(self):
         if getattr(self, 'manager', None) == None:
@@ -1642,6 +1665,9 @@ class LibraryList(SizeList):
         self.newfilter = False
         self.prevStates = {}
         
+        self.bw_history = {}
+        self.refreshitems_counter = 0
+        
         self.initnumitems = False
 
         columns = [{'name':'Name', 'width': wx.LIST_AUTOSIZE, 'sortAsc': True, 'fontSize': 2, 'showColumname': False}, \
@@ -1652,13 +1678,16 @@ class LibraryList(SizeList):
                    {'name':'Up speed', 'width': '20em', 'fmt': self.utility.speed_format_new, 'autoRefresh': False}, \
                    {'name':'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name':'Time seeding', 'width': '25em', 'fmt': self.utility.eta_value, 'autoRefresh': False}]
+                   {'name':'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
+                   {'name':'Swift ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
+                   {'name':'Swift time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
         
-        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8])
+        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8, 9, 10])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
-        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
+        self.hasTorrent = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bittorrent.png"), wx.BITMAP_TYPE_ANY)
+        self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0,0], False, parent = parent)
         
     def OnDeleteKey(self, event):
@@ -1674,14 +1703,26 @@ class LibraryList(SizeList):
         eta = self.utility.eta_value(value, truncate=2)
         return eta or '-'
 
+    def _format_seedingtime(self, value):
+        eta = self.utility.eta_value(value)
+        return eta or '0s'
+
     def _format_ratio(self, value):
         return "%.2f"%value
     
     def _swift_icon(self, item):
-        torrent = item.original_data
-        if torrent.swift_hash:
-            return self.hasSwift, "This torrent is Swift-enabled"
-        return self.noSwift, ""
+        ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[1]
+        if ds and ds.get_download().get_def().get_def_type() == 'swift' and ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+            return self.hasSwift, None, "Using Swift for this download"
+        else:
+            return self.hasNothing, None, ""
+
+    def _torrent_icon(self, item):
+        ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
+        if ds and ds.get_download().get_def().get_def_type() == 'torrent' and ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+            return self.hasTorrent, None, "Using Bittorrent for this download"
+        else:
+            return self.hasNothing, None, ""
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -1716,7 +1757,7 @@ class LibraryList(SizeList):
 
     def OnExpand(self, item):
         List.OnExpand(self, item)
-        ld = LibraryDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
+        ld = LibraryDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, self.bw_history.get(item.original_data.infohash, []))
         item.expandedPanel = ld
         self.guiutility.SetBottomSplitterWindow(ld)
         
@@ -1805,6 +1846,8 @@ class LibraryList(SizeList):
         if didStateChange:
             if self.statefilter != None:
                 self.list.SetData() #basically this means execute filter again
+
+        self.refreshitems_counter += 1
             
         for item in self.list.items.itervalues():
             ds = item.original_data.ds
@@ -1816,16 +1859,34 @@ class LibraryList(SizeList):
                     item.data[1] = -1
 
                 tooltip = ''
-                ratio = 0
-                time_seeding = 0
                 if ds:
-                    if ds.get_seeding_statistics():
-                        stats = ds.get_seeding_statistics()
-                        dl = stats['total_down']
-                        ul = stats['total_up']
+                    torrent_ds, swift_ds = item.original_data.dslist
+
+                    # Set Swift seeding time and ratio
+                    if swift_ds and swift_ds.get_seeding_statistics():
+                        seeding_stats = swift_ds.get_seeding_statistics()
+                        dl = seeding_stats['total_down']
+                        ul = seeding_stats['total_up']
+                        
+                        if dl == 0L:
+                            if ul != 0L:
+                                ratio = sys.maxint
+                            else:
+                                ratio = 0
+                        else:
+                            ratio = 1.0*ul/dl
+                            
+                        item.RefreshColumn(9, ratio)
+                        item.RefreshColumn(10, seeding_stats['time_seeding'])
+
+                    # Set torrent seeding time and ratio
+                    if torrent_ds and torrent_ds.get_seeding_statistics():
+                        seeding_stats = torrent_ds.get_seeding_statistics()
+                        dl = seeding_stats['total_down']
+                        ul = seeding_stats['total_up']
                         
                         #set dl at min progress*length
-                        size_progress = ds.get_length()*ds.get_progress()
+                        size_progress = torrent_ds.get_length()*torrent_ds.get_progress()
                         dl = max(dl, size_progress)                 
                         
                         if dl == 0L:
@@ -1837,38 +1898,20 @@ class LibraryList(SizeList):
                             ratio = 1.0*ul/dl
                             
                         tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
-                        time_seeding = stats['time_seeding']
+
+                        item.RefreshColumn(7, ratio)
+                        item.RefreshColumn(8, seeding_stats['time_seeding'])
                         
-                    else:
-                        dl = ds.get_total_transferred(DOWNLOAD)
-                        ul = ds.get_total_transferred(UPLOAD)
-                        
-                        #set dl at min progress*length
-                        progress = item.original_data.progress or 0
-                        size = item.original_data.length or 0
-                        size_progress = size*progress
-                        dl = max(dl, size_progress)
-                        
-                        if dl == 0L:
-                            if ul != 0L:
-                                ratio = sys.maxint
-                            else:
-                                ratio = 0
+                        if show_seeding_colours:
+                            #t4t_ratio is goal
+                            step = ratio / t4t_ratio
+                            step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
+                            
+                            rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
+                            bgcolour = wx.Colour(*rgbTuple)
+                            item.SetDeselectedColour(bgcolour)
                         else:
-                            ratio = 1.0*ul/dl
-                        
-                        tooltip = "Total transferred: %s down, %s up."%(self.utility.size_format(dl), self.utility.size_format(ul))
-                        
-                    if show_seeding_colours:
-                        #t4t_ratio is goal
-                        step = ratio / t4t_ratio
-                        step = int(min(1, step) * 5)/5.0 #rounding to 5 different colours
-                        
-                        rgbTuple = (c*255.0 for c in hsv_to_rgb(orange[0]+step*colourstep[0], orange[1]+step*colourstep[1], orange[2]+step*colourstep[2]))
-                        bgcolour = wx.Colour(*rgbTuple)
-                        item.SetDeselectedColour(bgcolour)
-                    else:
-                        item.SetDeselectedColour(LIST_DESELECTED)
+                            item.SetDeselectedColour(LIST_DESELECTED)
                     
                 item.RefreshColumn(3, ds.get_eta() if ds else '-')
                 
@@ -1881,9 +1924,22 @@ class LibraryList(SizeList):
                 seeds, peers = ds.get_num_seeds_peers() if ds else (0,0)
                 item.RefreshColumn(6, seeds+peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers."%(seeds, peers) if ds else '')
+
+                # Store bandwidth history
+                if self.refreshitems_counter % 5 == 0:                
+                    self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
+                    self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
+                    self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
                 
-                item.RefreshColumn(7, ratio)
-                item.RefreshColumn(8, time_seeding)
+                # For updating torrent icons
+                old_t_ds = oldDS.get(item.original_data.infohash, None)
+                old_t_ds = old_t_ds if not isinstance(old_t_ds, MergedDs) else old_t_ds.dslist[0]
+                new_t_ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
+                if old_t_ds and new_t_ds:
+                    old_status = old_t_ds.get_status()
+                    new_status = new_t_ds.get_status()
+                    if old_status != new_status and (old_status == DLSTATUS_STOPPED or new_status == DLSTATUS_STOPPED):
+                        item.RefreshData([item.original_data.infohash, item.data, item.original_data])
 
         if newFilter:
             self.newfilter = False
@@ -1893,7 +1949,7 @@ class LibraryList(SizeList):
         SizeList.SetData(self, data)
         
         if len(data) > 0:
-            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, -1], file, LibraryListItem) for file in data]
+            data = [(file.infohash, [file.name, None, file.length, None, None, None, 0, 0, 0, 0, 0, -1], file, LibraryListItem) for file in data]
         else:
             header = "Currently not downloading or uploading any torrents."
             message = "Torrents can be found using our integrated search or using channels.\n"
@@ -1907,7 +1963,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
         
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, -1], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, -1], data)
         self.list.RefreshData(key, data)
     
     def SetNrResults(self, nr):
@@ -1952,6 +2008,10 @@ class LibraryList(SizeList):
         if self.statefilter:
             if self.statefilter not in item[2].state:
                 return False
+            elif self.statefilter == 'stopped' and 'completed' in item[2].state:
+                return False
+            elif self.statefilter == 'completed' and 'seeding' in item[2].state:
+                return False
         
         return SizeList.MatchFilter(self, item)
     
@@ -1982,7 +2042,7 @@ class ChannelList(List):
         ColumnsManager.getInstance().setColumns(ChannelListItem, columns)
 
         columns = [copy.copy(column) for column in columns]
-        columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x))})
+        columns.append({'name':'Associated torrents', 'width': '25em', 'fmt': lambda x: str(len(x)), 'autoRefresh': False})
         columns = self.guiutility.SetColumnInfo(ChannelListItemAssociatedTorrents, columns)
         ColumnsManager.getInstance().setColumns(ChannelListItemAssociatedTorrents, columns)
         
@@ -1998,17 +2058,15 @@ class ChannelList(List):
         List.__init__(self, None, LIST_GREY, [0,0], True, parent = parent)
 
     def _special_icon(self, item):
-        return (self._favorite_icon(item),'')
-            
-    def _favorite_icon(self, item):
         channel = item.original_data
         if channel.isMyChannel():
-            return self.mychannel
-        if channel.isFavorite():
-            return self.favorite
-        if channel.isSpam():
-            return self.spam
-        return self.normal
+            return self.mychannel, None, ''
+        elif channel.isFavorite():
+            return self.favorite, self.normal, 'Remove from favourites', lambda evt, data = item.original_data: self.guiutility.RemoveFavorite(evt, data)
+        elif channel.isSpam():
+            return self.spam, None, ''
+        else:
+            return self.normal, self.favorite, 'Favourite this channel', lambda evt, data = item.original_data: self.guiutility.MarkAsFavorite(evt, data)
     
     def __format(self, val):
         val = int(val)
@@ -2054,29 +2112,6 @@ class ChannelList(List):
             control.SetPercentage(ratio)
             control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
             return control
-
-    @warnWxThread
-    def MarkAsFavorite(self, event, channel):
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-
-            self.guiutility.channelsearch_manager.favorite(channel.id)
-            self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-            wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
-            
-    @warnWxThread
-    def RemoveFavorite(self, event, channel):
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-                
-            self.guiutility.channelsearch_manager.remove_vote(channel.id)
-            wx.CallAfter(self.GetManager().refresh_partial, (channel.id,))
     
     def OnExpand(self, item):
         List.OnExpand(self, item)
@@ -2154,8 +2189,9 @@ class ActivitiesList(List):
         self.utility = self.guiutility.utility
         self.settings = {}
         self.expandedPanel = None
+        self.notifyTimer = None
         columns = [{'width': wx.LIST_AUTOSIZE}]
-        List.__init__(self, columns, parent.GetBackgroundColour(), [10,10], True, parent = parent)
+        List.__init__(self, columns, wx.WHITE, [10,10], True, parent = parent)
 
     def _PostInit(self):
         self.list = self.CreateList(self.parent)
@@ -2163,22 +2199,22 @@ class ActivitiesList(List):
         listSizer.Add(self.list, 1, wx.EXPAND)
         self.Add(listSizer, 0, wx.EXPAND)
         
-        self.notifyPanel = RoundedPanel(self.parent, border_colour = wx.Colour(80,80,80))
-        self.notifyPanel.SetBackgroundColour(wx.WHITE)
+        self.notifyPanel = FancyPanel(self.parent, radius = 5, border = wx.ALL)
+        self.notifyPanel.SetBorderColour(SEPARATOR_GREY)
+        self.notifyPanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.notifyPanel.SetForegroundColour(wx.Colour(80,80,80))
-        self.notifyBmp = wx.ArtProvider.GetBitmap(wx.ART_INFORMATION, wx.ART_FRAME_ICON)
-        self.notifyIcon = wx.StaticBitmap(self.notifyPanel, -1, self.notifyBmp)
-        self.notify = wx.StaticText(self.notifyPanel, style = wx.ALIGN_LEFT)
-        _set_font(self.notify, fontweight = wx.FONTWEIGHT_BOLD, size_increment = 2)
+        self.notifyIcon = TransparentStaticBitmap(self.notifyPanel, -1)
+        self.notify = TransparentText(self.notifyPanel)
+        _set_font(self.notify, fontweight = wx.FONTWEIGHT_NORMAL, size_increment = 0)
         
         notifySizer = wx.BoxSizer(wx.HORIZONTAL)
-        notifySizer.Add(self.notifyIcon, 0, wx.ALL|wx.BOTTOM, 5)
-        notifySizer.Add(self.notify, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 5)
+        notifySizer.Add(self.notifyIcon, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
+        notifySizer.Add(self.notify, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         self.notifyPanel.SetSizer(notifySizer)
         self.notifyPanel.Hide()
         
         self.AddStretchSpacer()
-        self.Add(self.notifyPanel, 0, wx.EXPAND|wx.ALIGN_BOTTOM|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 10)
+        self.Add(self.notifyPanel, 0, wx.EXPAND|wx.ALIGN_BOTTOM|wx.LEFT|wx.RIGHT|wx.BOTTOM|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 5)
         
         self.SetBackgroundColour(self.background)
         self.Layout()
@@ -2284,16 +2320,21 @@ class ActivitiesList(List):
         self.list.Refresh()
         
     @forceWxThread
-    def Notify(self, msg, icon= -1):
-        if icon != -1:
+    def Notify(self, msg, icon = None):
+        if self.notifyTimer:
+            self.notifyTimer.Stop()
+            self.notifyTimer = None
+            
+        if isinstance(icon, wx.Bitmap):
             self.notifyIcon.Show()
-            self.notifyIcon.SetBitmap(self.notifyBmp)
+            self.notifyIcon.SetBitmap(icon)
         else:
             self.notifyIcon.Hide()
         
         self.notifyPanel.Layout()
-        from wx.lib.wordwrap import wordwrap
-        wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], wx.ClientDC(self.notify), breakLongWords = True, margin = 0)
+        cdc = wx.ClientDC(self.notify)
+        cdc.SetFont(self.notify.GetFont())
+        wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords = True, margin = 0)
         self.notify.SetLabel(wrapped_msg)
         self.notify.SetSize(self.notify.GetBestSize())        
         
@@ -2303,7 +2344,14 @@ class ActivitiesList(List):
         self.Layout()
         self.Thaw()
         
-        wx.CallLater(5000, self.notifyPanel.Hide)
+        self.notifyTimer = wx.CallLater(5000, self.HideNotify)
+        
+    def HideNotify(self):
+        if self.notifyPanel.GetScreenRect().Contains(wx.GetMousePosition()):
+            self.notifyTimer = wx.CallLater(1000, self.HideNotify)
+        else:
+            self.notifyTimer = None
+            wx.CallLater(500, self.notifyPanel.Hide)
 
     def selectTab(self, tab):
         itemKey = 0

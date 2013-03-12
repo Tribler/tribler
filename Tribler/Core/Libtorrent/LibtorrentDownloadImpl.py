@@ -2,25 +2,29 @@
 
 import sys
 import copy
-import marshal
 import libtorrent as lt
 
-from traceback import print_exc, print_stack
-from threading import RLock, currentThread
-from Tribler.Core import NoDispersyRLock
+from binascii import hexlify
+from traceback import print_exc
 
+from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
-from Tribler.Core.DownloadState import *
+from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.APIImplementation.DownloadRuntimeConfig import DownloadRuntimeConfig
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
 
-import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
-if mainlineDHT.dht_imported:
-    from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+if sys.platform == "win32":
+    try:
+        import win32api
+        import win32con
+    except:
+        pass
             
 DEBUG = False
 
@@ -63,15 +67,19 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.progressbeforestop = 0.0
         self.filepieceranges = []
 
-        # Libtorrent session manager performing the actual download.
+        # Libtorrent session manager
         self.ltmgr = LibtorrentMgr.getInstance()
 
         # Libtorrent status
-        self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
+        self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
         self.length = 0L
         self.progress = 0.0
+        self.bufferprogress = 0.0
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
+        self.all_time_upload = 0.0
+        self.all_time_download = 0.0
+        self.finished_time = 0.0
         self.done = False
         self.pause_after_next_hashcheck = False
         self.prebuffsize = 5*1024*1024
@@ -106,39 +114,19 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     cdcfg = dcfg
                 self.dlconfig = copy.copy(cdcfg.dlconfig)
                 
-                metainfo = self.tdef.get_metainfo()
-                self.set_filepieceranges(metainfo)
-    
                 # Things that only exist at runtime
                 self.dlruntimeconfig= {}
                 self.dlruntimeconfig['max_desired_upload_rate'] = 0
-                self.dlruntimeconfig['max_desired_download_rate'] = 0
-                
+                self.dlruntimeconfig['max_desired_download_rate'] = 0    
+                    
                 # H4xor this so the 'name' field is safe
-                self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
+                self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())                
 
-                # Allow correctinfoname to be overwritten for multifile torrents only
-                if 'files' in metainfo['info'] and dcfg.get_corrected_filename() and dcfg.get_corrected_filename() != '':
-                    self.correctedinfoname = dcfg.get_corrected_filename()
-        
-                self.files = []
-                if 'files' in metainfo['info']:
-                    for x in metainfo['info']['files']:
-                        savepath = torrentfilerec2savefilename(x)
-                        full = savefilenames2finaldest(self.get_content_dest(), savepath)
-                        # Arno: TODO: this sometimes gives too long filenames for 
-                        # Windows. When fixing this take into account that 
-                        # Download.get_dest_files() should still produce the same
-                        # filenames as your modifications here.
-                        self.files.append((full, x['length']))
-                else:
-                    self.files.append((self.get_content_dest(), metainfo['info']['length']))
+                if not isinstance(self.tdef, TorrentDefNoMetainfo):
+                    self.set_files()
         
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: setup: initialdlstatus", self.tdef.get_infohash(), initialdlstatus
-                    
-                if initialdlstatus == DLSTATUS_STOPPED:
-                    self.pause_after_next_hashcheck = True
                     
                 self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus = initialdlstatus, wrapperDelay = wrapperDelay)
                 
@@ -161,52 +149,53 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if DEBUG:
             print >>sys.stderr,"LibtorrentDownloadImpl: create_engine_wrapper()"
 
-        metainfo = self.tdef.get_metainfo()
-        torrentinfo = lt.torrent_info(metainfo)
-        
-        self.filepriorities = []
-
-        selected_files = self.dlconfig['selected_files']
-        torrent_files = torrentinfo.files()
-        if self.tdef.is_multifile_torrent():
-            swarmname = os.path.commonprefix([file_entry.path for file_entry in torrent_files])
-        else:
-            swarmname = ''
-        
-        remap_files = torrentinfo.files()
-        for i, file_entry in enumerate(remap_files):
-            filename = file_entry.path[len(swarmname):]
-
-            if filename in selected_files or not selected_files:
-                self.filepriorities.append(1)
-            else:
-                self.filepriorities.append(0)
-            
-            if self.tdef.is_multifile_torrent() and swarmname != self.correctedinfoname:
-                torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
-        
         atp = {}
         atp["save_path"] = str(self.dlconfig['saveas'])
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
-        atp["ti"] = torrentinfo
-        if pstate and pstate.get('engineresumedata', None):
-            atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
+        
+        if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            metainfo = self.tdef.get_metainfo()
+            torrentinfo = lt.torrent_info(metainfo)
+            
+            torrent_files = torrentinfo.files()
+            is_multifile = len(self.tdef.get_files_as_unicode()) > 1
+            commonprefix = os.path.commonprefix([file_entry.path for file_entry in torrent_files]) if is_multifile else ''
+            swarmname = os.path.split(commonprefix)[0] or os.path.split(commonprefix)[1]
+
+            if is_multifile and swarmname != self.correctedinfoname:
+                for i, file_entry in enumerate(torrent_files):
+                    filename = file_entry.path[len(swarmname)+1:]
+                    torrentinfo.rename_file(i, str(os.path.join(self.correctedinfoname, filename)))
+        
+            self.orig_files = [torrent_file.path for torrent_file in torrentinfo.files()]
+            
+            atp["ti"] = torrentinfo
+            if pstate and pstate.get('engineresumedata', None):
+                atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
+            print >> sys.stderr, self.tdef.get_name_as_unicode(), pstate.get('engineresumedata', None) if pstate else None
+        else:
+            atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
+            atp["name"] = str(self.tdef.get_name())
 
         self.handle = self.ltmgr.add_torrent(self, atp)
         self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
         if self.handle:
-            self.handle.prioritize_files(self.filepriorities)
+            self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
                 self.set_vod_mode()
-            self.handle.resume()
+            if initialdlstatus != DLSTATUS_STOPPED:
+                self.handle.resume()
             
         with self.dllock:
             self.cew_scheduled = False
-        
+            
+        if lm_network_engine_wrapper_created_callback is not None:
+            lm_network_engine_wrapper_created_callback(self,pstate)
+            
     def set_vod_mode(self):
         self.vod_status = ""
         
@@ -257,19 +246,19 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             startofbuffer = int(self.vod_readpos / self.handle.get_torrent_info().piece_length())
         endofbuffer = startofbuffer + int(self.prebuffsize / self.handle.get_torrent_info().piece_length() + 1)
         buffer = pieces[startofbuffer:endofbuffer]
-        bufferprogress = float(buffer.count(True))/len(buffer) if len(buffer) > 0 else 1
+        self.bufferprogress = float(buffer.count(True))/len(buffer) if len(buffer) > 0 else 1
 
         if DEBUG:        
-            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
+            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % self.bufferprogress
         
-        if bufferprogress >= 1:
+        if self.bufferprogress >= 1:
             if not self.vod_status:
                 self.vod_pausepos = startofbuffer * self.handle.get_torrent_info().piece_length()
                 self.start_vod(complete = False)
             else:
                 self.resume_vod()
 
-        elif bufferprogress <= 0.1 and self.vod_status:
+        elif self.bufferprogress <= 0.1 and self.vod_status:
             self.pause_vod()
 
         delay = 1.0 if self.handle and not self.handle.is_paused() else 0.0            
@@ -307,7 +296,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD paused"
 
     def process_alert(self, alert, alert_type):
-        if DEBUG:
+        if DEBUG or alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:
             print >> sys.stderr, "LibtorrentDownloadImpl: alert %s with message %s" % (alert_type, alert)
 
         if self.handle and self.handle.is_valid():
@@ -316,6 +305,26 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
             with self.dllock:
 
+                if alert_type == 'metadata_received_alert':
+                    self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
+                    self.tdef = TorrentDef.load_from_dict(self.metadata)
+                    self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
+                    self.set_files()
+                    
+                    if self.session.lm.rtorrent_handler:
+                        self.session.lm.rtorrent_handler.save_torrent(self.tdef)
+                    elif self.session.lm.torrent_db:
+                        self.session.lm.torrent_db.addExternalTorrent(self.tdef, source = '', extra_info = {'status':'good'}, commit = True)
+                        
+                    # Checkpoint
+                    (infohash, pstate) = self.network_checkpoint()
+                    checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
+                    self.session.lm.rawserver.add_task(checkpoint, 0)
+
+                if alert_type == 'file_renamed_alert':
+                    if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs) and all(self.handle.file_priorities()):
+                        os.rmdir(self.unwanteddir_abs)
+                        
                 if alert_type == 'torrent_checked_alert' and self.pause_after_next_hashcheck:
                     self.handle.pause()
                     self.pause_after_next_hashcheck = False
@@ -324,20 +333,105 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     if alert_type == 'torrent_paused_alert':
                         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if status.error else DLSTATUS_STOPPED
                     else:
-                        self.dlstate = self.dlstates[status.state]
-    
-                    self.length = float(status.total_wanted)
-                    self.progress = status.progress
-                    self.curspeeds[DOWNLOAD] = float(status.download_rate)
-                    self.curspeeds[UPLOAD] = float(status.upload_rate)
-                    self.error = unicode(status.error) if status.error else None
+                        self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
 
+                self.error = unicode(status.error) if status.error else None
+                self.length = float(status.total_wanted)
+                self.progress = status.progress
+                self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
+                self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
+                self.all_time_upload = status.all_time_upload
+                self.all_time_download = status.all_time_download
+                self.finished_time = status.finished_time
+                    
+    def set_files(self):
+        metainfo = self.tdef.get_metainfo()
+        self.set_filepieceranges(metainfo)
+
+        # Allow correctinfoname to be overwritten for multifile torrents only
+        if 'files' in metainfo['info'] and self.dlconfig['correctedfilename'] and self.dlconfig['correctedfilename'] != '':
+            self.correctedinfoname = self.dlconfig['correctedfilename']
+
+        self.files = []
+        if 'files' in metainfo['info']:
+            for x in metainfo['info']['files']:
+                savepath = torrentfilerec2savefilename(x)
+                full = savefilenames2finaldest(self.get_content_dest(), savepath)
+                # Arno: TODO: this sometimes gives too long filenames for 
+                # Windows. When fixing this take into account that 
+                # Download.get_dest_files() should still produce the same
+                # filenames as your modifications here.
+                self.files.append((full, x['length']))
+        else:
+            self.files.append((self.get_content_dest(), metainfo['info']['length']))
+            
+    def set_selected_files(self, selected_files = None):
+        with self.dllock:
+            
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+
+                if selected_files is None:
+                    selected_files = self.dlconfig['selected_files']
+                else:
+                    self.dlconfig['selected_files'] = selected_files
+                
+                is_multifile = len(self.tdef.get_files_as_unicode()) > 1
+                commonprefix = os.path.commonprefix([path for path in self.orig_files]) if is_multifile else ''
+                swarmname = os.path.split(commonprefix)[0] or os.path.split(commonprefix)[1]
+                unwanteddir = os.path.join(swarmname, '.unwanted')
+                unwanteddir_abs = os.path.join(self.handle.save_path(), unwanteddir)
+                
+                filepriorities = []
+                for index, orig_path in enumerate(self.orig_files):
+                    filename = orig_path[len(swarmname)+1:]
+        
+                    if filename in selected_files or not selected_files:
+                        filepriorities.append(1)
+                        new_path = orig_path
+                    else:
+                        filepriorities.append(0)
+                        new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
+        
+                    cur_path = self.handle.get_torrent_info().files()[index].path
+                    if cur_path != new_path:
+                        if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
+                            os.makedirs(unwanteddir_abs)
+                            if sys.platform == "win32":
+                                win32api.SetFileAttributes(unwanteddir_abs, win32con.FILE_ATTRIBUTE_HIDDEN)
+                                                                
+                        self.handle.rename_file(index, new_path)
+                        
+                self.handle.prioritize_files(filepriorities)
+                
+                self.unwanteddir_abs = unwanteddir_abs
+                
+    def move_storage(self, new_dir):
+        with self.dllock:
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+                self.handle.move_storage(new_dir)
+                self.dlconfig['saveas'] = new_dir
+                return True
+        return False
+    
+    def get_save_path(self):
+        with self.dllock:
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+                return self.handle.save_path()
+
+    def force_recheck(self):
+        with self.dllock:
+            if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
+                if self.dlstate == DLSTATUS_STOPPED:
+                    self.pause_after_next_hashcheck = True
+                self.handle.resume()
+                self.handle.force_recheck()
+                
     def get_status(self):
         """ Returns the status of the download.
         @return DLSTATUS_*
         """
         with self.dllock:
-            return self.dltate
+            return self.dlstate
     
     def get_length(self):
         """ Returns the size of the torrent content.
@@ -362,7 +456,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def network_get_stats(self, getpeerlist):
         """
-        @return (status, stats, logmsgs, coopdl_helpers, coopdl_coordinator)
+        @return (status, stats, seeding_stats, logmsgs, coopdl_helpers, coopdl_coordinator)
         """
         # Called by any thread, assume dllock already acquired
 
@@ -371,10 +465,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['up'] = self.curspeeds[UPLOAD]
         stats['frac'] = self.progress
         stats['wanted'] = self.length
-        
-        if DEBUG:
-            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.handle.status().seeding_time
-            
         stats['stats'] = self.network_create_statistics_reponse()
         stats['time'] = self.network_calc_eta()
         stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
@@ -382,23 +472,31 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['vod_playable'] = self.progress == 1.0 or (stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
-        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else []            
-        
+        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else None
+
+        seeding_stats = {}
+        seeding_stats['total_up'] = self.all_time_upload
+        seeding_stats['total_down'] = self.all_time_download
+        seeding_stats['time_seeding'] = self.finished_time
+       
         logmsgs = []
-        coopdl_helpers = None
-        coopdl_coordinator = None
-        return (self.dlstate, stats, logmsgs, coopdl_helpers, coopdl_coordinator)
+
+        if DEBUG:
+            print >> sys.stderr, "Torrent", self.handle.name(), "PROGRESS", self.progress, "QUEUEPOS", self.queue_position, "DLSTATE", self.dlstate, "SEEDTIME", self.finished_time
+        
+        return (self.dlstate, stats, seeding_stats, logmsgs)
 
     def network_create_statistics_reponse(self):
-        status = self.handle.status() if self.handle else None
-        numTotSeeds = status.num_complete
-        numTotPeers = status.num_incomplete
-        numleech = status.list_peers
-        numseeds = status.list_seeds
-        pieces = status.pieces if status else None
-        upTotal = status.total_upload
-        downTotal = status.total_download
-        return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
+        if self.handle:
+            status = self.handle.status()
+            numTotSeeds = status.num_complete if status.num_complete >= 0 else status.list_seeds 
+            numTotPeers = status.num_incomplete if status.num_incomplete >= 0 else status.list_peers
+            numleech = status.num_peers - status.num_seeds
+            numseeds = status.num_seeds
+            pieces = status.pieces
+            upTotal = status.all_time_upload
+            downTotal = status.all_time_download
+            return LibtorrentStatisticsResponse(numTotSeeds, numTotPeers, numseeds, numleech, pieces, upTotal, downTotal)
     
     def network_calc_eta(self):
         bytestogof = (1.0 - self.progress) * float(self.length)
@@ -406,8 +504,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        gotbytesf = self.progress * float(self.length)
-        return min(1.0, gotbytesf / self.prebuffsize)
+        if self.progress * self.length >= self.prebuffsize:
+            return 1.0
+        return self.bufferprogress
 
     def network_calc_prebuf_eta(self):
         bytestogof = (1.0 - self.network_calc_prebuf_frac()) * float(self.prebuffsize)
@@ -438,17 +537,17 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             peer_dict['port'] = peer_info.ip[1]
             peer_dict['optimistic'] = bool(peer_info.flags & 2048) # optimistic_unchoke = 0x800 seems unavailable in python bindings
             peer_dict['direction'] = 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R'
-            peer_dict['uprate'] = peer_info.up_speed
-            peer_dict['uinterested'] = bool(peer_info.flags & peer_info.interesting)
-            peer_dict['uchoked'] = bool(peer_info.flags & peer_info.choked)
+            peer_dict['uprate'] = peer_info.payload_up_speed
+            peer_dict['uinterested'] = bool(peer_info.flags & peer_info.remote_interested)
+            peer_dict['uchoked'] = bool(peer_info.flags & peer_info.remote_choked)
             peer_dict['uhasqueries'] = peer_info.upload_queue_length > 0
             peer_dict['uflushed'] = peer_info.used_send_buffer > 0
-            peer_dict['downrate'] = peer_info.down_speed
-            peer_dict['dinterested'] = bool(peer_info.flags & peer_info.remote_interested)
-            peer_dict['dchoked'] = bool(peer_info.flags & peer_info.remote_choked)
+            peer_dict['downrate'] = peer_info.payload_down_speed
+            peer_dict['dinterested'] = bool(peer_info.flags & peer_info.interesting)
+            peer_dict['dchoked'] = bool(peer_info.flags & peer_info.choked)
             peer_dict['snubbed'] = bool(peer_info.flags & 4096) # snubbed = 0x1000 seems unavailable in python bindings
-            peer_dict['utotal'] = peer_info.total_download
-            peer_dict['dtotal'] = peer_info.total_upload
+            peer_dict['utotal'] = peer_info.total_upload
+            peer_dict['dtotal'] = peer_info.total_download
             peer_dict['completed'] = peer_info.progress
             peer_dict['have'] = peer_info.pieces
             peer_dict['speed'] = peer_info.remote_dl_rate
@@ -470,8 +569,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
                 ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop)
             else:
-                (status, stats, logmsgs, proxyservice_proxy_list, proxyservice_doe_list) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs, proxyservice_proxy_list = proxyservice_proxy_list, proxyservice_doe_list = proxyservice_doe_list)
+                (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
+                ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, seeding_stats = seeding_stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs)
                 self.progressbeforestop = ds.get_progress()
                         
             if sessioncalling:
@@ -510,11 +609,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle"
                 if removestate:
-                    self.ltmgr.remove_torrent(self)
+                    self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
                     self.handle.pause()
-                    pstate['engineresumedata'] = self.handle.write_resume_data()
+                    pstate['engineresumedata'] = self.handle.write_resume_data() if getattr(self.handle.status(), 'has_metadata', False) else None
                     self.dlstate = DLSTATUS_STOPPED
                 self.pstate_for_restart = pstate
             else:
@@ -537,10 +636,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     
             # Offload the removal of the dlcheckpoint to another thread
             if removestate:
-                #self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None, False)
-                dest_files = self.get_dest_files()
-                contentdests = [filename for _,filename in dest_files]
-                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), contentdests, removecontent)
+                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None, False)
                 
             return (self.tdef.get_infohash(), pstate)
 
@@ -604,29 +700,30 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         with self.dllock:
             f2dlist = []
             metainfo = self.tdef.get_metainfo() 
-            if 'files' not in metainfo['info']:
-                # single-file torrent
-                diskfn = self.get_content_dest()
-                _, filename = os.path.split(diskfn)
-                f2dtuple = (filename, diskfn)
-                ext = get_ext(diskfn)
-                if exts is None or ext in exts:
-                    f2dlist.append(f2dtuple)
-            else:
-                # multi-file torrent
-                if len(self.dlconfig['selected_files']) > 0:
-                    fnlist = self.dlconfig['selected_files']
-                else:
-                    fnlist = self.tdef.get_files(exts=exts)
-                    
-                for filename in fnlist:
-                    filerec = maketorrent.get_torrentfilerec_from_metainfo(filename,metainfo)
-                    savepath = maketorrent.torrentfilerec2savefilename(filerec)
-                    diskfn = maketorrent.savefilenames2finaldest(self.get_content_dest(),savepath)
+            if metainfo:
+                if 'files' not in metainfo['info']:
+                    # single-file torrent
+                    diskfn = self.get_content_dest()
+                    _, filename = os.path.split(diskfn)
+                    f2dtuple = (filename, diskfn)
                     ext = get_ext(diskfn)
                     if exts is None or ext in exts:
-                        f2dtuple = (filename,diskfn)
                         f2dlist.append(f2dtuple)
+                else:
+                    # multi-file torrent
+                    if len(self.dlconfig['selected_files']) > 0:
+                        fnlist = self.dlconfig['selected_files']
+                    else:
+                        fnlist = self.tdef.get_files(exts=exts)
+                        
+                    for filename in fnlist:
+                        filerec = maketorrent.get_torrentfilerec_from_metainfo(filename,metainfo)
+                        savepath = maketorrent.torrentfilerec2savefilename(filerec)
+                        diskfn = maketorrent.savefilenames2finaldest(self.get_content_dest(),savepath)
+                        ext = get_ext(diskfn)
+                        if exts is None or ext in exts:
+                            f2dtuple = (filename,diskfn)
+                            f2dlist.append(f2dtuple)
             return f2dlist
 
     def checkpoint(self):
@@ -636,13 +733,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_checkpoint(self):
         """ Called by network thread """
         with self.dllock:
-            pstate = self.network_get_persistent_state() 
-            if self.handle is not None:
+            pstate = self.network_get_persistent_state()
+            resdata = None
+            if self.handle == None:
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart['engineresumedata']
-                else:
-                    resdata = None
-            else:
+            elif getattr(self.handle.status(), 'has_metadata', False):
                 resdata = self.handle.write_resume_data()
             pstate['engineresumedata'] = resdata
             return (self.tdef.get_infohash(), pstate)
@@ -651,7 +747,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         # Assume sessionlock is held
         pstate = {}
         pstate['version'] = PERSISTENTSTATE_CURRENTVERSION
-        pstate['metainfo'] = self.tdef.get_metainfo()
+        if isinstance(self.tdef, TorrentDefNoMetainfo):
+            pstate['metainfo'] = {'infohash': self.tdef.get_infohash(), 'name': self.tdef.get_name_as_unicode()}
+        else:
+            pstate['metainfo'] = self.tdef.get_metainfo()
+            
         dlconfig = copy.copy(self.dlconfig)
         # Reset unpicklable params
         dlconfig['vod_usercallback'] = None

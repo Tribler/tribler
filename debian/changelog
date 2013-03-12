@@ -1,0 +1,17 @@
+tribler (6.0.0+svn20121015.r28821-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Tue, 16 Oct 2012 00:45:06 +0800
+
+tribler (5.9.27+svn20120817.r27828-2) unstable; urgency=low
+
+  * Calling dh_link with -ptribler in debian/rules (Closes: #686554)
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Mon, 03 Sep 2012 17:02:09 +0800
+
+tribler (5.9.27+svn20120817.r27828-1) unstable; urgency=low
+
+  * Initial release (Closes: #511381)
+
+ -- Ying-Chun Liu (PaulLiu) <paulliu@debian.org>  Wed, 22 Aug 2012 00:02:58 +0800

@@ -866,6 +866,110 @@ class ForwardCommunity(SearchCommunity):
     def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, max_prefs = None, log_searches = False):
         SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
         
+        def get_overlap(self):
+            if self.community.encryption:
+                t1 = time()
+                self.myList = [self.key.encrypt(infohash,1)[0] for infohash in self.myList]
+                self.myList = [sha1(infohash).digest() for infohash in self.myList]
+                self.community.search_time_encryption += time() - t1
+    
+            overlap = 0
+            for myPref in self.myList:
+                if myPref in self.hisList:
+                    overlap += 1
+            
+            return len(self.myList), self.hisListLen, overlap
+        
+    def send_encrypted_hashes(self, message, preferences):
+        meta = self.get_meta_message(u"encrypted-hashes")
+        request = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.global_time,), 
+                            destination=(message.candidate,),
+                            payload=(message.payload.identifier, preferences, len(preferences)))
+        
+        self._dispersy.store_update_forward([request], False, False, True)
+        return request
+    
+    def __encrypt_myprefs(self, messages, callback):
+        #1. fetch my preferences
+        myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local = False) if preference]
+        if len(myPreferences) > self.max_h_prefs:
+            myPreferences = sample(myPreferences, self.max_h_prefs)
+        
+        for message in messages:
+            shuffle(myPreferences)
+            
+            if self.encryption:
+                t1 = time()
+                
+                #2. construct a rsa key to encrypt my preferences
+                his_n = message.payload.key_n
+                his_e = message.payload.key_e
+                compatible_key = RSA.construct((his_n, his_e))
+                
+                #3. encrypt and hash my preferences
+                encMyPreferences = [compatible_key.encrypt(infohash,1)[0] for infohash in myPreferences]
+                encMyPreferences = [sha1(infohash).digest() for infohash in encMyPreferences]
+                self.search_time_encryption += time() - t1
+            else:
+                encMyPreferences = myPreferences
+            
+            callback(message, encMyPreferences)
+            
+            if DEBUG:
+                print >> sys.stderr, "SearchCommunity: sending one message too", message.candidate
+    
+    def get_preferences(self, candidate):
+        for time, preferenceset, pref_candidate in self.preference_cache:
+            if pref_candidate.sock_addr == candidate.sock_addr:
+                return preferenceset
+            
+    def match_preferences(self, preference_set):
+        #cleanup of invalid candidates
+        timeout = time() - CANDIDATE_WALK_LIFETIME
+        for i in range(len(self.preference_cache), 0, -1):
+            if self.preference_cache[i-1][0] < timeout and not self.is_taste_buddy(self.preference_cache[i-1][2]):
+                del self.preference_cache[i-1]
+                
+        matches = []
+        for _, other_preference_set, candidate in self.preference_cache:
+            overlap = len(other_preference_set & preference_set)
+            if overlap > 0:
+                matches.append((overlap, candidate))
+                
+        matches.sort(reverse = True)
+        return [candidate for _,candidate in matches]
+            
+    def dispersy_yield_introduce_candidates(self, candidate = None):
+        if candidate:
+            preferences = self.get_preferences(candidate)
+            if preferences:
+                for matching_candidate in self.match_preferences(preferences):
+                    if matching_candidate.sock_addr != candidate.sock_addr:
+                        yield matching_candidate
+        
+        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, candidate):
+            yield random_candidate
+            
+class PSearchCommunity(SearchCommunity):
+    
+    def __init__(self, master, integrate_with_tribler = True, ttl = TTL, neighbors = NEIGHBORS, encryption = ENCRYPTION, taste_neighbor = TASTE_NEIGHBOR, max_prefs = None):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, taste_neighbor, max_prefs)
+        
+        self.key_g = self.key_n + 1
+        self.key_n2 = pow(self.key.key.n, 2)
+
+        #LCM from https://github.com/kmcneelyshaw/pycrypto/commit/98c22cc691c1840db380ad04c22169721a946b50
+        x = self.key.key.p - 1
+        y = self.key.key.q - 1
+        if y > x:
+            x, y = y, x
+        self.key_lambda = (x / GCD(x, y)) * y
+        
+        self.key_decryption = pow(self.key_g, self.key_lambda, self.key_n2)
+        self.key_decryption = (self.key_decryption - 1) / self.key_n
+        self.key_decryption = inverse(self.key_decryption, self.key_n)
+        
         self.possible_taste_buddies = []
         self.requested_introductions = {}
 
@@ -1026,6 +1130,18 @@ class PSearchCommunity(ForwardCommunity):
     
     def initiate_conversions(self):
         return [DefaultConversion(self), PSearchConversion(self)]
+
+    def dispersy_yield_introduce_candidates(self, candidate = None):
+        if candidate:
+            if candidate in self.requested_introductions:
+                intro_me_candidate = self.requested_introductions[candidate]
+                del self.requested_introductions[candidate]
+                yield intro_me_candidate
+
+        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, candidate):
+            yield random_candidate
+
+
     
     def send_similarity_request(self, destination, identifier):
         global_vector_request, global_vector = self.create_global_vector(destination, identifier)
