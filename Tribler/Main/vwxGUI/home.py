@@ -504,21 +504,31 @@ class DispersyPanel(HomePanel):
         self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
         vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
 
-        vTreeSizer = wx.BoxSizer(wx.VERTICAL)
+        self.vTreeSizer = wx.BoxSizer(wx.VERTICAL)
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.tree.blockUpdate = False
         self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
         
-        vTreeSizer.Add(self.tree, 1, wx.EXPAND)
+        self.vTreeSizer.Add(self.tree, 1, wx.EXPAND)
         self.includeDebug = wx.CheckBox(panel, -1, "Collect debug")
         self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
-        vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
+        self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
         
         vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
-        vSizer.Add(vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(self.vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
         panel.SetSizer(vSizer)
         return panel
+    
+    def ExpandTree(self, expand = True):
+        sizer = self.panel.GetSizer()
+        sizerItem = sizer.GetItem(self.vTreeSizer)
+        
+        newProportion = 4 if expand else 1
+        if sizerItem.GetProportion() != newProportion:
+            sizerItem.SetProportion(newProportion)
+            
+            self.panel.Layout()
 
     def CreateColumns(self):
         self.textdict = {}
@@ -548,6 +558,9 @@ class DispersyPanel(HomePanel):
 
         elif event.Leaving():
             tree.blockUpdate = False
+            
+        if tree == self.tree:
+            self.ExpandTree(tree.blockUpdate)
 
         event.Skip()
 
