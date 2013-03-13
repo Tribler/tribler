@@ -11,7 +11,7 @@ import apsw
 
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT,CURRENT_MAIN_DB_VERSION
-from bak_tribler_sdb import *    
+from bak_tribler_sdb import *
 
 CREATE_SQL_FILE = os.path.join('..',"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql")
 
@@ -32,15 +32,15 @@ INFO = True
 class SQLitePerformanceTest:
     def __init__(self):
         self.db = SQLiteCacheDB.getInstance()
-        
+
     def openDB(self, *args, **argv):
         self.db.openDB(*args, **argv)
-    
+
     def initDB(self, *args, **argv):
         self.db.initDB(*args, **argv)
         #self.remove_t_index()
         #self.remove_p_index()
-        
+
     def remove_t_index(self):
         indices = [
         'Torrent_length_idx',
@@ -53,7 +53,7 @@ class SQLitePerformanceTest:
         for index in indices:
             sql = 'drop index ' + index
             self.db.execute_write(sql)
-            
+
     def remove_p_index(self):
         indices = [
         'Peer_name_idx',
@@ -67,10 +67,10 @@ class SQLitePerformanceTest:
         for index in indices:
             sql = 'drop index ' + index
             self.db.execute_write(sql)
-        
+
     def close(self, clean=False):
         self.db.close(clean=clean)
-    
+
     def test(self):
         try:
             self.testBrowse()
@@ -79,7 +79,7 @@ class SQLitePerformanceTest:
             self.testGetPeerHistory(2000)
         finally:
             self.db.close()
-        
+
     #######  performance test units #########
     def testBrowseItems(self, table_name, limit, order=None, where='', num_pages=50, shuffle_page=True):
         start = time()
@@ -101,7 +101,7 @@ class SQLitePerformanceTest:
         sql += " OFFSET ?"
         nrec = 0
         npage = 0
-        print 'browse %7s by %14s:'%(table_name, order), 
+        print 'browse %7s by %14s:'%(table_name, order),
         if where:
             print where,
         sys.stdout.flush()
@@ -132,7 +132,7 @@ class SQLitePerformanceTest:
         print '%5.4f %6.1f %4d %2d %5.3f'%(page_time, pages_sec, nrec, npage, total_time)
         sys.stdout.flush()
         return page_time
-    
+
     def banchTestBrowse(self, table_name, nitems, sort_keys):
         nrecs = self.db.size(table_name)
         page_times = []
@@ -153,7 +153,7 @@ class SQLitePerformanceTest:
         for i in range(len(table_row[2:-1])):
             print '|| %5.4f'%table_row[i+2],
         print '|| %5.1f ||'%table_row[-1]
-        
+
     def testBrowse(self):
         #print "page_time, pages_sec, nrec, num_pages, total_time"
         nitems = 20
@@ -165,25 +165,25 @@ class SQLitePerformanceTest:
         peer_sort_keys = [None, 'last_connected', 'num_torrents', 'num_peers', 'similarity', 'name']
         peer_table_row = self.banchTestBrowse(table_name, nitems, peer_sort_keys)
         print
-        
+
         type = 'test'
         if type=='test':
             print '|| DB Type || #Torrents',
             for key in torrent_sort_keys:
-                print '||', key, 
+                print '||', key,
             print '|| avg sec/page || avg pages/sec ||'
-        
+
         self.printTableRow(torrent_table_row)
-        
+
         if type=='test':
             print '|| DB Type || #Peers',
             for key in peer_sort_keys:
-                print '||', key, 
+                print '||', key,
             print '|| avg sec/page || avg pages/sec ||'
-        
+
         self.printTableRow(peer_table_row)
         print
-        
+
     def testBrowseCategory(self):
         nitems = 20
         table_name = 'CollectedTorrent'
@@ -201,7 +201,7 @@ class SQLitePerformanceTest:
         avg_sorted_page_time = sum(page_times[1:])/len(page_times[1:])
         table_row.insert(len(categories)*2, avg_sorted_page_time)    # insert last
         table_row.insert(len(categories)*2, 1.0/avg_sorted_page_time)    # insert last
-        
+
         cat_name = {1: 'Video',
                     2: 'VideoClips',
                     3: 'Audio',
@@ -213,18 +213,18 @@ class SQLitePerformanceTest:
 
         print '|| DB Type || #Torrents',
         for key in categories:
-            print '||', cat_name[key], 
+            print '||', cat_name[key],
         print '|| avg sec/page || avg pages/sec ||'
-        
+
         self.printTableRow(table_row)
         print
-        
+
     def getNumOwners(self, torrent_id):
         sql = "select count(peer_id) from Preference where torrent_id=?"
         pop_torrent = self.db.fetchone(sql, (torrent_id,))
-        
+
         return pop_torrent
-    
+
 #    def getTorrentName(self, torrent_id):
 #        torrent_name_sql = "select name from CollectedTorrent where torrent_id=?"
 #        self.cur.execute(torrent_name_sql, (torrent_id,))
@@ -232,7 +232,7 @@ class SQLitePerformanceTest:
 #        if name is not None:
 #            return name[0]
 #        return None
-    
+
     def testGetSimilarTorrents(self, num, num_sim=10):
         sql = 'select torrent_id from CollectedTorrent'
         res = self.db.fetchall(sql)
@@ -250,17 +250,17 @@ class SQLitePerformanceTest:
             if pop_torrent < 2:
                 continue
             sql = """
-                select torrent_id,count(torrent_id) as pop from Preference 
+                select torrent_id,count(torrent_id) as pop from Preference
                 where peer_id in
-                (select peer_id from Preference where torrent_id=?) and 
+                (select peer_id from Preference where torrent_id=?) and
                 torrent_id in (select torrent_id from CollectedTorrent)
-                group by torrent_id 
+                group by torrent_id
             """
             sim_torrents = self.db.fetchall(sql, (torrent_id,))
             sim_res = []
             real_num2 += 1
 
-#            
+#
             #print len(sim_torrents)
             if len(sim_torrents) > num:
                 for sim_torrent_id, com in sim_torrents:
@@ -285,8 +285,8 @@ class SQLitePerformanceTest:
                 sim_names = self.db.fetchall(sql)
                 #for name,ti in sim_names:
                 #    print name, ti
-                
-            
+
+
             #print res
         past = time()-start
         if real_num>0:
@@ -296,13 +296,13 @@ class SQLitePerformanceTest:
                 print "Time for sim torrent %.4f"%(past/real_num), '-', past, real_num, real_num2
             return past/num
         return 1
-        
-    # TODO: 
-    # suggest: 1. include torrent name in buddycast 
+
+    # TODO:
+    # suggest: 1. include torrent name in buddycast
     #          2. create a table like pocketlens to maintain sim(Ii,Ij)
     #          3. torrent in CollectedTorrent table may have no owners due to remove peers
     #          4. In GUI, we may need a async display for sim torrents
-        
+
     def testGetPeerHistory(self, num):
         sql = 'select peer_id from Peer'
         res = self.db.fetchall(sql)
@@ -311,8 +311,8 @@ class SQLitePerformanceTest:
         real_num = 0
         for peer_id in res[:num]:
             peer_id = peer_id[0]
-            sql = """select name, torrent_id from CollectedTorrent 
-                     where torrent_id in 
+            sql = """select name, torrent_id from CollectedTorrent
+                     where torrent_id in
                      (select torrent_id from Preference where peer_id=?)
                   """
             res = self.db.fetchall(sql, (peer_id,))
@@ -320,20 +320,20 @@ class SQLitePerformanceTest:
         past = time()-start
         if real_num>0:
             print "Time for peer history %.4f"%(past/real_num), past, real_num
-        
+
 
 class TestSQLitePerformance(unittest.TestCase):
-    
+
     def tearDown(self):
         sqlite_test = SQLitePerformanceTest()
         sqlite_test.close(clean=True)
-        
+
     def test_benchmark_db(self):
         sqlite_test = SQLitePerformanceTest()
         sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
         sqlite_test.test()
         sqlite_test.close(clean=True)
-    
+
     def _test_thread_benchmark_with_db(self):
         class Worker1(Thread):
             def run(self):
@@ -341,58 +341,58 @@ class TestSQLitePerformance(unittest.TestCase):
                 sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testBrowse()
                 sqlite_test.close()
-        
+
         class Worker2(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
                 sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testBrowseCategory()
                 sqlite_test.close()
-        
+
         class Worker3(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
                 sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testGetSimilarTorrents(200)
                 sqlite_test.close()
-        
+
         class Worker4(Thread):
             def run(self):
                 sqlite_test = SQLitePerformanceTest()
                 sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
                 sqlite_test.testGetPeerHistory(2000)
                 sqlite_test.close()
-        
+
         w1 = Worker1()
         w2 = Worker2()
         w3 = Worker3()
         w4 = Worker4()
-        
+
         w1.start()
         w2.start()
         w3.start()
         w4.start()
-        
+
         w1.join()
         w2.join()
         w3.join()
         w4.join()
-        
+
 
 class TestSqliteCacheDB(unittest.TestCase):
-    
+
     def setUp(self):
         self.db_path = 'tmp.db'
         if os.path.exists(self.db_path):
-            os.remove(self.db_path) 
+            os.remove(self.db_path)
         self.db_name = os.path.split(self.db_path)[1]
-        
+
     def tearDown(self):
         db = SQLiteCacheDB.getInstance()
         db.close(clean=True)
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
-            
+
     def test_open_close_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
         sqlite_test.openDB(self.db_path, 0)
@@ -401,13 +401,13 @@ class TestSqliteCacheDB(unittest.TestCase):
     def test_thread_open_close_db(self):
         thread.start_new_thread(self.test_open_close_db, ())
         sleep(2)
-                
+
     def test_create_temp_db(self):
         sqlite_test = SQLiteCacheDB.getInstance()
         sql = "create table person(lastname, firstname);"
         sqlite_test.createDBTable(sql, self.db_path)
         sqlite_test.close()
-        
+
     def basic_funcs(self):
         db = SQLiteCacheDB.getInstance()
         create_sql = "create table person(lastname, firstname);"
@@ -415,7 +415,7 @@ class TestSqliteCacheDB(unittest.TestCase):
         db.insert('person', lastname='a', firstname='b')
         one = db.fetchone('select * from person')
         assert one == ('a','b')
-        
+
         one = db.fetchone("select lastname from person where firstname == 'b'")
         assert one == 'a'
 
@@ -429,36 +429,36 @@ class TestSqliteCacheDB(unittest.TestCase):
         db.insertMany('person', values)
         all = db.fetchall('select * from person')
         assert len(all) == 101
-        
+
         all = db.fetchall("select * from person where lastname=='101'")
         assert all == []
-        
+
         num = db.size('person')
         assert num == 101
-        
+
         db.insert('person', lastname='1', firstname='abc')
         one = db.fetchone("select firstname from person where lastname == '1'")
         assert one == '1' or one == 'abc'
         all = db.fetchall("select firstname from person where lastname == '1'")
         assert len(all) == 2
-        
+
         db.update('person', "lastname == '2'", firstname='56')
         one = db.fetchone("select firstname from person where lastname == '2'")
         assert one == '56', one
-        
+
         db.update('person', "lastname == '3'", firstname=65)
         one = db.fetchone("select firstname from person where lastname == '3'")
         assert one == 65, one
-        
+
         db.update('person', "lastname == '4'", firstname=654, lastname=44)
         one = db.fetchone("select firstname from person where lastname == 44")
         assert one == 654, one
-        
+
         db.close()
-        
+
     def test_basic_funcs_lib0(self):
         self.basic_funcs()
-        
+
     def test_insertPeer(self):
         create_sql = """
         CREATE TABLE Peer (
@@ -497,22 +497,22 @@ class TestSqliteCacheDB(unittest.TestCase):
         assert db.getOne('Peer', 'port', peer_id=1) == 234
         db.insertPeer(permid, update=True, **peer_x)
         assert db.getOne('Peer', 'port', peer_id=1) == 456
-        
+
 class TestThreadedSqliteCacheDB(unittest.TestCase):
     def setUp(self):
         self.db_path = 'tmp.db'
         if os.path.exists(self.db_path):
-            os.remove(self.db_path) 
+            os.remove(self.db_path)
         self.db_name = os.path.split(self.db_path)[1]
         SQLiteCacheDB.DEBUG = False
-        
+
     def tearDown(self):
         db = SQLiteCacheDB.getInstance()
         db.close(clean=True)
         del db
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
-        
+
     def create_db(self, db_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
         create_sql = "create table person(lastname, firstname);"
         db = SQLiteCacheDB.getInstance()
@@ -523,7 +523,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         #print "initDB", db_path
         db.initDB(db_path, tmp_sql_path, busytimeout=busytimeout, check_version=False)
         os.remove(tmp_sql_path)
-                    
+
     def write_data(self):
         db = SQLiteCacheDB.getInstance()
         #db.begin()
@@ -538,38 +538,38 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         db.commit()
         db.commit()
         db.close()
-        
+
     def read_data(self):
         db = SQLiteCacheDB.getInstance()
         one = db.fetchone('select * from person')
         assert one == ('a','b'), str(one)
-        
+
         one = db.fetchone("select lastname from person where firstname == 'b'")
         assert one == 'a'
 
         one = db.fetchone("select lastname from person where firstname == 'c'")
         assert one == None
-        
+
         all = db.fetchall('select * from person')
         assert len(all) == 101, len(all)
-        
+
         num = db.size('person')
         assert num == 101
-        
+
         db.insert('person', lastname='1', firstname='abc')
         one = db.fetchone("select firstname from person where lastname == '1'")
         assert one == '1' or one == 'abc'
         all = db.fetchall("select firstname from person where lastname == '1'")
         assert len(all) == 2
-        
+
         db.update('person', "lastname == '2'", firstname='56')
         one = db.fetchone("select firstname from person where lastname == '2'")
         assert one == '56', one
-        
+
         db.update('person', "lastname == '3'", firstname=65)
         one = db.fetchone("select firstname from person where lastname == '3'")
         assert one == 65, one
-        
+
         db.update('person', "lastname == '4'", firstname=654, lastname=44)
         one = db.fetchone("select firstname from person where lastname == 44")
         assert one == 654, one
@@ -588,13 +588,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         sql = "create table person(lastname, firstname);"
         sqlite_test.createDBTable(sql, self.db_path)
         sqlite_test.close(clean=True)
-        
+
     def basic_funcs(self):
         self.create_db(self.db_path)
         self.write_data()
         sleep(1)
         self.read_data()
-        
+
     def test_basic_funcs_lib0(self):
         self.basic_funcs()
 
@@ -607,7 +607,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         sleep(2)
         thread.start_new_thread(self.read_data, ())
         sleep(2)
-        
+
     def test_concurrency(self):
         class Reader(Thread):
             def __init__(self, period):
@@ -616,7 +616,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 self.setName('Reader.'+self.getName())
                 self.read_locks = 0
                 self.num = ' R%3s '%self.getName().split('-')[-1]
-                
+
             def keep_reading_data(self, period):
                 db = SQLiteCacheDB.getInstance()
                 st = time()
@@ -632,7 +632,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     if DEBUG_R:
                         print "...start read", self.getName(), time()
                         sys.stdout.flush()
-                    
+
                     try:
                         self.all = db.fetchall("select * from person")
                         self.last_read = time()-st
@@ -648,7 +648,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                         if DEBUG_R:
                             print "...end read", self.getName(), time(), len(self.all)
                             sys.stdout.flush()
-                    
+
 #                    num = len(all)
                     #print "----------- read", self.getName(), num
 #                    if DEBUG_R:
@@ -659,13 +659,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 if DEBUG_R:
                     print "done read", self.getName(), len(self.all), time()-st
                     sys.stdout.flush()
-                    
-                    
+
+
                 #assert self.read_locks == 0, self.read_locks
-                
+
             def run(self):
                 self.keep_reading_data(self.period)
-        
+
         class Writer(Thread):
             def __init__(self, period, num_write, commit):
                 self.period = period
@@ -676,7 +676,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 self.commit = commit
                 self.num_write = num_write
                 self.num = ' W%3s '%self.getName().split('-')[-1]
-                
+
             def keep_writing_data(self, period, num_write, commit=False):
                 db = SQLiteCacheDB.getInstance()
                 st = time()
@@ -694,17 +694,17 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                             break
                         #db.begin()
                         values = []
-                        
+
                         for i in range(num_write):
                             value = (str(i)+'"'+"'", str(i**2)+'"'+"'")
                             values.append(value)
-                        
+
                         try:
                             st = time()
                             if DEBUG:
                                 print '-'+self.num + "start write", self.getName(), self.writes, time()-begin_time
                                 sys.stdout.flush()
-                                
+
                             sql = 'INSERT INTO person VALUES (?, ?)'
                             db.executemany(sql, values, commit=commit)
                             self.last_write = time()-begin_time
@@ -712,7 +712,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                             write_time = time()-st
                             w_times.append(write_time)
                             if DEBUG:
-                                print '-'+self.num + "end write", self.getName(), '+', write_time 
+                                print '-'+self.num + "end write", self.getName(), '+', write_time
                                 sys.stdout.flush()
                             self.writes += 1
                         except apsw.BusyError:
@@ -725,13 +725,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                                 print >> sys.stdout, '>'+self.num + "Locked while ", s, self.getName(), self.write_locks, time()-st
                                 sys.stdout.flush()
                             continue
-                                                
+
                         if SLEEP_W >= 0:
                             sleep(SLEEP_W/1000.0)
-                            
+
                         if DO_STH > 0:
                             do_sth(DO_STH)
-                            
+
                 except Exception, msg:
                     print_exc()
                     print >> sys.stderr, "On Error", time(), begin_time, time()-begin_time, Exception, msg, self.getName()
@@ -739,21 +739,21 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     avg_w = avg_c = max_w = max_c = min_w = min_c = -1
                     if len(w_times) > 0:
                         avg_w = sum(w_times)/len(w_times)
-                        max_w = max(w_times)  
-                        min_w = min(w_times) 
-                        
+                        max_w = max(w_times)
+                        min_w = min(w_times)
+
                     output = self.num + " # W Locks: %d;"%self.write_locks + " # W: %d;"%self.writes
                     output += " Time: %.1f;"%self.last_write + ' Min Avg Max W: %.2f %.2f %.2f '%(min_w, avg_w, max_w)
                     self.result = output
-                
+
                 db.commit()
                 db.commit()
                 db.commit() # test if it got problem if it is called more than once
                 db.close()
-                
+
             def run(self):
                 self.keep_writing_data(self.period, self.num_write, commit=self.commit)
-                
+
         def do_sth(n=300):
             # 1000: 1.4 second
             # 500: 0.34
@@ -762,13 +762,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 l = range(n)
                 shuffle(l)
                 l.sort()
-            
 
-        def start_testing(nwriters,nreaders,write_period,num_write,read_period, 
+
+        def start_testing(nwriters,nreaders,write_period,num_write,read_period,
                           db_path, busytimeout, commit):
             self.create_db(db_path, busytimeout)
             if INFO:
-                print "Busy Timeout:", busytimeout, "milliseconds" 
+                print "Busy Timeout:", busytimeout, "milliseconds"
                 library = 'APSW'
                 print 'Library:', library, 'Writers:', nwriters, 'Readers:', nreaders, \
                     "Num Writes:", num_write, "Write Period:", write_period, "Read Period:", read_period, "Commit:", commit, "Busytimeout:", busytimeout
@@ -778,13 +778,13 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                 w = Writer(write_period, num_write, commit)
                 w.start()
                 writers.append(w)
-            
+
             readers = []
             for i in range(nreaders):
                 r = Reader(read_period)
                 r.start()
                 readers.append(r)
-                
+
             total_rlock = 0
             for r in readers:
                 r.join()
@@ -793,7 +793,7 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     print >> sys.stdout, r.num, "# R Locks: %d;"%r.read_locks, "# R: %d;"%len(r.all), "Last read: %.3f;"%r.last_read, "Read Times:", r.read_times
                     sys.stdout.flush()
                 del r
-                
+
             total_wlock = 0
             for w in writers:
                 w.join()
@@ -802,20 +802,20 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
                     print w.result
                     sys.stdout.flush()
                 del w
-                
+
             return total_rlock, total_wlock
-        
+
         #sys.setcheckinterval(1)
         DEBUG_R = False
         DEBUG = False
         INFO = False
         SLEEP_W = -10 # millisecond. -1 to disable, otherwise indicate how long to sleep
-        DO_STH = 0                
+        DO_STH = 0
         NLOOPS = 1
         total_rlock = total_wlock = 0
-        
+
         for i in range(NLOOPS):
-            rlock, wlock = start_testing(nwriters=1, nreaders=0, num_write=100, write_period=5, read_period=5, 
+            rlock, wlock = start_testing(nwriters=1, nreaders=0, num_write=100, write_period=5, read_period=5,
                           db_path=self.db_path, busytimeout=5000, commit=True)
             total_rlock += rlock
             total_wlock += wlock
@@ -824,24 +824,22 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
         all = db.fetchall("select * from person")
         if INFO:
             print "Finally inserted", len(all)
-            
+
         assert total_rlock == 0 and total_wlock == 0, (total_rlock, total_wlock)
         assert len(all) > 0, len(all)
-        
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestSqliteCacheDB))
     suite.addTest(unittest.makeSuite(TestThreadedSqliteCacheDB))
     suite.addTest(unittest.makeSuite(TestSQLitePerformance))
-    
+
     return suite
-        
+
 def main():
     init()
     unittest.main(defaultTest='test_suite')
 
-    
+
 if __name__ == '__main__':
-    main()    
-            
-            
+    main()

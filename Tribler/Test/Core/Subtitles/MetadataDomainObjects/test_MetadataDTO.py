@@ -35,15 +35,15 @@ class TestMetadataDTO(unittest.TestCase):
         self.assertEquals("",dto.description)
         self.assertEquals({}, dto._subtitles)
         self.assertTrue(dto.signature is None)
-        
+
     def test_packData(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
         dto.description = u"Sample Description\u041f"
-        
+
         bla = dto._packData()
         decoded = bdecode(bla)
-        
+
         self.assertTrue(len(decoded) == 6)
         decodedChannelId = decoded[0]
         decodedInfohash = decoded[1]
@@ -57,20 +57,20 @@ class TestMetadataDTO(unittest.TestCase):
         self.assertAlmostEquals(dto.timestamp,decodedTimestamp)
         self.assertEquals(0,decodedBitmask)
         self.assertEquals(0,len(decoded[5]))
-        
+
     def test_packDataWithSubs(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
-        
+
         subtitles = [SubtitleInfo(lang,path) for lang,path in self._srtSubs.iteritems()]
-        
+
         for sub in subtitles :
             sub.computeChecksum()
             dto.addSubtitle(sub)
-        
+
         packed = dto._packData()
         decoded = bdecode(packed)
-        
+
         self.assertTrue(len(decoded) == 6)
         decodedChannelId = decoded[0]
         decodedInfohash = decoded[1]
@@ -78,111 +78,111 @@ class TestMetadataDTO(unittest.TestCase):
         decodedTimestamp = decoded[3]
         decodedBitmask = decoded[4]
         checksums = decoded[5]
-        
+
         expectedMask = \
           LanguagesProvider.getLanguagesInstance().langCodesToMask(self._srtSubs.keys())
-          
+
         binaryExpexted = pack("!L", expectedMask)
-        
+
         self.assertEquals(dto.channel, decodedChannelId)
         self.assertEquals(dto.infohash, decodedInfohash)
         self.assertEquals(dto.description,decodedDescription)
         self.assertAlmostEquals(dto.timestamp,decodedTimestamp)
         self.assertEquals(binaryExpexted,decodedBitmask)
         self.assertEquals(3,len(checksums))
-        
+
         subs = dto.getAllSubtitles()
         i=0
         for key in sorted(subs.iterkeys()):
             self.assertEquals(subs[key].checksum, checksums[i])
             i += 1
-            
 
-    
+
+
     def testSignature(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
-        
+
         dto.sign(test_keypair)
         self.assertTrue(dto.verifySignature())
         dto.timestamp = 2
         ok = dto.verifySignature()
         self.assertFalse(ok)
-    
+
     def testSignatureOnChecksums(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
-        
+
         subtitles = [SubtitleInfo(lang,path) for lang,path in self._srtSubs.iteritems()]
-        
+
         for sub in subtitles :
             sub.computeChecksum()
             dto.addSubtitle(sub)
-        
-        
+
+
         dto.sign(test_keypair)
         self.assertTrue(dto.verifySignature())
-        
+
         dto.getSubtitle("rus").checksum = "ABCDEFGHILMOPQRS"
-        
+
         self.assertFalse(dto.verifySignature())
-    
+
     def testSerialize(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
         dto.description = u"Sample Description"
         dto.sign(test_keypair)
-        
+
         serialized = dto.serialize()
         self.assertEquals(7, len(serialized))
         signature = serialized[6]
         self.assertEquals(dto.signature,signature)
         #the rest is tested with test_packData
-    
+
     def testSerializeWithSubs(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
-        
+
         subtitles = [SubtitleInfo(lang,path) for lang,path in self._srtSubs.iteritems()]
-        
+
         for sub in subtitles :
             sub.computeChecksum()
             dto.addSubtitle(sub)
         dto.sign(test_keypair)
-        
+
         serial = dto.serialize()
         decoded = serial
         self.assertEquals(7, len(decoded))
         signature = decoded[6]
         self.assertEquals(dto.signature,signature)
         #the rest is tested with test_packDataWithSubs
-        
-        
+
+
     def testDesrialize(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
         dto.description = u"Sample Description"
         dto.sign(test_keypair)
-        
+
         serialized = dto.serialize()
         newDto = MDUtil.deserialize(serialized)
         self.assertEquals(dto,newDto)
-        
+
     def testDeserializeWithSubs(self):
         badInfohash = str2bin("GEh/o8rtTLB1wZJzFcSZSS4u9qo=")
         dto = MetadataDTO(test_perm_id, badInfohash)
-        
+
         subtitles = [SubtitleInfo(lang,path) for lang,path in self._srtSubs.iteritems()]
-        
+
         for sub in subtitles :
             sub.computeChecksum()
             dto.addSubtitle(sub)
         dto.sign(test_keypair)
-        
+
         serial = dto.serialize()
         newDto = MDUtil.deserialize(serial)
         self.assertEquals(dto,newDto)
-        
+
 def suite():
     return unittest.TestLoader().loadTestsFromTestCase(TestMetadataDTO)
 

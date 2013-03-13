@@ -42,7 +42,7 @@ target = {
 # gui panels to include (=those not found by py2exe from imports)
 includePanels=[
       "TopSearchPanel", "home", "list", "settingsDialog", "bgPanel"
-] 
+]
 
 #packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] + ["Tribler.Core.DecentralizedTracking.pymdht.core"]
@@ -52,6 +52,6 @@ setup(
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
     options = {"py2exe": {"packages": packages,"optimize": 2}},
-    data_files = [("installdir",[])], 
+    data_files = [("installdir",[])],
     windows = [target],
 )

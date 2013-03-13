@@ -1,7 +1,7 @@
 # Written by Arno Bakker, Bram Cohen, Jie Yang
 # see LICENSE.txt for license information
 #
-# This class receives all connections and messages destined for 
+# This class receives all connections and messages destined for
 # infohash = 0x00 0x00 ... 0x01
 # The peer sends a DIALBACK_REPLY message, we send no reply.
 #
@@ -48,7 +48,7 @@ class ReturnConnHandler:
     def __init__(self):
         if ReturnConnHandler.__single:
             raise RuntimeError, "ReturnConnHandler is Singleton"
-        ReturnConnHandler.__single = self 
+        ReturnConnHandler.__single = self
 
     #
     # Interface for upper layer
@@ -64,7 +64,7 @@ class ReturnConnHandler:
         self.rawserver = rawserver # real rawserver, not overlay_bridge
         self.sock_hand = self.rawserver.sockethandler
         self.multihandler = multihandler
-        self.dialback_rawserver = multihandler.newRawServer(dialback_infohash, 
+        self.dialback_rawserver = multihandler.newRawServer(dialback_infohash,
                                               self.rawserver.doneflag,
                                               protocol_name)
         self.myid = create_my_peer_id(mylistenport)
@@ -75,7 +75,7 @@ class ReturnConnHandler:
 
     def resetSingleton(self):
         """ For testing purposes """
-        ReturnConnHandler.__single = None 
+        ReturnConnHandler.__single = None
 
     def start_listening(self):
         """ Called by MainThread """
@@ -83,11 +83,11 @@ class ReturnConnHandler:
 
     def connect_dns(self,dns,callback):
         """ Connects to the indicated endpoint. Non-blocking.
-            
+
             Pre: "dns" must be an IP address, not a hostname.
-            
+
             Network thread calls "callback(exc,dns)" when the connection
-            is established or when an error occurs during connection 
+            is established or when an error occurs during connection
             establishment. In the former case, exc is None, otherwise
             it contains an Exception.
 
@@ -97,23 +97,23 @@ class ReturnConnHandler:
         # Called by overlay thread
         if DEBUG:
             print >> sys.stderr,"dlbreturn: connect_dns",dns
-        # To prevent concurrency problems on sockets the calling thread 
+        # To prevent concurrency problems on sockets the calling thread
         # delegates to the network thread.
         task = Task(self._connect_dns,dns,callback)
-        self.rawserver.add_task(task.start, 0) 
+        self.rawserver.add_task(task.start, 0)
 
 
     def send(self,dns,msg,callback):
         """ Sends a message to the indicated dns. Non-blocking.
-            
+
             Pre: connection to permid must have been established successfully.
 
             Network thread calls "callback(exc,dns)" when the message is sent
-            or when an error occurs during sending. In the former case, exc 
+            or when an error occurs during sending. In the former case, exc
             is None, otherwise it contains an Exception.
         """
         # Called by overlay thread
-        # To prevent concurrency problems on sockets the calling thread 
+        # To prevent concurrency problems on sockets the calling thread
         # delegates to the network thread.
         task = Task(self._send,dns,msg,callback)
         self.rawserver.add_task(task.start, 0)
@@ -122,40 +122,40 @@ class ReturnConnHandler:
 
     def close(self,dns):
         """ Closes any connection to indicated permid. Non-blocking.
-            
+
             Pre: connection to permid must have been established successfully.
 
             Network thread calls "callback(exc,permid,selver)" when the connection
             is closed.
         """
         # Called by overlay thread
-        # To prevent concurrency problems on sockets the calling thread 
+        # To prevent concurrency problems on sockets the calling thread
         # delegates to the network thread.
         task = Task(self._close,dns)
         self.rawserver.add_task(task.start, 0)
 
 
     def register_recv_callback(self,callback):
-        """ Register a callback to be called when receiving a message from 
+        """ Register a callback to be called when receiving a message from
             any permid. Non-blocking.
 
-            Network thread calls "callback(exc,permid,selver,msg)" when a message 
-            is received. The callback is not called on errors e.g. remote 
+            Network thread calls "callback(exc,permid,selver,msg)" when a message
+            is received. The callback is not called on errors e.g. remote
             connection close.
         """
         self.usermsghandler = callback
 
     def register_conns_callback(self,callback):
-        """ Register a callback to be called when receiving a connection from 
+        """ Register a callback to be called when receiving a connection from
             any permid. Non-blocking.
 
-            Network thread calls "callback(exc,permid,selver,locally_initiated)" 
+            Network thread calls "callback(exc,permid,selver,locally_initiated)"
             when a connection is established (locally initiated or remote), or
-            when a connection is closed locally or remotely. In the former case, 
+            when a connection is closed locally or remotely. In the former case,
             exc is None, otherwise it contains an Exception.
 
             Note that this means that if a callback is registered via this method,
-            both this callback and the callback passed to a connect() method 
+            both this callback and the callback passed to a connect() method
             will be called.
         """
         self.userconnhandler = callback
@@ -245,7 +245,7 @@ class ReturnConnHandler:
     # Interface for ServerPortHandler
     #
     def externally_handshaked_connection_made(self, singsock, options, msg_remainder):
-        """ incoming connection, handshake partially read to identity 
+        """ incoming connection, handshake partially read to identity
             as an it as overlay connection (used always)
         """
         if DEBUG:
@@ -262,10 +262,10 @@ class ReturnConnHandler:
     # Interface for ReturnConnection
     #
     def got_connection(self,oc):
-        
+
         if DEBUG:
             print >>sys.stderr,"dlbreturn: Got connection from",oc.get_ip(),"listen",oc.get_listen_port()
-        
+
         ret = True
         iplport = ip_and_port2str(oc.get_ip(),oc.get_listen_port())
         known = iplport in self.iplport2oc
@@ -273,7 +273,7 @@ class ReturnConnHandler:
             self.iplport2oc[iplport] = oc
         elif known and not oc.is_locally_initiated():
             # Locally initiated connections will already be registered,
-            # so if it's not a local connection and we already have one 
+            # so if it's not a local connection and we already have one
             # we have a duplicate, and we close the new one.
             if DEBUG:
                 print >> sys.stderr,"dlbreturn: got_connection:", \
@@ -281,7 +281,7 @@ class ReturnConnHandler:
             self.cleanup_admin_and_callbacks(oc,
                      Exception('closing because we already have a connection to peer'))
             ret = False
-            
+
         if ret:
             oc.dequeue_callbacks()
             if self.userconnhandler is not None:
@@ -328,10 +328,10 @@ class ReturnConnHandler:
 
     def get_max_len(self):
         return self.max_len
-   
+
     def get_my_peer_id(self):
         return self.myid
-    
+
     def measurefunc(self,length):
         pass
 
@@ -359,7 +359,7 @@ class ReturnConnHandler:
                 del self.iplport2oc[key]
                 #print "*****!!! del", key, oc
                 d += 1
-        
+
 
 class Task:
     def __init__(self,method,*args, **kwargs):
@@ -372,13 +372,13 @@ class Task:
             print >> sys.stderr,"dlbreturn: task: start",self.method
             #print_stack(file=sys.stderr)
         self.method(*self.args,**self.kwargs)
-    
+
 
 class ReturnConnection:
     def __init__(self,handler,singsock,rawserver,locally_initiated = False,
                  specified_dns = None, ext_handshake = False,options = None):
         # Called by network thread
-        self.handler = handler        
+        self.handler = handler
         self.singsock = singsock # for writing
         self.rawserver = rawserver
         self.buffer = StringIO()
@@ -390,7 +390,7 @@ class ReturnConnection:
         self.last_use = time()
 
         self.state = STATE_INITIAL
-        self.write(chr(len(protocol_name)) + protocol_name + 
+        self.write(chr(len(protocol_name)) + protocol_name +
                 option_pattern + dialback_infohash + self.handler.get_my_peer_id())
         if ext_handshake:
             self.state = STATE_HS_PEERID_WAIT
@@ -401,7 +401,7 @@ class ReturnConnection:
             self.state = STATE_HS_FULL_WAIT
             self.next_len = 1
             self.next_func = self.read_header_len
-            
+
         # Leave autoclose here instead of ReturnConnHandler, as that doesn't record
         # remotely-initiated ReturnConnections before authentication is done.
         self.rawserver.add_task(self._dlbconn_auto_close, EXPIRE_CHECK_INTERVAL)
@@ -458,7 +458,7 @@ class ReturnConnection:
         """ sockethandler flushes connection """
         pass
 
-    # 
+    #
     # Interface for ReturnConnHandler
     #
     def send_message(self,message):
@@ -500,7 +500,7 @@ class ReturnConnection:
             for callback in self.cb_queue:
                 ## Failure connecting
                 if DEBUG:
-                   print >> sys.stderr,"dlbconn: cleanup_callbacks: callback is",callback
+                    print >> sys.stderr,"dlbconn: cleanup_callbacks: callback is",callback
                 callback(exc,self.specified_dns)
         except Exception,e:
             print_exc(file=sys.stderr)
@@ -537,8 +537,8 @@ class ReturnConnection:
             self.close()
             return
         return 4, self.read_len
-    
-    
+
+
     def got_connection(self):
         return self.handler.got_connection(self)
 
@@ -549,10 +549,10 @@ class ReturnConnection:
         return l, self.read_message
 
     def read_message(self, s):
-        
+
         if DEBUG:
             print >>sys.stderr,"dlbconn: read_message len",len(s),self.state
-        
+
         if s != '':
             if self.state == STATE_DATA_WAIT:
                 if not self.handler.got_message((self.get_ip(),self.get_listen_port()),s):

@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
@@ -15,7 +15,7 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 DEBUG = False
 
 class UserCallbackHandler:
-    
+
     def __init__(self,session):
         self.session = session
         self.sesslock = session.sesslock
@@ -23,7 +23,7 @@ class UserCallbackHandler:
 
         # Notifier for callbacks to API user
         self.threadpool = ThreadNoPool()
-        
+
         self.notifier = Notifier.getInstance(self.threadpool)
 
     def shutdown(self):
@@ -67,13 +67,13 @@ class UserCallbackHandler:
             except:
                 print_exc()
         self.perform_usercallback(session_removestate_callback_target)
-        
+
     def perform_usercallback(self,target):
         self.sesslock.acquire()
         try:
             # TODO: thread pool, etc.
             self.threadpool.queueTask(target)
-            
+
         finally:
             self.sesslock.release()
 
@@ -87,7 +87,7 @@ class UserCallbackHandler:
             if self.session.lm.download_exists(infohash):
                 print >>sys.stderr,"Session: sesscb_removestate: Download is back, restarted? Canceling removal!",`infohash`
                 return
-            
+
             dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()
@@ -116,13 +116,13 @@ class UserCallbackHandler:
         if removecontent:
             if DEBUG:
                 print >>sys.stderr,"Session: sesscb_removestate: removing saved content",contentdests
-            
+
             contentdirs = set()
             for filename in contentdests:
                 if os.path.isfile(filename):
                     os.remove(filename)
                 contentdirs.add(os.path.dirname(filename))
-            
+
             #multifile, see if we need to remove any empty dirs
             if len(contentdests) > 1:
                 def remove_if_empty(basedir):
@@ -133,15 +133,15 @@ class UserCallbackHandler:
                             absfilename = os.path.join(basedir, filename)
                             if os.path.isdir(absfilename) and absfilename in contentdirs:
                                 remove_if_empty(absfilename)
-                        
+
                         #see if we are empty
                         files = os.listdir(basedir)
                         #ignore thumbs.db files
                         files = [file for file in files if not file.lower().endswith('thumbs.db')]
-                        
+
                         if len(files) == 0:
                             os.rmdir(basedir)
-                
+
                 basedir = os.path.commonprefix(contentdests)
                 remove_if_empty(basedir)
 
@@ -152,5 +152,3 @@ class UserCallbackHandler:
         if DEBUG:
             print >>sys.stderr,"ucb: notify called:",subject,changeType,`obj_id`, args
         self.notifier.notify(subject,changeType,obj_id,*args)
-        
-        

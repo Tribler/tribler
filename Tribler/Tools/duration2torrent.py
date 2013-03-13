@@ -36,7 +36,7 @@ if __name__ == "__main__":
                 
     tdef = TorrentDef.load(config['torrent'])
     metainfo = tdef.get_metainfo()
-    
+
     if config['duration'] != '':
         metainfo['playtime'] = config['duration']
         

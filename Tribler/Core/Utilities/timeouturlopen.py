@@ -88,7 +88,7 @@ def find_proxy(url):
             proxyurl = proxies[scheme]
             proxyelems = urlparse.urlparse(proxyurl)
             proxyhost = proxyelems[1]
-            
+
     if DEBUG:
         print >>sys.stderr,"find_proxy: Got proxies",proxies,"selected",proxyhost,"URL was",url
     return proxyhost
@@ -99,4 +99,3 @@ def find_proxy(url):
 
 # s = urlOpenTimeout("http://frayja.com", timeout=10)
 # print len(s.read())
-

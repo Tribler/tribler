@@ -2,8 +2,8 @@
 # see LICENSE.txt for license information
 #
 # TimedTaskQueue is a server that executes tasks on behalf of e.g. the GUI that
-# are too time consuming to be run by the actual GUI Thread (MainThread). Note 
-# that you still need to delegate the actual updating of the GUI to the 
+# are too time consuming to be run by the actual GUI Thread (MainThread). Note
+# that you still need to delegate the actual updating of the GUI to the
 # MainThread via the wx.CallAfter mechanism.
 #
 import sys
@@ -20,12 +20,12 @@ except ImportError,e:
 DEBUG = False
 
 class TimedTaskQueue:
-    
+
     __single = None
-    
+
     def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True, inDEBUG = DEBUG):
         self.inDEBUG = inDEBUG
-        
+
         self.cond = Condition(RLock())
         self.queue = []
         self.count = 0.0 # serves to keep task that were scheduled at the same time in FIFO order
@@ -36,17 +36,17 @@ class TimedTaskQueue:
 
         if __debug__:
             self.callstack = {} # callstack by self.count
-            
+
     def shutdown(self):
         self.add_task("stop")
         self.add_task = lambda task, t=0, id=None: None
-                
+
     def add_task(self,task,t=0,id=None):
-        """ t parameter is now usable, unlike before. 
+        """ t parameter is now usable, unlike before.
             If id is given, all the existing tasks with the same id will be removed
-            before inserting this task 
+            before inserting this task
         """
-        
+
         if task is None:
             print_stack()
 
@@ -58,29 +58,29 @@ class TimedTaskQueue:
 
         if __debug__:
             self.callstack[self.count] = format_stack()
-            
+
         if id != None:  # remove all redundant tasks
             self.queue = filter(lambda item:item[3]!=id, self.queue)
         self.queue.append((when,self.count,task,id))
         self.count += 1.0
         self.cond.notify()
         self.cond.release()
-        
+
     def remove_task(self, id):
         self.cond.acquire()
         self.queue = filter(lambda item:item[3]!=id, self.queue)
         self.cond.notify()
         self.cond.release()
-        
+
     def does_task_exist(self, id):
         return any(item[3]==id for item in self.queue)
-        
+
     def run(self):
         """ Run by server thread """
-        
+
         if prctlimported:
             prctl.set_name("Tribler"+currentThread().getName())
-        
+
         while True:
             task = None
             timeout = None
@@ -97,7 +97,7 @@ class TimedTaskQueue:
                         self.cond.wait(timeout)
                 # A new event was added or an event is due
                 self.queue.sort()
-                
+
                 (when,count,task,id) = self.queue[0]
                 if DEBUG:
                     print >>sys.stderr,"ttqueue: EVENT IN QUEUE",when,task
@@ -118,11 +118,11 @@ class TimedTaskQueue:
                         stack = self.callstack.pop(count)
                     break
             self.cond.release()
-            
+
             # Execute task outside lock
             try:
                 # 'stop' and 'quit' are only used for unit test
-                if task == 'stop':  
+                if task == 'stop':
                     break
                 elif task == 'quit':
                     if len(self.queue) == 0:
@@ -134,9 +134,9 @@ class TimedTaskQueue:
                 else:
                     if self.inDEBUG:
                         t1 = time()
-                    
+
                     task()
-                    
+
                     if self.inDEBUG:
                         took = time() - t1
                         if took > 0.2:
@@ -149,4 +149,3 @@ class TimedTaskQueue:
                     print >> sys.stderr, "TASK QUEUED FROM"
                     print >> sys.stderr, "".join(stack)
                     print >> sys.stderr, ">>>>>>>>>>>>>>>>"
-

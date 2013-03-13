@@ -17,17 +17,17 @@ from Tribler.UPnP.common.taskrunner import TaskRunner
 
 class UPnPServerConsole:
 
-    """This class wraps ObjectConsole to implement a 
+    """This class wraps ObjectConsole to implement a
     custom console for UPnP server."""
 
     def __init__(self):
-        
+
         # Task Runner
         self._task_runner = TaskRunner()
 
-        # UPnP Server        
+        # UPnP Server
         self._server = UPnPServer(self._task_runner, "Product 1.0")
-        
+
         # Switch Power Service
         service_id = "SwitchPower"
         service = SwitchPower(service_id)
@@ -54,8 +54,8 @@ class UPnPServerConsole:
         name_space['get_services'] = self._server.get_service_ids
         name_space['announce'] = self._server.announce
 
-        self._console = ObjectConsole(self, name_space, 
-                                      run="_run", 
+        self._console = ObjectConsole(self, name_space,
+                                      run="_run",
                                       stop="_stop", name="UPnP Server")
 
     def _run(self):
@@ -81,10 +81,3 @@ class UPnPServerConsole:
 if __name__ == '__main__':
 
     UPnPServerConsole().run()
-
-    
-    
-
-
-
-

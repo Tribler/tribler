@@ -7,7 +7,7 @@ get_home_dir()      : Returns CSIDL_APPDATA i.e. App data directory on win32
 get_picture_dir()
 getfreespace(path)
 """
-    
+
 #
 # Multiple methods for getting free diskspace
 #
@@ -114,7 +114,7 @@ if sys.platform == "win32":
         def get_desktop_dir():
             home = get_home_dir()
             return os.path.join(home,u"Desktop")
-            
+
 else:
     # linux or darwin (mac)
     def get_home_dir():
@@ -171,7 +171,7 @@ except:
                             path = os.path.split(path)[0]
                             if not path:
                                 raise
-            except:                
+            except:
                 # Original Win95
                 # (2GB limit on partition size, so this should be
                 #  accurate except for mapped network drives)
@@ -179,16 +179,16 @@ except:
                 def getfreespace(path):
                     [spc, bps, nfc, tnc] = win32file.GetDiskFreeSpace(path)
                     return long(nfc) * long(spc) * long(bps)
-                    
+
         except ImportError:
             # Windows if win32all extensions aren't installed
             # (parse the output from the dir command)
             def getfreespace(path):
                 try:
                     mystdin, mystdout = os.popen2(u"dir " + u"\"" + path + u"\"")
-                    
+
                     sizestring = "0"
-                
+
                     for line in mystdout:
                         line = line.strip()
                         # Arno: FIXME: this won't work on non-English Windows, as reported by the IRT
@@ -201,19 +201,19 @@ except:
                                 sizestring = part
                                 break
 
-                    size = long(sizestring)                    
-                    
+                    size = long(sizestring)
+
                     if size == 0L:
                         print >>sys.stderr,"getfreespace: can't determine freespace of ",path
                         for line in mystdout:
                             print >>sys.stderr,line
-                            
+
                         size = 2**80L
                 except:
                     # If in doubt, just return something really large
                     # (1 yottabyte)
                     size = 2**80L
-                
+
                 return size
     else:
         # Any other cases
@@ -239,7 +239,7 @@ def fix_filebasename(name, unit=False, maxlen=255):
         return 'c:'
     if not name or name == '.' or name == '..':
         return '_'
-    
+
     if unit:
         name = name[0]
     fixed = False
@@ -254,7 +254,7 @@ def fix_filebasename(name, unit=False, maxlen=255):
             invalidchars = invalidwinfilenamechars
         else:
             invalidchars = invalidlinuxfilenamechars
-             
+
         if c in invalidchars:
             fixedname += '_'
             fixed = True
@@ -262,17 +262,17 @@ def fix_filebasename(name, unit=False, maxlen=255):
             fixedname += c
             if c == ' ':
                 spaces += 1
-    
+
     file_dir, basename = os.path.split(fixedname)
     while file_dir != '':
         fixedname = basename
         file_dir, basename = os.path.split(fixedname)
         fixed = True
-    
+
     if fixedname == '':
         fixedname = '_'
         fixed = True
-        
+
     if fixed:
         return last_minute_filename_clean(fixedname)
     elif spaces == len(name):
@@ -280,7 +280,7 @@ def fix_filebasename(name, unit=False, maxlen=255):
         return '_'
     else:
         return last_minute_filename_clean(name)
-    
+
 def last_minute_filename_clean(name):
     s = name.strip() # Arno: remove initial or ending space
     if sys.platform == 'win32' and s.endswith('..'):
@@ -299,7 +299,7 @@ def get_readable_torrent_name(infohash, raw_filename):
 
 if sys.platform == "win32":
     import win32pdh
-    
+
     def getcpuload():
         """ Returns total CPU usage as fraction (0..1).
         Warning: side-effect: sleeps for 0.1 second to do diff """
@@ -307,16 +307,16 @@ if sys.platform == "win32":
         cpupath = win32pdh.MakeCounterPath((None, "Processor", "_Total", None, -1, "% Processor Time"))
         query = win32pdh.OpenQuery(None, 0)
         counter = win32pdh.AddCounter(query, cpupath, 0)
-        
+
         win32pdh.CollectQueryData(query)
         # Collect must be called twice for CPU, see http://support.microsoft.com/kb/262938
         time.sleep(0.1)
         win32pdh.CollectQueryData(query)
-            
+
         status, value = win32pdh.GetFormattedCounterValue(counter,win32pdh.PDH_FMT_LONG)
-             
+
         return float(value)/100.0
-    
+
 elif sys.platform == "linux2":
     def read_proc_stat():
         """ Read idle and total CPU time counters from /proc/stat, see
@@ -336,8 +336,8 @@ elif sys.platform == "linux2":
                     return (total,idle)
         finally:
             f.close()
-    
-    
+
+
     def getcpuload():
         """ Returns total CPU usage as fraction (0..1).
         Warning: side-effect: sleeps for 0.1 second to do diff """
@@ -351,7 +351,7 @@ else:
     # Mac
     def getupload():
         raise ValueError("Not yet implemented")
-    
+
 
 def startfile(filepath):
     if sys.platform == 'darwin':

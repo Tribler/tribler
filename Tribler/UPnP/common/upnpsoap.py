@@ -77,22 +77,22 @@ class _ActionRequest:
         self._ns = action_element.namespaceURI
         self._args = args
         return True
-        
+
     def get_action_name(self):
         """Retrieve the name of the requested UPnP action."""
-        if self._doc: 
+        if self._doc:
             return self._action_name
 
     def get_namespace(self):
         """Retrieve the namespace of the requested UPnP action,
         i.e. the service type it refers to."""
-        if self._doc: 
+        if self._doc:
             return self._ns
 
     def get_arguments(self):
-        """Retrieve the in-arguments associated with 
+        """Retrieve the in-arguments associated with
         the UPnP action request."""
-        if self._doc: 
+        if self._doc:
             return self._args
 
     def reset(self):
@@ -110,7 +110,7 @@ _INSTANCE = _ActionRequest()
 
 def parse_action_request(data):
     """This function parses the soap xml request and
-    returns three values. The function hides the details of 
+    returns three values. The function hides the details of
     implementation.
 
     action -- name of action
@@ -118,7 +118,7 @@ def parse_action_request(data):
     args -- action in-arguments.
     """
     success = _INSTANCE.parse(data)
-    if not success: 
+    if not success:
         return None
     else:
         action_name = _INSTANCE.get_action_name()
@@ -133,11 +133,11 @@ def parse_action_request(data):
 ##############################################
 
 ACTION_REQUEST_FMT = """<?xml version="1.0"?>
-<s:Envelope 
-s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding" 
+<s:Envelope
+s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding"
 xmlns:s="http://schemas.xmlsoap.org/soap/envelope">
 <s:Body>
-<u:%s 
+<u:%s
 xmlns:u="%s">
 %s
 </u:%s>
@@ -153,7 +153,7 @@ def create_action_request(service_type, action_name, args):
     data_str = ""
     for arg_name, arg_value in args:
         data_str += ARG_FMT % (arg_name, arg_value, arg_name)
-    return ACTION_REQUEST_FMT % (action_name, service_type, 
+    return ACTION_REQUEST_FMT % (action_name, service_type,
                                  data_str, action_name)
 
 
@@ -162,11 +162,11 @@ def create_action_request(service_type, action_name, args):
 ##############################################
 
 ACTION_RESPONSE_FMT = u"""<?xml version="1.0"?>
-<s:Envelope 
-s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding" 
+<s:Envelope
+s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding"
 xmlns:s="http://schemas.xmlsoap.org/soap/envelope">
 <s:Body>
-<u:%sResponse 
+<u:%sResponse
 xmlns:u="%s">
 %s
 </u:%sResponse>
@@ -203,8 +203,8 @@ def parse_action_response(xmldata):
     easily accessible."""
     try:
         doc = minidom.parseString(xmldata.replace('\n', ''))
-        if doc == None: 
-            return None    
+        if doc == None:
+            return None
         envelope_elem = doc.documentElement
         body_elem = envelope_elem.firstChild
         action_elem = body_elem.firstChild
@@ -229,8 +229,8 @@ def parse_action_response(xmldata):
 
 
 ERROR_RESPONSE_FMT = u"""<?xml version="1.0" ?>
-<s:Envelope 
-s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding" 
+<s:Envelope
+s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding"
 xmlns:s="http://schemas.xmlsoap.org/soap/envelope">
 <s:Body>
 <s:Fault>
@@ -286,8 +286,8 @@ def parse_event_message(xmldata):
     """This parses the xmldata and makes the included information
     easily accessible."""
     doc = minidom.parseString(xmldata.replace('\n', ''))
-    if doc == None: 
-        return None    
+    if doc == None:
+        return None
     property_set_elem = doc.documentElement
     tuples = []
     for property_elem in property_set_elem.childNodes:
@@ -296,7 +296,7 @@ def parse_event_message(xmldata):
         tuples.append((str(var_elem.tagName), data))
     return tuples
 
-        
+
 ##############################################
 # MAIN
 ##############################################
@@ -304,8 +304,8 @@ def parse_event_message(xmldata):
 if __name__ == '__main__':
 
     REQUEST_XML = """<?xml version="1.0"?>
-<s:Envelope 
-s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" 
+<s:Envelope
+s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
 xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
 <s:Body>
 <ns0:SetTarget xmlns:ns0="urn:schemas-upnp-org:service:SwitchPower:1">
@@ -322,7 +322,7 @@ xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     SERVICE_TYPE = "urn:schemas-upnp-org:service:ServiceType:1"
     ACTION_NAME = "GetTarget"
     RESULT_LIST = [('result1', 'True'), ('result2', '4')]
-    RESPONSE_XML = create_action_response(SERVICE_TYPE, 
+    RESPONSE_XML = create_action_response(SERVICE_TYPE,
                                           ACTION_NAME, RESULT_LIST)
     print RESPONSE_XML
     print create_error_response("501", "Action not implemented")
@@ -332,7 +332,7 @@ xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     print EVENT_MSG
     print parse_event_message(EVENT_MSG)
 
-    print create_action_request(SERVICE_TYPE, 
+    print create_action_request(SERVICE_TYPE,
                                 ACTION_NAME, VARIABLES)
 
     print parse_action_response(RESPONSE_XML)

@@ -20,10 +20,10 @@ from Tribler.Core.Utilities.utilities import isValidIP
 DEBUG=True
 
 class TestDialbackRequest(TestAsServer):
-    """ 
+    """
     Testing DIALBACK_REQUEST message of Dialback extension V1
     """
-    
+
     #def setUp(self):
     #    """ override TestAsServer """
     #    TestAsServer.setUp(self)
@@ -63,7 +63,7 @@ class TestDialbackRequest(TestAsServer):
 
 
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -73,7 +73,7 @@ class TestDialbackRequest(TestAsServer):
         """
         # 1. test good DIALBACK_REQUEST
         self.subtest_good_drequest()
-        
+
         # 2. test various bad DIALBACK_REQUEST messages
         self.subtest_bad_not_empty()
 
@@ -81,7 +81,7 @@ class TestDialbackRequest(TestAsServer):
     # Good DIALBACK_REQUEST
     #
     def subtest_good_drequest(self):
-        """ 
+        """
             test good DIALBACK_REQUEST messages
         """
         s = OLConnection(self.my_keypair,'localhost',self.hisport,mylistenport=self.mylistenport)
@@ -109,7 +109,7 @@ class TestDialbackRequest(TestAsServer):
 
     #
     # Bad DIALBACK_REQUEST
-    #    
+    #
     def subtest_bad_not_empty(self):
         self._test_bad(self.create_not_empty)
 
@@ -146,7 +146,7 @@ class TestDialbackRequest(TestAsServer):
 
     #
     # Bad message creators
-    # 
+    #
     def create_not_empty(self):
         return DIALBACK_REQUEST+"bla"
 
@@ -154,9 +154,8 @@ class TestDialbackRequest(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestDialbackRequest))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

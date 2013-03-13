@@ -19,9 +19,9 @@ DEBUG = False
 infohash_len = 20
 
 def bin2str(bin):
-    # Full BASE64-encoded 
+    # Full BASE64-encoded
     return encodestring(bin).replace("\n","")
-    
+
 def str2bin(str):
     return decodestring(str)
 
@@ -50,7 +50,7 @@ def validIP(ip):
         print_exc()
     raise RuntimeError, "invalid IP address: " + ip
 
-    
+
 def validPermid(permid):
     if not isinstance(permid, str):
         raise RuntimeError, "invalid permid: " + permid
@@ -63,13 +63,13 @@ def validInfohash(infohash):
     if STRICT_CHECK and len(infohash) != infohash_len:
         raise RuntimeError, "invalid length infohash " + infohash
     return True
-    
+
 def isValidPermid(permid):
     try:
         return validPermid(permid)
     except:
         return False
-    
+
 def isValidInfohash(infohash):
     try:
         return validInfohash(infohash)
@@ -81,7 +81,7 @@ def isValidPort(port):
         return validPort(port)
     except:
         return False
-    
+
 def isValidIP(ip):
     try:
         return validIP(ip)
@@ -93,27 +93,27 @@ def isValidName(name):
         return validPort(name)
     except:
         return False
-    
+
 def validTorrentFile(metainfo):
     # Jie: is this function too strict? Many torrents could not be downloaded
     if type(metainfo) != DictType:
         raise ValueError('metainfo not dict')
-    
-    
+
+
     if 'info' not in metainfo:
         raise ValueError('metainfo misses key info')
-    
+
     if 'announce' in metainfo and not isValidURL(metainfo['announce']):
         #Niels: Some .torrent files have a dht:// url in the announce field.
         if not metainfo['announce'].startswith('dht:'):
             raise ValueError('announce URL bad')
-    
+
     # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes
     # are not allowed, but some torrents (Azureus?) apparently violate this.
 
     #if 'announce' in metainfo and 'nodes' in metainfo:
     #    raise ValueError('both announce and nodes present')
-    
+
     if 'nodes' in metainfo:
         nodes = metainfo['nodes']
         if type(nodes) != ListType:
@@ -145,11 +145,11 @@ def validTorrentFile(metainfo):
                 raise ValueError("address host not string, but %s" % type(address[0]))
             if not isinstance(address[1], int):
                 raise ValueError("address port not int, but %s" % type(address[1]))
-    
+
     info = metainfo['info']
     if type(info) != DictType:
         raise ValueError('info not dict')
-    
+
     if 'root hash' in info:
         infokeys = ['name','piece length', 'root hash']
     elif 'live' in info:
@@ -180,12 +180,12 @@ def validTorrentFile(metainfo):
         p = info['pieces']
         if type(p) != StringType or len(p) % 20 != 0:
             raise ValueError('info pieces is not multiple of 20 bytes')
-        
+
     if 'length' in info:
         # single-file torrent
         if 'files' in info:
             raise ValueError('info may not contain both files and length key')
-        
+
         l = info['length']
         if type(l) != IntType and type(l) != LongType:
             raise ValueError('info length is not int, but '+`type(l)`)
@@ -193,28 +193,28 @@ def validTorrentFile(metainfo):
         # multi-file torrent
         if 'length' in info:
             raise ValueError('info may not contain both files and length key')
-        
+
         files = info['files']
         if type(files) != ListType:
             raise ValueError('info files not list, but '+`type(files)`)
-        
+
         filekeys = ['path','length']
         for file in files:
             for key in filekeys:
                 if key not in file:
                     raise ValueError('info files missing path or length key')
-            
+
             p = file['path']
             if type(p) != ListType:
                 raise ValueError('info files path is not list, but '+`type(p)`)
             for dir in p:
                 if type(dir) != StringType:
                     raise ValueError('info files path is not string, but '+`type(dir)`)
-            
+
             l = file['length']
             if type(l) != IntType and type(l) != LongType:
                 raise ValueError('info files length is not int, but '+`type(l)`)
-            
+
     # common additional fields
     if 'announce-list' in metainfo:
         al = metainfo['announce-list']
@@ -233,13 +233,13 @@ def validTorrentFile(metainfo):
         if type(azprop) != DictType:
             raise ValueError('azureus_properties is not dict, but '+`type(azprop)`)
         if 'Content' in azprop:
-                content = azprop['Content']
-                if type(content) != DictType:
-                    raise ValueError('azureus_properties content is not dict, but '+`type(content)`)
-                if 'thumbnail' in content:
-                    thumb = content['thumbnail']
-                    if type(content) != StringType:
-                        raise ValueError('azureus_properties content thumbnail is not string')
+            content = azprop['Content']
+            if type(content) != DictType:
+                raise ValueError('azureus_properties content is not dict, but '+`type(content)`)
+            if 'thumbnail' in content:
+                thumb = content['thumbnail']
+                if type(content) != StringType:
+                    raise ValueError('azureus_properties content thumbnail is not string')
 
     # Perform check on httpseeds/url-list fields
     if 'url-list' in metainfo:
@@ -275,21 +275,21 @@ def isValidTorrentFile(metainfo):
     except:
         if DEBUG:
             print_exc()
-        return False 
-    
+        return False
+
 def isValidURL(url):
     if url.lower().startswith('udp'):    # exception for udp
         url = url.lower().replace('udp','http',1)
     r = urlparse.urlsplit(url)
     # if DEBUG:
     #     print >>sys.stderr,"isValidURL:",r
-    
+
     if r[0] == '' or r[1] == '':
         return False
     return True
-    
+
 def show_permid(permid):
-    # Full BASE64-encoded. Must not be abbreviated in any way. 
+    # Full BASE64-encoded. Must not be abbreviated in any way.
     if not permid:
         return 'None'
     return encodestring(permid).replace("\n","")
@@ -308,7 +308,7 @@ def show_permid_shorter(permid):
         return 'None'
     s = encodestring(permid).replace("\n","")
     return s[-5:]
-            
+
 def print_dict(data, level=0):
     if isinstance(data, dict):
         print
@@ -325,7 +325,7 @@ def print_dict(data, level=0):
             print_dict(data[i], level+1)
     else:
         print data
-        
+
 def friendly_time(old_time):
     curr_time = time()
     try:
@@ -357,9 +357,9 @@ def friendly_time(old_time):
         return str(int(diff/86400)) + " days ago"
     else:
         return strftime("%d-%m-%Y", gmtime(old_time))
-        
+
 def sort_dictlist(dict_list, key, order='increase'):
-    
+
     aux = []
     for i in xrange(len(dict_list)):
         #print >>sys.stderr,"sort_dictlist",key,"in",dict_list[i].keys(),"?"
@@ -418,19 +418,19 @@ def remove_data_from_list(list, content, key = 'infohash'):
     index = find_content_in_dictlist(list, content, key)
     if index != -1:
         del list[index]
-    
+
 def sortList(list_to_sort, list_key, order='decrease'):
-        aux = zip(list_key, list_to_sort)
-        aux.sort()
-        if order == 'decrease':
-            aux.reverse()
-        return [i for k, i in aux]    
+    aux = zip(list_key, list_to_sort)
+    aux.sort()
+    if order == 'decrease':
+        aux.reverse()
+    return [i for k, i in aux]
 
 def getPlural( n):
-        if n == 1:
-            return ''
-        else:
-            return 's'
+    if n == 1:
+        return ''
+    else:
+        return 's'
 
 
 def find_prog_in_PATH(prog):
@@ -447,7 +447,7 @@ def find_prog_in_PATH(prog):
             foundat = fullpath
             break
     return foundat
-    
+
 def hostname_or_ip2ip(hostname_or_ip):
     # Arno: don't DNS resolve always, grabs lock on most systems
     ip = None
@@ -475,7 +475,7 @@ def get_collected_torrent_filename(infohash):
     filename = sha(infohash).hexdigest()+'.torrent'    # notice: it's sha1-hash of infohash
     return filename
     # exceptions will be handled by got_metadata()
-   
+
 
 if __name__=='__main__':
 
@@ -489,4 +489,4 @@ if __name__=='__main__':
 
 
     #d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
-    #print_dict(d)    
+    #print_dict(d)

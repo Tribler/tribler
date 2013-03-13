@@ -32,7 +32,7 @@ class ConfigReader(ConfigParser):
     def __init__(self, filename, section, defaults = None):
         if defaults is None:
             defaults = {}
-            
+
         ConfigParser.__init__(self)
         self.defaults = defaults
 
@@ -51,7 +51,7 @@ class ConfigReader(ConfigParser):
 
         self.filename = filename
         self.section = section
-        
+
         # If the directory for this file doesn't exist,
         # try creating it now
         dirname = os.path.dirname(self.filename)
@@ -62,7 +62,7 @@ class ConfigReader(ConfigParser):
         # A random port does not work well with Buddycast so, pick a random, fixed one
         if filename.endswith('abc.conf') and not os.access(filename, os.F_OK):
             defaults['minport'] = str(DEFAULTPORT)
-        
+
         try:
             self.read(self.filename)
         except MissingSectionHeaderError:
@@ -76,7 +76,7 @@ class ConfigReader(ConfigParser):
             newfile.write("[" + self.section + "]\n")
             newfile.writelines(oldconfig)
             newfile.close()
-            
+
             self.read(self.filename)
         except ParsingError:
             # A more severe exception occured
@@ -85,17 +85,17 @@ class ConfigReader(ConfigParser):
             # If this fails, then there's trouble
             self.tryRepair()
             self.read(self.filename)
-        
+
     def testConfig(self, goodconfig, newline, passes = 0):
         if newline:
             testconfig = goodconfig + newline + "\r\n"
-            
+
             # Write out to a StringIO object
             newfile = StringIO(testconfig)
             try:
                 testparser = ConfigParser()
                 testparser.readfp(newfile)
-                
+
                 # Line looks ok, add it to the config file
                 return testconfig
             except MissingSectionHeaderError:
@@ -107,12 +107,12 @@ class ConfigReader(ConfigParser):
             except ParsingError:
                 # Ignore the line, don't add it to the config file
                 return goodconfig
-    
+
     # Try to repair a damaged config file
     # (i.e.: one w/ parsing errors, etc.)
     def tryRepair(self):
         oldconfig = ""
-        
+
         try:
             oldfile = open(self.filename, "r")
             oldconfig = oldfile.readlines()
@@ -125,9 +125,9 @@ class ConfigReader(ConfigParser):
             newfile.write("[" + self.section + "]\n")
             newfile.close()
             return
-            
+
         goodconfig = ""
-        
+
         for line in oldconfig:
             # Strip off any leading or trailing spaces
             newline = line.strip()
@@ -138,7 +138,7 @@ class ConfigReader(ConfigParser):
         newfile = open(self.filename, "w")
         newfile.writelines(goodconfig)
         newfile.close()
-            
+
     def setSection(self, section):
         self.section = section
 
@@ -153,11 +153,11 @@ class ConfigReader(ConfigParser):
             while len(red) < 3:
                 red = "0" + red
 
-            green = str(value.Green())            
+            green = str(value.Green())
             while len(green) < 3:
                 green = "0" + green
-                
-            blue = str(value.Blue())            
+
+            blue = str(value.Blue())
             while len(blue) < 3:
                 blue = "0" + blue
 
@@ -169,7 +169,7 @@ class ConfigReader(ConfigParser):
                 text = value
             else:
                 text = str(value)
-        
+
         return text
 
     def StringToValue(self, value, type):
@@ -197,12 +197,12 @@ class ConfigReader(ConfigParser):
                 value = wx.Colour(red, green, blue)
             elif type.startswith("bencode"):
                 value = bdecode(value)
-        except:           
+        except:
             value = None
-            
+
         if value is None:
             value = self.defaultvalues[type]
-        
+
         return value
 
     def ReadDefault(self, param, type = "string", section = None):
@@ -214,18 +214,18 @@ class ConfigReader(ConfigParser):
 
         param = param.lower()
         value = self.defaults.get(param, None)
-            
+
         value = self.StringToValue(value, type)
-            
+
         return value
-        
+
     def Read(self, param, type = "string", section = None):
         if section is None:
             section = self.section
-            
+
         if DEBUG:
             print >>sys.stderr,"ConfigReader: Read(",param,"type",type,"section",section
-            
+
         if param is None or param == "":
             return ""
 
@@ -248,7 +248,7 @@ class ConfigReader(ConfigParser):
                     pass
                     # sys.stderr.write("ConfigReader: Error while reading parameter, no def: (" + str(param) + ")\n")
                     # print_stack()
-                    
+
                 for k,v,d in bt1_defaults:
                     if k == param:
                         value = v
@@ -261,19 +261,19 @@ class ConfigReader(ConfigParser):
             print >>sys.stderr,"ConfigReader: Read",param,type,section,"got",value
 
         value = self.StringToValue(value, type)
-           
+
         return value
-        
+
     def Exists(self, param, section = None):
         if section is None:
             section = self.section
-            
+
         return self.has_option(section, param)
-        
+
     def Items(self, section = None):
         if section is None:
             section = self.section
-        
+
         try:
             items = self.items(section)
             for i in range(len(items)):
@@ -298,28 +298,28 @@ class ConfigReader(ConfigParser):
     def Write(self, param, value, type = "string", section = None):
         if section is None:
             section = self.section
-            
-        if param is None or param == "":            
+
+        if param is None or param == "":
             return False
-        
+
         param = param.lower()
 
-            
+
         if not self.has_section(section):
             self.add_section(section)
-               
+
         text = self.ValueToString(value, type)
 
         while 1:
             try:
                 oldtext = self.Read(param)
-                
+
                 self.set(section, param, text)
-    
-                # Return True if we actually changed something            
+
+                # Return True if we actually changed something
                 if oldtext != text:
                     return True
-                
+
                 break
             except NoSectionError:
                 self.add_section(section)
@@ -329,18 +329,18 @@ class ConfigReader(ConfigParser):
 #                print_exc(file = data)
 #                sys.stderr.write(data.getvalue())
                 break
-        
+
         return False
-    
+
     def DeleteEntry(self, param, section = None):
         if section is None:
             section = self.section
-               
+
         try:
             return self.remove_option(section, param)
         except:
             return False
-        
+
     def DeleteGroup(self, section = None):
         if section is None:
             section = self.section
@@ -349,8 +349,8 @@ class ConfigReader(ConfigParser):
             return self.remove_section(section)
         except:
             return False
-        
-    def Flush(self):        
+
+    def Flush(self):
         self.write(open(self.filename, "w"))
 
     def _read(self, fp, fpname):
@@ -358,7 +358,7 @@ class ConfigReader(ConfigParser):
         optname = None
         lineno = 0
         e = None                                  # None, or an exception
-        firstline = True            
+        firstline = True
         while True:
             line = fp.readline()
             if not line:
@@ -434,7 +434,7 @@ class ConfigReader(ConfigParser):
         # if any parsing errors occurred, raise an exception
         if e:
             raise e
-        
+
     def write(self, fp):
         fp.writelines('\xef\xbb\xbf')
         if self._defaults:
@@ -456,9 +456,3 @@ class ConfigReader(ConfigParser):
                     except UnicodeDecodeError:
                         fp.write((key + " = " + value + "\n"))
             fp.write("\n")
-
-
-
-
-
-

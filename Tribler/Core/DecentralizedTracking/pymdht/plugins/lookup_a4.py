@@ -34,11 +34,11 @@ class _QueuedNode(object):
     def __cmp__(self, other):
         # nodes without log_distance (bootstrap) go first
         if self.distance is None:
-            return -1 
+            return -1
         elif other.distance is None:
             return 1
         return self.distance.__cmp__(other.distance)
-    
+
 
 class _LookupQueue(object):
 
@@ -87,7 +87,7 @@ class _LookupQueue(object):
         return self._pop_nodes_to_query(max_nodes)
 
     on_error = on_timeout
-    
+
     def get_closest_responded_qnodes(self,
                                      num_nodes=ANNOUNCE_REDUNDANCY):
         closest_responded_qnodes = []
@@ -102,7 +102,7 @@ class _LookupQueue(object):
         if ip not in self.queried_ips:
             self.queried_ips.add(ip)
             return True
-        
+
     def _add_responded_qnode(self, qnode):
         self.responded_qnodes.append(qnode)
         self.responded_qnodes.sort(key=attrgetter('distance'))
@@ -121,7 +121,7 @@ class _LookupQueue(object):
             mark = self.responded_qnodes[MARK_INDEX].distance.log
         else:
             mark = identifier.ID_SIZE_BITS
-        nodes_to_query = [] 
+        nodes_to_query = []
         for _ in range(max_nodes):
             try:
                 qnode = self.queued_qnodes[0]
@@ -135,7 +135,7 @@ class _LookupQueue(object):
         self.last_query_ts = time.time()
         return nodes_to_query
 
-   
+
 class GetPeersLookup(object):
     """DO NOT use underscored variables, they are thread-unsafe.
     Variables without leading underscore are thread-safe.
@@ -147,20 +147,20 @@ class GetPeersLookup(object):
                  lookup_id, info_hash,
                  callback_f, bt_port=0):
         self.msg_f = msg_f
-        
+
         self.bootstrap_alpha = 4
         self.normal_alpha = 4
         self.normal_m = 1
         self.slowdown_alpha = 4
         self.slowdown_m = 1
-        
+
         self.start_ts = time.time()
         logger.debug('New lookup (info_hash: %r) %d' % (info_hash, bt_port))
         self._my_id = my_id
         self.lookup_id = lookup_id
         self.callback_f = callback_f
         self._lookup_queue = _LookupQueue(info_hash, 20)
-                                     
+
         self.info_hash = info_hash
         self._bt_port = bt_port
         self._lock = threading.RLock()
@@ -175,14 +175,14 @@ class GetPeersLookup(object):
         self._running = False
         self._slow_down = False
         self._msg_factory = msg_f.outgoing_get_peers_query
-        
+
     def _get_max_nodes_to_query(self):
         if self._slow_down:
             return min(self.slowdown_alpha - self._num_parallel_queries,
                        self.slowdown_m)
         return min(self.normal_alpha - self._num_parallel_queries,
                    self.normal_m)
-    
+
     def start(self, bootstrap_rnodes):
         assert not self._running
         self._running = True
@@ -190,7 +190,7 @@ class GetPeersLookup(object):
                                                       self.bootstrap_alpha)
         queries_to_send = self._get_lookup_queries(nodes_to_query)
         return queries_to_send
-        
+
     def on_response_received(self, response_msg, node_):
         logger.debug('response from %r\n%r' % (node_,
                                                 response_msg))
@@ -222,7 +222,7 @@ class GetPeersLookup(object):
         lookup_done = not self._num_parallel_queries
         return (queries_to_send, self._num_parallel_queries,
                 lookup_done)
-    
+
     def on_error_received(self, error_msg, node_addr):
         logger.debug('Got error from node addr: %r' % node_addr)
         self._num_parallel_queries -= 1
@@ -234,7 +234,7 @@ class GetPeersLookup(object):
         lookup_done = not self._num_parallel_queries
         return (queries_to_send, self._num_parallel_queries,
                 lookup_done)
-        
+
     def _get_lookup_queries(self, nodes):
         queries = []
         for node_ in nodes:
@@ -274,8 +274,8 @@ class GetPeersLookup(object):
     def get_closest_responded_hexids(self):
         return ['%r' % qnode.node.id for
                 qnode in self._lookup_queue.get_closest_responded_qnodes()]
-    
-            
+
+
 class MaintenanceLookup(GetPeersLookup):
 
     def __init__(self, msg_f, my_id, target):
@@ -288,8 +288,8 @@ class MaintenanceLookup(GetPeersLookup):
         self.slowdown_alpha = 4
         self.slowdown_m = 1
         self._msg_factory = msg_f.outgoing_find_node_query
-            
-        
+
+
 class LookupManager(object):
 
     def __init__(self, my_id, msg_f):

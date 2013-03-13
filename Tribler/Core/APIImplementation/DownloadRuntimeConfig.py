@@ -21,17 +21,17 @@ DEBUG = False
 class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     """
     Implements the Tribler.Core.DownloadConfig.DownloadConfigInterface
-    
+
     Only implement the setter for parameters that are actually runtime
     configurable here. Default behaviour implemented by BaseImpl.
-    
+
     DownloadConfigInterface: All methods called by any thread
     """
     def set_max_speed(self,direct,speed):
         if DEBUG:
             print >>sys.stderr,"Download: set_max_speed",`self.get_def().get_metainfo()['info']['name']`,direct,speed
         #print_stack()
-        
+
         self.dllock.acquire()
         try:
             # Don't need to throw an exception when stopped, we then just save the new value and
@@ -42,8 +42,8 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
                 else:
                     set_max_speed_lambda = lambda:self.handle is not None and self.handle.set_download_limit(int(speed * 1024))
                 self.session.lm.rawserver.add_task(set_max_speed_lambda,0)
-                
-            # At the moment we can't catch any errors in the engine that this 
+
+            # At the moment we can't catch any errors in the engine that this
             # causes, so just assume it always works.
             DownloadConfigInterface.set_max_speed(self,direct,speed)
         finally:
@@ -58,7 +58,7 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
 
     def set_dest_dir(self,path):
         raise OperationNotPossibleAtRuntimeException()
-    
+
     def set_corrected_filename(self,path):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -114,8 +114,8 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
             DownloadConfigInterface.set_max_conns(self,nconns)
         finally:
             self.dllock.release()
-    
-    
+
+
     #
     # ProxyService_
     #
@@ -160,7 +160,7 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
             return DownloadConfigInterface.get_proxyservice_role(self)
         finally:
             self.dllock.release()
-    
+
     def set_no_proxies(self,value):
         """ Set the maximum number of proxies used for a download.
         @param value: a positive integer number
@@ -172,7 +172,7 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
             self.dllock.release()
 
     def get_no_proxies(self):
-        """ Returns the maximum number of proxies used for a download. 
+        """ Returns the maximum number of proxies used for a download.
         @return: a positive integer number
         """
         self.dllock.acquire()
@@ -184,4 +184,3 @@ class DownloadRuntimeConfig(DownloadRuntimeConfigBaseImpl):
     #
     # _ProxyService
     #
-       

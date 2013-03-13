@@ -4,10 +4,10 @@
 # This test checks the new ReturnConnHandler class created in Fall 2006
 #
 # Note that we start a new Python interpreter for each test case.
-# Also note we create 2 peers and thus two networking stacks. In principle, 
-# they should use two different ReturnConnHandler instances (not a singleton), but 
+# Also note we create 2 peers and thus two networking stacks. In principle,
+# they should use two different ReturnConnHandler instances (not a singleton), but
 # there may be some interference.
-# 
+#
 # To properly follow the test, enable debugging on BitTornado/SocketHandler,
 # BitTornado/ServerPortHandler and BitTornado/Rawserver in addition to
 # Tribler/NATFirewall/ReturnConnHandler
@@ -54,10 +54,10 @@ class Peer(Thread):
                                    errorfunc = self.report_error)
         while 1:
             try:
-                self.listen_port = self.rawserver.find_and_bind(0, 
-                                config['minport'], config['maxport'], config['bind'], 
+                self.listen_port = self.rawserver.find_and_bind(0,
+                                config['minport'], config['maxport'], config['bind'],
                                 reuse = True,
-                                ipv6_socket_style = config['ipv6_binds_v4'], 
+                                ipv6_socket_style = config['ipv6_binds_v4'],
                                 randomizer = config['random_port'])
                 print >> sys.stderr,"test: Got listen port", self.listen_port
                 break
@@ -100,7 +100,7 @@ class Peer(Thread):
 
 
 class TestReturnConnHandler(unittest.TestCase):
-    
+
     def setUp(self):
         self.peer1 = Peer(self,1234)
         self.peer2 = Peer(self,5678)
@@ -476,13 +476,13 @@ class TestReturnConnHandler(unittest.TestCase):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_so.py <method name>"
     else:
         suite.addTest(TestReturnConnHandler(sys.argv[1]))
-    
+
     return suite
 
 def main():

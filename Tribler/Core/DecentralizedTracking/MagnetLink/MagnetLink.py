@@ -53,16 +53,16 @@ class Singleton:
                 if not hasattr(cls, "_singleton_instance"):
                     setattr(cls, "_singleton_instance", cls(*args, **kargs))
                 return getattr(cls, "_singleton_instance")
-                
+
             finally:
                 cls._singleton_lock.release()
-    
+
     @classmethod
     def del_instance(cls, *args, **kargs):
         with cls._singleton_lock:
             if hasattr(cls, "_singleton_instance"):
                 delattr(cls, "_singleton_instance")
-                
+
     @classmethod
     def has_instance(cls, *args, **kargs):
         return hasattr(cls, "_singleton_instance")
@@ -125,7 +125,7 @@ class MagnetLink:
     def retrieve(self):
         """
         Start retrieving the metainfo
-        
+
         Returns True when attempting to obtain the metainfo, in this
         case CALLBACK will always be called.  Otherwise False is
         returned, in this case CALLBACK will not be called.

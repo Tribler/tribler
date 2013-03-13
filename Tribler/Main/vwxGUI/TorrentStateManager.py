@@ -23,57 +23,57 @@ DEBUG = True
 class TorrentStateManager:
     # Code to make this a singleton
     __single = None
-   
+
     def __init__(self, guiUtility):
         if TorrentStateManager.__single:
             raise RuntimeError, "TorrentStateManager is singleton"
         TorrentStateManager.__single = self
-        
+
     def getInstance(*args, **kw):
         if TorrentStateManager.__single is None:
-            TorrentStateManager(*args, **kw)       
+            TorrentStateManager(*args, **kw)
         return TorrentStateManager.__single
     getInstance = staticmethod(getInstance)
-    
+
     def connect(self, torrent_manager, library_manager, channelsearch_manager):
         self.torrent_manager = torrent_manager
         self.library_manager = library_manager
         self.channelsearch_manager = channelsearch_manager
-    
+
     def torrentFinished(self, infohash):
         _,_, torrents = self.channelsearch_manager.getChannnelTorrents(infohash)
-        
+
         openTorrents = []
         for torrent in torrents:
             state, iamModerator = torrent.channel.getState()
             if state >= ChannelCommunity.CHANNEL_SEMI_OPEN or iamModerator:
                 openTorrents.append(torrent)
-                
-        if len(openTorrents) > 0:  
+
+        if len(openTorrents) > 0:
             torrent = openTorrents[0]
             self.library_manager.addDownloadState(torrent)
             torrent = self.torrent_manager.loadTorrent(torrent)
-            
+
             ds = torrent.ds
             dest_files = ds.get_download().get_dest_files()
             largest_file = torrent.largestvideofile
-            
+
             for filename, destname in dest_files:
                 if filename == largest_file:
                     print >> sys.stderr, 'Can run post-download scripts for', torrent, filename, destname
                     self.create_and_seed_metadata(destname, torrent)
-                    
+
     def create_and_seed_metadata(self, videofile, torrent):
         t = Thread(target = self._create_and_seed_metadata, args = (videofile, torrent), name = "ThumbnailGenerator")
         t.start()
-        
+
     def _create_and_seed_metadata(self, videofile, torrent):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
         if prctlimported:
             prctl.set_name("Tribler"+currentThread().getName())
 
-        self.guiutility = GUIUtility.getInstance()                    
+        self.guiutility = GUIUtility.getInstance()
         self.session    = self.guiutility.utility.session
         videoanalyser   = self.session.get_video_analyser_path()
 
@@ -81,14 +81,14 @@ class TorrentStateManager:
         rel_thumbdir = 'thumbs-'+binascii.hexlify(torrent.infohash)
         abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
         videoname    = os.path.basename(videofile)
-        
+
         if os.path.exists(abs_thumbdir):
             if DEBUG:
                 print >> sys.stderr, 'create_and_seed_metadata: already downloaded thumbnails for torrent', torrent.name
             return
 
         if DEBUG:
-            print >> sys.stderr, 'create_and_seed_metadata: going to seed metadata for torrent', torrent.name        
+            print >> sys.stderr, 'create_and_seed_metadata: going to seed metadata for torrent', torrent.name
 
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
         video_info = {'duration': duration, \
@@ -96,15 +96,15 @@ class TorrentStateManager:
                       'resolution': resolution}
 
         if DEBUG:
-            print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution)        
+            print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s' % (duration, bitrate, resolution)
 
         if not os.path.exists(abs_thumbdir):
             os.makedirs(abs_thumbdir)
-        
+
         thumb_filenames = [os.path.join(abs_thumbdir, videoname + postfix) for postfix in ["-thumb%d.jpg" % i for i in range(1,5)]]
         thumb_resolutions = [(1280, 720), (320, 240), (320, 240), (320, 240)]
         thumb_timecodes = preferred_timecodes(videofile, duration, limit_resolution(resolution, (100, 100)), videoanalyser, k = 4)
-        
+
         for filename, max_res, timecode in zip(thumb_filenames, thumb_resolutions, thumb_timecodes):
             thumb_res = limit_resolution(resolution, max_res)
             get_thumbnail(videofile, filename, thumb_res, videoanalyser, timecode)
@@ -113,7 +113,7 @@ class TorrentStateManager:
                 print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode)
 
         sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:9999") 
+        sdef.set_tracker("127.0.0.1:9999")
         for thumbfile in thumb_filenames:
             if os.path.exists(thumbfile):
                 xi = os.path.relpath(thumbfile, torcoldir)
@@ -121,26 +121,25 @@ class TorrentStateManager:
                     xi = xi.replace("\\","/")
                 si = xi.encode("UTF-8")
                 sdef.add_content(thumbfile, si)
-                
+
         specpn = sdef.finalize(self.session.get_swift_path(), destdir = torcoldir)
-                    
+
         hex_roothash = sdef.get_roothash_as_hex()
-        
+
         try:
             swift_filename = os.path.join(torcoldir, hex_roothash)
             shutil.move(specpn, swift_filename)
             shutil.move(specpn+'.mhash', swift_filename+'.mhash')
             shutil.move(specpn+'.mbinmap', swift_filename+'.mbinmap')
-            
+
         except:
             if DEBUG:
                 print_exc()
-            
+
         modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())), \
                          'video-info': json.dumps(video_info)}
-        
+
         if DEBUG:
             print >> sys.stderr, 'create_and_seed_metadata: modifications =', modifications
-        
+
         self.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, modifications)
-                    

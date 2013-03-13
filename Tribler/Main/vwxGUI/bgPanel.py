@@ -1,4 +1,4 @@
-# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker
 # see LICENSE.txt for license information
 import wx, os, sys
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -11,25 +11,25 @@ class ImagePanelBasic(XRCPanel):
     """
     Panel with automatic backgroundimage control.
     """
-    
+
     __bitmapCache = {}
 
     def __init__(self, parent, tile, name):
         self.parent = parent
         self.tile = tile
         self.bitmap = None
-        
+
         self.backgroundColour = DEFAULT_BACKGROUND
         self.guiUtility = GUIUtility.getInstance()
         self.xpos = self.ypos = 0
-        
+
         XRCPanel.__init__(self, parent)
         self.SetName(name)
         self.loadBitmap()
-        
+
         wx.EVT_PAINT(self, self.OnPaint)
         self.Refresh()
-        
+
     def setBackground(self, colour):
         self.backgroundColour = colour
 
@@ -51,14 +51,14 @@ class ImagePanelBasic(XRCPanel):
     def setBitmap(self, bitmap):
         self.bitmap = bitmap
         if self.bitmap:
-        
+
             w, h = self.GetSize()
             iw, ih = self.bitmap.GetSize()
-                    
+
             self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
-            
+
         self.Refresh()
-        
+
     def OnPaint(self, evt):
         obj = evt.GetEventObject()
         dc = wx.BufferedPaintDC(obj)
@@ -75,14 +75,13 @@ class ImagePanelBasic(XRCPanel):
         else:
             dc.SetBackground(wx.Brush(self.backgroundColour))
             dc.Clear()
-        
+
 class bgPanel(ImagePanelBasic):
     def __init__(self, parent = None, name = ''):
-        tile = True     
+        tile = True
         ImagePanelBasic.__init__(self, parent, tile, name)
 
 class ImagePanel(ImagePanelBasic):
     def __init__(self, parent, name):
         tile = False
         ImagePanelBasic.__init__(self, parent, tile, name)
-    

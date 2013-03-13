@@ -55,7 +55,7 @@ def Test2(udpsock, serveraddr):
 
     try:
         reply, rcvaddr = udpsock.recvfrom(BUFSIZ)
-    except socket.timeout:        
+    except socket.timeout:
         #if DEBUG: print >> sys.stderr, "NATCheck:", "Connection attempt to %s timed out" % (serveraddr,)
         return retVal
     except ValueError, (strerror):
@@ -112,7 +112,7 @@ def GetNATType(in_port, serveraddr1, serveraddr2):
 
     serveraddr1 = ('stun1.tribler.org',6701)
     serveraddr2 = ('stun2.tribler.org',6702)
-    
+
     nat_type, ex_ip, ex_port, in_ip = [-1, "Unknown"], "0.0.0.0", "0", "0.0.0.0"
 
     # Set up the socket

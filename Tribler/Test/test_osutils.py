@@ -7,7 +7,7 @@ if os.path.exists('test_osutils.py'):
     sys.path.insert(1, os.path.abspath('..'))
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
-    
+
 from Tribler.Core.osutils import fix_filebasename
 
 fix_filebasename
@@ -35,7 +35,7 @@ class Test_OsUtils(unittest.TestCase):
         }
         for c in '"*/:<>?\\|':
             win_name_table[c] = default_name
-            
+
         linux_name_table = {
           'abcdef':'abcdef',
           '.':default_name,
@@ -50,26 +50,25 @@ class Test_OsUtils(unittest.TestCase):
           '\x2f\x61\x2f':'_a_',
           'a'*300:'a'*255
         }
-        
+
         if sys.platform.startswith('win'):
             name_table = win_name_table
         else:
             name_table = linux_name_table
-        
+
         for name in name_table:
             fixedname = fix_filebasename(name)
             assert fixedname == name_table[name], (fixedname,name_table[name])
-            
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(Test_OsUtils))
-    
+
     return suite
-        
+
 def main():
     unittest.main(defaultTest='test_suite')
 
-    
+
 if __name__ == '__main__':
-    main()    
-                       
+    main()

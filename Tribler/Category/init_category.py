@@ -43,15 +43,14 @@ def getCategoryInfo(filename):
     for isection in sections:
         category = getDefault()
         category["name"] = isection
-        for (name, value) in config.items(isection):                
+        for (name, value) in config.items(isection):
             if name[0] != "*":
                 category[name] = init_fun[name](value)
             else:
                 name = name[1:]
                 name = name.strip()
-                category["keywords"][name] = init_fun["keywords"](value) 
-        cate_list.append(category)   
+                category["keywords"][name] = init_fun["keywords"](value)
+        cate_list.append(category)
 
 #    print cate_list
     return cate_list
-

@@ -45,7 +45,7 @@ setup(
 #    options = {"py2exe": {"bundle_files": 1}},
 #    zipfile = None,
     options = {"py2exe": {"packages": [LIBRARYNAME+".Core","encodings"],"optimize": 2}},
-    data_files = [("installdir",[])], 
+    data_files = [("installdir",[])],
     windows = [target_player],
 )
 

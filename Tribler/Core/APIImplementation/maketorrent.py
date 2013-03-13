@@ -28,10 +28,10 @@ ignore = [] # Arno: was ['core', 'CVS']
 DEBUG = False
 
 def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda x: None):
-    """ Create a torrent file from the supplied input. 
-    
+    """ Create a torrent file from the supplied input.
+
     Returns a (infohash,metainfo) pair, or (None,None) on userabort. """
-    
+
     (info,piece_length) = makeinfo(input,userabortflag,userprogresscallback)
     if userabortflag is not None and userabortflag.isSet():
         return (None,None)
@@ -40,7 +40,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
     #if DEBUG:
     #    print >>sys.stderr,"mktorrent: makeinfo returned",`info`
-    
+
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
     validTorrentFile(metainfo)
 
@@ -48,15 +48,15 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
     # are not allowed, but some torrents (Azureus?) apparently violate this.
     if input['nodes'] is None and input['announce'] is None:
         raise ValueError('No tracker set')
-    
+
     for key in ['announce','announce-list','nodes','comment','created by','httpseeds', 'url-list']:
         if input[key] is not None and len(input[key]) > 0:
             metainfo[key] = input[key]
             if key == 'comment':
                 metainfo['comment.utf-8'] = uniconvert(input['comment'],'utf-8')
-        
+
     # Assuming 1 file, Azureus format no support multi-file torrent with diff
-    # bitrates 
+    # bitrates
     bitrate = None
     for file in input['files']:
         if file['playtime'] is not None:
@@ -100,8 +100,8 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
     if 'url-compat' in input:
         metainfo['info']['url-compat'] = input['url-compat']
-     
-    # Arno, 2010-03-02:   
+
+    # Arno, 2010-03-02:
     # Theoretically should go into 'info' field, to get infohash protection
     # because the video won't play without them. In the future we'll sign
     # the whole .torrent IMHO so it won't matter. Keeping it out of 'info'
@@ -115,7 +115,7 @@ def make_torrent_file(input, userabortflag = None, userprogresscallback = lambda
 
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
-    
+
     infohash = sha(bencode(info)).digest()
     return (infohash,metainfo)
 
@@ -153,17 +153,17 @@ def makeinfo(input,userabortflag,userprogresscallback):
     fs = []
     totalsize = 0L
     totalhashed = 0L
-    
+
     # 1. Determine which files should go into the torrent (=expand any dirs
     # specified by user in input['files']
     subs = []
     for file in input['files']:
         inpath = file['inpath']
         outpath = file['outpath']
-        
+
         if DEBUG:
             print >>sys.stderr,"makeinfo: inpath",inpath,"outpath",outpath
-        
+
         if os.path.isdir(inpath):
             dirsubs = subfiles(inpath)
             subs.extend(dirsubs)
@@ -172,9 +172,9 @@ def makeinfo(input,userabortflag,userprogresscallback):
                 subs.append(([os.path.basename(inpath)],inpath))
             else:
                 subs.append((filename2pathlist(outpath,skipfirst=True),inpath))
-            
+
     subs.sort()
-    
+
     # 2. Calc total size
     newsubs = []
     for p, f in subs:
@@ -194,10 +194,10 @@ def makeinfo(input,userabortflag,userprogresscallback):
         else:
             #Niels we want roughly between 1000-2000 pieces
             #This results in the following logic:
-            
+
             #We start with 32K pieces
             piece_length = 2 ** 15
-            
+
             while totalsize / piece_length > 2000:
                 #too many piece, double piece_size
                 piece_length *= 2L
@@ -208,81 +208,81 @@ def makeinfo(input,userabortflag,userprogresscallback):
     if 'live' not in input:
         for p, f, size in subs:
             pos = 0L
-    
+
             h = open(f, 'rb')
-    
+
             if input['makehash_md5']:
                 hash_md5 = md5.new()
             if input['makehash_sha1']:
                 hash_sha1 = sha()
             if input['makehash_crc32']:
                 hash_crc32 = zlib.crc32('')
-            
+
             while pos < size:
                 a = min(size - pos, piece_length - done)
-    
+
                 # See if the user cancelled
                 if userabortflag is not None and userabortflag.isSet():
                     return (None,None)
-                
+
                 readpiece = h.read(a)
-    
+
                 # See if the user cancelled
                 if userabortflag is not None and userabortflag.isSet():
                     return (None,None)
-                
+
                 sh.update(readpiece)
-    
-                if input['makehash_md5']:                
+
+                if input['makehash_md5']:
                     # Update MD5
                     hash_md5.update(readpiece)
-    
-                if input['makehash_crc32']:                
+
+                if input['makehash_crc32']:
                     # Update CRC32
                     hash_crc32 = zlib.crc32(readpiece, hash_crc32)
-                
-                if input['makehash_sha1']:                
+
+                if input['makehash_sha1']:
                     # Update SHA1
                     hash_sha1.update(readpiece)
-                
+
                 done += a
                 pos += a
                 totalhashed += a
-                
+
                 if done == piece_length:
                     pieces.append(sh.digest())
                     done = 0
                     sh = sha()
-                    
+
                 if userprogresscallback is not None:
                     userprogresscallback(float(totalhashed) / float(totalsize))
-    
+
             newdict = {'length': num2num(size),
                        'path': uniconvertl(p,encoding),
                        'path.utf-8': uniconvertl(p, 'utf-8') }
-            
+
             # Find and add playtime
             for file in input['files']:
                 if file['inpath'] == f:
                     if file['playtime'] is not None:
                         newdict['playtime'] = file['playtime']
                     break
-            
+
             if input['makehash_md5']:
                 newdict['md5sum'] = hash_md5.hexdigest()
             if input['makehash_crc32']:
                 newdict['crc32'] = "%08X" % hash_crc32
             if input['makehash_sha1']:
                 newdict['sha1'] = hash_sha1.digest()
-            
+
             fs.append(newdict)
-                
+
             h.close()
-                
+
         if done > 0:
             pieces.append(sh.digest())
-       
-    # 5. Create info dict         
+
+    # 5. Create info dict
     if len(subs) == 1:
         flkey = 'length'
         flval = num2num(totalsize)
@@ -290,20 +290,20 @@ def makeinfo(input,userabortflag,userprogresscallback):
     else:
         flkey = 'files'
         flval = fs
-        
+
         if 'name' in input: #allow someone to overrule the default name if multifile
             name = input['name']
         else:
             outpath = input['files'][0]['outpath']
             l = filename2pathlist(outpath)
             name = l[0]
-        
-    infodict =  { 'piece length':num2num(piece_length), flkey: flval, 
+
+    infodict =  { 'piece length':num2num(piece_length), flkey: flval,
             'name': uniconvert(name,encoding),
             'name.utf-8': uniconvert(name,'utf-8')}
-    
+
     if 'live' not in input:
-        
+
         if input['createmerkletorrent']:
             merkletree = MerkleTree(piece_length,totalsize,None,pieces)
             root_hash = merkletree.get_root_hash()
@@ -350,17 +350,17 @@ def subfiles(d):
 
 
 def filename2pathlist(path,skipfirst=False):
-    """ Convert a filename to a 'path' entry suitable for a multi-file torrent 
-    file """ 
+    """ Convert a filename to a 'path' entry suitable for a multi-file torrent
+    file """
     #if DEBUG:
     #    print >>sys.stderr,"mktorrent: filename2pathlist:",path,skipfirst
-    
+
     h = path
     l = []
     while True:
         #if DEBUG:
         #    print >>sys.stderr,"mktorrent: filename2pathlist: splitting",h
-        
+
         (h,t) = os.path.split(h)
         if h == '' and t == '':
             break
@@ -368,7 +368,7 @@ def filename2pathlist(path,skipfirst=False):
             continue
         if t != '': # handle case where path ends in / (=path separator)
             l.append(t)
-            
+
     l.reverse()
     #if DEBUG:
     #    print >>sys.stderr,"mktorrent: filename2pathlist: returning",l
@@ -395,12 +395,12 @@ def torrentfilerec2savefilename(filerec,length=None):
     if length is None:
         length = len(filerec['path'])
     if 'path.utf-8' in filerec:
-        key = 'path.utf-8' 
+        key = 'path.utf-8'
         encoding = 'utf-8'
     else:
         key = 'path'
         encoding = None
-        
+
     return pathlist2savefilename(filerec[key][:length],encoding)
 
 def savefilenames2finaldest(fn1,fn2):
@@ -430,11 +430,11 @@ def get_torrentfilerec_from_metainfo(filename,metainfo):
     if filename is not None and 'files' in info:
         for i in range(len(info['files'])):
             x = info['files'][i]
-                
+
             intorrentpath = pathlist2filename(x['path'])
             if intorrentpath == filename:
                 return x
-            
+
         raise ValueError("File not found in torrent")
     else:
         raise ValueError("File not found in single-file torrent")
@@ -466,11 +466,11 @@ def get_bitrate_from_metainfo(file, metainfo):
             print_exc()
 
         return bitrate
-    
+
     else:
         for i in range(len(info['files'])):
             x = info['files'][i]
-                
+
             intorrentpath = ''
             for elem in x['path']:
                 intorrentpath = os.path.join(intorrentpath,elem)
@@ -488,17 +488,17 @@ def get_bitrate_from_metainfo(file, metainfo):
                         if 'Speed Bps' in content:
                             bitrate = float(content['Speed Bps'])
                             #print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in Azureus metainfo",bitrate
-                    
+
                 if playtime is not None:
                     bitrate = x['length']/playtime
             except:
                 print_exc()
-                
+
             if intorrentpath == file:
                 return bitrate
-            
+
         raise ValueError("File not found in torrent")
-    
+
 def get_length_from_metainfo(metainfo, selectedfiles):
     if 'files' not in metainfo['info']:
         # single-file torrent
@@ -537,7 +537,7 @@ def get_length_priority_from_metainfo(metainfo, selectedfiles):
         return (total,",".join(priorities))
 
 def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
-    
+
     if 'files' not in metainfo['info']:
         # single-file torrent
         return (metainfo['info']['length'],None)
@@ -553,7 +553,7 @@ def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
             path = files[i]['path']
             length = files[i]['length']
             filename = pathlist2filename(path)
-            
+
             if length > 0 and (not selectedfiles or (selectedfiles and filename in selectedfiles)):
                 range = (offset2piece(offset,piecesize, False), offset2piece(offset + length,piecesize),filename)
                 filepieceranges.append(range)
@@ -563,19 +563,19 @@ def get_length_filepieceranges_from_metainfo(metainfo,selectedfiles):
 
 
 def copy_metainfo_to_input(metainfo,input):
-    
+
     keys = tdefdictdefaults.keys()
     # Arno: For magnet link support
     keys.append("initial peers")
     for key in keys:
         if key in metainfo:
             input[key] = metainfo[key]
-            
+
     infokeys = ['name','piece length','live','url-compat']
     for key in infokeys:
         if key in metainfo['info']:
             input[key] = metainfo['info'][key]
-        
+
     # Note: don't know inpath, set to outpath
     if 'length' in metainfo['info']:
         outpath = metainfo['info']['name']
@@ -583,7 +583,7 @@ def copy_metainfo_to_input(metainfo,input):
             playtime = metainfo['info']['playtime']
         else:
             playtime = None
-        length = metainfo['info']['length'] 
+        length = metainfo['info']['length']
         d = {'inpath':outpath,'outpath':outpath,'playtime':playtime,'length':length}
         input['files'].append(d)
     else: # multi-file torrent
@@ -594,25 +594,25 @@ def copy_metainfo_to_input(metainfo,input):
                 playtime = file['playtime']
             else:
                 playtime = None
-            length = file['length'] 
+            length = file['length']
             d = {'inpath':outpath,'outpath':outpath,'playtime':playtime,'length':length}
             input['files'].append(d)
-    
+
     if 'azureus_properties' in metainfo:
         azprop = metainfo['azureus_properties']
         if 'Content' in azprop:
             content = metainfo['azureus_properties']['Content']
             if 'Thumbnail' in content:
                 input['thumb'] = content['Thumbnail']
-      
+
     if 'live' in metainfo['info']:
-        input['live'] = metainfo['info']['live'] 
+        input['live'] = metainfo['info']['live']
 
     if 'cs_keys' in metainfo['info']:
         input['cs_keys'] = metainfo['info']['cs_keys']
 
     if 'url-compat' in metainfo['info']:
-        input['url-compat'] = metainfo['info']['url-compat'] 
+        input['url-compat'] = metainfo['info']['url-compat']
 
     if 'ogg-headers' in metainfo:
         input['ogg-headers'] = metainfo['ogg-headers']
@@ -622,7 +622,7 @@ def copy_metainfo_to_input(metainfo,input):
 
     # Diego : we want web seeding
     if 'url-list' in metainfo:
-        input['url-list'] = metainfo['url-list'] 
+        input['url-list'] = metainfo['url-list']
 
     if 'httpseeds' in metainfo:
         input['httpseeds'] = metainfo['httpseeds']
@@ -630,21 +630,21 @@ def copy_metainfo_to_input(metainfo,input):
 
 def get_files(metainfo,exts):
     # 01/02/10 Boudewijn: now returns (file, length) tuples instead of files
-    
+
     videofiles = []
     if 'files' in metainfo['info']:
         # Multi-file torrent
         files = metainfo['info']['files']
         for file in files:
-            
+
             p = file['path']
             #print >>sys.stderr,"TorrentDef: get_files: file is",p
             filename = ''
             for elem in p:
                 #print >>sys.stderr,"TorrentDef: get_files: elem is",elem
                 filename = os.path.join(filename,elem)
-            
-            #print >>sys.stderr,"TorrentDef: get_files: composed filename is",filename    
+
+            #print >>sys.stderr,"TorrentDef: get_files: composed filename is",filename
             (prefix,ext) = os.path.splitext(filename)
             if ext != '' and ext[0] == '.':
                 ext = ext[1:]
@@ -653,7 +653,7 @@ def get_files(metainfo,exts):
                 videofiles.append((filename, file['length']))
     else:
         #print >>sys.stderr,"TorrentDef: get_files: Single-torrent file"
-        
+
         filename = metainfo['info']['name'] # don't think we need fixed name here
         (prefix,ext) = os.path.splitext(filename)
         if ext != '' and ext[0] == '.':

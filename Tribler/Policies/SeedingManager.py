@@ -22,7 +22,7 @@ class GlobalSeedingManager:
             if not seeding_manager.download_state.get_download().get_status() == DLSTATUS_SEEDING:
                 if DEBUG: print >>sys.stderr, "SeedingManager: removing seeding manager", infohash.encode("HEX")
                 del self.seeding_managers[infohash]
-                
+
         for download_state in dslist:
             # Arno, 2012-05-07: ContentDef support
             cdef = download_state.get_download().get_def()
@@ -32,30 +32,30 @@ class GlobalSeedingManager:
                     # apply new seeding manager
                     if DEBUG: print >>sys.stderr, "SeedingManager: apply seeding manager", hash.encode("HEX")
                     seeding_manager = SeedingManager(download_state)
-    
+
                     policy = self.Read('t4t_option', "int") if cdef.get_def_type() == 'torrent' else self.Read('g2g_option', "int")
                     if policy == 0:
                         # No leeching, seeding until sharing ratio is met
                         if DEBUG: print >>sys.stderr, "GlobalSeedingManager: RatioBasedSeeding"
                         seeding_manager.set_policy(TitForTatRatioBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetRatioBasedSeeding(self.Read))
-    
+
                     elif policy == 1:
                         # Unlimited seeding
                         if DEBUG: print >>sys.stderr, "GlobalSeedingManager: UnlimitedSeeding"
                         seeding_manager.set_policy(UnlimitedSeeding())
-    
+
                     elif policy == 2:
                         # Time based seeding
                         if DEBUG: print >>sys.stderr, "GlobalSeedingManager: TimeBasedSeeding"
                         seeding_manager.set_policy(TitForTatTimeBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetTimeBasedSeeding(self.Read))
-    
+
                     else:
                         # No seeding
                         if DEBUG: print >>sys.stderr, "GlobalSeedingManager: NoSeeding"
                         seeding_manager.set_policy(NoSeeding())
-                        
+
                     self.seeding_managers[hash] = seeding_manager
-    
+
                 self.seeding_managers[hash].update_download_state(download_state)
 
 class SeedingManager:
@@ -78,7 +78,7 @@ class SeedingManager:
                 if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
                     if DEBUG: print >>sys.stderr,"Stop seeding with libswift: ", self.download_state.get_download().get_dest_files()
                     self.download_state.get_download().stop()
-        
+
     def set_policy(self, policy):
         self.policy = policy
 
@@ -138,7 +138,7 @@ class TitForTatRatioBasedSeeding(SeedingPolicy):
 
         #set dl at min progress*length
         size_progress = download_state.get_length()*download_state.get_progress()
-        dl = max(dl, size_progress)  
+        dl = max(dl, size_progress)
 
         if dl == 0L:
             # no download will result in no-upload to anyone
@@ -167,4 +167,3 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
 
         if True or DEBUG: print >>sys.stderr, "GiveToGetRatioBasedSeedingapply:", dl, ul, ratio, self.Read('g2g_ratio', "int")/100.0
         return ratio < self.Read('g2g_ratio', "int")/100.0
-

@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 #
 
@@ -40,17 +40,17 @@ def state_callback(ds):
 
 def vod_ready_callback(d,mimetype,stream,filename):
     """ Called by the Session when the content of the Download is ready
-     
+
     Called by Session thread """
     print >>sys.stderr,"main: VOD ready callback called ###########################################################",mimetype
 
 def generate_key(source, config):
     """
-    Generate and a closed swarm key matching the config.  Source is the 
+    Generate and a closed swarm key matching the config.  Source is the
     source of the torrent
     """
-    
-    
+
+
     a, b = os.path.split(source)
     if b == '':
         target = a
@@ -58,29 +58,29 @@ def generate_key(source, config):
         target = os.path.join(a, b)
     target += ".torrent"
     print "Generating key to '%s.tkey' and '%s.pub'"%(target, target)
-    
+
     keypair, pubkey = ClosedSwarm.generate_cs_keypair(target + ".tkey",
                                                       target + ".pub")
-    
+
     return keypair,pubkey
 
 
 def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
-    
-    
+
+
 class FileLoopStream:
-    
+
     def __init__(self,stream):
         self.stream = stream
-        
+
     def read(self,nbytes=None):
         data = self.stream.read(nbytes)
         if len(data) == 0: # EOF
             self.stream.seek(0)
             data = self.stream.read(nbytes)
         return data
-    
+
     def close(self):
         self.stream.close()
 
@@ -90,19 +90,19 @@ if __name__ == "__main__":
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
     print >>sys.stderr,"config is",config
     print "fileargs is",fileargs
-    
+
     if config['name'] == '':
         print "Usage:  ",get_usage(argsdef)
         sys.exit(0)
-        
-    
+
+
     print "Press Ctrl-C to stop the download"
 
     try:
         os.remove(os.path.join(config['destdir'],config['name']))
     except:
         print_exc()
-    
+
     sscfg = SessionStartupConfig()
     statedir = tempfile.mkdtemp()
     sscfg.set_state_dir(statedir)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     sscfg.set_megacache(False)
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
-    
+
     s = Session(sscfg)
 
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     #print >>sys.stderr,"main: Source auth pubkey2",`tdef2.metainfo['info']['live']`
 
     tdef.finalize()
-    
+
     torrentbasename = config['name']+'.tstream'
     torrentfilename = os.path.join(config['destdir'],torrentbasename)
     tdef.save(torrentfilename)
@@ -177,7 +177,7 @@ if __name__ == "__main__":
             poa = ClosedSwarm.create_poa(tdef.infohash,
                                          cs_keypair,
                                          authcfg.get_pubkey())
-            
+
             try:
                 ClosedSwarm.trivial_save_poa(Session.get_default_state_dir(),
                                              authcfg.get_pubkey(),
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
     if poa:
         dscfg.set_poa(poa)
-        
+
     if config['source'] == '-':
         # Arno: doesn't appear to work on Linux
         source = sys.stdin
@@ -222,15 +222,15 @@ if __name__ == "__main__":
         else:
             source = stream
         dscfg.set_video_ratelimit(tdef.get_bitrate())
-        
+
     dscfg.set_video_source(source,authcfg)
 
     dscfg.set_max_uploads(config['nuploads'])
 
     d = s.start_download(tdef,dscfg)
     d.set_state_callback(state_callback,getpeerlist=False)
-   
-    # condition variable would be prettier, but that don't listen to 
+
+    # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
     #time.sleep(sys.maxint/2048)
     #try:
@@ -241,8 +241,7 @@ if __name__ == "__main__":
     cond = Condition()
     cond.acquire()
     cond.wait()
-    
+
     s.shutdown()
-    time.sleep(3)    
+    time.sleep(3)
     shutil.rmtree(statedir)
-    

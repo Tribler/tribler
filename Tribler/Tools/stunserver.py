@@ -18,7 +18,7 @@ DEBUG = True
 def usage() :
 
     print "Usage:"
-    print "	python natserver.py <serverport> <bounceip> <bounceport>"
+    print "     python natserver.py <serverport> <bounceip> <bounceport>"
 
 
 # Serve client connections (if server 1 or 2)
@@ -309,7 +309,7 @@ if __name__=="__main__" :
             #thread.start_new_thread(servemain, (bounceaddr, serveraddr) )
             #bouncemain(serveraddr)
             servemain(bounceaddr, serveraddr)
-        
+
         except (KeyboardInterrupt, SystemExit):
 
             if DEBUG:
@@ -320,4 +320,3 @@ if __name__=="__main__" :
         #except:
             #if DEBUG:
                 #print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]
-

@@ -20,7 +20,7 @@ if __debug__:
     print "WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files."
 
 if sys.platform != "darwin":
-    print "WARNING: You do not seem to be running Mac OS/X." 
+    print "WARNING: You do not seem to be running Mac OS/X."
 
 # ----- import and verify wxPython
 
@@ -96,7 +96,7 @@ setup(
         'optimize': 2*int(not __debug__),
         'resources':
             [(LIBRARYNAME+"/Lang", [LIBRARYNAME+"/Lang/english.lang"]),
-             LIBRARYNAME+"/binary-LICENSE.txt", 
+             LIBRARYNAME+"/binary-LICENSE.txt",
              LIBRARYNAME+"/readme.txt",
              LIBRARYNAME+"/Images/SwarmPlayerIcon.ico",
              LIBRARYNAME+"/Player/Build/Mac/TriblerDoc.icns",

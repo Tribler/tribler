@@ -24,7 +24,7 @@ except ImportError,e:
     prctlimported = False
 
 
-from Tribler.Core.MessageID import protocol_name, EXTEND 
+from Tribler.Core.MessageID import protocol_name, EXTEND
 from Tribler.Core.Utilities.convert import toint, tobinary
 from Tribler.Core.RawServer.SocketHandler import SocketHandler
 from Tribler.Core.Utilities.bencode import bencode, bdecode
@@ -49,10 +49,10 @@ DEBUG = False
 class Connection:
     """
     A single BitTorrent connection.
-    
+
     Arno: WARNING the RawServer functions (except add_task) may only be called
-    from the thread running the RawServer code, i.e., the NetworkThread! 
-    
+    from the thread running the RawServer code, i.e., the NetworkThread!
+
     """
     def __init__(self, swarm, raw_server, address):
         self._swarm = swarm
@@ -70,7 +70,7 @@ class Connection:
 
         self._socket = None
 
-    # Arno, 2012-08-01: RawServer is not thread safe!        
+    # Arno, 2012-08-01: RawServer is not thread safe!
     def start_on_network_thread(self):
         """ Called by any thread, e.g. mainline DHT thread """
         self._swarm._raw_server.add_task(self.network_start_connection)
@@ -155,7 +155,7 @@ class Connection:
         if self._swarm._closed:
             self.close()
             return True
-            
+
         if data[0] == EXTEND and len(data) > 2:
             # we only care about EXTEND messages.  So all other
             # messages will NOT reset the _last_activity timestamp.
@@ -312,9 +312,9 @@ class MiniSwarm:
     """
     A MiniSwarm instance maintains an overview of what is going on in
     a single BitTorrent swarm.
-    
+
     Arno: WARNING the RawServer functions (except add_task) may only be called
-    from the NetworkThread! 
+    from the NetworkThread!
     """
     def __init__(self, info_hash, raw_server, callback, max_connections=30):
         # _info_hash is the 20 byte binary info hash that identifies
@@ -372,7 +372,7 @@ class MiniSwarm:
 
         # scan for old connections
         self._raw_server.add_task(self._timeout_connections, 5)
-        
+
         # notify gui that torrent is being collected using dht
         self._notifier = Notifier.getInstance()
         self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, self._info_hash)
@@ -528,10 +528,10 @@ class MiniSwarm:
                 # Arno, _connections under lock
                 if len(self._connections) < self._max_connections:
                     self._create_connections()
-            
+
             finally:
                 self._lock.release()
-                
+
             self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, self._info_hash, len(self._potential_peers))
 
     def _create_connections(self):
@@ -543,7 +543,7 @@ class MiniSwarm:
         addresses = [(timestamp, address) for address, timestamp in self._potential_peers.iteritems() if timestamp + 60 < now]
         if DEBUG:
             print >> sys.stderr, len(self._connections), "/", len(self._potential_peers), "->", len(addresses)
-        
+
         addresses.sort()
 
         for timestamp, address in addresses:
@@ -576,13 +576,13 @@ class MiniSwarm:
         try:
             deadline = time() - MAX_TIME_INACTIVE
 
-            # Arno, 2012-07-05: check_timeout() may call close(), which  calls 
-            # connection_lost which removes the conn from self._connections, 
+            # Arno, 2012-07-05: check_timeout() may call close(), which  calls
+            # connection_lost which removes the conn from self._connections,
             # thus altering the self._connections and messing up this loop.
             conns2check = self._connections[:]
             for connection in conns2check:
                 connection.check_for_timeout(deadline)
-    
+
             if not self._closed:
                 self._raw_server.add_task(self._timeout_connections, 1)
         finally:
@@ -619,8 +619,8 @@ class MiniSwarm:
 
         finally:
             self._lock.release()
-        
-        
+
+
         self._notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, self._info_hash)
 
 
@@ -643,10 +643,10 @@ class MiniTracker(Thread):
         self.start()
 
     def run(self):
-        
+
         if prctlimported:
             prctl.set_name("Tribler"+currentThread().getName())
-        
+
         announce = self._tracker + "?" + urlencode({"info_hash":self._swarm.get_info_hash(),
                                                     "peer_id":self._swarm.get_peer_id(),
                                                     "port":"12345",

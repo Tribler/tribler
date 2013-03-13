@@ -2,7 +2,7 @@
 Alternate stdout and stderr with much more protection
 """
 
-import sys 
+import sys
 
 class SafePrintStream:
     def __init__(self, stream):
@@ -19,7 +19,7 @@ class SafePrintStream:
                 self._stream.write("TriblerConsole: ERROR printing\n")
                 self._stream.write(repr(e))
                 self._stream.write("\n")
-        
+
     def flush(self):
         self._stream.flush()
 
@@ -33,11 +33,11 @@ class SafeLinePrintStream:
         if arg == "\n":
             self._stream.write("".join(self._parts))
             self._parts = []
-        
+
     def flush(self):
         self._stream.write("".join(self._parts))
         self._parts = []
         self._stream.flush()
-        
+
 sys.stderr = SafePrintStream(sys.stderr)
 sys.stdout = sys.stderr

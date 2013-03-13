@@ -21,7 +21,7 @@ from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler,  ChannelCastDBHandler
 from Tribler.Core.Session import Session
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT 
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.dispersy.dispersy import Dispersy
@@ -90,31 +90,31 @@ class Home(XRCPanel):
 
         vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
-        
+
         self.buzzpanel = BuzzPanel(self)
         self.buzzpanel.SetMinSize((-1,180))
         self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
         vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
-        
+
         self.SetSizer(vSizer)
         self.Layout()
-        
+
         self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
 
         self.SearchFocus()
-    
+
     def OnRightClick(self, event):
         menu = wx.Menu()
         itemid = wx.NewId()
         menu.AppendCheckItem(itemid, 'Show "what\'s hot"')
         menu.Check(itemid, self.buzzpanel.IsShown())
-        
+
         def toggleBuzz(event):
             show = not self.buzzpanel.IsShown()
             self.buzzpanel.Show(show)
             self.guiutility.WriteGuiSetting("show_buzz", show)
             self.Layout()
-            
+
         menu.Bind(wx.EVT_MENU, toggleBuzz, id=itemid)
 
         if menu:
@@ -146,7 +146,7 @@ class Stats(XRCPanel):
         self.isReady = False
 
     def _DoInit(self):
-        
+
         try:
             disp = DispersyPanel(self)
         except:
@@ -160,19 +160,19 @@ class Stats(XRCPanel):
 
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        
+
         self.dowserStatus = StaticText(self, -1, 'Dowser is not running')
         self.dowserButton = wx.Button(self, -1, 'Start dowser')
         self.dowserButton.Bind(wx.EVT_BUTTON, self.OnDowser)
         self.memdumpButton = wx.Button(self, -1, 'Dump memory')
         self.memdumpButton.Bind(wx.EVT_BUTTON, self.OnMemdump)
-        
+
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
         hSizer.Add(self.dowserButton)
         hSizer.Add(self.memdumpButton, 0, wx.RIGHT, 3)
         vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.TOP|wx.BOTTOM, 3)
-        
+
         vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -203,8 +203,8 @@ class Stats(XRCPanel):
     def onKey(self, event):
         if event.ControlDown() and (event.GetKeyCode() == 73 or event.GetKeyCode() == 105): #ctrl + i
             self._showInspectionTool()
-            
-        elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100): #ctrl + d 
+
+        elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100): #ctrl + d
             self._printDBStats()
         else:
             event.Skip()
@@ -212,13 +212,13 @@ class Stats(XRCPanel):
     def onMouse(self, event):
         if all([event.RightUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
             self._showInspectionTool()
-            
+
         elif all([event.LeftUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
             self._printDBStats()
-            
+
         else:
             event.Skip()
-            
+
     def OnDowser(self, event):
         if self.dowserStatus.GetLabel() == 'Dowser is running':
             self._stopDowser()
@@ -228,13 +228,13 @@ class Stats(XRCPanel):
                 if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
                     sys.path.append(dlg.GetPath())
                     self._startDowser()
-                     
+
                 dlg.Destroy()
-                
+
     def OnMemdump(self, event):
         from meliae import scanner
         scanner.dump_all_objects("memory-dump.out")
-    
+
     def _startDowser(self):
         try:
             import cherrypy
@@ -242,28 +242,28 @@ class Stats(XRCPanel):
             cherrypy.config.update({'server.socket_port': 8080})
             cherrypy.tree.mount(dowser.Root())
             cherrypy.engine.start()
-            
+
             self.dowserButton.SetLabel('Stop dowser')
             self.dowserStatus.SetLabel('Dowser is running')
             return True
-        
+
         except:
             print_exc()
             return False
-        
+
     def _stopDowser(self):
         try:
             import cherrypy
             cherrypy.engine.stop()
-            
+
             self.dowserButton.SetLabel('Start dowser')
             self.dowserStatus.SetLabel('Dowser is not running')
             return True
-        
+
         except:
             print_exc()
             return False
-    
+
     def _showInspectionTool(self):
         import wx.lib.inspection
         itool = wx.lib.inspection.InspectionTool()
@@ -281,7 +281,7 @@ class Stats(XRCPanel):
         except Exception:
             import traceback
             traceback.print_exc()
-            
+
     def _printDBStats(self):
         torrentdb = TorrentDBHandler.getInstance()
         tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
@@ -303,7 +303,7 @@ class HomePanel(wx.Panel):
         self.utility = self.guiutility.utility
         self.SetBackgroundColour(background)
         self.SetForegroundColour(parent.GetForegroundColour())
-        
+
         spacerFlags = 0
         if hspacer[0]:
             spacerFlags |= wx.LEFT
@@ -424,7 +424,7 @@ class NetworkPanel(HomePanel):
         self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
         self.queueSuccess.SetLabel(self.remotetorrenthandler.getQueueSuccess())
         self.nrChannels.SetLabel(str(nr_channels))
-        
+
         if self.freeMem:
             self.freeMem.SetLabel(self.guiutility.utility.size_format(wx.GetFreeMemory()))
 
@@ -459,20 +459,20 @@ class DispersyPanel(HomePanel):
             ("Runtime", '', lambda stats: self.utility.eta_value(stats.timestamp - stats.start)),
             ("Download", '', lambda stats: self.utility.size_format(stats.total_down) + " or " + self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
             ("Upload", '', lambda stats: self.utility.size_format(stats.total_up) + " or " + self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
-            
+
             ("Packets send", 'Packets send vs Packets handled', lambda stats: ratio(stats.total_send, stats.received_count+stats.total_send)),
             ("Packets received", 'Packets received vs Packets handled', lambda stats: ratio(stats.received_count, stats.received_count+stats.total_send)),
             ("Packets dropped", 'Packets dropped vs Packets received', lambda stats: ratio(stats.drop_count, stats.received_count)),
             ("Packets success", 'Messages successfully handled vs Packets received', lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Packets delayed", 'Packets being delayed vs Packets reveived', lambda stats: ratio(stats.delay_count, stats.received_count)),
             ("Sync-Messages created", 'Total number of sync messages created by us in this session', lambda stats: str(stats.created_count)),
-            
+
             ("Candidates reuse", 'Candidates discovered (intro or stumbled) vs Candidates active in more than one community', lambda stats: ratio(stats.total_candidates_overlapped, stats.total_candidates_discovered)),
-            
+
             ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being sent', lambda stats: ratio(stats.delay_send, stats.delay_count)),
             ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
-            
+
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
@@ -489,7 +489,7 @@ class DispersyPanel(HomePanel):
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
         vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
-        
+
         vSumSizer = wx.BoxSizer(wx.VERTICAL)
         self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.summary_tree.blockUpdate = False
@@ -499,7 +499,7 @@ class DispersyPanel(HomePanel):
         font = self.summary_tree.GetFont()
         font = wx.Font(font.GetPointSize(), wx.FONTFAMILY_MODERN, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
         self.summary_tree.SetFont(font)
-        
+
         vSumSizer.Add(self.summary_tree, 1, wx.EXPAND)
         self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
         vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
@@ -509,25 +509,25 @@ class DispersyPanel(HomePanel):
         self.tree.blockUpdate = False
         self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
-        
+
         self.vTreeSizer.Add(self.tree, 1, wx.EXPAND)
         self.includeDebug = wx.CheckBox(panel, -1, "Collect debug")
         self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
         self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
-        
+
         vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
         vSizer.Add(self.vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
         panel.SetSizer(vSizer)
         return panel
-    
+
     def ExpandTree(self, expand = True):
         sizer = self.panel.GetSizer()
         sizerItem = sizer.GetItem(self.vTreeSizer)
-        
+
         newProportion = 4 if expand else 1
         if sizerItem.GetProportion() != newProportion:
             sizerItem.SetProportion(newProportion)
-            
+
             self.panel.Layout()
 
     def CreateColumns(self):
@@ -540,7 +540,7 @@ class DispersyPanel(HomePanel):
             self.textdict[strkey] = StaticText(self.panel, -1, '')
             self.textdict[strkey].SetMinSize((200,-1))
             self.gridSizer.Add(self.textdict[strkey])
-            
+
             if strtooltip:
                 header.SetToolTipString(strtooltip)
                 self.textdict[strkey].SetToolTipString(strtooltip)
@@ -558,7 +558,7 @@ class DispersyPanel(HomePanel):
 
         elif event.Leaving():
             tree.blockUpdate = False
-            
+
         if tree == self.tree:
             self.ExpandTree(tree.blockUpdate)
 
@@ -660,7 +660,7 @@ class DispersyPanel(HomePanel):
         # right tree
         if not self.tree.blockUpdate:
             parentNode = self.tree.AppendItem(fakeRoot, "raw info")
-            
+
             raw_info = {}
             if stats.drop:
                 raw_info['drop'] = stats.drop
@@ -681,13 +681,13 @@ class DispersyPanel(HomePanel):
             if stats.endpoint_recv:
                 raw_info['endpoint_recv'] = stats.endpoint_recv
             if stats.endpoint_send:
-                raw_info['endpoint_send'] = stats.endpoint_send    
+                raw_info['endpoint_send'] = stats.endpoint_send
             if stats.bootstrap_candidates:
                 raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
             if stats.overlapping_stumble_candidates:
                 raw_info['overlapping_stumble_candidates'] = stats.overlapping_stumble_candidates
             if stats.overlapping_intro_candidates:
-                raw_info['overlapping_intro_candidates'] = stats.overlapping_intro_candidates                                
+                raw_info['overlapping_intro_candidates'] = stats.overlapping_intro_candidates
             addValue(parentNode, raw_info)
 
         self.panel.Layout()
@@ -797,7 +797,7 @@ class BuzzPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.SetBackgroundColour(wx.WHITE)
         self.SetForegroundColour(parent.GetForegroundColour())
-                
+
         #Niels 04-06-2012: termextraction needs a session variable, create instance from mainthread
         TermExtraction.getInstance()
 
@@ -854,7 +854,7 @@ class BuzzPanel(wx.Panel):
 
         self.SetSizer(vSizer)
         self.Layout()
-   
+
     def do_or_schedule_refresh(self, force_refresh = False):
         # Only called when the FF is toggled.
         if self.guiutility.ShouldGuiUpdate():
@@ -864,18 +864,18 @@ class BuzzPanel(wx.Panel):
 
     def ForceUpdate(self):
         self.GetBuzzFromDB(doRefresh=True)
-    
+
     def GetBuzzFromDB(self, doRefresh=False, samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
         def do_db():
             if self.nbdb == None:
                 self.nbdb = NetworkBuzzDBHandler.getInstance()
-            
+
             self.buzz_cache = [[],[],[]]
             buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
             for i in range(len(buzz)):
                 random.shuffle(buzz[i])
                 self.buzz_cache[i] = buzz[i]
-    
+
             if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
                 self.OnRefreshTimer(force = True, fromDBThread = True)
         startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
@@ -957,7 +957,7 @@ class BuzzPanel(wx.Panel):
                     hSizer.AddStretchSpacer()
                 hSizer.AddStretchSpacer()
                 self.vSizer.Add(hSizer, 0, wx.EXPAND)
-            
+
             self.vSizer.AddStretchSpacer()
             self.vSizer.ShowItems(True)
             self.vSizer.Layout()
@@ -994,7 +994,7 @@ class BuzzPanel(wx.Panel):
                 self.timer.Start(1000, False)
                 self.footer.SetLabel('Resuming update')
                 self.Layout()
-        
+
         if enter:
             self.timer.Stop()
             self.footer.SetLabel('Update has paused')
@@ -1004,7 +1004,7 @@ class BuzzPanel(wx.Panel):
     def OnMouse(self, event):
         if event.Entering() or event.Moving():
             self.OnEnterWindow(event)
-            
+
         elif event.Leaving():
             self.OnLeaveWindow(event)
 
@@ -1013,7 +1013,7 @@ class BuzzPanel(wx.Panel):
     def OnEnterWindow(self, event):
         evtobj = event.GetEventObject()
         evtobj.enter = True
-        
+
         self.DoPauseResume()
 
     def OnLeaveWindow(self, event = None):
@@ -1028,7 +1028,7 @@ class BuzzPanel(wx.Panel):
         term = evtobj.GetLabel()
         if term <> '...collecting buzz information...':
             self.guiutility.dosearch(term)
-            
+
             evtobj.enter = False
             self.DoPauseResume()
 

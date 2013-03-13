@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 """
-This class implements a console interface to both UPnPServer 
+This class implements a console interface to both UPnPServer
 and UPnPClient.
 """
 ##############################################
@@ -20,13 +20,13 @@ from Tribler.UPnP import SERVER_ROOT_DEVICE_CONFIG
 
 class UPnPConsole:
 
-    """This class wraps ObjectConsole to implement a 
+    """This class wraps ObjectConsole to implement a
     custom UPnP console."""
 
     def __init__(self):
-        
+
         self._task_runner = TaskRunner()
-        self._server = UPnPServer(self._task_runner, 
+        self._server = UPnPServer(self._task_runner,
                             SERVER_PRODUCT_NAME,
                             SERVER_ROOT_DEVICE_CONFIG)
         self._client = UPnPClient(self._task_runner)
@@ -35,7 +35,7 @@ class UPnPConsole:
         self._server.add_service(SwitchPower("SwitchPower"))
         self._server.add_service(URLService("URLService"))
         self._server.add_service(BookmarkService())
-        
+
         # Console Namespace
         namespace = {}
         namespace['S'] = self._server
@@ -53,7 +53,7 @@ class UPnPConsole:
 
     def _stop(self):
         """
-        Internal: Stop the UPnPClient, UPnPServer and the 
+        Internal: Stop the UPnPClient, UPnPServer and the
         TaskRunner.
         """
         self._client.close()
@@ -72,5 +72,3 @@ class UPnPConsole:
 
 if __name__ == '__main__':
     UPnPConsole().run()
-
-

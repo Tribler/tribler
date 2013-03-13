@@ -7,7 +7,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import SuperPeerDBHandler, PeerDB
 
 CREATE_SQL_FILE = os.path.join('..',"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql")
 assert os.path.isfile(CREATE_SQL_FILE)
-    
+
 import Tribler.Core.CacheDB.sqlitecachedb
 print >>sys.stderr,"TEST: ENABLE DBUPGRADE HACK"
 Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
@@ -20,14 +20,14 @@ lines = [
 ]
 
 class TestSuperPeerList(unittest.TestCase):
-    
+
     def setUp(self):
         self.file_path = tempfile.mktemp()
         self.db_path = tempfile.mktemp()
-        
+
         #print >>sys.stderr,"test: file_path",self.file_path
         #print >>sys.stderr,"test: db_path",self.db_path
-        
+
         self.writeSuperPeers()
         head,tail = os.path.split(self.file_path)
         self.config = {'install_dir':head, 'superpeer_file':tail}
@@ -35,10 +35,10 @@ class TestSuperPeerList(unittest.TestCase):
         self.db = SQLiteCacheDB.getInstance()
         self.db.initDB(self.db_path, CREATE_SQL_FILE, check_version=False)
         self.splist = SuperPeerDBHandler.getInstance()
-        
+
 #        cur = SQLiteCacheDB.getCursor()
 #        print cur, cur.connection
-        
+
     def tearDown(self):
         self.db.close(clean=True)
         for path in [self.file_path, self.db_path]:
@@ -51,21 +51,21 @@ class TestSuperPeerList(unittest.TestCase):
         tf = open(self.file_path, "w")
         tf.writelines(lines)
         tf.close()
-            
+
     def test_readSuperPeerList(self):
         res = self.splist.readSuperPeerList(self.file_path)
         assert len(res) == 3, len(res)
 
     def test_loadSuperPeer(self):
         """ The SuperPeerDBHandler constructor writes the superpeers to the PeerDB """
-        
+
         self.splist.loadSuperPeers(self.config, True)
         assert self.splist.size() == 3, self.splist.size()
-        
+
         self.peer_db = PeerDBHandler.getInstance()
         # Arno: must be 3, as there is a duplicate PermID in the lines list
         assert self.peer_db.size() == 3, self.peer_db.size()
-        
+
     def test_getSuperPeers(self):
         self.splist.loadSuperPeers(self.config, True)
         superpeers = self.splist.getSuperPeers()
@@ -75,13 +75,13 @@ class TestSuperPeerList(unittest.TestCase):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestSuperPeerList))
-    
+
     return suite
 
-        
+
 def main():
     unittest.main(defaultTest='test_suite')
 
-    
+
 if __name__ == '__main__':
-    main()        
+    main()

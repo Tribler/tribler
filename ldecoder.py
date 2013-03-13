@@ -208,7 +208,7 @@ def parse_line(stream, lineno=-1, interests=[]):
     if not stream[offset] == "s":
         raise ValueError("Expected a string encoded message")
     offset, message = _decode_str(offset+1, stream)
-    
+
     try:
         if not interests or message in interests:
             stamp = datetime.strptime(stream[:14], "%Y%m%d%H%M%S")
@@ -221,14 +221,14 @@ def parse_line(stream, lineno=-1, interests=[]):
                         offset, value = _decode(split + 1, stream)
                         kargs[key] = value
                         break
-    
+
                     elif not stream[split] in _valid_key_chars:
                         raise ValueError("Can not decode character", stream[split], "on line", lineno, "offset", offset)
-    
+
             return lineno, stamp, message, kargs
     except Exception, e:
         raise ValueError("Cannot read line", str(e), "on line", lineno)
-    
+
     raise NotInterested(message)
 
 def parse(filename, interests=[]):

@@ -19,10 +19,10 @@ DEBUG=False
 random_size = 1024
 
 class TestPermIDs(TestAsServer):
-    """ 
+    """
     Testing PermID extension version 1
     """
-    
+
     #def setUp(self):
         # """ inherited from TestAsServer """
 
@@ -30,7 +30,7 @@ class TestPermIDs(TestAsServer):
         # """ inherited from TestAsServer """
 
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -65,7 +65,7 @@ class TestPermIDs(TestAsServer):
     # Good challenge/reponse
     #
     def subtest_good_challenge_response2(self):
-        """ 
+        """
             test good challenge and response2 messages
         """
         print >> sys.stderr,"test: good challenge/response"
@@ -104,13 +104,13 @@ class TestPermIDs(TestAsServer):
 
     def create_response2_payload(self,dict):
         return RESPONSE2+bencode(dict)
-    
+
     #
     # Bad challenges
-    #    
+    #
     def subtest_bad_chal_not_bdecodable(self):
         self._test_bad_challenge(self.create_not_bdecodable_challenge)
-    
+
     def subtest_bad_chal_too_short(self):
         self._test_bad_challenge(self.create_too_short_challenge)
 
@@ -142,7 +142,7 @@ class TestPermIDs(TestAsServer):
 
     #
     # Bad response2
-    #    
+    #
     def subtest_bad_resp2_not_bdecodable(self):
         self._test_bad_response2(self.create_resp2_not_bdecodable)
 
@@ -341,7 +341,7 @@ class TestPermIDs(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestPermIDs))
-    
+
     return suite
 
 if __name__ == "__main__":

@@ -2,8 +2,8 @@
 # see LICENSE.txt for license information
 #
 
-# Arno, 2009-04-16: 
-# - You should also test whether Tribler responds correctly to multicast 
+# Arno, 2009-04-16:
+# - You should also test whether Tribler responds correctly to multicast
 #   messages sent directly from a socket, and not via your code.
 #
 # - Some IPv6 tests will fail on Win32 if IPv6 is not installed.
@@ -21,7 +21,7 @@ from Tribler.Core.Multicast import *
 
 #     """
 #     Test the MyLogger class
-   
+
 #     """
 
 #     def setUp(self):
@@ -49,25 +49,25 @@ class FakeOverlayBridge:
         function()
 
 class FakePeerDBHandler:
-    
+
     def addPeer(self, *args, **kargs):
         pass
-    
+
     def setPeerLocalFlag(self, *args):
         pass
-    
+
 
 class TestUDPServer(threading.Thread):
 
     def __init__(self, socket, mc_channel):
         threading.Thread.__init__(self)
-        
+
         self.socket = socket
         self.mc_channel = mc_channel
         self.running = True
-        
+
     def run(self):
-        
+
         while self.running:
             try:
                 if select.select([self.socket],[],[], 1)[0]:
@@ -75,11 +75,11 @@ class TestUDPServer(threading.Thread):
                     self.mc_channel.data_came_in(addr, data)
             except Exception,e:
                 print e
-                
+
 
     def stop(self):
         self.running = False
-    
+
 
 class MulticastTest(unittest.TestCase):
 
@@ -87,15 +87,15 @@ class MulticastTest(unittest.TestCase):
     Test multicast class
 
     """
-    
+
     def __init__(self, param):
         unittest.TestCase.__init__(self, param)
-        
+
         #TestAsServer.__init__(self, param)
         self.test_server = None
         self.overlay_bridge = FakeOverlayBridge()
         self.peer_db = FakePeerDBHandler()
-        
+
     def prepare_test(self, config, capabilitites=None):
         """
         Cannot be done by setUp as we need special config
@@ -103,17 +103,17 @@ class MulticastTest(unittest.TestCase):
 
         self.multicast = Multicast(config, self.overlay_bridge, 1234, 1, self.peer_db,
                                    capabilities=capabilitites)
-        
+
         self.test_server = TestUDPServer(self.multicast.getSocket(),
                                          self.multicast)
         self.test_server.start()
-        
+
     def tearDown(self):
         if self.test_server is not None:
             self.test_server.stop()
         self.multicast = None
-        
-        
+
+
     def testIPv4(self):
 
         # Dummy config
@@ -127,9 +127,9 @@ class MulticastTest(unittest.TestCase):
                   'multicast_ipv4_enabled':True,
                   'multicast_ipv6_enabled':False,
                   'multicast_announce':True}
-        
+
         self.prepare_test(config)
-        
+
         failed = True
         seen = 0
         for (permid, addr, capabilities) in self.multicast.discoverNodes():
@@ -138,7 +138,7 @@ class MulticastTest(unittest.TestCase):
         if failed:
             raise Exception("Didn't discover myself using IPv4")
 
-    
+
     def testIPv6(self):
 
         # Dummy config
@@ -150,7 +150,7 @@ class MulticastTest(unittest.TestCase):
                   'multicast_ipv4_enabled':False,
                   'multicast_ipv6_enabled':True,
                   'multicast_announce':True}
-        
+
         self.prepare_test(config)
         failed = True
         for (permid, addr, capabilities) in self.multicast.discoverNodes():
@@ -170,7 +170,7 @@ class MulticastTest(unittest.TestCase):
                   'multicast_ipv4_enabled':True,
                   'multicast_ipv6_enabled':True,
                   'multicast_announce':True}
-        
+
         self.prepare_test(config)
 
         seen = 0
@@ -190,7 +190,7 @@ class MulticastTest(unittest.TestCase):
                   'multicast_ipv4_enabled':False,
                   'multicast_ipv6_enabled':False,
                   'multicast_announce':True}
-        
+
         self.prepare_test(config)
 
         try:
@@ -212,7 +212,7 @@ class MulticastTest(unittest.TestCase):
                   'multicast_ipv4_enabled':True,
                   'multicast_ipv6_enabled':True,
                   'multicast_announce':True}
-        
+
         self.prepare_test(config)
 
         # Handle the announce
@@ -228,7 +228,7 @@ class MulticastTest(unittest.TestCase):
                 return # Got it
 
         raise Exception("Failed to get announce")
- 
+
     def handleAnnounce(self, permid, addr, list):
 
         """
@@ -242,7 +242,7 @@ class MulticastTest(unittest.TestCase):
         """
 
         myCapabilities = ["Something", "something else", "something totally different"]
-        
+
         # Dummy config
         config = {'permid':'testCapabilities',
                   'multicast_ipv4_address':'224.0.1.43',
@@ -252,7 +252,7 @@ class MulticastTest(unittest.TestCase):
                   'multicast_ipv4_enabled':False,
                   'multicast_ipv6_enabled':True,
                   'multicast_announce':True}
-        
+
         self.prepare_test(config, myCapabilities)
 
         failed = True
@@ -261,19 +261,19 @@ class MulticastTest(unittest.TestCase):
                 failed = False
                 if capabilities != myCapabilities:
                     raise Exception("Got bad capabilities, got %s, expected %s"%(str(capabilities), str(myCapabilities)))
-                
+
         if failed:
             raise Exception("Didn't discover myself using IPv6")
-        
+
 
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(MulticastTest))
-    
+
     return suite
 
 
-        
+
 if __name__ == "__main__":
 
     # TODO: Multicast does gives us multiple hits for ourselves, is that ok?
@@ -283,4 +283,3 @@ if __name__ == "__main__":
     unittest.main()
 
     print "All done"
-

@@ -37,7 +37,7 @@ class Node(object):
     @property
     def ip(self):
         return self._addr[0]
-    
+
     def __eq__(self, other):
         if self.addr == other.addr:
             try:
@@ -103,7 +103,7 @@ class RoutingNode(Node):
         self.in_quarantine = True
         self.last_seen = current_time
         self.bucket_insertion_ts = None
-        
+
     #def __repr__(self):
     #    return '<rnode: %r %r>' % (self.addr, self.id)
 
@@ -116,7 +116,7 @@ class RoutingNode(Node):
     def add_event(self, timestamp, event):
         self.last_events.append((timestamp, event))
         self.last_events = self.last_events[:MAX_LAST_EVENTS]
-    
+
     def timeouts_in_a_row(self, consider_queries=True):
         """Return number of timeouts in a row for this rnode."""
         result = 0
@@ -128,7 +128,7 @@ class RoutingNode(Node):
                 return result
         return result # all timeouts (and queries), or empty list
 
-    
+
 class LookupNode(Node):
 
     def __init__(self, node_, target):

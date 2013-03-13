@@ -1,4 +1,4 @@
-# Written by Jan David Mol 
+# Written by Jan David Mol
 # see LICENSE.txt for license information
 
 import os,sys
@@ -74,4 +74,3 @@ def init( utility ):
             notify = notifier.notify
         except:
             pass
-

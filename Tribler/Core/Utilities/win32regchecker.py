@@ -25,25 +25,25 @@ class Win32RegChecker:
 
     def readRootKey(self,key_name,value_name=""):
         return self.readKey(HKCR,key_name,value_name)
-        
+
     def readKey(self,hkey,key_name,value_name=""):
         if (sys.platform != 'win32'):
             return None
-            
+
         try:
             # test that shell/open association with ABC exist
             if DEBUG:
                 print >>sys.stderr,"win32regcheck: Opening",key_name,value_name
             full_key = _winreg.OpenKey(hkey, key_name, 0, _winreg.KEY_READ)
-            
+
             if DEBUG:
                 print >>sys.stderr,"win32regcheck: Open returned",full_key
-            
+
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
             if DEBUG:
                 print >>sys.stderr,"win32regcheck: Read",value_data,value_type
             _winreg.CloseKey(full_key)
-                    
+
             return value_data
         except:
             print_exc(file=sys.stderr)
@@ -55,7 +55,7 @@ class Win32RegChecker:
     def readKeyRecursively(self,hkey,key_name,value_name=""):
         if (sys.platform != 'win32'):
             return None
-            
+
         lasthkey = hkey
         try:
             toclose = []
@@ -69,16 +69,16 @@ class Win32RegChecker:
                 full_key = _winreg.OpenKey(lasthkey, keypart, 0, _winreg.KEY_READ)
                 lasthkey = full_key
                 toclose.append(full_key)
-            
+
             if DEBUG:
                 print >>sys.stderr,"win32regcheck: Open returned",full_key
-            
+
             value_data, value_type = _winreg.QueryValueEx(full_key, value_name)
             if DEBUG:
                 print >>sys.stderr,"win32regcheck: Read",value_data,value_type
             for hkey in toclose:
                 _winreg.CloseKey(hkey)
-                    
+
             return value_data
         except:
             print_exc()
@@ -97,7 +97,7 @@ class Win32RegChecker:
         _winreg.SetValueEx(full_key, value_name, 0, value_type, value_data)
         # close Windows register key
         _winreg.CloseKey(full_key)
-            
+
         return True
 
 

@@ -1,9 +1,9 @@
 # Written by Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 #
-# Like test_secure_overlay, we start a new python interpreter for each test. 
+# Like test_secure_overlay, we start a new python interpreter for each test.
 # Although we don't have the singleton problem here, we do need to do this as the
-# HTTPServer that MyTracker uses won't relinquish the listen socket, causing 
+# HTTPServer that MyTracker uses won't relinquish the listen socket, causing
 # "address in use" errors in the next test. This is probably due to the fact that
 # MyTracker has a thread mixed in, as a listensocket.close() normally releases it
 # (according to lsof).
@@ -31,7 +31,7 @@ from Tribler.Test.test_connect_overlay import MyTracker
 DEBUG=True
 
 class TestDownloadHelp(TestAsServer):
-    """ 
+    """
     Testing download helping
     """
 
@@ -47,7 +47,7 @@ class TestDownloadHelp(TestAsServer):
         TestAsServer.setUpPreSession(self)
 
         self.setUpMyListenSockets()
-        
+
         # Must be changed in test/extend_hs_dir/proxyservice.test.torrent as well
         self.mytrackerport = 4901
         self.myid = 'R410-----HgUyPu56789'
@@ -55,7 +55,7 @@ class TestDownloadHelp(TestAsServer):
         self.mytracker.background_serve()
 
         self.myid2 = 'R410-----56789HuGyx0'
-        
+
     def setUpMyListenSockets(self):
         # Start our server side, to with Tribler will try to connect
         # Seeder socket
@@ -77,11 +77,11 @@ class TestDownloadHelp(TestAsServer):
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der())  
-        
+        self.hispermid = str(self.his_keypair.pub().get_der())
+
         # Calculating the infohash for proxyservice.test.torrent
         self.torrentfile = os.path.join('extend_hs_dir','proxyservice.test.torrent')
-        
+
         # Read torrentfile to calculate the infohash
         torrentfile_content = open(self.torrentfile, "rb")
         # Decode all the file
@@ -90,14 +90,14 @@ class TestDownloadHelp(TestAsServer):
         self.infohash = hashlib.sha1(bencode(metainfo['info'])).digest()
         # Close the torrentfile
         torrentfile_content.close()
-        
+
         # Add us as friend, so he will accept the ASK_FOR_HELP
         if False:  # TEMP
             friendsdb = FriendDBHandler.getInstance()
             friendsdb.addFriend(self.mypermid)
         else:
             self.session.set_overlay_request_policy(AllowAllRequestPolicy())
-          
+
         self.session.set_download_states_callback(self.states_callback)
 
     def tearDown(self):
@@ -141,7 +141,7 @@ class TestDownloadHelp(TestAsServer):
         genresdict = self.get_genresdict()
         print >>sys.stderr,"test: good ASK_FOR_HELP"
         self._test_2fast(genresdict)
-    
+
 
     #
     # Bad 2fast
@@ -151,7 +151,7 @@ class TestDownloadHelp(TestAsServer):
         genresdict[ASK_FOR_HELP] = (self.create_bad_dlhelp_not_infohash,False)
         print >>sys.stderr,"test: bad dlhelp"
         self._test_2fast(genresdict)
-        
+
     def singtest_bad_2fast_metadata_not_bdecodable(self):
         genresdict = self.get_genresdict()
         genresdict[METADATA] = (self.create_bad_metadata_not_bdecodable,False)
@@ -203,14 +203,14 @@ class TestDownloadHelp(TestAsServer):
         self._test_2fast(genresdict)
 
 
-    
+
     def _test_2fast(self,genresdict):
-        """ 
+        """
             test ASK_FOR_HELP, METADATA, PIECES_RESERVED and STOP_DOWNLOAD_HELP sequence
         """
         # 1. Establish overlay connection to Tribler
         ol_connection = OLConnection(self.my_keypair, 'localhost', self.hisport, mylistenport=self.mylistenport2)
-        
+
         # Send ASK_FOR_HELP
         (generate_data, sent_good_values) = genresdict[ASK_FOR_HELP]
         msg = generate_data()
@@ -225,7 +225,7 @@ class TestDownloadHelp(TestAsServer):
             self.assert_(len(resp)==0)
             ol_connection.close()
             return
-        
+
         # Send METADATA
         (generate_data,sent_good_values) = genresdict[METADATA]
         msg = generate_data()
@@ -238,7 +238,7 @@ class TestDownloadHelp(TestAsServer):
             #(self,hostname,port,opensock=None,user_option_pattern=None,user_infohash=None,myid=None,mylistenport=None,myoversion=None):
             bt_connection_2 = BTConnection('', 0, conn, user_infohash=self.infohash, myid=self.myid2)
             bt_connection_2.read_handshake_medium_rare()
-            
+
             msg = UNCHOKE
             bt_connection_2.send(msg)
             print >>sys.stderr,"test: Got data connection to us, as coordinator, sent_good_values"
@@ -255,7 +255,7 @@ class TestDownloadHelp(TestAsServer):
         options = '\x00\x00\x00\x00\x00\x00\x00\x00'
         bt_connection = BTConnection('', 0, conn, user_option_pattern=options, user_infohash=self.infohash, myid=self.myid)
         bt_connection.read_handshake_medium_rare()
-        
+
         # Get the number of pieces from the .torrent file
         torrentfile_content = open(self.torrentfile, "rb")
         metadata_dict = bdecode(torrentfile_content.read())
@@ -267,7 +267,7 @@ class TestDownloadHelp(TestAsServer):
             for file in metadata_dict["info"]["files"]:
                 length += file["length"]
         numpieces = length / metadata_dict["info"]["piece length"]
-        
+
         bitf = Bitfield(numpieces)
         for i in range(numpieces):
             bitf[i] = True
@@ -288,7 +288,7 @@ class TestDownloadHelp(TestAsServer):
         (generate_data, sent_good_values) = genresdict[PIECES_RESERVED]
         msg = generate_data(pieces)
         ol_connection.send(msg)
-        
+
         if sent_good_values:
             # 6. Await REQUEST on fake seeder
             while True:
@@ -314,7 +314,7 @@ class TestDownloadHelp(TestAsServer):
         resp = ol_connection.recv()
         self.assert_(len(resp)==0)
         ol_connection.close()
-        
+
 
     def create_good_dlhelp(self):
         return ASK_FOR_HELP+self.infohash
@@ -326,15 +326,15 @@ class TestDownloadHelp(TestAsServer):
     def create_good_metadata(self):
         f = open(self.torrentfile,"rb")
         data = f.read()
-        f.close() 
-        
+        f.close()
+
         d = self.create_good_metadata_dict(data)
         bd = bencode(d)
         return METADATA+bd
 
     def create_good_metadata_dict(self,data):
         d = {}
-        d['torrent_hash'] = self.infohash 
+        d['torrent_hash'] = self.infohash
         d['metadata'] = data
         d['leecher'] = 1
         d['seeder'] = 1
@@ -348,7 +348,7 @@ class TestDownloadHelp(TestAsServer):
         infohash = data[0:20]
         allflag = data[20]
         plist = bdecode(data[21:])
-        
+
         self.assert_(infohash == self.infohash)
         self.assert_(type(plist) == ListType)
         return plist
@@ -367,7 +367,7 @@ class TestDownloadHelp(TestAsServer):
 
     #
     # Bad ASK_FOR_HELP
-    #    
+    #
 
     def create_bad_dlhelp_not_infohash(self):
         return ASK_FOR_HELP+"481"
@@ -406,7 +406,7 @@ class TestDownloadHelp(TestAsServer):
     def create_bad_metadata_bad_torrent2(self):
         torrent = {}
         data = bencode(torrent)
-        
+
         d = self.create_good_metadata_dict(data)
         d['metadata'] = data
         bd = bencode(d)
@@ -416,7 +416,7 @@ class TestDownloadHelp(TestAsServer):
     def create_bad_metadata_bad_torrent3(self):
         torrent = {'info':481}
         data = bencode(torrent)
-        
+
         d = self.create_good_metadata_dict(data)
         d['metadata'] = data
         bd = bencode(d)
@@ -426,7 +426,7 @@ class TestDownloadHelp(TestAsServer):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_dl.py <method name>"

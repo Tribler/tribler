@@ -21,11 +21,11 @@ class TaskHandle:
     """
     A Task Handle is returned to clients after having
     registered a Task with the TaskRunner.
-    
+
     Its only purpose is to enable clients to cancel a Task,
     without exposing the internal Task objects to clients.
     """
-    
+
     def __init__(self, task_runner, task_id):
         self._task_runner = task_runner
         self.tid = task_id
@@ -42,11 +42,11 @@ class TaskHandle:
 class _Task:
 
     """
-    A Task can be executed by the TaskRunner a given number 
+    A Task can be executed by the TaskRunner a given number
     of times.
-    
+
     taskRunner -- reference to TaskRunner object.
-    max -- defines the maximum number of executions for a Task. 
+    max -- defines the maximum number of executions for a Task.
     method -- a method object to be executed.
     args -- a tuple containing method arguments.
 
@@ -63,7 +63,7 @@ class _Task:
         self.name = method.__name__
         self.tid = None
         self._task_runner.register_task(self) # initialises self.tid
-        
+
     def cancel(self):
         """Causes the Task to never be executed."""
         self._cancelled = True
@@ -81,25 +81,25 @@ class _Task:
 
     def _execute_ok(self):
         """Checks if Task may be executed on more time. Returns bool."""
-        if self._cancelled : 
+        if self._cancelled :
             return False
-        elif (self._limit == TaskRunner.TASK_NO_LIMIT): 
+        elif (self._limit == TaskRunner.TASK_NO_LIMIT):
             return True
-        elif (self._counter + 1 <= self._limit): 
+        elif (self._counter + 1 <= self._limit):
             return True
-        return False    
+        return False
 
     def __str__(self):
         if self._limit == TaskRunner.TASK_NO_LIMIT:
-            return "%s [%s] %s[%s/INF]" % (self.__class__.__name__, 
+            return "%s [%s] %s[%s/INF]" % (self.__class__.__name__,
                                              self.tid, self.name, self._counter)
         else:
-            return "%s [%d] %s [%d/%d]" % (self.__class__.__name__, 
-                                            self.tid, self.name, 
-                                            self._counter, self._limit) 
+            return "%s [%d] %s [%d/%d]" % (self.__class__.__name__,
+                                            self.tid, self.name,
+                                            self._counter, self._limit)
 
 
-        
+
 ##############################################
 # READ TASK
 ##############################################
@@ -119,7 +119,7 @@ class _ReadTask(_Task):
         return self._file_descriptor
     def cancel(self):
         """Cancel ReadTask."""
-        self._task_runner.leave_rd_set(self) 
+        self._task_runner.leave_rd_set(self)
         _Task.cancel(self)
 
 ##############################################
@@ -176,9 +176,9 @@ class _DelayTask(_Task):
 
     def register_timeout(self):
         """Register a new timeout with task_runner."""
-        expiry = self._created + self._delay + self._counter*self._period 
+        expiry = self._created + self._delay + self._counter*self._period
         self._task_runner.register_timeout(expiry, self)
-            
+
 
 
 ##############################################
@@ -186,11 +186,11 @@ class _DelayTask(_Task):
 ##############################################
 
 class _Timeout:
-    
+
     """
     A Timeout represents a point in time where the
     attached Task is due for execution.
-    
+
     expiry -- absolute point in time ( time.time() )
     task -- the Task
     """
@@ -246,7 +246,7 @@ class _DelayTaskHeap:
 # TASK RUNNER ERROR
 ##############################################
 
-class TaskRunnerError (exceptions.Exception): 
+class TaskRunnerError (exceptions.Exception):
     """Error associated with running the TaskRunner. """
     pass
 
@@ -259,7 +259,7 @@ class TaskRunner:
 
     """
     TaskRunner runs Tasks asynchronously (delayed).
-    
+
     It supports four types of Tasks.
     Task -- simple task for immediate execution.
     ReadTask -- Task to be executed after its file descriptor became readable.
@@ -287,7 +287,7 @@ class TaskRunner:
         self._task_map = {}
         # Task Runner Lock protecting critical sections.
         # Conservative locking is implemented, using only
-        # one lock for all critical sections. 
+        # one lock for all critical sections.
         self._lock = threading.Lock()
         # Bad filedescriptor exists in read and/or writeset
         self._bad_fd = False
@@ -352,7 +352,7 @@ class TaskRunner:
     def add_read_task(self, file_descriptor, method, args=()):
         """Add Read Task. Returns TaskHandle."""
         self._lock.acquire()
-        task = _ReadTask(self, TaskRunner.TASK_NO_LIMIT, 
+        task = _ReadTask(self, TaskRunner.TASK_NO_LIMIT,
                          file_descriptor, method, args)
         handle = TaskHandle(self, task.tid)
         self._lock.release()
@@ -361,7 +361,7 @@ class TaskRunner:
     def add_write_task(self, file_descriptor, method, args=()):
         """Add Write Taks. Returns TaskHandle."""
         self._lock.acquire()
-        task = _WriteTask(self, TaskRunner.TASK_NO_LIMIT, 
+        task = _WriteTask(self, TaskRunner.TASK_NO_LIMIT,
                           file_descriptor, method, args)
         handle = TaskHandle(self, task.tid)
         self._lock.release()
@@ -375,10 +375,10 @@ class TaskRunner:
         self._lock.release()
         return handle
 
-    def add_periodic_task(self, period, method, args=(), 
+    def add_periodic_task(self, period, method, args=(),
                           delay=0, limit=None):
         """Add Periodic Task. Returns TaskHandle."""
-        if limit == None: 
+        if limit == None:
             limit = TaskRunner.TASK_NO_LIMIT
         self._lock.acquire()
         task = _DelayTask(self, limit, delay, period, method, args)
@@ -388,7 +388,7 @@ class TaskRunner:
 
     def cancel_task(self, task_id):
         """
-        Causes Task to be invalidated so that it 
+        Causes Task to be invalidated so that it
         will not be exectuted.
         """
         self._lock.acquire()
@@ -402,7 +402,7 @@ class TaskRunner:
     ##############################################
     # EXECUTION API
     ##############################################
-        
+
     def run_forever(self, frequency=.1, stop_event=None):
         """Run the TaskRunner until it is stopped."""
         self._external_stop_event = stop_event
@@ -431,7 +431,7 @@ class TaskRunner:
 
     def is_stopped(self):
         """Returns true if the TaskRunner has been requested to stop."""
-        if self._internal_stop_event.is_set(): 
+        if self._internal_stop_event.is_set():
             return True
         if self._external_stop_event != None:
             if self._external_stop_event.is_set():
@@ -441,7 +441,7 @@ class TaskRunner:
     def run_once(self, timeout=0):
         """Run at most a single Task within the TaskRunner."""
 
-        if self.is_stopped(): 
+        if self.is_stopped():
             return False
 
         self._lock.acquire()
@@ -449,7 +449,7 @@ class TaskRunner:
         # Poll Timeouts
         if not self._task_queue:
             d_list = self._delay_task_heap.poll()
-            if d_list: 
+            if d_list:
                 self._task_queue += d_list
 
         # Poll File Descriptors
@@ -457,13 +457,13 @@ class TaskRunner:
             # release lock before potentially blocking on select.
             self._lock.release()
             try:
-                lists = select.select(self._rd_set, self._wr_set, 
+                lists = select.select(self._rd_set, self._wr_set,
                                       self._rd_set + self._wr_set, timeout)
             except select.error:
                 # A bad file descriptor in readset and/or writeset
                 # This could happen if a read/write task is cancelled
                 # from another thread - and then the socket is closed
-                # immediately afterwards. This only-once type of error 
+                # immediately afterwards. This only-once type of error
                 # can safely be ignored.
                 # However, if a socket is closed but the task is not cancelled,
                 # this is an error, and the programmer should be signaled.
@@ -478,27 +478,27 @@ class TaskRunner:
 
 
             r_list, w_list, e_list = lists
-            if e_list: 
+            if e_list:
                 for task in e_list:
                     print "Error", task
                     self.cancel_task(task.tid)
 
             self._lock.acquire()
-            if r_list: 
+            if r_list:
                 self._task_queue += r_list
-            if w_list: 
+            if w_list:
                 self._task_queue += w_list
-        
+
         # Execute at most one Task
         if self._task_queue:
             task = self._task_queue.pop(0)
             # Release lock before executing a task.
-            self._lock.release() 
+            self._lock.release()
             return task.execute()
         else:
             self._lock.release()
             return False
-        
+
     def stop(self):
         """Requests that the TaskRunner stops itself."""
         self._internal_stop_event.set()
@@ -510,15 +510,15 @@ class TaskRunner:
 
 if __name__ == '__main__':
 
-    def tick(): 
+    def tick():
         """Tick Task."""
         print "Tick", time.time()
 
     def tack():
-        """Tack Task.""" 
+        """Tack Task."""
         print "Tack", time.time()
 
-    def tock(): 
+    def tock():
         """Tock Task."""
         print "Tock", time.time()
 

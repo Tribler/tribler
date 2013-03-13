@@ -22,25 +22,25 @@
 #            set_proxy_default_dlcfg/get_proxy_default_dlcfg in SessionConfig.
 #
 # 1.2.0rc1   Support for swift Downloads in Core API:
-#            Refactored TorrentDef into generic ContentDefinition and 
+#            Refactored TorrentDef into generic ContentDefinition and
 #            TorrentDef+SwiftDef as implementations.
 #            Added: [s/g]et_swift_*
 #
 # 1.1.0      Released with Next-Share M40
-# 
+#
 # 1.1.0rc4   Added offset parameter to DownloadConfig.set_vod_event_callback()
-#            for fast seeking in transport streams or out-of-core HTTP seeding 
+#            for fast seeking in transport streams or out-of-core HTTP seeding
 #            on slow hardware (set-top box).
 #
 # 1.1.0rc3   Added [s/g]et_give_to_get to DownloadConfig so we can enable it
 #            on video-on-demand seeders.
 #
-# 1.1.0rc2   Added: remote queries for channels via Session.query_*_peers() 
+# 1.1.0rc2   Added: remote queries for channels via Session.query_*_peers()
 #            extended to control how many torrent hits are returned.
 #
-# 1.1.0rc1   Added: prio field in Session.download_torrent(). 
+# 1.1.0rc1   Added: prio field in Session.download_torrent().
 #            Added: Session.query_peers(), allows you to query a subset of peers
-#            which if not connected will connected to. Otherwise equal to 
+#            which if not connected will connected to. Otherwise equal to
 #            query_connected_peers().
 #            Added: The results of CHANNEL queries can now be bounded by
 #            a timeframe and/or number of torrents for more optimal retrieval.
@@ -63,7 +63,7 @@
 # 1.0.7rc2   Added: get_peer_id() to Download, returning the BT peer ID when
 #            the download is not stopped.
 #
-# 1.0.7rc1   Added: set_proxy_mode/get_proxy_mode to DownloadConfig and 
+# 1.0.7rc1   Added: set_proxy_mode/get_proxy_mode to DownloadConfig and
 #            DownloadRuntimeConfig, set_proxyservice_status/
 #            get_proxyservice_status to SessionConfig and SessionRuntimeConfig
 #
@@ -79,7 +79,7 @@
 #
 # 1.0.5      Released with Next-Share M24.2
 #
-# 1.0.5rc4   Added: TorrentDef.set_metadata() for including Next-Share Core 
+# 1.0.5rc4   Added: TorrentDef.set_metadata() for including Next-Share Core
 #            metadata in .tstream files.
 #
 # 1.0.5rc3   Added: restartstatefilename to DownloadConfig.set_video_source()
@@ -87,23 +87,23 @@
 # 1.0.5rc2   Added: TorrentDef.set_live_ogg_headers() for live streams
 #            in Ogg container format.
 #
-# 1.0.5rc1   Session.query_connected_peers() returns all names as Unicode 
+# 1.0.5rc1   Session.query_connected_peers() returns all names as Unicode
 #            strings.
 #
 # 1.0.4      Released with Next-Share M24
 #
 # 1.0.4rc7   Added: DLMODE_SVC for Scalable Video Coding support following
-#            P2P-Next WP6's design. 
+#            P2P-Next WP6's design.
 #
-# 1.0.4rc6   Added: SIMPLE+METADATA query. 
+# 1.0.4rc6   Added: SIMPLE+METADATA query.
 #
 # 1.0.4rc5   Added: DLSTATUS_REPEXING.
 #
-#            Added: initialdlstatus parameter to Session.start_download() to 
-#            restart a Download in a particular state, in particular, 
+#            Added: initialdlstatus parameter to Session.start_download() to
+#            restart a Download in a particular state, in particular,
 #            DLSTATUS_REPEXING.
 #
-#            Added: initialdlstatus parameter to Download.restart() to 
+#            Added: initialdlstatus parameter to Download.restart() to
 #            restart a Download in a particular state.
 #
 #            Added: get_swarmcache() to DownloadState.
@@ -116,7 +116,7 @@
 #            the former is not a state parameter and the latter exposed internal
 #            state.
 #
-# 1.0.4rc3   Added "CHANNEL" queries to query_connected_peers() to Session 
+# 1.0.4rc3   Added "CHANNEL" queries to query_connected_peers() to Session
 #            class for making queries for the new channel concept.
 #
 #            Removed: ModerationCast configuration parameters from SessionConfig.
@@ -131,13 +131,13 @@
 # Timeline disruption: API v1.0.3 was released with Next-Share M16 on April 30.
 # 1.0.2rc6 was released with Tribler 5.1.0. Reintroduced as 1.0.4rc1
 #
-# 1.0.3      Released with Next-Share M16  
+# 1.0.3      Released with Next-Share M16
 #
 # 1.0.3rc1   Added: [s/g]et_multicast_local_peer_discovery() to Session API.
 #            Added: [s/g]et_moderation_cast_promote_own() to aggressively
 #            promote your own moderations (to be run by a moderator)
 #            Removed: [s/g]et_rss_*(). These were not Core/Session parameters.
-#            Removed: [s/g]et_moderationcast_upload/download_bandwidth_limit(), 
+#            Removed: [s/g]et_moderationcast_upload/download_bandwidth_limit(),
 #            no longer used.
 #
 # 1.0.2      Released with Tribler 5.0.0 Preview1
@@ -155,8 +155,8 @@
 #            [s/g]et_puncturing_internal_port.
 #
 # 1.0.2rc1   Added: set_same_nat_try_internal(). If set Tribler will
-#            check if other Tribler peers it meets in a swarm are behind the 
-#            same NAT and if so, replace the connection with an connection over 
+#            check if other Tribler peers it meets in a swarm are behind the
+#            same NAT and if so, replace the connection with an connection over
 #            the internal network. Also added set_unchoke_bias_for_internal()
 #
 # 1.0.1      Released with Tribler 4.5.0
@@ -175,8 +175,8 @@
 #
 #            Added: Methods to SessionConfigInterface for Network Address
 #            Translator detection, see also Session.get_nat_type()
-# 
-# 1.0.1rc1   Bugfix: The query passed to the callback function for 
+#
+# 1.0.1rc1   Bugfix: The query passed to the callback function for
 #            query_connected_peers() is now the original query, rather than
 #            the query with "SIMPLE " stripped off.
 #
@@ -185,7 +185,7 @@
 # 1.0.0rc5   Added option to define auxiliary seeding servers for live stream
 #            (=these servers are always unchoked at the source server).
 #
-# 1.0.0rc4   Changed DownloadConfig.set_vod_start_callback() to a generic 
+# 1.0.0rc4   Changed DownloadConfig.set_vod_start_callback() to a generic
 #            event-driven interface.
 
 

@@ -21,13 +21,13 @@ PLAYTIME = "1:02" # 1 min 2 secs. Coordinate with size of file.wmv to get > 1 bi
 PLAYTIME_SECS = 62 # PLAYTIME in seconds
 
 class TestTorrentDef(unittest.TestCase):
-    """ 
+    """
     Testing TorrentDef version 0
     """
-    
+
     def setUp(self):
         pass
-        
+
     def tearDown(self):
         pass
 
@@ -87,7 +87,7 @@ class TestTorrentDef(unittest.TestCase):
         [handle,filename] = tempfile.mkstemp()
         os.close(handle)
         t.save(filename)
-        
+
         t2 = TorrentDef.load(filename)
         self.assert_(t2.get_metadata() == dummydata)
 
@@ -100,15 +100,15 @@ class TestTorrentDef(unittest.TestCase):
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
-        
+
         s = os.path.getsize("file.wmv")
-        
+
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        
+
         self.assert_(metainfo['info']['name'] == "file.wmv")
         self.assert_(metainfo['info']['length'] == s)
-        
+
         """
         bdata = bencode(t.get_metainfo())
         f = open("gen.torrent","wb")
@@ -138,16 +138,16 @@ class TestTorrentDef(unittest.TestCase):
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
-        
+
         self.assert_(metainfo['info']['name'] == 'dirintorrent')
         reals = 0L
         for file in metainfo['info']['files']:
             s = file['length']
             print "test: real size",file['path'],s
             reals += s
-            
+
         print "test: real size of files in torrent",reals
-            
+
         self.assert_(exps == reals)
 
 
@@ -155,13 +155,13 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single dir and single file to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        
+
         dn = os.path.join(os.getcwd(),"contentdir")
         t.add_content(dn,"dirintorrent")
-        
+
         fn = os.path.join(os.getcwd(),"file.wmv")
         t.add_content(fn,os.path.join("dirintorrent","file.wmv"))
-        
+
         t.set_tracker(TRACKER)
         t.finalize()
 
@@ -171,12 +171,12 @@ class TestTorrentDef(unittest.TestCase):
             if f.startswith('.'):
                 continue
             p = os.path.join("contentdir",f)
-            exps += os.path.getsize(p) 
+            exps += os.path.getsize(p)
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         self.assert_(metainfo['info']['name'] == 'dirintorrent')
-        
+
         reals = 0L
         for file in metainfo['info']['files']:
             reals += file['length']
@@ -191,9 +191,9 @@ class TestTorrentDef(unittest.TestCase):
         t.add_content(fn,playtime=PLAYTIME)
         t.set_tracker(TRACKER)
         t.finalize()
-        
+
         s = os.path.getsize("file.wmv")
-        
+
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         self.assert_(metainfo['info']['playtime']==PLAYTIME)
@@ -220,12 +220,12 @@ class TestTorrentDef(unittest.TestCase):
         self.assert_(metainfo['info']['name'] == 'dirintorrent')
 
         s = os.path.getsize(fn1)
-        
+
         files = metainfo['info']['files']
         for file in files:
             if file['path'][0] == "file.avi":
                 self.assert_(file['playtime']==PLAYTIME)
-        
+
         azprop = metainfo['azureus_properties']
         content = azprop['Content']
         realspeedbps = content['Speed Bps']
@@ -247,7 +247,7 @@ class TestTorrentDef(unittest.TestCase):
         f = open(thumbfn,"rb")
         expthumb = f.read()
         f.close()
-        
+
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         azprop = metainfo['azureus_properties']
@@ -332,12 +332,12 @@ class TestTorrentDef(unittest.TestCase):
 
         tfn = os.path.join(os.getcwd(),"gen.torrent")
         t.save(tfn)
-        
+
         f = open(tfn,"rb")
         bdata = f.read()
         f.close()
         os.remove(tfn)
-        
+
         data = bdecode(bdata)
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
@@ -347,16 +347,15 @@ class TestTorrentDef(unittest.TestCase):
     def general_check(self,metainfo):
         self.assert_(isValidTorrentFile(metainfo))
         self.assert_(metainfo['announce'] == TRACKER)
-        
-    
+
+
 
 
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestTorrentDef))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

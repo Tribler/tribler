@@ -14,7 +14,7 @@ from LivingLabReporter import LivingLabPeriodicReporter
 class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
     host = "proxytestreporter.tribler.org"
     path = "/postV2.py"
-    
+
     def report(self):
         """
         Create the report in XML and send it
@@ -24,7 +24,7 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
         doc = xml.dom.minidom.Document()
         root = doc.createElement("nextsharedata")
         doc.appendChild(root)
-        
+
         # Create the header
         header = doc.createElement("header")
         root.appendChild(header)
@@ -39,7 +39,7 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
 #                    connectable = 1
 #            else:
 #                    connectable = 0
-#            
+#
 #            start_time = long(round(session.start_time))
 #
 #            my_permid = show_permid_short(session.get_permid())
@@ -47,19 +47,19 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
 #            connectable = 0
 #            start_time = 0
 #            my_permid = 0
-#        
+#
 #        header.appendChild(self.new_element(doc, "connectable", connectable))
 #        header.appendChild(self.new_element(doc, "startuptime", start_time))
 #        header.appendChild(self.new_element(doc, "clientpermid", my_permid))
         # _ProxyService 90s Test
-        
+
         version = "cs_v2a"
         header.appendChild(self.new_element(doc, "swversion", version))
-        
+
 
         elements = self.get_elements()
         if len(elements) > 0:
-        
+
             # Now add the status elements
             if len(elements) > 0:
                 report = doc.createElement("event")
@@ -88,15 +88,15 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
                 elif event.__class__ == Status.RangeElement:
                     report.appendChild(self.new_element(doc, "starttimestamp",
                                                        event.get_start_time()))
-                    
+
                     report.appendChild(self.new_element(doc, "endtimestamp",
                                                        event.get_end_time()))
                 for value in event.get_values():
                     report.appendChild(self.new_element(doc, "value", value))
-                    
+
         if len(elements) == 0 and len(events) == 0:
             return # Was nothing here for us
-        
+
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
         if self.print_post:

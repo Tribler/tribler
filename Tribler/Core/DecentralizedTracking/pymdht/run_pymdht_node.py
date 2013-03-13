@@ -48,8 +48,8 @@ def main(options, args):
         #logs_level = logging.INFO # This generates some (useful) logs
         logs_level = logging.WARNING # This generates warning and error logs
 
-        
-    
+
+
     print 'Using the following plug-ins:'
     print '*', options.routing_m_file
     print '*', options.lookup_m_file
@@ -65,7 +65,7 @@ def main(options, args):
     lookup_m_mod = __import__(lookup_m_name, fromlist=[''])
     experimental_m_name = '.'.join(os.path.split(options.experimental_m_file))[:-3]
     experimental_m_mod = __import__(experimental_m_name, fromlist=[''])
-    
+
 
     dht = pymdht.Pymdht(my_node, logs_path,
                         routing_m_mod,
@@ -114,7 +114,7 @@ def main(options, args):
     elif options.cli:
         import ui.cli
         ui.cli.command_user_interface(dht)
-        
+
 if __name__ == '__main__':
     default_path = os.path.join(os.path.expanduser('~'), '.pymdht')
     parser = OptionParser()
@@ -207,14 +207,14 @@ if __name__ == '__main__':
     parser.add_option("--version",dest="version",
                       action='store_true', default=False,
                       help="Print Pymdhtversion and exit.")
-    
+
 
     (options, args) = parser.parse_args()
 
     if options.version:
         print 'Pymdht %d.%d.%d' % pymdht.PYMDHT_VERSION
         sys.exit()
-    
+
     options.port = int(options.port)
 #    options.logs_level = int(options.logs_level)
     options.telnet_port = int(options.telnet_port)
@@ -225,5 +225,3 @@ if __name__ == '__main__':
     options.log_distance = int(options.log_distance)
     options.swift_port = int(options.swift_port)
     main(options, args)
-
-

@@ -33,7 +33,7 @@ def _initSuite():
     for module in testModules:
         module.RES_DIR = RES_DIR
         testSuites.append(module.suite())
-        
+
 def suite():
     _initSuite()
     return unittest.TestSuite(testSuites)
@@ -43,4 +43,3 @@ if __name__ == '__main__':
     pathRelativeToScript = os.path.dirname(sys.argv[0])
     RES_DIR = os.path.join(pathRelativeToScript,RES_DIR_NAME)
     unittest.TextTestRunner().run(suite())
-    

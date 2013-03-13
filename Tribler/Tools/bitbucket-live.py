@@ -62,5 +62,4 @@ d = s.start_download( tdef, dscfg )
 d.set_state_callback(state_callback,getpeerlist=False)
 
 while True:
-  time.sleep(60)
-
+    time.sleep(60)

@@ -23,7 +23,7 @@ DEBUG=True
 G2G_ID = 235
 
 class TestG2G(TestAsServer):
-    """ 
+    """
     Testing EXTEND G2G message V2:
 
     See BitTornado/BT1/Connecter.py
@@ -35,23 +35,23 @@ class TestG2G(TestAsServer):
         print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
         time.sleep(3)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
-    
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        
+
         self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
         tdef = TorrentDef.load(self.torrentfn)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
         dscfg.set_video_event_callback(self.vod_ready_callback)
-        
+
         self.d = self.session.start_download(tdef,dscfg)
-        
+
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.mylistenport = 4810
@@ -60,7 +60,7 @@ class TestG2G(TestAsServer):
         pass
 
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -76,8 +76,8 @@ class TestG2G(TestAsServer):
     #
     def subtest_good_tribler_g2g_v2(self):
         self._test_good(self.create_good_tribler_extend_hs_v2,infohash=self.infohash)
-        
-        # We've said we're a Tribler peer, and we initiated the connection, so 
+
+        # We've said we're a Tribler peer, and we initiated the connection, so
         # now *we* should now try to establish an overlay-swarm connection.
         s = OLConnection(self.my_keypair,'localhost',self.hisport,mylistenport=self.mylistenport)
         # the connection should be intact, so this should not throw an
@@ -95,7 +95,7 @@ class TestG2G(TestAsServer):
             s = BTConnection('localhost',self.hisport,user_option_pattern=options)
         else:
             s = BTConnection('localhost',self.hisport,user_option_pattern=options,user_infohash=infohash)
-            
+
         if DEBUG:
             print "test: Creating test HS message",msg_gen_func,"g2g_id",g2g_id
         msg = msg_gen_func(g2g_id=g2g_id)
@@ -105,7 +105,7 @@ class TestG2G(TestAsServer):
         # Send our g2g_v2 message to Tribler
         msg = self.create_good_g2g_v2(g2g_id=g2g_id)
         s.send(msg)
-        
+
         time.sleep(5)
 
         # Tribler should send an EXTEND HS message back
@@ -121,13 +121,13 @@ class TestG2G(TestAsServer):
 
         # Tribler should send an g2g_v2 message after a while
         print "test: Setting 60 second timeout to see if Tribler sends periodic g2g_v2"
-        
+
         # Extreme h4xor
         connlist = self.d.sd.dow.connecter.connections.values()[:]
         piece = '\xab' * (2 ** 14)
         for conn in connlist:
             conn.queue_g2g_piece_xfer(0,0,piece)
-        
+
         try:
             s.s.settimeout(70.0)
             while True:
@@ -142,7 +142,7 @@ class TestG2G(TestAsServer):
             print >> sys.stderr,"test: Timeout, bad, peer didn't reply with EXTEND g2g_v2 message"
             self.assert_(False)
 
-        
+
     def create_good_tribler_extend_hs_v2(self,g2g_id=G2G_ID):
         d = {}
         d['m'] = {'Tr_OVERLAYSWARM':253,'Tr_G2G_v2':g2g_id}
@@ -176,19 +176,19 @@ class TestG2G(TestAsServer):
     def check_g2g_v2(self,data,g2g_id):
         self.assert_(data[0] == chr(g2g_id))
         d = bdecode(data[1:])
-        
+
         print >>sys.stderr,"test: l is",`d`
-        
+
         self.assert_(type(d) == DictType)
         for k,v in d.iteritems():
             self.assert_(type(k) == StringType)
             self.assert_(type(v) == StringType)
             self.assert_(ord(k) > 0)
             self.assert_(ord(v) <= 100)
-            
+
     #
     # Bad EXTEND handshake message
-    #    
+    #
     def subtest_bad_g2g_v2(self):
         methods = [self.create_empty,
             self.create_ext_id_not_byte,
@@ -209,14 +209,14 @@ class TestG2G(TestAsServer):
         options = '\x00\x00\x00\x00\x00\x10\x00\x00'
         s = BTConnection('localhost',self.hisport,user_option_pattern=options,user_infohash=self.infohash)
         print >> sys.stderr,"\ntest: ",gen_drequest_func
-        
+
         hsmsg = self.create_good_tribler_extend_hs_v2()
         s.send(hsmsg)
-        
+
         msg = gen_drequest_func()
         s.send(msg)
         time.sleep(5)
-        
+
         # the other side should not like this and close the connection
         try:
             s.s.settimeout(10.0)
@@ -236,13 +236,13 @@ class TestG2G(TestAsServer):
 
     #
     # Bad message creators
-    # 
+    #
     def create_empty(self):
         return EXTEND+chr(G2G_ID)
 
     def create_ext_id_not_byte(self):
         return EXTEND+'Hallo kijkbuiskinderen'
-    
+
     def create_not_bdecodable(self):
         return EXTEND+chr(G2G_ID)+"bla"
 
@@ -260,7 +260,7 @@ class TestG2G(TestAsServer):
         d = {'hallo':'d'}
         bd = bencode(d)
         return EXTEND+chr(G2G_ID)+bd
-        
+
     def create_val_not_str(self):
         d = {'481':481}
         bd = bencode(d)
@@ -275,9 +275,8 @@ class TestG2G(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestG2G))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

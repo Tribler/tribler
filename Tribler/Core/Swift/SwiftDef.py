@@ -318,9 +318,9 @@ class SwiftDef(ContentDefinition):
             pass
 
         if url is None or len(url) == 0:
-             self.roothash = '0' * 20
-             print >>sys.stderr,"swift: finalize: Error calculating roothash"
-             return None 
+            self.roothash = '0' * 20
+            print >>sys.stderr,"swift: finalize: Error calculating roothash"
+            return None 
 
         if userprogresscallback is not None:
             userprogresscallback(0.9)

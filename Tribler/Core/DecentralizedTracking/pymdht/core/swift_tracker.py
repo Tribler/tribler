@@ -75,14 +75,14 @@ class SwiftTracker(threading.Thread):
 #            droid.log('EXCEP: swift_port in use')
             raise
         self.stop_dht = False
-        self.swift_port = swift_port        
+        self.swift_port = swift_port
         self.channel_m = ChannelManager()
-        
+
     def run(self):
-        
+
         if prctlimported:
             prctl.set_name("Tribler"+threading.currentThread().getName())
-        
+
         while not self.stop_dht:
             try:
                 data, addr = self.socket.recvfrom(1024)
@@ -95,12 +95,12 @@ class SwiftTracker(threading.Thread):
             else:
                 self.stop_dht = self.handle(data, addr) or self.stop_dht
         self.pymdht.stop()
-        
+
     def stop(self):
         if not self.stop_dht:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.sendto('KILL_DHT', ('127.0.0.1', self.swift_port))
-        
+
             self.stop_dht = True
 
     def _on_peers_found(self, channel, peers, node):
@@ -171,7 +171,7 @@ class SwiftTracker(threading.Thread):
                 #raise NotImplemented
                 return
         if remote_cid == CHANNEL_ZERO and channel.rhash:
-            #droid.log(">>>>>>> DHT: got HANDSHAKE from swift <<<<<<<")  
+            #droid.log(">>>>>>> DHT: got HANDSHAKE from swift <<<<<<<")
             self.pymdht.get_peers(channel, channel.rhash, self._on_peers_found, channel.remote_addr[1])
             # need to complete handshake
             reply = ''.join((channel.remote_cid,
@@ -191,8 +191,8 @@ class SwiftTracker(threading.Thread):
             #                  chr(20050%256),
             #                  ))
             # self.socket.sendto(reply, addr)
-            
-                
+
+
 class Channel(object):
 
     def __init__(self, remote_addr):
@@ -203,7 +203,7 @@ class Channel(object):
         self.peers = set()
         self.rhash = None
 
-        
+
 class ChannelManager(object):
 
     def __init__(self):

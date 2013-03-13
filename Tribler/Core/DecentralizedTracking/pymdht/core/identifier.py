@@ -35,10 +35,10 @@ class Id(object):
     OR an integer/long.
 
     You can use both binary and hexadecimal strings. Example:
-    
+
     >>> Id(chr(0) * ID_SIZE_BYTES) == Id('0' * ID_SIZE_BYTES * 2)
     True
-    
+
     >>> Id(chr(255) * ID_SIZE_BYTES) == Id('f' * ID_SIZE_BYTES * 2)
     True
 
@@ -47,7 +47,7 @@ class Id(object):
 
     >>> Id(chr(255) * ID_SIZE_BYTES) == Id(MAX_ID_LONG)
     True
-    
+
     """
 
     def __init__(self, hex_or_bin_id):
@@ -83,7 +83,7 @@ class Id(object):
     def bin_id(self):
         """bin_id is read-only."""
         return self._bin
- 
+
     @property
     def bin(self):
         return self._bin
@@ -123,13 +123,13 @@ class Id(object):
 
     def __cmp__(self, other):
         return self.long.__cmp__(other.long)
-        
+
     def __eq__(self, other):
         return self.long == other.long
 
     def __ne__(self, other):
         return not self == other
-        
+
     def __str__(self):
         return self.bin_id
 
@@ -143,7 +143,7 @@ class Id(object):
 
         """
         return Id(self.long ^ other.long)
-    
+
     def log_distance(self, other):
         """Return log (base 2) of the XOR distance between two Id
         objects. Return -1 when the XOR distance is 0.
@@ -157,7 +157,7 @@ class Id(object):
         >>> z = Id(chr(0) * ID_SIZE_BYTES)
 
         >>> # distance = 0 [-inf, 1) -> log(0) = -infinity
-        >>> z.log_distance(z) 
+        >>> z.log_distance(z)
         -1
         >>> # distance = 1 [1, 2) -> log(1) = 0
         >>> z.log_distance(Id(chr(0)*(ID_SIZE_BYTES-1)+chr(1)))
@@ -165,7 +165,7 @@ class Id(object):
         >>> # distance = 2 [2, 4) -> log(2) = 1
         >>> z.log_distance(Id(chr(0)*(ID_SIZE_BYTES-1)+chr(2)))
         1
-        >>> # distance = 3 [2, 4) -> log(3) = 
+        >>> # distance = 3 [2, 4) -> log(3) =
         >>> z.log_distance(Id(chr(0)*(ID_SIZE_BYTES-1)+chr(3)))
         1
         >>> # distance = 4 [4, 8) -> log(2^2) = 2
@@ -202,17 +202,17 @@ class Id(object):
         else:
             return 0
 
-    
+
     def DD_order_closest(self, id_list):
         """Return a list with the Id objects in 'id_list' ordered
         according to the distance to self. The closest id first.
-        
+
         The original list is not modified.
 
         """
         id_list_copy = id_list[:]
         max_distance = ID_SIZE_BITS + 1
-        log_distance_list = [] 
+        log_distance_list = []
         for element in id_list:
             log_distance_list.append(self.log_distance(element))
 
@@ -228,7 +228,7 @@ class Id(object):
             del log_distance_list[lowest_index]
             del id_list_copy[lowest_index]
         return result
-    
+
     def generate_close_id(self, log_distance):
         assert log_distance < ID_SIZE_BITS
         if log_distance < 0:
@@ -251,7 +251,7 @@ class Id(object):
         bin_id = self.bin_id[:byte_index] +\
             id_byte + end_bytes
         result = Id(bin_id)
-        return result 
+        return result
 
     def set_bit(self, index, value):
         if value:
@@ -262,7 +262,7 @@ class Id(object):
 
 MAX_ID = Id(MAX_ID_LONG)
 
-    
+
 class RandomId(Id):
 
     """Create a random Id object."""

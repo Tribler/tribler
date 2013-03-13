@@ -17,17 +17,17 @@ def _get_subelement_data(element, subelement_tagname):
     """Parse the data given an element and the tagName of an
     assumed subelement of that element."""
     subelement = _get_subelement(element, subelement_tagname)
-    if not subelement : 
+    if not subelement :
         return None
-    else : 
+    else :
         return _get_element_data(subelement)
 
 def _get_subelement(element, subelement_tagname):
     """Get an element, given a parent element and a subelement tagname."""
     subelements = element.getElementsByTagName(subelement_tagname)
-    if not subelements: 
+    if not subelements:
         return None
-    else : 
+    else :
         return subelements[0]
 
 def _get_element_data(element):
@@ -42,7 +42,7 @@ def _get_element_data(element):
 
 def _get_absolute_url(base_url_string, url_string):
     """Construct absolute URL from an absolute base URL and a relative URL."""
-    if base_url_string == None: 
+    if base_url_string == None:
         # Try to use only url_string
         if _is_absolute_url(url_string):
             return url_string
@@ -54,11 +54,11 @@ def _is_absolute_url(url_string):
     """Determine whether given URL is absolute or not."""
     url = urlparse.urlparse(url_string)
     ret = True
-    if url.scheme != "http": 
+    if url.scheme != "http":
         ret = False
-    if url.port == None: 
+    if url.port == None:
         ret = False
-    if len(url.netloc) == 0 : 
+    if len(url.netloc) == 0 :
         ret = False
     return ret
 
@@ -84,9 +84,9 @@ def parse_service_description(xml_description):
 
 class _DeviceDescriptionParser:
     """
-    This class implements parsing of the xml description of a 
+    This class implements parsing of the xml description of a
     upnp device (rootdevice).
-    
+
     Does not parse sub-devices.
     """
     def __init__(self):
@@ -102,25 +102,25 @@ class _DeviceDescriptionParser:
             doc = minidom.parseString(xmldata)
         except (TypeError, AttributeError):
             return None
-        if doc == None: 
+        if doc == None:
             return None
 
         root_elem = doc.documentElement
         device = {}
 
         # URLBase
-        device['URLBase'] = _get_subelement_data(root_elem, 'URLBase')        
+        device['URLBase'] = _get_subelement_data(root_elem, 'URLBase')
         if device['URLBase'] == None:
             device['URLBase'] = str(base_url)
 
         # Device Element
         device_elem = _get_subelement(root_elem, 'device')
-        if not device_elem: 
+        if not device_elem:
             return None
 
         # deviceType
         data = _get_subelement_data(device_elem, "deviceType")
-        if not data: 
+        if not data:
             return None
         tokens = data.split(':')
         if len(tokens) == 5:
@@ -131,8 +131,8 @@ class _DeviceDescriptionParser:
         else : return None
 
         # UDN & UUID
-        data = _get_subelement_data(device_elem, 'UDN') 
-        if not data: 
+        data = _get_subelement_data(device_elem, 'UDN')
+        if not data:
             return None
         tokens = data.split(':')  # uuid:40a69722-4160-11df-9a88-00248116b859
         if len(tokens) == 2:
@@ -141,45 +141,45 @@ class _DeviceDescriptionParser:
         else: return None
 
         # Optional fields
-        device['name'] = _get_subelement_data(device_elem, 
+        device['name'] = _get_subelement_data(device_elem,
                                               'friendlyName')
-        device['manufacturer'] = _get_subelement_data(device_elem, 
+        device['manufacturer'] = _get_subelement_data(device_elem,
                                                       'manufacturer')
-        device['manufacturerURL'] = _get_subelement_data(device_elem, 
+        device['manufacturerURL'] = _get_subelement_data(device_elem,
                                                          'manufacturerURL')
-        device['modelName'] = _get_subelement_data(device_elem, 
+        device['modelName'] = _get_subelement_data(device_elem,
                                                    'modelName')
-        device['modelDescription'] = _get_subelement_data(device_elem, 
+        device['modelDescription'] = _get_subelement_data(device_elem,
                                                           'modelDescription')
-        device['modelURL'] = _get_subelement_data(device_elem, 
+        device['modelURL'] = _get_subelement_data(device_elem,
                                                   'modelURL')
-        device['serialNumber'] = _get_subelement_data(device_elem, 
+        device['serialNumber'] = _get_subelement_data(device_elem,
                                                       'serialNumber')
         device['UPC'] = _get_subelement_data(device_elem, 'UPC')
         url_str = _get_subelement_data(device_elem, 'presentationURL')
         if url_str:
-            device['presentationURL'] =  _get_absolute_url(device['URLBase'], 
-                                                           url_str) 
-        
+            device['presentationURL'] =  _get_absolute_url(device['URLBase'],
+                                                           url_str)
+
         # Services
         device['services'] = []
         service_list_elem = _get_subelement(device_elem, 'serviceList')
         if service_list_elem:
             service_elems = service_list_elem.getElementsByTagName('service')
-            for service_elem in service_elems:                
+            for service_elem in service_elems:
                 data_str = {}
-                data_str['serviceType'] = _get_subelement_data(service_elem, 
+                data_str['serviceType'] = _get_subelement_data(service_elem,
                                                                'serviceType')
-                data_str['serviceId'] =  _get_subelement_data(service_elem, 
+                data_str['serviceId'] =  _get_subelement_data(service_elem,
                                                               'serviceId')
                 url_str =  _get_subelement_data(service_elem, 'SCPDURL')
-                data_str['SCPDURL'] =  _get_absolute_url(device['URLBase'], 
+                data_str['SCPDURL'] =  _get_absolute_url(device['URLBase'],
                                                          url_str)
                 url_str =  _get_subelement_data(service_elem, 'controlURL')
-                data_str['controlURL'] = _get_absolute_url(device['URLBase'], 
+                data_str['controlURL'] = _get_absolute_url(device['URLBase'],
                                                            url_str)
                 url_str =  _get_subelement_data(service_elem, 'eventSubURL')
-                data_str['eventSubURL'] = _get_absolute_url(device['URLBase'], 
+                data_str['eventSubURL'] = _get_absolute_url(device['URLBase'],
                                                             url_str)
                 device['services'].append(data_str)
 
@@ -192,7 +192,7 @@ class _DeviceDescriptionParser:
 
 class _ServiceDescriptionParser:
     """
-    This class implements parsing of the xml description of a 
+    This class implements parsing of the xml description of a
     upnp service.
     """
     def __init__(self):
@@ -208,7 +208,7 @@ class _ServiceDescriptionParser:
             doc = minidom.parseString(xmldata)
         except (TypeError, AttributeError):
             return None
-        if doc == None: 
+        if doc == None:
             return None
 
         root_elem = doc.documentElement
@@ -243,15 +243,15 @@ class _ServiceDescriptionParser:
                     for arg_elem in arg_elems:
                         arg = {}
                         arg['name'] = _get_subelement_data(arg_elem, 'name')
-                        # Check that action_spec arguments refer to 
+                        # Check that action_spec arguments refer to
                         # defined state variables
-                        rsv_name = _get_subelement_data(arg_elem, 
+                        rsv_name = _get_subelement_data(arg_elem,
                                                         'relatedStateVariable')
                         for stv in service['stateVariables']:
-                            if rsv_name == stv['name']: 
-                                arg['rsv'] = rsv_name 
+                            if rsv_name == stv['name']:
+                                arg['rsv'] = rsv_name
                                 break
-                        arg['direction'] = _get_subelement_data(arg_elem, 
+                        arg['direction'] = _get_subelement_data(arg_elem,
                                                                 'direction')
                         if arg['direction'] == 'in':
                             action['inargs'].append(arg)
@@ -350,4 +350,3 @@ if __name__ == '__main__':
     print parse_device_description(DEVICE_XML, "http://vg.no/")
 
     print parse_service_description(SERVICE_XML)
-

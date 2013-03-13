@@ -9,10 +9,10 @@
 
 #   - DO NOT SAVE P2PURLs as .torrent, put in 'torrent_file_name' field in DB.
 #
-#   - Implement continuous dump of results to JS. I.e. push sorting and 
+#   - Implement continuous dump of results to JS. I.e. push sorting and
 #     rendering to browser.
-#       * One option is RFC5023: Atom Pub Proto, $10.1 "Collecting Partial 
-#       Lists" I.e. return a partial list and add a 
+#       * One option is RFC5023: Atom Pub Proto, $10.1 "Collecting Partial
+#       Lists" I.e. return a partial list and add a
 #            <link ref="next" href="/.../next10> tag pointing
 #       to the next set. See http://www.iana.org/assignments/link-relations/link-relations.xhtml
 #       for def of next/first/last, etc. link relations.
@@ -23,28 +23,28 @@
 #
 #  - Background thread to save torrentfiles to localdb.
 #        Arno, 2009-12-03: Now offloaded to a new TimedTaskQueue.
-# 
 #
-#  - garbage collect hits at connection close. 
-#     Not vital, current mechanism will GC. 
-#        
+#
+#  - garbage collect hits at connection close.
+#     Not vital, current mechanism will GC.
+#
 #  - Support for multifile torrents
 #
-#  - BuddyCast hits: Create LIVE MPEG7 fields for live (i.e., livetimepoint) 
-#    and VOD MPEG7 fields for VOD. 
+#  - BuddyCast hits: Create LIVE MPEG7 fields for live (i.e., livetimepoint)
+#    and VOD MPEG7 fields for VOD.
 #
 #  - Use separate HTTP server, Content-serving one needs to be single-threaded
 #    at the moment to prevent concurrent RANGE queries on same stream from VLC.
 #    Alternative is to put a Condition variable on a content stream.
 #
-#       Arno, 2009-12-4: I've added locks per content URL and made 
+#       Arno, 2009-12-4: I've added locks per content URL and made
 #       VideoHTTPServer multithreaded and it now also serves the search traffic.
 #
-#  - Debug hanging searches on Windows. May be due to "incomplete outbound TCP 
+#  - Debug hanging searches on Windows. May be due to "incomplete outbound TCP
 #    connection" limit, see Encrypter.py :-( I get timeouts opening the feeds
 #    listed in the metafeed, whilst the feed server is responding fast.
 #    Lowering Encrypter's MAX_INCOMPLETE doesn't help. Alt is to periodically
-#    parse the feeds and store the results. 
+#    parse the feeds and store the results.
 #
 #       Arno, 2009-12-4: Problem still exists. Note that TCP limit has been
 #       lifted on Windows > Vista SP2.
@@ -54,7 +54,7 @@
 #
 #       Arno, 2009-12-4: At the moment, setting the window size to (0,0) and
 #       not providing a URL of a torrent works.
-# 
+#
 # - query_connected_peers() now returns Unicode names, make sure these are
 #   properly handled when generating HTML output.
 
@@ -90,15 +90,15 @@ def streaminfo404():
 
 
 class SearchPathMapper(AbstractPathMapper):
-    
+
     def __init__(self,session,id2hits,tqueue):
         self.session = session
         self.id2hits = id2hits
         self.tqueue = tqueue
-        
+
         self.metafp = None
         self.metafeedurl = None
-        
+
     def get(self,urlpath):
         """
         Possible paths:
@@ -106,24 +106,24 @@ class SearchPathMapper(AbstractPathMapper):
         """
         if not urlpath.startswith(URLPATH_SEARCH_PREFIX):
             return streaminfo404()
-        
+
         fakeurl = 'http://127.0.0.1'+urlpath
         o = urlparse.urlparse(fakeurl)
         qdict = cgi.parse_qs(o[4])
         if DEBUG:
             print >>sys.stderr,"searchmap: qdict",qdict
-        
+
         searchstr = qdict['q'][0]
         searchstr = searchstr.strip()
         collection = qdict['collection'][0]
         metafeedurl = qdict['metafeed'][0]
-        
+
         print >>sys.stderr,"\nbg: search: Got search for",`searchstr`,"in",collection
-        
+
         # Garbage collect:
         self.id2hits.garbage_collect_timestamp_smaller(time.time() - HITS_TIMEOUT)
 
-        
+
         if collection == "metafeed":
             if not self.check_reload_metafeed(metafeedurl):
                 return {'statuscode':504, 'statusmsg':'504 MetaFeed server did not respond'}
@@ -145,16 +145,16 @@ class SearchPathMapper(AbstractPathMapper):
                 print_exc()
             hits = feedp.search(searchstr)
             allhits.extend(hits)
-        
+
         for hitentry in allhits:
             titleelement = hitentry.find('{http://www.w3.org/2005/Atom}title')
             print >>sys.stderr,"bg: search: meta: Got hit",titleelement.text
 
-        
+
         id = str(random.random())[2:]
         atomurlpathprefix = URLPATH_HITS_PREFIX+'/'+str(id)
         atomxml = feedhits2atomxml(allhits,searchstr,atomurlpathprefix)
-        
+
         atomstream = StringIO(atomxml)
         atomstreaminfo = { 'statuscode':200,'mimetype': 'application/atom+xml', 'stream': atomstream, 'length': len(atomxml)}
 
@@ -162,69 +162,69 @@ class SearchPathMapper(AbstractPathMapper):
 
 
     def process_search_p2p(self,searchstr):
-        """ Search for hits in local database and perform remote query. 
+        """ Search for hits in local database and perform remote query.
         EXPERIMENTAL: needs peers with SIMPLE+METADATA query support.
         """
-        
+
         # Initially, searchstr = keywords
         keywords = searchstr.split()
 
         id = str(random.random())[2:]
         self.id2hits.add_query(id,searchstr,time.time())
-        
+
         # Parallel:  initiate remote query
         q = P2PQUERYTYPE+' '+searchstr
-        
+
         print >>sys.stderr,"bg: search: Send remote query for",q
         got_remote_hits_lambda = lambda permid,query,remotehits:self.sesscb_got_remote_hits(id,permid,query,remotehits)
         self.st = time.time()
         self.session.query_connected_peers(q,got_remote_hits_lambda,max_peers_to_query=20)
-        
+
         # Query local DB while waiting
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         localdbhits = torrent_db.searchNames(keywords)
         print >>sys.stderr,"bg: search: Local hits",len(localdbhits)
         self.session.close_dbhandler(torrent_db)
-        
+
         # Convert list to dict keyed by infohash
         localhits = localdbhits2hits(localdbhits)
         self.id2hits.add_hits(id,localhits)
 
         # TODO ISSUE: incremental display of results to user? How to implement this?
         atomurlpathprefix = URLPATH_HITS_PREFIX+'/'+str(id)
-        nextlinkpath = atomurlpathprefix  
-        
-        if False: 
+        nextlinkpath = atomurlpathprefix
+
+        if False:
             # Return ATOM feed directly
             atomhits = hits2atomhits(localhits,atomurlpathprefix)
             atomxml = atomhits2atomxml(atomhits,searchstr,atomurlpathprefix,nextlinkpath=nextlinkpath)
-            
+
             atomstream = StringIO(atomxml)
             atomstreaminfo = { 'statuscode':200,'mimetype': 'application/atom+xml', 'stream': atomstream, 'length': len(atomxml)}
-            
+
             return atomstreaminfo
         else:
-            # Return redirect to ATOM feed URL, this allows us to do a page 
+            # Return redirect to ATOM feed URL, this allows us to do a page
             # page reload to show remote queries that have come in (DEMO)
             streaminfo = { 'statuscode':301,'statusmsg':nextlinkpath }
             return streaminfo
-        
+
 
     def sesscb_got_remote_hits(self,id,permid,query,remotehits):
-        # Called by SessionCallback thread 
+        # Called by SessionCallback thread
         try:
-            
+
             et = time.time()
             diff = et - self.st
             print >>sys.stderr,"bg: search: Got",len(remotehits),"remote hits" # ,"after",diff
 
             hits = remotehits2hits(remotehits)
             self.id2hits.add_hits(id,hits)
-        
-            if P2PQUERYTYPE=="SIMPLE+METADATA": 
-                bgsearch_save_remotehits_lambda = lambda:self.tqueue_save_remote_hits(remotehits) 
+
+            if P2PQUERYTYPE=="SIMPLE+METADATA":
+                bgsearch_save_remotehits_lambda = lambda:self.tqueue_save_remote_hits(remotehits)
                 self.tqueue.add_task(bgsearch_save_remotehits_lambda,0)
-            
+
         except:
             print_exc()
 
@@ -239,17 +239,17 @@ class SearchPathMapper(AbstractPathMapper):
             except:
                 print_exc()
                 return False
-            
+
         return True
-                
+
     def tqueue_save_remote_hits(self,remotehits):
         """ Save .torrents received from SIMPLE+METADATA query on a separate
         thread.
         Run by TimedTaskQueueThread
         """
-        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)        
+        torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         extra_info = {'status':'good'}
-        
+
         n = len(remotehits)
         count = 0
         commit = False
@@ -262,7 +262,7 @@ class SearchPathMapper(AbstractPathMapper):
             except:
                 print_exc()
             count += 1
-            
+
         self.session.close_dbhandler(torrent_db)
 
     def tqueue_save_collected_torrent(self,metatype,metadata):
@@ -275,10 +275,10 @@ class SearchPathMapper(AbstractPathMapper):
 
         infohash = tdef.get_infohash()
         colldir = self.session.get_torrent_collecting_dir()
-        
+
         filename = get_collected_torrent_filename(infohash)
         torrentpath = os.path.join(colldir, filename)
-        
+
         print >>sys.stderr,"bg: search: saving remotehit",torrentpath
         tdef.save(torrentpath)
         return torrentpath
@@ -298,9 +298,9 @@ def localdbhits2hits(localdbhits):
 def remotehits2hits(remotehits):
     hits = {}
     for infohash,hit in remotehits.iteritems():
-        
+
         #print >>sys.stderr,"remotehit2hits: keys",hit.keys()
-        
+
         remotehit = {}
         remotehit['hittype'] = "remote"
         #remotehit['query_permid'] = permid # Bit of duplication, ignore
@@ -313,7 +313,7 @@ def remotehits2hits(remotehits):
             metadata = hack_make_default_merkletorrent(hit['content_name'])
             remotehit['metatype'] = metatype
             remotehit['metadata'] = metadata
-        
+
         hits[infohash] = remotehit
     return hits
 
@@ -322,8 +322,8 @@ class Query2HitsMap:
     """ Stores localdb and remotehits in common hits format, i.e., each
     hit has a 'hittype' attribute that tells which type it is (localdb or remote).
     This Query2HitsMap is passed to the Hits2AnyPathMapper, which is connected
-    to the internal HTTP server. 
-    
+    to the internal HTTP server.
+
     The HTTP server will then forward all "/hits" GET requests to this mapper.
     The mapper then dynamically generates the required contents from the stored
     hits, e.g. an ATOM feed, MPEG7 description, .torrent file and thumbnail
@@ -334,7 +334,7 @@ class Query2HitsMap:
         self.lock = RLock()
         self.d = {}
 
-        
+
     def add_query(self,id,searchstr,timestamp):
         if DEBUG:
             print >>sys.stderr,"q2h: lock1",id
@@ -350,7 +350,7 @@ class Query2HitsMap:
                 print >>sys.stderr,"q2h: unlock1"
             self.lock.release()
 
-        
+
     def add_hits(self,id,hits):
         if DEBUG:
             print >>sys.stderr,"q2h: lock2",id,len(hits)
@@ -362,7 +362,7 @@ class Query2HitsMap:
             if DEBUG:
                 print >>sys.stderr,"q2h: unlock2"
             self.lock.release()
-            
+
     def get_hits(self,id):
         if DEBUG:
             print >>sys.stderr,"q2h: lock3",id
@@ -398,18 +398,18 @@ class Query2HitsMap:
                 del self.d[id]
         finally:
             self.lock.release()
-            
+
 
 
 class Hits2AnyPathMapper(AbstractPathMapper):
     """ See Query2Hits description """
-    
+
     def __init__(self,session,id2hits):
         self.session = session
         self.id2hits = id2hits
-        
+
     def get(self,urlpath):
-        """ 
+        """
         Possible paths:
         /hits/id -> ATOM feed
         /hits/id/infohash.xml  -> MPEG 7
@@ -418,14 +418,14 @@ class Hits2AnyPathMapper(AbstractPathMapper):
         """
         if DEBUG:
             print >>sys.stderr,"hitsmap: Got",urlpath
-        
+
         if not urlpath.startswith(URLPATH_HITS_PREFIX):
             return streaminfo404()
 
         paths = urlpath.split('/')
         if len(paths) < 3:
             return streaminfo404()
-        
+
         id = paths[2]
         if len(paths) == 3:
             # ATOM feed
@@ -435,28 +435,28 @@ class Hits2AnyPathMapper(AbstractPathMapper):
             if DEBUG:
                 print >>sys.stderr,"hitsmap: Found",len(hits),"hits"
 
-            
+
             atomhits = hits2atomhits(hits,urlpath)
 
             if DEBUG:
                 print >>sys.stderr,"hitsmap: Found",len(atomhits),"atomhits"
-            
-            
+
+
             atomxml = atomhits2atomxml(atomhits,searchstr,urlpath)
-            
+
             #if DEBUG:
             #    print >>sys.stderr,"hitsmap: atomstring is",`atomxml`
-                
+
             atomstream = StringIO(atomxml)
             atomstreaminfo = { 'statuscode':200,'mimetype': 'application/atom+xml', 'stream': atomstream, 'length': len(atomxml)}
             return atomstreaminfo
-        
+
         elif len(paths) >= 4:
             # Either NS Metadata, Torrent file, or thumbnail
             urlinfohash = paths[3]
-            
+
             print >>sys.stderr,"hitsmap: path3 is",urlinfohash
-            
+
             if urlinfohash.endswith(URLPATH_TORRENT_POSTFIX):
                 # Torrent file, or thumbnail
                 coded = urlinfohash[:-len(URLPATH_TORRENT_POSTFIX)]
@@ -465,17 +465,17 @@ class Hits2AnyPathMapper(AbstractPathMapper):
                 # NS Metadata / MPEG7
                 coded = urlinfohash[:-len(URLPATH_NSMETA_POSTFIX)]
                 infohash = urlpath2infohash(coded)
-            
+
             # Check if hit:
             hits = self.id2hits.get_hits(id)
             print >>sys.stderr,"hitsmap: meta: Found",len(hits),"hits"
-            
+
             hit = hits.get(infohash,None)
             if hit is not None:
                 if len(paths) == 5:
                     # Thumbnail
                     return self.get_thumbstreaminfo(infohash,hit)
-                
+
                 elif urlinfohash.endswith(URLPATH_TORRENT_POSTFIX):
                     # Torrent file
                     return self.get_torrentstreaminfo(infohash,hit)
@@ -486,16 +486,16 @@ class Hits2AnyPathMapper(AbstractPathMapper):
         return streaminfo404()
 
     def get_torrentstreaminfo(self,infohash,hit):
-        
+
         if DEBUG:
             print >>sys.stderr,"hitmap: get_torrentstreaminfo",infohash2urlpath(infohash)
-        
+
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         try:
             if hit['hittype'] == "localdb":
-                
+
                 dbhit = torrent_db.getTorrent(infohash,include_mypref=False)
-                
+
                 colltorrdir = self.session.get_torrent_collecting_dir()
                 filepath = os.path.join(colltorrdir,dbhit['torrent_file_name'])
                 # Return stream that contains torrent file
@@ -516,21 +516,21 @@ class Hits2AnyPathMapper(AbstractPathMapper):
             self.session.close_dbhandler(torrent_db)
 
     def get_thumbstreaminfo(self,infohash,hit):
-        
+
         if DEBUG:
             print >>sys.stderr,"hitmap: get_thumbstreaminfo",infohash2urlpath(infohash)
-        
+
         torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
         try:
             if hit['hittype'] == "localdb":
                 dbhit = torrent_db.getTorrent(infohash,include_mypref=False)
-                
+
                 colltorrdir = self.session.get_torrent_collecting_dir()
                 filepath = os.path.join(colltorrdir,dbhit['torrent_file_name'])
                 tdef = TorrentDef.load(filepath)
                 (thumbtype,thumbdata) = tdef.get_thumbnail()
                 return self.create_thumbstreaminfo(thumbtype,thumbdata)
-                    
+
             else:
                 if hit['metatype'] == URL_MIME_TYPE:
                     # Shouldn't happen, not thumb in P2PURL
@@ -538,7 +538,7 @@ class Hits2AnyPathMapper(AbstractPathMapper):
                 else:
                     if DEBUG:
                         print >>sys.stderr,"hitmap: get_thumbstreaminfo: looking for thumb in remote hit"
-                    
+
                     metainfo = bdecode(hit['metadata'])
                     tdef = TorrentDef.load_from_dict(metainfo)
                     (thumbtype,thumbdata) = tdef.get_thumbnail()
@@ -560,10 +560,10 @@ class Hits2AnyPathMapper(AbstractPathMapper):
     def get_nsmetastreaminfo(self,infohash,hit,hiturlpathprefix,hitpath):
         colltorrdir = self.session.get_torrent_collecting_dir()
         nsmetahit = hit2nsmetahit(hit,hiturlpathprefix,colltorrdir)
-        
+
         if DEBUG:
             print >>sys.stderr,"hitmap: get_nsmetastreaminfo: nsmetahit is",`nsmetahit`
-        
+
         nsmetarepr = nsmetahit2nsmetarepr(nsmetahit,hitpath)
         nsmetastream = StringIO(nsmetarepr)
         nsmetastreaminfo = { 'statuscode':200,'mimetype': 'text/xml', 'stream': nsmetastream, 'length': len(nsmetarepr)}
@@ -571,16 +571,16 @@ class Hits2AnyPathMapper(AbstractPathMapper):
 
 
 def infohash2urlpath(infohash):
-    
+
     if len(infohash) != 20:
         raise ValueError("infohash len 20 !=" + str(len(infohash)))
-    
+
     hex = binascii.hexlify(infohash)
     if len(hex) != 40:
         raise ValueError("hex len 40 !=" + str(len(hex)))
-    
+
     return hex
-    
+
 def urlpath2infohash(hex):
 
     if len(hex) != 40:
@@ -589,7 +589,7 @@ def urlpath2infohash(hex):
     infohash = binascii.unhexlify(hex)
     if len(infohash) != 20:
         raise ValueError("infohash len 20 !=" + str(len(infohash)))
-    
+
     return infohash
 
 
@@ -602,9 +602,9 @@ def hits2atomhits(hits,urlpathprefix):
         else:
             atomhit = remotehit2atomhit(hit,urlpathprefix)
             atomhits[infohash] = atomhit
-            
+
     return atomhits
-            
+
 
 def localdbhit2atomhit(dbhit,urlpathprefix):
     atomhit = {}
@@ -613,19 +613,19 @@ def localdbhit2atomhit(dbhit,urlpathprefix):
     if dbhit['thumbnail']:
         urlpath = urlpathprefix+'/'+infohash2urlpath(dbhit['infohash'])+URLPATH_TORRENT_POSTFIX+URLPATH_THUMBNAIL_POSTFIX
         atomhit['p2pnext:image'] = urlpath
-    
+
     return atomhit
 
 def remotehit2atomhit(remotehit,urlpathprefix):
     # TODO: make RemoteQuery return full DB schema of TorrentDB
-    
+
     #print >>sys.stderr,"remotehit2atomhit: keys",remotehit.keys()
-    
+
     atomhit = {}
     atomhit['title'] = htmlfilter(remotehit['content_name'].encode("UTF-8"))
     atomhit['summary'] = "Seeders: "+str(remotehit['seeder'])+" Leechers: "+str(remotehit['leecher'])
     if remotehit['metatype'] != URL_MIME_TYPE:
-        # TODO: thumbnail, see if we can detect presence (see DB schema remark). 
+        # TODO: thumbnail, see if we can detect presence (see DB schema remark).
         # Now we assume it's always there if not P2PURL
         urlpath = urlpathprefix+'/'+infohash2urlpath(remotehit['infohash'])+URLPATH_TORRENT_POSTFIX+URLPATH_THUMBNAIL_POSTFIX
         atomhit['p2pnext:image'] = urlpath
@@ -643,7 +643,7 @@ def htmlfilter(s):
     return news
 
 def atomhits2atomxml(atomhits,searchstr,urlpathprefix,nextlinkpath=None):
-    
+
     # TODO: use ElementTree parser here too, see AtomFeedParser:feedhits2atomxml
     atom = ''
     atom += '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -651,7 +651,7 @@ def atomhits2atomxml(atomhits,searchstr,urlpathprefix,nextlinkpath=None):
     atom += '  <title>Hits for '+searchstr+'</title>\n'
     atom += '  <link rel="self" href="'+urlpathprefix+'" />\n'
     if nextlinkpath:
-         atom += '  <link rel="next" href="'+nextlinkpath+'" />\n'
+        atom += '  <link rel="next" href="'+nextlinkpath+'" />\n'
     atom += '  <author>\n'
     atom += '  <name>NSSA</name>\n'
     atom += '  </author>\n'
@@ -672,7 +672,7 @@ def atomhits2atomxml(atomhits,searchstr,urlpathprefix,nextlinkpath=None):
         if 'p2pnext:image' in hit:
             atom += '    <p2pnext:image src="'+hit['p2pnext:image']+'" />\n'
         atom += '  </entry>\n'
-    
+
     atom += '</feed>\n'
 
     return atom
@@ -682,17 +682,17 @@ def hit2nsmetahit(hit,hiturlprefix,colltorrdir):
     """ Convert common hit to the fields required for the MPEG7 NS metadata """
 
     print >>sys.stderr,"his2nsmetahit:"
-    
+
     # Read info from torrent files / P2PURLs
     if hit['hittype'] == "localdb":
-        
+
         name = hit['name']
-        if hit['torrent_file_name'].startswith(P2PURL_SCHEME): 
-            # Local DB hit that is P2PURL 
+        if hit['torrent_file_name'].startswith(P2PURL_SCHEME):
+            # Local DB hit that is P2PURL
             torrenturl = hit['torrent_file_name']
             titleimgurl = None
             tdef = TorrentDef.load_from_url(torrenturl)
-        else: 
+        else:
             # Local DB hit that is torrent file
             torrenturlpath = '/'+infohash2urlpath(hit['infohash'])+URLPATH_TORRENT_POSTFIX
             torrenturl = hiturlprefix + torrenturlpath
@@ -703,7 +703,7 @@ def hit2nsmetahit(hit,hiturlprefix,colltorrdir):
                 titleimgurl = None
             else:
                 titleimgurl = torrenturl+URLPATH_THUMBNAIL_POSTFIX
-           
+
     else:
         # Remote hit
         name = hit['content_name']
@@ -722,8 +722,8 @@ def hit2nsmetahit(hit,hiturlprefix,colltorrdir):
             else:
                 titleimgurl = torrenturl+URLPATH_THUMBNAIL_POSTFIX
 
-    
-    # Extract info required for NS metadata MPEG7 representation. 
+
+    # Extract info required for NS metadata MPEG7 representation.
     nsmetahit = {}
     nsmetahit['title'] = unicode2iri(name)
     nsmetahit['titleimgurl'] = titleimgurl
@@ -735,26 +735,26 @@ def hit2nsmetahit(hit,hiturlprefix,colltorrdir):
     nsmetahit['producer'] = 'Insert Name Here'
     creator = tdef.get_created_by()
     if creator is None:
-        creator = 'Insert Name Here Too' 
-    nsmetahit['disseminator'] = creator 
+        creator = 'Insert Name Here Too'
+    nsmetahit['disseminator'] = creator
     nsmetahit['copyrightstr'] = 'Copyright '+creator
     nsmetahit['torrent_url'] = torrenturl
     # TODO: multifile torrents, LIVE
-    nsmetahit['duration']  = bitratelength2nsmeta_duration(tdef.get_bitrate(),tdef.get_length())  
+    nsmetahit['duration']  = bitratelength2nsmeta_duration(tdef.get_bitrate(),tdef.get_length())
 
     return nsmetahit
 
-    
+
 
 def unicode2iri(uni):
     # Roughly after http://www.ietf.org/rfc/rfc3987.txt Sec 3.1 procedure.
     # TODO: do precisely after.
     s = uni.encode('UTF-8')
-    return urllib.quote(s)    
+    return urllib.quote(s)
 
 
-    
-def bitratelength2nsmeta_duration(bitrate,length):    
+
+def bitratelength2nsmeta_duration(bitrate,length):
     # Format example: PT0H15M0S
     if bitrate is None:
         return 'PT01H00M0S' # 1 hour
@@ -763,22 +763,22 @@ def bitratelength2nsmeta_duration(bitrate,length):
     secs = secs - hours*3600.0
     mins = float(int(secs / 60.0))
     secs = secs - mins*60.0
-    
+
     return 'PT%02.0fH%02.0fM%02.0fS' % (hours,mins,secs)
 
 
 def nsmetahit2nsmetarepr(hit,hitpath):
-    
+
     title = hit['title']
     titleimgurl = hit['titleimgurl']
-    abstract = hit['abstract']   
+    abstract = hit['abstract']
     producer = hit['producer']
     disseminator = hit['disseminator']
     copyrightstr = hit['copyrightstr']
     torrenturl = hit['torrent_url']
     duration  = hit['duration'] # Format example: PT0H15M0S
     livetimepoint = now2formatRFC3339() # Format example: '2009-10-05T00:40:00+01:00' # TODO VOD
-    
+
     s = ''
     s += '<?xml version="1.0" encoding="UTF-8"?>\n'
     s += '<Mpeg7 xmlns="urn:mpeg:mpeg7:schema:2001" xmlns:p2pnext="urn:p2pnext:metadata:2008" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">\n'
@@ -859,7 +859,7 @@ def hack_make_default_merkletorrent(title):
     info['piece length'] = 2 ** 16
     info['root hash'] = '*' * 20
     metainfo['info'] = info
-    
+
     mdict = {}
     mdict['Publisher'] = 'Tribler'
     mdict['Description'] = ''
@@ -873,27 +873,27 @@ def hack_make_default_merkletorrent(title):
     cdict = {}
     cdict['Content'] = mdict
     metainfo['azureus_properties'] = cdict
-    
+
     return bencode(metainfo)
 
 
 
-    
+
 
 """
 class Infohash2TorrentPathMapper(AbstractPathMapper):
     Mapper to map in the collection of known torrents files (=collected + started
     + own) into the HTTP address space of the local HTTP server. In particular,
     it maps a "/infohash/aabbccdd...zz.tstream" path to a streaminfo dict.
-    
+
     Also supported are "/infohash/aabbccdd...zz.tstream/thumbnail" queries, which
     try to read the thumbnail from the torrent.
-        
+
     def __init__(self,urlpathprefix,session):
         self.urlpathprefix = urlpathprefix
         self.session = session
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        
+
     def get(self,urlpath):
         if not urlpath.startswith(self.urlpathprefix):
             return None
@@ -906,10 +906,10 @@ class Infohash2TorrentPathMapper(AbstractPathMapper):
                 infohashquote = urlpath[len(self.urlpathprefix):-len(URLPATH_TORRENT_POSTFIX)]
             infohash = urlpath2infohash(infohash)
             dbhit = self.torrent_db.getTorrent(infohash,include_mypref=False)
-            
+
             colltorrdir = self.session.get_torrent_collecting_dir()
             filepath = os.path.join(colltorrdir,dbhit['torrent_file_name'])
-                                                      
+
             if not wantthumb:
                 # Return stream that contains torrent file
                 stream = open(filepath,"rb")
@@ -924,7 +924,7 @@ class Infohash2TorrentPathMapper(AbstractPathMapper):
                 else:
                     stream = StringIO(thumbdata)
                     streaminfo = {'statuscode':200,'mimetype':thumbtype,'stream':stream,'length':len(thumbdata)}
-                
+
             return streaminfo
         except:
             print_exc()

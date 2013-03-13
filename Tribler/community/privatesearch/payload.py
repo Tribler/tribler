@@ -6,33 +6,33 @@ MAXLONG256 = (1 << 2048) - 1
 
 class EncryptedIntroPayload(IntroductionRequestPayload):
     class Implementation(IntroductionRequestPayload.Implementation):
-        
+
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, preference_list = None, key_n = None):
             IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
             assert not preference_list or isinstance(preference_list, list), 'preferencelist should be list'
             assert not key_n or isinstance(key_n, long), 'key_n should be long'
-            
+
             if preference_list:
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
 
             self._preference_list = preference_list
             self._key_n = key_n
-        
+
         def set_preference_list(self, preference_list):
             self._preference_list = preference_list
-            
+
         def set_key_n(self, key_n):
             self._key_n = key_n
-            
+
         @property
         def preference_list(self):
             return self._preference_list
-        
+
         @property
         def key_n(self):
             return self._key_n
-        
+
 class EncryptedResponsePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, preference_list, his_preference_list):
@@ -41,12 +41,12 @@ class EncryptedResponsePayload(Payload):
                 assert isinstance(preference_list, list), 'preferencelist should be list not %s'%type(preference_list)
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
-                
+
                 assert isinstance(his_preference_list, list), 'his_preference_list should be list not %s'%type(his_preference_list)
                 for hpreference in his_preference_list:
                     assert isinstance(hpreference, str), type(hpreference)
                     assert len(hpreference) == 20, len(hpreference)
-                    
+
             super(EncryptedResponsePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._preference_list = preference_list
@@ -59,41 +59,41 @@ class EncryptedResponsePayload(Payload):
         @property
         def preference_list(self):
             return self._preference_list
-        
+
         @property
         def his_preference_list(self):
             return self._his_preference_list
-        
+
 class BundledEncryptedResponsePayload(EncryptedResponsePayload):
     class Implementation(EncryptedResponsePayload.Implementation):
         def __init__(self, meta, identifier, preference_list, his_preference_list, bundled_responses):
             EncryptedResponsePayload.Implementation.__init__(self, meta, identifier, preference_list, his_preference_list)
-            
+
             assert isinstance(bundled_responses, list), 'bundled_responses should be list not %s'%type(bundled_responses)
             assert len(bundled_responses) == len(set(mid for mid,_ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
             for candidate_mid, response in bundled_responses:
                 assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                 assert len(candidate_mid) == 20, len(candidate_mid)
-                
+
                 assert isinstance(response, tuple), type(response)
                 assert len(response)==2, len(response)
-                
+
                 preference_list, his_preference_list = response
                 assert isinstance(preference_list, list), 'preferencelist should be list not %s'%type(preference_list)
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
-                
+
                 assert isinstance(his_preference_list, list), 'his_preference_list should be list not %s'%type(his_preference_list)
                 for hpreference in his_preference_list:
                     assert isinstance(hpreference, str), type(hpreference)
                     assert len(hpreference) == 20, len(hpreference)
-            
+
             self._bundled_responses = bundled_responses
-        
+
         @property
         def bundled_responses(self):
             return self._bundled_responses
-        
+
 class GlobalVectorPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, preference_list):
@@ -103,7 +103,7 @@ class GlobalVectorPayload(Payload):
                 for item in preference_list:
                     assert isinstance(item, long), type(item)
                     assert item < MAXLONG256
-                    
+
             super(GlobalVectorPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._preference_list = preference_list
@@ -127,7 +127,7 @@ class EncryptedVectorPayload(Payload):
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
                     assert preference < MAXLONG256
-                    
+
             super(EncryptedVectorPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._key_n = key_n
@@ -136,7 +136,7 @@ class EncryptedVectorPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-        
+
         @property
         def key_n(self):
             return self._key_n
@@ -144,7 +144,7 @@ class EncryptedVectorPayload(Payload):
         @property
         def preference_list(self):
             return self._preference_list
-        
+
 class EncryptedSumPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, _sum):
@@ -152,7 +152,7 @@ class EncryptedSumPayload(Payload):
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), 'sum should be long'
                 assert _sum < MAXLONG256
-                    
+
             super(EncryptedSumPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self.__sum = _sum
@@ -160,11 +160,11 @@ class EncryptedSumPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-        
+
         @property
         def _sum(self):
             return self.__sum
-        
+
 class EncryptedSumsPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, _sum, sums):
@@ -172,15 +172,15 @@ class EncryptedSumsPayload(Payload):
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), type(_sum)
                 assert _sum < MAXLONG256
-                
+
                 assert isinstance(sums, list), type(sums)
-                
+
                 for candidate_mid, address_sum in sums:
                     assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                     assert len(candidate_mid) == 20, len(candidate_mid)
                     assert isinstance(address_sum, long), 'address_sum should be long'
                     assert address_sum < MAXLONG256
-                    
+
             super(EncryptedSumsPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self.__sum = _sum
@@ -189,59 +189,59 @@ class EncryptedSumsPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-        
+
         @property
         def _sum(self):
             return self.__sum
-        
+
         @property
         def sums(self):
             return self._sums
-        
+
 class ExtendedIntroPayload(IntroductionRequestPayload):
     class Implementation(IntroductionRequestPayload.Implementation):
-        
+
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, introduce_me_to = None):
             IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
             if introduce_me_to:
                 assert isinstance(introduce_me_to, str), 'introduce_me_to should be str'
                 assert len(introduce_me_to) == 20, len(introduce_me_to)
-            
+
             self._introduce_me_to = introduce_me_to
-        
+
         def set_introduce_me_to(self, introduce_me_to):
             self._introduce_me_to = introduce_me_to
-        
+
         @property
         def introduce_me_to(self):
             return self._introduce_me_to
-        
+
 class SimilarityRequest(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, key_n, preference_list):
             assert isinstance(identifier, int), type(identifier)
-            assert not key_n or isinstance(key_n, long), 'key_n should be long'  
+            assert not key_n or isinstance(key_n, long), 'key_n should be long'
             assert not preference_list or isinstance(preference_list, list), 'preferencelist should be list'
             if preference_list:
                 for preference in preference_list:
                     assert isinstance(preference, long), type(preference)
-            
+
             self._identifier = identifier
             self._key_n = key_n
             self._preference_list = preference_list
-        
+
         @property
         def identifier(self):
             return self._identifier
-           
+
         @property
         def key_n(self):
             return self._key_n
-        
+
         @property
         def preference_list(self):
             return self._preference_list
-        
+
 class SearchRequestPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, ttl, keywords, bloom_filter = None):
@@ -252,9 +252,9 @@ class SearchRequestPayload(Payload):
                 for keyword in keywords:
                     assert isinstance(keyword, unicode), '%s is type %s'%(keyword, type(keyword))
                     assert len(keyword) > 0
-                    
+
                 assert not bloom_filter or isinstance(bloom_filter, BloomFilter), type(bloom_filter)
-                    
+
             super(SearchRequestPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._ttl = ttl
@@ -264,15 +264,15 @@ class SearchRequestPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-        
+
         @property
         def ttl(self):
             return self._ttl
-        
+
         @property
         def keywords(self):
             return self._keywords
-        
+
         @property
         def bloom_filter(self):
             return self._bloom_filter
@@ -283,10 +283,10 @@ class SearchResponsePayload(Payload):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(results, list), type(results)
-                for result in results: 
+                for result in results:
                     assert isinstance(result, tuple), type(result)
                     assert len(result) > 10
-                    
+
                     infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20
@@ -304,7 +304,7 @@ class SearchResponsePayload(Payload):
                     assert not swift_torrent_hash or len(swift_torrent_hash) == 20, swift_torrent_hash
                     assert not cid or isinstance(cid, str), type(cid)
                     assert not cid or len(cid) == 20, cid
-                    
+
             super(SearchResponsePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._results = results
@@ -329,31 +329,31 @@ class TorrentRequestPayload(Payload):
                     assert not filter(lambda x: not isinstance(x, str), infohashes)
                     assert not filter(lambda x: not len(x) == 20, infohashes)
                     assert len(infohashes) > 0
-            
+
             super(TorrentRequestPayload.Implementation, self).__init__(meta)
             self._torrents = torrents
 
         @property
         def torrents(self):
             return self._torrents
-        
+
 class TorrentPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, infohash, timestamp, name, files, trackers):
             assert isinstance(infohash, str), 'infohash is a %s'%type(infohash)
             assert len(infohash) == 20, 'infohash has length %d'%len(infohash)
             assert isinstance(timestamp, (int, long))
-            
+
             assert isinstance(name, unicode)
             assert isinstance(files, tuple)
             for path, length in files:
                 assert isinstance(path, unicode)
                 assert isinstance(length, (int, long))
-                
+
             assert isinstance(trackers, tuple)
             for tracker in trackers:
                 assert isinstance(tracker, str), 'tracker is a %s'%type(tracker)
-            
+
             super(TorrentPayload.Implementation, self).__init__(meta)
             self._infohash = infohash
             self._timestamp = timestamp
@@ -364,19 +364,19 @@ class TorrentPayload(Payload):
         @property
         def infohash(self):
             return self._infohash
-        
+
         @property
         def timestamp(self):
             return self._timestamp
-        
+
         @property
         def name(self):
             return self._name
-        
+
         @property
         def files(self):
             return self._files
-        
+
         @property
         def trackers(self):
             return self._trackers
@@ -386,7 +386,7 @@ class PingPayload(Payload):
         def __init__(self, meta, identifier, torrents):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
-                
+
                 assert isinstance(torrents, list), type(torrents)
                 for hash, infohash, seeders, leechers, ago in torrents:
                     assert isinstance(hash, str)
@@ -399,16 +399,16 @@ class PingPayload(Payload):
                     assert 0 <= leechers < 2 ** 16, leechers
                     assert isinstance(ago, int)
                     assert 0 <= ago < 2 ** 16, ago
-                    
+
             super(PingPayload.Implementation, self).__init__(meta)
-            
+
             self._identifier = identifier
             self._torrents = torrents
 
         @property
         def identifier(self):
             return self._identifier
-        
+
         @property
         def torrents(self):
             return self._torrents

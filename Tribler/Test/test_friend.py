@@ -19,12 +19,12 @@ lines = [
 ]
 
 class TestFriendList(unittest.TestCase):
-    
+
     def setUp(self):
         self.tmpfilepath = tempfile.mktemp()
         self.tmpdirpath = os.path.join(tempfile.gettempdir(), 'testdb')
         self.flist = ExternalFriendList(friend_file=self.tmpfilepath, db_dir=self.tmpdirpath)
-        
+
     def tearDown(self):
         self.flist.clear()
         try:
@@ -36,24 +36,24 @@ class TestFriendList(unittest.TestCase):
         tf = open(self.tmpfilepath, "w")
         tf.writelines(lines)
         tf.close()
-            
+
     def test_readFriendList(self):
         self.writeFriends()
         res = self.flist.readFriendList(self.tmpfilepath)
         assert len(res) == 3, res
         assert res[1]['name'] == 'Arno Bakker', res[0]
-        
+
     def test_updateDB(self):
         self.writeFriends()
         res = self.flist.readFriendList()
         self.flist.updateDB(res)
         self.db_is_ok()
-        
+
     def test_updateFriendList(self):
         self.writeFriends()
         self.flist.updateFriendList()
         self.db_is_ok()
-        
+
     def db_is_ok(self):
         self.my_db = MyDB.getInstance()
         self.peer_db = PeerDB.getInstance()
@@ -62,7 +62,7 @@ class TestFriendList(unittest.TestCase):
         base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy\n')
         ]), self.my_db._get('friends')
         assert self.peer_db._size() == 2
-        
+
     def test_getFriends(self):
         self.writeFriends()
         self.flist.updateFriendList()
@@ -70,7 +70,7 @@ class TestFriendList(unittest.TestCase):
         answer = [
                    {'permid': base64.decodestring('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAWAiRwei5Kw9b2he6qmwh5Hr5fNR3FlgHQ1WhXY0AC4w8RQD59rp4Jbo2NdjyXUGb5y1BCeMCGoRCaFy\n'),
                    'name':'Arno Bakker',
-                   'ip':'130.37.193.64', 
+                   'ip':'130.37.193.64',
                    'port':6881,
                    'similarity':0,
                    'last_seen':0,
@@ -91,7 +91,7 @@ class TestFriendList(unittest.TestCase):
                    'last_seen':0,
                    'buddycast_times':0,
                    'last_buddycast_time':0,
-                   'oversion':0,                   
+                   'oversion':0,
                    'connected_times':0,
                    'npeers':0,
                    'ntorrents':0,
@@ -114,7 +114,7 @@ class TestFriendList(unittest.TestCase):
             k.sort()
             print "ANSWER",k
         """
-        
+
         assert friends == answer or (friends[0] == answer[1] and friends[1] == answer[0]), friends
         #self.flist.writeFriendList('tmp.txt')
         self.flist.deleteFriend(answer[0]['permid'])
@@ -131,6 +131,5 @@ class TestFriendList(unittest.TestCase):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestFriendList))
-    
+
     return suite
-    

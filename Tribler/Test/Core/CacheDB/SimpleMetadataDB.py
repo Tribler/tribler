@@ -13,7 +13,7 @@ class SimpleMetadataDB(object):
     '''
     Mimics the SQLiteCacheDB, to be used fot testing
     '''
-    
+
 
 
     def __init__(self, sql_create, destination_db = ":memory:", createDB = True):
@@ -21,26 +21,26 @@ class SimpleMetadataDB(object):
         Constructor
         '''
         self._connection = sqlite3.connect(destination_db)
-        
+
         #init
         if createDB:
             path = os.path.join(RES_DIR,CREATE_SQL_FILE)
             with open(path, "rb") as sql_script:
                 script = sql_script.readlines()
-        
+
                 script = "".join(script)
-        
+
                 cursor = self._connection.cursor()
                 cursor.executescript(script)
-    
-    
+
+
     def fetchall(self,sql,args=None):
         cursor = self._connection.cursor()
         if args is None:
             args = ()
         cursor.execute(sql,args)
         sqliteRows = cursor.fetchall()
-        
+
         returnlist = []
         for row in sqliteRows:
             templist = []
@@ -49,9 +49,9 @@ class SimpleMetadataDB(object):
                     elem = str(elem)
                 templist.append(elem)
             returnlist.append(templist)
-                
+
         return returnlist
-    
+
     def execute_write(self,sql,args=None,commit=True):
         cursor = self._connection.cursor()
         if args is None:
@@ -59,18 +59,17 @@ class SimpleMetadataDB(object):
         cursor.execute(sql,args)
         if commit :
             self._connection.commit()
-            
+
     def commit(self):
         self._connection.commit()
-    
+
     def close(self):
         self._connection.close()
-        
-    
-        
+
+
+
 if __name__ == '__main__':
     #db = SimpleMetadataDB("res/create.sql")
     #db.execute_write("INSERT INTO Subtitles VALUES (1,'arg','a','a');")
     #res = db.fetchall("SELECT * FROM Subtitles;")
     pass
-        

@@ -345,4 +345,3 @@ class WebUI():
     
     def doSettings(self, args):
         return {"settings" : []}
-        

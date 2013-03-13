@@ -82,35 +82,35 @@ class AllChannelCommunity(Community):
 
     def __init__(self, master, integrate_with_tribler = True, auto_join_channel = False):
         super(AllChannelCommunity, self).__init__(master)
-        
+
         self.integrate_with_tribler = integrate_with_tribler
         self.auto_join_channel = auto_join_channel
-        
+
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
-        
+
             # tribler channelcast database
             self._channelcast_db = ChannelCastDBHandler.getInstance()
             self._votecast_db = VoteCastDBHandler.getInstance()
             self._peer_db = PeerDBHandler.getInstance()
-            
+
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._votecast_db = VoteCastDBStub(self._dispersy)
             self._peer_db = PeerDBStub(self._dispersy)
-        
+
         self._register_task = self.dispersy.callback.register
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
         # 15/02/12 Boudewijn: add the callback id to _pending_callbacks to allow the task to be
         # unregistered when the community is unloaded
         self._pending_callbacks.append(self._register_task(self.unload_preview, priority=-128))
-        
+
         self._blocklist = {}
         self._searchCallbacks = {}
 
     def initiate_meta_messages(self):
         batch_delay = 1.0
-        
+
         return [Message(self, u"channelcast", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastPayload(), self.check_channelcast, self.on_channelcast),
                 Message(self, u"channelcast-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), ChannelCastRequestPayload(), self.check_channelcast_request, self.on_channelcast_request),
                 Message(self, u"channelsearch", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CommunityDestination(node_count=10), ChannelSearchPayload(), self.check_channelsearch, self.on_channelsearch),
@@ -125,7 +125,7 @@ class AllChannelCommunity(Community):
     def dispersy_auto_download_master_member(self):
         # there is no dispersy-identity for the master member, so don't try to download
         return False
-    
+
     @property
     def dispersy_sync_response_limit(self):
         return 25 * 1024
@@ -135,24 +135,24 @@ class AllChannelCommunity(Community):
         while True:
             try:
                 now = time()
-                
+
                 favoriteTorrents = None
                 normalTorrents = None
-    
+
                 #cleanup blocklist
                 for candidate in self._blocklist.keys():
                     if self._blocklist[candidate] + CHANNELCAST_BLOCK_PERIOD < now: #unblock address
                         self._blocklist.pop(candidate)
-                        
+
                 #fetch mychannel_id if neccesary
                 if mychannel_id == None:
                     mychannel_id = self._channelcast_db.getMyChannelId()
-                
+
                 #loop through all candidates to see if we can find a non-blocked address
                 for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once = True) if not candidate in self._blocklist]:
                     if not candidate:
                         continue
-                    
+
                     didFavorite = False
                     #only check if we actually have a channel
                     if mychannel_id:
@@ -160,7 +160,7 @@ class AllChannelCommunity(Community):
                         for member in candidate.get_members(self):
                             key = member.public_key
                             peer_ids.add(self._peer_db.addOrGetPeerID(key))
-                        
+
                         #see if all members on this address are subscribed to my channel
                         didFavorite = len(peer_ids) > 0
                         for peer_id in peer_ids:
@@ -168,7 +168,7 @@ class AllChannelCommunity(Community):
                             if vote != 2:
                                 didFavorite = False
                                 break
-                            
+
                     #Modify type of message depending on if all peers have marked my channels as their favorite
                     if didFavorite:
                         if not favoriteTorrents:
@@ -178,29 +178,29 @@ class AllChannelCommunity(Community):
                         if not normalTorrents:
                             normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
                         torrents = normalTorrents
-                                
+
                     if len(torrents) > 0:
                         meta = self.get_meta_message(u"channelcast")
                         message = meta.impl(authentication=(self._my_member,),
                                             distribution=(self.global_time,), destination=(candidate,), payload=(torrents,))
-                                
+
                         self._dispersy._forward([message])
-                                
+
                         #we've send something to this address, add to blocklist
                         self._blocklist[candidate] = now
-                                
+
                         if DEBUG:
                             nr_torrents = sum(len(torrent) for torrent in torrents.values())
                             print >> sys.stderr, "AllChannelCommunity: sending channelcast message containing",nr_torrents,"torrents to",candidate.sock_addr,"didFavorite",didFavorite
-    
+
                         if __debug__:
                             if not self.integrate_with_tribler:
                                 nr_torrents = sum(len(torrent) for torrent in torrents.values())
                                 log("dispersy.log", "Sending channelcast message containing %d torrents to %s didFavorite %s"%(nr_torrents,candidate.sock_addr,didFavorite))
-                        
+
                         #we're done
-                        break       
-    
+                        break
+
                 else:
                     if DEBUG:
                         print >> sys.stderr, "AllChannelCommunity: no candidates to send channelcast message too"
@@ -209,7 +209,7 @@ class AllChannelCommunity(Community):
                             log("dispersy.log", "Could not send channelcast message, no candidates")
             except:
                 print_exc()
-            
+
             yield CHANNELCAST_INTERVAL
 
     def check_channelcast(self, messages):
@@ -220,12 +220,12 @@ class AllChannelCommunity(Community):
         for message in messages:
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: received channelcast message"
-            
+
             toCollect = {}
             for cid, torrents in message.payload.torrents.iteritems():
                 for infohash in self._selectTorrentsToCollect(cid, torrents):
                     toCollect.setdefault(cid,set()).add(infohash)
-                
+
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
             if nr_requests > 0:
                 self.create_channelcast_request(toCollect, message.candidate)
@@ -233,18 +233,18 @@ class AllChannelCommunity(Community):
                 if __debug__:
                     if not self.integrate_with_tribler:
                         log("dispersy.log", "requesting-torrents", nr_requests = nr_requests)
-    
+
     def create_channelcast_request(self, toCollect, candidate):
         #create channelcast request message
         meta = self.get_meta_message(u"channelcast-request")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), destination=(candidate,), payload=(toCollect,))
         self._dispersy._forward([message])
-        
+
         if DEBUG:
             nr_requests = sum([len(torrents) for torrents in toCollect.values()])
             print >> sys.stderr, "AllChannelCommunity: requesting",nr_requests,"torrents from",candidate
-    
+
     def check_channelcast_request(self, messages):
         # no timeline check because PublicResolution policy is used
         return messages
@@ -258,28 +258,28 @@ class AllChannelCommunity(Community):
             if requested_packets:
                 self._dispersy.statistics.dict_inc(self._dispersy.statistics.outgoing, u"channelcast-response", len(requested_packets))
                 self._dispersy.endpoint.send([message.candidate], requested_packets)
-            
+
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: got request for ",len(requested_packets),"torrents from",message.candidate
-    
+
     def create_channelsearch(self, keywords, callback):
         #clear searchcallbacks if new search
         query = " ".join(keywords)
         if query not in self._searchCallbacks:
             self._searchCallbacks.clear()
         self._searchCallbacks.setdefault(query, set()).add(callback)
-        
+
         meta = self.get_meta_message(u"channelsearch")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,),
                             payload=(keywords, ))
-        
+
         if DEBUG:
             print >> sys.stderr, "AllChannelCommunity: searching for",query
-        
+
         return self._dispersy._forward([message])
-       
-     
+
+
     def check_channelsearch(self, messages):
         #no timeline check because PublicResolution policy is used
         return messages
@@ -288,10 +288,10 @@ class AllChannelCommunity(Community):
         for message in messages:
             keywords = message.payload.keywords
             query = " ".join(keywords)
-            
+
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: got search request for",query
-            
+
             results = self._channelcast_db.searchChannelsTorrent(query, 7, 7, dispersyOnly = True)
             if len(results) > 0:
                 responsedict = {}
@@ -300,22 +300,22 @@ class AllChannelCommunity(Community):
                     infohashes.add(infohash)
                     if DEBUG:
                         print >> sys.stderr, "AllChannelCommunity: found cid:", dispersy_cid.encode("HEX"), " infohash:", infohash.encode("HEX")
-                    
+
                 self.create_channelsearch_response(keywords, responsedict, message.candidate)
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no results"
-    
+
     def create_channelsearch_response(self, keywords, torrents, candidate):
         #create channelsearch-response message
         meta = self.get_meta_message(u"channelsearch-response")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), destination=(candidate,), payload=(keywords, torrents))
-        
+
         self._dispersy._forward([message])
         if DEBUG:
             nr_requests = sum([len(tors) for tors in torrents.values()])
             print >> sys.stderr, "AllChannelCommunity: sending",nr_requests,"results"
-    
+
     def check_channelsearch_response(self, messages):
         with self._dispersy.database:
             for message in messages:
@@ -327,24 +327,24 @@ class AllChannelCommunity(Community):
                         break
                 else:
                     yield message
-        
+
     def on_channelsearch_response(self, messages):
         #request missing torrents
         self.on_channelcast(messages)
-        
+
         for message in messages:
             #show results in gui
             keywords = message.payload.keywords
             query = " ".join(keywords)
-            
+
             if DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: got search response for",query
-            
+
             if query in self._searchCallbacks:
                 torrents = message.payload.torrents
                 for callback in self._searchCallbacks[query]:
                     callback(keywords, torrents)
-                    
+
             elif DEBUG:
                 print >> sys.stderr, "AllChannelCommunity: no callback found"
 
@@ -354,7 +354,7 @@ class AllChannelCommunity(Community):
             communityclass = ChannelCommunity
         else:
             communityclass = PreviewChannelCommunity
-        
+
         community = self._get_channel_community(cid)
         community = self.dispersy.reclassify_community(community, communityclass)
 
@@ -371,12 +371,12 @@ class AllChannelCommunity(Community):
                             distribution=(self.claim_global_time(),),
                             payload=(cid, vote, timestamp))
         self._dispersy.store_update_forward([message], store, update, forward)
-        
+
         if DEBUG:
             print >> sys.stderr, "AllChannelCommunity: sending votecast message, vote=",vote
-        
+
         return message
-                    
+
     def check_votecast(self, messages):
         with self._dispersy.database:
             communities = {}
@@ -387,10 +387,10 @@ class AllChannelCommunity(Community):
                     channel_ids[cid] = channel_id
                 else:
                     communities[cid] = self._get_channel_community(cid)
-            
+
             for message in messages:
                 if __debug__: dprint(message)
-                
+
                 community = communities.get(message.payload.cid)
                 if community:
                     assert community.cid == message.payload.cid
@@ -398,14 +398,14 @@ class AllChannelCommunity(Community):
                     if __debug__:
                         try:
                             self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
-                            
+
                             print >> sys.stderr, "!!!We already have the channel message... no need to wait for it", community.cid.encode("HEX")
                             yield DropMessage(message, "Tribler and Dispersy databases not in sync...")
                             continue
-                        
+
                         except StopIteration:
                             pass
-                            
+
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot = message.payload.vote > 0) #request torrents if positive vote
                 else:
                     message.channel_id = channel_ids[message.payload.cid]
@@ -413,7 +413,7 @@ class AllChannelCommunity(Community):
 
             # ensure that no commits occur
             raise IgnoreCommits()
-                
+
     def on_votecast(self, messages):
         if self.integrate_with_tribler:
             votelist = []
@@ -421,11 +421,11 @@ class AllChannelCommunity(Community):
                 if __debug__: dprint(message)
                 dispersy_id = message.packet_id
                 channel_id = getattr(message, "channel_id", 0)
-                
+
                 authentication_member = message.authentication.member
                 if authentication_member == self._my_member:
                     peer_id = None
-                    
+
                     #if channel_id is not found, then this is a manual join
                     #insert placeholder into database which will be replaced after channelmessage has been received
                     if not channel_id:
@@ -437,30 +437,30 @@ class AllChannelCommunity(Community):
                             channel_id = self._channelcast_db._db.fetchone(insert_channel, (buffer(message.payload.cid), -1, ''))
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                
+
                 votelist.append((channel_id, peer_id, dispersy_id, message.payload.vote, message.payload.timestamp))
-                
+
                 if DEBUG:
                     print >> sys.stderr, "AllChannelCommunity: got votecast message"
-                    
+
             self._votecast_db.on_votes_from_dispersy(votelist)
 
             # this might be a response to a dispersy-missing-message
             self._dispersy.handle_missing_messages(messages, MissingMessageCache)
-    
+
     def undo_votecast(self, descriptors, redo=False):
         if self.integrate_with_tribler:
             for _, _, packet in descriptors:
                 message = packet.load_message()
                 dispersy_id = message.packet_id
-                
+
                 channel_id = self._get_channel_id(message.payload.cid)
                 self._votecast_db.on_remove_vote_from_dispersy(channel_id, dispersy_id, redo)
 
     def _get_channel_community(self, cid):
         assert isinstance(cid, str)
         assert len(cid) == 20
-        
+
         try:
             return self._dispersy.get_community(cid, True)
         except KeyError:
@@ -470,7 +470,7 @@ class AllChannelCommunity(Community):
             else:
                 if __debug__: dprint("join preview community ", cid.encode("HEX"))
                 return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
-            
+
     def unload_preview(self):
         while True:
             yield 60.0
@@ -479,52 +479,52 @@ class AllChannelCommunity(Community):
             inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
             if __debug__:
                 dprint("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
-                
+
             for community in inactive:
                 community.unload_community()
-    
+
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)
         assert len(cid) == 20
-        
+
         channel_id = self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
         if not channel_id:
             self._get_channel_community(cid)
-        return channel_id 
-    
+        return channel_id
+
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
-        
-        row = self._channelcast_db.getCountMaxFromChannelId(channel_id) 
+
+        row = self._channelcast_db.getCountMaxFromChannelId(channel_id)
         if row:
             nrTorrrents, latestUpdate = row
         else:
             nrTorrrents = 0
             latestUpdate = 0
-        
+
         collect = []
-        
+
         #only request updates if nrT < 100 or we have not received an update in the last half hour
-        if nrTorrrents < 100 or latestUpdate < (time() - 1800): 
+        if nrTorrrents < 100 or latestUpdate < (time() - 1800):
             infohashes = list(infohashes)
             haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
             for i in range(len(infohashes)):
                 if not haveTorrents[i]:
                     collect.append(infohashes[i])
         return collect
-    
+
     def _get_packets_from_infohashes(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
-        
+
         packets = []
         for infohash in infohashes:
             dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
-            
+
             if dispersy_id and dispersy_id > 0:
                 try:
                     # 2. get the message
                     packets.append(self._get_packet_from_dispersy_id(dispersy_id, "torrent"))
-                    
+
                 except RuntimeError:
                     pass
         return packets
@@ -535,7 +535,7 @@ class AllChannelCommunity(Community):
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)
-    
+
     def _get_message_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
@@ -549,12 +549,12 @@ class AllChannelCommunity(Community):
             message.packet_id = packet_id
         else:
             raise RuntimeError("Unable to convert packet")
-        
+
         if message.name == messagename:
             return message
-        
+
         raise RuntimeError("Message is of an incorrect type, expecting a '%s' message got a '%s'"%(messagename, message.name))
-        
+
     def _drop_all_newer(self, dispersy_id):
         self._channelcast_db.drop_all_newer(dispersy_id)
 
@@ -564,55 +564,55 @@ class ChannelCastDBStub():
         self.channel_id = None
         self.mychannel = False
         self.latest_result = 0
-        
+
         self.cachedTorrents = None
         self.recentTorrents = []
-    
+
     def convert_to_messages(self, results):
         messages = self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
         for packet_id, message in zip((packet_id for _, packet_id in results), messages):
             if message:
                 message.packet_id = packet_id
                 yield message.community.cid, message
-                
+
     def getChannelIdFromDispersyCID(self, cid):
         return self.channel_id
-    
+
     def getCountMaxFromChannelId(self, channel_id):
         if self.cachedTorrents:
             return len(self.cachedTorrents), self.latest_result
-    
+
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
 
         for _, payload in self.recentTorrents[:max(NUM_OWN_RECENT_TORRENTS, NUM_OTHERS_RECENT_TORRENTS)]:
             torrent_dict.setdefault(self.channel_id,set()).add(payload.infohash)
-            
+
         if len(self.recentTorrents) >= NUM_OWN_RECENT_TORRENTS:
             for infohash in self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS)):
                 torrent_dict.setdefault(self.channel_id,set()).add(infohash)
-                
+
         return torrent_dict
-    
+
     def getRandomTorrents(self, channel_id, limit = 15):
         torrents = self._cachedTorrents.keys()
         if len(torrents) > limit:
             return sample(torrents, limit)
         return torrents
-    
+
     def newTorrent(self, message):
         self._cachedTorrents[message.payload.infohash] = message
 
         self.recentTorrents.append((message.distribution.global_time, message.payload))
         self.recentTorrents.sort(reverse = True)
         self.recentTorrents[:50]
-        
+
         self.latest_result = time()
-    
+
     def setChannelId(self, channel_id, mychannel):
         self.channel_id = channel_id
         self.mychannel = mychannel
-        
+
     def getMyChannelId(self):
         if self.mychannel:
             return self.channel_id
@@ -625,31 +625,31 @@ class ChannelCastDBStub():
             else:
                 returnAr.append(False)
         return returnAr
-    
+
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         if infohash in self._cachedTorrents:
             return self._cachedTorrents[infohash].packet_id
-        
+
     def on_dynamic_settings(self, channel_id):
         pass
-    
+
     @property
     def _cachedTorrents(self):
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
             self._cacheTorrents()
-        
+
         return self.cachedTorrents
-    
+
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
         results = list(self._dispersy.database.execute(sql))
         messages = self.convert_to_messages(results)
-        
+
         for _, message in messages:
             self._cachedTorrents[message.payload.infohash] = message
             self.recentTorrents.append((message.distribution.global_time, message.payload))
-            
+
         self.recentTorrents.sort(reverse = True)
         self.recentTorrents[:50]
 
@@ -657,11 +657,11 @@ class VoteCastDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
         self._votecache = {}
-        
+
     def getDispersyId(self, cid, public_key):
         if public_key in self._votecache:
             return self._votecache[public_key]
-        
+
         sql = u"SELECT sync.id FROM sync JOIN member ON sync.member = member.id JOIN community ON community.id = sync.community JOIN meta_message ON sync.meta_message = meta_message.id WHERE community.classification = 'AllChannelCommunity' AND meta_message.name = 'votecast' AND member.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
             id,  = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
@@ -669,19 +669,19 @@ class VoteCastDBStub():
             return self._votecache[public_key]
         except StopIteration:
             return
-        
+
     def getVoteForMyChannel(self, public_key):
         id = self.getDispersyId(None, public_key)
         if id: #if we have a votecastmessage from this peer in our sync table, then signal a mark as favorite
             return 2
         return 0
-    
+
     def get_latest_vote_dispersy_id(self, channel_id, voter_id):
         return
-        
+
 class PeerDBStub():
     def __init__(self, dispersy):
         self._dispersy = dispersy
-        
+
     def addOrGetPeerID(self, public_key):
         return public_key

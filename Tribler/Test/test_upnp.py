@@ -40,7 +40,7 @@ class _EventReceiver:
 ##############################################
 # UPNP TEST CASE
 ##############################################
- 
+
 class UPnPTestCase(unittest.TestCase):
 
     """TestCase for UPnPServer and UPnPClient."""
@@ -48,7 +48,7 @@ class UPnPTestCase(unittest.TestCase):
     def setUp(self):
         """Set up test environment."""
         self._tr = TaskRunner()
-        self.server = UPnPServer(self._tr, 
+        self.server = UPnPServer(self._tr,
                             SERVER_PRODUCT_NAME,
                             SERVER_ROOT_DEVICE_CONFIG)
 
@@ -83,10 +83,10 @@ class UPnPTestCase(unittest.TestCase):
         stub = self.client.get_services_by_short_id("SwitchPower")[0]
 
         # Test service_id
-        self.assertEqual(self.service1.get_service_id(), 
+        self.assertEqual(self.service1.get_service_id(),
                          stub.get_service_id())
         # Test service_type
-        self.assertEqual(self.service1.get_service_type(), 
+        self.assertEqual(self.service1.get_service_type(),
                          stub.get_service_type())
 
         # Subscribe
@@ -97,7 +97,7 @@ class UPnPTestCase(unittest.TestCase):
         value = stub.GetStatus()
         stub.SetTarget(not value)
         new_value = stub.GetStatus()
-        self.assertEqual(not value, new_value, 
+        self.assertEqual(not value, new_value,
                          evr.get_last_event()[2])
 
         # Update SwitchPowerService directly.
@@ -111,11 +111,11 @@ class UPnPTestCase(unittest.TestCase):
     def test_urlservice(self):
         """Test discovery and use of URLService."""
         stub = self.client.get_services_by_short_id("URLService")[0]
-        
+
         # Subscribe
         evr = _EventReceiver()
         stub.subscribe(evr.handler)
-   
+
         # Update URLService by using Stub.
         stub.GetURL()
         new_url = "http://p2p-next.org"
@@ -141,20 +141,3 @@ class UPnPTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    

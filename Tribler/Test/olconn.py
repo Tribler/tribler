@@ -50,7 +50,7 @@ class OLConnection:
         return self.b.get_my_fake_listen_port()
 
     #
-    # Cut 'n paste from TestPermIDs 
+    # Cut 'n paste from TestPermIDs
     #
     def create_good_challenge(self):
         r = "".zfill(cr_random_size)
@@ -104,4 +104,3 @@ class OLConnection:
 
     def close(self):
         self.b.close()
-        

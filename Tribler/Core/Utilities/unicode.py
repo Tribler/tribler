@@ -30,14 +30,14 @@ def bin2unicode(bin,possible_encoding='utf_8'):
 def str2unicode(s):
     try:
         s = unicode(s)
-    except: 
+    except:
         flag = 0
         for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1', 'unicode-escape' ]:
             try:
                 s = unicode(s, encoding)
                 flag = 1
                 break
-            except: 
+            except:
                 pass
         if flag == 0:
             try:
@@ -70,7 +70,7 @@ def name2unicode(metadata):
         metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
 
     # change metainfo['info']['name'] to metainfo['info'][namekey], just in case...
-    # roer888 TODO: Never tested the following 2 lines 
+    # roer888 TODO: Never tested the following 2 lines
     if namekey != 'name':
         metadata['info']['name'] = metadata['info'][namekey ]
 

@@ -22,7 +22,7 @@ class MyHtmlWindow(html.HtmlWindow):
 
     def OnScroll(self, event):
         event.Skip()
-        
+
     def OnLinkClicked(self, linkinfo):
         t = Thread(target = open_new(linkinfo.GetHref()))
         t.setName( "AboutMeLinkOpen"+t.getName() )
@@ -40,13 +40,13 @@ class MyHtmlWindow(html.HtmlWindow):
 class MyHtmlDialog(wx.Dialog):
     def __init__(self, parent, title, content):
         wx.Dialog.__init__(self, parent, -1, title)
-        
+
         btn = wx.Button(self, wx.ID_OK, " OK ")
         btn.SetDefault()
-        
+
         color = self.GetBackgroundColour()
         bgcolor = "#%02x%02x%02x" % (color.Red(), color.Green(), color.Blue())
-        
+
         about_html = "<HTML><HEAD><TITLE>" + title + "</TITLE></HEAD>" + \
                      "<BODY BGCOLOR=" + bgcolor + " TEXT=#000000>" + \
                      content + \
@@ -54,14 +54,14 @@ class MyHtmlDialog(wx.Dialog):
 
         self.html = MyHtmlWindow(self, -1)
         self.html.SetPage(about_html)
-        
+
         buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         buttonbox.Add(btn, 0, wx.ALL, 5)
 
         outerbox = wx.BoxSizer(wx.VERTICAL)
         outerbox.Add(self.html, 0, wx.EXPAND|wx.ALL, 5)
         outerbox.Add(buttonbox, 0, wx.ALIGN_CENTER)
-       
+
         self.SetAutoLayout(True)
         self.SetSizer(outerbox)
         self.Fit()
@@ -78,7 +78,7 @@ class VersionDialog(MyHtmlDialog):
     def __init__(self, parent):
         self.parent = parent
         self.utility = parent.utility
-        
+
         content = ""
         try :
             nu = self.hasNewVersion()
@@ -101,16 +101,16 @@ class VersionDialog(MyHtmlDialog):
         except:
             content = self.utility.lang.get('cantconnectwebserver')
             print_exc()
-            
+
         title = self.utility.lang.get('abclatestversion')
-        
+
         MyHtmlDialog.__init__(self, parent, title, content)
 
 
     def hasNewVersion(self):
         my_version = self.utility.getVersion()
         try:
-            # Arno: TODO: don't let this be done by MainThread 
+            # Arno: TODO: don't let this be done by MainThread
             curr_status = urlOpenTimeout('http://tribler.org/version/',timeout=1).readlines()
             line1 = curr_status[0]
             if len(curr_status) > 1:
@@ -126,7 +126,7 @@ class VersionDialog(MyHtmlDialog):
         except:
             print_exc()
             return -1
-            
+
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
         my = my_version.split('.')
@@ -147,8 +147,8 @@ class VersionDialog(MyHtmlDialog):
                 return True
             elif curr_v < my_v:
                 return False
-        return False            
-            
+        return False
+
 ################################################################
 #
 # Class: AboutMeDialog
@@ -162,19 +162,19 @@ class AboutMeDialog(MyHtmlDialog):
 
         self.parent = parent
         self.utility = parent.utility
-        
+
         bittornado_version = "0.3.13"
         py2exe_version = "0.6.2"
         nsis_version = "2.09"
-                
+
         title = self.utility.lang.get('aboutabc')
 
 #        # Start UI in Dialog
 #        #######################
-#        
+#
 #        btn = wx.Button(self, wx.ID_OK, " OK ")
 #        btn.SetDefault()
-#        
+#
 #        color = self.GetBackgroundColour()
 #        bgcolor = "#%02x%02x%02x" % (color.Red(), color.Green(), color.Blue())
 
@@ -183,7 +183,7 @@ class AboutMeDialog(MyHtmlDialog):
             s = str(v)+"."
             wx_version += s
         wx_version = wx_version.strip(".")
-        
+
         major, minor, micro, releaselevel, serial = sys.version_info
         python_version = str(major) + "." + str(minor) + "." + str(micro)
 

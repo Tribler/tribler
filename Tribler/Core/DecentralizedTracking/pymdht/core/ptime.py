@@ -41,6 +41,5 @@ class _MockTime(object):
         self._extra_time += period
 
 
-# When the module is loaded, ptime is in normal mode 
+# When the module is loaded, ptime is in normal mode
 normal_mode()
-

@@ -27,14 +27,14 @@ logger = logging.getLogger('dht')
 BUFFER_SIZE = 3000
 
 DEBUG = False
-                            
+
 class ThreadedReactor(threading.Thread):
 
     """
     Object inspired in Twisted's reactor.
     Run in its own thread.
     It is an instance, not a nasty global
-    
+
     """
     def __init__(self, main_loop_f,
                  port, on_datagram_received_f,
@@ -42,7 +42,7 @@ class ThreadedReactor(threading.Thread):
                  floodbarrier_active=True):
         threading.Thread.__init__(self, name = "DHT")
         self.daemon = True
-        
+
         self._lock = threading.RLock()
         self._running = False
         self._call_asap_queue = []
@@ -92,12 +92,12 @@ class ThreadedReactor(threading.Thread):
     @attach_profiler
     def run(self):
         self.run2()
-    
+
     def run2(self):
         """
         The reason for this weird split between run and run2 is that nosetests
         doesn't count run as being executed (it doesn't count as 'covered').
-        
+
         """
         self.running = True
         logger.critical('run')
@@ -182,7 +182,7 @@ class ThreadedReactor(threading.Thread):
              datagram_received)
             for datagram in datagrams_to_send:
                 self._sendto(datagram)
-            
+
     def stop(self):#, stop_callback):
         """Stop the thread. It cannot be resumed afterwards"""
 
@@ -199,15 +199,15 @@ class ThreadedReactor(threading.Thread):
     def call_asap(self, callback_f, *args, **kwds):
         """Call the given callback with given arguments as soon as possible
         (next time run_one_step is called).
-        
-        """ 
+
+        """
         self._lock.acquire()
         try:
             self._call_asap_queue.append((callback_f, args, kwds))
         finally:
             self._lock.release()
         return
-        
+
     def _sendto(self, datagram):
         """Send data to addr using the UDP port used by listen_udp."""
 

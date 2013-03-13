@@ -17,12 +17,12 @@ DEBUG = False
 def win32_retrieve_video_play_command(ext,videourl):
     """ Use the specified extension of to find the player in the Windows registry to play the url (or file)"""
     registry = Win32RegChecker()
-    
+
     if DEBUG:
         print >>sys.stderr,"videoplay: Looking for player for",unicode2str(videourl)
     if ext == '':
         return [None,None]
-    
+
     contenttype = None
     winfiletype = registry.readRootKey(ext)
     if DEBUG:
@@ -38,7 +38,7 @@ def win32_retrieve_video_play_command(ext,videourl):
         print >>sys.stderr,"videoplay: Looking for player for ext",ext,"which is type",winfiletype
 
     contenttype = registry.readRootKey(ext,value_name="Content Type")
-    
+
     playkey = winfiletype+"\shell\play\command"
     urlopen = registry.readRootKey(playkey)
     if urlopen is None:
@@ -67,11 +67,11 @@ def win32_retrieve_video_play_command(ext,videourl):
                     suo = suo[:idx+1]
     else:
         replace = '%L'
-        
+
     # St*pid quicktime doesn't properly quote the program path, e.g.
     # C:\Program Files\Quicktime\bla.exe "%1" instead of
     # "C:\Program Files\Quicktime\bla.exe" "%1"
-    if suo[0] != '"':    
+    if suo[0] != '"':
         if idx > 0 and (len(suo)-1) >= idx+2 and suo[idx-1] == '"' and suo[idx+2]=='"':
             # %x is quoted
             end = max(0,idx-2)
@@ -91,12 +91,12 @@ def win32_retrieve_video_play_command(ext,videourl):
 def win32_retrieve_playcmd_from_mimetype(mimetype,videourl):
     """ Use the specified MIME type to find the player in the Windows registry to play the url (or file)"""
     registry = Win32RegChecker()
-    
+
     if DEBUG:
         print >>sys.stderr,"videoplay: Looking for player for",unicode2str(videourl)
     if mimetype == '' or mimetype is None:
         return [None,None]
-    
+
     keyname = '\\SOFTWARE\\Classes\\MIME\\Database\\Content Type\\'+mimetype
     valuename = 'Extension'
     ext = registry.readKeyRecursively(HKLM,keyname,value_name=valuename)

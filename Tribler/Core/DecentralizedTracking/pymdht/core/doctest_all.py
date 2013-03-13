@@ -15,7 +15,7 @@ EXCEPT = ('doctest_all.py', # prevents infinite recursion
           'utils.py'
           )
 
-modnames = [filename[:-3] for filename in os.listdir('.') if 
+modnames = [filename[:-3] for filename in os.listdir('.') if
             filename.endswith('.py') # *.py only
             and not filename.startswith('test') # tests dont have doctests
             and filename not in EXCEPT # dont include exceptions

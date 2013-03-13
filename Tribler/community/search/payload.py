@@ -4,23 +4,23 @@ from Tribler.dispersy.bloomfilter import BloomFilter
 
 class TasteIntroPayload(IntroductionRequestPayload):
     class Implementation(IntroductionRequestPayload.Implementation):
-        
+
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, num_preferences = 0, taste_bloom_filter = None):
             IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
-            
+
             self._num_preferences = num_preferences
             self._taste_bloom_filter = taste_bloom_filter
-                
+
         def set_num_preferences(self, num_preferences):
             self._num_preferences = num_preferences
-        
+
         def set_taste_bloom_filter(self, taste_bloom_filter):
             self._taste_bloom_filter = taste_bloom_filter
-        
+
         @property
         def num_preferences(self):
             return self._num_preferences
-        
+
         @property
         def taste_bloom_filter(self):
             return self._taste_bloom_filter
@@ -34,9 +34,9 @@ class SearchRequestPayload(Payload):
                 for keyword in keywords:
                     assert isinstance(keyword, unicode), '%s is type %s'%(keyword, type(keyword))
                     assert len(keyword) > 0
-                    
+
                 assert not bloom_filter or isinstance(bloom_filter, BloomFilter), type(bloom_filter)
-                    
+
             super(SearchRequestPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._keywords = keywords
@@ -49,7 +49,7 @@ class SearchRequestPayload(Payload):
         @property
         def keywords(self):
             return self._keywords
-        
+
         @property
         def bloom_filter(self):
             return self._bloom_filter
@@ -60,10 +60,10 @@ class SearchResponsePayload(Payload):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(results, list), type(results)
-                for result in results: 
+                for result in results:
                     assert isinstance(result, tuple), type(result)
                     assert len(result) > 10
-                    
+
                     infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20
@@ -81,7 +81,7 @@ class SearchResponsePayload(Payload):
                     assert not swift_torrent_hash or len(swift_torrent_hash) == 20, swift_torrent_hash
                     assert not cid or isinstance(cid, str), type(cid)
                     assert not cid or len(cid) == 20, cid
-                    
+
             super(SearchResponsePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._results = results
@@ -106,7 +106,7 @@ class TorrentRequestPayload(Payload):
                     assert not filter(lambda x: not isinstance(x, str), infohashes)
                     assert not filter(lambda x: not len(x) == 20, infohashes)
                     assert len(infohashes) > 0
-            
+
             super(TorrentRequestPayload.Implementation, self).__init__(meta)
             self._torrents = torrents
 
@@ -133,12 +133,12 @@ class TorrentCollectRequestPayload(Payload):
                     assert 0 <= leechers < 2 ** 16, leechers
                     assert isinstance(ago, int)
                     assert 0 <= ago < 2 ** 16, ago
-                
+
                 assert isinstance(hashtype, int), type(hashtype)
                 assert 0 <= hashtype < 2**16, hashtype
-                    
+
             super(TorrentCollectRequestPayload.Implementation, self).__init__(meta)
-            
+
             self._identifier = identifier
             self._hashtype = hashtype
             self._torrents = torrents
@@ -146,11 +146,11 @@ class TorrentCollectRequestPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-        
+
         @property
         def hashtype(self):
             return self._hashtype
-        
+
         @property
         def torrents(self):
             return self._torrents

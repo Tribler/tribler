@@ -74,7 +74,7 @@ def uncompact_peers(c_peers):
 def compact_nodes(nodes):
     return ''.join([node.id.bin_id + compact_addr(node.addr) \
                     for node in nodes])
-    
+
 def uncompact_nodes(c_nodes):
     if len(c_nodes) % C_NODE_SIZE != 0:
         logger.info('invalid size (%d) %s' % (len(c_nodes),
@@ -96,18 +96,16 @@ def uncompact_nodes(c_nodes):
 def compact_nodes2(nodes):
     return [node.id.bin_id + compact_addr(node.addr) \
             for node in nodes]
-    
+
 def uncompact_nodes2(c_nodes):
     nodes = []
     for c_node in c_nodes:
         node_id = Id(c_node[:ID_SIZE_BYTES])
         try:
-            node_addr = uncompact_addr(c_node[ID_SIZE_BYTES:]) 
+            node_addr = uncompact_addr(c_node[ID_SIZE_BYTES:])
         except (AddrError):
             logger.warning('IPv6 addr in nodes2: %s' % c_node)
         else:
             node = Node(node_addr, node_id)
             nodes.append(node)
     return nodes
-
-

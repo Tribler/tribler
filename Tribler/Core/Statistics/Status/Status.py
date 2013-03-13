@@ -22,7 +22,7 @@ def get_status_holder(name):
         return status_holders[name]
     finally:
         status_lock.release()
-        
+
 def delete_status_holders():
     global status_lock
     global status_holders
@@ -95,7 +95,7 @@ class StatusHolder:
         reporter.
         """
         assert name
-        
+
         self.lock.acquire()
         try:
             if not name in self.reporters:
@@ -103,13 +103,13 @@ class StatusHolder:
             return self.reporters[name]
         finally:
             self.lock.release()
-            
+
     def add_reporter(self, reporter):
         """
         Add a reporter to this status object.
         """
         assert reporter
-        
+
         self.lock.acquire()
         try:
             if reporter.name in self.reporters:
@@ -119,7 +119,7 @@ class StatusHolder:
 
             # The reporter must contact me later
             reporter.add_status_holder(self)
-            
+
             # If we have any other reporters, copy the elements
             # to the new one
             for element in self.elements.values():
@@ -144,11 +144,11 @@ class StatusHolder:
     def _add_element(self, new_element):
         for reporter in self.reporters.values():
             reporter.add_element(new_element)
-        
+
 
     def create_status_element(self, name, initial_value=None):
         assert name
-        
+
         new_element = StatusElement(name, initial_value)
 
         self.lock.acquire()
@@ -158,16 +158,16 @@ class StatusHolder:
             self.elements[name] = new_element
         finally:
             self.lock.release()
-            
+
         self._add_element(new_element)
         return new_element
-            
+
     def get_status_element(self, name):
         """
         Get a status element from the Status Holder by name
         """
         assert name
-        
+
         self.lock.acquire()
         try:
             if not name in self.elements:
@@ -175,7 +175,7 @@ class StatusHolder:
             return self.elements[name]
         finally:
             self.lock.release()
-        
+
     def get_or_create_status_element(self, name, initial_value=None):
         self.lock.acquire()
         if not name in self.elements:
@@ -185,13 +185,13 @@ class StatusHolder:
             return self.elements[name]
         finally:
             self.lock.release()
-                                     
+
     def remove_status_element(self, element):
         """
         Remove a status element
         """
         assert element
-        
+
         self.lock.acquire()
         try:
             if not element.name in self.elements:
@@ -208,7 +208,7 @@ class StatusHolder:
 
         finally:
             self.lock.release()
-            
+
     def create_event(self, name, values=[]):
         assert isinstance(values, list)
         return EventElement(name, values)
@@ -223,7 +223,7 @@ class StatusHolder:
 
     def remove_range(self, range):
         self.remove_event(range)
-        
+
     def remove_event(self, event):
         self.lock.acquire()
         try:
@@ -231,11 +231,11 @@ class StatusHolder:
                 self.events.remove(event)
         finally:
             self.lock.release()
-        
+
     def create_and_add_event(self, name, values=[]):
         if __debug__ and len(self.reporters) == 0:
             print >> sys.stderr, "NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK"%self.name
-        
+
         self.add_event(self.create_event(name, values))
 
     def create_range(self, name, values=[]):
@@ -243,7 +243,7 @@ class StatusHolder:
 
     def add_range(self, range):
         self.add_event(range)
-        
+
     def create_and_add_range(self, name, values=[]):
         self.add_range(self.create_range(name, values))
 
@@ -278,8 +278,8 @@ class StatusHolder:
         for reporter in self.reporters.values():
             reporter.report_now()
 
-        
-        
+
+
 class BaseElement:
     type = "BaseElement"
 
@@ -313,7 +313,7 @@ class BaseElement:
     def get_name(self):
         return self.name
 
-                           
+
     def _updated(self):
         """
         When a status element is changed, this method must be called to
@@ -321,7 +321,7 @@ class BaseElement:
         """
 
         # TODO: Lock or make a copy?
-        
+
         for callback in self.callbacks:
             try:
                 callback(self)
@@ -329,7 +329,7 @@ class BaseElement:
                 print >> sys.stderr, "Exception in callback", \
                       callback,"for parameter",self.name,":",e
 
-        
+
 class StatusElement(BaseElement):
     """
     Class to hold status information
@@ -348,10 +348,10 @@ class StatusElement(BaseElement):
         """
         Update the value of this status element
         """
-        
+
         self.value = value
         self._updated()
-        
+
     def get_value(self):
         return self.value
 
@@ -381,7 +381,7 @@ class StatusElement(BaseElement):
         finally:
             self.lock.release()
 
-        
+
 class EventElement(BaseElement):
     type = "event"
 
@@ -428,7 +428,7 @@ class RangeElement(BaseElement):
 
     def get_end_time(self):
         return self.end_time
-        
+
     def add_value(self, value):
         self.lock()
         try:
@@ -436,7 +436,7 @@ class RangeElement(BaseElement):
             self.values.append(value)
         finally:
             self.lock.release()
-            
+
     def get_values(self):
         """
         Return the values as a copy to ensure that there are no
@@ -447,23 +447,23 @@ class RangeElement(BaseElement):
             return self.values[:]
         finally:
             self.lock.release()
-        
+
 class StatusReporter:
     """
     This is the basic status reporter class.  It cannot be used
     directly, but provides a base for all status reporters.
     The status reporter is threadsafe
     """
-    
+
     def __init__(self, name):
         self.name = name
         self.lock = threading.Lock()
         self.status_holders = []
-        
+
     def add_status_holder(self, holder):
         if not holder in self.status_holders:
             self.status_holders.append(holder)
-        
+
     def get_elements(self):
         """
         Return all elements that should be reported
@@ -495,19 +495,19 @@ class OnChangeStatusReporter(StatusReporter):
     it is changed
     """
     elements = []
-    
+
     def add_element(self, element):
         """
         Add element to this reporter
         """
         element.add_callback(self.report)
-        
+
     def remove_element(self, element):
         """
         Remove an element from this reporter
         """
         element.remove_callback(self.report)
-        
+
     def report(self, element):
         """
         This function must be implemented by and extending class. Does nothing.
@@ -519,9 +519,9 @@ class PeriodicStatusReporter(StatusReporter):
     Base class for a periodic status reporter, calling report(self)
     at given times.  To ensure a nice shutdown, execute stop() when
     stopping.
-    
+
     """
-    
+
     def __init__(self, name, frequency, error_handler=None):
         """
         Frequency is a float in seconds
@@ -529,7 +529,7 @@ class PeriodicStatusReporter(StatusReporter):
         the meaning will be up to the implemenation of the
         PeriodicStatusReporter.
         """
-        
+
         StatusReporter.__init__(self, name)
         self.frequency = frequency
         self.parameters = []
@@ -538,7 +538,7 @@ class PeriodicStatusReporter(StatusReporter):
         # Set up the timer
         self.running = True
         self.create_timer()
-        
+
     def create_timer(self):
         if self.frequency and self.frequency > 0:
             self.timer = threading.Timer(self.frequency, self.on_time_event)
@@ -552,13 +552,13 @@ class PeriodicStatusReporter(StatusReporter):
         until the reporter has actually stopped
         """
         self.timer.cancel()
-        
+
         self.on_time_event()
 
         self.running = False
         self.timer.cancel()
         self.timer.join()
-        
+
     def report(self):
         """
         This function must be overloaded, does nothing
@@ -610,10 +610,10 @@ class PeriodicStatusReporter(StatusReporter):
                 print "Error but no error handler:", e
                 #import traceback
                 #traceback.print_stack()
-        
-        
+
+
 if __name__ == "__main__":
     # Some basic testing (full unit tests are in StatusTest.py)
-    
+
     print "Run unit tests"
     raise SystemExit(-1)

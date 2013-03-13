@@ -1,17 +1,17 @@
 # Written by Arno Bakker and Bram Cohen
-# Updated by George Milescu 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 """ Default values for all configurarable parameters of the Core"""
 #
 # For an explanation of each parameter, see SessionConfig/DownloadConfig.py
 #
-# defaults with comments behind them are not user-setable via the 
+# defaults with comments behind them are not user-setable via the
 # *ConfigInterface classes, because they are not currently implemented (IPv6)
 # or we only use them internally.
 #
-# WARNING:  
+# WARNING:
 #    As we have release Tribler 4.5.0 you must now take into account that
-#    people have stored versions of these params on their disk. Make sure 
+#    people have stored versions of these params on their disk. Make sure
 #    you change the version number of the structure and provide upgrade code
 #    such that your code won't barf because we loaded an older version from
 #    disk that does not have your new fields.
@@ -25,14 +25,14 @@ DEFAULTPORT=7760
 #
 # Session opts
 #
-# History: 
+# History:
 #  Version 2: as released in Tribler 4.5.0
 #
 SESSDEFAULTS_VERSION = 2
 sessdefaults = {}
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
-sessdefaults['install_dir'] = u'.' 
+sessdefaults['install_dir'] = u'.'
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT
@@ -77,7 +77,7 @@ sessdefaults['remote_search_empty_call'] = True
 sessdefaults['swiftproc'] = True
 sessdefaults['swiftpath'] = None
 sessdefaults['swiftworkingdir'] = '.'
-sessdefaults['swiftcmdlistenport'] = DEFAULTPORT+481 
+sessdefaults['swiftcmdlistenport'] = DEFAULTPORT+481
 sessdefaults['swiftdlsperproc'] = 1000
 # config for tunneling via swift, e.g. dispersy
 sessdefaults['swifttunnellistenport'] = None
@@ -129,9 +129,9 @@ sessdefaults.update(trackerdefaults)
 #
 # BT per download opts
 #
-# History: 
+# History:
 #  Version 2: as released in Tribler 4.5.0
-#  Version 3: 
+#  Version 3:
 #  Version 4: allow users to specify a download directory every time
 #  Version 6: allow users to overwrite the multifile destination
 #  Version 7: swift params
@@ -144,7 +144,7 @@ dldefaults['download_slice_size'] = 2 ** 14
 dldefaults['upload_unit_size'] = 1460
 dldefaults['request_backlog'] = 10
 dldefaults['max_message_length'] = 2 ** 23
-dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fast resume function. Arno, 2009-02-9: Must be on for checkpoints to work. 
+dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fast resume function. Arno, 2009-02-9: Must be on for checkpoints to work.
 dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
 dldefaults['saveas'] = None # Set to get_default_destdir()

@@ -17,22 +17,22 @@ class SwitchPower(UPnPService):
     on and off on a virtual device."""
 
     def __init__(self, service_id):
-        UPnPService.__init__(self, service_id, 'SwitchPower', 
+        UPnPService.__init__(self, service_id, 'SwitchPower',
                              service_version=1)
         boolean = types.BooleanType
 
         # Define EventVariables
-        self._status = self.define_evented_variable("Status", 
+        self._status = self.define_evented_variable("Status",
                                                     boolean, False)
 
         # Define Actions
-        self.define_action(self.get_status, 
+        self.define_action(self.get_status,
                            out_args=[("ResultStatus", boolean )],
                            name="GetStatus")
-        self.define_action(self.get_target, 
+        self.define_action(self.get_target,
                            out_args=[("RetTargetValue", boolean)],
                            name="GetTarget")
-        self.define_action(self.set_target, 
+        self.define_action(self.set_target,
                            in_args=[("NewTargetValue", boolean)],
                            name="SetTarget")
 

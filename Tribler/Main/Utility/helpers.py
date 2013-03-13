@@ -31,7 +31,7 @@ def existsAndIsReadable(filename):
 def intersection(list1, list2):
     if list1 is None or list2 is None:
         return []
-    
+
     # (Order matters slightly so that has_key is called fewer times)
     if len(list1) < len(list2):
         smaller = list1
@@ -39,7 +39,7 @@ def intersection(list1, list2):
     else:
         smaller = list2
         bigger = list1
-    
+
     int_dict = {}
     if isinstance(bigger, dict):
         bigger_dict = bigger
@@ -60,15 +60,15 @@ def union(list1, list2):
         list1 = {}
     if list2 is None:
         list2 = {}
-    
+
     # (Order matters slightly so that has_key is called fewer times)
     if len(list1) < len(list2):
         smaller = list1
         bigger = list2
     else:
         smaller = list2
-        bigger = list1    
-    
+        bigger = list1
+
     if isinstance(bigger, dict):
         union_dict = bigger
     else:
@@ -88,7 +88,7 @@ def difference(list1, list2):
         return list1
     if list1 is None:
         return {}
-        
+
     diff_dict = list1.copy()
     for e in list2:
         if e in diff_dict:
@@ -118,9 +118,9 @@ def getClientSocket(host, port):
             s = None
             continue
         break
-        
+
     return s
-    
+
 #
 # Get a socket to listen on
 #
@@ -165,15 +165,15 @@ def getSocket(host, port, sockettype = "client", attempt = 5):
                 s = getClientSocket(host, port)
         except:
             s = None
-                
+
         if s is None:
             # Try several times, increase in time each try
             sleep(0.01 * tries)
             tries += 1
-            
+
     return s
-            
-            
+
+
 def stopTorrentsIfNeeded(torrentlist):
     # Error : all selected torrents must be inactive to get extracted
     showDialog = True
@@ -191,6 +191,6 @@ def stopTorrentsIfNeeded(torrentlist):
             else:
                 # Selected not to stop the torrent, return False
                 return False
-    
+
     # At this point all selected torrents should be stopped
     return True

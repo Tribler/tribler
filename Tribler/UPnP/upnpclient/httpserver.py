@@ -1,7 +1,7 @@
 # Written by Ingar Arntzen
 # see LICENSE.txt for license information
 
-"""This module implements a HTTP Server for the UPnP Client 
+"""This module implements a HTTP Server for the UPnP Client
 (UPnP Control Point)."""
 
 import urlparse
@@ -22,7 +22,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
         url = urlparse.urlparse(self.path)
         path = url.path.strip('/')
         tokens = path.split('/')
-        if len(tokens) == 2: 
+        if len(tokens) == 2:
 
             # Parse Request
             device_uuid = uuid.UUID(tokens[0])
@@ -35,16 +35,16 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 if len(tokens) == 2:
                     sid = uuid.UUID(tokens[1])
 
-            # Seq                
+            # Seq
             seq = int(self.headers.get('seq', '-1'))
 
             # Body
             body_bytes = int(self.headers.get('content-length', '0'))
-            body = self.rfile.read(body_bytes) 
+            body = self.rfile.read(body_bytes)
             var_list = upnpsoap.parse_event_message(body)
 
             # Process Notification
-            self.server.handle_notification(device_uuid, service_id, 
+            self.server.handle_notification(device_uuid, service_id,
                                             sid, seq, var_list)
 
             # Log
@@ -85,7 +85,7 @@ class HTTPServer(httpserver.AsynchHTTPServer):
                                              _RequestHandler, logger=logger)
 
         self._upnp_client = upnp_client
-        self._base_event_url = "http://%s:%d/" % (self.get_host(), 
+        self._base_event_url = "http://%s:%d/" % (self.get_host(),
                                                   self.get_port())
 
 
@@ -96,7 +96,7 @@ class HTTPServer(httpserver.AsynchHTTPServer):
 
     def handle_notification(self, device_uuid, service_id, sid, seq, var_list):
         """Notification forwarded to UPnPClient."""
-        self._upnp_client.handle_notification(device_uuid, service_id, 
+        self._upnp_client.handle_notification(device_uuid, service_id,
                                                sid, seq, var_list)
 
     def get_base_event_url(self):

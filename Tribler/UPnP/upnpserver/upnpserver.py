@@ -20,7 +20,7 @@ DEFAULT_ROOT_DEVICE_CONFIG = {
     'model_name': 'Model 1',
     'model_number': '1.0',
     'model_url': 'http://manufacturer.com/model_1',
-    'serial_number': '123456',    
+    'serial_number': '123456',
     'upc': '012345678912',
 }
 
@@ -46,7 +46,7 @@ class UPnPServer:
 
     def __init__(self, task_runner, product_name,
                  root_device_config=None, logger=None):
-        
+
         # TaskRunner
         self._tr = task_runner
 
@@ -60,7 +60,7 @@ class UPnPServer:
             self._root_device_config = root_device_config
         device = upnpdevice.UPnPDevice(self._root_device_config)
         device.set_is_root(True)
-        
+
         # Event Dispatcher (HTTP Client)
         self._ed = EventDispatcher(self._tr, logger=self._logger)
 
@@ -79,7 +79,7 @@ class UPnPServer:
         self.add_service = self._sm.add_service
         self.get_service = self._sm.get_service
         self.get_service_ids = self._sm.get_service_ids
-        
+
         # Export Internals
         self.get_root_device = self._sm.get_root_device
 
@@ -131,4 +131,3 @@ if __name__ == '__main__':
         print
     SERVER.close()
     TR.stop()
-    

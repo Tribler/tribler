@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # Updated by George Milescu
 # see LICENSE.txt for license information
 
@@ -19,12 +19,12 @@ from Tribler.Core.SessionConfig import SessionConfigInterface
 class SessionRuntimeConfig(SessionConfigInterface):
     """
     Implements the Tribler.Core.API.SessionConfigInterface
-    
+
     Use these to change the session config at runtime.
     """
     def set_state_dir(self,statedir):
         raise OperationNotPossibleAtRuntimeException()
-    
+
     def get_state_dir(self):
         self.sesslock.acquire()
         try:
@@ -34,24 +34,24 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     def set_install_dir(self,statedir):
         raise OperationNotPossibleAtRuntimeException()
-    
+
     def get_install_dir(self):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_install_dir(self)
         finally:
             self.sesslock.release()
-    
+
     def set_permid_keypair_filename(self,keypair):
         raise OperationNotPossibleAtRuntimeException()
-        
+
     def get_permid_keypair_filename(self):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_permid_keypair_filename(self)
         finally:
             self.sesslock.release()
-        
+
     def set_listen_port(self,port):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -62,7 +62,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_listen_port(self)
         finally:
             self.sesslock.release()
-        
+
     def get_video_analyser_path(self):
         # To protect self.sessconfig
         self.sesslock.acquire()
@@ -155,7 +155,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-            
+
             SessionConfigInterface.set_start_recommender(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_start_recommender(value)
@@ -182,9 +182,9 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     def set_proxyservice_status(self,value):
         """ Set the status of the proxyservice (on or off).
-        
+
         ProxyService off means the current node could not be used as a proxy. ProxyService on means other nodes will be able to use it as a proxy.
-        
+
         @param value: one of the possible two values: PROXYSERVICE_OFF, PROXYSERVICE_ON
         """
         self.sesslock.acquire()
@@ -202,7 +202,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_proxyservice_status(self)
         finally:
             self.sesslock.release()
-    
+
     def set_proxyservice_dir(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -237,7 +237,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_torrent_collecting_dir(self)
         finally:
             self.sesslock.release()
-            
+
     def set_superpeer(self,value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -272,7 +272,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-            
+
             SessionConfigInterface.set_torrent_collecting_max_torrents(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_torrent_collecting_max_torrents(value)
@@ -308,7 +308,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-            
+
             SessionConfigInterface.set_torrent_collecting_rate(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_torrent_collecting_rate(value)
@@ -382,7 +382,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
-            
+
             SessionConfigInterface.set_stop_collecting_threshold(self,value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_stop_collecting_threshold(value)
@@ -435,7 +435,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.set_nickname(self, value)
         finally:
             self.sesslock.release()
-            
+
     def get_nickname(self):
         self.sesslock.acquire()
         try:
@@ -863,7 +863,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     def set_nat_detect(self,value):
         raise OperationNotPossibleAtRuntimeException()
-    
+
     def set_puncturing_private_port(self, puncturing_private_port):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -913,13 +913,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_crawler(self)
         finally:
             self.sesslock.release()
-    
-    # 
+
+    #
     # Local Peer Discovery using IP Multicast
     #
     def set_multicast_local_peer_discovery(self,value):
         raise OperationNotPossibleAtRuntimeException()
-        
+
     def get_multicast_local_peer_discovery(self):
         self.sesslock.acquire()
         try:
@@ -932,7 +932,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     def set_swift_proc(self,value):
         raise OperationNotPossibleAtRuntimeException()
-        
+
     def get_swift_proc(self):
         self.sesslock.acquire()
         try:
@@ -943,7 +943,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     def set_swift_path(self,value):
         raise OperationNotPossibleAtRuntimeException()
-        
+
     def get_swift_path(self):
         self.sesslock.acquire()
         try:
@@ -954,7 +954,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     def set_swift_cmd_listen_port(self,port):
         raise OperationNotPossibleAtRuntimeException()
-    
+
     def get_swift_cmd_listen_port(self):
         self.sesslock.acquire()
         try:
@@ -965,7 +965,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     def set_swift_downloads_per_process(self,value):
         raise OperationNotPossibleAtRuntimeException()
-    
+
     def get_swift_downloads_per_process(self):
         self.sesslock.acquire()
         try:

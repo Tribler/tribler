@@ -91,7 +91,7 @@ class OutgoingMsgBase(object):
         self._dict = {VERSION: NEXTSHARE_VERSION}
         self._lock = threading.RLock()
 
-    
+
     def __str__(self):
         return str(self._dict)
 
@@ -113,7 +113,7 @@ class OutgoingMsgBase(object):
         del self._dict[TID]
         self._lock.release()
         return result
-      
+
 class OutgoingQueryBase(OutgoingMsgBase):
 
     def __init__(self, sender_id):
@@ -124,14 +124,14 @@ class OutgoingQueryBase(OutgoingMsgBase):
     @property
     def query(self):
         return self._dict[QUERY]
-    
+
 class OutgoingPingQuery(OutgoingQueryBase):
-    
+
     def __init__(self, sender_id):
         OutgoingQueryBase.__init__(self, sender_id)
         self._dict[QUERY] = PING
 
-        
+
 class OutgoingFindNodeQuery(OutgoingQueryBase):
 
     def __init__(self, sender_id, target):
@@ -147,9 +147,9 @@ class OutgoingGetPeersQuery(OutgoingQueryBase):
         self._dict[QUERY] = GET_PEERS
         self._dict[ARGS][INFO_HASH] = str(info_hash)
 
-        
+
 class OutgoingAnnouncePeerQuery(OutgoingQueryBase):
-    
+
     def __init__(self, sender_id, info_hash, port, token):
         OutgoingQueryBase.__init__(self, sender_id)
         self._dict[QUERY] = ANNOUNCE_PEER
@@ -165,8 +165,8 @@ class OutgoingResponseBase(OutgoingMsgBase):
         OutgoingMsgBase.__init__(self)
         self._dict[TYPE] = RESPONSE
         self._dict[RESPONSE] = {ID: str(sender_id)}
-        
-        
+
+
 class OutgoingPingResponse(OutgoingResponseBase):
 
     def __init__(self, sender_id):
@@ -179,7 +179,7 @@ class OutgoingFindNodeResponse(OutgoingResponseBase):
         OutgoingResponseBase.__init__(self, sender_id)
         self._dict[RESPONSE][NODES] = mt.compact_nodes(nodes)
 
-                          
+
 class OutgoingGetPeersResponse(OutgoingResponseBase):
 
     def __init__(self, sender_id, token=None, nodes=None, peers=None):
@@ -192,9 +192,9 @@ class OutgoingGetPeersResponse(OutgoingResponseBase):
         if peers:
             self._dict[RESPONSE][VALUES] = mt.compact_peers(peers)
 
-            
+
 class OutgoingAnnouncePeerResponse(OutgoingResponseBase):
-    
+
     def __init__(self, sender_id):
         OutgoingResponseBase.__init__(self, sender_id)
 
@@ -229,7 +229,7 @@ class IncomingMsg(object):
             raise
         except:
             logger.critical(
-                'This bencoded message crashed:\n%s' % repr(bencoded_msg)) 
+                'This bencoded message crashed:\n%s' % repr(bencoded_msg))
             raise MsgError, 'Invalid message'
 
     def __repr__(self):
@@ -238,7 +238,7 @@ class IncomingMsg(object):
     #
     # Sanitize functions
     #
-    
+
     def _get_value(self, k, kk=None, optional=False):
         try:
             v = self._msg_dict[k]
@@ -252,7 +252,7 @@ class IncomingMsg(object):
         except (TypeError):
             raise MsgError, 'Probably k (%r) is not a dictionary' % (k)
         return v
-    
+
     def _get_str(self, k, kk=None, optional=False):
         v = self._get_value(k, kk, optional)
         if v is None:
@@ -276,14 +276,14 @@ class IncomingMsg(object):
         except (TypeError, ValueError):
             raise MsgError, 'Value (%s:%s,%s) must be an int' % (k, kk, v)
         return v
-    
+
     def _sanitize_common(self):
         # Make sure the decoded data is a dict and has a TID key
         try:
             self.tid = self._msg_dict[TID]
         except (TypeError):
             raise MsgError, 'decoded data is not a dictionary'
-        except (KeyError): 
+        except (KeyError):
             raise MsgError, 'key TID not found'
         # Sanitize TID
         if not (isinstance(self.tid, str) and self.tid):
@@ -298,7 +298,7 @@ class IncomingMsg(object):
         self.version = self._get_str(VERSION, optional=True)
         self.ns_node = self.version \
             and self.version.startswith(NEXTSHARE_VERSION[:2])
-    
+
     def _sanitize_query(self):
         # sender_id
         self.sender_id = self._get_id(ARGS, ID)
@@ -315,7 +315,7 @@ class IncomingMsg(object):
             # target
             self.target = self._get_id(ARGS, TARGET)
         return
-        
+
     def _sanitize_response(self):
         nodes_found = False
         peers_found = False

@@ -17,22 +17,22 @@ from traceback import print_exc
 DEBUG=False
 
 class TestMerkleHashes(unittest.TestCase):
-    """ 
+    """
     Testing Simple Merkle Hashes extension version 0, in particular:
     * The algorithmic part
     * The .torrent file part
     See test_merkle_msg.py for protocol testing.
     """
-    
+
     def setUp(self):
         pass
-        
+
     def tearDown(self):
         pass
 
     def test_get_hashes_for_piece(self):
-        """ 
-            test MerkleTree.get_hashes_for_piece() method 
+        """
+            test MerkleTree.get_hashes_for_piece() method
         """
         self._test_123pieces_tree_get_hashes()
         self._test_8piece_tree_uncle_calc()
@@ -148,7 +148,7 @@ class TestMerkleHashes(unittest.TestCase):
         return list
 
     def test_check_hashes_update_hash_admin(self):
-        """ 
+        """
             test MerkleTree.check_hashes() and update_hash_admin() methods
         """
         for n in range(1,64):
@@ -254,7 +254,7 @@ class TestMerkleHashes(unittest.TestCase):
                 tree[o] = hashes[i]
 
             # fill unused
-            nplaces = (2 ** height)-(2 ** (height-1))        
+            nplaces = (2 ** height)-(2 ** (height-1))
             xso = starto+npieces
             xeo = starto+nplaces
             for o in range(xso,xeo):
@@ -311,7 +311,7 @@ class TestMerkleHashes(unittest.TestCase):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestMerkleHashes))
-    
+
     return suite
 
 if __name__ == "__main__":

@@ -79,7 +79,7 @@ def url2cdef(torrentfile_or_url):
         cdef = TorrentDef.load(torrentfile_or_url)
         
     if cdef.get_def_type() == "torrent" and cdef.get_live():
-            raise ValueError("cmdlinedl does not support live torrents")
+        raise ValueError("cmdlinedl does not support live torrents")
 
     return cdef
 

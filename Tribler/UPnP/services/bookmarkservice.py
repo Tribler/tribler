@@ -33,9 +33,9 @@ class BookmarkService(UPnPService):
 
     Events:
     - UPDATE
-    
+
     """
-    
+
     def __init__(self, service_id=None, service_version=1):
         if service_id == None:
             service_id = _DEFAULT_SERVICE_ID
@@ -48,7 +48,7 @@ class BookmarkService(UPnPService):
                                                           types.BooleanType, False)
 
         # Define Actions
-        self.define_action(self.get, 
+        self.define_action(self.get,
                            out_args=[("BOOKMARKS", types.StringType)],
                            name="GET")
         self.define_action(self.post,
@@ -68,8 +68,8 @@ class BookmarkService(UPnPService):
 
     def _on_update(self):
         """
-        Internal method: Toggles the value of update_event, 
-        in order to notify listeners. Used whenever the list of 
+        Internal method: Toggles the value of update_event,
+        in order to notify listeners. Used whenever the list of
         bookmarks is updated.
         """
         if self._update_event.get() == True:

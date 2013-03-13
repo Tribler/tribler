@@ -25,18 +25,18 @@ def parse_playtime_to_secs(hhmmss):
             t = float(occ[0])
     # Arno, 2010-07-05: Bencode doesn't support floats
     return int(t)
-    
+
 
 def offset2piece(offset,piecesize,endpoint=True):
-    
+
     p = offset / piecesize
-    # Niels: 08-08-2011: included endpoint boolean to specify if we should return an inclusive piece  
+    # Niels: 08-08-2011: included endpoint boolean to specify if we should return an inclusive piece
     if endpoint and offset % piecesize > 0:
         p += 1
     return p
 
 
-    
+
 def NamedTimer(*args,**kwargs):
     t = Timer(*args,**kwargs)
     t.setDaemon(True)

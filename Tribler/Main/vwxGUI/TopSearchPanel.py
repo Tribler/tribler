@@ -449,4 +449,4 @@ class TopSearchPanel(FancyPanel):
                         if dlg2.ShowModal() == wx.ID_YES:
                             self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':self.newName.GetValue()})
                         dlg2.Destroy()
-                dlg.Destroy() 
+                dlg.Destroy()

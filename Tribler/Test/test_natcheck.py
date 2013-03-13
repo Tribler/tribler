@@ -16,7 +16,7 @@ from test_crawler import TestCrawler
 DEBUG=True
 
 class TestNatCheck(TestCrawler):
-    """ 
+    """
     Testing Nat-Check statistics gathering using the Crawler framework
     """
 
@@ -30,7 +30,7 @@ class TestNatCheck(TestCrawler):
         (sub)test where the error occured in the traceback it prints.
         """
         self.subtest_valid_nat_check()
-        
+
     def subtest_valid_nat_check(self):
         """
         Send a CRAWLER_NATCHECK message to the Tribler instance. A
@@ -71,4 +71,3 @@ def test_suite():
 
 if __name__ == "__main__":
     unittest.main(defaultTest="test_suite")
-

@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 #
 
@@ -30,7 +30,7 @@ argsdef = [('name', '', 'name of the stream'),
            ('thumb', '', 'filename of image in JPEG format, preferably 171x96'),
            ('auth', 'RSA', 'Live-souce authentication method to use (ECDSA or RSA)'),
            ('url', False, 'Create URL instead of torrent (cannot be used with thumb)'),
-           ('cs_keys', '', 
+           ('cs_keys', '',
             "Closed swarm torrent keys (semicolon separated if more than one)"),
            ('generate_cs', 'no',
             "Create a closed swarm, generating the keys ('yes' to generate)"),
@@ -47,20 +47,20 @@ def state_callback(ds):
 
 def vod_ready_callback(d,mimetype,stream,filename):
     """ Called by the Session when the content of the Download is ready
-     
+
     Called by Session thread """
     print >>sys.stderr,"main: VOD ready callback called ###########################################################",mimetype
 
 def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
-    
-    
-    
+
+
+
 class InfiniteHTTPStream:
     def __init__(self,url):
         self.url = url
         self.reopen()
-        
+
     def read(self,nbytes=None):
         got = False
         while not got:
@@ -76,10 +76,10 @@ class InfiniteHTTPStream:
                 print >>sys.stderr,"createlivestream: Reconnecting on EOF input stream"
                 self.reopen()
         return ret
-        
+
     def close(self):
         self.stream.close()
-                
+
     def reopen(self):
         while True:
             try:
@@ -88,12 +88,12 @@ class InfiniteHTTPStream:
             except:
                 print_exc()
                 time.sleep(5.0) # No exp. backoff, get back ASAP
-        
-    
+
+
 class HaltOnEOFStream:
     def __init__(self,stream):
         self.stream = stream
-    
+
     def read(self,nbytes=None):
         ret = self.stream.read(nbytes)
         if len(ret) == 0:
@@ -101,30 +101,30 @@ class HaltOnEOFStream:
             print >>sys.stderr,"createlivestream: Exiting on EOF input stream"
             os._exit(1)
         return ret
-        
+
     def close(self):
         self.stream.close()
-    
-    
+
+
 class FileLoopStream:
-    
+
     def __init__(self,stream):
         self.stream = stream
-        
+
     def read(self,nbytes=None):
         data = self.stream.read(nbytes)
         if len(data) == 0: # EOF
             self.stream.seek(0)
             data = self.stream.read(nbytes)
         return data
-    
+
     def close(self):
         self.stream.close()
 
 
 def generate_key(source, config):
     """
-    Generate and a closed swarm key matching the config.  Source is the 
+    Generate and a closed swarm key matching the config.  Source is the
     source of the torrent
     """
     a, b = os.path.split(source)
@@ -134,16 +134,16 @@ def generate_key(source, config):
         target = os.path.join(a, b)
     target += ".torrent"
     print "Generating key to '%s.tkey' and '%s.pub'"%(target, target)
-    
+
     keypair, pubkey = ClosedSwarm.generate_cs_keypair(target + ".tkey",
                                                       target + ".pub")
-    
+
     return keypair,pubkey
 
 def publish_key(torrent, keypair, target_directory = "./"):
 
     t = TorrentDef.load(torrent)
-    
+
     filename = encodestring(t.infohash).replace("\n","")
     filename = filename.replace("/","")
     filename = filename.replace("\\","")
@@ -154,22 +154,22 @@ def publish_key(torrent, keypair, target_directory = "./"):
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
-    
+
     print >>sys.stderr,"config is",config
     print >>sys.stderr,"fileargs is",fileargs
-    
+
     if config['name'] == '':
         print "Usage:  ",get_usage(argsdef)
         sys.exit(0)
-        
-    
+
+
     print "Press Ctrl-C to stop the download"
 
     try:
         os.remove(os.path.join(config['destdir'],config['name']))
     except:
         print_exc()
-    
+
     sscfg = SessionStartupConfig()
     statedir = tempfile.mkdtemp()
     sscfg.set_state_dir(statedir)
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     sscfg.set_dialback(True)
     sscfg.set_dispersy(False)
     sscfg.set_torrent_collecting(False)
-    
+
     s = Session(sscfg)
 
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
     # Support for Ogg as transport stream
     ogg_header_pages = []
     if not config['url'] and is_ogg(config['source']):
-        if config['source'].startswith('http:'): 
+        if config['source'].startswith('http:'):
             # HTTP source
             source = urllib2.urlopen(config['source'])
         else:
@@ -254,10 +254,10 @@ if __name__ == "__main__":
         for header,body in ogg_header_pages:
             headers += header+body
         tdef.set_live_ogg_headers(headers)
-    
+
     tdef.finalize()
-    
-    
+
+
     if config['url']:
         urlbasename = config['name']+'.url'
         urlfilename = os.path.join(config['destdir'],urlbasename)
@@ -284,7 +284,7 @@ if __name__ == "__main__":
             poa = ClosedSwarm.create_poa(tdef.infohash,
                                          cs_keypair,
                                          authcfg.get_pubkey())
-            
+
             try:
                 ClosedSwarm.trivial_save_poa(Session.get_default_state_dir(),
                                              authcfg.get_pubkey(),
@@ -333,16 +333,16 @@ if __name__ == "__main__":
         dscfg.set_video_ratelimit(tdef.get_bitrate())
 
     haltsource = HaltOnEOFStream(source)
-        
-    restartstatefilename = config['name']+'.restart' 
+
+    restartstatefilename = config['name']+'.restart'
     dscfg.set_video_source(haltsource,authcfg,restartstatefilename=restartstatefilename)
 
     dscfg.set_max_uploads(config['nuploads'])
 
     d = s.start_download(tdef,dscfg)
     d.set_state_callback(state_callback,getpeerlist=False)
-   
-    # condition variable would be prettier, but that don't listen to 
+
+    # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
     time.sleep(sys.maxint/2048)
     #try:
@@ -353,8 +353,7 @@ if __name__ == "__main__":
     #cond = Condition()
     #cond.acquire()
     #cond.wait()
-    
+
     s.shutdown()
-    time.sleep(3)    
+    time.sleep(3)
     shutil.rmtree(statedir)
-    

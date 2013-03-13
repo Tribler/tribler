@@ -83,7 +83,7 @@ MAX_TIMEOUTS_IN_A_ROW = 10 # When x timeouts in a row, we consider that the
 # so that these nodes can be refreshed when/if the node comes on-line again.
 
 class RoutingManager(object):
-    
+
     def __init__(self, my_node, bootstrap_nodes, msg_f):
         self.my_node = my_node
         self.bootstrapper = bootstrap.OverlayBootstrapper(my_node.id,
@@ -111,22 +111,22 @@ class RoutingManager(object):
             log_distance = lookup_target.distance(self.my_node.id).log
             nodes = self.get_closest_rnodes(log_distance, 0, True)
         return lookup_target, nodes
-        
-                
+
+
     def do_maintenance(self):
         queries_to_send = []
         maintenance_lookup = None
         maintenance_delay = 0
-        if self._maintenance_mode == BOOTSTRAP_MODE: 
-                (queries_to_send,
-                 maintenance_lookup,
-                 bootstrap_delay) = self.bootstrapper.do_bootstrap(
-                    self.table.num_rnodes)
-                if bootstrap_delay:
-                    maintenance_delay = bootstrap_delay
-                else:
-                    self._maintenance_mode = FILL_BUCKETS
-                    self.bootstrapper.bootstrap_done()
+        if self._maintenance_mode == BOOTSTRAP_MODE:
+            (queries_to_send,
+             maintenance_lookup,
+             bootstrap_delay) = self.bootstrapper.do_bootstrap(
+                self.table.num_rnodes)
+            if bootstrap_delay:
+                maintenance_delay = bootstrap_delay
+            else:
+                self._maintenance_mode = FILL_BUCKETS
+                self.bootstrapper.bootstrap_done()
         elif self._maintenance_mode == FILL_BUCKETS:
             if self._num_pending_filling_lookups:
                 self._num_pending_filling_lookups -= 1
@@ -179,16 +179,16 @@ class RoutingManager(object):
         if node_:
             logger.debug('pinging node found: %r', node_)
         return node_
-        
+
     def _ping_a_query_received_node(self):
         return self._query_received_queue.pop(0)
 
     def _ping_a_replacement_node(self):
         return self._replacement_queue.pop(0)
-                                  
+
     def _get_maintenance_query(self, node_, do_fill_up=False):
         '''
-        if not node_.id: 
+        if not node_.id:
             # Bootstrap nodes don't have id
             return message.OutgoingFindNodeQuery(node_,
                                                  self.my_node.id,
@@ -211,7 +211,7 @@ class RoutingManager(object):
             msg = self.msg_f.outgoing_find_node_query(node_,
                                                       self.my_node.id, None)
         return msg
-        
+
     def on_query_received(self, node_):
         '''
         Return None when nothing to do
@@ -221,7 +221,7 @@ class RoutingManager(object):
         self._num_timeouts_in_a_row = 0
         if self.bootstrapper.is_bootstrap_node(node_):
             return
-        
+
         log_distance = self.my_node.distance(node_).log
         try:
             sbucket = self.table.get_sbucket(log_distance)
@@ -238,7 +238,7 @@ class RoutingManager(object):
             # This IP is in the table. Stop here to avoid multiple entries
             # with the same IP
             return
-        
+
         # Now, consider adding this node to the routing table
         if m_bucket.there_is_room():
             # There is room in the bucket: queue it
@@ -254,7 +254,7 @@ class RoutingManager(object):
             r_bucket.add(rnode)
             self._update_rnode_on_query_received(rnode)
         return
-            
+
     def on_response_received(self, node_, rtt, nodes):
         self._num_timeouts_in_a_row = 0
         if self.bootstrapper.is_bootstrap_node(node_):
@@ -281,7 +281,7 @@ class RoutingManager(object):
             # This IP is in the table. Stop here to avoid multiple entries
             # with the same IP
             return
-        
+
         # Now, consider adding this node to the routing table
         rnode = r_bucket.get_rnode(node_)
         if rnode:
@@ -330,7 +330,7 @@ class RoutingManager(object):
             self.table.num_rnodes += 0
             self._update_rnode_on_response_received(rnode, rtt)
             return
-            
+
         # Get the worst node in replacement bucket and see whether
         # it's bad enough to be replaced by node_
         worst_rnode = self._worst_rnode(r_bucket.rnodes)
@@ -342,12 +342,12 @@ class RoutingManager(object):
             r_bucket.add(rnode)
             self._update_rnode_on_response_received(rnode, rtt)
         return
-        
+
     def on_error_received(self, node_addr):
         # if self.bootstrapper.is_bootstrap_node(node_):
         #     return
         return
-    
+
     def on_timeout(self, node_):
         self._num_timeouts_in_a_row += 1
         if self._num_timeouts_in_a_row > MAX_TIMEOUTS_IN_A_ROW:
@@ -386,7 +386,7 @@ class RoutingManager(object):
             # Node in replacement table: just update rnode
             self._update_rnode_on_timeout(rnode)
         return []
-            
+
     def get_closest_rnodes(self, log_distance, num_nodes, exclude_myself):
         if not num_nodes:
             num_nodes = NODES_PER_BUCKET[log_distance]
@@ -424,7 +424,7 @@ class RoutingManager(object):
         if rnode.in_quarantine:
             rnode.in_quarantine = \
                 rnode.last_action_ts < current_time - QUARANTINE_PERIOD
-                
+
         rnode.last_action_ts = current_time
         rnode.num_responses += 1
         rnode.add_event(time.time(), node.RESPONSE)
@@ -451,7 +451,7 @@ class RoutingManager(object):
                 worst_rnode_so_far = rnode
         return worst_rnode_so_far
 
-        
+
 class _ReplacementQueue(object):
 
     def __init__(self, table):
@@ -545,7 +545,7 @@ class _FoundNodesQueue(object):
                 self._queued_nodes_set.add(node_)
                 self._queue.append(node_)
 
-    def pop(self, _): 
+    def pop(self, _):
         while self._queue:
             node_ = self._queue.pop(0)
             self._queued_nodes_set.remove(node_)
@@ -558,13 +558,13 @@ class _FoundNodesQueue(object):
                 return node_
         return
 
-            
+
 class RoutingManagerMock(object):
 
     def get_closest_rnodes(self, target_id):
         import test_const as tc
         if target_id == tc.INFO_HASH_ZERO:
-            return (tc.NODES_LD_IH[155][4], 
+            return (tc.NODES_LD_IH[155][4],
                     tc.NODES_LD_IH[157][3],
                     tc.NODES_LD_IH[158][1],
                     tc.NODES_LD_IH[159][0],

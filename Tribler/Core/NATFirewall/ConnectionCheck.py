@@ -39,7 +39,7 @@ class ConnectionCheck:
                 print >>sys.stderr, "natcheckmsghandler: the thread is already running"
             else:
                 print >>sys.stderr, "natcheckmsghandler: starting the thread"
-            
+
         if not self._running:
             thread.start_new_thread(self.run, ())
 
@@ -70,7 +70,7 @@ class ConnectionCheck:
     def natcheck(self, in_port, server1, server2):
         """
         Find out NAT type and public address and port
-        """        
+        """
         nat_type, ex_ip, ex_port, in_ip = GetNATType(in_port, server1, server2)
         if DEBUG: print >> sys.stderr, "NATCheck:", "NAT Type: " + nat_type[1]
         if DEBUG: print >> sys.stderr, "NATCheck:", "Public Address: " + ex_ip + ":" + str(ex_port)

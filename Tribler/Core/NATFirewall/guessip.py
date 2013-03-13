@@ -40,7 +40,7 @@ def get_my_wan_ip():
         return None
 
 def get_my_wan_ip_win32():
-    
+
     routecmd = "netstat -nr"
     ifcmd = "ipconfig /all"
 
@@ -139,7 +139,7 @@ def get_my_wan_ip_linux():
 
 
 def get_my_wan_ip_darwin():
-    routecmd = '/usr/sbin/netstat -nr'         
+    routecmd = '/usr/sbin/netstat -nr'
     ifcmd = '/sbin/ifconfig -a'
 
     gwif = None

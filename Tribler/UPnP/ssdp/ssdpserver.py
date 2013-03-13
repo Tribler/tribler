@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 """
-This module implements the SSDP Server deamon, 
+This module implements the SSDP Server deamon,
 part of the UPnP archictecture.
 """
 import ssdpmessage
@@ -10,8 +10,8 @@ import ssdpdaemon
 
 # SSDP Message Configuration
 
-_ROOT_CONF_TEMPL =  { 
-    'target':  "upnp:rootdevice", 
+_ROOT_CONF_TEMPL =  {
+    'target':  "upnp:rootdevice",
     'usn': "uuid:%(uuid)s::upnp:rootdevice",
     }
 
@@ -22,14 +22,14 @@ _DEVICE_CONF_TEMPL_1 = {
 
 _DEVICE_CONF_TEMPL_2 = {
     'target':  "urn:%(device_domain)s:device:" + \
-        "%(device_type)s:%(device_version)s", 
+        "%(device_type)s:%(device_version)s",
     'usn': "uuid:%(uuid)s::urn:%(device_domain)s:device:" + \
         "%(device_type)s:%(device_version)s",
     }
 
 _SERVICE_CONF_TEMPL = {
     'target':  "urn:schemas-upnp-org:service:" + \
-        "%(service_type)s:%(service_version)s", 
+        "%(service_type)s:%(service_version)s",
     'usn': "uuid:%(uuid)s::urn:schemas-upnp-org:service:" + \
         "%(service_type)s:%(service_version)s",
     }
@@ -46,7 +46,7 @@ _LOG_TAG = "SSDPServer"
 
 
 def _create_msg_config(config_template, kwargs):
-    """Create a single message config dict from a template and 
+    """Create a single message config dict from a template and
     some keywords."""
     return {
         'target': config_template['target'] % kwargs,
@@ -63,7 +63,7 @@ def _create_msg_configs(root_device):
     device_queue = [root_device]
     while device_queue:
         device = device_queue.pop()
-        # Iterate recursively over all devices (top-down/breath-first)        
+        # Iterate recursively over all devices (top-down/breath-first)
         device_queue += device.get_devices()
         # Create two messages configs per device
         conf_1 = _create_msg_config(_DEVICE_CONF_TEMPL_1, device.__dict__)
@@ -81,7 +81,7 @@ def _create_msg_configs(root_device):
 def _initialise_message(ssdp_config, msg):
     """Utility method for initialising SSDP messages with common data."""
     msg.init (
-        location=ssdp_config['location'], 
+        location=ssdp_config['location'],
         osversion=ssdp_config['osversion'],
         productversion = ssdp_config['productversion'],
         max_age=ssdp_config['max_age']
@@ -97,7 +97,7 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
 
     """
     This implements the SSDP server deamon, part of the UPnP architecture.
-    
+
     This class is implemented in a non-blocking, event-based manner.
     Execution is outsourced to the given task_runner.
     """
@@ -135,7 +135,7 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
         self.announce()
 
     ##############################################
-    # OVERRIDE HANDLERS 
+    # OVERRIDE HANDLERS
     ##############################################
 
     def handle_search(self, msg, sock_addr):
@@ -149,19 +149,19 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
 
         if msg.st == "ssdp:all":
             # Reply messages for all devices and services
-            configs = _create_msg_configs(self._root_device) 
+            configs = _create_msg_configs(self._root_device)
         elif msg.st == "upnp:rootdevice":
             # Reply only single special message for root device
             configs = [_create_msg_config(_ROOT_CONF_TEMPL, \
                                           self._root_device.__dict__)]
         else:
             device_type = msg.st.split(':')[-2]
-            self.log("IGNORE %s %s [%s]" % (msg.type, 
+            self.log("IGNORE %s %s [%s]" % (msg.type,
                                             device_type, sock_addr[0]))
             return
-        
+
         device_type = msg.st.split(':')[-2]
-        self.log("RECEIVE %s %s [%s]" % (msg.type, 
+        self.log("RECEIVE %s %s [%s]" % (msg.type,
                                          device_type, sock_addr[0]))
 
         # Send Replies
@@ -186,7 +186,7 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
     ##############################################
     # PUBLIC API
     ##############################################
-        
+
     def announce(self):
         """Multicast SSDP announce messages."""
         # Reset timeout task for next announce
@@ -194,7 +194,7 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
             self._timeout_task.cancel()
         # Register new announce timeout
         self._timeout_task = self.task_runner.add_delay_task(
-            _REANNOUNCE_AGE, 
+            _REANNOUNCE_AGE,
             self.announce
             )
 
@@ -212,12 +212,12 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
             msg.nt = conf['target']
             msg.usn = conf['usn']
             self.multicast(msg)
-               
+
     def close(self):
         """Close the SSDP Server deamon. Send unannounce messages."""
         self.unannounce()
         ssdpdaemon.SSDPDaemon.close(self)
-       
+
 
 ##############################################
 # MAIN
@@ -268,7 +268,7 @@ if __name__ == '__main__':
             """Log to std out."""
             print log_tag, msg
 
-    
+
     import Tribler.UPnP.common.taskrunner as taskrunner
     TR = taskrunner.TaskRunner()
     SM = MockServiceManager()

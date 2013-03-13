@@ -27,7 +27,7 @@ USE_M2CRYPTO_SHA = False
 
 
 if USE_M2CRYPTO_SHA:
-    from M2Crypto import EVP    
+    from M2Crypto import EVP
 
     class sha:
         def __init__(self,data=None):

@@ -1,4 +1,4 @@
-# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker 
+# Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker
 # ReWritten by Niels Zeilemaker
 # see LICENSE.txt for license information
 from time import time, sleep
@@ -72,12 +72,12 @@ def format_time(val):
     try:
         today = datetime.today()
         discovered = datetime.fromtimestamp(val)
-        
+
         diff = today - discovered
         if diff.days > 0 or today.day != discovered.day:
             return discovered.strftime('%d-%m-%Y')
         return discovered.strftime('Today %H:%M')
-    
+
     except:
         return 'Unknown'
 
@@ -90,7 +90,7 @@ def showError(textCtrl):
         ctrl.SetForegroundColour(fore)
         ctrl.SetBackgroundColour(back)
         ctrl.Refresh()
-    
+
     curFore = textCtrl.GetForegroundColour()
     curBack = textCtrl.GetBackgroundColour()
     setColours(textCtrl, wx.WHITE, wx.RED)
@@ -102,9 +102,9 @@ def warnWxThread(func):
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
             print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-        
+
         return func(*args, **kwargs)
-    
+
     invoke_func.__name__ = func.__name__
     return invoke_func
 
@@ -118,7 +118,7 @@ def forceWxThread(func):
                 callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             wx.CallAfter(func, *args, **kwargs)
-            
+
     invoke_func.__name__ = func.__name__
     return invoke_func
 
@@ -126,29 +126,29 @@ def forceAndReturnWxThread(func):
     def invoke_func(*args,**kwargs):
         if wx.Thread_IsMain():
             return func(*args, **kwargs)
-        
+
         else:
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
                 callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
                 print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
-            
+
             event = Event()
-            
+
             result = [None]
             def wx_thread():
                 try:
                     result[0] = func(*args, **kwargs)
                 finally:
                     event.set()
-            
+
             wx.CallAfter(wx_thread)
             if event.wait(15) or event.isSet():
                 return result[0]
-            
+
             from traceback import print_stack
             print_stack()
             print >> sys.stderr, "GOT TIMEOUT ON forceAndReturnWxThread", func.__name__
-            
+
     invoke_func.__name__ = func.__name__
     return invoke_func

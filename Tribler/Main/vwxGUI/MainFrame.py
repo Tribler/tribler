@@ -14,8 +14,8 @@ import os,sys
 # TODO: cleanup imports
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
-# errors on Vista in "Regional and Language Settings Options" different from 
-# "English[United Kingdom]" 
+# errors on Vista in "Regional and Language Settings Options" different from
+# "English[United Kingdom]"
 #import locale
 import signal
 import commands
@@ -87,13 +87,13 @@ DEBUG = False
 # To enable drag and drop for ABC list in main menu
 #
 ################################################################
-class FileDropTarget(wx.FileDropTarget): 
+class FileDropTarget(wx.FileDropTarget):
     def __init__(self, frame):
-        # Initialize the wsFileDropTarget Object 
-        wx.FileDropTarget.__init__(self) 
-        # Store the Object Reference for dropped files 
+        # Initialize the wsFileDropTarget Object
+        wx.FileDropTarget.__init__(self)
+        # Store the Object Reference for dropped files
         self.frame = frame
-      
+
     def OnDropFiles(self, x, y, filenames):
         destdir = None
         for filename in filenames:
@@ -101,21 +101,21 @@ class FileDropTarget(wx.FileDropTarget):
                 #lets see if we can find a .torrent in this directory
                 head, _ = os.path.split(filename)
                 files = os.listdir(head)
-                
+
                 found = False
                 for file in files:
                     if file.endswith(".torrent"): #this is the .torrent, use head as destdir to start seeding
                         filename = os.path.join(head, file)
                         destdir = head
-                        
-                        found = True        
+
+                        found = True
                         break
-                
+
                 if not found:
                     dlg = wx.FileDialog(None, "Tribler needs a .torrent file to start seeding, please select the associated .torrent file.", wildcard = "torrent (*.torrent)|*.torrent", style = wx.FD_OPEN)
                     if dlg.ShowModal() == wx.ID_OK:
                         filename = dlg.GetPath()
-                        
+
                         destdir = head
                         found = True
                     dlg.Destroy()
@@ -144,28 +144,28 @@ class MainFrame(wx.Frame):
         self.torrentfeed = None
         self.category = Category.getInstance()
         self.shutdown_and_upgrade_notes = None
-        
+
         self.guiserver = GUITaskQueue.getInstance()
-        
+
         title = self.utility.lang.get('title') + \
                 " " + \
                 self.utility.lang.get('version')
-        
+
         # Get window size and (sash) position from config file
         size, position, sashpos = self.getWindowSettings()
         style = wx.DEFAULT_DIALOG_STYLE|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.RESIZE_BORDER|wx.NO_FULL_REPAINT_ON_RESIZE|wx.CLIP_CHILDREN
-            
+
         wx.Frame.__init__(self, parent, wx.ID_ANY, title, position, size, style)
         if sys.platform == 'linux2':
             font = self.GetFont()
             if font.GetPointSize() > 9:
                 font.SetPointSize(9)
                 self.SetFont(font)
-                
+
         self.Freeze()
         self.SetDoubleBuffered(True)
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
-         
+
         themeColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT)
         r, g, b = themeColour.Get(False)
         if r > 190 or g > 190 or b > 190: #Grey == 190,190,190
@@ -176,8 +176,8 @@ class MainFrame(wx.Frame):
             self.videoparentpanel.Hide()
         else:
             self.videoparentpanel = None
-            
-        #Create all components        
+
+        #Create all components
         progress('Creating panels')
         if not channelonly:
             self.actlist = ActivitiesList(self)
@@ -221,7 +221,7 @@ class MainFrame(wx.Frame):
         else:
             self.actlist = None
             self.top_bg = None
-            
+
             self.guiUtility.guiPage = 'selectedchannel'
             self.home = None
             self.searchlist = None
@@ -232,23 +232,23 @@ class MainFrame(wx.Frame):
             self.selectedchannellist.Show(True)
             self.playlist = Playlist(self)
             self.playlist.Show(False)
-        
+
         self.stats = Stats(self)
         self.stats.Show(False)
         self.managechannel = ManageChannel(self)
         self.managechannel.Show(False)
-        
+
         progress('Positioning')
-        
+
         if not channelonly:
-            #position all elements            
+            #position all elements
             vSizer = wx.BoxSizer(wx.VERTICAL)
-            
+
             vSizer.Add(self.top_bg, 0, wx.EXPAND)
-            
+
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             vSizer.Add(hSizer, 1, wx.EXPAND)
-            
+
             hSizer.Add(self.actlist, 0, wx.EXPAND)
             separator = wx.Panel(self, size=(1,-1))
             separator.SetBackgroundColour(SEPARATOR_GREY)
@@ -257,33 +257,33 @@ class MainFrame(wx.Frame):
             hSizer.Add(self.stats, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
         else:
-            vSizer = wx.BoxSizer(wx.VERTICAL) 
+            vSizer = wx.BoxSizer(wx.VERTICAL)
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             vSizer.Add(hSizer, 1, wx.EXPAND|wx.ALL, 5)
-            
+
             self.top_bg = TopSearchPanelStub()
-            
+
         hSizer.Add(self.managechannel, 1, wx.EXPAND)
-        
+
         if self.videoparentpanel:
             hSizer.Add(self.videoparentpanel, 1, wx.EXPAND)
-        
+
         self.SetSizer(vSizer)
-        
+
         #set sizes
         if not channelonly:
             self.top_bg.SetMinSize((-1,45))
             self.actlist.SetMinSize((200,-1))
-        
+
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
-        
+
         def preload_data():
             if not channelonly:
                 self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)
         startWorker(None, preload_data, delay = 1.5, workerType = "guiTaskQueue")
-        
+
         if channelonly:
             self.guiUtility.showChannelFromDispCid(channelonly)
             if internalvideo:
@@ -296,8 +296,8 @@ class MainFrame(wx.Frame):
             self.SetIcon(self.utility.icon)
         except:
             pass
-        
-        self.tbicon = None        
+
+        self.tbicon = None
         try:
             self.tbicon = ABCTaskBarIcon(self)
         except:
@@ -308,8 +308,8 @@ class MainFrame(wx.Frame):
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
 
-        progress('Binding events')        
-        # Menu Events 
+        progress('Binding events')
+        # Menu Events
         ############################
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
@@ -322,7 +322,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_ICONIZE, self.onIconify)
         self.Bind(wx.EVT_SIZE, self.onSize)
         self.Bind(wx.EVT_MAXIMIZE, self.onSize)
-        
+
         findId = wx.NewId()
         quitId = wx.NewId()
         nextId = wx.NewId()
@@ -333,55 +333,55 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnNext, id = nextId)
         self.Bind(wx.EVT_MENU, self.OnPrev, id = prevId)
         self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('stats'), id = dispId)
-        
+
 
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
         accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
         accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
         accelerators.append((wx.ACCEL_CTRL|wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
-        
+
         if sys.platform == 'linux2':
             accelerators.append((wx.ACCEL_CTRL, ord('q'), quitId))
             accelerators.append((wx.ACCEL_CTRL, ord('/'), findId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
-        
+
         # Init video player
         sys.stdout.write('GUI Complete.\n')
         self.Thaw()
         self.ready = True
-        
+
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
 #        bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
 #        mypermid = bartercastdb.my_permid
-#        
+#
 #        if DEBUG:
-#            
+#
 #            top = bartercastdb.getTopNPeers(5)['top']
-#    
+#
 #            print 'My Permid: ', show_permid(mypermid)
-#            
+#
 #            print 'Top 5 BarterCast peers:'
 #            print '======================='
-#    
+#
 #            i = 1
 #            for (permid, up, down) in top:
 #                print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
 #                i += 1
-        
-        
+
+
         def post():
             self.checkVersion()
             self.startCMDLineTorrent()
 
         # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(post)
-        
+
         # ProxyService 90s Test_
 #        from Tribler.Core.Session import Session
 #        session = Session.get_instance()
 #        session.uch.notify(NTFY_GUI_STARTED, NTFY_INSERT, None, None)
         # _ProxyService 90s Test
-        
+
     def startCMDLineTorrent(self):
         if self.params[0] != "" and not self.params[0].startswith("--"):
             vod = False
@@ -393,7 +393,7 @@ class MainFrame(wx.Frame):
                     ext = ext[1:]
                 if ext.lower() in videoextdefaults:
                     vod = True
-            
+
             if url_filename.startswith("magnet:"):
                 self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
             elif url_filename.startswith("http"):
@@ -407,22 +407,22 @@ class MainFrame(wx.Frame):
         def torrentdef_retrieved(tdef):
             print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
             wx.CallAfter(self.startDownload, tdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
-                
+
         if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
             print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
             self.guiUtility.Notify("Download from magnet failed", icon = wx.ART_WARNING)
             return False
-        
+
         print >> sys.stderr, "Trying to retrieve metadata for:", url
         return True
-    
+
     def startDownloadFromSwift(self, url, destdir = None):
         url = url.replace("ppsp://", "tswift://127.0.0.1:9999/") if url.startswith("ppsp://") else url
         sdef = SwiftDef.load_from_url(url)
         sdef.set_name("Unnamed video - "+time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
         wx.CallAfter(self.startDownload, sdef = sdef, destdir = destdir)
         return True
-    
+
     def startDownloadFromUrl(self, url, destdir = None, cmdline=False, selectedFiles = [], vodmode = False):
         try:
             tdef = TorrentDef.load_from_url(url)
@@ -437,36 +437,36 @@ class MainFrame(wx.Frame):
     def startDownload(self,torrentfilename=None,destdir=None,sdef=None,tdef=None,cmdline=False,clicklog=None,name=None,vodmode=False,doemode=None,fixtorrent=False,selectedFiles=None,correctedFilename=None,hidden=False):
         if True or DEBUG:
             print >>sys.stderr,"mainframe: startDownload:",torrentfilename, destdir,sdef,tdef,vodmode,selectedFiles
-        
+
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
-            
+
         #Niels: if you call startdownload with both a Swift sdef and a tdef/torrentfilename, we allow Swift to download the file in the first X seconds
         if sdef and (torrentfilename or tdef):
             monitorSwiftProgress = True
         else:
             monitorSwiftProgress = False
-            
+
         try:
             if torrentfilename and tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
-                
+
             cdef = sdef or tdef
-                
+
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            
+
             cancelDownload = False
             useDefault = not dscfg.get_show_saveas()
             if not useDefault and not destdir:
                 defaultname = correctedFilename
                 if not correctedFilename and tdef and tdef.is_multifile_torrent():
                     defaultname = tdef.get_name_as_unicode()
-                
+
                 if wx.Thread_IsMain():
                     dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
                     dlg.CenterOnParent()
-                    
+
                     if dlg.ShowModal() == wx.ID_OK:
                         #for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
@@ -479,30 +479,30 @@ class MainFrame(wx.Frame):
                     dlg.Destroy()
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
-                    
+
             if not cancelDownload:
                 if destdir is not None:
                     dscfg.set_dest_dir(destdir)
-                    
+
                 if correctedFilename:
                     dscfg.set_corrected_filename(correctedFilename)
-                
+
                 if selectedFiles and len(selectedFiles) == 1:
                     #we should filter files to see if they are all playable
                     videofiles = selectedFiles
-                    
+
                 elif tdef and not selectedFiles:
                     videofiles = tdef.get_files(exts=videoextdefaults)
-                    
+
                 else:
                     videofiles = []
-                
+
                 #disable vodmode if no videofiles
                 if vodmode and len(videofiles) == 0:
                     vodmode = False
-                
+
                 vodmode = vodmode or cdef.get_live()
-                
+
                 selectedFile = None
                 if vodmode:
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in VOD mode'
@@ -510,16 +510,16 @@ class MainFrame(wx.Frame):
                         selectedFile = videofiles[0]
                     else:
                         selectedFile = None
-                    
+
                     #Swift requires swarmname to be part of the selectedfile
                     if cdef.get_def_type() == 'swift' and tdef and selectedFile:
                         swift_selectedFile = tdef.get_name_as_unicode()+"/"+selectedFile
                     else:
                         swift_selectedFile = selectedFile
-                    
+
                     videoplayer = VideoPlayer.getInstance()
                     result = videoplayer.start_and_play(cdef, dscfg, swift_selectedFile)
-                    
+
                 else:
                     if selectedFiles:
                         if cdef.get_def_type() == 'swift' and tdef:
@@ -527,16 +527,16 @@ class MainFrame(wx.Frame):
                             for selectedFile in selectedFiles:
                                 swift_selectedFiles.append(tdef.get_name_as_unicode()+"/"+selectedFile)
                             dscfg.set_selected_files(swift_selectedFiles)
-                            
+
                         else:
                             dscfg.set_selected_files(selectedFiles)
-                    
+
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
-                
+
                 if result and not hidden:
                     self.show_saved(tdef)
-                    
+
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile, selectedFiles=selectedFiles: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles)
                         result.set_state_callback(state_lambda, getpeerlist=False, delay=15.0)
@@ -545,7 +545,7 @@ class MainFrame(wx.Frame):
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
                     startWorker(None, mypref.addClicklogToMyPreference, wargs= (cdef.get_id(), clicklog))
 
-                return result  
+                return result
 
         except DuplicateDownloadException,e:
             # If there is something on the cmdline, all other torrents start
@@ -556,7 +556,7 @@ class MainFrame(wx.Frame):
                     if d.get_def().get_infohash() == cdef.get_infohash():
                         d.restart()
                         break
-            
+
             if wx.Thread_IsMain():
                 # show nice warning dialog
                 dlg = wx.MessageDialog(None,
@@ -565,38 +565,38 @@ class MainFrame(wx.Frame):
                                        wx.OK|wx.ICON_ERROR)
                 result = dlg.ShowModal()
                 dlg.Destroy()
-                
+
             else:
                 print_exc()
                 self.onWarning(e)
-            
+
         except Exception,e:
             print_exc()
             self.onWarning(e)
-            
+
         return None
-    
+
     def startReseedSwiftDownload(self, tdef, storagepath, sdef):
         # Arno, 2012-05-07:
         print >>sys.stderr,"main: frame: startReseedSwift",tdef, storagepath, sdef
-        
+
         # 1. Tell library_manager that we have a 'swift_hash' for this infohash
         self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
-        
+
         # 2. Start swift download reseeding BitTorrent content
         self.startDownload(destdir=storagepath,sdef=sdef,hidden=True)
-                
+
         # 3. Checkpoint Session
         self.utility.session.checkpoint()
-    
+
     def modifySelection(self, download, selectedFiles):
         download.set_selected_files(selectedFiles)
-    
+
     def fixTorrent(self, filename):
         f = open(filename,"rb")
         bdata = f.read()
         f.close()
-        
+
         #Check if correct bdata
         try:
             bdecode(bdata)
@@ -610,20 +610,20 @@ class MainFrame(wx.Frame):
                 f.close()
             except:
                 return False
-        
+
         return True
-    
+
     def monitorSwiftProgress(self, ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles):
         if ds.get_progress() == 0:
             if ds.get_status() == DLSTATUS_ALLOCATING_DISKSPACE:
                 return (5.0, True)
-            
+
             download = ds.get_download()
             self.utility.session.remove_download(download)
-            
+
             #pause for swift file release
             time.sleep(1)
-            
+
             print >> sys.stderr, "Switching to Bittorrent"
             cdef = TorrentDef.load(torrentfilename)
             dscfg = dscfg.copy()
@@ -634,7 +634,7 @@ class MainFrame(wx.Frame):
             else:
                 self.utility.session.start_download(cdef, dscfg)
         return (0, False)
-                
+
     @forceWxThread
     def show_saved(self, tdef):
         if self.ready and self.librarylist.isReady:
@@ -648,10 +648,10 @@ class MainFrame(wx.Frame):
                 self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon = 'download')
             else:
                 self.guiUtility.Notify("Download started", "A new torrent has been added to the download queue.", icon = 'download')
-            
+
             print >> sys.stderr, "Allowing refresh in 3 seconds", long(time.time() + 3)
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
-            
+
     def checkVersion(self):
         self.guiserver.add_task(self._checkVersion, 5.0)
 
@@ -692,7 +692,7 @@ class MainFrame(wx.Frame):
                     self._upgradeVersion(my_version, self.curr_version, info)
                 else:
                     self._manualUpgrade(my_version, self.curr_version, self.update_url)
-            
+
             # Also check new version of web2definitions for youtube etc. search
             ##Web2Updater(self.utility).checkUpdate()
         except Exception,e:
@@ -755,7 +755,7 @@ class MainFrame(wx.Frame):
             if not executable:
                 print >> sys.stderr, "-- Abort upgrade: no file found"
                 return
-                
+
             # start download
             try:
                 download = self.utility.session.start_download(tdef)
@@ -786,7 +786,7 @@ class MainFrame(wx.Frame):
 
                     elif sys.platform == "darwin":
                         args = ["open", executable_path]
-                    
+
                     print >> sys.stderr, "-- Tribler closed, starting upgrade"
                     print >> sys.stderr, "-- Start:", args
                     subprocess.Popen(args)
@@ -816,12 +816,12 @@ class MainFrame(wx.Frame):
                     return (1.0, False)
 
                 download.set_state_callback(state_callback)
-    
+
     @forceWxThread
     def _manualUpgrade(self, my_version, latest_version, url):
         dialog = wx.MessageDialog(self, 'There is a new version of Tribler.\nYour version:\t\t\t\t%s\nLatest version:\t\t\t%s\n\nPlease visit %s to upgrade.'%(my_version, latest_version, url), 'New version of Tribler is available', wx.OK|wx.ICON_INFORMATION)
         dialog.ShowModal()
-            
+
     def newversion(self, curr_version, my_version):
         curr = curr_version.split('.')
         my = my_version.split('.')
@@ -859,7 +859,7 @@ class MainFrame(wx.Frame):
             executable = "tribler.sh"
         elif sys.platform == "darwin":
             executable = "?"
-        
+
         executable = os.path.join(path, executable)
         print >> sys.stderr, executable
         def start_tribler():
@@ -870,14 +870,14 @@ class MainFrame(wx.Frame):
 
         atexit.register(start_tribler)
         self.Close(force = True)
-    
+
     def OnFind(self, event):
         self.top_bg.SearchFocus()
-    
+
     def OnNext(self, event):
         self.actlist.NextPage()
-    
-    
+
+
     def OnPrev(self, event):
         self.actlist.PrevPage()
 
@@ -890,10 +890,10 @@ class MainFrame(wx.Frame):
             self.Iconize(False)
             self.Show(True)
             self.Raise()
-            
+
             if self.tbicon is not None:
                 self.tbicon.updateIcon(False)
-                
+
             self.GUIupdate = True
 
     def onIconify(self, event = None):
@@ -906,24 +906,24 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: onIconify(",event.Iconized()
             else:
                 print  >> sys.stderr,"main: onIconify event None"
-        
+
         if event.Iconized():
-            #Niels, 2011-06-17: why pause the video? This does not make any sense                                                                                                               
+            #Niels, 2011-06-17: why pause the video? This does not make any sense
             #videoplayer = VideoPlayer.getInstance()
             #videoplayer.pause_playback() # when minimzed pause playback
-            
+
             if self.utility.config.Read('mintray', "int") == 1:
                 self.tbicon.updateIcon(True)
                 self.Show(False)
-                
+
             self.GUIupdate = False
         else:
             #Niels, 2011-06-17: why pause the video? This does not make any sense
             #at least make it so, that it will only resume if it was actually paused by the minimize action
-            
+
             #videoplayer = VideoPlayer.getInstance()
             #videoplayer.resume_playback()
-                
+
             self.GUIupdate = True
         if event is not None:
             event.Skip()
@@ -934,7 +934,7 @@ class MainFrame(wx.Frame):
         # I get a onIconify(event.Iconized()==True) event, but when
         # I switch back, I don't get an event. As a result the GUIupdate
         # remains turned off. The wxWidgets wiki on the TaskBarIcon suggests
-        # catching the onSize event. 
+        # catching the onSize event.
         if DEBUG:
             if event is not None:
                 print  >> sys.stderr,"main: onSize:",self.GetSize()
@@ -945,7 +945,7 @@ class MainFrame(wx.Frame):
             if event.GetEventType() == wx.EVT_MAXIMIZE:
                 self.window.SetClientSize(self.GetClientSize())
             event.Skip()
-        
+
     def getWindowSettings(self):
         width = self.utility.config.Read("window_width")
         height = self.utility.config.Read("window_height")
@@ -953,7 +953,7 @@ class MainFrame(wx.Frame):
             size = wx.Size(int(width), int(height))
         except:
             size = wx.Size(1024, 670)
-        
+
         x = self.utility.config.Read("window_x")
         y = self.utility.config.Read("window_y")
         if (x == "" or y == "" or x == 0 or y == 0):
@@ -978,7 +978,7 @@ class MainFrame(wx.Frame):
             sashpos = -185
 
         return size, position, sashpos
-        
+
     def saveWindowSettings(self):
         width, height = self.GetSizeTuple()
         x, y = self.GetPositionTuple()
@@ -986,35 +986,35 @@ class MainFrame(wx.Frame):
         self.utility.config.Write("window_height", height)
         self.utility.config.Write("window_x", x)
         self.utility.config.Write("window_y", y)
-        
+
         if self.splitter.IsShownOnScreen() and self.splitter.IsSplit():
             self.utility.config.Write("sash_position", self.splitter.GetSashPosition())
 
         self.utility.config.Flush()
-       
+
     ##################################
     # Close Program
     ##################################
-               
+
     def OnCloseWindow(self, event = None, force = False):
         found = False
         if event != None:
             nr = event.GetEventType()
             lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
-            if nr in lookup: 
+            if nr in lookup:
                 nr = lookup[nr]
                 found = True
-                
+
             print >>sys.stderr, "mainframe: Closing due to event ",nr,`event`
         else:
             print >>sys.stderr, "mainframe: Closing untriggered by event"
-        
-        
+
+
         # Don't do anything if the event gets called twice for some reason
         if self.utility.abcquitting:
-            print 
+            print
             return
-        
+
         # Check to see if we can veto the shutdown
         # (might not be able to in case of shutting down windows)
         if event is not None:
@@ -1032,15 +1032,15 @@ class MainFrame(wx.Frame):
                     dialog.Destroy()
                     if result != wx.ID_OK:
                         event.Veto()
-                        
+
                         print >>sys.stderr, "mainframe: Not closing messagebox did not return OK"
                         return
             except:
                 print_exc()
-            
+
         self.utility.abcquitting = True
         self.GUIupdate = False
-        
+
         if VideoPlayer.hasInstance():
             print >>sys.stderr, "mainframe: Closing videoplayer"
 
@@ -1049,7 +1049,7 @@ class MainFrame(wx.Frame):
 
         try:
             print >>sys.stderr, "mainframe: Restoring from taskbar"
-            
+
             # Restore the window before saving size and position
             # (Otherwise we'll get the size of the taskbar button and a negative position)
             self.onTaskBarActivate()
@@ -1060,28 +1060,28 @@ class MainFrame(wx.Frame):
         if self.tbicon is not None:
             try:
                 print >>sys.stderr, "mainframe: Removing tbicon"
-                    
+
                 self.tbicon.RemoveIcon()
                 self.tbicon.Destroy()
             except:
                 print_exc()
-            
+
         try:
             print >>sys.stderr, "mainframe: Calling Destroy"
             self.Destroy()
         except:
             print_exc()
-            
+
         print >>sys.stderr, "mainframe: Calling quit"
         self.quit(event != None or force)
         self.Destroy()
-        
+
         if DEBUG:
             print >>sys.stderr,"mainframe: OnCloseWindow END"
             ts = enumerate()
             for t in ts:
                 print >>sys.stderr,"mainframe: Thread still running",t.getName(),"daemon",t.isDaemon()
-    
+
     @forceWxThread
     def onWarning(self,exc):
         msg = self.utility.lang.get('tribler_startup_nonfatalerror')
@@ -1089,21 +1089,21 @@ class MainFrame(wx.Frame):
         dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK|wx.ICON_WARNING)
         result = dlg.ShowModal()
         dlg.Destroy()
-        
+
     def exceptionHandler(self, exc, fatal = False):
         type, value, stack = sys.exc_info()
         backtrace = traceback.format_exception(type, value, stack)
-        
+
         def do_gui():
             win = FeedbackWindow(self.utility.lang.get('tribler_warning'))
             win.SetParent(self)
             win.CreateOutputWindow('')
             for line in backtrace:
                 win.write(line)
-            
+
             if fatal:
                 win.Show()
-            
+
         wx.CallAfter(do_gui)
 
     def progressHandler(self, title, message, maximum):
@@ -1125,7 +1125,7 @@ class MainFrame(wx.Frame):
         msg += str(listenport)
         msg += self.utility.lang.get('tribler_upnp_error_intro_postfix')
         msg += errormsg
-        msg += self.utility.lang.get('tribler_upnp_error_extro') 
+        msg += self.utility.lang.get('tribler_upnp_error_extro')
 
         dlg = wx.MessageDialog(None, msg, self.utility.lang.get('tribler_warning'), wx.OK|wx.ICON_WARNING)
         result = dlg.ShowModal()
@@ -1138,12 +1138,12 @@ class MainFrame(wx.Frame):
                 if DEBUG:
                     print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
                 return
-            
+
             if not wx.Thread_IsMain():
                 if DEBUG:
                     print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
                     print_stack()
-        
+
             if type == NTFY_ACT_NONE:
                 prefix = msg
                 msg = u''
@@ -1158,8 +1158,8 @@ class MainFrame(wx.Frame):
                             " " + \
                             self.utility.lang.get('version')
                     self.SetTitle(title)
-                    
-                    
+
+
             elif type == NTFY_ACT_UPNP:
                 prefix = self.utility.lang.get('act_upnp')
             elif type == NTFY_ACT_REACHABLE:
@@ -1170,23 +1170,23 @@ class MainFrame(wx.Frame):
                 prefix = self.utility.lang.get('act_meet')
             elif type == NTFY_ACT_GOT_METADATA:
                 prefix = self.utility.lang.get('act_got_metadata')
-                
+
                 if self.category.family_filter_enabled() and arg2 == 7: # XXX category
                     if DEBUG:
                         print >>sys.stderr,"MainFrame: setActivity: Hiding XXX torrent",msg
                     return
-                
+
             elif type == NTFY_ACT_RECOMMEND:
                 prefix = self.utility.lang.get('act_recommend')
             elif type == NTFY_ACT_DISK_FULL:
-                prefix = self.utility.lang.get('act_disk_full')   
+                prefix = self.utility.lang.get('act_disk_full')
             elif type == NTFY_ACT_NEW_VERSION:
-                prefix = self.utility.lang.get('act_new_version')   
+                prefix = self.utility.lang.get('act_new_version')
             if msg == u'':
                 text = prefix
             else:
                 text = unicode( prefix+u' '+msg)
-                
+
             if DEBUG:
                 print  >> sys.stderr,"main: Activity",`text`
             self.SRstatusbar.onActivity(text)
@@ -1201,14 +1201,14 @@ class MainFrame(wx.Frame):
 
     def set_wxapp(self,wxapp):
         self.wxapp = wxapp
-        
+
     def quit(self, force = True):
         print >> sys.stderr, "mainframe: in quit"
         if self.wxapp is not None:
             app = self.wxapp
         else:
             app = wx.GetApp()
-            
+
         if app:
             wx.CallLater(1000, app.ExitMainLoop)
             if force:

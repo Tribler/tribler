@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 """
-This module implements marshaling and unmarshalling 
+This module implements marshaling and unmarshalling
 between string values in and python objects, in
 accordance with the UPnP specification.
 """
@@ -10,7 +10,7 @@ accordance with the UPnP specification.
 import types
 import exceptions
 
-class MarshalError(exceptions.Exception): 
+class MarshalError(exceptions.Exception):
     """
     Error associated with marshalling and unmarshalling.
     """
@@ -27,23 +27,23 @@ def loads(type_, data):
     elif type_ in types.StringTypes:
         return str(data)
     elif type_ == types.BooleanType:
-        if data in ['1', 'true', 'True', 'yes']: 
+        if data in ['1', 'true', 'True', 'yes']:
             return True
-        elif data in ['0', 'false', 'False', 'no']: 
+        elif data in ['0', 'false', 'False', 'no']:
             return False
-        else : 
+        else :
             raise MarshalError, "Loads: Boolean failed %s" % data
-    else: 
+    else:
         raise MarshalError, "Loads: Unsupported Type %s" % type_
 
 def loads_data_by_upnp_type(upnp_type_string, data_string):
-    """Loads string data into a python value given a string definition 
+    """Loads string data into a python value given a string definition
     of the UPnP data type.
     """
     if upnp_type_string == 'boolean':
-        if data_string in ['1', 'true', 'True', 'yes']: 
+        if data_string in ['1', 'true', 'True', 'yes']:
             return True
-        elif data_string in ['0', 'false', 'False', 'no']: 
+        elif data_string in ['0', 'false', 'False', 'no']:
             return False
     elif upnp_type_string == 'int':
         return int(data_string)
@@ -58,7 +58,7 @@ def loads_data_by_upnp_type(upnp_type_string, data_string):
     elif upnp_type_string == 'ui4':
         # Unsigned 1 byte integer
         return int(data_string) & 0xFFFFFFFF
-    else: 
+    else:
         raise MarshalError, "Loads: Unsupported Type %s" % upnp_type_string
 
 
@@ -80,10 +80,10 @@ def dumps_by_upnp_type(upnp_type_string, value):
         return unicode(value & 0xFFFFFFFF)
     elif isinstance(value, types.IntType) and upnp_type_string == 'int':
         return unicode(value)
-    else: 
+    else:
         msg = "Dumps: Unsupported Type %s" % str(value)
         raise MarshalError, msg
-    
+
 
 def dumps(value):
     """Dump typed value to unicode string"""
@@ -93,7 +93,7 @@ def dumps(value):
         return unicode("<![CDATA[%s]]>" % value)
     elif isinstance(value, types.IntType):
         return unicode(value)
-    else: 
+    else:
         msg = "Dumps: Unsupported Type %s" % str(value)
         raise MarshalError, msg
 
@@ -110,7 +110,7 @@ def dumps_data_type(python_type):
         return u'int'
     elif python_type == types.StringType:
         return u'string'
-    else: 
+    else:
         msg = "Dumps Datatype: Unsupported Type %s" % str(python_type)
         raise MarshalError, msg
 
@@ -122,12 +122,12 @@ def loads_python_type(type_string):
         return types.IntType
     elif type_string == u'string':
         return types.StringType
-    else: 
+    else:
         msg = "Loads Datatype: Unsupported Type %s" % type_string
         raise MarshalError, msg
 
 
-    
+
 
 ##############################################
 # MAIN
@@ -135,5 +135,3 @@ def loads_python_type(type_string):
 
 if __name__ == '__main__':
     pass
-    
-    

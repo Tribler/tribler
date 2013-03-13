@@ -24,16 +24,16 @@ class wxServer(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.setDaemon(True)
-        
+
         app = wx.App(0)
         app.MainLoop()
 
 
 class TestSocialOverlap(TestAsServer):
-    """ 
+    """
     Testing SOCIAL_OVERLAP message of Social Network extension V1
     """
-    
+
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
@@ -58,7 +58,7 @@ class TestSocialOverlap(TestAsServer):
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der())        
+        self.hispermid = str(self.his_keypair.pub().get_der())
         self.myhash = sha(self.mypermid).digest()
 
 
@@ -72,7 +72,7 @@ class TestSocialOverlap(TestAsServer):
             pass
 
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -98,7 +98,7 @@ class TestSocialOverlap(TestAsServer):
     # Good SOCIAL_OVERLAP
     #
     def subtest_good_soverlap(self,name):
-        """ 
+        """
             test good SOCIAL_OVERLAP messages
         """
         print >>sys.stderr,"test: good SOCIAL_OVERLAP"
@@ -144,7 +144,7 @@ class TestSocialOverlap(TestAsServer):
         data = f.read()
         f.close()
         return data
-    
+
     def create_payload(self,r):
         return SOCIAL_OVERLAP+bencode(r)
 
@@ -177,7 +177,7 @@ class TestSocialOverlap(TestAsServer):
         print >>sys.stderr,"test: check_usericon: len icon is",len(icondata)
 
     # Bad soverlap
-    #    
+    #
     def subtest_bad_not_bdecodable(self):
         self._test_bad(self.create_not_bdecodable)
 
@@ -194,7 +194,7 @@ class TestSocialOverlap(TestAsServer):
         self._test_bad(self.create_wrong_dict_keys)
 
     #
-    # Bad 'persinfo' 
+    # Bad 'persinfo'
     #
     def subtest_bad_persinfo(self):
         """ Cut a corner """
@@ -298,7 +298,7 @@ class TestSocialOverlap(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestSocialOverlap))
-    
+
     return suite
 
 def sign_data(plaintext,keypair):
@@ -313,4 +313,3 @@ def verify_data(plaintext,permid,blob):
 
 if __name__ == "__main__":
     unittest.main()
-

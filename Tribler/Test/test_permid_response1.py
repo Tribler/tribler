@@ -3,13 +3,13 @@
 
 # This test checks how the Tribler code responds to bad RESPONSE1 messages.
 # To test this we would have to have Tribler connect to us, that is,
-# initiate the challenge response. As it is not trivial to let the client 
+# initiate the challenge response. As it is not trivial to let the client
 # connect to another (us) we have written a different solution:
 #
-# 1. We create our own server listening to a given TCP port. 
-# 2. We create a bogus Encrypter/Connecter Connection object encapsulating a 
+# 1. We create our own server listening to a given TCP port.
+# 2. We create a bogus Encrypter/Connecter Connection object encapsulating a
 #    normal TCP connection to our server.
-# 3. We pass the bogus Connection object to the permid.ChallengeResponse class 
+# 3. We pass the bogus Connection object to the permid.ChallengeResponse class
 #    and tell it to initiate the C/R protocol.
 # 4. Our server responds with malformed RESPONSE1 messages.
 #
@@ -32,7 +32,7 @@ from Tribler.Core.Utilities.Crypto import sha
 DEBUG=False
 
 #
-# CAUTION: when a test is added to MyServer.test_all(), increase test_count and 
+# CAUTION: when a test is added to MyServer.test_all(), increase test_count and
 # make sure the should_succeed flag to TestPermIDsResponse1.subtest_connect()
 # is set correctly.
 #
@@ -41,7 +41,7 @@ test_count = 13
 random_size = 1024  # the number of random bytes in the C/R protocol
 
 class MyServer(Thread):
-    
+
     def __init__(self,port,testcase):
         Thread.__init__(self)
         self.setDaemon(True)
@@ -99,7 +99,7 @@ class MyServer(Thread):
 
     def subtest_bad_resp1_no_bdecoable(self,ss):
         self._test_response1(ss, self.create_bad_resp1_no_bdecodable,False)
-    
+
     def subtest_bad_resp1_not_dict1(self,ss):
         self._test_response1(ss, self.create_bad_resp1_not_dict1,False)
 
@@ -158,7 +158,7 @@ class MyServer(Thread):
             s.close()
         else:
             time.sleep(5)
-            # the other side should not our bad RESPONSE1 this and close the 
+            # the other side should not our bad RESPONSE1 this and close the
             # connection
             msg = s.recv()
             self.testcase.assert_(len(msg)==0)
@@ -338,7 +338,7 @@ class ConnecterConnection:
 
     def send_message(self,msg):
         self.s.send(msg)
-        
+
     def get_message(self):
         return self.s.recv()
 
@@ -362,10 +362,10 @@ class SecureOverlay:
 # The actual TestCase
 #
 class TestPermIDsResponse1(unittest.TestCase):
-    """ 
+    """
     Testing PermID extension version 1, RESPONSE1 message.
     """
-    
+
     def setUp(self):
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()
@@ -379,9 +379,9 @@ class TestPermIDsResponse1(unittest.TestCase):
 
     def tearDown(self):
         pass
-    
+
     def test_all(self):
-        """ 
+        """
             I want to start my test server once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new server every time.
@@ -408,7 +408,7 @@ class TestPermIDsResponse1(unittest.TestCase):
         if success and should_succeed:
             # Correct behaviour is to keep connection open.
             # long enough for MyServer to test if the connection still exists
-            time.sleep(10) 
+            time.sleep(10)
             self.conn.close()
         elif not success and not should_succeed:
             # Correct behaviour is to close conn immediately.
@@ -428,7 +428,7 @@ class TestPermIDsResponse1(unittest.TestCase):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestPermIDsResponse1))
-    
+
     return suite
 
 if __name__ == "__main__":

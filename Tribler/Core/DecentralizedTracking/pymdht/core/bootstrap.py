@@ -84,7 +84,7 @@ class OverlayBootstrapper(object):
         self.saved_bootstrap_nodes = []
         self.main_bootstrap_nodes = []
         self.backup_bootstrap_nodes = []
-    
+
     def is_bootstrap_node(self, node_):
         return node_.ip in self.bootstrap_ips
 
@@ -104,7 +104,7 @@ class OverlayBootstrapper(object):
         for node_ in nodes:
             self.bootstrap_ips.add(node_.ip)
         return nodes
-                             
+
 
 def _sanitize_bootstrap_node(line):
     # no need to catch exceptions, get_bootstrap_nodes takes care of them
@@ -116,7 +116,7 @@ def _get_bootstrap_nodes():
     data_path = os.path.dirname(message.__file__)
     mainfile = os.path.join(data_path, BOOTSTRAP_MAIN_FILENAME)
     backfile = os.path.join(data_path, BOOTSTRAP_BACKUP_FILENAME)
-    
+
     # Arno, 2012-05-25: py2exe support
     if hasattr(sys, "frozen"):
         print >>sys.stderr,"pymdht: bootstrap: Frozen mode"
@@ -125,7 +125,7 @@ def _get_bootstrap_nodes():
             installdir = installdir.replace("MacOS","Resources")
         mainfile = os.path.join(installdir,"Tribler","Core","DecentralizedTracking","pymdht","core","bootstrap.main")
         backfile = os.path.join(installdir,"Tribler","Core","DecentralizedTracking","pymdht","core","bootstrap.backup")
-    print >>sys.stderr,"pymdht: bootstrap: mainfile",mainfile 
+    print >>sys.stderr,"pymdht: bootstrap: mainfile",mainfile
     print >>sys.stderr,"pymdht: bootstrap: backfile",backfile
     try:
         f = open(mainfile)

@@ -24,9 +24,9 @@ from Tribler.Core.MessageID import *
 DEBUG=True
 
 class TestExtendHandshake(TestAsServer):
-    """ 
-    Testing EXTEND handshake message: uTorrent and Bram's BitTorrent now support 
-    an extension to the protocol, documented on 
+    """
+    Testing EXTEND handshake message: uTorrent and Bram's BitTorrent now support
+    an extension to the protocol, documented on
     http://www.rasterbar.com/products/libtorrent/extension_protocol.html
 
     The problem is that the bit they use in the options field of the BT handshake
@@ -43,19 +43,19 @@ class TestExtendHandshake(TestAsServer):
         print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
         time.sleep(5)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
-    
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        
+
         self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
         tdef = TorrentDef.load(self.torrentfn)
 
         dscfg = self.setUpDownloadConfig()
-        
+
         self.session.start_download(tdef,dscfg)
 
         # This is the infohash of the torrent in test/extend_hs_dir
@@ -65,11 +65,11 @@ class TestExtendHandshake(TestAsServer):
     def setUpDownloadConfig(self):
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
-        return dscfg        
-        
-        
+        return dscfg
+
+
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -91,7 +91,7 @@ class TestExtendHandshake(TestAsServer):
         # bencode doesn't permit this:
         #self.subtest_bad_m_key_not_str()
         self.subtest_bad_m_val_not_int()
-        
+
         # Tribler doesn't check for these
         ##self.subtest_bad_p_not_int()
         ##self.subtest_bad_v_not_utf8str()
@@ -106,8 +106,8 @@ class TestExtendHandshake(TestAsServer):
 
     def subtest_good_tribler_extend_hs(self):
         self._test_good(self.create_good_tribler_extend_hs,infohash=self.infohash)
-        
-        # We've said we're a Tribler peer, and we initiated the connection, so 
+
+        # We've said we're a Tribler peer, and we initiated the connection, so
         # now *we* should now try to establish an overlay-swarm connection.
         s = OLConnection(self.my_keypair,'localhost',self.hisport,mylistenport=self.mylistenport)
         # the connection should be intact, so this should not throw an
@@ -142,7 +142,7 @@ class TestExtendHandshake(TestAsServer):
         except socket.timeout:
             print >> sys.stderr,"test: Timeout, bad, peer didn't reply with EXTEND message"
             self.assert_(False)
-        
+
 
     def create_good_nontribler_extend_hs(self):
         d = {}
@@ -175,16 +175,16 @@ class TestExtendHandshake(TestAsServer):
 
     #
     # Bad EXTEND handshake message
-    #    
+    #
     def subtest_bad_empty(self):
         self._test_bad(self.create_empty)
 
     def subtest_bad_ext_id_not_byte(self):
         self._test_bad(self.create_ext_id_not_byte)
-    
+
     def subtest_bad_not_hs(self):
         self._test_bad(self.create_not_hs)
-    
+
     def subtest_bad_not_bdecodable(self):
         self._test_bad(self.create_not_bdecodable)
 
@@ -222,7 +222,7 @@ class TestExtendHandshake(TestAsServer):
         msg = gen_drequest_func()
         s.send(msg)
         time.sleep(5)
-        
+
         # the other side should not like this and close the connection
         try:
             s.s.settimeout(10.0)
@@ -242,13 +242,13 @@ class TestExtendHandshake(TestAsServer):
 
     #
     # Bad message creators
-    # 
+    #
     def create_empty(self):
         return EXTEND
 
     def create_ext_id_not_byte(self):
         return EXTEND+'Hallo kijkbuiskinderen'
-    
+
     def create_not_hs(self):
         d = {}
         bd = bencode(d)
@@ -305,14 +305,13 @@ class TestExtendHandshake(TestAsServer):
 
 
 def test_suite():
-    
+
     print >>sys.stderr,"test: test_suite #######################################3"
-    
+
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestExtendHandshake))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

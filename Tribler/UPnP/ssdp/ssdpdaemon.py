@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 """
-This module implements a base SSDP Deamon, 
+This module implements a base SSDP Deamon,
 part of the UPnP architecture.
 """
 import socket
@@ -22,7 +22,7 @@ class SSDPDaemon:
 
     """
     This implements the base SSDP deamon, part of the UPnP architecture.
-    
+
     This class is implemented in a non-blocking, event-based manner.
     Execution is outsourced to the given task_runner.
     """
@@ -31,42 +31,42 @@ class SSDPDaemon:
 
         # TaskRunner
         self.task_runner = task_runner
-        
+
         # Logger
         self._logger = logger
         self._log_tag = _LOG_TAG
 
         # Socket (unicast send/recv + multicast send)
-        self._sock = socket.socket(socket.AF_INET, 
+        self._sock = socket.socket(socket.AF_INET,
                                    socket.SOCK_DGRAM)
-        self._sock.setsockopt(socket.SOL_SOCKET, 
+        self._sock.setsockopt(socket.SOL_SOCKET,
                               socket.SO_REUSEADDR, 1)
-        self._sock.setsockopt(socket.SOL_SOCKET, 
+        self._sock.setsockopt(socket.SOL_SOCKET,
                               socket.SO_BROADCAST, 1)
         self._sock.bind(('', 0))
 
         # Socket Multicast Recv
-        self._mcast_recv_sock = socket.socket(socket.AF_INET, 
+        self._mcast_recv_sock = socket.socket(socket.AF_INET,
                                               socket.SOCK_DGRAM,
                                               socket.IPPROTO_UDP)
 
-        self._mcast_recv_sock.setsockopt(socket.SOL_SOCKET, 
+        self._mcast_recv_sock.setsockopt(socket.SOL_SOCKET,
                                          socket.SO_REUSEADDR, 1)
         try:
-            self._mcast_recv_sock.setsockopt(socket.SOL_SOCKET, 
+            self._mcast_recv_sock.setsockopt(socket.SOL_SOCKET,
                                              socket.SO_REUSEPORT, 1)
         except AttributeError:
             pass # Some systems don't support SO_REUSEPORT
 
-        mreq = struct.pack("4sl", socket.inet_aton(_MCAST_HOST), 
+        mreq = struct.pack("4sl", socket.inet_aton(_MCAST_HOST),
                            socket.INADDR_ANY)
-        self._mcast_recv_sock.setsockopt(socket.IPPROTO_IP, 
+        self._mcast_recv_sock.setsockopt(socket.IPPROTO_IP,
                                          socket.IP_ADD_MEMBERSHIP, mreq)
-        self._mcast_recv_sock.setsockopt(socket.IPPROTO_IP, 
+        self._mcast_recv_sock.setsockopt(socket.IPPROTO_IP,
                                          socket.IP_MULTICAST_TTL, _MCAST_TTL)
-        self._mcast_recv_sock.setsockopt(socket.SOL_IP, 
+        self._mcast_recv_sock.setsockopt(socket.SOL_IP,
                                          socket.IP_MULTICAST_TTL, _MCAST_TTL)
-        self._mcast_recv_sock.setsockopt(socket.SOL_IP, 
+        self._mcast_recv_sock.setsockopt(socket.SOL_IP,
                                          socket.IP_MULTICAST_LOOP, True)
 
         self._mcast_recv_sock.bind(('', _MCAST_PORT))
@@ -77,10 +77,10 @@ class SSDPDaemon:
 
 
         # Register Tasks for Execution
-        self._rd_task_1 = self.task_runner.add_read_task(self._sock.fileno(), 
+        self._rd_task_1 = self.task_runner.add_read_task(self._sock.fileno(),
                                                  self._handle_unicast)
         self._rd_task_2 = self.task_runner.add_read_task(
-            self._mcast_recv_sock.fileno(), 
+            self._mcast_recv_sock.fileno(),
             self._handle_multicast)
 
     ##############################################
@@ -112,7 +112,7 @@ class SSDPDaemon:
     def get_sock(self):
         """Return unicast receive socket."""
         return self._sock
-    
+
     def get_mcast_sock(self):
         """Return multicast receive socket."""
         return self._mcast_recv_sock
@@ -147,7 +147,7 @@ class SSDPDaemon:
         if res:
             data, sock_addr = res
             # Ignore Multicast Messages from Self
-            if sock_addr != (self._host, self._port): 
+            if sock_addr != (self._host, self._port):
                 self._handle_message(data, sock_addr)
 
     def _handle_unicast(self):
@@ -158,11 +158,11 @@ class SSDPDaemon:
             self._handle_message(data, sock_addr)
 
     def _handle_message(self, data, sock_addr):
-        """Handles the receipt of both multicast and unicast SSDP 
+        """Handles the receipt of both multicast and unicast SSDP
         messages."""
         try:
             msg = ssdpmessage.message_loader(data)
-        except Exception, error: 
+        except Exception, error:
             print "Exception Handle Message %s\n%s\n" % (error, data)
             raise
 
@@ -179,7 +179,7 @@ class SSDPDaemon:
     def handle_search(self, msg, sock_addr):
         """Handles the receipt of a SSDP Search message.
         To be overridden by subclass."""
-        pass        
+        pass
 
     def handle_reply(self, msg, sock_addr):
         """Handles the receipt of a SSDP Reply message.
@@ -220,4 +220,3 @@ if __name__ == '__main__':
         print
     TR.stop()
     DAEMON.close()
-

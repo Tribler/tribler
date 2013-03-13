@@ -13,7 +13,7 @@ class XXXFilter:
     def __init__(self, install_dir):
         termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category','filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
-                
+
     def initTerms(self, filename):
         terms = set()
         searchterms = set()
@@ -21,7 +21,7 @@ class XXXFilter:
         try:
             f = file(filename, 'r')
             lines = f.read().lower().splitlines()
-    
+
             for line in lines:
                 if line.startswith('*'):
                     searchterms.add(line[1:])
@@ -31,14 +31,14 @@ class XXXFilter:
         except:
             if DEBUG:
                 print_exc()
-            
+
         if DEBUG:
             print 'Read %d XXX terms from file %s' % (len(terms)+len(searchterms), filename)
         return terms, searchterms
-    
+
     def _getWords(self, string):
         return [a.lower() for a in WORDS_REGEXP.findall(string)]
-        
+
     def isXXXTorrent(self, files_list, torrent_name, tracker, comment=None):
         if tracker:
             tracker = tracker.lower().replace('http://', '').replace('announce','')
@@ -56,8 +56,8 @@ class XXXFilter:
             else:
                 print 'Torrent is NOT XXX: %s %s' % (torrent_name, tracker)
         return is_xxx
-                
-    
+
+
     def isXXX(self, s, isFilename=True):
         s = s.lower()
         if self.isXXXTerm(s): # We have also put some full titles in the filter file
@@ -71,7 +71,7 @@ class XXXFilter:
             return num_xxx > 2 # almost never classify mp3 as porn
         else:
             return num_xxx > 0
-    
+
     def foundXXXTerm(self, s):
         for term in self.xxx_searchterms:
             if term in s:
@@ -79,7 +79,7 @@ class XXXFilter:
                     print 'XXXFilter: Found term "%s" in %s' % (term, s)
                 return True
         return False
-    
+
     def isXXXTerm(self, s, title=None):
         # check if term-(e)s is in xxx-terms
         s = s.lower()
@@ -97,7 +97,7 @@ class XXXFilter:
                 if DEBUG:
                     print 'XXXFilter: "%s" is dirty%s' % (s[:-1], title and ' in %s' % title or '')
                 return True
-        
+
         return False
 
     audio_extensions = ['cda', 'flac', 'm3u', 'mp2', 'mp3', 'md5', 'vorbis', 'wav', 'wma', 'ogg']

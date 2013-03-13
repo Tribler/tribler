@@ -15,7 +15,7 @@ from test_crawler import TestCrawler
 DEBUG=True
 
 class TestSeedingStats(TestCrawler):
-    """ 
+    """
     Testing Seeding-Stats statistics gathering using the Crawler framework
     """
 
@@ -54,7 +54,7 @@ class TestSeedingStats(TestCrawler):
                 print >>sys.stderr, "test_seeding_stats:", payload
 
 #        time.sleep(1)
-        
+
     def subtest_valid_query(self):
         """
         Send a CRAWLER_SEEDINGSTATS_QUERY message to the Tribler
@@ -65,11 +65,11 @@ class TestSeedingStats(TestCrawler):
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
         crawler_db.temporarilyAddCrawler(self.my_permid)
-        
+
         # test with valid data
         seedingstats_db = SQLiteSeedingStatsCacheDB.getInstance()
         seedingstats_db.insertMany("SeedingStats", [(50000, 'foobar', 'dummy_seed', 500, 0, 0), (80000, 'bar', 'dummy_seed', 800, 1, 0)])
-        
+
         s = OLConnection(self.my_keypair, "localhost", self.hisport, mylistenport=self.listen_port)
 
         queries = [cPickle.dumps([("read", "SELECT * FROM SeedingStats"), ("read", "SELECT * FROM SeedingStats WHERE crawled = 0")])]
@@ -90,4 +90,3 @@ if __name__ == "__main__":
         suite.addTest(unittest.makeSuite(TestSeedingStats))
         return suite
     unittest.main(defaultTest="test_suite")
-

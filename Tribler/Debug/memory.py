@@ -72,46 +72,46 @@ def get_description(obj):
 def get_datetime():
     return time.strftime("%Y/%m/%d %H:%M:%S")
 
-def byte_uint_to_human(i, format="%(value).1f%(unit)s"):                       
-    """Convert a number into a formatted string.                             
-                                                                             
-    format: %(value)d%(unit)s                                                
-    1           --> 1B                                                       
-    1024        --> 1KB                                                      
-    1048576     --> 1MB                                                      
-    1073741824  --> 1GB                                                      
-                                                                             
-    format: %(value).1f %(unit-long)s                                        
-    1           --> 1.0 byte                                                 
-    2           --> 2.0 bytes                                                
-                                                                             
-    todo:                                                                    
+def byte_uint_to_human(i, format="%(value).1f%(unit)s"):
+    """Convert a number into a formatted string.
+
+    format: %(value)d%(unit)s
+    1           --> 1B
+    1024        --> 1KB
+    1048576     --> 1MB
+    1073741824  --> 1GB
+
+    format: %(value).1f %(unit-long)s
+    1           --> 1.0 byte
+    2           --> 2.0 bytes
+
+    todo:
     - uint_to_human(1025, format="%(value)d %(unit-long)s") --> '1 kilobytes'
-      however, this should result in '1 kilobyte'                            
-                                                                             
-    """                                                                      
-    assert type(i) in (int, long)                                            
-    assert i >= 0                                                            
-    assert type(format) is str                                               
-    dic = {}                                                                 
-    if i < 1024:                                                             
-        dic["value"] = i                                                     
-        dic["unit"] = "B"                                                    
-        dic["unit-long"] = (i == 1 and "byte" or "bytes")                    
-    elif i < 1048576:                                                        
-        dic["value"] = i / 1024.0                                            
-        dic["unit"] = "KB"                                                   
-        dic["unit-long"] = (i == 1024 and "kilobyte" or "kilobytes")         
-    elif i < 1073741824:                                                     
-        dic["value"] = i / 1048576.0                                         
-        dic["unit"] = "MB"                                                   
-        dic["unit-long"] = (i == 1048576 and "megabyte" or "megabytes")      
-    else:                                                                    
-        dic["value"] = i / 1073741824.0                                      
-        dic["unit"] = "GB"                                                   
-        dic["unit-long"] = (i == 1073741824 and "gigabyte" or "gigabytes")   
-                                                                             
-    return format % dic                                                      
+      however, this should result in '1 kilobyte'
+
+    """
+    assert type(i) in (int, long)
+    assert i >= 0
+    assert type(format) is str
+    dic = {}
+    if i < 1024:
+        dic["value"] = i
+        dic["unit"] = "B"
+        dic["unit-long"] = (i == 1 and "byte" or "bytes")
+    elif i < 1048576:
+        dic["value"] = i / 1024.0
+        dic["unit"] = "KB"
+        dic["unit-long"] = (i == 1024 and "kilobyte" or "kilobytes")
+    elif i < 1073741824:
+        dic["value"] = i / 1048576.0
+        dic["unit"] = "MB"
+        dic["unit-long"] = (i == 1048576 and "megabyte" or "megabytes")
+    else:
+        dic["value"] = i / 1073741824.0
+        dic["unit"] = "GB"
+        dic["unit-long"] = (i == 1073741824 and "gigabyte" or "gigabytes")
+
+    return format % dic
 
 def monitor(delay=10.0, interval=60.0, min_footprint=100000):
     def parallel():
@@ -144,7 +144,7 @@ def monitor(delay=10.0, interval=60.0, min_footprint=100000):
 
             history.append(high_foot)
             time.sleep(interval)
-    
+
     thread.start_new_thread(parallel, ())
 
 

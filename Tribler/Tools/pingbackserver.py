@@ -16,15 +16,15 @@ DEBUG = True
 # Print usage information
 def usage():
 
-        print "Usage:"
-        print " python pingback.py <serverport>"
+    print "Usage:"
+    print " python pingback.py <serverport>"
 
 
 def serveclient(message, udpsock, clientaddr):
 
     # Loop forever receiving pings and sending pongs
     data = message.split(':')
-                    
+
     if data[0] == "ping":
 
         if DEBUG:
@@ -43,8 +43,8 @@ def serveclient(message, udpsock, clientaddr):
 if __name__=="__main__" :
 
     if len(sys.argv) != 2 :
-                usage()
-                sys.exit(1)
+        usage()
+        sys.exit(1)
 
     serveraddr = None
     log = open("log.txt", "a") # logfile
@@ -77,12 +77,12 @@ if __name__=="__main__" :
 
         sys.exit(1)
 
-    
+
     if DEBUG:
         print >> sys.stderr, "waiting for connection..."
 
     # Loop forever receiving pings and sending pongs
-    while True: 
+    while True:
 
         BUFSIZ = 1024
         message = None
@@ -98,5 +98,3 @@ if __name__=="__main__" :
         log.flush()
 
         thread.start_new_thread(serveclient, (message, udpsock, clientaddr))
-
-            

@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# Updated by George Milescu 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:
@@ -104,7 +104,7 @@ def main():
     sscfg.set_dialback(True)
     sscfg.set_internal_tracker(False)
     sscfg.set_dispersy(False)
-    
+
     s = Session(sscfg)
 
     # setup and start download
@@ -117,15 +117,15 @@ def main():
         cdef = TorrentDef.load_from_url(torrentfile_or_url)
     elif torrentfile_or_url.startswith(SWIFT_URL_SCHEME):
         cdef = SwiftDef.load_from_url(torrentfile_or_url)
-    else: 
+    else:
         cdef = TorrentDef.load(torrentfile_or_url)
-        
+
     if cdef.get_def_type() == "torrent" and cdef.get_live():
-            raise ValueError("cmdlinedl does not support live torrents")
-        
+        raise ValueError("cmdlinedl does not support live torrents")
+
     d = s.start_download(cdef, dscfg)
     d.set_state_callback(state_callback, getpeerlist=False)
-   
+
     #
     # loop while waiting for CTRL-C (or any other signal/interrupt)
     #

@@ -18,10 +18,10 @@ DEBUG=True
 
 
 class TestBarterCast(TestAsServer):
-    """ 
+    """
     Testing SOCIAL_OVERLAP message of Social Network extension V1
     """
-    
+
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
@@ -40,7 +40,7 @@ class TestBarterCast(TestAsServer):
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der())        
+        self.hispermid = str(self.his_keypair.pub().get_der())
         self.myhash = sha(self.mypermid).digest()
 
     def tearDown(self):
@@ -52,7 +52,7 @@ class TestBarterCast(TestAsServer):
             pass
 
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -71,13 +71,13 @@ class TestBarterCast(TestAsServer):
         self.subtest_bad_empty_dict()
         self.subtest_bad_wrong_dict_keys()
 
-        
+
 
     #
     # Good SOCIAL_OVERLAP
     #
     def subtest_good_bartercast(self):
-        """ 
+        """
             test good BARTERCAST messages
         """
         print >>sys.stderr,"test: good BARTERCAST"
@@ -105,13 +105,13 @@ class TestBarterCast(TestAsServer):
 
         top_peers = ["permid1", "permid2"]
         data = {}
-        
+
         for permid in top_peers:
 
             data_to = 100
             data_from = 200
             data[permid] = {'u': data_to, 'd': data_from}
-        
+
         bartercast_data = {'data': data}
 
         ###
@@ -124,7 +124,7 @@ class TestBarterCast(TestAsServer):
         ###
 
         print "Bartercast_data: ", bartercast_data
-        
+
         return self.create_payload(bartercast_data)
 
 
@@ -133,10 +133,10 @@ class TestBarterCast(TestAsServer):
 
     def check_bartercast(self,data):
         d = bdecode(data)
-        
+
         print "Received data:"
         print d
-        
+
         self.assert_(type(d) == DictType)
         self.assert_(d.has_key('data'))
         self.check_bartercast_data(d['data'])
@@ -149,7 +149,7 @@ class TestBarterCast(TestAsServer):
 
 
     # Bad soverlap
-    #    
+    #
     def subtest_bad_not_bdecodable(self):
         self._test_bad(self.create_not_bdecodable)
 
@@ -201,7 +201,7 @@ class TestBarterCast(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestBarterCast))
-    
+
     return suite
 
 def sign_data(plaintext,keypair):
@@ -216,4 +216,3 @@ def verify_data(plaintext,permid,blob):
 
 if __name__ == "__main__":
     unittest.main()
-
