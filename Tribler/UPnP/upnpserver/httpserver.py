@@ -21,7 +21,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
         """Respond to a GET request"""
         # In case of full url, parse to get to path
         url = urlparse.urlparse(self.path)
-        
+
         # Expect Paths
         # /devices/devicename/presentation.html
         # /devices/devicename/description.xml
@@ -35,13 +35,13 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
         path = url.path.strip('/')
         body = None
         tokens = path.split('/')
-        
+
         # Special Root Device Description Path
         if path == self.server.service_manager.get_description_path():
             root_device = self.server.service_manager.get_root_device()
             body = root_device.get_xml_description()
             content_type = "text/xml"
-        # Special Root Device Presentation Path            
+        # Special Root Device Presentation Path
         elif path == self.server.service_manager.get_presentation_path():
             root_device = self.server.service_manager.get_root_device()
             body = root_device.get_html_description()
@@ -49,22 +49,22 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
         # Other Requests.
         elif len(tokens) == 3:
             type_, name = tokens[:2]
-            
+
             if type_ == 'devices':
                 object_ = self.server.service_manager.get_device(name)
             elif type_ == 'services':
                 object_ = self.server.service_manager.get_service(name)
-                
+
             if object:
                 if path == object_.description_path:
                     body = object_.get_xml_description()
-                    content_type = 'text/xml'        
+                    content_type = 'text/xml'
                 elif path == object_.presentation_path:
                     body = object_.get_html_description()
                     content_type = 'text/html'
-                
+
         try:
-            if body:                
+            if body:
                 # Log
                 msg = "GET %s [%s]" % (path, self.client_address[0])
                 self.server.log(msg)
@@ -73,7 +73,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.send_header('content-length', str(len(body)))
                 self.send_header('content-type', content_type)
                 if self.headers.has_key('accept-language'):
-                    self.send_header('content-language', 
+                    self.send_header('content-language',
                                      self.headers['accept-language'])
                 else:
                     self.send_header('content-language', 'xml:lang="en"')
@@ -97,14 +97,14 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
         tokens = path.split('/')
         if len(tokens) == 3:
             service_id = tokens[1]
-         
+
             # Parse Header
             body_bytes = int(self.headers['content-length'])
             soapaction = self.headers['soapaction'].strip('"')
             [name_space, action_name] = soapaction.split("#")
             service = name_space.split(":")[2]
 
-            # Body (SoapXML)   
+            # Body (SoapXML)
             body = self.rfile.read(body_bytes)
             res = upnpsoap.parse_action_request(body)
             if res:
@@ -112,22 +112,22 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 args = res[2]
 
                 # Log
-                msg = "POST %s %s [%s]" % (path, action, 
+                msg = "POST %s %s [%s]" % (path, action,
                                            self.client_address[0])
                 self.server.log(msg)
 
                 service = self.server.service_manager.get_service(service_id)
-                if service : 
+                if service :
                     result_list = service.invoke_action(action_name, args)
 
                 if isinstance(result_list, types.ListType):
                     # Reply
-                    result_body = upnpsoap.create_action_response(name_space, 
+                    result_body = upnpsoap.create_action_response(name_space,
                     action_name, result_list)
                     self.send_response(200)
                 else:
                     # Error
-                    result_body = upnpsoap.create_error_response("501", 
+                    result_body = upnpsoap.create_error_response("501",
                     "Operation Not supported")
                     self.send_response(500)
 
@@ -141,13 +141,13 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.request.close()
                 return
 
-        self.server.log("ERROR Post %s %s" % (path, 
+        self.server.log("ERROR Post %s %s" % (path,
                                                    self.client_address[0]))
         self.send_response(500)
         self.end_headers()
         self.request.close()
-    
-    def do_SUBSCRIBE(self):        
+
+    def do_SUBSCRIBE(self):
         """Responds to SUBSCRIBE request."""
         # In case of full url, parse to get to path
         url = urlparse.urlparse(self.path)
@@ -170,10 +170,10 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
             # Requested Duration of Subscription
             if self.headers.has_key('timeout'):
                 duration = self.headers['timeout'].split('-')[-1]
-                if duration == 'infinite': 
+                if duration == 'infinite':
                     duration = 0
                 else: duration = int(duration)
-            else : duration = 0        
+            else : duration = 0
 
             # Subscribe
             if self.headers.has_key('nt'):
@@ -209,8 +209,8 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
             else :
                 error = 412 # Precondition failed
 
-        
-        msg = "ERROR [%d] Subscribe %s %s" % (error, path, 
+
+        msg = "ERROR [%d] Subscribe %s %s" % (error, path,
                                          self.client_address[0])
         self.server.log(msg)
         self.send_response(error)
@@ -242,10 +242,10 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.send_response(200)
                 self.end_headers()
                 self.request.close()
-            except socket.error: 
+            except socket.error:
                 pass
         else:
-            msg = "ERROR Unsubscribe %s %s" % (path, 
+            msg = "ERROR Unsubscribe %s %s" % (path,
             self.client_address[0])
             self.server.log(msg)
             self.send_response(500)
@@ -286,16 +286,15 @@ class HTTPServer(httpserver.AsynchHTTPServer):
     def set_service_manager(self, service_manager):
         """Initialise with reference to service manager."""
         self.service_manager = service_manager
-    
+
     def get_server_header(self):
         """Get SERVER header for UPnP Server."""
         # Server Header
-        server_fmt = '%s UPnP/1.0 %s' 
-        return server_fmt % (self.service_manager.get_os_version(), 
+        server_fmt = '%s UPnP/1.0 %s'
+        return server_fmt % (self.service_manager.get_os_version(),
                              self.service_manager.get_product_version())
 
     def startup(self):
         """Extend startup of superclass."""
         httpserver.AsynchHTTPServer.startup(self)
         self.log("URL %s" % self.service_manager.get_presentation_url())
-

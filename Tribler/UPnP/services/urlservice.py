@@ -18,11 +18,11 @@ class URLService(UPnPService):
     """This class implements a simple URL service."""
 
     def __init__(self, service_id):
-        UPnPService.__init__(self, service_id, 'URLService', 
+        UPnPService.__init__(self, service_id, 'URLService',
                              service_version=1)
 
         # Define Evented Variable
-        self._url = self.define_evented_variable("URL", types.StringType, 
+        self._url = self.define_evented_variable("URL", types.StringType,
                                                  DEFAULT_URL)
 
         # Define Actions
@@ -31,7 +31,7 @@ class URLService(UPnPService):
                            name="GetURL")
         self.define_action(self.set_url,
                            in_args=[("URL", types.StringType)],
-                           name="SetURL")        
+                           name="SetURL")
 
     def get_url(self):
         """Get the URL."""

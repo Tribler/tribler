@@ -24,34 +24,34 @@ class XmlPrinter:
     An XML printer that will print XML *with namespaces*
 
     Why minidom.toxml() does not do so really makes absolutenly no sense
-    
+
     """
 
 
     def __init__(self, doc):
         """
         doc should be a xml.dom.minidom document
-        
+
         """
 
         self.root = doc
         self.namespace_counter=0
-        
+
     def to_xml(self, encoding="UTF8"):
         """
         Like minidom toxml, just using namespaces too
         """
         return self._toxml(self.root, indent='', newl='').encode(encoding, "replace")
-    
+
     def to_pretty_xml(self, indent=' ', newl='\n', encoding="UTF8"):
         """
         Like minidom toxml, just using namespaces too
         """
         return self._toxml(self.root, indent, newl).encode(encoding, "replace")
-    
+
 
     def _make_header(self, encoding):
-        
+
         return u'<?xml version="1.0" encoding="%s" ?>\n'%encoding
 
     def _new_namespace(self, namespace):
@@ -59,7 +59,7 @@ class XmlPrinter:
         ns_short = "ns%d"%self.namespace_counter
         self.namespace_counter += 1
         return ns_short
-        
+
     def _toxml(self, element, indent=' ', newl='\n', encoding='UTF8', namespaces=None):
         """
         Recursive, internal function - do not use directly
@@ -85,7 +85,7 @@ class XmlPrinter:
             name = to_unicode(element.localName)
             if name.find(" ") > -1:
                 raise Exception("Refusing spaces in tag names")
-            
+
             if namespaces.has_key(ns):
                 ns_short = namespaces[ns]
                 define_ns = False
@@ -95,7 +95,7 @@ class XmlPrinter:
                     define_ns_list.append((ns, ns_short))
                 else:
                     ns_short = None
-                    
+
                 define_ns = True
                 namespaces[ns] = ns_short
 
@@ -112,7 +112,7 @@ class XmlPrinter:
                     define_ns_list.append((child.namespaceURI, new_ns))
                     namespaces[child.namespaceURI] = new_ns
             buffer += indent
-            
+
             # If we have no children, we will write <tag/>
             if not element.hasChildNodes():
                 if ns != None:
@@ -142,7 +142,7 @@ class XmlPrinter:
             if len(define_ns_list) > 0:
                 for (url, short) in define_ns_list:
                     ns_string += ' xmlns:%s="%s"'%(short, url)
-                        
+
             if ns != None:
                 if define_ns:
                     if ns_short:

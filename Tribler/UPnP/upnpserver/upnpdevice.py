@@ -42,8 +42,8 @@ _HTML_SERVICE_EVENT_URL_FMT = "EventSubURL : %s<br>\n"
 def _device_entries_tohtml(device):
     """Produce html for all attributes of a device."""
     str_ = []
-    str_.append( _HTML_DEVICE_TYPE_FMT % (device.device_domain, 
-                                       device.device_type, 
+    str_.append( _HTML_DEVICE_TYPE_FMT % (device.device_domain,
+                                       device.device_type,
                                        device.device_version))
     str_.append( _HTML_DEVICE_NAME_FMT % device.name)
     if device.manufacturer != None:
@@ -59,7 +59,7 @@ def _device_entries_tohtml(device):
     if device.model_url != None:
         str_.append( _HTML_MODEL_URL_FMT % device.model_url)
     if device.serial_number != None:
-        str_.append( _HTML_SERIAL_NUMBER_FMT % device.serial_number) 
+        str_.append( _HTML_SERIAL_NUMBER_FMT % device.serial_number)
     str_.append( _HTML_DEVICE_UUID_FMT % device.uuid)
     if device.upc != None:
         str_.append( _HTML_UPC_FMT % device.upc)
@@ -75,9 +75,9 @@ def _service_list_tohtml(services):
         list_ = []
         for service in services:
             str_ = ""
-            str_ += _HTML_SERVICE_TYPE_FMT % (service.service_type, 
+            str_ += _HTML_SERVICE_TYPE_FMT % (service.service_type,
                                            service.service_version)
-            str_ += _HTML_SERVICE_ID_FMT % service.service_id  
+            str_ += _HTML_SERVICE_ID_FMT % service.service_id
             url = service.base_url + service.description_path
             str_ += _HTML_SERVICE_DESCRIPTION_URL_FMT % (url, url)
             str_ += _HTML_SERVICE_CONTROL_URL_FMT % \
@@ -94,7 +94,7 @@ def _device_tohtml(device):
     service_list = _service_list_tohtml(device.get_services())
     body = _HTML_BODY_FMT % (device.name, entries + service_list)
     return _HTML_FMT % body
-    
+
 
 ##############################################
 # XML
@@ -140,7 +140,7 @@ _SERVICE_EVENT_URL_FMT = "<eventSubURL>%s</eventSubURL>\n"
 def _device_entries_toxml(device):
     """Produce xml description for device attributes."""
     str_ = []
-    str_.append( _DEVICE_TYPE_FMT % (device.device_domain, 
+    str_.append( _DEVICE_TYPE_FMT % (device.device_domain,
                                   device.device_type, device.device_version))
     str_.append( _DEVICE_NAME_FMT % device.name)
     if device.manufacturer != None:
@@ -156,7 +156,7 @@ def _device_entries_toxml(device):
     if device.model_url != None:
         str_.append( _MODEL_URL_FMT % device.model_url)
     if device.serial_number != None:
-        str_.append( _SERIAL_NUMBER_FMT % device.serial_number) 
+        str_.append( _SERIAL_NUMBER_FMT % device.serial_number)
     str_.append( _DEVICE_UUID_FMT % device.uuid)
     if device.upc != None:
         str_.append( _UPC_FMT % device.upc)
@@ -178,9 +178,9 @@ def _service_list_toxml(services):
         list_ = []
         for service in services:
             str_ = ""
-            str_ += _SERVICE_TYPE_FMT % (service.service_type, 
+            str_ += _SERVICE_TYPE_FMT % (service.service_type,
                                       service.service_version)
-            str_ += _SERVICE_ID_FMT % service.service_id                
+            str_ += _SERVICE_ID_FMT % service.service_id
             str_ += _SERVICE_DESCRIPTION_URL_FMT % (service.description_path)
             str_ += _SERVICE_CONTROL_URL_FMT % (service.control_path)
             str_ += _SERVICE_EVENT_URL_FMT % (service.event_path)
@@ -200,7 +200,7 @@ class UPnPDeviceError(exceptions.Exception):
 class UPnPDevice:
 
     """
-    This implements the internal representation of a UPNP Device.    
+    This implements the internal representation of a UPNP Device.
     The representation is used to generate the XML description,
     and to add or remove services.
     The given service manager implements the hierarchical namespace
@@ -217,7 +217,7 @@ class UPnPDevice:
         self.name = device_config.get('name', None)
         self.device_type = device_config.get('device_type', None)
         self.device_version = device_config.get('device_version', 1)
-        self.device_domain = device_config.get('device_domain', 
+        self.device_domain = device_config.get('device_domain',
                                                'schemas-upnp-org')
         self.manufacturer = device_config.get('manufacturer', None)
         self.manufacturer_url = device_config.get('manufacturer_url', None)
@@ -238,7 +238,7 @@ class UPnPDevice:
         """Initialise device with reference to service manager."""
         self._sm = service_manager
         self.base_url = self._sm.get_base_url()
-        self.presentation_path = "devices/%s/presentation.html" % self.name 
+        self.presentation_path = "devices/%s/presentation.html" % self.name
         self.description_path = "devices/%s/description.xml" % self.name
 
     def set_is_root(self, value):
@@ -252,7 +252,7 @@ class UPnPDevice:
     def is_valid(self):
         """Checks if device object has been properly initialised."""
         return (self.device_type != None and self.name != None
-                and self.uuid != None and self.base_url != None 
+                and self.uuid != None and self.base_url != None
                 and self._sm != None)
 
     def get_services(self):
@@ -261,32 +261,32 @@ class UPnPDevice:
 
     def get_devices(self):
         """Returns devices which are included in this device."""
-        return self._sm.get_devices_of_device(self) 
+        return self._sm.get_devices_of_device(self)
 
     def to_xml(self):
         """Returns the xml description of this device."""
         if self.is_valid():
-            device_entries_xml = _device_entries_toxml(self) 
+            device_entries_xml = _device_entries_toxml(self)
             service_list_xml = _service_list_toxml(self.get_services())
             device_list_xml = _device_list_toxml(self.get_devices())
             return _DEVICE_FMT % (device_entries_xml + \
                                       service_list_xml + device_list_xml)
-        else: 
+        else:
             msg = "Can not generate XML description . Invalid Device"
             raise UPnPDeviceError, msg
 
     def get_presentation_url(self):
         """Returns the presentation URL (html) for this device."""
-        if self.is_root(): 
+        if self.is_root():
             return self._sm.get_presentation_path()
-        else: 
+        else:
             return self.base_url + self.presentation_path
 
     def get_description_url(self):
         """Returns the description URL (xml) for this device."""
-        if self.is_root(): 
+        if self.is_root():
             return self._sm.get_description_path()
-        else: 
+        else:
             return self.base_url + self.description_path
 
     def get_xml_description(self):
@@ -325,11 +325,11 @@ if __name__ == '__main__':
         'model_name': 'Model 1',
         'model_number': '123456',
         'model_url': 'http://manufacturer.com/model_1',
-        'serial_number': '123456',    
+        'serial_number': '123456',
         'uuid' : "3dd705c2-1c8a-11df-80c7-00248116b859",
         'upc': 'universial product code',
         }
-    
+
 
     class MockService:
         """Mock Service"""
@@ -341,7 +341,7 @@ if __name__ == '__main__':
             self.control_path = "%s/control" % self.service_id
             self.event_path = "%s/events" % self.service_id
             self.base_url = "http://myhost:4444/"
-    
+
     class MockServiceManager:
         """Mock Service Manager."""
         def __init__(self):

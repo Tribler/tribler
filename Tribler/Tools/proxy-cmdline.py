@@ -1,4 +1,4 @@
-# Written by Arno Bakker, George Milescu 
+# Written by Arno Bakker, George Milescu
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:
@@ -179,9 +179,9 @@ def main():
     #session_startup_config.set_buddycast(False)
     # ProxyDevel - set new core API values
     session_startup_config.set_proxyservice_status(proxy_service)
-    
+
     s = Session(session_startup_config)
-    
+
     # DEBUG
     print "*** My Permid = ", show_permid_short(s.get_permid())
 
@@ -262,8 +262,8 @@ def main():
         peer['port'] = helper4_port
         peer['last_seen'] = 0
         peerdb.addPeer(peer['permid'], peer, update_dns=True, commit=True)
-        
-    # ProxyDevel - if no_download is false (the client has to download torrent data), then start downloading 
+
+    # ProxyDevel - if no_download is false (the client has to download torrent data), then start downloading
     if (no_download == False):
         if test_mode == "doe":
             # setup and start download
@@ -274,21 +274,21 @@ def main():
             download_startup_config.set_doe_mode(doe_mode)
             download_startup_config.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
             download_startup_config.set_no_proxies(proxies)
-    
+
             torrent_def = TorrentDef.load(torrent_file)
-        
+
             d = s.start_download(torrent_def, download_startup_config)
             d.set_state_callback(state_callback, getpeerlist=False)
         else:
             # setup and start download
             download_startup_config = DownloadStartupConfig()
             download_startup_config.set_dest_dir(output_dir)
-    
+
             torrent_def = TorrentDef.load(torrent_file)
-        
+
             d = s.start_download(torrent_def, download_startup_config)
             d.set_state_callback(state_callback, getpeerlist=False)
-    
+
         # if the client is a coordinator
         if test_mode == "doe":
             # allow time for the download to start, before starting the help request
@@ -312,7 +312,7 @@ def main():
     # time.sleep(sys.maxint) has "issues" on 64bit architectures; divide it
     # by some value (2048) to solve problem
     #
-    
+
     try:
         while True:
             time.sleep(sys.maxint/2048)
@@ -323,6 +323,6 @@ def main():
     time.sleep(3)
     # ProxyDevel
     #shutil.rmtree(statedir)
-    
+
 if __name__ == "__main__":
     main()

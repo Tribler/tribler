@@ -29,7 +29,7 @@ logger = logging.getLogger('dht')
 
 TIMEOUT_DELAY = 2
 
-    
+
 class Querier(object):
     """
     A Querier object keeps a registry of sent queries while waiting for
@@ -100,7 +100,7 @@ class Querier(object):
         Return a tupla with two items: (1) timestamp for next timeout, (2)
         list of message.OutgoingQueryBase objects of those queries that have
         timed-out.
-        
+
         """
         current_ts = time.time()
         timeout_queries = []

@@ -19,10 +19,10 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import CrawlerDBHandler
 DEBUG=True
 
 class TestCrawler(TestAsServer):
-    """ 
+    """
     Testing the user side of the crawler
     """
-    
+
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
@@ -42,7 +42,7 @@ class TestCrawler(TestAsServer):
 
         self.my_permid = str(self.my_keypair.pub().get_der())
         self.my_hash = sha(self.my_permid).digest()
-        self.his_permid = str(self.his_keypair.pub().get_der())        
+        self.his_permid = str(self.his_keypair.pub().get_der())
 
         # Start our server side, to with Tribler will try to connect
         self.listen_port = 4123
@@ -51,7 +51,7 @@ class TestCrawler(TestAsServer):
         self.listen_socket.bind(("", self.listen_port))
         self.listen_socket.listen(10)
         self.listen_socket.settimeout(10)
-        
+
     def tearDown(self):
         """ override TestAsServer """
         TestAsServer.tearDown(self)
@@ -143,9 +143,9 @@ class TestCrawler(TestAsServer):
             self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 0, 0, query)
 
             error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 0)
-            
-            
-            
+
+
+
             assert error == 1
             if DEBUG:
                 print >>sys.stderr, payload
@@ -175,16 +175,16 @@ class TestCrawler(TestAsServer):
         error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
         assert error == 254 # should give a frequency erro
         s.close()
-        
+
         # try on a new connection
         s = OLConnection(self.my_keypair, "localhost", self.hisport)
         self.send_crawler_request(s, CRAWLER_DATABASE_QUERY, 42, 1000, "SELECT * FROM peer")
         error, payload = self.receive_crawler_reply(s, CRAWLER_DATABASE_QUERY, 42)
         assert error == 254 # should give a frequency error
- 
+
         time.sleep(1)
         s.close()
-        
+
 
     def subtest_invalid_tablename(self):
         """
@@ -233,7 +233,7 @@ class TestCrawler(TestAsServer):
         connection with the reply
         """
         print >>sys.stderr, "-"*80, "\ntest: dialback"
-        
+
         # make sure that the OLConnection IS in the crawler_db
         crawler_db = CrawlerDBHandler.getInstance()
         crawler_db.temporarilyAddCrawler(self.my_permid)
@@ -304,9 +304,8 @@ class TestCrawler(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestCrawler))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

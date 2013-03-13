@@ -104,4 +104,3 @@ class TermExtraction:
             return False
         else:
             return True
-    

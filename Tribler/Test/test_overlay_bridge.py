@@ -8,16 +8,16 @@ import time
 import tempfile
 import os
 
-import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb  
-from Tribler.Test.test_secure_overlay import TestSecureOverlay,Peer 
+import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb
+from Tribler.Test.test_secure_overlay import TestSecureOverlay,Peer
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay
 from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 from Tribler.Core.Utilities.utilities import show_permid_short
 
 class TestOverlayThreadingBridge(TestSecureOverlay):
-    
+
     def setUp(self):
-        
+
         print >>sys.stderr,"test: TestOverlayThreadingBridge.setUp()"
 
         self.config_path = tempfile.mkdtemp()
@@ -28,12 +28,12 @@ class TestOverlayThreadingBridge(TestSecureOverlay):
         config['peer_icon_path'] = os.path.join(self.config_path,'peer_icons')
         config['superpeer'] = False
         sqlitecachedb.init(config, self.rawserver_fatalerrorfunc)
-        
+
         secover1 = SecureOverlay.getInstance()
         secover1.resetSingleton()
         secover2 = SecureOverlay.getInstance()
         secover2.resetSingleton()
-        
+
         overbridge1 = OverlayThreadingBridge()
         overbridge1.register_bridge(secover1,None)
         overbridge1.resetSingleton()
@@ -42,7 +42,7 @@ class TestOverlayThreadingBridge(TestSecureOverlay):
         overbridge2.register_bridge(secover2,None)
         overbridge2.resetSingleton()
 
-        
+
         self.peer1 = Peer(self,1234,overbridge1)
         self.peer2 = Peer(self,5678,overbridge2)
         self.peer1.start()
@@ -61,13 +61,13 @@ class TestOverlayThreadingBridge(TestSecureOverlay):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_overlay_bridge.py <method name>"
     else:
         suite.addTest(TestOverlayThreadingBridge(sys.argv[1]))
-    
+
     return suite
 
 def main():

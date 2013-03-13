@@ -1,5 +1,5 @@
 """
-This package contains the implementation of an 
+This package contains the implementation of an
 extensible non-blocking UPnPServer.
 """
 from upnpserver import UPnPServer

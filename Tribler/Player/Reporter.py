@@ -17,7 +17,7 @@ DEBUG = False
 
 class Reporter:
     """ Old Reporter class used for July 2008 trial. See below for new """
-    
+
     def __init__( self, sconfig ):
         self.sconfig = sconfig
 
@@ -106,7 +106,7 @@ class Reporter:
         intereststr = lambda b: ["i","I"][int(bool(b))]
         optstr = lambda b: ["o","O"][int(bool(b))]
         protstr = lambda b: ["bt","g2g"][int(bool(b))]
-            
+
         now = time()
         v = ds.get_vod_stats() or { "played": 0, "stall": 0, "late": 0, "dropped": 0, "prebuf": -1, "pieces": {} }
         # Arno, 2009-09-09: method removed, was unclean

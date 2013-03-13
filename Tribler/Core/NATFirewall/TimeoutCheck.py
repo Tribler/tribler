@@ -24,7 +24,7 @@ def pingback(ping, pingbacksrvr):
     udpsock = socket(AF_INET, SOCK_DGRAM)
     udpsock.connect(pingbacksrvr)
     udpsock.settimeout(ping+10)
-    
+
     if DEBUG: print >> sys.stderr, "TIMEOUTCHECK:", "-> ping"
 
     # Send the ping to the server specifying the delay of the reply
@@ -79,7 +79,7 @@ def GetTimeout(pingbacksrvr):
     """
     Returns the NAT timeout for UDP traffic
     """
-    
+
     pings = [25, 35, 55, 85, 115, 145]
 
     # Send pings and wait for replies

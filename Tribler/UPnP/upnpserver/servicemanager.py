@@ -21,14 +21,14 @@ class ServiceManager:
     """
     Holds devices and services, identified by deviceName and
     serviceid, respectively.
-    todo : ServiceManager should also implement a 
-    hierarchical name space 
+    todo : ServiceManager should also implement a
+    hierarchical name space
     where devices are internal nodes and services are
     Has some global state that is makes available for other modules.
     This is the core of the UPnP Service implementation.
     """
 
-    def __init__(self, task_runner, ssdp_server, http_server, 
+    def __init__(self, task_runner, ssdp_server, http_server,
                  event_dispatcher, root_device,
                  product_name, logger=None):
 
@@ -45,16 +45,16 @@ class ServiceManager:
         self._os_version = platform.platform()
         self._product_version = product_name
         self._logger = logger
-        
+
         self._root_device.set_service_manager(self)
         self._ssdp_server.set_service_manager(self)
         self._http_server.set_service_manager(self)
 
     def startup(self):
         """Startup http server and ssdp server."""
-        self._http_server.startup()        
+        self._http_server.startup()
         self._ssdp_server.startup()
-        
+
     def get_http_port(self):
         """Return HTTP port used by UPnP server."""
         return self._http_server.get_port()
@@ -74,7 +74,7 @@ class ServiceManager:
     def get_presentation_path(self):
         """Return presentation path for UPnP server."""
         return self._presentation_path
-    
+
     def get_description_url(self):
         """Return description url for UPnP server."""
         return self.get_base_url() + self._description_path
@@ -112,7 +112,7 @@ class ServiceManager:
         """Get device by name."""
         if self._root_device.name == name:
             return self._root_device
-        
+
     def add_service(self, service):
         """Add a new service to the UPnP Server."""
         service.set_service_manager(self)
@@ -121,7 +121,7 @@ class ServiceManager:
     def get_service(self, service_id):
         """Get service by service_id."""
         return self._services.get(service_id, None)
-    
+
     def get_service_ids(self):
         """Return a list of service ids."""
         return self._services.keys()

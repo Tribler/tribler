@@ -172,4 +172,3 @@ _encode_mapping = {str:_encode_str,
                    tuple:_encode_tuple,
                    list:_encode_list,
                    dict:_encode_dict}
-

@@ -21,7 +21,7 @@ from Tribler.Core.simpledefs import *
 DEBUG=True
 
 class TestSeeding(TestAsServer):
-    """ 
+    """
     Testing seeding via new tribler API:
     """
 
@@ -31,20 +31,20 @@ class TestSeeding(TestAsServer):
         print >>sys.stderr,"test: Giving Session time to startup"
         time.sleep(5)
         print >>sys.stderr,"test: Session should have started up"
-    
+
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        
-        self.config.set_megacache(False)        
+
+        self.config.set_megacache(False)
         self.config.set_internal_tracker(True)
         #self.config.set_tracker_nat_check(0)
-        
+
         self.mylistenport = 4810
 
     def setUpPostSession(self):
         pass
-    
+
     def setup_seeder(self,merkle):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(os.getcwd(),"file.wmv")
@@ -55,15 +55,15 @@ class TestSeeding(TestAsServer):
 
         self.torrentfn = os.path.join(self.session.get_state_dir(),"gen.torrent")
         self.tdef.save(self.torrentfn)
-        
+
         print >>sys.stderr,"test: setup_seeder: name is",self.tdef.metainfo['info']['name']
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(os.getcwd())
         d = self.session.start_download(self.tdef,self.dscfg)
-        
+
         d.set_state_callback(self.seeder_state_callback)
-        
+
         print >>sys.stderr,"test: Giving Download time to startup"
         time.sleep(5)
 
@@ -75,7 +75,7 @@ class TestSeeding(TestAsServer):
 
 
     def test_normal_torrent(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -98,7 +98,7 @@ class TestSeeding(TestAsServer):
         myid = '*' * 20
         s = BTConnection('localhost',self.hisport,myid=myid,user_infohash=infohash)
         s.read_handshake_medium_rare()
-        
+
         s.send(CHOKE)
         try:
             s.s.settimeout(10.0)
@@ -110,34 +110,34 @@ class TestSeeding(TestAsServer):
             print >> sys.stderr,"test: Timeout, peer didn't reply"
             self.assert_(False)
         s.close()
-        
-        
+
+
     def subtest_download(self):
         """ Now download the file via another Session """
-        
+
         self.config2 = self.config.copy() # not really necess
         self.config_path2 = tempfile.mkdtemp()
         self.config2.set_state_dir(self.config_path2)
         self.config2.set_listen_port(self.mylistenport)
         self.session2 = Session(self.config2,ignore_singleton=True)
-        
+
         # Allow session2 to start
         print >>sys.stderr,"test: Sleeping 3 secs to let Session2 start"
         time.sleep(3)
-        
+
         tdef2 = TorrentDef.load(self.torrentfn)
 
         dscfg2 = DownloadStartupConfig()
         dscfg2.set_dest_dir(self.config_path2)
-        
+
         d = self.session2.start_download(tdef2,dscfg2)
         d.set_state_callback(self.downloader_state_callback)
         time.sleep(20)
-    
+
     def downloader_state_callback(self,ds):
         d = ds.get_download()
         print >>sys.stderr,"test: download:",`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress()
-        
+
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
             destfn = os.path.join(self.config_path2,"file.wmv")
@@ -147,22 +147,22 @@ class TestSeeding(TestAsServer):
             f = open(self.sourcefn,"rb")
             expdata = f.read()
             f.close()
-            
+
             self.assert_(realdata == expdata)
             return (1.0,True)
-        
+
         return (1.0,False)
 
-        
+
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_seeding.py <method name>"
     else:
         suite.addTest(TestSeeding(sys.argv[1]))
-    
+
     return suite
 
 def main():

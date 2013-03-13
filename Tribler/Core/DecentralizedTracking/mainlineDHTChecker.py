@@ -19,7 +19,7 @@ class mainlineDHTChecker:
         if mainlineDHTChecker.__single:
             raise RuntimeError, "mainlineDHTChecker is Singleton"
         mainlineDHTChecker.__single = self
-        
+
         self.dht = None
         self.torrent_db = TorrentDBHandler.getInstance()
 
@@ -31,7 +31,7 @@ class mainlineDHTChecker:
 
     def register(self,dht):
         self.dht = dht
-        
+
     def lookup(self,infohash):
         if DEBUG:
             print >>sys.stderr,"mainlineDHTChecker: Lookup",`infohash`
@@ -47,7 +47,7 @@ class mainlineDHTChecker:
         elif DEBUG:
             print >>sys.stderr,"mainlineDHTChecker: No lookup, no DHT support loaded"
 
-    
+
     def got_peers_callback(self, infohash, peers, node=None):
         """ Called by network thread """
         if DEBUG:

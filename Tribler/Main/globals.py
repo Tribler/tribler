@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
@@ -7,16 +7,16 @@ import pickle
 
 STATEDIR_DLCONFIG = "dlconfig.pickle"
 
-# Global variable containing the DownloadStartupConfig to use for crearing 
+# Global variable containing the DownloadStartupConfig to use for crearing
 # Downloads
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.defaults import DLDEFAULTS_VERSION,dldefaults
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
     __single = None
-    
+
     def __init__(self,dlconfig=None):
-        
+
         if DefaultDownloadStartupConfig.__single:
             raise RuntimeError, "DefaultDownloadStartupConfig is singleton"
         DefaultDownloadStartupConfig.__single = self
@@ -41,7 +41,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     def load(filename):
         """
         Load a saved DownloadStartupConfig from disk.
-        
+
         @param filename  An absolute Unicode filename
         @return DefaultDownloadStartupConfig object
         """
@@ -50,12 +50,12 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         dlconfig = pickle.load(f)
         dscfg = DefaultDownloadStartupConfig(dlconfig)
         f.close()
-        
+
         dscfg.updateToCurrentVersion()
-        
+
         return dscfg
     load = staticmethod(load)
 
 
 def get_default_dscfg_filename(session):
-    return os.path.join(session.get_state_dir(),STATEDIR_DLCONFIG)        
+    return os.path.join(session.get_state_dir(),STATEDIR_DLCONFIG)

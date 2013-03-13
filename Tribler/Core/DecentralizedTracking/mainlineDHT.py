@@ -27,7 +27,7 @@ dht = None
 def init(addr, conf_path):
     global dht
     global dht_imported
-    
+
     if DEBUG:
         print >>sys.stderr,'dht: DHT initialization', dht_imported
         log_level = logging.DEBUG
@@ -57,5 +57,5 @@ def deinit():
             dht.stop()
         except:
             pass
-    
+
         dht = None

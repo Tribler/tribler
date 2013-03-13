@@ -22,7 +22,7 @@ class UPnPThread(Thread):
         with UPnP mode 2. That uses Win32/COM API calls to find and
         talk to the UPnP-enabled firewall. This mechanism apparently
         requires all calls to be carried out by the same thread.
-        This means we cannot let the final DeletePortMapping(port) 
+        This means we cannot let the final DeletePortMapping(port)
         (==UPnPWrapper.close(port)) be done by a different thread,
         and we have to make this one wait until client shutdown.
 
@@ -33,19 +33,19 @@ class UPnPThread(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName( "UPnP"+self.getName() )
-        
+
         self.upnp_type = upnp_type
         self.locally_guessed_ext_ip = ext_ip
         self.listen_port = listen_port
         self.error_func = error_func
-        self.got_ext_ip_func = got_ext_ip_func 
+        self.got_ext_ip_func = got_ext_ip_func
         self.shutdownevent = Event()
 
     def run(self):
-        
+
         if prctlimported:
             prctl.set_name("Tribler"+currentThread().getName())
-        
+
         if self.upnp_type > 0:
             self.upnp_wrap = UPnPWrapper.getInstance()
             self.upnp_wrap.register(self.locally_guessed_ext_ip)
@@ -70,9 +70,9 @@ class UPnPThread(Thread):
 
                     # Do open_port irrespective of whether get_ext_ip()
                     # succeeds, UPnP mode 1 doesn't support get_ext_ip()
-                    # get_ext_ip() must be done first to ensure we have the 
+                    # get_ext_ip() must be done first to ensure we have the
                     # right IP ASAP.
-                    
+
                     # Open TCP listen port on firewall
                     ret = self.upnp_wrap.open(self.listen_port,iproto='TCP')
                     if ret == False and not shownerror:
@@ -84,7 +84,7 @@ class UPnPThread(Thread):
                         self.error_func(self.upnp_type,self.listen_port,0,listenproto='UDP')
                     # Disabled Gertjan's UPnP logging for m24
                     #reporter.add_event("UPnP", "UDP:%d" % ret)
-                
+
                 except UPnPError,e:
                     self.error_func(self.upnp_type,self.listen_port,1,e)
             else:

@@ -15,7 +15,7 @@ from Tribler.UPnP.common.taskrunner import TaskRunner
 
 class UPnPClientConsole:
 
-    """This class wraps ObjectConsole to implement a 
+    """This class wraps ObjectConsole to implement a
     custom console for UPnP Client (Control Point)."""
 
     def __init__(self):
@@ -23,9 +23,9 @@ class UPnPClientConsole:
         # Task Runner
         self._task_runner = TaskRunner()
 
-        # UPnP Client      
+        # UPnP Client
         self._client = UPnPClient(self._task_runner)
-        
+
         # Console Namespace
         name_space = {}
         name_space['get_device_uuids'] = self._client.get_device_uuids
@@ -39,8 +39,8 @@ class UPnPClientConsole:
         name_space['get_service'] = self._client.get_service
         name_space['search'] = self._client.search
 
-        self._console = ObjectConsole(self, name_space, 
-                                      run="_run", 
+        self._console = ObjectConsole(self, name_space,
+                                      run="_run",
                                       stop="_stop", name="UPnP Client")
 
     def _run(self):
@@ -65,4 +65,3 @@ class UPnPClientConsole:
 if __name__ == '__main__':
 
     UPnPClientConsole().run()
-

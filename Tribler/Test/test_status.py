@@ -9,7 +9,7 @@ from Tribler.Core.Statistics.Status import Status
 from Tribler.Core.Statistics.Status import LivingLabReporter
 
 class TestOnChangeStatusReporter(Status.OnChangeStatusReporter):
-    
+
     name = None
     value = None
 
@@ -30,25 +30,25 @@ class StatusTest(unittest.TestCase):
     """
     Unit tests for the Status class
 
-    
+
     """
-    
+
     def setUp(self):
         pass
     def tearDown(self):
         pass
-    
+
     def testBasic(self):
 
         status = Status.get_status_holder("UnitTest")
         status.reset()
-        
+
         self.assertNotEqual(status, None)
 
         self.assertEquals(status.get_name(), "UnitTest")
-        
+
     def testInt(self):
-        
+
         status = Status.get_status_holder("UnitTest")
         status.reset()
         self.assertNotEqual(status, None)
@@ -101,8 +101,8 @@ class StatusTest(unittest.TestCase):
             self.fail("Invalid remove_status_element does not throw exception")
         except Status.NoSuchElementException,e:
             pass
-            
-        
+
+
     def testPolicy_ON_CHANGE(self):
 
         status = Status.get_status_holder("UnitTest")
@@ -120,7 +120,7 @@ class StatusTest(unittest.TestCase):
 
         # Clean up
         status.remove_status_element(i)
-        
+
 
     def testPolicy_PERIODIC(self):
 
@@ -134,9 +134,9 @@ class StatusTest(unittest.TestCase):
         for x in range(0, 5):
             i.set_value(x)
             self.assertEquals(reporter.last_value, None) # Not updated yet
-            
+
         time.sleep(1)
-        
+
         assert reporter.last_value == 4
 
         for x in range(5, 9):
@@ -162,12 +162,12 @@ class StatusTest(unittest.TestCase):
 
         b = status.create_status_element("Binary")
         b.set_value("".join([chr(n) for n in range(0, 255)]))
-        
+
         reporter.wait_for_post(5.0)
 
         reporter.stop()
         time.sleep(1)
-        
+
         self.assertEquals(len(reporter.get_errors()), 0)
 
         status.remove_status_element(i)
@@ -183,12 +183,12 @@ class StatusTest(unittest.TestCase):
         event.add_value("123")
         event.add_value("456")
         status.add_event(event)
-        
+
         reporter.wait_for_post(5.0)
 
         reporter.stop()
         time.sleep(1)
-        
+
         self.assertEquals(len(reporter.get_errors()), 0)
 
         status.remove_event(event)
@@ -206,14 +206,14 @@ class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter)
         try:
             if self.xml:
                 return True
-        
+
             self.cond.wait(timeout)
             if self.xml:
                 return True
             raise Exception("Timeout")
         finally:
             self.cond.release()
-            
+
 
     def post(self, xml):
         # TODO: Check the XML?
@@ -233,7 +233,7 @@ class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter)
 if __name__ == "__main__":
 
     print "Testing Status module"
-    
+
     unittest.main()
-    
+
     print "All done"

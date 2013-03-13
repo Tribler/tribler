@@ -56,7 +56,7 @@ class FloodBarrier(object):
         """
         Register that a packet has been received from the given IP and return
         whether the host is blocked and, hence, the packet should be dropped
-        
+
         """
         current_time = time.time()
         if current_time > self.last_half_period_time + self.checking_period / 2:
@@ -89,7 +89,6 @@ class FloodBarrier(object):
                 return True
         else:
 
-            
+
             # IP is not blocked
             return False
-            

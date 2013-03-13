@@ -1,5 +1,5 @@
 """
-This package contains the logic of common utility to the UPnP package.  
+This package contains the logic of common utility to the UPnP package.
 """
 
 from taskrunner import TaskRunner

@@ -1,4 +1,4 @@
-# Written by Jelle Roozenburg, Maarten ten Brinke 
+# Written by Jelle Roozenburg, Maarten ten Brinke
 # see LICENSE.txt for license information
 import wx, os, sys
 from traceback import print_exc
@@ -17,20 +17,20 @@ class PlayerButton(wx.Panel):
         self.imagename = imagename
         self.parent = parent
         self.init()
-        
+
     def init(self):
         self.initDone = False
         self.enabled = True
         self.backgroundColor = wx.WHITE
-        wx.Panel.__init__(self, self.parent) 
+        wx.Panel.__init__(self, self.parent)
         self.selected = False
         self.tooltip = None
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
-        
+
         self.searchBitmaps()
         self.createBackgroundImage()
-        
+
         #<mluc> on mac, the button doesn't get a size
         #if self.bitmaps[0] and self.GetSize()==(0,0):
         if self.bitmaps[0]:
@@ -38,8 +38,8 @@ class PlayerButton(wx.Panel):
 #        print self.Name
 #        print 'size'
 #        print self.Size
-        
-        
+
+
         self.initDone = True
         self.Refresh(True)
         self.Update()
@@ -47,22 +47,22 @@ class PlayerButton(wx.Panel):
 
     def GetImageName(self):
         return self.imagename
-        
-        
+
+
     def searchBitmaps(self):
         self.bitmaps = [None, None ,None]
         self.parentBitmap = None
         self.mouseOver = False
-                
+
         if not os.path.isdir(self.imagedir):
             print 'Error: no image directory found in %s' % self.imagedir
             return
-        
+
         # find a file with same name as this panel
-        self.bitmapPath = [os.path.join(self.imagedir, self.imagename+'.png'), 
+        self.bitmapPath = [os.path.join(self.imagedir, self.imagename+'.png'),
                            os.path.join(self.imagedir, self.imagename+'_hover.png'),
                            os.path.join(self.imagedir, self.imagename+'_dis.png')]
-        
+
         i = 0
         for img in self.bitmapPath:
             if os.path.isfile(img):
@@ -70,31 +70,31 @@ class PlayerButton(wx.Panel):
                 i+=1
             elif DEBUG:
                 print 'Could not find image: %s' % img
-         
-           
-        
-        
+
+
+
+
     def createBackgroundImage(self):
         if self.bitmaps[0]:
             wx.EVT_PAINT(self, self.OnPaint)
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
-                
-    
+
+
     def OnErase(self, event):
         pass
         #event.Skip()
-        
+
     def setSelected(self, sel):
         self.selected = sel
         self.Refresh()
-        
+
     def isSelected(self):
         return self.selected
-        
+
     def mouseAction(self, event):
         event.Skip()
         if event.Entering():
-            #print 'enter' 
+            #print 'enter'
             self.mouseOver = True
             self.Refresh()
         elif event.Leaving():
@@ -110,7 +110,7 @@ class PlayerButton(wx.Panel):
             #print bitmap
         except:
             return None
-        
+
         if bitmap:
             location = self.GetPosition()
             #location[0] -= parent.GetPosition()[0]
@@ -124,7 +124,7 @@ class PlayerButton(wx.Panel):
             return bitmap
         else:
             return None
-    
+
     def joinImage(self, im1,im2,offsetx=0,offsety=0):
         "Draw im2 on im1"
         stopx = im2.GetWidth()
@@ -140,7 +140,7 @@ class PlayerButton(wx.Panel):
                     if rgb2 !=(255,0,255):
                         im1.SetRGB(x+offsetx,y+offsety,rgb2[0],rgb2[1],rgb2[2])
         return im1
- 
+
     def getBitmapSlice(self, bitmap, rect):
         try:
             #print rect
@@ -165,7 +165,7 @@ class PlayerButton(wx.Panel):
                 if DEBUG:
                     print "(button %s) Result: %s" % (self.GetName(), rects)
                 image = wx.EmptyImage(rect[2], rect[3])
-                for r in rects:    
+                for r in rects:
                     rect = wx.Rect(r[0], r[1], r[2], r[3])
                     if DEBUG:
                         print '(button %s) Trying to get rect: %s from bitmap: %s' % (self.GetName(), rect, bitmap.GetSize())
@@ -197,7 +197,7 @@ class PlayerButton(wx.Panel):
             if DEBUG:
                 print_exc()
             return None
-                                            
+
     def setEnabled(self, e):
         self.enabled = e
         if not e:
@@ -206,26 +206,26 @@ class PlayerButton(wx.Panel):
 #            if self.tooltip:
 #                self.SetToolTipString(self.tooltip)
         self.Refresh()
-        
+
     def isEnabled(self):
         return self.enabled
-    
+
     def setBackground(self, wxColor):
         self.backgroundColor = wxColor
         self.Refresh()
-        
+
     def OnPaint(self, evt):
         dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.backgroundColor))
         dc.Clear()
-        
+
         if self.parentBitmap:
             dc.DrawBitmap(self.parentBitmap, 0,0, True)
         else:
             self.parentBitmap = self.getParentBitmap()
             if self.parentBitmap:
                 dc.DrawBitmap(self.parentBitmap, 0,0, True)
-        
+
         if not self.enabled:
             return
 
@@ -239,37 +239,37 @@ class PlayerButton(wx.Panel):
             dc.DrawBitmap(self.bitmaps[0], 0,0, True)
         if (self.mouseOver or self.selected) and self.bitmaps[1]:
             dc.DrawBitmap(self.bitmaps[1], 0,0, True)
-        
+
 
 class PlayerSwitchButton(PlayerButton):
-        
+
     def __init__(self, parent, imagedir, imagename, imagename2):
         self.imagedir = imagedir
         self.imagename = imagename
         self.imagename2 = imagename2
         self.parent = parent
         self.init()
-        
+
     def searchBitmaps(self):
         self.toggled = False
         self.allBitmaps = [None, None, None, None, None, None]
         self.parentBitmap = None
         self.mouseOver = False
-                
-                    
+
+
         if not os.path.isdir(self.imagedir):
             print >>sys.stderr,'PlayerSwitchButton: Error: no image directory found in',self.imagedir
             return
-        
+
         # find a file with same name as this panel
-        self.bitmapPath = [os.path.join(self.imagedir, self.imagename+'.png'), 
+        self.bitmapPath = [os.path.join(self.imagedir, self.imagename+'.png'),
                            os.path.join(self.imagedir, self.imagename+'_hover.png'),
                            os.path.join(self.imagedir, self.imagename+'_dis.png'),
-                           os.path.join(self.imagedir, self.imagename2+'.png'), 
+                           os.path.join(self.imagedir, self.imagename2+'.png'),
                            os.path.join(self.imagedir, self.imagename2+'_hover.png'),
                            os.path.join(self.imagedir, self.imagename2+'_dis.png')
                            ]
-        
+
         i = 0
         for img in self.bitmapPath:
             if os.path.isfile(img):
@@ -277,13 +277,13 @@ class PlayerSwitchButton(PlayerButton):
                 i+=1
             elif DEBUG:
                 print 'Could not find image: %s' % img
-                
+
 
         if self.toggled:
             self.bitmaps = self.allBitmaps[3:]
         else:
             self.bitmaps = self.allBitmaps[:3]
-                
+
     def setToggled(self, b, tooltip = { "enabled": "", "disabled": ""}):
         self.toggled = b
 
@@ -298,19 +298,14 @@ class PlayerSwitchButton(PlayerButton):
             self.bitmaps=self.allBitmaps[:3]
             if self.enabled:
                 self.SetToolTipString(tooltip["disabled"])
-            
+
         #print 'Bitmaps is now: %s' % self.bitmaps
         #should Refresh?
         self.Refresh()
-        
+
     def isToggled(self):
         return self.toggled
 
 
 
 ##class VolumeButton(PlayerButton):
-
-
-
-
-    

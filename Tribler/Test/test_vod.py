@@ -128,12 +128,12 @@ class TestVideoOnDemand(TestAsServer):
             print >>sys.stderr,"Test: stream: Passed?"
 
     def stream_read(self,stream,off,size,blocksize):
-            stream.seek(off)
-            data = stream.read(blocksize)
-            print >>sys.stderr,"Test: stream: Got data",len(data)
-            self.assertEquals(len(data),size)
-            self.assertEquals(data,self.content[off:off+size])
-            
+        stream.seek(off)
+        data = stream.read(blocksize)
+        print >>sys.stderr,"Test: stream: Got data",len(data)
+        self.assertEquals(len(data),size)
+        self.assertEquals(data,self.content[off:off+size])
+        
 
     def singtest_99(self):
         self.contentlen = 99

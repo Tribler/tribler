@@ -9,10 +9,10 @@ from Tribler.Test.test_dialback_reply_active import TestDialbackReplyActive
 DEBUG=True
 
 class TestDialbackReplyActive2(TestDialbackReplyActive):
-    """  
-    Testing DIALBACK_REPLY message of Dialback extension V1 
+    """
+    Testing DIALBACK_REPLY message of Dialback extension V1
 
-    This test checks how the Tribler code responds to good and bad 
+    This test checks how the Tribler code responds to good and bad
     DIALBACK_REPLY messages. I.e. the Tribler client initiates
     the dialback by connecting to us and sending a DIALBACK_REQUEST and we
     reply with good and bad messages.
@@ -30,15 +30,14 @@ class TestDialbackReplyActive2(TestDialbackReplyActive):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. SuperPeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_dra2.py <method name>"
     else:
         suite.addTest(TestDialbackReplyActive2(sys.argv[1]))
-    
+
     return suite
 
 def main():
     unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
-    

@@ -22,13 +22,13 @@ DEBUG=True
 
 
 class TestBuddyCastMsg(TestAsServer):
-    """ 
+    """
     Testing BUDDYCAST message of BuddyCast extension V1+2+3
-    
+
     Note this is based on a reverse-engineering of the protocol.
     Source code of the specific Tribler release is authoritative.
     """
-    
+
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
@@ -39,7 +39,7 @@ class TestBuddyCastMsg(TestAsServer):
         # BuddyCast
         self.config.set_buddycast(True)
         self.config.set_start_recommender(True)
-        
+
         fd,self.superpeerfilename = tempfile.mkstemp()
         os.write(fd,'')
         os.close(fd)
@@ -50,7 +50,7 @@ class TestBuddyCastMsg(TestAsServer):
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der())        
+        self.hispermid = str(self.his_keypair.pub().get_der())
         self.myhash = sha(self.mypermid).digest()
 
         # Give Tribler some download history
@@ -59,7 +59,7 @@ class TestBuddyCastMsg(TestAsServer):
         data = {'destination_path':'.'}
         infohashes = self.create_good_my_prefs(self,btconn.current_version)
         for i in range(0,len(infohashes)):
-            commit = (i == len(infohashes)-1) 
+            commit = (i == len(infohashes)-1)
             self.myprefdb.addMyPreference(infohashes[i], data, commit=commit)
 
         # Give Tribler some peers
@@ -67,14 +67,14 @@ class TestBuddyCastMsg(TestAsServer):
         self.peerdb = self.session.open_dbhandler(NTFY_PEERS)
         past = int(time.time())-1000000000
         peers = self.create_good_random_peers(btconn.current_version,num=200)
-        
+
         peers = []
-        
+
         for i in range(0,len(peers)):
             peer = peers[i]
             peer.update({'last_seen':past, 'last_connected':past})
             del peer['connect_time']
-            peer['num_torrents'] = peer['nfiles'] 
+            peer['num_torrents'] = peer['nfiles']
             del peer['nfiles']
             commit = (i == len(peers)-1)
             self.peerdb.addPeer(peer['permid'], peer, update_dns=True, update_connected=True, commit=commit)
@@ -92,21 +92,21 @@ class TestBuddyCastMsg(TestAsServer):
     #Arno, 2010-02-16: we now kick v2 peers, so can't test anymore.
     #def singtest_good_buddycast2(self):
     #    self.subtest_good_buddycast(2)
-        
+
     def singtest_good_buddycast3(self):
         """ I want a fresh Tribler for this """
         self.subtest_good_buddycast(3)
-        
+
     def singtest_good_buddycast4(self):
         """ I want a fresh Tribler for this """
         self.subtest_good_buddycast(4)
-        
+
     def singtest_good_buddycast6(self):
         """ I want a fresh Tribler for this """
         self.subtest_good_buddycast(6)
 
     def singtest_bad_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -127,7 +127,7 @@ class TestBuddyCastMsg(TestAsServer):
     # Good BUDDYCAST
     #
     def subtest_good_buddycast(self,oversion):
-        """ 
+        """
             test good BUDDYCAST messages
         """
         print >>sys.stderr,"test: good BUDDYCAST",oversion
@@ -165,7 +165,7 @@ class TestBuddyCastMsg(TestAsServer):
     def create_good_buddycast_payload(self,oversion):
         d = self.create_good_buddycast(oversion)
         return self.create_payload(d)
-        
+
     def create_good_buddycast(self,oversion):
         self.myprefs = self.create_good_my_prefs(oversion)
         tastebuddies = self.create_good_taste_buddies(oversion)
@@ -176,22 +176,22 @@ class TestBuddyCastMsg(TestAsServer):
         d['port'] = 481
         d['name'] = 'Bud Spencer'
         d['preferences'] = self.myprefs
-        d['taste buddies'] = tastebuddies 
+        d['taste buddies'] = tastebuddies
         d['random peers'] = randompeers
-        
+
         if oversion >= 3:
             d['connectable'] = True
-        
+
         if oversion >= 4:
             d['collected torrents'] = recentcoll
-        
+
         if oversion >= 6:
             d['npeers'] = 3904
             d['nfiles'] = 4027
             d['ndls'] = 4553
 
         #print >>sys.stderr,"test: Sending",`d`
-        
+
         return d
 
     def create_good_my_prefs(self,oversion,num=50):
@@ -208,15 +208,15 @@ class TestBuddyCastMsg(TestAsServer):
         for i in range(0,10):
             tb = self.create_good_peer(i,oversion)
             tbs.append(tb)
-        return tbs 
+        return tbs
 
     def create_good_random_peers(self,oversion,num=10):
         tbs = []
         for i in range(0,num):
             tb = self.create_good_peer(i,oversion)
             tbs.append(tb)
-        return tbs 
-        
+        return tbs
+
     def create_good_peer(self,id,oversion):
         d = {}
         d['permid'] = 'peer '+str(id)
@@ -226,7 +226,7 @@ class TestBuddyCastMsg(TestAsServer):
 
         if oversion <= 2:
             d['age'] = 0
-            
+
         if oversion <= 3:
             d['preferences'] = self.create_good_my_prefs(oversion,num=10)
         else:
@@ -235,7 +235,7 @@ class TestBuddyCastMsg(TestAsServer):
         if oversion >= 6:
             d['oversion'] = btconn.current_version
             d['nfiles'] = 100+id
-        
+
         return d
 
     def create_payload(self,r):
@@ -243,10 +243,10 @@ class TestBuddyCastMsg(TestAsServer):
 
     def check_buddycast(self,data,oversion):
         d = bdecode(data)
-        
+
         print >>sys.stderr,"test: Got BUDDYCAST",d.keys()
         #print >>sys.stderr,"test: Got CONTENT",`d`
-        
+
         self.assert_(type(d) == DictType)
         self.assert_('ip' in d)
         self.assert_(type(d['ip']) == StringType)
@@ -281,16 +281,16 @@ class TestBuddyCastMsg(TestAsServer):
         self.assert_(len(p) <= 50)
         for infohash in p:
             self.check_infohash(infohash)
-            
+
     check_collected_torrents = check_preferences
-            
+
     def check_infohash(self,infohash):
         self.assert_(type(infohash) == StringType)
         self.assert_(len(infohash) == 20)
 
     def check_taste_buddies(self,peerlist,oversion):
         return self.check_peer_list(peerlist,True,oversion)
-    
+
     def check_random_peers(self,peerlist,oversion):
         return self.check_peer_list(peerlist,False,oversion)
 
@@ -313,7 +313,7 @@ class TestBuddyCastMsg(TestAsServer):
         if oversion <= 3 and taste:
             self.assert_('preferences' in d)
             self.check_preferences(d['preferences'],oversion)
-        
+
         if oversion >= 4:
             self.assert_('similarity' in d)
             self.assert_(type(d['similarity']) == IntType)
@@ -325,22 +325,22 @@ class TestBuddyCastMsg(TestAsServer):
                 self.assert_(type(d['oversion']) == IntType)
                 self.assert_('nfiles' in d)
                 self.assert_(type(d['nfiles']) == IntType)
-            
+
 
     def check_get_metadata(self,data):
         infohash = bdecode(data)
         self.check_infohash(infohash)
-        
+
         # Extra check: he can only ask us for metadata for an infohash we
         # gave him.
-        self.assert_(infohash in self.myprefs)        
+        self.assert_(infohash in self.myprefs)
 
     def check_keep_alive(self,data):
         self.assert_(len(data) == 0)
 
     #
     # Bad buddycast
-    #    
+    #
     def subtest_bad_not_bdecodable(self):
         self._test_bad(self.create_not_bdecodable)
 
@@ -366,8 +366,8 @@ class TestBuddyCastMsg(TestAsServer):
         for method in methods:
             print >> sys.stderr,"\ntest: ",method,
             self._test_bad(method)
-        
-        
+
+
     def make_bad_ip(self):
         d = self.create_good_buddycast(btconn.current_version)
         d['ip'] = 481
@@ -382,7 +382,7 @@ class TestBuddyCastMsg(TestAsServer):
         d = self.create_good_buddycast(btconn.current_version)
         d['name'] = 481
         return self.create_payload(d)
-    
+
     def make_bad_preferences(self):
         d = self.create_good_buddycast(btconn.current_version)
         d['preferences'] = 481
@@ -393,7 +393,7 @@ class TestBuddyCastMsg(TestAsServer):
         d['collected torrents'] = 481
         return self.create_payload(d)
 
-        
+
     def subtest_bad_taste_buddies(self):
         methods = [
             self.make_bad_tb_not_list,
@@ -403,20 +403,20 @@ class TestBuddyCastMsg(TestAsServer):
             d = self.create_good_buddycast(btconn.current_version)
             d['taste buddies'] = method()
             func = lambda:self.create_payload(d)
-            
+
             print >> sys.stderr,"\ntest: ",method,
             self._test_bad(func)
 
     def make_bad_tb_not_list(self):
         tbs = 481
         return tbs
-        
+
     def make_bad_tb_list_not_dictelems(self):
         tbs = []
         for i in range(0,50):
             tbs.append(i)
         return tbs
-        
+
     def make_bad_tb_list_bad_peer(self):
         tbs = []
         for i in range(0,50):
@@ -426,9 +426,9 @@ class TestBuddyCastMsg(TestAsServer):
     def make_bad_peer(self):
         d = {}
         d['permid'] = 'peer 481'
-        # Error is too little fields. 
+        # Error is too little fields.
         # TODO: test all possible bad peers
-        
+
         return d
 
 
@@ -443,10 +443,10 @@ class TestBuddyCastMsg(TestAsServer):
             d = self.create_good_buddycast(btconn.current_version)
             d['taste buddies'] = method()
             func = lambda:self.create_payload(d)
-            
+
             print >> sys.stderr,"\ntest: ",method,
             self._test_bad(func)
-    
+
     def _test_bad(self,gen_buddycast_func):
         print >>sys.stderr,"test: bad BUDDYCAST",gen_buddycast_func
         s = OLConnection(self.my_keypair,'localhost',self.hisport)
@@ -480,13 +480,13 @@ class TestBuddyCastMsg(TestAsServer):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_buddycast_msg.py <method name>"
     else:
         suite.addTest(TestBuddyCastMsg(sys.argv[1]))
-    
+
     return suite
 
 def main():

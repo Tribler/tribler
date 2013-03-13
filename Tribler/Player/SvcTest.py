@@ -11,11 +11,11 @@ DOWNLOADSPEED = 200
 
 def svc_event_callback(d,event,params):
     if event == VODEVENT_START:
-    
+
         stream = params["stream"]
         length   = params["length"]
         mimetype = params["mimetype"]
-        
+
         # save stream on a temp file for verification
         f = open("stream","wb")
 
@@ -23,8 +23,8 @@ def svc_event_callback(d,event,params):
             # Read data from the resulting stream.
             # Every stream.read() call will give back the available layers for the
             # following time slot.
-            # The first 6 Bytes tell us the piece size. Therefore depending on the 
-            # size of the stream, knowing the piece size, we can see how many layers 
+            # The first 6 Bytes tell us the piece size. Therefore depending on the
+            # size of the stream, knowing the piece size, we can see how many layers
             # are given back for that specific time slot.
             data = stream.read()
             print >>sys.stderr,"main: VOD ready callback: reading",type(data)
@@ -33,15 +33,15 @@ def svc_event_callback(d,event,params):
                 break
             f.write(data)
             time.sleep(2)
-        
+
         # Stop the download
         if STOP_AFTER:
             d.stop()
-            
+
         f.close()
-    
+
         stream.close()
-        
+
 
 def state_callback(ds):
     try:
@@ -57,37 +57,37 @@ def state_callback(ds):
 
 
 def select_torrent_from_disk(self):
-        dlg = wx.FileDialog(None, 
-                            self.appname+': Select torrent to play', 
-                            '', # default dir
-                            '', # default file
-                            'TSTREAM and TORRENT files (*.tstream;*.torrent)|*.tstream;*.torrent', 
-                            wx.OPEN|wx.FD_FILE_MUST_EXIST)
-        if dlg.ShowModal() == wx.ID_OK:
-            filename = dlg.GetPath()
-        else:
-            filename = None
-        dlg.Destroy()
-        return filename
+    dlg = wx.FileDialog(None,
+                        self.appname+': Select torrent to play',
+                        '', # default dir
+                        '', # default file
+                        'TSTREAM and TORRENT files (*.tstream;*.torrent)|*.tstream;*.torrent',
+                        wx.OPEN|wx.FD_FILE_MUST_EXIST)
+    if dlg.ShowModal() == wx.ID_OK:
+        filename = dlg.GetPath()
+    else:
+        filename = None
+    dlg.Destroy()
+    return filename
 
 
 def select_file_start_download(self,torrentfilename):
-    
+
     if torrentfilename.startswith("http") or torrentfilename.startswith(P2PURL_SCHEME):
         tdef = TorrentDef.load_from_url(torrentfilename)
-    else: 
+    else:
         tdef = TorrentDef.load(torrentfilename)
     print >>sys.stderr,"main: Starting download, infohash is",`tdef.get_infohash()`
-    
+
     # Select which video to play (if multiple)
     videofiles = tdef.get_files(exts=videoextdefaults)
     print >>sys.stderr,"main: Found video files",videofiles
-    
+
     if len(videofiles) == 0:
         print >>sys.stderr,"main: No video files found! Let user select"
         # Let user choose any file
         videofiles = tdef.get_files(exts=None)
-        
+
     if len(videofiles) > 1:
         selectedvideofile = self.ask_user_which_video_from_torrent(videofiles)
         if selectedvideofile is None:
@@ -100,7 +100,7 @@ def select_file_start_download(self,torrentfilename):
 # Ric: check if it as an SVC download. If it is add the enhancement layers to the dlfiles
 def is_svc(dlfile, tdef):
     svcfiles = None
-    
+
     if tdef.is_multifile_torrent():
         enhancement =  tdef.get_files(exts=svcextdefaults)
         # Ric: order the enhancement layer in the svcfiles list
@@ -108,14 +108,14 @@ def is_svc(dlfile, tdef):
         if tdef.get_length(enhancement[0]) == tdef.get_length(dlfile):
             svcfiles = [dlfile]
             svcfiles.extend(enhancement)
-            
+
     return svcfiles
 
 def run_test(params = None):
-    
+
     if params is None:
         params = [""]
-    
+
     if len(sys.argv) > 1:
         params = sys.argv[1:]
         torrentfilename = params[0]
@@ -125,7 +125,7 @@ def run_test(params = None):
             print >>sys.stderr,"main: User selected no file"
             self.OnExit()
             return False
-    
+
     scfg = SessionStartupConfig()
     scfg.set_megacache( False )
     scfg.set_overlay( False )
@@ -135,15 +135,15 @@ def run_test(params = None):
     tdef = TorrentDef.load(torrentfilename)
     dcfg = DownloadStartupConfig()
 
-    
+
     # Select which video to play (if multiple)
     videofiles = tdef.get_files(exts=videoextdefaults)
     print >>sys.stderr,"main: Found video files",videofiles
-    
+
     if len(videofiles) == 0:
         print >>sys.stderr,"main: No video files found! Let user select"
         # Let user choose any file
-        
+
     if len(videofiles) > 1:
         print >>sys.stderr,"main: More then one video file found!!"
     else:
@@ -160,9 +160,9 @@ def run_test(params = None):
             dcfg.set_selected_files(dlfiles)
     else:
         dcfg.set_video_event_callback(svc_event_callback)
-        dcfg.set_selected_files([dlfile])        
+        dcfg.set_selected_files([dlfile])
 
-    
+
     # Ric: Set here the desired download speed
     dcfg.set_max_speed(DOWNLOAD,DOWNLOADSPEED)
 
@@ -172,7 +172,7 @@ def run_test(params = None):
     print >>sys.stderr,"main: Saving content to", d.get_dest_files()
 
     while True:
-      time.sleep(360)
+        time.sleep(360)
     print >>sys.stderr,"Sleeping seconds to let other threads finish"
     time.sleep(2)
 

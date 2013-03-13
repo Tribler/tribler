@@ -1,4 +1,4 @@
-# Written by ABC authors and Arno Bakker 
+# Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 import sys
 import os
@@ -21,11 +21,11 @@ class UtilityStub:
         # Setup language files
         self.lang = Lang(self)
 
-        
-        
+
+
     def getConfigPath(self):
         return self.statedir
-    
+
     def getPath(self):
         return self.installdir.decode(sys.getfilesystemencoding())
 

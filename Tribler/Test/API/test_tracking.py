@@ -22,24 +22,24 @@ from Tribler.Core.API import *
 DEBUG=True
 
 class TestTracking(TestAsServer):
-    """ 
+    """
     Testing seeding via new tribler API:
     """
 
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        
+
         self.config.set_megacache(False)
         self.config.set_internal_tracker(True)
-     
-     
+
+
     def test_all(self):
         self.subtest_add_remove_torrent()
         self.subtest_tlookup1()
         self.subtest_tlookup2()
-   
-        
+
+
     def subtest_add_remove_torrent(self):
         tdef = TorrentDef()
         sourcefn = os.path.join(os.getcwd(),"file.wmv")
@@ -51,15 +51,15 @@ class TestTracking(TestAsServer):
         tdef.save(torrentfn)
         infohash = tdef.get_infohash()
         hexinfohash = binascii.hexlify(infohash)
-        
+
         self.session.add_to_internal_tracker(tdef)
         time.sleep(1)
         self.check_http_presence(hexinfohash,True)
-        
+
         self.session.remove_from_internal_tracker(tdef)
         print >> sys.stderr,"test: Give network thread running tracker time to detect we removed the torrent file"
         time.sleep(2)
-        
+
         self.check_http_presence(hexinfohash,False)
         self.check_disk_presence(hexinfohash,False)
 
@@ -70,7 +70,7 @@ class TestTracking(TestAsServer):
         f = urlopen(url)
         data = f.read()
         f.close()
-        
+
         # WARNING: this test depends on the output of the tracker. If that
         # is changed, also change this.
         print >> sys.stderr,"test: tracker returned:",data
@@ -87,8 +87,8 @@ class TestTracking(TestAsServer):
                     self.assert_(True)
                 else:
                     self.assert_(False)
-         
-         
+
+
     #
     # /tlookup?url
     #
@@ -112,10 +112,10 @@ class TestTracking(TestAsServer):
         t.set_urllist(httpseedlist)
         t.finalize()
         wantdata = bencode(t.get_metainfo())
-        
+
         self.session.add_to_internal_tracker(t)
         #time.sleep(30)
-        
+
         (scheme, netloc, path, pars, query, fragment) = urlparse.urlparse(self.session.get_internal_tracker_url())
         urlprefix = scheme+'://'+netloc+'/tlookup?'
         for httpseed in httpseedlist:
@@ -130,14 +130,13 @@ class TestTracking(TestAsServer):
             print >>sys.stderr,"test: Tracker sent",len(gotdata)
             conn.close()
             self.assertEquals(wantdata,gotdata)
-            
+
 
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestTracking))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -75,6 +75,3 @@ setup(
         + includedir( LIBRARYNAME+"/WebUI" )
     } }
 )
-
-
-

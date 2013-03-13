@@ -67,4 +67,3 @@ def load(filename):
         return None, []
     f.close
     return my_id, nodes
-        

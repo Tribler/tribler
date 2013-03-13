@@ -46,7 +46,7 @@ def main():
         command_line_parser.print_help()
         print "\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies"
         sys.exit()
-    
+
     print "Type 'Q' to stop the metadata-injector"
 
     sscfg = SessionStartupConfig()
@@ -62,7 +62,7 @@ def main():
     sscfg.set_internal_tracker(False)
 
     session = Session(sscfg)
-    
+
     #Wait for Dispersy
     if Dispersy.has_instance():
         dispersy_started(session, opt)
@@ -70,8 +70,8 @@ def main():
         def notify(*args):
             dispersy_started(session, opt)
         session.add_observer(notify,NTFY_DISPERSY,[NTFY_STARTED])
-        
-    # condition variable would be prettier, but that don't listen to 
+
+    # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
     try:
         while True:
@@ -81,41 +81,41 @@ def main():
                 break
     except:
         print_exc()
-    
-    
+
+
     torrentfeed = RssParser.getInstance()
     torrentfeed.shutdown()
-    
+
     dirfeed = DirectoryFeedThread.getInstance()
     dirfeed.shutdown()
-    
+
     session.shutdown()
     print "Shutting down..."
     time.sleep(5)
-    
+
 def dispersy_started(session, opt):
     myPermid = permid_for_user(session.get_permid())
     print >>sys.stderr, "permid: ", myPermid
-    
+
     from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
     torrentManager = TorrentManager(None)
     libraryManager = LibraryManager(None)
     channelManager = ChannelManager()
-    
+
     torrentManager.connect(session, libraryManager, channelManager)
     channelManager.connect(session, libraryManager, torrentManager)
     libraryManager.connect(session, torrentManager, channelManager)
-    
+
     myChannelName = opt.channelname or opt.nickname or 'MetadataInjector-Channel'
     myChannelName = unicode(myChannelName)
-    
+
     createdNewChannel = False
     myChannelId = channelManager.channelcast_db.getMyChannelId()
     if not myChannelId:
         print >> sys.stderr, "creating a new channel"
         channelManager.createChannel(myChannelName, u'')
         createdNewChannel = True
-        
+
     else:
         print >> sys.stderr, "reusing previously created channel"
         myChannel = channelManager.getChannel(myChannelId)
@@ -131,42 +131,42 @@ def dispersy_started(session, opt):
         torrentfeed = RssParser.getInstance()
         torrentfeed.register(session, myChannelId)
         torrentfeed.addCallback(myChannelId, channelManager.createTorrentFromDef)
-        
+
         for rss in opt.rss.split(";"):
             torrentfeed.addURL(rss, myChannelId)
-        
+
     if opt.rss:
         createTorrentFeed()
-    
+
     #same here, using dispersythread to make sure channel has been created
     @forceDispersyThread
     def createDirFeed():
         myChannelId = channelManager.channelcast_db.getMyChannelId()
-        
+
         def on_torrent_callback(dirpath, infohash, torrent_data):
             torrentdef = TorrentDef.load_from_dict(torrent_data)
             channelsearch_manager.createTorrentFromDef(myChannelId, torrentdef)
-            
+
             #save torrent to collectedtorrents
             filename = torrentManager.getCollectedFilenameFromDef(torrentdef)
-            if not os.path.isfile(filename): 
+            if not os.path.isfile(filename):
                 torrentdef.save(filename)
-        
+
         dirfeed = DirectoryFeedThread.getInstance()
         for dirpath in opt.dir.split(";"):
             dirfeed.addDir(dirpath, callback = on_torrent_callback)
-            
+
     if opt.dir:
         createDirFeed()
-    
+
     #same here, using dispersythread to make sure channel has been created
     @forceDispersyThread
     def createFileFeed():
         myChannelId = channelManager.channelcast_db.getMyChannelId()
         community = channelManager._disp_get_community_from_channel_id(myChannelId)
-        
+
         print >> sys.stderr, "Using community:", community._cid.encode('HEX')
-        
+
         items = json.load(open(opt.file, 'rb'))
         for item in items:
             try:
@@ -174,22 +174,22 @@ def dispersy_started(session, opt):
             except:
                 infohash = sha1(str(random.randint(0, 1000000))).digest()
             message = community._disp_create_torrent(infohash, long(time.time()), unicode(item['name']), ((u'fake.file', 10),), tuple(), update = False, forward = False)
-            
+
             print >> sys.stderr, "Created a new torrent"
-            
+
             latest_review = None
             for modification in item['modifications']:
                 reviewmessage = community._disp_create_modification('description', unicode(modification['text']), long(time.time()), message, latest_review, update = False, forward = False)
-                
+
                 print >> sys.stderr, "Created a new modification"
-                
+
                 if modification['revert']:
                     community._disp_create_moderation('reverted', long(time.time()), 0, reviewmessage.packet_id, update = False, forward = False)
 
                     print >> sys.stderr, "Reverted the last modification"
                 else:
                     latest_review = reviewmessage
-        
+
     if opt.file and createdNewChannel:
         createFileFeed()
 

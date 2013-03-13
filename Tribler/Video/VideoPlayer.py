@@ -27,12 +27,12 @@ if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
 else:
     USE_VLC_RAW_INTERFACE = False # False for Next-Share
-    
+
 
 class VideoPlayer:
-    
+
     __single = None
-    
+
     def __init__(self,httpport=6880):
         if VideoPlayer.__single:
             raise RuntimeError, "VideoPlayer is singleton"
@@ -52,19 +52,19 @@ class VideoPlayer:
 
         self.resume_by_system = 1
         self.user_download_choice = None
-        
+
     def getInstance(*args, **kw):
         if VideoPlayer.__single is None:
             VideoPlayer(*args, **kw)
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
-    
+
     def hasInstance():
         return VideoPlayer.__single and VideoPlayer.__single.vlcwrap and VideoPlayer.__single.vlcwrap.initialized
     hasInstance = staticmethod(hasInstance)
-        
+
     def register(self,utility,preferredplaybackmode=None,closeextplayercallback=None):
-        
+
         self.utility = utility # TEMPARNO: make sure only used for language strings
 
         self.preferredplaybackmode = preferredplaybackmode
@@ -82,16 +82,16 @@ class VideoPlayer:
             self.vlcwrap = None
             # Can't pause when external player
             self.supportedvodevents = [VODEVENT_START]
-            
+
         if self.playbackmode != PLAYBACKMODE_INTERNAL or not USE_VLC_RAW_INTERFACE:
             # Start HTTP server for serving video to external player
             self.videohttpserv = VideoHTTPServer.getInstance(self.videohttpservport) # create
             self.videohttpserv.background_serve()
             self.videohttpserv.register(self.videohttpserver_error_callback,self.videohttpserver_set_status_callback)
-            
+
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback
-                
+
     def shutdown(self):
         if self.videohttpserv:
             self.videohttpserv.shutdown()
@@ -102,7 +102,7 @@ class VideoPlayer:
 
     def get_vlcwrap(self):
         return self.vlcwrap
-    
+
     def get_supported_vod_events(self):
         return self.supportedvodevents
 
@@ -110,24 +110,24 @@ class VideoPlayer:
         self.videoframe = videoframe
 
 
-    def play_file(self,dest): 
+    def play_file(self,dest):
         """ Play video file from disk """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from disk",dest
 
         (prefix,ext) = os.path.splitext(dest)
         [mimetype,cmd] = self.get_video_player(ext,dest)
-        
+
         if DEBUG:
             print >>sys.stderr,"videoplay: play_file: cmd is",cmd
- 
+
         self.launch_video_player(cmd)
 
     def play_file_via_httpserv(self,dest):
         """ Play a file via our internal HTTP server. Needed when the user
         selected embedded VLC as player and the filename contains Unicode
         characters.
-        """ 
+        """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file with Unicode filename via HTTP"
 
@@ -140,21 +140,21 @@ class VideoPlayer:
         length = stats.st_size
         streaminfo = {'mimetype':mimetype,'stream':stream,'length':length}
         self.videohttpserv.set_inputstream(streaminfo)
-        
+
         self.launch_video_player(cmd)
 
 
- 
+
     def play_url(self,url):
         """ Play video file from network or disk """
         if DEBUG:
             print >>sys.stderr,"videoplay: Playing file from url",url
-        
+
         self.determine_playbackmode()
-        
+
         t = urlparse.urlsplit(url)
         dest = t[2]
-        
+
         # VLC will play .flv files, but doesn't like the URLs that YouTube uses,
         # so quote them
         if self.playbackmode != PLAYBACKMODE_INTERNAL:
@@ -172,14 +172,14 @@ class VideoPlayer:
             elif url[0] != '"' and url[0] != "'":
                 # to prevent shell escape problems
                 # TODO: handle this case in escape_path() that now just covers spaces
-                url = "'"+url+"'" 
+                url = "'"+url+"'"
 
         (prefix,ext) = os.path.splitext(dest)
         [mimetype,cmd] = self.get_video_player(ext,url)
-        
+
         if DEBUG:
             print >>sys.stderr,"videoplay: play_url: cmd is",cmd
-        
+
         self.launch_video_player(cmd)
 
 
@@ -201,7 +201,7 @@ class VideoPlayer:
                     # Play via internal HTTP server
                     self.videohttpserv.set_inputstream(streaminfo,'/')
                     url = self.create_url(self.videohttpserv,'/')
-    
+
                     self.launch_video_player(url,streaminfo=streaminfo)
         else:
             # External player, play stream via internal HTTP server
@@ -239,12 +239,12 @@ class VideoPlayer:
             if reset:
                 self.videoframe.get_videopanel().Reset()
         self.set_vod_download(None)
-        
+
     def pause_playback(self):
         """ Pause playback in current video window """
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().Pause()
-    
+
     def resume_playback(self):
         """ Resume playback in current video window """
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
@@ -254,7 +254,7 @@ class VideoPlayer:
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             self.videoframe.get_videopanel().ShowLoading()
             self.videoframe.ShowLoading()
-            
+
     def recreate_videopanel(self):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
             #Playing a video can cause a deadlock in libvlc_media_player_stop. Until we come up with something cleverer, we fix this by recreating the videopanel.
@@ -269,10 +269,10 @@ class VideoPlayer:
     def play(self,ds, selectedinfilename=None):
         """ Used by Tribler Main """
         self.determine_playbackmode()
-        
+
         d = ds.get_download()
         cdef = d.get_def()
-            
+
         if selectedinfilename is None:
             # User didn't select file to play, select if there is a single, or ask
             videofiles = d.get_dest_files(exts=videoextdefaults)
@@ -280,57 +280,57 @@ class VideoPlayer:
                 print >>sys.stderr,"videoplay: play: No video files found! Let user select"
                 # Let user choose any file
                 videofiles = d.get_dest_files(exts=None)
-            
+
             if len(videofiles) > 1:
                 infilenames = []
                 for infilename,diskfilename in videofiles:
                     infilenames.append(infilename)
-                    
+
                 selectedinfilename = self.ask_user_to_select_video(infilenames)
                 print >> sys.stderr , "selectedinfilename == None" , selectedinfilename , len(selectedinfilename)
-                
+
                 if selectedinfilename is None:
                     print >>sys.stderr,"videoplay: play: User selected no video"
                     return
             else:
                 selectedinfilename = videofiles[0][0]
-                
+
         if self.videoframe is not None:
             self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
-        
+
         print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
-        
+
         if cdef.get_def_type() == 'swift' or not complete:
             print >> sys.stderr, 'videoplay: play: not complete'
             self.play_vod(ds,selectedinfilename)
-            
+
         else:
             videofiles = d.get_dest_files(exts=videoextdefaults)
             if len(videofiles) == 0:
                 print >>sys.stderr,"videoplay: play: No video files found! Let user select"
                 # Let user choose any file
                 videofiles = d.get_dest_files(exts=None)
-            
+
             selectedoutfilename= None
             for infilename,diskfilename in videofiles:
                 if infilename == selectedinfilename:
-                    selectedoutfilename = diskfilename        
-                
+                    selectedoutfilename = diskfilename
+
             # 23/02/10 Boudewijn: This Download does not contain the
             # selectedinfilename in the available files.  It is likely
             # that this is a multifile torrent and that another file was
             # previously selected for download.
             if selectedoutfilename is None:
                 return self.play_vod(ds, selectedinfilename)
-            
+
             print >> sys.stderr, 'videoplay: play: complete'
             flag = self.playbackmode == PLAYBACKMODE_INTERNAL and not self.is_ascii_filename(selectedoutfilename)
             if flag:
                 self.play_file_via_httpserv(selectedoutfilename)
             else:
                 self.play_file(selectedoutfilename)
-            
+
             self.manage_others_when_playing_from_file(d)
             self.set_vod_download(d)
 
@@ -338,16 +338,16 @@ class VideoPlayer:
         """ Called by GUI thread when clicking "Play ASAP" button """
         d = ds.get_download()
         cdef = d.get_def()
-        
+
         # For multi-file torrent: when the user selects a different file, play that
         oldselectedfile = None
         if not cdef.get_live() and ds.is_vod() and (cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent()):
             oldselectedfiles = d.get_selected_files()
             if oldselectedfiles:
                 oldselectedfile = oldselectedfiles[0]
-        
+
         # 1. (Re)Start torrent in VOD mode
-        switchfile = (oldselectedfile is not None and oldselectedfile != infilename) 
+        switchfile = (oldselectedfile is not None and oldselectedfile != infilename)
         if not ds.is_vod() or switchfile or cdef.get_live():
             if switchfile:
                 if self.playbackmode == PLAYBACKMODE_INTERNAL:
@@ -355,7 +355,7 @@ class VideoPlayer:
 
             if DEBUG:
                 print >>sys.stderr,"videoplay: play_vod: Enabling VOD on torrent", cdef.get_name()
-            
+
             othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
             self.manage_other_downloads(othertorrentspolicy, targetd = d)
 
@@ -372,7 +372,7 @@ class VideoPlayer:
     def restart_other_downloads(self, download_state_list):
         if len(download_state_list) == 0:
             return
-        
+
         def get_vod_download_status(default):
             for download_state in download_state_list:
                 if self.vod_download == download_state.get_download():
@@ -417,7 +417,7 @@ class VideoPlayer:
                     download = download_state.get_download()
                     content_def = download.get_def()
                     infohash = content_def.get_id()
-                    
+
                     from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
                     self.user_download_choice = UserDownloadChoice.get_singleton()
                     user_state = self.user_download_choice.get_download_state(infohash)
@@ -447,7 +447,7 @@ class VideoPlayer:
             elif download == targetd:
                 if DEBUG: print >>sys.stderr,"VideoPlayer: manage_other_downloads: Leave", `download.get_def().get_name()`
                 download.stop()
-                
+
             elif policy_stop:
                 if DEBUG: print >>sys.stderr,"VideoPlayer: manage_other_downloads: Stop", `download.get_def().get_name()`
                 download.stop()
@@ -483,10 +483,10 @@ class VideoPlayer:
                 videofiles = cdef.get_files(exts=videoextdefaults)
                 if len(videofiles) == 1:
                     selectedinfilename = videofiles[0]
-                    
+
                 elif len(videofiles) > 1:
                     selectedinfilename = self.ask_user_to_select_video(videofiles)
-        
+
         if selectedinfilename or cdef.get_live():
             if cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent():
                 dscfg.set_selected_files([selectedinfilename])
@@ -500,22 +500,22 @@ class VideoPlayer:
             print >>sys.stderr,"videoplay: Starting new VOD/live Download",`cdef.get_name()`
 
             download = self.utility.session.start_download(cdef,dscfg)
-   
-            if self.videoframe is not None:         
+
+            if self.videoframe is not None:
                 self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
 
             self.set_vod_download(download)
             return download
-        
+
         else:
             return None
-        
-    
+
+
     def sesscb_vod_event_callback(self,d,event,params):
         """ Called by the Session when the content of the Download is ready
-         
+
         Called by Session thread """
-        
+
         print >>sys.stderr,"videoplay: sesscb_vod_event_callback called",currentThread().getName(),"###########################################################"
         wx.CallAfter(self.gui_vod_event_callback,d,event,params)
 
@@ -540,7 +540,7 @@ class VideoPlayer:
                         piecelen = 2 ** 16
                     else:
                         piecelen = d.get_def().get_piece_length()
-                        
+
                     if piecelen > 2 ** 17:
                         # Arno, 2010-01-21:
                         # Workaround for streams with really large piece
@@ -568,7 +568,7 @@ class VideoPlayer:
                     # 2. Find first Ogg page in stream.
                     cachestream = OggMagicLiveStream(d.get_def(),stream)
 
-                
+
                 # Estimate duration. Video player (e.g. VLC) often can't tell
                 # when streaming.
                 estduration = None
@@ -584,7 +584,7 @@ class VideoPlayer:
                         bitrate = d.get_def().get_bitrate(file)
                         if bitrate is not None:
                             estduration = float(length) / float(bitrate)
-                        
+
                         # Set correct Ogg MIME type
                         if file is None:
                             if is_ogg(d.get_def().get_name_as_unicode()):
@@ -593,16 +593,16 @@ class VideoPlayer:
                             if is_ogg(file):
                                 mimetype = 'application/ogg'
 
-                    
+
                 streaminfo = {'mimetype':mimetype,'stream':cachestream,'length':length,'blocksize':blocksize,'estduration':estduration}
-                
+
                 if d.get_def().get_def_type() == "swift":
                     streaminfo['url'] = params['url']
-                
+
                 self.play_stream(streaminfo)
-                
+
         elif event == VODEVENT_PAUSE:
-            if self.videoframe is not None: 
+            if self.videoframe is not None:
                 self.videoframe.get_videopanel().Pause()
             self.set_player_status("Buffering...")
         elif event == VODEVENT_RESUME:
@@ -632,12 +632,12 @@ class VideoPlayer:
             return False
 
     def warn_user(self,ds,infilename):
-        
+
         islive = ds.get_download().get_def().get_live()
         if islive and not self.other_downloads:
             # If it's the only download and live, don't warn.
             return
-        
+
         dlg = VODWarningDialog(self.videoframe.get_window(),self.utility,ds,infilename,self.other_downloads,islive)
         result = dlg.ShowModal()
         othertorrentspolicy = dlg.get_othertorrents_policy()
@@ -663,7 +663,7 @@ class VideoPlayer:
                 [mimetype,playcmd] = win32_retrieve_video_play_command(ext,videourl)
                 if DEBUG:
                     print >>sys.stderr,"videoplay: Win32 reg said playcmd is",playcmd
-                    
+
             if mimetype is None:
                 if ext == '.avi':
                     # Arno, 2010-01-08: Hmmm... video/avi is not official registered at IANA
@@ -761,7 +761,7 @@ class VideoPlayer:
 
     def set_vod_download(self,d):
         self.vod_download = d
-        
+
     def get_vod_download(self):
         return self.vod_download
 
@@ -778,7 +778,7 @@ class VideoPlayer:
     def set_content_image(self,wximg):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().SetContentImage(wximg)
-    
+
     @forceWxThread
     def set_player_status(self,msg):
         if self.videoframe is not None:
@@ -788,7 +788,7 @@ class VideoPlayer:
     def set_player_status_and_progress(self,msg,pieces_complete):
         if self.videoframe is not None:
             self.videoframe.get_videopanel().UpdateStatus(msg,pieces_complete)
-    
+
     @forceWxThread
     def set_save_button(self,enable,savebutteneventhandler):
         if self.playbackmode == PLAYBACKMODE_INTERNAL and self.videoframe is not None:
@@ -822,7 +822,7 @@ class VideoPlayer:
     def videohttpserver_error_callback(self,e,url):
         """ Called by HTTP serving thread """
         wx.CallAfter(self.videohttpserver_error_guicallback,e,url)
-        
+
     def videohttpserver_error_guicallback(self,e,url):
         print >>sys.stderr,"videoplay: Video HTTP server reported error",str(e)
         # if e[0] == ECONNRESET and self.closeextplayercallback is not None:
@@ -835,17 +835,17 @@ class VideoPlayer:
 
     def videohttpserver_set_status_guicallback(self,status):
         self.videoframe.get_videopanel().SetPlayerStatus(status)
- 
+
 
 
 
 class VideoChooser(wx.Dialog):
-    
+
     def __init__(self,parent,utility,filelist,title=None,expl=None):
-        
+
         self.utility = utility
         self.filelist = []
-        
+
         # Convert to Unicode for display
         for file in filelist:
             u = bin2unicode(file)
@@ -853,23 +853,23 @@ class VideoChooser(wx.Dialog):
 
         if DEBUG:
             print >>sys.stderr,"VideoChooser: filelist",self.filelist
-        
+
         style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
         if title is None:
             title = self.utility.lang.get('selectvideofiletitle')
         wx.Dialog.__init__(self,parent,-1,title,style=style)
-        
+
         sizer = wx.BoxSizer(wx.VERTICAL)
         filebox = wx.BoxSizer(wx.VERTICAL)
         self.file_chooser=wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(300, -1), self.filelist)
         self.file_chooser.SetSelection(0)
-        
+
         if expl is None:
             self.utility.lang.get('selectvideofile')
         filebox.Add(wx.StaticText(self, -1, expl), 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         filebox.Add(self.file_chooser)
         sizer.Add(filebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        
+
         buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         okbtn = wx.Button(self, wx.ID_OK, label=self.utility.lang.get('ok'), style = wx.BU_EXACTFIT)
         buttonbox.Add(okbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
@@ -879,13 +879,13 @@ class VideoChooser(wx.Dialog):
 
         self.SetSizerAndFit(sizer)
 
-    def getChosenIndex(self):        
+    def getChosenIndex(self):
         return self.file_chooser.GetSelection()
 
 
 
 class VODWarningDialog(wx.Dialog):
-    
+
     def __init__(self, parent, utility, ds, infilename, other_downloads, islive):
         self.parent = parent
         self.utility = utility
@@ -895,14 +895,14 @@ class VODWarningDialog(wx.Dialog):
             title = self.utility.lang.get('livewarntitle')
         else:
             title = self.utility.lang.get('vodwarntitle')
-        
+
         wx.Dialog.__init__(self,parent,-1,title,style=style)
 
         if islive:
             msg = self.utility.lang.get('livewarngeneral')
         else:
             msg = self.utility.lang.get('vodwarngeneral')
-        
+
         """
         if bitrate is None:
             msg += self.utility.lang.get('vodwarnbitrateunknown')
@@ -918,7 +918,7 @@ class VODWarningDialog(wx.Dialog):
             msg += s
             msg += self.is_mov_file(videoinfo)
             msg += self.utility.lang.get('vodwarnconclusionno')
-            
+
         else:
             if maxuploadrate == 0:
                 rate = self.utility.lang.get('unlimited')
@@ -932,7 +932,7 @@ class VODWarningDialog(wx.Dialog):
             else:
                 msg += extra
                 msg += self.utility.lang.get('vodwarnconclusionno')
-        
+
         """
         sizer = wx.BoxSizer(wx.VERTICAL)
         text = wx.StaticText(self, -1, msg)
@@ -957,7 +957,7 @@ class VODWarningDialog(wx.Dialog):
             self.others_chooser = None
 
         sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwarnprompt')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        
+
 
         buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         okbtn = wx.Button(self, wx.ID_OK, label=self.utility.lang.get('yes'), style = wx.BU_EXACTFIT)
@@ -976,7 +976,7 @@ class VODWarningDialog(wx.Dialog):
         if DEBUG:
             print >>sys.stderr,"videoplay: Other-torrents-policy is",idx
         return idx
-    
+
     def is_mov_file(self,videoinfo):
         orig = videoinfo['inpath']
         (prefix,ext) = os.path.splitext(orig)
@@ -985,7 +985,7 @@ class VODWarningDialog(wx.Dialog):
             return self.utility.lang.get('vodwarnmov')
         else:
             return ''
-            
+
 
 def parse_playtime_to_secs(hhmmss):
     if DEBUG:
@@ -1015,7 +1015,7 @@ def return_feasible_playback_modes(syspath):
             os.chdir(oldpath)
         else:
             import Tribler.vlc as vlc
-        
+
         # Niels: check version of vlc
         version = vlc.libvlc_get_version()
         subversions = version.split(".")
@@ -1034,11 +1034,10 @@ def return_feasible_playback_modes(syspath):
         l.append(PLAYBACKMODE_INTERNAL)
     except Exception:
         print_exc()
-    
+
     if sys.platform == 'win32':
         l.append(PLAYBACKMODE_EXTERNAL_MIME)
         l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
     else:
         l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
     return l
-

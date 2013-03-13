@@ -20,7 +20,7 @@ class ClosedSwarmTest(unittest.TestCase):
             if not os.path.exists(filename):
                 keypair = permid.generate_keypair()
                 permid.save_keypair(keypair, filename)
-                
+
         self.node_a_keypair = permid.read_keypair(".node_a_keypair")
         self.node_b_keypair = permid.read_keypair(".node_b_keypair")
         self.torrent_keypair = permid.read_keypair(".torrent_keypair")
@@ -31,7 +31,7 @@ class ClosedSwarmTest(unittest.TestCase):
         self.node_a_pub_permid = str(self.node_a_keypair.pub().get_der())
         self.node_b_pub_permid = str(self.node_b_keypair.pub().get_der())
         self.torrent_pubkeys = [encodestring(str(self.torrent_keypair.pub().get_der())).replace("\n","")]
-        
+
         # Create the certificate for this torrent ("proof of access")
         self.poa_a = ClosedSwarm.create_poa(self.torrent_id,
                                             self.torrent_keypair,
@@ -40,12 +40,12 @@ class ClosedSwarmTest(unittest.TestCase):
         self.poa_b = ClosedSwarm.create_poa(self.torrent_id,
                                             self.torrent_keypair,
                                             self.node_b_pub_permid)
-        
+
         self.cs_a = ClosedSwarm.ClosedSwarm(self.node_a_keypair,
                                             self.torrent_id,
                                             self.torrent_pubkeys,
                                             self.poa_a)
-        
+
         self.cs_b = ClosedSwarm.ClosedSwarm(self.node_b_keypair,
                                             self.torrent_id,
                                             self.torrent_pubkeys,
@@ -65,7 +65,7 @@ class ClosedSwarmTest(unittest.TestCase):
         self.assertEquals(poa_a.node_pub_key, poa_b.node_pub_key)
         self.assertEquals(poa_a.signature, poa_b.signature)
         self.assertEquals(poa_a.expire_time, poa_b.expire_time)
-        
+
     def test_poa_serialization(self):
 
 
@@ -77,14 +77,14 @@ class ClosedSwarmTest(unittest.TestCase):
         self.poa_a.save("poa.tmp")
         new_poa = ClosedSwarm.POA.load("poa.tmp")
         new_poa.verify()
-        
+
         # Also serialize/deserialize using lists
         serialized = self.poa_a.serialize_to_list()
         deserialized = self.poa_a.deserialize_from_list(serialized)
         self._verify_poas(self.poa_a, deserialized)
         deserialized.verify()
-        
-        
+
+
     def test_poa(self):
         self.poa_a.verify()
         self.poa_b.verify()
@@ -92,7 +92,7 @@ class ClosedSwarmTest(unittest.TestCase):
 
         # Test poa expiretime
         expire_time = time.mktime(time.gmtime())+60 # Expire in one minute
-        
+
         self.poa_a = ClosedSwarm.create_poa(self.torrent_id,
                                             self.torrent_keypair,
                                             self.node_a_pub_permid,
@@ -103,7 +103,7 @@ class ClosedSwarmTest(unittest.TestCase):
             self.fail("POA verify means expired, but it is not")
 
         expire_time = time.mktime(time.gmtime())-1 # Expire one second ago
-        
+
         self.poa_a = ClosedSwarm.create_poa(self.torrent_id,
                                             self.torrent_keypair,
                                             self.node_a_pub_permid,
@@ -135,11 +135,11 @@ class ClosedSwarmTest(unittest.TestCase):
 
 
     def test_poa_message_creation(self):
-        
+
         msg_1 = self.cs_a.a_create_challenge()
         msg_2 = self.cs_b.b_create_challenge(msg_1)
 
-        
+
         msg = self.cs_a._create_poa_message(CS_POA_EXCHANGE_A, self.cs_a.my_nonce, self.cs_b.my_nonce)
         try:
             self.cs_a._validate_poa_message(msg, self.cs_a.my_nonce, self.cs_b.my_nonce)
@@ -153,14 +153,14 @@ class ClosedSwarmTest(unittest.TestCase):
         """
         msg_1 = self.cs_a.a_create_challenge()
         nonce_a = self.cs_a.my_nonce
-        
+
         msg_2 = self.cs_b.b_create_challenge(msg_1)
         nonce_b = self.cs_b.my_nonce
 
         msg_3 = self.cs_a.a_provide_poa_message(msg_2)
 
         self.assertEquals(self.cs_a.remote_nonce, nonce_b, "A's remote nonce is wrong")
-            
+
         msg_4 = self.cs_b.b_provide_poa_message(msg_3)
         self.assertEquals(self.cs_b.remote_nonce, nonce_a, "B's remote nonce is wrong")
 
@@ -168,12 +168,12 @@ class ClosedSwarmTest(unittest.TestCase):
         self.assertEquals(self.cs_a.remote_nonce, self.cs_b.my_nonce, "A's remote nonce is not B's nonce")
 
         self.cs_a.a_check_poa_message(msg_4)
-        
-        
+
+
         self.assertTrue(self.cs_a.is_remote_node_authorized())
         self.assertTrue(self.cs_b.is_remote_node_authorized())
 
-        
+
     def test_not_fresh_node_a(self):
 
         msg_1 = self.cs_a.a_create_challenge()
@@ -192,7 +192,7 @@ class ClosedSwarmTest(unittest.TestCase):
         # Nobody can succeed now, the challenges are bad
         self.assertFalse(self.cs_a.is_remote_node_authorized())
         self.assertFalse(self.cs_b.is_remote_node_authorized())
-        
+
 
     def test_not_fresh_node_b(self):
 
@@ -224,10 +224,10 @@ class ClosedSwarmTest(unittest.TestCase):
         msg_3 = self.cs_a.a_provide_poa_message(msg_2)
         msg_4 = self.cs_b.b_provide_poa_message(msg_3)
         self.cs_a.a_check_poa_message(msg_4)
-        
+
         self.assertTrue(self.cs_a.is_remote_node_authorized())
         self.assertFalse(self.cs_b.is_remote_node_authorized())
-        
+
 
     def test_very_invalid_poa_node_a(self):
 
@@ -268,7 +268,7 @@ class ClosedSwarmTest(unittest.TestCase):
         except ClosedSwarm.InvalidPOAException,e:
             pass
 
-    
+
 if __name__ == "__main__":
 
     print "Performing ClosedSwarm unit tests"
@@ -277,4 +277,3 @@ if __name__ == "__main__":
     unittest.main()
 
     print "All done"
-

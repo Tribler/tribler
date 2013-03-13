@@ -12,7 +12,7 @@ class TokenManager(object):
         #TODO: make it random and dynamic
         #TODO: make each token only valid for a single addr
         self._secret = ''.join([chr(random.randint(0, 255)) for i in xrange(NUM_BYTES)])
-        
+
     def get(self, ip):
         return hashlib.sha1(self._secret + ip).digest()[:NUM_BYTES]
 

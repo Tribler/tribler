@@ -26,13 +26,13 @@ from Tribler.Core.__init__ import version_id
 class Lang:
     def __init__(self, utility):
         self.utility = utility
-        
+
         filename = self.utility.config.Read('language_file')
         langpath = os.path.join(self.utility.getPath(), LIBRARYNAME,  "Lang")
-        
+
         sys.stdout.write("Setting up languages\n")
         print >> sys.stderr, "Language file:", langpath, filename
-        
+
         # Set up user language file (stored in user's config directory)
         self.user_lang = None
         user_filepath = os.path.join(self.utility.getConfigPath(), 'user.lang')
@@ -42,24 +42,24 @@ class Lang:
         self.local_lang_filename = None
         self.local_lang = None
         local_filepath = os.path.join(langpath, filename)
-        
+
         if filename != 'english.lang' and existsAndIsReadable(local_filepath):
             self.local_lang_filename = filename
             # Modified
             self.local_lang = wx.FileConfig(localFilename = local_filepath)
             self.local_lang.SetPath("ABC/language")
             #self.local_lang = ConfigReader(local_filepath, "ABC/language")
-        
+
         # Set up english language file
         self.english_lang = None
         english_filepath = os.path.join(langpath, 'english.lang')
         if existsAndIsReadable(english_filepath):
             self.english_lang = ConfigReader(english_filepath, "ABC/language")
-        
+
         self.cache = {}
-        
+
         self.langwarning = False
-        
+
     def flush(self):
         if self.user_lang is not None:
             try:
@@ -68,17 +68,17 @@ class Lang:
                 pass
             self.user_lang.Flush()
         self.cache = {}
-              
+
     # Retrieve a text string
-    def get(self, label, tryuser = True, trylocal = True, tryenglish = True, giveerror = True):        
+    def get(self, label, tryuser = True, trylocal = True, tryenglish = True, giveerror = True):
         if tryuser and trylocal and tryenglish:
             tryall = True
         else:
             tryall = False
-    
+
         if tryall and label in self.cache:
             return self.expandEnter(self.cache[label])
-    
+
         if (label == 'version'):
             return version_id
         if (label == 'build'):
@@ -114,12 +114,12 @@ class Lang:
             print >> sys.stderr, "Language file: Got an error finding:", label
             self.error(label)
         return ""
-        
+
     def expandEnter(self, text):
         text = text.replace("\\r","\n")
         text = text.replace("\\n","\n")
         return text
-        
+
     def getFromLanguage(self, label, langfile, giveerror = False):
         try:
             if langfile is not None:
@@ -127,13 +127,13 @@ class Lang:
                     return self.getSingleline(label, langfile), True
                 if langfile.Exists(label + "_line1"):
                     return self.getMultiline(label, langfile), True
-                
+
                 if giveerror:
                     self.error(label, silent = True)
         except:
             fileused = ""
-            langfilenames = { "user.lang": self.user_lang, 
-                              self.local_lang_filename: self.local_lang, 
+            langfilenames = { "user.lang": self.user_lang,
+                              self.local_lang_filename: self.local_lang,
                               "english.lang": self.english_lang }
             for name in langfilenames:
                 if langfilenames[name] == langfile:
@@ -142,13 +142,13 @@ class Lang:
             sys.stderr.write("Error reading language file: (" + fileused + "), label: (" + label + ")\n")
             data = StringIO()
             print_exc(file = data)
-            sys.stderr.write(data.getvalue())            
-                
+            sys.stderr.write(data.getvalue())
+
         return "", False
-        
+
     def getSingleline(self, label, langfile):
         return langfile.Read(label)
-    
+
     def getMultiline(self, label, langfile):
         i = 1
         text = ""
@@ -161,15 +161,15 @@ class Lang:
             sys.stdout.write("Language file: Got an error reading multiline string\n")
             self.error(label)
         return text
-        
+
     def writeUser(self, label, text):
         change = False
-        
+
         text_user = self.get(label, trylocal = False, tryenglish = False, giveerror = False)
         text_nonuser = self.get(label, tryuser = False, giveerror = False)
-               
+
         user_lang = self.user_lang
-        
+
         # The text string is the default string
         if text == text_nonuser:
             # If there was already a user string, delete it
@@ -183,9 +183,9 @@ class Lang:
             # from what was already stored
             user_lang.Write(label, text)
             change = True
-        
+
         return change
-        
+
     def error(self, label, silent = False):
         # Display a warning once that the language file doesn't contain all the values
         if (not self.langwarning):

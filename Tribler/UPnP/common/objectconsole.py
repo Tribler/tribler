@@ -22,30 +22,30 @@ class ConsoleError(exceptions.Exception):
 class ObjectConsole:
 
     """
-    This class runs a python console in the main thread, and starts 
+    This class runs a python console in the main thread, and starts
     a given Object in a second thread.
-    
+
     The Object is assumed to implement at least two methods, run() and stop().
     - The run() method is the entry point for the thread.
     - The stop() method is used by the main thread to request that the
     object thread does a controlled shutdown and returns from the run method.
     If the worker thread does not return from run() within 2 seconds after stop()
     has been invoked, the console terminates the object thread more aggressively.
-    
-    AttributeNames of Object listed in the provided namespace will be 
-    included in the console namespace. 
+
+    AttributeNames of Object listed in the provided namespace will be
+    included in the console namespace.
     """
     TIMEOUT = 2
 
 
-    def __init__(self, object_, name_space=None, run='run', 
+    def __init__(self, object_, name_space=None, run='run',
                  stop='stop', name=""):
 
         self._object = object_
         self._object_run = getattr(object_, run)
-        self._object_stop = getattr(object_, stop)        
-        self._thread = threading.Thread(group=None, 
-                                        target=self._object_run, 
+        self._object_stop = getattr(object_, stop)
+        self._thread = threading.Thread(group=None,
+                                        target=self._object_run,
                                         name="ObjectThread")
 
         # Configure Console Namespace
@@ -71,7 +71,7 @@ class ObjectConsole:
         print "-  help"
 
     def run(self):
-        """Starts the given runnable object in a thread and 
+        """Starts the given runnable object in a thread and
         then starts the console."""
         self._thread.start()
         try:
@@ -82,4 +82,3 @@ class ObjectConsole:
         self._thread.join(ObjectConsole.TIMEOUT)
         if self._thread.isAlive():
             raise ConsoleError, "Worker Thread still alive"
-

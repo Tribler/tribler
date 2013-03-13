@@ -20,10 +20,10 @@ from Tribler.Core.SessionConfig import *
 DEBUG=False
 
 class TestAsServer(unittest.TestCase):
-    """ 
+    """
     Parent class for testing the server-side of Tribler
     """
-    
+
     def setUp(self):
         """ unittest test setup code """
         self.setUpPreSession()
@@ -72,4 +72,3 @@ class TestAsServer(unittest.TestCase):
             # Not fatal if something goes wrong here, and Win32 often gives
             # spurious Permission Denied errors.
             print_exc()
-        

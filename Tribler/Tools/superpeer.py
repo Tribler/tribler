@@ -102,4 +102,3 @@ if __name__ == "__main__":
     global session
     session.shutdown()
     time.sleep(3)
-    

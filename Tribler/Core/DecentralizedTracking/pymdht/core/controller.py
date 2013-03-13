@@ -59,15 +59,15 @@ class Controller:
                  experimental_m_mod,
                  private_dht_name,
                  bootstrap_mode):
-        
+
         if size_estimation:
             self._size_estimation_file = open('size_estimation.dat', 'w')
-        
-        
+
+
         self.state_filename = state_filename
         saved_id, saved_bootstrap_nodes = state.load(self.state_filename)
         my_addr = my_node.addr
-        self._my_id = my_node.id # id indicated by user 
+        self._my_id = my_node.id # id indicated by user
         if not self._my_id:
             self._my_id = saved_id # id loaded from file
         if not self._my_id:
@@ -82,11 +82,11 @@ class Controller:
         self._responder = responder.Responder(self._my_id, self._routing_m,
                                               self.msg_f, bootstrap_mode)
         self._tracker = self._responder._tracker
-        
+
         self._lookup_m = lookup_m_mod.LookupManager(self._my_id, self.msg_f)
         self._experimental_m = experimental_m_mod.ExperimentalManager(
-            self._my_node.id, self.msg_f) 
-                  
+            self._my_node.id, self.msg_f)
+
         current_ts = time.time()
         self._next_save_state_ts = current_ts + SAVE_STATE_DELAY
         self._next_maintenance_ts = current_ts
@@ -94,7 +94,7 @@ class Controller:
         self._next_main_loop_call_ts = current_ts
         self._pending_lookups = []
         self._cached_lookups = {}
-                
+
     def on_stop(self):
         self._experimental_m.on_stop()
 
@@ -117,7 +117,7 @@ class Controller:
                 callback_f(lookup_id, peers, None)
                 callback_f(lookup_id, None, None)
                 return datagrams_to_send
-        
+
         self._pending_lookups.append(self._lookup_m.get_peers(lookup_id,
                                                               info_hash,
                                                               callback_f,
@@ -125,15 +125,15 @@ class Controller:
         queries_to_send =  self._try_do_lookup()
         datagrams_to_send = self._register_queries(queries_to_send)
         return datagrams_to_send
-    
+
     def _clean_peer_caches(self):
         oldest_valid_ts = time.time() - CACHE_VALID_PERIOD
-        
+
         for key, values in self._cached_lookups.items():
             ts, _ = values
             if ts < oldest_valid_ts:
                 del self._cached_lookups[key]
-    
+
     def _get_cached_peers(self, info_hash):
         self._clean_peer_caches()
         if info_hash in self._cached_lookups:
@@ -141,7 +141,7 @@ class Controller:
 
     def _add_cache_peers(self, info_hash, peers):
         self._clean_peer_caches()
-        
+
         if info_hash not in self._cached_lookups:
             self._cached_lookups[info_hash] = (time.time(), [])
         self._cached_lookups[info_hash][1].extend(peers)
@@ -181,7 +181,7 @@ class Controller:
             self._next_main_loop_call_ts = min(self._next_main_loop_call_ts,
                                                next_lookup_attempt_ts)
         return queries_to_send
-    
+
     def print_routing_table_stats(self):
         self._routing_m.print_stats()
 
@@ -213,7 +213,7 @@ class Controller:
             return self._next_main_loop_call_ts, []
         # Retry failed lookup (if any)
         queries_to_send.extend(self._try_do_lookup())
-        
+
         # Take care of timeouts
         if current_ts >= self._next_timeout_ts:
             (self._next_timeout_ts,
@@ -234,7 +234,7 @@ class Controller:
                 target, rnodes = maintenance_lookup
                 lookup_obj = self._lookup_m.maintenance_lookup(target)
                 queries_to_send.extend(lookup_obj.start(rnodes))
-            
+
         # Auto-save routing table
         if current_ts >= self._next_save_state_ts:
             state.save(self._my_id,
@@ -265,25 +265,25 @@ class Controller:
 
         """
         exp_queries_to_send = []
-        
+
         data = datagram.data
         addr = datagram.addr
         datagrams_to_send = []
         try:
             msg = self.msg_f.incoming_msg(datagram)
-            
+
         except(message.MsgError):
             # ignore message
             return self._next_main_loop_call_ts, datagrams_to_send
 
         if msg.type == message.QUERY:
-           
+
             if msg.src_node.id == self._my_id:
                 logger.debug('Got a msg from myself:\n%r', msg)
                 return self._next_main_loop_call_ts, datagrams_to_send
             #zinat: inform experimental_module
             exp_queries_to_send = self._experimental_m.on_query_received(msg)
-            
+
             response_msg = self._responder.get_response(msg)
             if response_msg:
                 bencoded_response = response_msg.stamp(msg.tid)
@@ -291,7 +291,7 @@ class Controller:
                     message.Datagram(bencoded_response, addr))
             maintenance_queries_to_send = self._routing_m.on_query_received(
                 msg.src_node)
-            
+
         elif msg.type == message.RESPONSE:
             related_query = self._querier.get_related_query(msg)
             if not related_query:
@@ -333,7 +333,7 @@ class Controller:
                     datagrams = self._register_queries(
                         queries_to_send)
                     datagrams_to_send.extend(datagrams)
-                    
+
             # maintenance related tasks
             maintenance_queries_to_send = \
                 self._routing_m.on_response_received(
@@ -369,7 +369,7 @@ class Controller:
                             related_query.lookup_obj.get_number_nodes_within_region())
                         self._size_estimation_file.write(line)
                         self._size_estimation_file.flush()
-                    
+
                     datagrams = self._announce(related_query.lookup_obj)
                     datagrams_to_send.extend(datagrams)
             # maintenance related tasks
@@ -435,7 +435,7 @@ class Controller:
     self._tracker.put(lookup_obj._info_hash,
     (self._my_node.addr[0], lookup_obj._bt_port))
     '''
-    
+
     def _register_queries(self, queries_to_send, lookup_obj=None):
         if not queries_to_send:
             return []
@@ -444,4 +444,3 @@ class Controller:
         self._next_main_loop_call_ts = min(self._next_main_loop_call_ts,
                                            timeout_call_ts)
         return datagrams_to_send
-    

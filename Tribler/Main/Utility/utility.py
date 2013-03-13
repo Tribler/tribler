@@ -1,4 +1,4 @@
-# Written by ABC authors and Arno Bakker 
+# Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 import wx
 import sys
@@ -16,7 +16,7 @@ from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.defaults import dldefaults as BTDefaults
 from Tribler.Core.defaults import DEFAULTPORT
 from Tribler.Core.defaults import trackerdefaults as TrackerDefaults
-from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults 
+from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults
 from Tribler.Core.Utilities.parseargs import parseargs
 from Tribler.Core.__init__ import version_id
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
@@ -29,8 +29,8 @@ from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Main.Utility.compat import convertINI, moveOldConfigFiles
 from Tribler.Main.Utility.constants import * #IGNORE:W0611
 
-from Tribler.Core.Utilities.utilities import find_prog_in_PATH  
-  
+from Tribler.Core.Utilities.utilities import find_prog_in_PATH
+
 ################################################################
 #
 # Class: Utility
@@ -41,7 +41,7 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 ################################################################
 class Utility:
     def __init__(self, abcpath, configpath):
-        
+
         self.version = version_id
         self.abcpath = abcpath
 
@@ -56,64 +56,64 @@ class Utility:
 
         # Convert old INI file
         convertINI(self)
-        
+
         # Make torrent directory (if needed)
         self.MakeTorrentDir()
-        
+
         self.setupTorrentMakerConfig()
-        
+
         self.setupTorrentList()
-        
-        self.torrents = { "all": [], 
-                          "active": {}, 
-                          "inactive": {}, 
-                          "pause": {}, 
-                          "seeding": {}, 
+
+        self.torrents = { "all": [],
+                          "active": {},
+                          "inactive": {},
+                          "pause": {},
+                          "seeding": {},
                           "downloading": {} }
 
-                        
+
         self.accessflag = Event()
         self.accessflag.set()
-                            
+
         self.invalidwinfilenamechar = ''
         for i in range(32):
             self.invalidwinfilenamechar += chr(i)
         self.invalidwinfilenamechar += '"*/:<>?\\|'
-        
+
         self.FILESEM   = Semaphore(1)
 
         warned = self.config.Read('torrentassociationwarned','int')
-        if (sys.platform == 'win32' and not warned):     
+        if (sys.platform == 'win32' and not warned):
             self.regchecker = RegChecker(self)
             self.config.Write('torrentassociationwarned','1')
         else:
             self.regchecker = None
-            
-        self.lastdir = { "save" : "", 
-                         "open" : "", 
+
+        self.lastdir = { "save" : "",
+                         "open" : "",
                          "log": "" }
 
         # Is ABC in the process of shutting down?
         self.abcquitting = False
 #        self.abcdonequitting = False
-        
+
         # Keep track of the last tab that was being viewed
-        self.lasttab = { "advanced" : 0, 
+        self.lasttab = { "advanced" : 0,
                          "preferences" : 0 }
-                         
+
         self.languages = {}
-        
+
         # Keep track of all the "ManagedList" objects in use
         self.lists = {}
-        
+
         self.abcfileframe = None
         self.abcbuddyframe = None
-        
+
     def getVersion(self):
         return self.version
-        
-   
-        
+
+
+
 #===============================================================================
 #    def getNumPeers(self):
 #        return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
@@ -121,13 +121,13 @@ class Utility:
 #    def getNumFiles(self):
 #        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
 #===============================================================================
-        
+
     def getConfigPath(self):
         return self.dir_root
         # TODO: python 2.3.x has a bug with os.access and unicode
         #return self.dir_root.decode(sys.getfilesystemencoding())
-                         
-    def setupConfig(self):        
+
+    def setupConfig(self):
         defaults = {
             # MiscPanel
             'language_file': 'english.lang',
@@ -137,15 +137,15 @@ class Utility:
             'removetorrent': '0',
             'diskfullthreshold': '1',
             # RateLimitPanel
-            #'maxupload': '5', 
-            'maxuploadrate': '0', 
-            'maxdownloadrate': '0', 
-            'maxseeduploadrate': '0', 
+            #'maxupload': '5',
+            'maxuploadrate': '0',
+            'maxdownloadrate': '0',
+            'maxseeduploadrate': '0',
             # SeedingOptionsPanel
-            'uploadoption': '0', 
-            'uploadtimeh': '0', 
-            'uploadtimem': '30', 
-            'uploadratio': '100', 
+            'uploadoption': '0',
+            'uploadtimeh': '0',
+            'uploadtimem': '30',
+            'uploadratio': '100',
             #AdvancedNetworkPanel
             #AdvancedDiskPanel
             #TriblerPanel
@@ -156,13 +156,13 @@ class Utility:
             'enableweb2search':'0',
             'torrentassociationwarned':'0',
             # GUI
-            'window_width': '1024', 
-            'window_height': '670', 
-            'detailwindow_width': '800', 
-            'detailwindow_height': '500', 
-            'prefwindow_width': '1000', 
-            'prefwindow_height': '480', 
-            'prefwindow_split': '400', 
+            'window_width': '1024',
+            'window_height': '670',
+            'detailwindow_width': '800',
+            'detailwindow_height': '500',
+            'prefwindow_width': '1000',
+            'prefwindow_height': '480',
+            'prefwindow_split': '400',
             'sash_position' : '-185',
             't4t_option': 0, # Seeding items added by Boxun
             't4t_ratio': 100, # T4T seeding ratio added by Niels
@@ -176,11 +176,11 @@ class Utility:
             'window_x': "",
             'window_y': "",
             'use_bundle_magic': 0,
-            
+
             # WebUI
             'use_webui':0,
             'webui_port':8080,
-            
+
             # swift reseed
             'swiftreseed':1
         }
@@ -203,9 +203,9 @@ class Utility:
                 vlcpath = "/Applications/VLC.app"
                 if not os.path.exists(vlcpath):
                     vlcpath = None
-            
+
             if vlcpath is None:
-                    defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
+                defaults['videoplayerpath'] = "/Applications/QuickTime Player.app"
             else:
                 defaults['videoplayerpath'] = vlcpath
             ffmpegpath = find_prog_in_PATH("ffmpeg")
@@ -214,7 +214,7 @@ class Utility:
             else:
                 defaults['videoanalyserpath'] = ffmpegpath
         else:
-            defaults['mintray'] = '0'  # Still crashes on Linux sometimes 
+            defaults['mintray'] = '0'  # Still crashes on Linux sometimes
             vlcpath = find_prog_in_PATH("vlc")
             if vlcpath is None:
                 defaults['videoplayerpath'] = "vlc"
@@ -265,7 +265,7 @@ class Utility:
         safename = "%s.jpg" % sha(session.get_permid()).hexdigest()
         safepath = os.path.join(self.dir_root, "icons", safename)
         if os.path.exists(safepath):
-            session.set_mugshot(open(safepath, "r").read(), "image/jpeg")        
+            session.set_mugshot(open(safepath, "r").read(), "image/jpeg")
             os.remove(safepath)
 
         bool_ = lambda x: x=="1" and True or False
@@ -283,30 +283,30 @@ class Utility:
         # Arno, 2008-03-27: To keep fileformat compatible
         defaults = {
             'piece_size': '0', # An index into TorrentMaker.FileInfoPanel.piece_choices
-            'comment': TorrentDefDefaults['comment'], 
-            'created_by': TorrentDefDefaults['created by'], 
-            'announcedefault': TorrentDefDefaults['announce'], 
-            'announcehistory': '', 
-            'announce-list': TorrentDefDefaults['announce-list'], 
-            'httpseeds': TorrentDefDefaults['httpseeds'], 
-            'makehash_md5': str(TorrentDefDefaults['makehash_md5']), 
-            'makehash_crc32': str(TorrentDefDefaults['makehash_crc32']), 
+            'comment': TorrentDefDefaults['comment'],
+            'created_by': TorrentDefDefaults['created by'],
+            'announcedefault': TorrentDefDefaults['announce'],
+            'announcehistory': '',
+            'announce-list': TorrentDefDefaults['announce-list'],
+            'httpseeds': TorrentDefDefaults['httpseeds'],
+            'makehash_md5': str(TorrentDefDefaults['makehash_md5']),
+            'makehash_crc32': str(TorrentDefDefaults['makehash_crc32']),
             'makehash_sha1': str(TorrentDefDefaults['makehash_sha1']),
-            'startnow': '1', 
+            'startnow': '1',
             'savetorrent': '1',
             'createmerkletorrent': '1',
             'createtorrentsig': '0',
             'useitracker': '1',
             'manualtrackerconfig': '0'
         }
-        
+
         torrentmakerconfigfilepath = os.path.join(self.getConfigPath(), "maker.conf")
         self.makerconfig = ConfigReader(torrentmakerconfigfilepath, "ABC/TorrentMaker", defaults)
-        
+
     def setupTorrentList(self):
         torrentfilepath = os.path.join(self.getConfigPath(), "torrent.list")
         self.torrentconfig = ConfigReader(torrentfilepath, "list0")
-               
+
     # Initialization that has to be done after the wx.App object
     # has been created
     def postAppInit(self,iconpath):
@@ -314,19 +314,19 @@ class Utility:
             self.icon = wx.Icon(iconpath, wx.BITMAP_TYPE_ICO)
         except:
             pass
-            
+
         #makeActionList(self)
-            
+
     def getLastDir(self, operation = "save"):
         lastdir = self.lastdir[operation]
-        
+
         if operation == "save":
             if not os.access(lastdir, os.F_OK):
                 lastdir = self.config.Read('defaultfolder')
-        
+
         if not os.access(lastdir, os.F_OK):
             lastdir = ""
-            
+
         return lastdir
 
     def setLastDir(self, operation, dir ):
@@ -335,13 +335,13 @@ class Utility:
     def getPath(self):
         return self.abcpath
         #return self.abcpath.decode(sys.getfilesystemencoding())
-    
+
     def getMaxDown(self):
         maxdownloadrate = self.config.Read('maxdownloadrate', 'int')
         if maxdownloadrate == 0:
             return 'unlimited'
         return str(maxdownloadrate)
-    
+
     def setMaxDown(self, valdown):
         libtorrentmgr = LibtorrentMgr.getInstance()
         if valdown == 'unlimited':
@@ -350,15 +350,15 @@ class Utility:
         else:
             libtorrentmgr.set_download_rate_limit(int(valdown)*1024)
             self.config.Write('maxdownloadrate', valdown)
-    
+
     def getMaxUp(self):
         maxuploadrate = self.config.Read('maxuploadrate', 'int')
         if maxuploadrate == -1:
-            return 0        
+            return 0
         elif maxuploadrate == 0:
             return 'unlimited'
         return str(maxuploadrate)
-        
+
     def setMaxUp(self, valup):
         libtorrentmgr = LibtorrentMgr.getInstance()
         if valup == 'unlimited':
@@ -369,7 +369,7 @@ class Utility:
             libtorrentmgr.set_upload_rate_limit(0.0001)
             self.config.Write('maxuploadrate', '-1')
             self.config.Write('maxseeduploadrate', '-1')
-        else: 
+        else:
             libtorrentmgr.set_upload_rate_limit(int(valup)*1024)
             self.config.Write('maxuploadrate', valup)
             self.config.Write('maxseeduploadrate', valup)
@@ -384,16 +384,16 @@ class Utility:
         day, r2 = divmod(r1, 60 * 60 * 24)
         hour, r3 = divmod(r2, 60 * 60)
         minute, sec = divmod(r3, 60)
-    
+
         if week > 1000:
             return '<unknown>'
-    
+
         weekstr = '%d' % (week) + self.lang.get('l_week')
         daystr = '%d' % (day) + self.lang.get('l_day')
         hourstr = '%d' % (hour) + self.lang.get('l_hour')
         minutestr = '%d' % (minute) + self.lang.get('l_minute')
         secstr = '%02d' % (sec) + self.lang.get('l_second')
-            
+
         if week > 0:
             text = weekstr
             if truncate > 1:
@@ -411,17 +411,17 @@ class Utility:
             if truncate > 1:
                 text += ":" + minutestr
             if truncate > 2:
-                text += ":" + secstr   
+                text += ":" + secstr
         else:
             text = minutestr
             if truncate > 1:
                 text += ":" + secstr
 
         return  text
-            
+
     def getMetainfo(self, src, openoptions = 'rb', style = "file"):
         return getMetainfo(src,openoptions=openoptions,style=style)
-        
+
     def speed_format(self, s, truncate = 1, stopearly = None):
         return self.size_format(s, truncate, stopearly) + "/" + self.lang.get('l_second')
 
@@ -441,17 +441,17 @@ class Utility:
                 text = '%d GB/s' % (s//1073741824)
             else:
                 text = '%2.1f TB/s' % (s//1099511627776L)
-    
+
             return text
         return ''
 
     def size_format(self, s, truncate = None, stopearly = None, applylabel = True, rawsize = False, showbytes = False, labelonly = False, textonly = False):
         size = 0.0
         label = ""
-        
+
         if truncate is None:
             truncate = 2
-        
+
         if ((s < 1024) and showbytes and stopearly is None) or stopearly == "Byte":
             truncate = 0
             size = s
@@ -471,14 +471,14 @@ class Utility:
 
         if textonly:
             return text
-        
+
         label = self.lang.get(text)
         if labelonly:
             return label
-            
+
         if rawsize:
             return size
-                        
+
         # At this point, only accepting 0, 1, or 2
         if truncate == 0:
             text = ('%.0f' % size)
@@ -486,19 +486,19 @@ class Utility:
             text = ('%.1f' % size)
         else:
             text = ('%.2f' % size)
-            
+
         if applylabel:
             text += ' ' + label
-            
+
         return text
-        
+
     def round_range(self, x):
         returnar = set()
         for i in range(2500):
             value = int(gauss(x, 100))
             if value < 0:
                 continue
-    
+
             diff = abs(value - x)
             if diff < 2:
                 pass
@@ -510,36 +510,36 @@ class Utility:
                 value = int(round(value / 75.0) * 75)
             else:
                 value = int(round(value / 150.0) * 150)
-    
+
             returnar.add(value)
         returnar = list(returnar)
         returnar.sort()
         return returnar
-    
+
     def makeNumCtrl(self, parent, value, integerWidth = 6, fractionWidth = 0, min = 0, max = None, size = wx.DefaultSize):
         if size != wx.DefaultSize:
             autoSize = False
         else:
             autoSize = True
-        return masked.NumCtrl(parent, 
-                              value = value, 
-                              size = size, 
-                              integerWidth = integerWidth, 
-                              fractionWidth = fractionWidth, 
-                              allowNegative = False, 
-                              min = min, 
-                              max = max, 
-                              groupDigits = False, 
-                              useFixedWidthFont = False, 
+        return masked.NumCtrl(parent,
+                              value = value,
+                              size = size,
+                              integerWidth = integerWidth,
+                              fractionWidth = fractionWidth,
+                              allowNegative = False,
+                              min = min,
+                              max = max,
+                              groupDigits = False,
+                              useFixedWidthFont = False,
                               autoSize = autoSize)
-            
+
     def MakeTorrentDir(self):
         torrentpath = os.path.join(self.getConfigPath(), "torrent")
         pathexists = os.access(torrentpath, os.F_OK)
         # If the torrent directory doesn't exist, create it now
         if not pathexists:
             os.mkdir(torrentpath)
-            
+
     def RemoveEmptyDir(self, basedir, removesubdirs = True):
         # remove subdirectories
         if removesubdirs:
@@ -555,7 +555,7 @@ class Utility:
         if os.access(basedir, os.F_OK):
             if not os.listdir(basedir):
                 os.rmdir(basedir)
-        
+
     def makeBitmap(self, bitmap, trans_color = wx.Colour(200, 200, 200)):
         button_bmp = wx.Bitmap(os.path.join(self.getPath(), 'icons', bitmap), wx.BITMAP_TYPE_BMP)
         button_mask = wx.Mask(button_bmp, trans_color)
@@ -564,9 +564,9 @@ class Utility:
 
     def makeBitmapButton(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200), padx=18, pady=4):
         tooltiptext = self.lang.get(tooltip)
-        
+
         button_bmp = self.makeBitmap(bitmap, trans_color)
-        
+
         ID_BUTTON = wx.NewId()
         button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+padx, button_bmp.GetHeight()+pady))
         button_btn.SetToolTipString(tooltiptext)
@@ -575,42 +575,42 @@ class Utility:
 
     def makeBitmapButtonFit(self, parent, bitmap, tooltip, event, trans_color = wx.Colour(200, 200, 200)):
         tooltiptext = self.lang.get(tooltip)
-        
+
         button_bmp = self.makeBitmap(bitmap, trans_color)
-        
+
         ID_BUTTON = wx.NewId()
         button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth(), button_bmp.GetHeight()))
         button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
-    
+
     def getBTParams(self, skipcheck = False):
         # Construct BT params
         ###########################
         btparams = []
-        
+
         btparams.append("--display_interval")
         btparams.append(self.config.Read('display_interval'))
-        
+
         # Use single port only
         btparams.append("--minport")
         btparams.append(self.config.Read('minport'))
         btparams.append("--maxport")
         btparams.append(self.config.Read('minport'))
-        
+
 #        btparams.append("--random_port")
 #        btparams.append(self.config.Read('randomport'))
-        
+
         #if self.config.Read('ipv6') == "1":
         #    btparams.append("--ipv6_enable")
         #    btparams.append(self.config.Read('ipv6'))
         #    btparams.append("--ipv6_binds_v4")
         #    btparams.append(self.config.Read('ipv6_binds_v4'))
-        
+
         # Fast resume
         btparams.append("--selector_enabled")
         btparams.append(self.config.Read('fastresume'))
-        
+
         btparams.append("--auto_kick")
         btparams.append(self.config.Read('kickban'))
         btparams.append("--security")
@@ -618,19 +618,19 @@ class Utility:
 
         btparams.append("--max_upload_rate")
         btparams.append("0")
-               
-        paramlist = [ "ip", 
-                      "bind", 
-                      "alloc_rate", 
-                      "alloc_type", 
-                      "double_check", 
-                      "triple_check", 
-                      "lock_while_reading", 
-                      "lock_files", 
-                      "min_peers", 
-                      "max_files_open", 
-                      "max_connections", 
-                      "upnp_nat_access", 
+
+        paramlist = [ "ip",
+                      "bind",
+                      "alloc_rate",
+                      "alloc_type",
+                      "double_check",
+                      "triple_check",
+                      "lock_while_reading",
+                      "lock_files",
+                      "min_peers",
+                      "max_files_open",
+                      "max_connections",
+                      "upnp_nat_access",
                       "auto_flush",
                       "ut_pex_max_addrs_from_peer"]
 
@@ -641,14 +641,14 @@ class Utility:
                 btparams.append(value)
 
         config, args = parseargs(btparams, BTDefaults)
-            
+
         return config
 
     def getTrackerParams(self):
         tconfig = {}
         for k,v,expl in TrackerDefaults:
             tconfig[k] = v
-        
+
         tconfig['port'] = DEFAULTPORT
         dir = os.path.join(self.getConfigPath(),'itracker')
         dfile = os.path.join(dir,'tracker.db')
@@ -657,15 +657,15 @@ class Utility:
         tconfig['favicon'] = os.path.join(self.getPath(),'tribler.ico')
         #tconfig['save_dfile_interval'] = 20
         tconfig['dfile_format'] = 'pickle' # We use unicode filenames, so bencode won't work
-        
+
         return tconfig
-        
+
 
 
     # Check if str is a valid Windows file name (or unit name if unit is true)
     # If the filename isn't valid: returns a fixed name
     # If the filename is valid: returns an empty string
-    def fixWindowsName(self, name, unit = False):        
+    def fixWindowsName(self, name, unit = False):
         if unit and (len(name) != 2 or name[1] != ':'):
             return 'c:'
         if not name or name == '.' or name == '..':
@@ -707,11 +707,11 @@ class Utility:
                 return True
             fixedname = self.fixWindowsName(pathitems[0])
             if fixedname:
-                dlg = wx.MessageDialog(parent, 
+                dlg = wx.MessageDialog(parent,
                                        pathitems[0] + '\n' + \
                                        self.lang.get('invalidwinname') + '\n'+ \
                                        self.lang.get('suggestedname') + '\n\n' + \
-                                       fixedname, 
+                                       fixedname,
                                        self.lang.get('error'), wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
@@ -720,7 +720,7 @@ class Utility:
             # Absolute path
             # An absolute path must have at least one '\'
             if not '\\' in pathtocheck:
-                dlg = wx.MessageDialog(parent, pathitems[0] + '\n' + self.lang.get('errorinvalidpath'), 
+                dlg = wx.MessageDialog(parent, pathitems[0] + '\n' + self.lang.get('errorinvalidpath'),
                                        self.lang.get('error'), wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
@@ -729,10 +729,10 @@ class Utility:
                 # Not a network path
                 fixedname = self.fixWindowsName(pathitems[0], unit = True)
                 if fixedname:
-                    dlg = wx.MessageDialog(parent, 
+                    dlg = wx.MessageDialog(parent,
                                            pathitems[0] + '\n' + \
                                            self.lang.get('invalidwinname') + \
-                                           fixedname, 
+                                           fixedname,
                                            self.lang.get('error'), wx.ICON_ERROR)
                     dlg.ShowModal()
                     dlg.Destroy()
@@ -744,7 +744,7 @@ class Utility:
         for name in pathitems[nexttotest:]:
             fixedname = self.fixWindowsName(name)
             if fixedname:
-                dlg = wx.MessageDialog(parent, name + '\n' + self.lang.get('errorinvalidwinname') + fixedname, 
+                dlg = wx.MessageDialog(parent, name + '\n' + self.lang.get('errorinvalidwinname') + fixedname,
                                        self.lang.get('error'), wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
@@ -760,42 +760,42 @@ class Utility:
     # Get a dictionary with information about a font
     def getInfoFromFont(self, font):
         default = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        
+
         try:
             if font.Ok():
                 font_to_use = font
             else:
                 font_to_use = default
-        
+
             fontname = font_to_use.GetFaceName()
             fontsize = font_to_use.GetPointSize()
             fontstyle = font_to_use.GetStyle()
             fontweight = font_to_use.GetWeight()
-                
-            fontinfo = {'name': fontname, 
-                        'size': fontsize, 
-                        'style': fontstyle, 
+
+            fontinfo = {'name': fontname,
+                        'size': fontsize,
+                        'style': fontstyle,
                         'weight': fontweight }
         except:
-            fontinfo = {'name': "", 
-                        'size': 8, 
-                        'style': wx.FONTSTYLE_NORMAL, 
+            fontinfo = {'name': "",
+                        'size': 8,
+                        'style': wx.FONTSTYLE_NORMAL,
                         'weight': wx.FONTWEIGHT_NORMAL }
-    
+
         return fontinfo
 
-            
+
     def getFontFromInfo(self, fontinfo):
         size = fontinfo['size']
         name = fontinfo['name']
-        style = fontinfo['style']        
+        style = fontinfo['style']
         weight = fontinfo['weight']
-                
+
         try:
             font = wx.Font(size, wx.DEFAULT, style, weight, faceName = name)
         except:
             font = wx.SystemSettings.GetFont(wx.SYS_DEFAULT_GUI_FONT)
-        
+
         return font
 
     # Make an entry for a popup menu
@@ -804,23 +804,23 @@ class Utility:
         if label != "":
             text = self.lang.get(label)
         text += extralabel
-        
-        newid = wx.NewId()        
+
+        newid = wx.NewId()
         if event is not None:
             if bindto is None:
                 bindto = menu
             bindto.Bind(wx.EVT_MENU, event, id = newid)
-        
-        if type == "normal":    
+
+        if type == "normal":
             menu.Append(newid, text)
         elif type == "checkitem":
             menu.AppendCheckItem(newid, text)
             if status == "active":
                 menu.Check(newid,True)
-        
+
         if event is None:
             menu.Enable(newid, False)
-        
+
         return newid
 
 
@@ -830,11 +830,11 @@ def printTorrent(torrent, pre = ''):
             printTorrent(value, pre+' '+key)
         elif key.lower() not in ['pieces', 'thumbnail', 'preview']:
             print '%s | %s: %s' % (pre, key, value)
-            
+
 def getMetainfo(src, openoptions = 'rb', style = "file"):
     if src is None:
         return None
-    
+
     metainfo = None
     try:
         metainfo_file = None
@@ -844,7 +844,7 @@ def getMetainfo(src, openoptions = 'rb', style = "file"):
         # We're getting a file that exists
         elif os.access(src, os.R_OK):
             metainfo_file = open(src, openoptions)
-        
+
         if metainfo_file is not None:
             metainfo = bdecode(metainfo_file.read())
             metainfo_file.close()
@@ -877,7 +877,7 @@ def similarTorrent(t1, t2):
     # NB: only copies basic properties
     basic_keys =  ['infohash', 'num_seeders','num_leechers',
                    'myDownloadHistory','web2', 'preview', 'simRank']
-    
+
     if (t1 is None or t2 is None):
         return (t1 is None and t2 is None)
 
@@ -891,7 +891,7 @@ def similarTorrent(t1, t2):
 def copyPeer(peer):
     # make a copy of a peer, to check if any of its "basic" props has been changed
     # NB: only copies basic properties
-    basic_keys =  ['permid', 'last_connected', 'simRank', 'similarity', 'name', 'friend', 
+    basic_keys =  ['permid', 'last_connected', 'simRank', 'similarity', 'name', 'friend',
                    'num_peers', 'num_torrents', 'num_prefs', 'num_queries']
     if peer is None:
         return None
@@ -905,9 +905,9 @@ def copyPeer(peer):
 def similarPeer(t1, t2):
     # make a copy of a peer, to check if any of its "basic" props has been changed
     # NB: only copies basic properties
-    basic_keys =  ['permid', 'last_connected', 'simRank', 'similarity', 'name', 'friend', 
+    basic_keys =  ['permid', 'last_connected', 'simRank', 'similarity', 'name', 'friend',
                    'num_peers', 'num_torrents', 'num_prefs', 'num_queries']
-    
+
     if (t1 is None or t2 is None):
         return (t1 is None and t2 is None)
 
@@ -917,5 +917,3 @@ def similarPeer(t1, t2):
         if v1 != v2:
             return False
     return True
-
-

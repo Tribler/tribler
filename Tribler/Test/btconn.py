@@ -27,7 +27,7 @@ def toint(s):
     return long(b2a_hex(s), 16)
 
 def tobinary(i):
-    return (chr(i >> 24) + chr((i >> 16) & 0xFF) + 
+    return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class BTConnection:
@@ -65,7 +65,7 @@ class BTConnection:
             handshake += tribler_option_pattern
         else:
             handshake += user_option_pattern
-        
+
         if user_infohash is None:
             self.expected_infohash = overlay_infohash
         else:
@@ -78,7 +78,7 @@ class BTConnection:
 
     def get_my_id(self):
         return self.myid
-        
+
     def get_his_id(self):
         return self.hisid
 
@@ -145,10 +145,10 @@ class BTConnection:
             try:
                 data = self.s.recv(nwant)
             except socket.error, e:
-                if e[0] == 10035: 
+                if e[0] == 10035:
                     # WSAEWOULDBLOCK on Windows
                     continue
-                elif e[0] == 10054: 
+                elif e[0] == 10054:
                     # WSAECONNRESET on Windows
                     print >>sys.stderr,"btconn:",e,"converted to EOF"
                     return '' # convert to EOF

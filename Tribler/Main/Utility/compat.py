@@ -1,4 +1,4 @@
-# Written by ABC authors and Arno Bakker 
+# Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 
 ##########################
@@ -32,7 +32,7 @@ def moveOldConfigFiles(utility):
              "maker.conf",
              "torrent",
              "torrentinfo"]
-    
+
     for name in files:
         oldname = os.path.join(oldpath, name)
         if existsAndIsReadable(oldname):
@@ -44,7 +44,7 @@ def moveOldConfigFiles(utility):
 #                print_exc(file = data)
 #                sys.stderr.write(data.getvalue())
                 pass
-                
+
     # Special case: move lang\user.lang to configdir\user.lang
     oldname = os.path.join(oldpath, "lang", "user.lang")
     if existsAndIsReadable(oldname):
@@ -67,26 +67,26 @@ def convertOldList1(utility):
     filename = os.path.join(utility.getConfigPath(), "torrent.lst")
     if not existsAndIsReadable(filename):
         return
-    
+
     torrentconfig = utility.torrentconfig
-    
+
     # Don't continue unless torrent.list is empty
     try:
         if torrentconfig.has_section("0"):
             return
     except:
         return
-    
+
     oldconfig = open(filename, "r+")
-    
+
     configline = oldconfig.readline()
     index = 0
     while configline != "" and configline != "\n":
         try:
             configmap = configline.split('|')
-            
+
             torrentconfig.setSection(str(index))
-            
+
             torrentconfig.Write("src", configmap[1])
             torrentconfig.Write("dest", configmap[2])
 
@@ -113,10 +113,10 @@ def convertOldList1(utility):
 
     oldconfig.close()
     torrentconfig.Flush()
-    
+
     # Rename the old list file
     move(filename, filename + ".old")
-    
+
 #
 # Convert list to new format
 # (only src stored in list, everything else stored in torrentinfo)
@@ -126,18 +126,18 @@ def convertOldList2(utility):
     while convertOldList2B(utility, index):
         index += 1
     utility.torrentconfig.Flush()
-    
+
 def convertOldList2B(utility, indexval):
     torrentconfig = utility.torrentconfig
-    
+
     index = str(indexval)
-    
+
     try:
         if not torrentconfig.has_section(index):
             return False
     except:
         return False
-        
+
     if indexval == 0:
         # backup the old file
         oldconfigname = os.path.join(utility.getConfigPath(), "torrent.list")
@@ -146,7 +146,7 @@ def convertOldList2B(utility, indexval):
                 copy2(oldconfigname, oldconfigname + ".old")
             except:
                 pass
-    
+
     # Torrent information
     filename = torrentconfig.Read("src", section = index)
     # Format from earlier 2.7.0 test builds:
@@ -158,24 +158,24 @@ def convertOldList2B(utility, indexval):
         src = filename
     else:
         src = os.path.join(utility.getConfigPath(), "torrent", filename)
-        
+
     filename = os.path.split(src)[1]
     newsrc = os.path.join(utility.getConfigPath(), "torrent", filename)
-        
+
     configpath = os.path.join(utility.getConfigPath(), "torrentinfo", filename + ".info")
     config = ConfigReader(configpath, "TorrentInfo")
-    
+
     for name, value in torrentconfig.Items(index):
         if name != "src" and value != "":
             config.Write(name, value)
-            
+
     config.Flush()
-    
+
     torrentconfig.DeleteGroup(index)
     torrentconfig.Write(index, newsrc)
-    
+
     return True
-    
+
 # Get settings from the old abc.ini file
 def convertINI(utility):
     # Only continue if abc.ini exists
@@ -185,41 +185,41 @@ def convertINI(utility):
 
     config = utility.config
     lang = utility.lang
-    
+
     # We'll ignore anything that was set to the defaults
     # from the previous version
-    olddefaults = { 0: [-1, "abc_width", 710], 
-                    1: [-1, "abc_height", 400], 
-                    2: [-1, "detailwin_width", 610], 
-                    3: [-1, "detailwin_height", 500], 
-                    4: [0, "Title", 150], 
-                    5: [1, "Progress", 60], 
-                    6: [2, "BT Status", 100], 
-                    7: [8, "Priority", 50], 
-                    8: [5, "ETA", 85], 
-                    9: [6, "Size", 75], 
-                    10: [3, "DL Speed", 65], 
-                    11: [4, "UL Speed", 60], 
-                    12: [7, "%U/D Size", 65], 
-                    13: [9, "Error Message", 200], 
-                    14: [-1, "#Connected Seed", 60], 
-                    15: [-1, "#Connected Peer", 60], 
-                    16: [-1, "#Seeing Copies", 60], 
-                    17: [-1, "Peer Avg Progress", 60], 
-                    18: [-1, "Download Size", 75], 
-                    19: [-1, "Upload Size", 75], 
-                    20: [-1, "Total Speed", 80], 
+    olddefaults = { 0: [-1, "abc_width", 710],
+                    1: [-1, "abc_height", 400],
+                    2: [-1, "detailwin_width", 610],
+                    3: [-1, "detailwin_height", 500],
+                    4: [0, "Title", 150],
+                    5: [1, "Progress", 60],
+                    6: [2, "BT Status", 100],
+                    7: [8, "Priority", 50],
+                    8: [5, "ETA", 85],
+                    9: [6, "Size", 75],
+                    10: [3, "DL Speed", 65],
+                    11: [4, "UL Speed", 60],
+                    12: [7, "%U/D Size", 65],
+                    13: [9, "Error Message", 200],
+                    14: [-1, "#Connected Seed", 60],
+                    15: [-1, "#Connected Peer", 60],
+                    16: [-1, "#Seeing Copies", 60],
+                    17: [-1, "Peer Avg Progress", 60],
+                    18: [-1, "Download Size", 75],
+                    19: [-1, "Upload Size", 75],
+                    20: [-1, "Total Speed", 80],
                     21: [-1, "Torrent Name", 150] }
-        
+
     oldconfig = open(filename, "r+")
-    
+
     configline = oldconfig.readline()
     while configline != "" and configline != "\n":
         try:
             configmap = configline.split("|")
-            
+
             colid = int(configmap[0])
-            
+
             # Main window - width
             if colid == 0:
                 if not config.Exists("window_width"):
@@ -290,17 +290,16 @@ def convertINI(utility):
                         pass
         except:
             pass
-        
+
         configline = oldconfig.readline()
-    
+
     oldconfig.close()
 
     # Add in code to process things later
-        
+
     lang.flush()
     config.Flush()
-    
+
     # Rename the old ini file
     # (uncomment this out after we actually include something to process things)
     move(filename, filename + ".old")
-        

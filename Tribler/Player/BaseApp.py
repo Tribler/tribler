@@ -8,14 +8,14 @@
 # kick the source: you download chunk 1 of piece X
 # from lagging peer and download chunk 2 of piece X from source. With the piece
 # now complete you check the sig. As the first part of the piece is old, this
-# fails and we kick the peer that gave us the completing chunk, which is the 
+# fails and we kick the peer that gave us the completing chunk, which is the
 # source.
 #
-# Note that the BT spec says: 
-# "All current implementations use 2 15 , and close connections which request 
+# Note that the BT spec says:
+# "All current implementations use 2 15 , and close connections which request
 # an amount greater than 2 17." http://www.bittorrent.org/beps/bep_0003.html
 #
-# So it should be 32KB already. However, the BitTorrent (3.4.1, 5.0.9), 
+# So it should be 32KB already. However, the BitTorrent (3.4.1, 5.0.9),
 # BitTornado and Azureus all use 2 ** 14 = 16KB chunks.
 
 import os
@@ -27,7 +27,7 @@ from sets import Set
 from base64 import encodestring
 from threading import enumerate,currentThread,RLock
 from traceback import print_exc
-# Ric: added svc ext  
+# Ric: added svc ext
 from Tribler.Video.utils import svcextdefaults
 
 if sys.platform == "darwin":
@@ -69,34 +69,34 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         self.error = None
         self.s = None
         self.tbicon = None
-        
+
         self.downloads_in_vodmode = Set() # Set of playing Downloads, one for SP, many for Plugin
         self.ratelimiter = None
         self.ratelimit_update_count = 0
         self.playermode = DLSTATUS_DOWNLOADING
         self.getpeerlistcount = 2 # for research Reporter
         self.shuttingdown = False
-        
+
         InstanceConnectionHandler.__init__(self,self.i2ithread_readlinecallback)
         wx.App.__init__(self, redirectstderrout)
 
-        
+
     def OnInitBase(self):
         """ To be wrapped in a OnInit() method that returns True/False """
-        
+
         # Normal startup
         # Read config
         state_dir = Session.get_default_state_dir('.'+self.appname)
-        
+
         self.utility = UtilityStub(self.installdir,state_dir)
         self.utility.app = self
         print >>sys.stderr,self.utility.lang.get('build')
         self.iconpath = os.path.join(self.installdir,LIBRARYNAME,'Images',self.appname+'Icon.ico')
         self.logopath = os.path.join(self.installdir,LIBRARYNAME,'Images',self.appname+'Logo.png')
 
-        
+
         # Start server for instance2instance communication
-        self.i2is = Instance2InstanceServer(self.i2iport,self,timeout=(24.0*3600.0)) 
+        self.i2is = Instance2InstanceServer(self.i2iport,self,timeout=(24.0*3600.0))
 
 
         # The playerconfig contains all config parameters that are not
@@ -107,15 +107,15 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         # Note: setting this makes the program not exit when the videoFrame
         # is being closed.
         self.tbicon = PlayerTaskBarIcon(self,self.iconpath)
-        
+
         # Start Tribler Session
         cfgfilename = Session.get_default_config_filename(state_dir)
-        
+
         if DEBUG:
             print >>sys.stderr,"main: Session config",cfgfilename
         try:
             self.sconfig = SessionStartupConfig.load(cfgfilename)
-            
+
             print >>sys.stderr,"main: Session saved port",self.sconfig.get_listen_port(),cfgfilename
         except:
             print_exc()
@@ -123,7 +123,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             self.sconfig.set_install_dir(self.installdir)
             self.sconfig.set_state_dir(state_dir)
             self.sconfig.set_listen_port(self.sport)
-            self.configure_session()    
+            self.configure_session()
 
         self.s = Session(self.sconfig)
         self.s.set_download_states_callback(self.sesscb_states_callback)
@@ -162,14 +162,14 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         """ Start download of torrent tdef and play video file dlfile from it """
         if poa:
             raise Exception("Not a POA")
-            
+
         # Free diskspace, if needed
         destdir = self.get_default_destdir()
         if not os.access(destdir,os.F_OK):
             os.mkdir(destdir)
 
         # Arno: For extra robustness, ignore any errors related to restarting
-        # TODO: Extend code such that we can also delete files from the 
+        # TODO: Extend code such that we can also delete files from the
         # disk cache, not just Downloads. This would allow us to keep the
         # parts of a Download that we already have, but that is being aborted
         # by the user by closing the video window. See remove_playing_*
@@ -178,7 +178,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 print >>sys.stderr,"main: Not enough free diskspace, ignoring"
         except:
             print_exc()
-        
+
         # Setup how to download
         dcfg = DownloadStartupConfig()
 
@@ -188,14 +188,14 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             print >> sys.stderr,"POA:",dcfg.get_poa()
         else:
             dcfg.set_poa(None)
-            
+
         # Delegate processing to VideoPlayer
         if supportedvodevents is None:
             supportedvodevents = self.get_supported_vod_events()
-            
+
         print >>sys.stderr,"bg: VOD EVENTS",supportedvodevents
         dcfg.set_video_events(supportedvodevents)
-        
+
         # Ric: added svc
         if tdef.is_multifile_torrent():
             svcdlfiles = self.is_svc(dlfile, tdef)
@@ -211,20 +211,20 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         else:
             dcfg.set_video_event_callback(self.sesscb_vod_event_callback)
             # Do not set selected file
-                    
+
 
         dcfg.set_dest_dir(destdir)
-        
-        # Arno: 2008-7-15: commented out, just stick with old ABC-tuned 
+
+        # Arno: 2008-7-15: commented out, just stick with old ABC-tuned
         # settings for now
         #dcfg.set_max_conns_to_initiate(300)
         #dcfg.set_max_conns(300)
-        
+
         # Cap at 1 MB/s
         print >>sys.stderr,"bg: Capping Download speed to 1 MByte/s"
         dcfg.set_max_speed(DOWNLOAD,1024)
-        
-        
+
+
         # Stop all non-playing, see if we're restarting one
         infohash = tdef.get_infohash()
         newd = None
@@ -235,11 +235,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 # so we can start with a fresh DownloadStartupConfig. However,
                 # this gives funky concurrency errors and could prevent a
                 # Download from starting without hashchecking (as its checkpoint
-                # was removed) 
+                # was removed)
                 # Alternative is to set VOD callback, etc. at Runtime:
                 print >>sys.stderr,"main: Reusing old duplicate Download",`infohash`
                 newd = d
-                                    
+
                 # If we have a POA, we add it to the existing download
                 if poa:
                     d.set_poa(poa)
@@ -278,7 +278,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
     def sesscb_vod_event_callback(self,d,event,params):
         pass
-        
+
     def get_supported_vod_events(self):
         pass
 
@@ -287,15 +287,15 @@ class BaseApp(wx.App,InstanceConnectionHandler):
     # DownloadCache
     #
     def free_up_diskspace_by_downloads(self,infohash,needed):
-        
+
         if DEBUG:
             print >> sys.stderr,"main: free_up: needed",needed,DISKSPACE_LIMIT
         if needed > DISKSPACE_LIMIT:
             # Not cleaning out whole cache for bigguns
             if DEBUG:
                 print >> sys.stderr,"main: free_up: No cleanup for bigguns"
-            return True 
-        
+            return True
+
         inuse = 0L
         timelist = []
         dlist = self.s.get_downloads()
@@ -307,7 +307,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             destfiles = d.get_dest_files()
             if DEBUG:
                 print >> sys.stderr,"main: free_up: Downloaded content",`destfiles`
-            
+
             dinuse = 0L
             for (filename,savepath) in destfiles:
                 stat = os.stat(savepath)
@@ -315,18 +315,18 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             inuse += dinuse
             timerec = (stat.st_ctime,dinuse,d)
             timelist.append(timerec)
-            
+
         if inuse+needed < DISKSPACE_LIMIT:
             # Enough available, done.
             if DEBUG:
                 print >> sys.stderr,"main: free_up: Enough avail",inuse
             return True
-        
+
         # Policy: remove oldest till sufficient
         timelist.sort()
         if DEBUG:
             print >> sys.stderr,"main: free_up: Found",timelist,"in dest dir"
-        
+
         got = 0L
         for ctime,dinuse,d in timelist:
             print >> sys.stderr,"main: free_up: Removing",`d.get_def().get_name_as_unicode()`,"to free up diskspace, t",ctime
@@ -336,8 +336,8 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 return True
         # Deleted all, still no space:
         return False
-        
-        
+
+
     #
     # Process periodically reported DownloadStates
     #
@@ -357,7 +357,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                      ds.get_error(), \
                      ds.get_current_speed(UPLOAD), \
                      ds.get_current_speed(DOWNLOAD))
-        
+
         # Arno: we want the prebuf stats every second, and we want the
         # detailed peerlist, needed for research stats. Getting them every
         # second may be too expensive, so get them every 10.
@@ -371,9 +371,9 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         #self.gui_states_callback(dslist)
         #print >>sys.stderr,"bg: sesscb_states_callback: calling GUI",currentThread().getName()
         wx.CallAfter(self.gui_states_callback_wrapper,dslist,haspeerlist)
-        
+
         #print >>sys.stderr,"main: SessStats:",self.getpeerlistcount,getpeerlist,haspeerlist
-        return (1.0,getpeerlist) 
+        return (1.0,getpeerlist)
 
 
     def gui_states_callback_wrapper(self,dslist,haspeerlist):
@@ -385,13 +385,13 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
     def gui_states_callback(self,dslist,haspeerlist):
         """ Called by *GUI* thread.
-        CAUTION: As this method is called by the GUI thread don't to any 
+        CAUTION: As this method is called by the GUI thread don't to any
         time-consuming stuff here! """
-        
+
         #print >>sys.stderr,"main: Stats:"
         if self.shuttingdown:
             return ([],0,0)
-        
+
         # See which Download is currently playing
         playermode = self.playermode
 
@@ -406,7 +406,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 for ds in dslist:
                     print >>sys.stderr,"main: Stats: Seeding: %s %.1f%% %s" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error())
             self.ratelimit_callback(dslist)
-            
+
         # Calc total dl/ul speed and find DownloadStates for playing Downloads
         playing_dslist = []
         for ds in dslist:
@@ -414,7 +414,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 playing_dslist.append(ds)
             elif DEBUG and playermode == DLSTATUS_DOWNLOADING:
                 print >>sys.stderr,"main: Stats: Waiting: %s %.1f%% %s" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error())
-            
+
             for dir in [UPLOAD,DOWNLOAD]:
                 totalspeed[dir] += ds.get_current_speed(dir)
             totalhelping += ds.get_num_peers()
@@ -431,37 +431,37 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         txt = self.appname+' '+self.appversion+'\n\n'
         txt += 'DL: %.1f\n' % (totalspeed[DOWNLOAD])
         txt += 'UL:   %.1f\n' % (totalspeed[UPLOAD])
-        txt += 'Helping: %d\n' % (totalhelping) 
+        txt += 'Helping: %d\n' % (totalhelping)
         #print >>sys.stderr,"main: ToolTip summary",txt
         self.OnSetSysTrayTooltip(txt)
 
-        # No playing Downloads        
+        # No playing Downloads
         if len(playing_dslist) == 0:
             return ([],0,0)
         elif DEBUG and playermode == DLSTATUS_DOWNLOADING:
             for ds in playing_dslist:
                 print >>sys.stderr,"main: Stats: DL: %s %.1f%% %s dl %.1f ul %.1f n %d" % (dlstatus_strings[ds.get_status()],100.0*ds.get_progress(),ds.get_error(),ds.get_current_speed(DOWNLOAD),ds.get_current_speed(UPLOAD),ds.get_num_peers())
 
-        # If we're done playing we can now restart any previous downloads to 
+        # If we're done playing we can now restart any previous downloads to
         # seed them.
         if playermode != DLSTATUS_SEEDING:
             playing_seeding_count = 0
             for ds in playing_dslist:
-                 if ds.get_status() == DLSTATUS_SEEDING:
+                if ds.get_status() == DLSTATUS_SEEDING:
                     playing_seeding_count += 1
-            if len(playing_dslist) == playing_seeding_count: 
-                    self.restart_other_downloads()
+            if len(playing_dslist) == playing_seeding_count:
+                self.restart_other_downloads()
 
         # cf. 25 Mbps cap to reduce CPU usage and improve playback on slow machines
         # Arno: on some torrents this causes VLC to fail to tune into the video
         # although it plays audio???
         #ds.get_download().set_max_speed(DOWNLOAD,1500)
-    
-        
-        return (playing_dslist,totalhelping,totalspeed) 
 
 
-    def OnSetSysTrayTooltip(self,txt):         
+        return (playing_dslist,totalhelping,totalspeed)
+
+
+    def OnSetSysTrayTooltip(self,txt):
         if self.tbicon is not None:
             self.tbicon.set_icon_tooltip(txt)
 
@@ -481,35 +481,35 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         for d in dlist:
             if d not in self.downloads_in_vodmode:
                 d.set_mode(DLMODE_NORMAL) # checkpointed torrents always restarted in DLMODE_NORMAL, just make extra sure
-                d.restart() 
+                d.restart()
 
 
     def remove_downloads_in_vodmode_if_not_complete(self):
         print >>sys.stderr,"main: Removing playing download if not complete"
         for d in self.downloads_in_vodmode:
             d.set_state_callback(self.sesscb_remove_playing_callback)
-        
+
     def sesscb_remove_playing_callback(self,ds):
         """ Called by SessionThread """
-        
+
         print >>sys.stderr,"main: sesscb_remove_playing_callback: status is",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()
-        
+
         d = ds.get_download()
         name = d.get_def().get_name()
         if (ds.get_status() == DLSTATUS_DOWNLOADING and ds.get_progress() >= 0.9) or ds.get_status() == DLSTATUS_SEEDING:
             pass
-            print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for KEEPING",`name`            
+            print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for KEEPING",`name`
         else:
             print >>sys.stderr,"main: sesscb_remove_playing_callback: voting for REMOVING",`name`
             if self.shuttingdown:
                 # Arno, 2010-04-23: Do it now ourselves, wx won't do it anymore. Saves
                 # hashchecking on sparse file on Linux.
                 self.remove_playing_download(d)
-                
+
             wx.CallAfter(self.remove_playing_download,d)
-        
+
         return (-1.0,False)
-        
+
 
     def remove_playing_download(self,d):
         """ Called by MainThread """
@@ -543,7 +543,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
     def ratelimit_callback(self,dslist):
         """ When the player is in seeding mode, limit the used upload to
-        the limit set by the user via the options menu. 
+        the limit set by the user via the options menu.
         Called by *GUI* thread """
         if self.ratelimiter is None:
             return
@@ -553,7 +553,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         if self.ratelimit_update_count % 4 == 0:
             adjustspeeds = True
         self.ratelimit_update_count += 1
-        
+
         if adjustspeeds:
             self.ratelimiter.add_downloadstatelist(dslist)
             self.ratelimiter.adjust_speeds()
@@ -561,7 +561,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
 
     #
     # Player config file
-    # 
+    #
     def load_playerconfig(self,state_dir):
         self.playercfgfilename = os.path.join(state_dir,'playerconf.pickle')
         self.playerconfig = None
@@ -581,16 +581,16 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             f.close()
         except:
             print_exc()
-            
+
     def set_playerconfig(self,key,value):
         self.playerconfig[key] = value
-        
+
         if key == 'total_max_upload_rate':
             try:
                 self.set_ratelimits()
             except:
                 print_exc()
-    
+
     def get_playerconfig(self,key):
         return self.playerconfig[key]
 
@@ -604,11 +604,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         self.remove_downloads_in_vodmode_if_not_complete()
 
         # To let Threads in Session finish their business before we shut it down.
-        time.sleep(2) 
-        
+        time.sleep(2)
+
         if self.s is not None:
             self.s.shutdown(hacksessconfcheckpoint=False)
-        
+
         if self.tbicon is not None:
             self.tbicon.RemoveIcon()
             self.tbicon.Destroy()
@@ -616,10 +616,10 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         ts = enumerate()
         for t in ts:
             print >>sys.stderr,"main: ONEXIT: Thread still running",t.getName(),"daemon",t.isDaemon()
-        
+
         self.ExitMainLoop()
 
-    
+
     def clear_session_state(self):
         """ Try to fix apps by doing hard reset. Called from systray menu """
         try:
@@ -631,18 +631,18 @@ class BaseApp(wx.App,InstanceConnectionHandler):
             print_exc()
         time.sleep(1) # give network thread time to do stuff
         try:
-                dldestdir = self.get_default_destdir()
-                shutil.rmtree(dldestdir,True) # ignore errors
+            dldestdir = self.get_default_destdir()
+            shutil.rmtree(dldestdir,True) # ignore errors
         except:
             print_exc()
         try:
-                dlcheckpointsdir = os.path.join(self.s.get_state_dir(),STATEDIR_DLPSTATE_DIR)
-                shutil.rmtree(dlcheckpointsdir,True) # ignore errors
+            dlcheckpointsdir = os.path.join(self.s.get_state_dir(),STATEDIR_DLPSTATE_DIR)
+            shutil.rmtree(dlcheckpointsdir,True) # ignore errors
         except:
             print_exc()
         try:
-                cfgfilename = os.path.join(self.s.get_state_dir(),STATEDIR_SESSCONFIG)
-                os.remove(cfgfilename)
+            cfgfilename = os.path.join(self.s.get_state_dir(),STATEDIR_SESSCONFIG)
+            os.remove(cfgfilename)
         except:
             print_exc()
 
@@ -655,18 +655,18 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         dlg = wx.MessageDialog(None, msg, self.appname+" Error", wx.OK|wx.ICON_ERROR)
         result = dlg.ShowModal()
         dlg.Destroy()
-        
-    
+
+
     def get_default_destdir(self):
         return os.path.join(self.s.get_state_dir(),'downloads')
 
-    
+
     def is_svc(self, dlfile, tdef):
-        """ Ric: check if it as an SVC download. If it is add the enhancement 
+        """ Ric: check if it as an SVC download. If it is add the enhancement
         layers to the dlfiles
         """
         svcfiles = None
-        
+
         if tdef.is_multifile_torrent():
             enhancement = tdef.get_files(exts=svcextdefaults)
             # Ric: order the enhancement layer in the svcfiles list
@@ -676,12 +676,11 @@ class BaseApp(wx.App,InstanceConnectionHandler):
                 if tdef.get_length(enhancement[0]) == tdef.get_length(dlfile):
                     svcfiles = [dlfile]
                     svcfiles.extend(enhancement)
-                
+
         return svcfiles
 
     #
     # InstanceConnectionHandler
     #
-    def i2ithread_readlinecallback(self,ic,cmd):    
+    def i2ithread_readlinecallback(self,ic,cmd):
         pass
-    

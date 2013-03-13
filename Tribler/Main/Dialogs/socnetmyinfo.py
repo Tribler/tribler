@@ -34,7 +34,7 @@ DEBUG = False
 ################################################################
 
 class MyInfoWizard(Wizard):
-    
+
     def __init__(self,parent):
 
         self.parent = parent
@@ -79,7 +79,7 @@ class MyInfoWizard(Wizard):
         state_dir = self.utility.session.get_state_dir()
         cfgfilename = self.utility.session.get_default_config_filename(state_dir)
         scfg = SessionStartupConfig.load(cfgfilename)
-        
+
         for target in [scfg,self.utility.session]:
             try:
                 target.set_nickname(name)
@@ -98,7 +98,7 @@ class MyInfoWizard(Wizard):
 
 class NameIconWizardPage(WizardPageSimple):
     """ Ask user for public name and icon """
-    
+
     def __init__(self,parent,type):
         WizardPageSimple.__init__(self,parent)
         self.utility = parent.utility
@@ -142,7 +142,7 @@ class NameIconWizardPage(WizardPageSimple):
             #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
             #icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
             self.Bind(wx.EVT_BUTTON, self.OnIconButton, self.iconbtn)
-        
+
         topbox.Add(icon_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
 
 
@@ -159,7 +159,7 @@ class NameIconWizardPage(WizardPageSimple):
         else:
             pass
         dlg.Destroy()
-                    
+
 
     def OnIconSelected(self,event=None):
         self.iconpath = self.iconbtn.GetPath()
@@ -174,13 +174,13 @@ class NameIconWizardPage(WizardPageSimple):
                 if sys.platform != 'darwin':
                     bm = wx.BitmapFromImage(im.Scale(64,64),-1)
                     self.iconbtn.SetBitmapLabel(bm)
-                
+
                 # Arno, 2008-10-21: scale image!
                 sim = im.Scale(ICON_MAX_DIM,ICON_MAX_DIM)
                 [thumbhandle,thumbfilename] = tempfile.mkstemp("user-thumb")
                 os.close(thumbhandle)
                 sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
-                
+
                 self.iconmime = 'image/jpeg'
                 f = open(thumbfilename,"rb")
                 self.icondata = f.read()
@@ -189,7 +189,7 @@ class NameIconWizardPage(WizardPageSimple):
         except:
             print_exc()
             self.show_inputerror(self.utility.lang.get('iconbadformat'))
-        
+
 
 
     def show_inputerror(self,txt):

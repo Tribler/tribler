@@ -17,16 +17,16 @@ class DemersTest(Community):
 
     def initiate_conversions(self):
         return [DefaultConversion(self), DemersConversion(self)]
-    
+
     @property
     def dispersy_sync_response_limit(self):
         return 1
-    
+
     def dispersy_claim_sync_bloom_filter(self, request_cache):
         if self._sync_cache:
             self._sync_cache.responses_received = -1
         return Community.dispersy_claim_sync_bloom_filter(self, request_cache)
-    
+
     def create_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"text")
         message = meta.impl(authentication=(self._my_member,),

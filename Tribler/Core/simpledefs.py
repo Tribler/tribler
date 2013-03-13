@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 """ Simple definitions for the Tribler Core. """
 import os
@@ -14,7 +14,7 @@ DLSTATUS_REPEXING = 7
 DLSTATUS_METADATA = 8
 
 dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
-'DLSTATUS_WAITING4HASHCHECK', 
+'DLSTATUS_WAITING4HASHCHECK',
 'DLSTATUS_HASHCHECKING',
 'DLSTATUS_DOWNLOADING',
 'DLSTATUS_SEEDING',
@@ -28,13 +28,13 @@ DOWNLOAD = 'down'
 
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
-DLMODE_SVC = 2 # Ric: added download mode for Scalable Video Coding (SVC) 
+DLMODE_SVC = 2 # Ric: added download mode for Scalable Video Coding (SVC)
 
 PERSISTENTSTATE_CURRENTVERSION = 4
 """
 V1 = SwarmPlayer 1.0.0
 V2 = Tribler 4.5.0: SessionConfig: Added NAT fields
-V3 = SessionConfig: Added multicast_local_peer_discovery, 
+V3 = SessionConfig: Added multicast_local_peer_discovery,
      Removed rss_reload_frequency + rss_check_frequency.
 V4 = ... + added pickled SwiftDef
 For details see API.py
@@ -52,7 +52,7 @@ STATEDIR_SEEDINGMANAGER_DIR = 'seeding_manager_stats'
 PROXYSERVICE_DESTDIR = 'proxyservice'
 
 # For observer/callback mechanism, see Session.add_observer()
-   
+
 # subjects
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
@@ -97,7 +97,7 @@ NTFY_MAGNET_GOT_PEERS = 'magnet_peers'
 NTFY_MAGNET_PROGRESS = 'magnet_progress'
 NTFY_MAGNET_CLOSE = 'magnet_close'
 
-# object IDs for NTFY_ACTIVITIES subject 
+# object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
 NTFY_ACT_UPNP = 1
 NTFY_ACT_REACHABLE = 2
@@ -108,10 +108,10 @@ NTFY_ACT_RECOMMEND = 6
 NTFY_ACT_DISK_FULL = 7
 NTFY_ACT_NEW_VERSION = 8
 NTFY_ACT_ACTIVE = 9
- 
+
 # Disk-allocation policies for download, see DownloadConfig.set_alloc_type
-DISKALLOC_NORMAL = 'normal'              
-DISKALLOC_BACKGROUND = 'background'      
+DISKALLOC_NORMAL = 'normal'
+DISKALLOC_BACKGROUND = 'background'
 DISKALLOC_PREALLOCATE = 'pre-allocate'
 DISKALLOC_SPARSE = 'sparse'
 
@@ -144,7 +144,7 @@ ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK = 2
 # ProxyService
 PROXYSERVICE_DOE_OBJECT = "doe-obj"
 PROXYSERVICE_PROXY_OBJECT = "proxy-obj"
- 
+
 PROXYSERVICE_ROLE_DOE = 'doe-role'
 PROXYSERVICE_ROLE_PROXY = 'proxy-role'
 PROXYSERVICE_ROLE_NONE = 'none-role'
@@ -188,6 +188,6 @@ URL_MIME_TYPE = 'text/x-url'
 TSTREAM_MIME_TYPE = "application/x-ns-stream"
 
 TRIBLER_TORRENT_EXT = ".tribe" # Unused
- 
+
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20

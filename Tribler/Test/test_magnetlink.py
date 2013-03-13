@@ -129,7 +129,7 @@ class MagnetHelpers:
 class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
     """
     A MiniBitTorrent instance is used to connect to BitTorrent clients
-    and download the info part from the metadata. 
+    and download the info part from the metadata.
     """
     def setUp(self):
         """ override TestAsServer """
@@ -144,7 +144,7 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
         self.tdef.add_content(os.path.join(os.getcwd(), "API", "file.wmv"))
         self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
-        self.tdef.set_piece_length(1) 
+        self.tdef.set_piece_length(1)
         self.tdef.finalize()
 
         MagnetHelpers.__init__(self, self.tdef)
@@ -220,16 +220,16 @@ class TestMetadata(TestAsServer, MagnetHelpers):
         print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
         time.sleep(5)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
-    
+
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
         self.tdef.add_content(os.path.join(os.getcwd(), "API", "file.wmv"))
         self.tdef.set_tracker(self.session.get_internal_tracker_url())
         # we use a small piece length to obtain multiple pieces
-        self.tdef.set_piece_length(1) 
+        self.tdef.set_piece_length(1)
         self.tdef.finalize()
         # self.tdef.save(os.path.join(self.session.get_state_dir(), "gen.torrent"))
-        
+
         MagnetHelpers.__init__(self, self.tdef)
 
     def setup_seeder(self):
@@ -324,7 +324,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
         self.bad_request_and_disconnect({"msg_type":0, "piece":"1"})
         self.bad_request_and_disconnect({"msg_type":0, "piece":[1,2]})
         self.bad_request_and_disconnect({"msg_type":0, "PIECE":1})
-        
+
     def bad_request_and_disconnect(self, payload):
         conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
@@ -342,4 +342,3 @@ if __name__ == "__main__":
     else:
         print >> sys.stderr, "What test do you want to run? "
         print >> sys.stderr, "Available:", test_dict.keys()
-

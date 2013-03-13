@@ -18,13 +18,13 @@ from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 
 # TODO: use reimplementations
-from Tribler.Core.APIImplementation.makeurl import p2purl_decode_base64url,p2purl_decode_nnumber,p2purl_decode_piecelength 
+from Tribler.Core.APIImplementation.makeurl import p2purl_decode_base64url,p2purl_decode_nnumber,p2purl_decode_piecelength
 
 
 DEBUG=True
 
 class TestURLMetadata(TestAsServer):
-    """ 
+    """
     Testing download helping
     """
 
@@ -38,13 +38,13 @@ class TestURLMetadata(TestAsServer):
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der()) 
+        self.hispermid = str(self.his_keypair.pub().get_der())
 
         # Create URL compat torrents and save in Torrent database.
         self.tdef1 = TorrentDef.load_from_url(P2PURL_SCHEME+'://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&a=RSA&b=AAIAAA')
@@ -60,8 +60,8 @@ class TestURLMetadata(TestAsServer):
         self.torrent_db.addExternalTorrent(self.tdef1, source='',extra_info=extra_info)
         extra_info = {'status':'good', 'filename':self.torrentfn2}
         self.torrent_db.addExternalTorrent(self.tdef2, source='',extra_info=extra_info)
-         
-        
+
+
     def tearDown(self):
         """ override TestAsServer """
         print >> sys.stderr,"test: *** TEARDOWN"
@@ -78,7 +78,7 @@ class TestURLMetadata(TestAsServer):
         for tdef in [self.tdef1,self.tdef2]:
             msg = self.create_good_get_metadata(tdef.get_infohash())
             s.send(msg)
-        
+
             try:
                 s.b.s.settimeout(10.0)
                 resp = s.recv()
@@ -102,10 +102,10 @@ class TestURLMetadata(TestAsServer):
         # selversion >= OLPROTO_VER_ELEVENTH:
         for key in ['torrent_hash','metatype','metadata','last_check_time','status','leecher','seeder']:
             self.assert_(key in data)
-            
+
         self.assertEqual(data['metatype'],URL_MIME_TYPE)
         self.assertEqual(data['torrent_hash'],tdef.get_infohash())
-            
+
         url = data['metadata']
         cidx = url.find(':')
         self.assert_(cidx != -1)
@@ -117,9 +117,9 @@ class TestURLMetadata(TestAsServer):
             tracker = "http"+url[cidx:qidx]
         else:
             # Not yet supported by TorrentDef
-            tracker = None 
+            tracker = None
             qidx = cidx+1
-            
+
         query = url[qidx+1:]
         kvs = query.split('&')
         pt = {}
@@ -142,7 +142,7 @@ class TestURLMetadata(TestAsServer):
                 elif k == 'b': # bitrate
                     v = p2purl_decode_nnumber(v)
             pt[k] = v
-            
+
         # Compare:
         self.assertEqual(P2PURL_SCHEME,scheme)
         self.assertEqual(tdef.get_tracker(),tracker)
@@ -160,7 +160,7 @@ class TestURLMetadata(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestURLMetadata))
-    
+
     return suite
 
 if __name__ == "__main__":

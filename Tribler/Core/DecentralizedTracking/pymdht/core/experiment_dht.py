@@ -83,7 +83,7 @@ info_hashes = (
     identifier.Id('3d0dd1397e904d23819480ff4e9e118f7c1b99b5'),
     identifier.Id('b2ca4ec859fca51295ed2ebfedbe40b8bc60275a'),
     )
-    
+
 if len(sys.argv) == 1:
     logging.critical('argv %r' % sys.argv)
     RUN_DHT = True
@@ -95,7 +95,7 @@ if len(sys.argv) == 1:
 else:
     RUN_DHT = False
     print 'usage: python server_dht.py dht_ip dht_port path'
-    
+
 try:
     print 'Type Control-C to exit.'
     i = 0
@@ -116,6 +116,3 @@ try:
         dht.stop()
 except (KeyboardInterrupt):
     dht.stop()
-
-    
-

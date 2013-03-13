@@ -1,7 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-""" 
-Reference Implementation of Merkle hash torrent extension, as now 
+"""
+Reference Implementation of Merkle hash torrent extension, as now
 standardized in http://www.bittorrent.org/beps/bep_0030.html (yay!)
 """
 
@@ -14,7 +14,7 @@ DEBUG = False
 # External classes
 
 class MerkleTree:
-    
+
     def __init__(self,piece_size,total_length,root_hash=None,hashes=None):
         """
         Create a Merkle hash tree
@@ -124,11 +124,11 @@ def fill_tree(tree,height,npieces,hashes):
         tree[offset] = hashes[offset-startoffset]
     # 2. Note that unused leaves are NOT filled. It may be a good idea to fill
     # them as hashing 0 values may create a security problem. However, the
-    # filler values would have to be known to any initial seeder, otherwise it 
+    # filler values would have to be known to any initial seeder, otherwise it
     # will not be able build the same hash tree as the other initial seeders.
-    # Assume anyone should be able to autonomously become a seeder, the filler 
-    # must be public info. I don't know whether having public info as filler 
-    # instead of 0s is any safer, cryptographically speaking. Hence, we stick 
+    # Assume anyone should be able to autonomously become a seeder, the filler
+    # must be public info. I don't know whether having public info as filler
+    # instead of 0s is any safer, cryptographically speaking. Hence, we stick
     # with 0 for the moment
 
     # 3. Calculate higher level hashes from leaves
@@ -138,7 +138,7 @@ def fill_tree(tree,height,npieces,hashes):
         for offset in range(int(pow(2,level)-1),int(pow(2,level+1)-2),2):
             #print >> sys.stderr,"merkle: data offset",offset
             [ parentstartoffset, parentoffset ] = get_parent_offset(offset,level)
-            #print >> sys.stderr,"merkle: parent offset",parentoffset                
+            #print >> sys.stderr,"merkle: parent offset",parentoffset
             data = tree[offset]+tree[offset+1]
             digester = sha()
             digester.update(data)
@@ -221,7 +221,7 @@ def update_hash_admin(hashlist,tree,height,hashes):
                 if DEBUG:
                     print >> sys.stderr,"merkle: update_hash_admin: saving hash of",index
                 hashes[index] = hashlist[i][1]
-        # put all hashes in tree, such that we incrementally learn it 
+        # put all hashes in tree, such that we incrementally learn it
         # and can pass them on to others
         tree[hashlist[i][0]] = hashlist[i][1]
 
@@ -255,7 +255,7 @@ def get_uncle_offset(myoffset,level):
         return 0
     [parentstartoffset,parentoffset ] = get_parent_offset(myoffset,level-1)
     if DEBUG:
-        print >> sys.stderr,"merkle: parent offset",parentoffset        
+        print >> sys.stderr,"merkle: parent offset",parentoffset
     parentindex = parentoffset-parentstartoffset
     if parentoffset % 2 == 0:
         uncleoffset = parentoffset-1
@@ -269,4 +269,3 @@ def get_piece_hashes(tree,height,npieces):
     for offset in range(startoffset,startoffset+npieces):
         hashes[offset-startoffset] = tree[offset]
     return hashes
-

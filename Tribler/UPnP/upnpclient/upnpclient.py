@@ -1,7 +1,7 @@
 # Written by Ingar Arntzen
 # see LICENSE.txt for license information
 
-"""UPnP Client (Control Point).""" 
+"""UPnP Client (Control Point)."""
 
 
 import urlparse
@@ -25,7 +25,7 @@ class _Logger:
         self._logger = logger
     def log(self, log_tag, msg):
         """
-        UPnPClient logtag is atted to log info from 
+        UPnPClient logtag is atted to log info from
         internal modules."""
         if self._logger:
             self._logger.log(_LOG_TAG, log_tag, msg)
@@ -38,7 +38,7 @@ class ServiceStubCache:
 
     """
     A ServiceStub is uniquely defined by device_uuid and
-    service_id. This cash holds a list of unique service stub instances. 
+    service_id. This cash holds a list of unique service stub instances.
     """
 
     def __init__(self):
@@ -59,7 +59,7 @@ class ServiceStubCache:
 
     def insert(self, stub):
         """
-        Insert Service Stub in place if Service Stub 
+        Insert Service Stub in place if Service Stub
         already exists in cache.
         """
         index = self._get_index(stub.get_device_uuid(), stub.get_service_id())
@@ -77,18 +77,18 @@ class ServiceStubCache:
 
     def _get_index(self, device_uuid, service_id):
         """
-        Get the index of Service Stub with matching 
+        Get the index of Service Stub with matching
         device_uuid and service_id.
         If none exists return None. Else return index.
         """
         for i in range(len(self._stubs)):
-            if self._stubs[i].get_device_uuid() != device_uuid: 
+            if self._stubs[i].get_device_uuid() != device_uuid:
                 continue
-            if self._stubs[i].get_service_id() != service_id: 
+            if self._stubs[i].get_service_id() != service_id:
                 continue
             return i
         return None
-            
+
 
 
 ##############################################
@@ -96,12 +96,12 @@ class ServiceStubCache:
 ##############################################
 
 class UPnPClient:
-    
+
     """UPnP Client (Control Point) keeps an update view of the local network,
-    in terms of visible UPnP devices and services. UPnP client also provides 
+    in terms of visible UPnP devices and services. UPnP client also provides
     stub implementeation for remote services, through which actions and events
     are communicated."""
-    
+
     def __init__(self, task_runner, logger=None):
 
         # Logging
@@ -111,7 +111,7 @@ class UPnPClient:
         self.task_runner = task_runner
 
         # HTTP Server
-        self._https = httpserver.HTTPServer(self, task_runner, 
+        self._https = httpserver.HTTPServer(self, task_runner,
                                             logger=self.logger)
 
         # SSDP Client
@@ -136,7 +136,7 @@ class UPnPClient:
 
         # Startup by TaskRunner
         self.task_runner.add_task(self.startup)
-    
+
     def startup(self):
         """Startup UPnP Client, by starting internal modules http server and
         ssdpclient."""
@@ -146,7 +146,7 @@ class UPnPClient:
     def search(self):
         """Submit a new search for devices. Non-blocking."""
         self.task_runner.add_task(self._ssdpc.search)
-        
+
     ##############################################
     # PUBLIC API
     ##############################################
@@ -160,7 +160,7 @@ class UPnPClient:
         return self._device_map.keys()
 
     def get_service_types(self):
-        """Get list of unique service types of live services discovered by the 
+        """Get list of unique service types of live services discovered by the
         UPnPClient."""
         list_ = []
         for d_uuid, s_id, s_type in self._get_all_services():
@@ -175,9 +175,9 @@ class UPnPClient:
             if not s_id in list_:
                 list_.append(s_id)
         return list_
-    
+
     def get_device(self, uuid):
-        """Given uuid.UUID return device representation (dictionary) - 
+        """Given uuid.UUID return device representation (dictionary) -
         if such a device has been discovered."""
         return self._device_map.get(uuid, None)
 
@@ -192,7 +192,7 @@ class UPnPClient:
                 if stub:
                     stub_list.append(stub)
         return stub_list
-            
+
     def get_services_by_short_id(self, short_service_id):
         """Get all service stubs of live services, given short service id."""
         service_id = "urn:upnp-org:serviceId:" + short_service_id
@@ -213,7 +213,7 @@ class UPnPClient:
         return stub_list
 
     def get_service(self, device_uuid, service_id):
-        """Get service stub uniquely defined by device_uuid 
+        """Get service stub uniquely defined by device_uuid
         (uuid.UUID) and full service_id"""
         return self._get_service_stub(device_uuid, service_id)
 
@@ -232,9 +232,9 @@ class UPnPClient:
         """Return all services know to UPnPClient. Return tuples of
         device_uuid, service_id, service_type."""
         tuples = []
-        for device in self._device_map.values():            
+        for device in self._device_map.values():
             for service in device['services']:
-                tuples.append((device['uuid'], service['serviceId'], 
+                tuples.append((device['uuid'], service['serviceId'],
                                service['serviceType']))
         return tuples
 
@@ -260,7 +260,7 @@ class UPnPClient:
                 service = service_dict
                 break
         return device, service
-        
+
     def _get_service_stub(self, device_uuid, service_id):
         """Get service stub. If necessary, download service
         description, parse it and instantiate service stub."""
@@ -276,9 +276,9 @@ class UPnPClient:
 
         # Fetch Service Description and build ServiceStub (Blocking)
         url = urlparse.urlparse(service['SCPDURL'])
-        http_request = _HTTP_GET_REQUEST_FMT % (url.path, 
+        http_request = _HTTP_GET_REQUEST_FMT % (url.path,
                                                 url.hostname, url.port)
-        status, reply = self.synch_httpc.request(url.hostname, 
+        status, reply = self.synch_httpc.request(url.hostname,
                                                   url.port, http_request)
         xml_data = ""
         if status == httpclient.SynchHTTPClient.OK:
@@ -292,7 +292,7 @@ class UPnPClient:
         service_spec = xmlparser.parse_service_description(xml_data)
 
         # Create Service Stub
-        stub = upnpservicestub.UPnPServiceStub(self, device, 
+        stub = upnpservicestub.UPnPServiceStub(self, device,
                                                service, service_spec)
         self._stub_cache.insert(stub)
         return stub
@@ -306,27 +306,27 @@ class UPnPClient:
         """A new device has been added by the SSDP client."""
          # Check Location
         url = urlparse.urlparse(location)
-        if (url.hostname == None): 
+        if (url.hostname == None):
             return
-        if (url.port == None): 
-            return        
+        if (url.port == None):
+            return
         # Dispatch Request Device Description
         # The UPnP specification specifies that path is sent
-        # in the first line of the request header, as opposed 
-        # to the full location. Still, at least one 3'rd party 
-        # implementation expects the full location. Therefore 
-        # we send two requests to be sure. 
+        # in the first line of the request header, as opposed
+        # to the full location. Still, at least one 3'rd party
+        # implementation expects the full location. Therefore
+        # we send two requests to be sure.
         # TODO: only send the second if the first fails.
         request_1 = _HTTP_GET_REQUEST_FMT % (url.path, url.hostname, url.port)
         request_2 = _HTTP_GET_REQUEST_FMT % (location, url.hostname, url.port)
         rid_1 = self._asynch_httpc.get_request_id()
         rid_2 = self._asynch_httpc.get_request_id()
 
-        self._asynch_httpc.request(rid_1, url.hostname, url.port, 
-                                   request_1, self._handle_httpc_abort, 
+        self._asynch_httpc.request(rid_1, url.hostname, url.port,
+                                   request_1, self._handle_httpc_abort,
                                    self._handle_httpc_response)
-        self._asynch_httpc.request(rid_2, url.hostname, url.port, 
-                                   request_2, self._handle_httpc_abort, 
+        self._asynch_httpc.request(rid_2, url.hostname, url.port,
+                                   request_2, self._handle_httpc_abort,
                                    self._handle_httpc_response)
 
         # Pending
@@ -338,7 +338,7 @@ class UPnPClient:
        # Check if a request happens to be pending
         found_rids = []
         for rid, (uuid_, loc) in self._pending.items():
-            if uuid_ == uuid: 
+            if uuid_ == uuid:
                 found_rids.append(rid)
         if found_rids:
             for rid in found_rids:
@@ -348,7 +348,7 @@ class UPnPClient:
             del self._device_map[uuid]
 
     def _handle_httpc_response(self, rid, header, body):
-        """A http response is received by the 
+        """A http response is received by the
         asynchronous http client."""
         uuid, location = self._pending[rid]
         del self._pending[rid]
@@ -361,7 +361,7 @@ class UPnPClient:
         if header[:len(_HTTP_200_RESPONSE)] == _HTTP_200_RESPONSE:
             device = xmlparser.parse_device_description(body, location)
             # Check that announce uuid matches uuid from device description
-            if (uuid == device['uuid']):        
+            if (uuid == device['uuid']):
                 self._device_map[uuid] = device
 
     def _handle_httpc_abort(self, rid, error, msg):
@@ -382,11 +382,11 @@ if __name__ == "__main__":
 
     import Tribler.UPnP.common.upnplogger as upnplogger
     LOGGER = upnplogger.get_logger()
-    
+
     import Tribler.UPnP.common.taskrunner as taskrunner
     TR = taskrunner.TaskRunner()
     CLIENT = UPnPClient(TR, logger=LOGGER)
-    
+
     import threading
     import time
     import exceptions
@@ -435,7 +435,7 @@ if __name__ == "__main__":
         """Test SwitchPower action api."""
         services = client.get_services_by_short_id("MySwitchPower")
         #services = client.get_services_by_short_id("SwitchPower:1")
-        if not services: 
+        if not services:
             return
         swp_service = services[0]
 
@@ -476,4 +476,3 @@ if __name__ == "__main__":
     CLIENT.close()
     TR.stop()
     THREAD.join()
-

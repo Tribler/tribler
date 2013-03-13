@@ -26,18 +26,18 @@ for metainfo_name in argv[1:]:
         tdef = TorrentDef.load(metainfo_name)
     metainfo = tdef.get_metainfo()
     infohash = tdef.get_infohash()
-    
+
     print "metainfo:",metainfo.keys()
     #print "metainfo creation date",metainfo['creation date']
     if 'azureus_properties' in metainfo:
         azprop = metainfo['azureus_properties']
         print "azprop:",azprop.keys()
         if 'Content' in azprop:
-                content = azprop['Content']
-                print "content:",content.keys()
-                for key in content.keys():
-                        if key.lower() != 'thumbnail':
-                                print key,"=",content[key]
+            content = azprop['Content']
+            print "content:",content.keys()
+            for key in content.keys():
+                if key.lower() != 'thumbnail':
+                    print key,"=",content[key]
         if 'cdn_properties' in azprop:
             cdnprops = azprop['cdn_properties']
             print "cdn_properties:",cdnprops.keys()
@@ -64,7 +64,7 @@ for metainfo_name in argv[1:]:
             path = ''
             for item in file['path']:
                 if (path != ''):
-                   path = path + "/"
+                    path = path + "/"
                 path = path + item
             print '   %s (%d)' % (path, file['length'])
             file_length += file['length']
@@ -76,7 +76,7 @@ for metainfo_name in argv[1:]:
         print 'root hash.....: %s' % `info['root hash']`
     if info.has_key('live'):
         print 'torrent type..: live',`info['live']`
-    
+
     print 'announce url..: %s' % metainfo['announce']
     if metainfo.has_key('announce-list'):
         list = []
@@ -122,5 +122,3 @@ for metainfo_name in argv[1:]:
         print 'signaturecheck: %s' % res
     if metainfo.has_key('comment'):
         print 'comment.......: %s' % metainfo['comment']
-
-

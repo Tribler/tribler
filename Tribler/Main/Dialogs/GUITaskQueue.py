@@ -12,26 +12,26 @@ from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 DEBUG = False
 
 class GUITaskQueue(TimedTaskQueue):
-    
+
     __single = None
-    
+
     def __init__(self):
         if GUITaskQueue.__single:
             raise RuntimeError, "GUITaskQueue is singleton"
         GUITaskQueue.__single = self
 
         TimedTaskQueue.__init__(self, nameprefix = "GUITaskQueue")
-        
+
     def getInstance(*args, **kw):
         if GUITaskQueue.__single is None:
             GUITaskQueue(*args, **kw)
         return GUITaskQueue.__single
     getInstance = staticmethod(getInstance)
-    
+
     def delInstance(*args, **kw):
         GUITaskQueue.__single = None
     delInstance = staticmethod(delInstance)
 
     def resetSingleton(self):
         """ For testing purposes """
-        GUITaskQueue.__single = None 
+        GUITaskQueue.__single = None

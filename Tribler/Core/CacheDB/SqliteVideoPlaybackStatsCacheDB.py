@@ -30,7 +30,7 @@ def init_videoplayback_stats(config, db_exception_handler = None):
     config_dir = config['state_dir']
     install_dir = config['install_dir']
     CREATE_VIDEOPLAYBACK_STATS_SQL_FILE = os.path.join(install_dir,CREATE_VIDEOPLAYBACK_STATS_SQL_FILE_POSTFIX)
-    sqlitedb = SQLiteVideoPlaybackStatsCacheDB.get_instance(db_exception_handler)   
+    sqlitedb = SQLiteVideoPlaybackStatsCacheDB.get_instance(db_exception_handler)
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     sqlitedb.initDB(sqlite_db_path, CREATE_VIDEOPLAYBACK_STATS_SQL_FILE,current_db_version=CURRENT_DB_VERSION)  # the first place to create db in Tribler
     return sqlitedb
@@ -49,7 +49,7 @@ DROP INDEX IF EXISTS playback_info_idx;
 -- pairs. Because sqlite is unable to remove a column, we are forced
 -- to DROP and re-CREATE the event table.
 --
--- Note that this will erase previous statistics... 
+-- Note that this will erase previous statistics...
 
 DROP TABLE IF EXISTS playback_event;
 DROP INDEX IF EXISTS playback_event_idx;
@@ -58,9 +58,9 @@ CREATE TABLE playback_event (
   key                   text NOT NULL,
   timestamp             real NOT NULL,
   event                 text NOT NULL
-);  
+);
 
-CREATE INDEX playback_event_idx 
+CREATE INDEX playback_event_idx
   ON playback_event (key, timestamp);
 """
 
@@ -84,20 +84,20 @@ class SQLiteVideoPlaybackStatsCacheDB(SQLiteVideoPlaybackStatsCacheDBV2):
     def get_instance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
         if cls.__single is None:
-            cls.lock.acquire()   
+            cls.lock.acquire()
             try:
                 if cls.__single is None:
                     cls.__single = cls(*args, **kw)
             finally:
                 cls.lock.release()
         return cls.__single
-    
+
     def __init__(self, *args, **kw):
         # always use get_instance() to create this object
         if self.__single != None:
             raise RuntimeError, "SQLiteVideoPlaybackStatsCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kw)
-    
+
 class VideoPlaybackDBHandler(BasicDBHandler):
     """
     Interface to add and retrieve events from the database.
@@ -119,19 +119,19 @@ class VideoPlaybackDBHandler(BasicDBHandler):
     def get_instance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
         if cls.__single is None:
-            cls.lock.acquire()   
+            cls.lock.acquire()
             try:
                 if cls.__single is None:
                     cls.__single = cls(*args, **kw)
             finally:
                 cls.lock.release()
         return cls.__single
-    
+
     def __init__(self):
         if VideoPlaybackDBHandler.__single is not None:
             raise RuntimeError, "VideoPlaybackDBHandler is singleton"
         BasicDBHandler.__init__(self, SQLiteVideoPlaybackStatsCacheDB.get_instance(), 'playback_event')
-            
+
     def add_event(self, key, event):
         if ENABLE_LOGGER:
             assert type(key) in (str, unicode)

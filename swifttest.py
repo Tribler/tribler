@@ -84,8 +84,8 @@ def start_download(s,torrentfile_or_url,output_dir):
         cdef = TorrentDef.load(torrentfile_or_url)
         
     if cdef.get_def_type() == "torrent" and cdef.get_live():
-            raise ValueError("cmdlinedl does not support live torrents")
-        
+        raise ValueError("cmdlinedl does not support live torrents")
+    
     d = s.start_download(cdef, dscfg)
     d.set_state_callback(state_callback, getpeerlist=False)
     return d

@@ -2,11 +2,11 @@
 # see LICENSE.txt for license information
 
 """
-This module implements a UPnP Service. 
+This module implements a UPnP Service.
 
 This involves a base class intended for development of new services.
 The baseclass hides complexity related to producing UPnP Service
-description in both XML and HTML format. It also hides complexity 
+description in both XML and HTML format. It also hides complexity
 related to the placement of a service within a device hierarchy.
 """
 import types
@@ -14,7 +14,7 @@ import uuid
 import exceptions
 import Tribler.UPnP.common.upnpmarshal as upnpmarshal
 
-class ActionError (exceptions.Exception): 
+class ActionError (exceptions.Exception):
     """Error associated with invoking actions on a UPnP Server. """
     pass
 
@@ -61,7 +61,7 @@ _ARG_VARIABLE_FMT = """<stateVariable sendEvents="no">
 </stateVariable>
 """
 
-def _service_description_toxml(service):  
+def _service_description_toxml(service):
     """This function produces the UPnP XML service description."""
 
     svs_str = ""
@@ -80,11 +80,11 @@ def _service_description_toxml(service):
     for evar in service.get_evented_variables():
         if not unique_variables.has_key(evar.the_type):
             unique_variables[evar.the_type] = evar.the_name
-        
+
     # Arguments
     for action in service.get_actions():
         args_str = ""
-        for arg in action.in_arg_list + action.out_arg_list:            
+        for arg in action.in_arg_list + action.out_arg_list:
 
             # Check if argument can be related to event variable
             if unique_variables.has_key(arg.the_type):
@@ -95,19 +95,19 @@ def _service_description_toxml(service):
                 unique_variables[arg.the_type] = related_variable_name
                 # New State Variable
                 data_type = upnpmarshal.dumps_data_type(arg.the_type)
-                svs_str += _ARG_VARIABLE_FMT % (related_variable_name, 
+                svs_str += _ARG_VARIABLE_FMT % (related_variable_name,
                                                 data_type)
 
-            # New Argument 
+            # New Argument
             direction = 'in' if isinstance(arg, _InArg) else 'out'
-            args_str += _ARGUMENT_FMT % (arg.the_name, 
+            args_str += _ARGUMENT_FMT % (arg.the_name,
                                          related_variable_name, direction)
         # Action
         actions_str += _ACTION_FMT % (action.name, args_str)
 
     return _SERVICE_DESCRIPTION_FMT % (actions_str, svs_str)
 
-    
+
 
 ##############################################
 # UPNP SERVICE
@@ -131,7 +131,7 @@ class UPnPService:
         self._actions = {} # actionName : Action
         self._events = {} # eventName : Event
         self._subs = {} # callbackURL : Subscriptions
-        
+
         # Initialise
         self.service_type = service_type
         self.service_version = service_version
@@ -152,7 +152,7 @@ class UPnPService:
         self.event_path = "services/%s/events" % self.service_id
         # Logging
         self._logger = self.service_manager.get_logger()
-        
+
     def is_valid(self):
         """Check if service is valid."""
         return (self.service_type != None and self.service_id != None
@@ -196,7 +196,7 @@ class UPnPService:
     def notify(self, evented_variables):
         """Notify all subscribers of updated event variables."""
         self._remove_expired_subscriptions()
-        # Dispatch Event Messages to all subscribers  
+        # Dispatch Event Messages to all subscribers
         # of the given serviceid.
         # Make sure all stateVariables are evented variables.
         for sub in self._subs.values():
@@ -208,7 +208,7 @@ class UPnPService:
         self._remove_expired_subscriptions()
         # For the moment, just accept a single callbackUrl
         # Subscriber defined by callbackUrl
-        callback_url = callback_urls[0]        
+        callback_url = callback_urls[0]
         if self._subs.has_key(callback_url):
             # Subscriber already exists
             return (None, None)
@@ -219,7 +219,7 @@ class UPnPService:
             # Dispatch Initial Event Message
             sub.initial_notify()
             return (sub.sid, sub.duration)
-    
+
     def renew(self, sid_str, requested_duration):
         """Request to renew an existing subscription."""
         # requested duration == 0 => infinite
@@ -227,34 +227,34 @@ class UPnPService:
             if str(sub.sid) == sid_str:
                 return sub.renew(requested_duration)
         else: return None
-        
+
     def unsubscribe(self, sid_str):
         """Request to unsubscribe an existing subscription."""
         sub = None
         for sub in self._subs.values():
-            if str(sub.sid) == sid_str: 
-                break 
+            if str(sub.sid) == sid_str:
+                break
         if sub:
             sub.cancel()
             del self._subs[sub.callback_url]
             return True
-        else: 
+        else:
             return False
 
     def _remove_expired_subscriptions(self):
         """Scans subscriptions and removes invalidated."""
         for url, sub in self._subs.items()[:]:
-            if sub.is_expired: 
+            if sub.is_expired:
                 del self._subs[url]
 
 
     ##############################################
     # ACTION API
     ##############################################
-    
-    def define_action(self, method, in_args=None, out_args=None, 
+
+    def define_action(self, method, in_args=None, out_args=None,
                       name=None):
-        """Define an action that the service implements. 
+        """Define an action that the service implements.
         Used by subclass."""
         if not in_args:
             in_args = []
@@ -264,7 +264,7 @@ class UPnPService:
             action_name = method.__name__
         else:
             action_name = name
-        # In/Out Args must be tuples of (name, type<?>)        
+        # In/Out Args must be tuples of (name, type<?>)
         in_args = [_InArg(t[0], t[1]) for t in in_args]
         out_args = [_OutArg(t[0], t[1]) for t in out_args]
         action = _Action(action_name, method, in_args, out_args)
@@ -275,10 +275,10 @@ class UPnPService:
         Used by httpserver as part of UPnP control interface."""
         # in_args is assumed to be tuple of (name, data) all unicode string.
         try:
-            if not self._actions.has_key(action_name): 
+            if not self._actions.has_key(action_name):
                 raise ActionError, "Action Not Supported"
             else:
-                action = self._actions[action_name]            
+                action = self._actions[action_name]
                 return action.execute(in_args)
         except ActionError, why:
             print why
@@ -312,14 +312,14 @@ class UPnPService:
         Input will be a list of tuples [(eventedVariable, newValue)]
         The method avoids sending one notification to every subscriber,
         for each state variable. Instead, a single subscriber receives
-        one eventMessage containing all the updated state Variables 
+        one eventMessage containing all the updated state Variables
         in this list.
         """
         # Update Values
         changed_variables = []
         for evar, new_value in list_:
             changed = evar.set(new_value, notify_ok=False)
-            if changed: 
+            if changed:
                 changed_variables.append(evar)
         # notify all in one batch
         self.notify(changed_variables)
@@ -337,9 +337,9 @@ class _EventedVariable:
     def __init__(self, service, the_name, the_type, default_value):
         self._service = service
         self.the_name = the_name
-        if type(the_type) == types.TypeType: 
+        if type(the_type) == types.TypeType:
             self.the_type = the_type
-        else: 
+        else:
             msg = "Argument 'the_type' is not actually a python type."
             raise TypeError,  msg
         self._value = default_value
@@ -376,14 +376,14 @@ class _Argument :
     def __init__(self, the_name, the_type):
         self.the_name = the_name
         self.the_type = the_type
-        
-class _InArg(_Argument): 
+
+class _InArg(_Argument):
     """The class defines an input argument by holding a type and
     and argument name."""
     pass
 
-class _OutArg(_Argument): 
-    """The class defines an output argument (result value) by 
+class _OutArg(_Argument):
+    """The class defines an output argument (result value) by
     holding a type and and argument name."""
     pass
 
@@ -393,26 +393,26 @@ class _OutArg(_Argument):
 
 class _Action:
 
-    """This class represents an action implemented by the 
+    """This class represents an action implemented by the
     service."""
-    
+
     def __init__(self, name, method, in_arg_list, out_arg_list):
         self.name = name
         self.method = method
-        self.in_arg_list = in_arg_list 
-        self.out_arg_list = out_arg_list 
+        self.in_arg_list = in_arg_list
+        self.out_arg_list = out_arg_list
 
     def execute(self, in_args):
         """Execute the action."""
         # in_args is assumed to be tuple of (name, data) all unicode string.
         # the tuple is supposed to be ordered according to in_arg_list
-        if len(in_args) != len(self.in_arg_list): 
+        if len(in_args) != len(self.in_arg_list):
             raise ActionError, "Wrong number of input arguments"
         typed_args = []
         for i in range(len(in_args)):
             name, data = in_args[i]
             in_arg = self.in_arg_list[i]
-            if name != in_arg.the_name: 
+            if name != in_arg.the_name:
                 raise ActionError, "Wrong name/order for input argument"
             try:
                 value = upnpmarshal.loads(in_arg.the_type, data)
@@ -425,7 +425,7 @@ class _Action:
             result = self.method(*typed_args)
         except TypeError, why:
             raise ActionError, "Method Execution Failed (%s)" % why
-        
+
         # Result is eiter a single value (incl. None) or a tuple of values.
         # Make it into a list in both cases.
         if result == None:
@@ -436,10 +436,10 @@ class _Action:
             result = [result]
 
         # Check that result holds the correct number of values
-        if len(result) != len(self.out_arg_list): 
+        if len(result) != len(self.out_arg_list):
             raise ActionError, "Wrong number of Results"
         # Check that each value has the correct type
-        # Also convert python type objects to string representations. 
+        # Also convert python type objects to string representations.
         # Construct out_args list of tuples [(name, data), ...]
         out_args = []
         for i in range(len(result)):
@@ -460,15 +460,15 @@ class _Action:
 # SUBSCRIPTION
 ##############################################
 
-class NotifyError (exceptions.Exception): 
+class NotifyError (exceptions.Exception):
     """Error associated with event notification."""
     pass
 
 class _Subscription:
-    
+
     """This class represents a subscription made to the service,
     for notification whenever one of its evented variables is updated."""
-    
+
     def __init__(self, service, callback_url, requested_duration):
         # requested_duration == 0 implies INFINITE
         # requested_duration > 0 implies FINITE
@@ -481,9 +481,9 @@ class _Subscription:
         self.is_expired = False
 
     def notify(self, evented_variables):
-        """Notify this subscriber that given evented variables 
+        """Notify this subscriber that given evented variables
         have been updated."""
-        if self.is_expired : 
+        if self.is_expired :
             return False # should not be neccesary
         else:
             self.event_key += 1
@@ -502,12 +502,12 @@ class _Subscription:
             return True
 
     def initial_notify(self):
-        """Notify this subscriber of all evented state 
+        """Notify this subscriber of all evented state
         variables and their values"""
-        if self.is_expired: 
+        if self.is_expired:
             return False
         # Event Key must be 0
-        if self.event_key != 0: 
+        if self.event_key != 0:
             return False
         # All Evented Variables
         evented_variables = self.service.get_evented_variables()
@@ -518,7 +518,7 @@ class _Subscription:
             except upnpmarshal.MarshalError, why:
                 raise NotifyError, why
             variables.append((evar.the_name, data))
-        
+
         # Dispatch Notification
         edp = self.service.service_manager.get_event_dispatcher()
         edp.dispatch(self.sid, 0, self.callback_url, variables)
@@ -529,7 +529,7 @@ class _Subscription:
         self.duration = requested_duration
         self.is_expired = False
         return self.duration
-    
+
     def cancel(self):
         """Cancel subscription for this subscriber."""
         self.is_expired = True
@@ -572,4 +572,3 @@ if __name__ == '__main__':
     SERVICE = SwitchPower('SwitchPower')
     SERVICE.set_service_manager(SM)
     print SERVICE.get_xml_description()
-    

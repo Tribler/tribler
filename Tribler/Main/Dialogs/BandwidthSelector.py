@@ -12,7 +12,7 @@ class BandwidthSelector(wx.Dialog):
         style = wx.DEFAULT_DIALOG_STYLE
         title = self.utility.lang.get('selectbandwidthtitle')
         wx.Dialog.__init__(self,parent,-1,title,style=style,size=(470,180))
-        
+
         sizer = wx.GridBagSizer(5,20)
 
         self.bwctrl = BWControl(self)
@@ -42,21 +42,21 @@ class BandwidthSelector(wx.Dialog):
 
 
 class BWControl(wx.Panel):
-    
+
     def __init__(self,parent,*args,**kwargs):
-        
+
         self.utility = parent.utility
-        
+
         wx.Panel.__init__(self, parent, -1, *args, **kwargs)
-        
+
         self.uploadbwvals = [ 128/8, 256/8, 512/8, 1024/8, 2048/8, 0]
         self.bwoptions = ['xxxx/128 kbps', 'xxxx/256 kbps', 'xxxx/512 kbps', 'xxxx/1024 kbps', 'xxxx/2048 kbps', 'more (LAN)']
-        self.bwsel = wx.Choice(self, 
-                                    -1, 
-                                    #self.utility.lang.get('selectdlulbwprompt'), 
-                                    wx.DefaultPosition, 
-                                    wx.DefaultSize, 
-                                    self.bwoptions, 
+        self.bwsel = wx.Choice(self,
+                                    -1,
+                                    #self.utility.lang.get('selectdlulbwprompt'),
+                                    wx.DefaultPosition,
+                                    wx.DefaultSize,
+                                    self.bwoptions,
                                     3)
 
     def getUploadBandwidth(self):

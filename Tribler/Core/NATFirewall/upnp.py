@@ -3,7 +3,7 @@
 #
 # Platform independent UPnP client
 #
-# References: 
+# References:
 #   - UPnP Device Architecture 1.0, www.upnp.org
 #   - From Internet Gateway Device IGD V1.0:
 #     * WANIPConnection:1 Service Template Version 1.01
@@ -31,8 +31,8 @@ class UPnPPlatformIndependent:
         self.lastdiscovertime = 0
 
     def discover(self):
-        """ Attempts to discover any UPnP services for X seconds 
-            If any are found, they are stored in self.services 
+        """ Attempts to discover any UPnP services for X seconds
+            If any are found, they are stored in self.services
         """
         #if self.lastdiscovertime != 0 and self.lastdiscovertime + DISCOVER_WAIT < time.time():
         #    if DEBUG:
@@ -75,7 +75,7 @@ class UPnPPlatformIndependent:
                     #print >> sys.stderr,"key",key
                     if key.startswith('location'):
                         # Careful: MS Internet Connection Sharing returns "Location:http://bla", so no space
-                        location = line[idx+1:].strip() 
+                        location = line[idx+1:].strip()
                         desc = self.get_description(location)
                         self.services[location] = self.parse_services(desc)
 
@@ -90,11 +90,11 @@ class UPnPPlatformIndependent:
                 if self.services[location]['servicetype'] == servicetype:
                     return True
         return False
-        
+
 
     def add_port_map(self,internalip,port,iproto='TCP'):
         """ Sends an AddPortMapping request to all relevant IGDs found by discover()
-            
+
             Raises UPnPError in case the IGD returned an error reply,
             Raises Exception in case of any other error
         """
@@ -249,7 +249,7 @@ class DescriptionContentHandler(ContentHandler):
             self.services['servicetype'] = self.content
         elif n == 'controlurl':
             self.services['controlurl'] = self.content
-            
+
     def characters(self, content):
         # print >> sys.stderr,"content",content
         self.content = content
@@ -260,7 +260,7 @@ class SOAPResponseContentHandler(ContentHandler):
     def __init__(self,methodname):
         ContentHandler.__init__(self)
         self.methodname = methodname
-        self.ip = None  
+        self.ip = None
         self.errorset = False
         self.errorcode = 0
         self.errordesc = 'No error'
@@ -288,7 +288,7 @@ class SOAPResponseContentHandler(ContentHandler):
         elif n == 'errordescription':
             self.errorset = True
             self.errordesc = self.content
-            
+
     def characters(self, content):
         #print >>sys.stderr,"upnp: GOT CHARACTERS",content
         self.content = content

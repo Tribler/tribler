@@ -32,8 +32,8 @@ STATE_FILE_NAME_PATH = os.path.join(FILES_DIR, 'tribler.sdb-journal')
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
 
-M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')    
-M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')    
+M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')
+M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')
 BUSYTIMEOUT = 5000
 
 
@@ -42,9 +42,9 @@ def init():
 
     db = SQLiteCacheDB.getInstance()
     db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
-    
+
     print >>sys.stderr,"OPENING DB",TRIBLER_DB_PATH
-    
+
     #db.execute_write('drop index Torrent_relevance_idx')
     TorrentDBHandler.getInstance().register(Category.getInstance('..'),'.')
 
@@ -62,17 +62,17 @@ class FakeSession:
 
     def get_votecast_recent_votes(self):
         return sessdefaults['votecast_recent_votes']
-    
+
     def get_votecast_random_votes(self):
         return sessdefaults['votecast_random_votes']
 
 
 class FakeLauchMany:
-    
+
     def __init__(self):
         self.session = FakeSession()
         self.crawler = Crawler.get_instance(self.session)
-        
+
         self.my_db          = MyDBHandler.getInstance()
         self.peer_db        = PeerDBHandler.getInstance()
         self.torrent_db     = TorrentDBHandler.getInstance()
@@ -97,23 +97,23 @@ class FakeLauchMany:
 
     def get_ext_ip(self):
         return None
-    
+
     def set_activity(self, NTFY_ACT_RECOMMEND, buf):
         pass
-    
+
 class FakeThread:
     def join(self):
         pass
-    
+
 class FakeSecureOverlay:
     def get_dns_from_peerdb(self, permid):
-        return None    
-    
+        return None
+
 class FakeOverlayBridge:
-    
+
     def __init__(self):
         self.thread = FakeThread()
-                    
+
     def add_task(self, task, time=0, id=None):
         if task == 'stop':
             return
@@ -121,34 +121,34 @@ class FakeOverlayBridge:
 
 
 class TestBuddyCastDataHandler(unittest.TestCase):
-    
+
     def setUp(self):
         # prepare database
 
         launchmany = FakeLauchMany()
-        self.overlay_bridge = TimedTaskQueue() 
+        self.overlay_bridge = TimedTaskQueue()
         #self.overlay_bridge = FakeOverlayBridge()
         self.data_handler = DataHandler(launchmany, self.overlay_bridge, max_num_peers=2500)
 
     def tearDown(self):
         self.overlay_bridge.add_task('quit')
-        
+
     def test_postInit(self):
         #self.data_handler.postInit()
         self.data_handler.postInit(1,50,0, 50)
         #from time import sleep
-        
+
 class TestBuddyCast(unittest.TestCase):
-    
+
     def setUp(self):
         # prepare database
 
         launchmany = FakeLauchMany()
-        self.overlay_bridge = TimedTaskQueue() 
+        self.overlay_bridge = TimedTaskQueue()
         #self.overlay_bridge = FakeOverlayBridge()
         superpeer=False # enable it to test superpeer
         self.bc = BuddyCastFactory.getInstance(superpeer=superpeer)
-        self.bc.register(self.overlay_bridge, launchmany, None, 
+        self.bc.register(self.overlay_bridge, launchmany, None,
                  None, None, True)
 
     def tearDown(self):
@@ -167,7 +167,7 @@ class TestBuddyCast(unittest.TestCase):
         for index in indices:
             sql = 'drop index ' + index
             self.data_handler.torrent_db._db.execute_write(sql)
-            
+
     def remove_p_index(self):
         indices = [
         'Peer_name_idx',
@@ -183,12 +183,12 @@ class TestBuddyCast(unittest.TestCase):
             self.data_handler.peer_db._db.execute_write(sql)
 
     def local_test(self):
-                
+
         self.remove_t_index()
         self.remove_p_index()
-                
+
         from Tribler.Test.log_parser import get_buddycast_data
-        
+
         #start_time = time()
         #print >> sys.stderr, "buddycast: ******************* start local test"
         costs = []
@@ -210,7 +210,7 @@ class TestBuddyCast(unittest.TestCase):
         # with all indices, min/avg/max:  0.00 1.78 4.57 seconds
         # without index, min/avg/max:  0.00 1.38 3.43 seconds  (58)
         print "Done"
-       
+
     def test_start(self):
         try:
             self.bc.olthread_register(start=False)
@@ -219,24 +219,22 @@ class TestBuddyCast(unittest.TestCase):
             print "Sleeping for 10 secs"
             sleep(10)
             print "Done2"
-            
+
         except:
             print_exc()
             self.assert_(False)
-    
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestBuddyCastDataHandler))
     suite.addTest(unittest.makeSuite(TestBuddyCast))
-    
+
     return suite
 
-    
+
 def main():
     init()
     unittest.main(defaultTest='test_suite')
 
 if __name__ == '__main__':
     main()
-    
-    

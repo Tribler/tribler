@@ -2,12 +2,12 @@
 # see LICENSE.txt for license information
 
 """
-This module implements the client side of an non-blocking, 
+This module implements the client side of an non-blocking,
 http request-response exchange, supported by a TaskRunner.
 A blocking interace is also provided on top of the non-blocking.
 
 The implementation also sets up the connection i a non-blocking
-manner. This essentially makes it a 
+manner. This essentially makes it a
 connect-request-response protocol.
 """
 
@@ -24,7 +24,7 @@ import threadhotel
 class SynchHTTPClient:
 
     """
-    This class wraps the AsynchHTTPClient to provide 
+    This class wraps the AsynchHTTPClient to provide
     a traditional blocking API.
     """
     FAIL, OK = "FAIL", "OK"
@@ -69,10 +69,10 @@ _LOG_TAG = "HTTPClient"
 class AsynchHTTPClient:
 
     """
-    This class runs non-blocking asynchronous http requests 
+    This class runs non-blocking asynchronous http requests
     to multiple HTTP servers at once. Specify a_handler or r_handler
     for asynchrounous upcalls. If not, the httpClient supports
-    fire-and-forget semantics (from an external point of view). 
+    fire-and-forget semantics (from an external point of view).
     Internally, the httpClient will not forget a request until it has
     either timeout out, aborted due to failure or succeeded.
     """
@@ -80,7 +80,7 @@ class AsynchHTTPClient:
     def __init__(self, task_runner, logger=None):
         self._task_runner = task_runner
         self._request_id = 0
-        self._requests = {} # requestID: (request, aHandler, rHandler) 
+        self._requests = {} # requestID: (request, aHandler, rHandler)
         # Logging
         self._log_tag = _LOG_TAG
         self._logger = logger
@@ -156,14 +156,14 @@ class AsynchHTTPClient:
 # HTTP REQUEST
 ##############################################
 
-class HTTPRequestError(exceptions.Exception): 
+class HTTPRequestError(exceptions.Exception):
     """Error associated with the request response protocol."""
     pass
 
 class HTTPRequest:
 
     """
-    This implements a single non-blocking connect-request-response 
+    This implements a single non-blocking connect-request-response
     protocol from an HTTPClient to a HTTPServer.
     For now, this class does not support sequential requests-responses on the
     same connection. Neither does it support instance reuse.
@@ -177,8 +177,8 @@ class HTTPRequest:
     STATE_RECV_OK = 6
     STATE_DONE = 7
 
-    def __init__(self, task_runner, request_id, 
-                 recv_timeout=10, conn_timeout=1, 
+    def __init__(self, task_runner, request_id,
+                 recv_timeout=10, conn_timeout=1,
                  conn_attempts=3, logger=None):
         self._task_runner = task_runner
         self._request_id = request_id
@@ -218,7 +218,7 @@ class HTTPRequest:
         self._abort_handler = lambda requestID, error, comment : None
         # Logging
         self._logger = logger
-        self._log_tag = "Request [%d]" % self._request_id        
+        self._log_tag = "Request [%d]" % self._request_id
 
     ##############################################
     # PUBLIC API
@@ -241,18 +241,18 @@ class HTTPRequest:
 
     def close(self):
         """Cleanup the request-response protocol and close the socket."""
-        if self._conn_task : 
+        if self._conn_task :
             self._conn_task.cancel()
-        if self._conn_to_task : 
+        if self._conn_to_task :
             self._conn_to_task.cancel()
-        if self._send_task : 
+        if self._send_task :
             self._send_task.cancel()
-        if self._recv_task : 
+        if self._recv_task :
             self._recv_task.cancel()
-        if self._recv_to_task: 
+        if self._recv_to_task:
             self._recv_to_task.cancel()
         self._state = HTTPRequest.STATE_DONE
-        if self._sock: 
+        if self._sock:
             try:
                 self._sock.close()
             except socket.error:
@@ -265,22 +265,22 @@ class HTTPRequest:
 
     def _log(self, msg):
         """Logging."""
-        if self._logger: 
+        if self._logger:
             self._logger.log(self._log_tag, msg)
 
 
     def _get_content_length(self):
         """Extract body length from HTTP header."""
         lines = self._header.split('\r\n')
-        if not lines : 
+        if not lines :
             return
-        for line in lines[1:]:            
+        for line in lines[1:]:
             if len(line.strip()) > 0:
                 elem_name, elem_value = line.split(":", 1)
                 if elem_name.lower() == 'content-length':
                     return int(elem_value.strip())
         else: return 0
- 
+
     def _http_header_ok(self):
         """Check that received data is a valid HTTP header."""
         if len(self._header) > 4 and self._header[:4] == "HTTP":
@@ -313,17 +313,17 @@ class HTTPRequest:
             self._abort(error, "Non-Blocking Connect Failed")
             return
         self._state = HTTPRequest.STATE_CONNECT_STARTED
-        self._conn_task = self._do_write(self._sock.fileno(), 
+        self._conn_task = self._do_write(self._sock.fileno(),
                                          self._handle_connect_ok)
-        self._conn_to_task = self._do_to(self._conn_to, 
+        self._conn_to_task = self._do_to(self._conn_to,
                                          self._handle_connect_to)
 
     def _handle_connect_ok(self):
         """
-        Handler successful connect. 
-        
-        In fact, certain unsuccessful connects may not be detected 
-        before write is attempted on the socket. 
+        Handler successful connect.
+
+        In fact, certain unsuccessful connects may not be detected
+        before write is attempted on the socket.
         """
         self._log("Connect OK")
         if self._state != HTTPRequest.STATE_CONNECT_STARTED:
@@ -346,7 +346,7 @@ class HTTPRequest:
             self._abort(errno.ETIME, "Connect Timeout")
         else:
             # Try again
-            self._conn_to_task = self._do_to(self._conn_to, 
+            self._conn_to_task = self._do_to(self._conn_to,
                                              self._handle_connect_to)
 
     def _send(self):
@@ -361,11 +361,11 @@ class HTTPRequest:
         elif not first_attempt and \
                 self._state != HTTPRequest.STATE_SEND_STARTED:
             raise HTTPRequestError, "Illegal Operation given protocol State"
-        if first_attempt: 
+        if first_attempt:
             self._state = HTTPRequest.STATE_SEND_STARTED
             self._log("Send Started")
         else: self._log("Send Continue")
-        
+
         # (Continue) Send
         try:
             bytes_sent = self._sock.send(self._request_data[self._bytes:])
@@ -376,8 +376,8 @@ class HTTPRequest:
                 self._send_continue()
                 return
             else:
-                # Typically EPIPE: Broken Pipe or ECONNREFUSED 
-                if self._send_task: 
+                # Typically EPIPE: Broken Pipe or ECONNREFUSED
+                if self._send_task:
                     self._send_task.cancel()
                 self._abort(why[0], "Exception on Send")
                 return
@@ -391,13 +391,13 @@ class HTTPRequest:
                 self._state = HTTPRequest.STATE_SEND_OK
                 self._task_runner.add_task(self._handle_send_ok)
                 return
-            else: 
+            else:
                 # Message only partially sent
                 self._send_continue()
                 return
         else:
             # 0 bytes sent => error
-            if self._send_task : 
+            if self._send_task :
                 self._send_task.cancel()
             msg = "Sent 0 bytes, yet fd was writeable and no exception occurred"
             self._abort(errno.EPIPE, msg)
@@ -406,7 +406,7 @@ class HTTPRequest:
         """Register new write task after request was only partially sent."""
         # Register a new Write Task
         if not self._send_task:
-            self._send_task = self._do_write(self._sock.fileno(), 
+            self._send_task = self._do_write(self._sock.fileno(),
                                              self._send)
 
     def _handle_send_ok(self):
@@ -415,14 +415,14 @@ class HTTPRequest:
         if self._state != HTTPRequest.STATE_SEND_OK:
             raise HTTPRequestError, "Illegal Operation given protocol State"
         # Cancel Send Task
-        if self._send_task: 
+        if self._send_task:
             self._send_task.cancel()
         # Start waiting for the response
         self._recv_task = self._do_read(self._sock.fileno(), self._recv)
         # Define new Receive Timeout
-        self._recv_to_task = self._do_to(self._recv_to, 
+        self._recv_to_task = self._do_to(self._recv_to,
                                          self._handle_recv_to)
-                
+
     def _recv(self):
         """
         Start receiveing the response.
@@ -435,7 +435,7 @@ class HTTPRequest:
         elif not first_attempt and \
                 self._state != HTTPRequest.STATE_RECV_STARTED:
             raise HTTPRequestError, "Illegal Operation given protocol State"
-        if first_attempt: 
+        if first_attempt:
             self._state = HTTPRequest.STATE_RECV_STARTED
             self._log("Recv Started")
         else:
@@ -446,7 +446,7 @@ class HTTPRequest:
             data = self._sock.recv(1024)
         except socket.error, why:
             if why[0] == errno.EAGAIN:
-                # EAGAIN: Enter/stay in writeset		
+                # EAGAIN: Enter/stay in writeset
                 self._recv_continue()
                 return
             else:
@@ -455,10 +455,10 @@ class HTTPRequest:
                     self._recv_task.cancel()
                 self._abort(why[0], "Exception on Recv")
                 return
-        
+
         # Recv completed naturally
         if data:
-            self._response_data += data        
+            self._response_data += data
             # Parse HTTP response
             if not self._header:
                 tokens = self._response_data.split(self._delimiter, 1)
@@ -476,7 +476,7 @@ class HTTPRequest:
                         # Header complete and OK
                         self._length = len(self._header) + \
                             len(self._delimiter) + self._get_content_length()
-            
+
             if self._header:
                 # Header is received, entire body may not be received
                 if len(self._response_data) < self._length:
@@ -500,11 +500,11 @@ class HTTPRequest:
             self._abort(errno.EPIPE, msg)
 
     def _recv_continue(self):
-        """Register read task to continue to receive a 
+        """Register read task to continue to receive a
         partially received response."""
         # Make sure a ReadTask is registered.
         if not self._recv_task:
-            self._recv_task = self._do_read(self._sock.fileno(), 
+            self._recv_task = self._do_read(self._sock.fileno(),
                                             self._recv)
 
     def _handle_recv_to(self):
@@ -513,7 +513,7 @@ class HTTPRequest:
         if self._state != HTTPRequest.STATE_SEND_OK:
             raise HTTPRequestError, "Illegal Operation given protocol State"
         # Cancel RecvTask
-        if self._recv_task: 
+        if self._recv_task:
             self._recv_task.cancel()
         self._abort(errno.ETIME, "Receive Timeout")
 
@@ -530,7 +530,7 @@ class HTTPRequest:
 
     def _abort(self, error, comment):
         """Abort this request-response protocol."""
-        fmt = "Abort [%d] %s '%s' (%s)" 
+        fmt = "Abort [%d] %s '%s' (%s)"
         self._log(fmt % (error, errno.errorcode[error], \
                              os.strerror(error), comment))
         self._state = HTTPRequest.STATE_DONE
@@ -538,7 +538,7 @@ class HTTPRequest:
         self._do(self._abort_handler, args)
 
 
- 
+
 ##############################################
 # MAIN
 ##############################################
@@ -564,7 +564,7 @@ if __name__ == '__main__':
     HOST = WORK
 
     if len(sys.argv) > 1:
-        PORT = int(sys.argv[1])        
+        PORT = int(sys.argv[1])
     else:
         PORT = 44444
 
@@ -582,8 +582,8 @@ if __name__ == '__main__':
 
     def abort_handler(rid, error, comment):
         """Abort handler."""
-        fmt = "Abort [%d] %s '%s' (%s) [%d]" 
-        print fmt % (error, errno.errorcode[error], 
+        fmt = "Abort [%d] %s '%s' (%s) [%d]"
+        print fmt % (error, errno.errorcode[error],
                      os.strerror(error), comment, rid)
 
 
@@ -595,7 +595,7 @@ if __name__ == '__main__':
 
         def run(self):
             """Run the blocking connect-request-response protocol."""
-            status, reply = self._synch_httpclient.request(HOST, 
+            status, reply = self._synch_httpclient.request(HOST,
                                                            PORT, HTTP_REQUEST)
             if status == SynchHTTPClient.OK:
                 header, body = reply
@@ -608,7 +608,7 @@ if __name__ == '__main__':
     # Test Asynch HTTP Client
     ASYNCH = AsynchHTTPClient(TR, logger=LOGGER)
     RID = ASYNCH.get_request_id()
-    ASYNCH.request(RID, HOST, PORT, 
+    ASYNCH.request(RID, HOST, PORT,
                    HTTP_REQUEST, abort_handler, response_handler)
 
     # Test Synch HTTP Client
@@ -621,4 +621,3 @@ if __name__ == '__main__':
         TR.run_forever()
     except KeyboardInterrupt:
         pass
-

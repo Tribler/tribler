@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 """
-This module implements a base class for a non-blocking HTTP Server. 
+This module implements a base class for a non-blocking HTTP Server.
 """
 
 import BaseHTTPServer
@@ -52,7 +52,7 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
     """Base implementation of asynchronous (non-blocking)
     HTTP Server."""
 
-    def __init__(self, task_runner, port, request_handler_class, 
+    def __init__(self, task_runner, port, request_handler_class,
                  logger=None):
 
         if not issubclass(request_handler_class, AsynchHTTPRequestHandler):
@@ -66,11 +66,11 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
         # Base Class
         try:
             # Default Port
-            BaseHTTPServer.HTTPServer.__init__(self, ('', port), 
+            BaseHTTPServer.HTTPServer.__init__(self, ('', port),
                                           request_handler_class)
         except socket.error:
             # Any Port
-            BaseHTTPServer.HTTPServer.__init__(self, ('', 0), 
+            BaseHTTPServer.HTTPServer.__init__(self, ('', 0),
                                           request_handler_class)
 
         # Host Port
@@ -94,7 +94,7 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
 
     def startup(self):
         """Startup HTTPServer."""
-        self.log("START Port %d" % self._port)               
+        self.log("START Port %d" % self._port)
 
     def handle_connect(self):
         """
@@ -111,8 +111,8 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
         """
         Non-blocking request handler.
         Assumes the given client_sock is readable.
-        Inspired by implementation of _handle_request_noblock() 
-        from SocketServer.BaseServer. Skip GetRequest which involves 
+        Inspired by implementation of _handle_request_noblock()
+        from SocketServer.BaseServer. Skip GetRequest which involves
         accept is already done in handle_connect()
         """
         if self.verify_request(client_sock, client_address):
@@ -172,9 +172,9 @@ if __name__ == "__main__":
 
     import Tribler.UPnP.common.taskrunner as taskrunner
     TR = taskrunner.TaskRunner()
-    SERVER = AsynchHTTPServer(TR, 
-                              44444, 
-                              AsynchHTTPRequestHandler, 
+    SERVER = AsynchHTTPServer(TR,
+                              44444,
+                              AsynchHTTPRequestHandler,
                               logger=_Mock_Logger())
     try:
         TR.run_forever()
@@ -182,4 +182,3 @@ if __name__ == "__main__":
         print
     SERVER.close()
     TR.stop()
-        

@@ -19,7 +19,7 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
 
     """
     This implements the SSDP deamon of UPnP control points.
-    
+
     This class is implemented in a non-blocking, event-based manner.
     Execution is outsourced to the given task_runner.
     """
@@ -109,9 +109,9 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
             elif isinstance(msg, ssdpmessage.AnnounceMessage):
                 target = msg.nt
             ssdp_device = SSDPDevice(self.task_runner,
-                                     uuid, msg.max_age, 
-                                     msg.location, target, 
-                                     msg.osversion, 
+                                     uuid, msg.max_age,
+                                     msg.location, target,
+                                     msg.osversion,
                                      msg.productversion)
             self._add_device(ssdp_device)
 
@@ -130,7 +130,7 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
     ##############################################
     # PRIVATE UTILITY
     ##############################################
-       
+
     def _handle_expiry(self, uuid):
         """A device has expired, causing it to be removed."""
         self._remove_device(uuid)
@@ -142,21 +142,21 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
         ssdp_device.set_expiry_handler(self._handle_expiry)
         self.log("ADD [%d] %s" % (ssdp_device.max_age, uuid))
         # Publish Event ADD
-        self.task_runner.add_task(self._add_handler, 
+        self.task_runner.add_task(self._add_handler,
                                   args=(uuid,ssdp_device.location))
 
     def _renew_device(self, uuid, max_age):
         """Receive announce from already known device."""
         self._ssdp_devices[uuid].alive(max_age)
         self.log("ALIVE [%d] %s" % (max_age, uuid))
-        
+
     def _remove_device(self, uuid):
         """Remove device."""
         if self._ssdp_devices.has_key(uuid):
             del self._ssdp_devices[uuid]
             self.log("REMOVE %s" % (uuid))
-            # Publish Event REMOVE            
-            self.task_runner.add_task(self._remove_handler, 
+            # Publish Event REMOVE
+            self.task_runner.add_task(self._remove_handler,
                                       args=(uuid,))
 
 
@@ -168,8 +168,8 @@ class SSDPDevice:
 
     """This represents a local view of a remote SSDP root device."""
 
-    def __init__(self, task_runner, 
-                 uuid, max_age, location, search_target, 
+    def __init__(self, task_runner,
+                 uuid, max_age, location, search_target,
                  os_version, product_version):
 
         self.uuid = uuid
@@ -198,7 +198,7 @@ class SSDPDevice:
         # Create new timeout
         self._task = self._task_runner.add_delay_task(
             max_age, self._handle_timeout)
-        
+
     def _handle_timeout(self):
         """Timeout handler."""
         self._expired = True
@@ -212,7 +212,7 @@ class SSDPDevice:
         self._expiry_handler = handler
 
     def alive(self, max_age):
-        """Invoked whenever a signal is received that 
+        """Invoked whenever a signal is received that
         suggests that the remote device is live and well."""
         self._new_timeout(max_age)
 
@@ -224,14 +224,14 @@ class SSDPDevice:
         """Cancel timeout task associated with device, if any. """
         if self._task:
             self._task.cancel()
-        
+
 
 ##############################################
 # MAIN
 ##############################################
 
 if __name__ == "__main__":
-    
+
 
     class TestClient:
         """TestClient wraps SSDPClient to add some event handlers."""

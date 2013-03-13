@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 """ The Tribler-specifc Exceptions the Core may throw. """
 
@@ -6,7 +6,7 @@
 # Exceptions
 #
 class TriblerException(Exception):
-    """ Super class for all Tribler-specific Exceptions the Tribler Core 
+    """ Super class for all Tribler-specific Exceptions the Tribler Core
     throws.
     """
     def __init__(self,msg=None):
@@ -14,7 +14,7 @@ class TriblerException(Exception):
 
     def __str__(self):
         return str(self.__class__)+': '+Exception.__str__(self)
- 
+
 
 class OperationNotPossibleAtRuntimeException(TriblerException):
     """ The requested operation is not possible after the Session or Download
@@ -37,7 +37,7 @@ class OperationNotEnabledByConfigurationException(TriblerException):
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
 
-    
+
 class NotYetImplementedException(TriblerException):
     """ The requested operation is not yet fully implemented. """
     def __init__(self,msg=None):
@@ -57,8 +57,8 @@ class VODNoFileSelectedInMultifileTorrentException(TriblerException):
         TriblerException.__init__(self,msg)
 
 class LiveTorrentRequiresUsercallbackException(TriblerException):
-    """ Attempt to download a live-stream torrent without specifying a 
-    callback function to call when the stream is ready to play. 
+    """ Attempt to download a live-stream torrent without specifying a
+    callback function to call when the stream is ready to play.
     Use set_video_event_callback(usercallback) to correct this problem. """
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
@@ -76,7 +76,6 @@ class TriblerLegacyException(TriblerException):
     just as text (often containing a stringified Exception).
     Will be phased out.
     """
-    
+
     def __init__(self,msg=None):
         TriblerException.__init__(self,msg)
-    

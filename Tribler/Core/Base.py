@@ -18,8 +18,8 @@ class Serializable:
 
 class Copyable:
     """
-    Interface for copying an instance (or rather signaling that it can be 
-    copied) 
+    Interface for copying an instance (or rather signaling that it can be
+    copied)
     """
     def copy(self):
         """
@@ -32,7 +32,7 @@ class Copyable:
 
 class ContentDefinition:
     """ Interface for content definition such as torrents and swift swarms """
-    
+
     def get_def_type(self):
         """ Returns the type of this Definition
         @return string
@@ -44,10 +44,9 @@ class ContentDefinition:
         @return string
         """
         raise NotYetImplementedException()
-    
+
     def get_id(self):
         """ Returns a identifier for this Definition
         @return string
         """
         raise NotYetImplementedException()
-    

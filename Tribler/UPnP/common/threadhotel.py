@@ -3,7 +3,7 @@
 #############################################################
 
 """
-This implements a thread hotel where threads block for asynchronous replies 
+This implements a thread hotel where threads block for asynchronous replies
 after having made an non-blocking request. The thread hotel is typically used
 to build a blocking API on top of a non-blocking.
 """
@@ -44,12 +44,12 @@ class ThreadHotel:
         self._lock = threading.Lock()
 
     def _get_room(self, request_id):
-        """Get a room given a request_id. 
+        """Get a room given a request_id.
         The request id is assumed to be unique. """
         if not self._rooms.has_key(request_id):
             self._rooms[request_id] = ThreadHotel.Room()
         return self._rooms[request_id]
-        
+
     def _leave_room(self, request_id):
         """Leave room after having been woke up."""
         del self._rooms[request_id]
@@ -70,14 +70,14 @@ class ThreadHotel:
         if not reply:
             # Wait
             self._lock.release()
-            room.goto_bed()            
+            room.goto_bed()
             # Wake up
             self._lock.acquire()
             status, reply = room.get_reply()
         # Leave with Reply
         self._leave_room(request_id)
         self._lock.release()
-        return status, reply    
+        return status, reply
 
     def wakeup(self, request_id, status, reply):
         """Deliver reply for given request id, thereby waking up
@@ -95,4 +95,3 @@ class ThreadHotel:
     def is_waiting(self, request_id):
         """Is threre a thread waiting for a given request id?"""
         return self._rooms.has_key(request_id)
-

@@ -21,7 +21,7 @@ class Tracker(object):
         self._put_counter = 0
         self.num_keys = 0
         self.num_peers = 0
-        
+
     def put(self, k, peer):
         #Clean up every n puts
         self._put_counter += 1
@@ -33,7 +33,7 @@ class Tracker(object):
                 if not ts_peers: #empty list. Delete key
                     del self._tracker_dict[k_]
                     self.num_keys -= 1
-        
+
         ts_peers = self._tracker_dict.setdefault(k,[])
         if not ts_peers:
             self.num_keys += 1

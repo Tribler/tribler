@@ -301,20 +301,20 @@ def p2purl_decode_base64url(v):
 def p2purl_decode_nnumber(s):
     b = b64urldecode(s)
     if len(b) == 2:
-       format = "H"
+        format = "H"
     elif len(b) == 4:
-       format = "l"
+        format = "l"
     else:
-       format = "Q"
+        format = "Q"
     format = "!"+format # network-byte order       
     return unpack(format,b)[0]
 
 def p2purl_encode_nnumber(s):
     if type(s) == IntType:
         if s < 2 ** 16:
-           format = "H"
+            format = "H"
         elif s < 2 ** 32:
-           format = "l"
+            format = "l"
     else:
         format = "Q"
     format = "!"+format # network-byte order

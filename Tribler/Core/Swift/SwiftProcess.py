@@ -436,4 +436,3 @@ class SwiftProcess:
 
     def connection_lost(self,port):
         self.spmgr.connection_lost(port)
-        

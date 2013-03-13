@@ -4,10 +4,10 @@
 # This test checks the new SecureOverlay class created in Fall 2006
 #
 # Note that we start a new Python interpreter for each test case.
-# Also note we create 2 peers and thus two networking stacks. In principle, 
-# they should use two different SecureOverlay instances (not a singleton), but 
+# Also note we create 2 peers and thus two networking stacks. In principle,
+# they should use two different SecureOverlay instances (not a singleton), but
 # there may be some interference.
-# 
+#
 # To properly follow the test, enable debugging on BitTornado/SocketHandler,
 # BitTornado/ServerPortHandler and BitTornado/Rawserver in addition to
 # Tribler/Overlay/SecureOverlay
@@ -30,7 +30,7 @@ from Tribler.Core.MessageID import GET_METADATA
 
 from M2Crypto import EC
 from Tribler.Core.Overlay.SecureOverlay import SecureOverlay, OLPROTO_VER_CURRENT
-import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb  
+import Tribler.Core.CacheDB.sqlitecachedb as sqlitecachedb
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.Utilities.utilities import show_permid_short
 
@@ -41,7 +41,7 @@ class FakeUserCallbackHandler:
         pass
 
 class FakeSession:
-    
+
     def __init__(self,lm,keypair,permid,listen_port):
         self.lm = lm
         self.keypair = keypair
@@ -51,7 +51,7 @@ class FakeSession:
 
     def get_permid(self):
         return self.permid
-        
+
     def get_listen_port(self):
         return self.listen_port
 
@@ -85,10 +85,10 @@ class Peer(Thread):
                                    errorfunc = self.report_error)
         while 1:
             try:
-                self.listen_port = self.rawserver.find_and_bind(0, 
-                                config['minport'], config['maxport'], config['bind'], 
+                self.listen_port = self.rawserver.find_and_bind(0,
+                                config['minport'], config['maxport'], config['bind'],
                                 reuse = True,
-                                ipv6_socket_style = config['ipv6_binds_v4'], 
+                                ipv6_socket_style = config['ipv6_binds_v4'],
                                 randomizer = config['random_port'])
                 print >> sys.stderr,"test: Got listen port", self.listen_port
                 break
@@ -142,7 +142,7 @@ class Peer(Thread):
 
 
 class TestSecureOverlay(unittest.TestCase):
-    
+
     def setUp(self):
         self.config_path = tempfile.mkdtemp()
         config = {}
@@ -152,12 +152,12 @@ class TestSecureOverlay(unittest.TestCase):
         config['peer_icon_path'] = os.path.join(self.config_path,'peer_icons')
         config['superpeer'] = False
         sqlitecachedb.init(config, self.rawserver_fatalerrorfunc)
-        
+
         secover1 = SecureOverlay.getInstance()
         secover1.resetSingleton()
         secover2 = SecureOverlay.getInstance()
         secover2.resetSingleton()
-        
+
         self.peer1 = Peer(self,1234,secover1)
         self.peer2 = Peer(self,5678,secover2)
         self.peer1.start()
@@ -302,7 +302,7 @@ class TestSecureOverlay(unittest.TestCase):
         print >> sys.stderr,"test: test_connect_to_live_peer"
         self.wanted = True
         self.wanted2 = True
-        
+
         peer_db = PeerDBHandler.getInstance()
         hispermid = self.peer2.my_permid
         peer_db.addPeer(hispermid,{'ip':"127.0.0.1", 'port':5678})
@@ -400,7 +400,7 @@ class TestSecureOverlay(unittest.TestCase):
         # then let rawserver thread close connection, which should succeed
         # net result is no connection to peer2
         self.peer1.secure_overlay.send(self.peer2.my_permid,'msg=bla',self.send_remote_close_send_callback)
-        sleep(2) 
+        sleep(2)
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
     def send_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
@@ -651,7 +651,7 @@ class TestSecureOverlay(unittest.TestCase):
         # let rawserver thread establish connection, which should succeed
         # then let rawserver thread close connection, which should succeed
         # net result is no connection to peer2
-        sleep(2) 
+        sleep(2)
         self.assert_(len(self.peer1.secure_overlay.iplport2oc) == 0)
 
     def got_conn_remote_close_conns_callback(self,exc,permid,selversion,locally_initiated,hisdns=None):
@@ -683,13 +683,13 @@ class TestSecureOverlay(unittest.TestCase):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_so.py <method name>"
     else:
         suite.addTest(TestSecureOverlay(sys.argv[1]))
-    
+
     return suite
 
 def main():

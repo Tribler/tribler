@@ -32,7 +32,7 @@ def state_callback(ds):
 
 def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
-    
+
 
 class PrintStatusReporter(Status.OnChangeStatusReporter):
     """
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         raise SystemExit("Missing .torrent or .tstream to seed")
-    
+
     sscfg = SessionStartupConfig()
     state_dir = Session.get_default_state_dir('.seeder')
     sscfg.set_state_dir(state_dir)
@@ -61,11 +61,11 @@ if __name__ == "__main__":
     sscfg.set_megacache(False)
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
-    
+
     s = Session(sscfg)
 
     print >>sys.stderr,"My permid:",encodestring(s.get_permid()).replace("\n","")
-    
+
     source = sys.argv[1]
     if source.startswith("http://"):
         tdef = TorrentDef.load_from_url(source)
@@ -100,7 +100,7 @@ if __name__ == "__main__":
     # Report status to the Living lab every 30 minutes
     reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 60*30, id, print_post=True)
     status.add_reporter(reporter)
-    
+
 
     d = s.start_download(tdef,dscfg)
     d.set_state_callback(state_callback,getpeerlist=False)
@@ -110,11 +110,10 @@ if __name__ == "__main__":
             time.sleep(60)
         except:
             break
-            
+
     #cond = Condition()
     #cond.acquire()
     #cond.wait()
     reporter.stop()
-    
+
     s.shutdown()
-    

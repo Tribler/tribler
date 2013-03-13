@@ -10,7 +10,7 @@ from Tribler.Category.Category import Category
 
 DEBUG = False
 
-def testFilter(catfilename, torrentpath):    
+def testFilter(catfilename, torrentpath):
     readCategorisationFile(catfilename)
     #print 'Install_dir is %s' % execpath
     c = Category.getInstance(execpath, None)
@@ -25,7 +25,7 @@ def testFilter(catfilename, torrentpath):
         if isporn == fporn:
             if DEBUG:
                 print (isporn, fporn), 'good', name
-            
+
         elif isporn and not fporn:
             fn+=1
             print 'FALSE NEGATIVE'
@@ -34,7 +34,7 @@ def testFilter(catfilename, torrentpath):
             fp +=1
             print 'FALSE POSITIVE'
             showTorrent(os.path.join(torrentpath,tfilename))
-            
+
     print """
     Total torrents:   %(total)d
     XXX torrents:     %(porn)d
@@ -56,7 +56,7 @@ def readCategorisationFile(filename):
         f.close()
     except IOError:
         print 'No file %s found, starting with empty file' % filename
-        
+
 def getTorrentData(path, max_num=-1):
     torrents= []
     i = 0
@@ -67,7 +67,7 @@ def getTorrentData(path, max_num=-1):
             print 'Loaded: %d torrents' % i
         if i == int(max_num):
             break
-        i+=1   
+        i+=1
     print 'Loaded %d torrents' % len(torrents)
     return torrents
 
@@ -78,11 +78,11 @@ def showTorrent(path):
     print '\tfiles  :'
     files_list = []
     __size_change = 1024
-    try:                                
+    try:
         # the multi-files mode
         for ifiles in torrent['info']["files"]:
             files_list.append((ifiles['path'][-1], ifiles['length'] / float(__size_change)))
-    except KeyError:                    
+    except KeyError:
         # single mode
         files_list.append((torrent['info']["name"],torrent['info']['length'] / float(__size_change)))
     for fname, fsize in files_list:
@@ -90,7 +90,7 @@ def showTorrent(path):
     print 'Torrent name: %s' % name
     print '\ttracker:%s' % torrent['announce']
     print '------------------------------'
-    
+
 def createTorrentDataSet(filename, torrentpath):
     initSaveFile(filename)
     f_out = file(filename, 'a')
@@ -108,7 +108,7 @@ def createTorrentDataSet(filename, torrentpath):
         else:
             saveTorrent(f_out, torrent, (ans=='y'))
     f_out.close()
-    
+
 def saveTorrent(f_out, torrent, boolean):
     if torrent in tset:
         return
@@ -117,7 +117,7 @@ def saveTorrent(f_out, torrent, boolean):
     f_out.write('%s\t%d\n' % (tfilename, int(boolean)))
     f_out.flush()
     tset.add(torrent)
-    
+
 def initSaveFile(filename):
     global tset
     tset = set()
@@ -129,8 +129,8 @@ def initSaveFile(filename):
         f.close()
     except IOError:
         print 'No file %s found, starting with empty file' % filename
-    
-    
+
+
 
 def main(args):
     if len(args) != 4 or args[1] not in ['categorise', 'test']:
@@ -142,7 +142,7 @@ def main(args):
     elif args[1] == 'test':
         testFilter(args[3], args[2])
     print 'ready'
-    
+
 
 if __name__ == '__main__':
     main(sys.argv)

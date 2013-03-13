@@ -169,7 +169,7 @@ class ListHeader(wx.Panel):
                 item.SetMinSize((width, -1))
                 changed = True
         elif item.GetSpacer()[0] != width:
-                item.SetSpacer((width, -1))
+            item.SetSpacer((width, -1))
 
     @warnWxThread
     def OnClick(self, event):
@@ -1384,4 +1384,4 @@ class DetailHeader(wx.Panel):
         self.SetSizer(vSizer)
             
     def SetTitle(self, title):
-        self.title.SetLabel(title)  
+        self.title.SetLabel(title)

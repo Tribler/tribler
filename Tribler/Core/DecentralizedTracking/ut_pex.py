@@ -8,8 +8,8 @@ uTorrent Peer Exchange (PEX) Support:
 As documented in
     https://trac.transmissionbt.com/browser/trunk/extras/extended-messaging.txt
     BitTorrent-5.0.8/BitTorrent/Connector.py
-    (link no longer available) http://transmission.m0k.org/trac/browser/trunk/misc/utorrent.txt 
-    
+    (link no longer available) http://transmission.m0k.org/trac/browser/trunk/misc/utorrent.txt
+
 The PEX message payload is a bencoded dict with three keys:
  'added': the set of peers met since the last PEX
  'added.f': a flag for every peer, apparently with the following values:
@@ -42,13 +42,13 @@ DEBUG = False
 
 def create_ut_pex(addedconns,droppedconns,thisconn):
     #print >>sys.stderr,"ut_pex: create_ut_pex:",addedconns,droppedconns,thisconn
-    
+
     #Niels: Force max 50 added/dropped connections
-    #"Some clients may choose to enforce these limits and drop connections which don't obey these limits." 
+    #"Some clients may choose to enforce these limits and drop connections which don't obey these limits."
     #http://wiki.theory.org/BitTorrentPeerExchangeConventions
     addedconns = addedconns[:50]
     droppedconns = droppedconns[:50]
-    
+
     d = {}
     compactedpeerstr = compact_connections(addedconns,thisconn)
     d['added'] = compactedpeerstr
@@ -64,7 +64,7 @@ def create_ut_pex(addedconns,droppedconns,thisconn):
             flag |= 2
         if conn.is_tribler_peer():
             flag |= 4
-            
+
         #print >>sys.stderr,"ut_pex: create_ut_pex: add flag",`flag`
         flags += chr(flag)
     d['added.f'] = flags
@@ -105,16 +105,16 @@ def check_ut_pex(d):
                 # for completeness we should also pop the item from
                 # addedf even though we don't use it anymore
                 addedf.pop(i)
-                
+
     # Arno, 2008-09-12: Be liberal in what we receive
     ##else:
         ##raise ValueError('ut_pex: added.f: missing')
-    
+
     if DEBUG:
         print >>sys.stderr,"ut_pex: Got",apeers
-    
+
     return (same_apeers,apeers,dpeers)
-    
+
 def check_ut_pex_peerlist(d,name):
     if name not in d:
         # Arno, 2008-09-12: Be liberal in what we receive, some clients
@@ -131,7 +131,7 @@ def check_ut_pex_peerlist(d,name):
         if ip == '127.0.0.1':
             raise ValueError('ut_pex:'+name+': address is localhost')
     return peers
-    
+
 def ut_pex_get_conns_diff(currconns,prevconns):
     addedconns = []
     droppedconns = []
@@ -159,7 +159,7 @@ def compact_connections(conns,thisconn=None):
         else:
             compactpeer = compact_peer_info(ip,port)
             compactpeers.append(compactpeer)
-        
+
     # Create compact representation of peers
     compactpeerstr = ''.join(compactpeers)
     return compactpeerstr
@@ -173,4 +173,3 @@ def decompact_connections(p):
         port = (ord(p[x+4]) << 8) | ord(p[x+5])
         peers.append((ip, port))
     return peers
-

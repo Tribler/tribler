@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 """ Definition of a torrent, that is, a collection of files or a live stream. """
 import sys
@@ -31,15 +31,15 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
     """
     Definition of a torrent, that is, all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
-    
+
     Note: to add fields to the torrent definition which are not supported
     by its API, first create the torrent def, finalize it, then add the
     fields to the metainfo, and create a new torrent def from that
     upgraded metainfo using TorrentDef.load_from_dict()
-    
+
     This class can also be used to create P2P URLs, by calling set_url_compat()
-    before finalizing. In that case only name, piece length, tracker, bitrate 
-    and source-authentication parameters (for live) are configurable. 
+    before finalizing. In that case only name, piece length, tracker, bitrate
+    and source-authentication parameters (for live) are configurable.
 
     cf. libtorrent torrent_info
     """
@@ -51,11 +51,11 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         self.readonly = False
         if input is not None: # copy constructor
             self.input = input
-            # self.metainfo_valid set in copy() 
+            # self.metainfo_valid set in copy()
             self.metainfo = metainfo
             self.infohash = infohash
             return
-        
+
         self.input = {} # fields added by user, waiting to be turned into torrent file
         # Define the built-in default here
         self.input.update(tdefdefaults)
@@ -69,8 +69,8 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         self.metainfo_valid = False
         self.metainfo = None # copy of loaded or last saved torrent dict
         self.infohash = None # only valid if metainfo_valid
-        
-        
+
+
         # We cannot set a built-in default for a tracker here, as it depends on
         # a Session. Alternatively, the tracker will be set to the internal
         # tracker by default when Session::start_download() is called, if the
@@ -83,7 +83,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """
         Load a BT .torrent or Tribler .tribe file from disk and convert
         it into a finalized TorrentDef.
-        
+
         @param filename  An absolute Unicode filename
         @return TorrentDef
         """
@@ -91,7 +91,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         f = open(filename,"rb")
         return TorrentDef._read(f)
     load = staticmethod(load)
-        
+
     def _read(stream):
         """ Internal class method that reads a torrent file from stream,
         checks it for correctness and sets self.input and self.metainfo
@@ -102,11 +102,11 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         #print >>sys.stderr,data
         return TorrentDef._create(data)
     _read = staticmethod(_read)
-        
+
     def _create(metainfo): # TODO: replace with constructor
         # raises ValueErrors if not good
         validTorrentFile(metainfo)
-        
+
         t = TorrentDef()
         t.metainfo = metainfo
         t.metainfo_valid = True
@@ -123,13 +123,13 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
         assert isinstance(t.infohash, str), "INFOHASH has invalid type: %s" % type(t.infohash)
         assert len(t.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(t.infohash)
-        
+
         #print >>sys.stderr,"INFOHASH",`t.infohash`
 
         return t
-    
+
     _create = staticmethod(_create)
-    
+
     @staticmethod
     def retrieve_from_magnet(url, callback, timeout=30.0, max_connections=30.0):
         """
@@ -140,8 +140,8 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         Returns True when attempting to obtain the TorrentDef, in this
         case CALLBACK will always be called.  Otherwise False is
         returned, in this case CALLBACK will not be called.
-        
-        The thread making the callback should be used very briefly. 
+
+        The thread making the callback should be used very briefly.
         """
         assert isinstance(url, str), "URL has invalid type: %s" % type(url)
         assert callable(callback), "CALLBACK must be callable"
@@ -156,7 +156,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             print >> sys.stderr, "Exception within magnet link"
             print >> sys.stderr, e
             return False
-    
+
     @staticmethod
     def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
         magnetlink = "magnet:?xt=urn:btih:"+hexlify(infohash)
@@ -167,7 +167,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
         file from the URL and convert it into a TorrentDef. If the URL starts
         with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
-        
+
         @param url URL
         @return TorrentDef.
         """
@@ -178,11 +178,11 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             # Metainfo created from URL, so create URL compatible TorrentDef.
             metainfo['info']['url-compat'] = 1
 
-            # For testing EXISTING LIVE: ENABLE, for old EXISTING MERKLE: DISABLE 
-            #metainfo['info']['name.utf-8'] = metainfo['info']['name'] 
+            # For testing EXISTING LIVE: ENABLE, for old EXISTING MERKLE: DISABLE
+            #metainfo['info']['name.utf-8'] = metainfo['info']['name']
 
             t = TorrentDef._create(metainfo)
-            
+
             return t
         else:
             f = urlOpenTimeout(url)
@@ -194,7 +194,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """
         Load a BT .torrent or Tribler .tribe file from the metainfo dictionary
         it into a TorrentDef
-        
+
         @param metainfo A dictionary following the BT torrent file spec.
         @return TorrentDef.
         """
@@ -210,13 +210,13 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         @return string
         """
         return "torrent"
-    
+
     def get_id(self):
         """ Returns a identifier for this Definition
         @return string
         """
         return self.get_infohash()
-    
+
     #
     # Convenience instance methods for publishing new content
     #
@@ -224,12 +224,12 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """
         Add a file or directory to this torrent definition. When adding a
         directory, all files in that directory will be added to the torrent.
-        
+
         One can add multiple files and directories to a torrent definition.
         In that case the "outpath" parameter must be used to indicate how
         the files/dirs should be named in the torrent. The outpaths used must
         start with a common prefix which will become the "name" field of the
-        torrent. 
+        torrent.
 
         To seed the torrent via the core (as opposed to e.g. HTTP) you will
         need to start the download with the dest_dir set to the top-level
@@ -244,32 +244,32 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             dscfg.set_dest_dir("c:\Video")
             s.start_download(tdef,dscfg)
         </pre>
-        @param inpath Absolute name of file or directory on local filesystem, 
+        @param inpath Absolute name of file or directory on local filesystem,
         as Unicode string.
         @param outpath (optional) Name of the content to use in the torrent def
         as Unicode string.
-        @param playtime (optional) String representing the duration of the 
-        multimedia file when played, in [hh:]mm:ss format. 
+        @param playtime (optional) String representing the duration of the
+        multimedia file when played, in [hh:]mm:ss format.
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
-        
+
         s = os.stat(inpath)
         d = {'inpath':inpath,'outpath':outpath,'playtime':playtime,'length':s.st_size}
         self.input['files'].append(d)
-        
+
         self.metainfo_valid = False
 
 
     def remove_content(self,inpath):
-        """ Remove a file or directory from this torrent definition 
+        """ Remove a file or directory from this torrent definition
 
-        @param inpath Absolute name of file or directory on local filesystem, 
+        @param inpath Absolute name of file or directory on local filesystem,
         as Unicode string.
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
-        
+
         for d in self.input['files']:
             if d['inpath'] == inpath:
                 self.input['files'].remove(d)
@@ -277,45 +277,45 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
     def create_live(self,name,bitrate,playtime="1:00:00",authconfig=None):
         """ Create a live streaming multimedia torrent with a specific bitrate.
-        
-        The authconfig is a subclass LiveSourceAuthConfig with the key 
+
+        The authconfig is a subclass LiveSourceAuthConfig with the key
         information required to allow authentication of packets from the source,
         or None. In the latter case there is no source authentication. The other
         two legal values are:
         <pre>
-        * An instance of ECDSALiveSourceAuthConfig. 
+        * An instance of ECDSALiveSourceAuthConfig.
         * An Instance of RSALiveSourceAuthConfig.
         </pre>
-        When using the ECDSA method, a sequence number, real-time timestamp and 
-        an ECDSA signature of 64 bytes is put in each piece. As a result, the 
-        content in each packet is get_piece_length()-81, so that this into 
+        When using the ECDSA method, a sequence number, real-time timestamp and
+        an ECDSA signature of 64 bytes is put in each piece. As a result, the
+        content in each packet is get_piece_length()-81, so that this into
         account when selecting the bitrate.
-        
+
         When using the RSA method, a sequence number, real-time timestamp and
         a RSA signature of keysize/8 bytes is put in each piece.
-        
-        The info from the authconfig is stored in the 'info' part of the 
+
+        The info from the authconfig is stored in the 'info' part of the
         torrent file when finalized, so changing the authentication info changes
         the identity (infohash) of the torrent.
-         
+
         @param name The name of the stream.
         @param bitrate The desired bitrate in bytes per second.
-        @param playtime The virtual playtime of the stream as a string in 
+        @param playtime The virtual playtime of the stream as a string in
         [hh:]mm:ss format.
         @param authconfig Parameters for the authentication of the source
         """
         self.input['bps'] = bitrate
-        self.input['playtime'] = playtime # size of virtual content 
+        self.input['playtime'] = playtime # size of virtual content
 
         # For source auth
         authparams = {}
         if authconfig is None:
             authparams['authmethod'] = LIVE_AUTHMETHOD_NONE
-        else: 
+        else:
             authparams['authmethod'] = authconfig.get_method()
             authparams['pubkey'] = authconfig.get_pubkey()
 
-        self.input['live'] = authparams 
+        self.input['live'] = authparams
 
         d = {'inpath':name,'outpath':None,'playtime':None,'length':None}
         self.input['files'].append(d)
@@ -327,7 +327,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """ Set the character encoding for e.g. the 'name' field """
         self.input['encoding'] = enc
         self.metainfo_valid = False
-        
+
     def get_encoding(self):
         return self.input['encoding']
 
@@ -335,16 +335,16 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """
         Reads image from file and turns it into a torrent thumbnail
         The file should contain an image in JPEG format, preferably 171x96.
-        
+
         @param thumbfilename Absolute name of image file, as Unicode string.
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
-        
+
         f = open(thumbfilename,"rb")
         data = f.read()
         f.close()
-        self.input['thumb'] = data 
+        self.input['thumb'] = data
         self.metainfo_valid = False
 
 
@@ -358,7 +358,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             return ('image/jpeg',thumb)
 
     def set_tracker(self,url):
-        """ Sets the tracker (i.e. the torrent file's 'announce' field). 
+        """ Sets the tracker (i.e. the torrent file's 'announce' field).
         @param url The announce URL.
         """
         if self.readonly:
@@ -366,11 +366,11 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
         if not isValidURL(url):
             raise ValueError("Invalid URL")
-        
+
         if url.endswith('/'):
             # Some tracker code can't deal with / at end
             url = url[:-1]
-        self.input['announce'] = url 
+        self.input['announce'] = url
         self.metainfo_valid = False
 
     def get_tracker(self):
@@ -397,7 +397,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             for url in tier:
                 if not isValidURL(url):
                     raise ValueError("Invalid URL: "+`url`)
-                
+
                 if url.endswith('/'):
                     # Some tracker code can't deal with / at end
                     url = url[:-1]
@@ -411,7 +411,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """ Returns the hierarchy of trackers.
         @return A list of lists. """
         return self.input['announce-list']
-    
+
     def get_trackers_as_single_tuple(self):
         """ Returns a flat tuple of all known trackers
         @return A tuple containing trackers
@@ -447,15 +447,15 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
                     raise ValueError("host in node is not string:"+`node`)
                 if type(node[1]) != IntType:
                     raise ValueError("port in node is not int:"+`node`)
-                
+
         self.input['nodes'] = nodes
-        self.metainfo_valid = False 
+        self.metainfo_valid = False
 
     def get_dht_nodes(self):
-        """ Returns the DHT nodes set. 
+        """ Returns the DHT nodes set.
         @return A list of [hostname,port] lists. """
         return self.input['nodes']
-        
+
     def set_comment(self,value):
         """ Set comment field.
         @param value A Unicode string.
@@ -532,10 +532,10 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         return self.input['httpseeds']
 
     def set_piece_length(self,value):
-        """ Set the size of the pieces in which the content is traded. 
+        """ Set the size of the pieces in which the content is traded.
         The piece size must be a multiple of the chunk size, the unit in which
-        it is transmitted, which is 16K by default (see 
-        DownloadConfig.set_download_slice_size()). The default is automatic 
+        it is transmitted, which is 16K by default (see
+        DownloadConfig.set_download_slice_size()). The default is automatic
         (value 0).
         @param value A number of bytes as per the text.
         """
@@ -552,7 +552,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """ Returns the piece size.
         @return A number of bytes. """
         return self.input['piece length']
-    
+
     def get_nr_pieces(self):
         """ Returns the number of pieces.
         @return A number of pieces. """
@@ -598,10 +598,10 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         self.metainfo_valid = False
 
     def get_add_sha1hash(self):
-        """ Returns whether to add an end-to-end SHA1 checksum to the def. 
+        """ Returns whether to add an end-to-end SHA1 checksum to the def.
         @return Boolean."""
         return self.input['makehash_sha1']
-    
+
     def set_create_merkle_torrent(self,value):
         """ Create a Merkle torrent instead of a regular BT torrent. A Merkle
         torrent uses a hash tree for checking the integrity of the content
@@ -664,14 +664,14 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """ Set the URL compatible value for this definition. Only possible
         for Merkle torrents and live torrents.
         @param value Integer."""
-        
+
         self.input['url-compat'] = value
 
     def get_url_compat(self):
         """ Returns whether this definition is URL compatible.
         @return Boolean. """
         return 'url-compat' in self.input and self.input['url-compat']
-        
+
     #
     # For P2P-transported Ogg streams
     #
@@ -686,11 +686,11 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             return self.input['ogg-headers']
         else:
             return None
-        
+
     def set_metadata(self,value):
-        """ Set the P2P-Next metadata 
+        """ Set the P2P-Next metadata
         @param value binary string """
-        
+
         self.input['ns-metadata'] = value
 
     def get_metadata(self):
@@ -702,7 +702,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             return None
 
     def set_initial_peers(self,value):
-        """ Set the initial peers to connect to. 
+        """ Set the initial peers to connect to.
         @param value List of (IP,port) tuples """
         self.input['initial peers'] = value
 
@@ -717,24 +717,24 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
     def finalize(self,userabortflag=None,userprogresscallback=None):
         """ Create BT torrent file by reading the files added with
-        add_content() and calculate the torrent file's infohash. 
-        
+        add_content() and calculate the torrent file's infohash.
+
         Creating the torrent file can take a long time and will be carried out
-        by the calling thread. The process can be made interruptable by passing 
-        a threading.Event() object via the userabortflag and setting it when 
-        the process should be aborted. The also optional userprogresscallback 
-        will be called by the calling thread periodically, with a progress 
+        by the calling thread. The process can be made interruptable by passing
+        a threading.Event() object via the userabortflag and setting it when
+        the process should be aborted. The also optional userprogresscallback
+        will be called by the calling thread periodically, with a progress
         percentage as argument.
-        
-        The userprogresscallback function will be called by the calling thread. 
-        
+
+        The userprogresscallback function will be called by the calling thread.
+
         @param userabortflag threading.Event() object
         @param userprogresscallback Function accepting a fraction as first
-        argument. 
+        argument.
         """
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
-        
+
         if self.metainfo_valid:
             return
 
@@ -751,28 +751,28 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
             add = (pl - diff) % pl
             newlen = int(length + add)
 
-                
+
             #print >>sys.stderr,"CHECK INFO LENGTH",secs,newlen
 
             d = self.input['files'][0]
             d['length'] = newlen
 
 
-        # Note: reading of all files and calc of hashes is done by calling 
+        # Note: reading of all files and calc of hashes is done by calling
         # thread.
-        
+
         (infohash,metainfo) = maketorrent.make_torrent_file(self.input,userabortflag=userabortflag,userprogresscallback=userprogresscallback)
         if infohash is not None:
-            
+
             if self.get_url_compat():
                 url = makeurl.metainfo2p2purl(metainfo)
                 # Make sure metainfo is preserved, in particular, the url-compat field.
-                swarmid = makeurl.metainfo2swarmid(metainfo) 
+                swarmid = makeurl.metainfo2swarmid(metainfo)
                 self.infohash = swarmid
             else:
                 self.infohash = infohash
             self.metainfo = metainfo
-            
+
             self.input['name'] = metainfo['info']['name']
             # May have been 0, meaning auto.
             self.input['piece length'] = metainfo['info']['piece length']
@@ -804,7 +804,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
     def get_metainfo(self):
         """ Returns the torrent definition as a dictionary that follows the BT
-        spec for torrent files. 
+        spec for torrent files.
         @return dict
         """
         if self.metainfo_valid:
@@ -830,7 +830,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         self.input['name'] = name
         self.metainfo_valid = False
 
-        
+
     def get_name_as_unicode(self):
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
@@ -905,10 +905,10 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
     def save(self,filename):
         """
-        Finalizes the torrent def and writes a torrent file i.e., bencoded dict 
+        Finalizes the torrent def and writes a torrent file i.e., bencoded dict
         following BT spec) to the specified filename. Note this may take a
         long time when the torrent def is not yet finalized.
-        
+
         @param filename An absolute Unicode path name.
         """
         if not self.readonly:
@@ -928,12 +928,12 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
 
     def get_bitrate(self,file=None):
-        """ Returns the bitrate of the specified file. If no file is specified, 
+        """ Returns the bitrate of the specified file. If no file is specified,
         we assume this is a single-file torrent.
-        
+
         @param file (Optional) the file in the torrent to retrieve the bitrate of.
         @return The bitrate in bytes per second or None.
-        """ 
+        """
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
 
@@ -1031,7 +1031,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         else:
             # Single-file torrent
             yield self.get_name_as_unicode(), self.metainfo["info"]["length"]
-        
+
     def get_files_as_unicode_with_length(self,exts=None):
         """ The list of files in the finalized torrent def.
         @param exts (Optional) list of filename extensions (without leading .)
@@ -1061,7 +1061,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
-        
+
         return maketorrent.get_length_from_metainfo(self.metainfo,selectedfiles)
 
     def get_creation_date(self,default=0):
@@ -1076,7 +1076,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         """
         if not self.metainfo_valid:
             raise NotYetImplementedException() # must save first
-        
+
         return 'files' in self.metainfo['info']
 
 
@@ -1090,18 +1090,18 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         else:
             raise TorrentDefNotFinalizedException()
 
-    
+
     def get_url(self):
         """ Returns the URL representation of this TorrentDef. The TorrentDef
-        must be a Merkle or live torrent and must be set to URL-compatible 
+        must be a Merkle or live torrent and must be set to URL-compatible
         before finalizing."""
-        
+
         if self.metainfo_valid:
             return makeurl.metainfo2p2purl(self.metainfo)
         else:
             raise TorrentDefNotFinalizedException()
-    
-    
+
+
     #
     # Internal methods
     #
@@ -1114,7 +1114,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
         if file is not None and 'files' in info:
             for i in range(len(info['files'])):
                 x = info['files'][i]
-                    
+
                 intorrentpath = maketorrent.pathlist2filename(x['path'])
                 if intorrentpath == file:
                     return i
@@ -1124,7 +1124,7 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
     #
     # Copyable interface
-    # 
+    #
     def copy(self):
         input = copy.copy(self.input)
         metainfo = copy.copy(self.metainfo)
@@ -1148,30 +1148,30 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_def_type(self):
         return "torrent"
-    
+
     def get_id(self):
         return self.get_infohash()
-    
+
     def get_infohash(self):
         return self.infohash
-    
+
     def get_live(self):
         return False
-    
+
     def get_length(self,selectedfiles=None):
         return 0
-    
+
     def get_metainfo(self):
         return None
-    
+
     def is_multifile_torrent(self):
         return False
-    
+
     def get_name_as_unicode(self):
         return unicode(self.name)
-    
+
     def get_files(self, exts = None):
         return []
-        
+
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)

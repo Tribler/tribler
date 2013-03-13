@@ -13,7 +13,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 
 
 defaults = [
-    ('output_file', '', 
+    ('output_file', '',
         'Where to write the PoA (default nodeid.poa)'),
     ('node_id', '', 'Node ID receiving the PoA'),
     ('key_file', '', 'Private key file, default torrentfile.tkey')
@@ -49,7 +49,7 @@ def create_poa(torrent, torrent_keypair, node_id, target_file):
         tf = target_file
     else:
         tf = ClosedSwarm.trivial_save_poa("./", decodestring(node_id), t.infohash, poa)
-    
+
     print "Proof of access written to file '%s'"%tf
 
 def get_usage(defs):
@@ -58,22 +58,22 @@ def get_usage(defs):
 
 
 if __name__ == "__main__":
-    
+
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, defaults, presets = {})
 
     if len(fileargs) < 2:
         get_usage(defaults)
         raise SystemExit(1)
-        
+
     torrent = fileargs[1]
     if not os.path.exists(torrent):
         print "Error: Could not find torrent file '%s'"%torrent
         raise SystemExit(1)
-    
+
     if not config['key_file']:
         config['key_file'] = torrent + ".tkey"
-        
+
     if not os.path.exists(config['key_file']):
         print "Error: Could not find key file '%s'"%config['key_file']
         raise SystemExit(1)
@@ -87,18 +87,17 @@ if __name__ == "__main__":
     if not t.get_cs_keys():
         print "Not a closed swarm torrent"
         raise SystemExit(1)
- 
+
     try:
         torrent_keypair = ClosedSwarm.read_cs_keypair(config['key_file'])
     except Exception,e:
         print "Bad torrent key file",e
         raise SystemExit(1)
-    
+
     # Need permid of the receiving node
     if not config['node_id']:
         print "Missing nodeid"
         raise SystemExit(1)
 
-    create_poa(t, torrent_keypair, 
+    create_poa(t, torrent_keypair,
                config['node_id'], config['output_file'])
-    

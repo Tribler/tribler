@@ -15,7 +15,7 @@ RATE=32768
 def vod_event_callback(d,event,params):
     if event == VODEVENT_START:
         stream = params["stream"]
-        
+
         # SWIFTPROC
         if stream is None:
             # Access swift HTTP interface directly
@@ -30,7 +30,7 @@ def vod_event_callback(d,event,params):
             while total < int(RATE):
                 data = stream.read(int(RATE))
                 total += len(data)
-                
+
             grandtotal += total
             et = time.time()
             diff = max(et - st,0.00001)
@@ -56,7 +56,7 @@ statedir = tempfile.mkdtemp()
 port = random.randint(10000,20000)
 
 scfg = SessionStartupConfig()
-scfg.set_state_dir(statedir) 
+scfg.set_state_dir(statedir)
 scfg.set_listen_port(port)
 scfg.set_megacache( False )
 scfg.set_overlay( False )
@@ -93,5 +93,4 @@ d = s.start_download( cdef, dscfg )
 d.set_state_callback(state_callback,getpeerlist=False)
 
 while True:
-  time.sleep(60)
-
+    time.sleep(60)

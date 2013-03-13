@@ -4,9 +4,9 @@
 # Test whether Tribler tries to establish an overlay connection when it meets
 # another Tribler peer in a swarm.
 #
-# Like test_secure_overlay, we start a new python interpreter for each test. 
+# Like test_secure_overlay, we start a new python interpreter for each test.
 # Although we don't have the singleton problem here, we do need to do this as the
-# HTTPServer that MyTracker uses won't relinquish the listen socket, causing 
+# HTTPServer that MyTracker uses won't relinquish the listen socket, causing
 # "address in use" errors in the next test. This is probably due to the fact that
 # MyTracker has a thread mixed in, as a listensocket.close() normally releases it
 # (according to lsof).
@@ -34,14 +34,14 @@ DEBUG=True
 
 
 class MyTracker(ThreadingMixIn,BaseHTTPServer.HTTPServer):
-    
+
     def __init__(self,trackport,myid,myip,myport):
         self.myid = myid
         self.myip = myip
         self.myport = myport
         BaseHTTPServer.HTTPServer.__init__( self, ("",trackport), SimpleServer )
         self.daemon_threads = True
-        
+
     def background_serve( self ):
         thread.start_new_thread( self.serve_forever, () )
 
@@ -52,7 +52,7 @@ class MyTracker(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
-        
+
         print >>sys.stderr,"test: tracker: Got GET request",self.path
 
         p = []
@@ -68,7 +68,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Length", size)
         self.end_headers()
-        
+
         try:
             self.wfile.write(bd)
         except Exception,e:
@@ -77,7 +77,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class TestConnectOverlay(TestAsServer):
-    """ 
+    """
     Testing download helping
     """
 
@@ -98,7 +98,7 @@ class TestConnectOverlay(TestAsServer):
         self.myss.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.myss.bind(('', self.mylistenport))
         self.myss.listen(1)
-        
+
         # Must be changed in test/extend_hs_dir/dummydata.merkle.torrent as well
         self.mytrackerport = 4901
         self.myid = 'R410-----HgUyPu56789'
@@ -113,20 +113,20 @@ class TestConnectOverlay(TestAsServer):
         TestAsServer.setUpPostSession(self)
 
         self.mypermid = str(self.my_keypair.pub().get_der())
-        self.hispermid = str(self.his_keypair.pub().get_der())  
-        
+        self.hispermid = str(self.his_keypair.pub().get_der())
+
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.torrentfile = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        
+
         tdef = TorrentDef.load(self.torrentfile)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
-        
+
         self.session.start_download(tdef,dscfg)
 
 
@@ -141,7 +141,7 @@ class TestConnectOverlay(TestAsServer):
     #
     #
     def singtest_connect_overlay(self):
-        """ 
+        """
         """
         # 1. Accept the data connection Tribler wants to establish with us
         self.myss.settimeout(10.0)
@@ -154,7 +154,7 @@ class TestConnectOverlay(TestAsServer):
         resp = s.recv()
         self.assert_(len(resp) > 0)
         print >> sys.stderr,"test: Data conn replies",getMessageName(resp[0])
-        
+
         # 2. Tribler should now try to establish an overlay connection with us
         self.myss.settimeout(10.0)
         conn, addr = self.myss.accept()
@@ -164,7 +164,7 @@ class TestConnectOverlay(TestAsServer):
         # Desired behaviour is that the accept() succeeds. If not it will time
         # out, and throw an exception, causing this test to fail.
         time.sleep(3)
-        
+
         s.close()
         s2.close()
 
@@ -181,13 +181,13 @@ class TestConnectOverlay(TestAsServer):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_connect_overlay.py <method name>"
     else:
         suite.addTest(TestConnectOverlay(sys.argv[1]))
-    
+
     return suite
 
 def main():

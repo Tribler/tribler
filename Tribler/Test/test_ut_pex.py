@@ -23,7 +23,7 @@ from Tribler.Core.DownloadConfig import *
 DEBUG=True
 
 class TestUTorrentPeerExchange(TestAsServer):
-    """ 
+    """
     Testing EXTEND uTorrent Peer Exchange message:
 
     See BitTornado/BT1/Connecter.py and Tribler/DecentralizedTracking/ut_pex.py
@@ -35,28 +35,28 @@ class TestUTorrentPeerExchange(TestAsServer):
         print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
         time.sleep(3)
         print >>sys.stderr,"test: MyLaunchMany should have started up"
-    
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
 
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
-        
+
         self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
         tdef = TorrentDef.load(self.torrentfn)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
-        
+
         self.session.start_download(tdef,dscfg)
-        
+
         # This is the infohash of the torrent in test/extend_hs_dir
         self.infohash = '\xccg\x07\xe2\x9e!]\x16\xae{\xb8\x10?\xf9\xa5\xf9\x07\xfdBk'
         self.mylistenport = 4810
 
     def test_all(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -101,8 +101,8 @@ class TestUTorrentPeerExchange(TestAsServer):
 
     def subtest_good_tribler_ut_pex(self):
         self._test_good(self.create_good_tribler_extend_hs,infohash=self.infohash)
-        
-        # We've said we're a Tribler peer, and we initiated the connection, so 
+
+        # We've said we're a Tribler peer, and we initiated the connection, so
         # now *we* should now try to establish an overlay-swarm connection.
         s = OLConnection(self.my_keypair,'localhost',self.hisport,mylistenport=self.mylistenport)
         # the connection should be intact, so this should not throw an
@@ -123,7 +123,7 @@ class TestUTorrentPeerExchange(TestAsServer):
             s = BTConnection('localhost',self.hisport,user_option_pattern=options)
         else:
             s = BTConnection('localhost',self.hisport,user_option_pattern=options,user_infohash=infohash)
-            
+
         if DEBUG:
             print "test: Creating test HS message",msg_gen_func,"pex_id",pex_id
         msg = msg_gen_func(pex_id=pex_id)
@@ -133,7 +133,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         # Send our ut_pex message to Tribler
         msg = self.create_good_ut_pex()
         s.send(msg)
-        
+
         time.sleep(5)
 
         # Tribler should send an EXTEND HS message back
@@ -163,7 +163,7 @@ class TestUTorrentPeerExchange(TestAsServer):
             print >> sys.stderr,"test: Timeout, bad, peer didn't reply with EXTEND ut_pex message"
             self.assert_(False)
 
-        
+
 
     def create_good_nontribler_extend_hs(self,listenport=None,pex_id=1):
         d = {}
@@ -213,14 +213,14 @@ class TestUTorrentPeerExchange(TestAsServer):
     def check_ut_pex(self,data,pex_id,connections):
         self.assert_(data[0] == chr(pex_id))
         d = bdecode(data[1:])
-        
+
         print >>sys.stderr,"test: d is",`d`,"pex_id",pex_id
-        
+
         self.assert_(type(d) == DictType)
         self.assert_('added' in d.keys())
         cp = d['added']
         apeers = self.check_compact_peers(cp)
-        
+
         print >>sys.stderr,"test: apeers is",apeers
 
         self.assert_('added.f' in d.keys())
@@ -232,7 +232,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         cp = d['dropped']
         self.check_compact_peers(cp)
 
-        
+
         # Check that the fake client(s) we created are included
         connections_in_pex = sum(connections.values())
         self.assert_(len(apeers) == connections_in_pex)
@@ -264,7 +264,7 @@ class TestUTorrentPeerExchange(TestAsServer):
 
     #
     # Bad EXTEND handshake message
-    #    
+    #
     def subtest_bad_ut_pex(self):
         methods = [self.create_empty,
             self.create_ext_id_not_byte,
@@ -279,7 +279,7 @@ class TestUTorrentPeerExchange(TestAsServer):
             # self.create_added_missing,
             # self.create_added_f_missing,
             # self.create_dropped_missing,
-                   
+
             self.create_added_not_str,
             self.create_added_f_not_str,
             self.create_dropped_not_str,
@@ -297,14 +297,14 @@ class TestUTorrentPeerExchange(TestAsServer):
         options = '\x00\x00\x00\x00\x00\x10\x00\x00'
         s = BTConnection('localhost',self.hisport,user_option_pattern=options,user_infohash=self.infohash)
         print >> sys.stderr,"\ntest: ",gen_drequest_func
-        
+
         hsmsg = self.create_good_nontribler_extend_hs()
         s.send(hsmsg)
-        
+
         msg = gen_drequest_func()
         s.send(msg)
         time.sleep(5)
-        
+
         # the other side should not like this and close the connection
         try:
             s.s.settimeout(10.0)
@@ -324,13 +324,13 @@ class TestUTorrentPeerExchange(TestAsServer):
 
     #
     # Bad message creators
-    # 
+    #
     def create_empty(self):
         return EXTEND+chr(1)
 
     def create_ext_id_not_byte(self):
         return EXTEND+'Hallo kijkbuiskinderen'
-    
+
     def create_not_bdecodable(self):
         return EXTEND+chr(1)+"bla"
 
@@ -350,14 +350,14 @@ class TestUTorrentPeerExchange(TestAsServer):
         d['bla2'] = ''
         bd = bencode(d)
         return EXTEND+chr(1)+bd
-        
+
     def create_added_missing(self):
         d = {}
         d['added.f'] = ''
         d['dropped'] = ''
         bd = bencode(d)
         return EXTEND+chr(1)+bd
-        
+
     def create_added_f_missing(self):
         d = {}
         d['added'] = ''
@@ -413,7 +413,7 @@ class TestUTorrentPeerExchange(TestAsServer):
         return EXTEND+chr(1)+bd
 
     def create_dropped_too_small(self):
-        d = {}        
+        d = {}
         d['added'] = ''
         d['added.f'] = ''
         d['dropped'] = '\x82\x25\xc1\x40\x00' # should be 6 bytes
@@ -425,9 +425,8 @@ class TestUTorrentPeerExchange(TestAsServer):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(TestUTorrentPeerExchange))
-    
+
     return suite
 
 if __name__ == "__main__":
     unittest.main()
-

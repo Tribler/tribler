@@ -30,7 +30,7 @@ def testing_setup(module_name):
     logger.setLevel(logging.DEBUG)
     filename = ''.join((str(module_name), '.log'))
     logger_file = os.path.join('test_logs', filename)
-    
+
     logger_conf = logging.FileHandler(logger_file, 'w')
     logger_conf.setLevel(logging.DEBUG)
     logger_conf.setFormatter(logging.Formatter(FORMAT))
@@ -50,5 +50,3 @@ def setup(logs_path, logs_level):
     logger_conf.setLevel(logs_level)
     logger_conf.setFormatter(logging.Formatter(FORMAT))
     logger.addHandler(logger_conf)
-
-

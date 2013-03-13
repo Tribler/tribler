@@ -26,11 +26,11 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
     that are registered and sends them using an HTTP Post at
     the given interval.  Made to work with the P2P-Next lab.
     """
-    
+
     host = "p2pnext-statistics.comp.lancs.ac.uk"
     #path = "/testpost/"
     path = "/post/"
-    
+
     def __init__(self, name, frequency, id, error_handler=None,
                  print_post=False):
         """
@@ -43,14 +43,14 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         port fails
         print_post: Print post to stderr when posting to the lab (largely
         useful for debugging)
-        
+
         """
         Status.PeriodicStatusReporter.__init__(self,
                                                name,
                                                frequency,
                                                error_handler)
         self.device_id = id
-        self.print_post = print_post 
+        self.print_post = print_post
         self.num_reports = 0
 
     def new_element(self, doc, name, value):
@@ -61,9 +61,9 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         element = doc.createElement(name)
         value = doc.createTextNode(str(value))
         element.appendChild(value)
-        
+
         return element
-        
+
     def report(self):
         """
         Create the report in XML and send it
@@ -73,17 +73,17 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         doc = xml.dom.minidom.Document()
         root = doc.createElement("nextsharedata")
         doc.appendChild(root)
-        
+
         # Create the header
         header = doc.createElement("header")
         root.appendChild(header)
         header.appendChild(self.new_element(doc, "deviceid", self.device_id))
         header.appendChild(self.new_element(doc, "timestamp",
                                            long(round(time.time()))))
-        
+
         version = "cs_v2a"
         header.appendChild(self.new_element(doc, "swversion", version))
-        
+
 
         # Now add the status elements
         elements = self.get_elements()
@@ -114,15 +114,15 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                 elif event.__class__ == Status.RangeElement:
                     report.appendChild(self.new_element(doc, "starttimestamp",
                                                        event.get_start_time()))
-                    
+
                     report.appendChild(self.new_element(doc, "endtimestamp",
                                                        event.get_end_time()))
                 for value in event.get_values():
                     report.appendChild(self.new_element(doc, "value", value))
-                    
+
         if len(elements) == 0 and len(events) == 0:
             return # Was nothing here for us
-        
+
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
         if self.print_post:
@@ -139,9 +139,9 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         """
 
         #print >>sys.stderr, xml_str
-        
+
         self.num_reports += 1
-        
+
         boundary = "------------------ThE_bOuNdArY_iS_hErE_$"
         # headers = {"Host":self.host,
         #            "User-Agent":"NextShare status reporter 2009.4",
@@ -196,7 +196,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
             else:
                 print >> sys.stderr, "Error posting but no error handler:", resp.status
                 print >> sys.stderr, resp.read()
-        
+
 
 if __name__ == "__main__":
     """
@@ -209,7 +209,7 @@ if __name__ == "__main__":
         Test error-handler
         """
         print "Error:", code, message
-        
+
     reporter = LivingLabPeriodicReporter("Living lab test reporter",
                                          1.0, test_error_handler)
     status.add_reporter(reporter)

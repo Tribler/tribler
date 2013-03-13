@@ -48,7 +48,7 @@ class EventDispatcher:
     ##############################################
     # PUBLIC API
     ##############################################
-        
+
     def dispatch(self, sid, event_key, callback_url, variables):
         """Dispatch a new UPnP event message."""
         # Generate Soap Body
@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     import Tribler.UPnP.common.taskrunner as taskrunner
     TASK_RUNNER = taskrunner.TaskRunner()
-    
+
     # Parameters
     import uuid
     SID = uuid.uuid1()
@@ -106,4 +106,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print
     EVD.close()
-        

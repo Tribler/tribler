@@ -50,8 +50,8 @@ except ImportError,e:
     prctlimported = False
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
-# errors on Vista in "Regional and Language Settings Options" different from 
-# "English[United Kingdom]" 
+# errors on Vista in "Regional and Language Settings Options" different from
+# "English[United Kingdom]"
 #import locale
 
 # 20/10/09 Boudewijn: on systems that install multiple wx versions we
@@ -66,7 +66,7 @@ import wx
 from wx import xrc
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow 
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 #import hotshot
 
 from traceback import print_exc
@@ -77,7 +77,7 @@ import thread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame,VideoMacFrame
-## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text 
+## from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
@@ -138,7 +138,7 @@ class ABCApp():
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = installdir
-        
+
         self.state_dir = None
         self.error = None
         self.last_update = 0
@@ -156,10 +156,10 @@ class ABCApp():
         self.dispersy = None
         # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
         self.effort_community = None
-        
+
         self.seedingmanager = None
         self.i2is = None
-        self.torrentfeed = None    
+        self.torrentfeed = None
         self.webUI = None
         self.utility = None
         self.videoplayer = None
@@ -176,19 +176,19 @@ class ABCApp():
 
             sys.stderr.write('Client Starting Up.\n')
             sys.stderr.write('Tribler Version: '+self.utility.lang.get('version') + ' Build: ' + self.utility.lang.get('build') + '\n')
-            
+
             self.splash.tick('Starting API')
             self.startAPI(self.splash.tick)
-            
+
             self.utility.postAppInit(os.path.join(self.installdir,'Tribler','Images','tribler.ico'))
-            
+
             cat = Category.getInstance(self.utility.getPath())
             cat.init_from_main(self.utility)
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
             self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2iconnhandler) 
+            self.i2is = Instance2InstanceServer(I2I_LISTENPORT,self.i2iconnhandler)
             self.i2is.start()
 
             # Arno, 2010-01-15: VLC's reading behaviour of doing open-ended
@@ -197,7 +197,7 @@ class ABCApp():
             # is less severe (see VideoPlayer), so keep GET Range enabled.
             #
             #SimpleServer.RANGE_REQUESTS_ENABLED = False
-            
+
             # Fire up the VideoPlayer, it abstracts away whether we're using
             # an internal or external video player.
             playbackmode = self.utility.config.Read('videoplaybackmode', "int")
@@ -206,30 +206,30 @@ class ABCApp():
 
             notification_init(self.utility)
             self.guiUtility.register()
-            
+
             channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
             if channel_only:
                 f = open(os.path.join(self.installdir, 'joinchannel'), 'rb')
                 channel_only = f.readline()
                 f.close()
-            
+
             self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
                 vlcwrap = self.videoplayer.get_vlcwrap()
-            
+
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
                 self.videoplayer.set_videoframe(self.frame.videoframe)
-                
+
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
                 wx.CallAfter(self.frame.top_bg.Layout)
             else:
                 self.frame.top_bg.Layout()
-          
-            # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp 
+
+            # Arno, 2007-05-03: wxWidgets 2.8.3.0 and earlier have the MIME-type for .bmp
             # files set to 'image/x-bmp' whereas 'image/bmp' is the official one.
             try:
                 bmphand = None
@@ -245,12 +245,12 @@ class ABCApp():
             except:
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
-            
+
             self.splash.Destroy()
             self.frame.Show(True)
-           
+
             self.torrentfeed = RssParser.getInstance()
-            
+
             self.webUI = None
             if self.utility.config.Read('use_webui', "boolean"):
                 try:
@@ -259,24 +259,24 @@ class ABCApp():
                     self.webUI.start()
                 except Exception:
                     print_exc()
-            
+
             wx.CallAfter(self.PostInit2)
-            
+
             # 08/02/10 Boudewijn: Working from home though console
             # doesn't allow me to press close.  The statement below
             # gracefully closes Tribler after 120 seconds.
             # wx.CallLater(120*1000, wx.GetApp().Exit)
-            
+
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
 #            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
 #            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
-            
+
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
             status.create_and_add_event("client-startup-build", [self.utility.lang.get("build")])
             status.create_and_add_event("client-startup-build-date", [self.utility.lang.get("build_date")])
-            
+
             self.ready = True
 
         except Exception,e:
@@ -287,7 +287,7 @@ class ABCApp():
         self.frame.Raise()
         self.startWithRightView()
         self.set_reputation()
-        
+
         s = self.utility.session
         s.add_observer(self.sesscb_ntfy_reachable,NTFY_REACHABLE,[NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_activities,NTFY_ACTIVITIES,[NTFY_INSERT], cache = 10)
@@ -302,35 +302,35 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_torrentfinished,NTFY_TORRENTS,[NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
-        
+
         if Dispersy.has_instance():
             self.sesscb_ntfy_dispersy()
         else:
             s.add_observer(self.sesscb_ntfy_dispersy, NTFY_DISPERSY, [NTFY_STARTED])
-        
+
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
         def db_thread():
             return channelcast.getMyChannelId()
-            
+
         def wx_thread(delayedResult):
             my_channel = delayedResult.get()
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                       
+
         startWorker(wx_thread, db_thread, delay = 5.0)
 
     def startAPI(self, progress):
         # Start Tribler Session
         state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
-        
+
         if DEBUG:
             print >>sys.stderr,"main: Session config",cfgfilename
-        
+
         create_new = False
-        if os.path.exists(cfgfilename):    
+        if os.path.exists(cfgfilename):
             try:
                 self.sconfig = SessionStartupConfig.load(cfgfilename)
             except:
@@ -338,23 +338,23 @@ class ABCApp():
                 create_new = True
         else:
             create_new = True
-            
+
         if create_new:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
-            
+
             # Set default Session params here
             destdir = get_default_dest_dir()
             torrcolldir = os.path.join(destdir,STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
             self.sconfig.set_nat_detect(True)
-            
+
             # Arno, 2012-05-04: swift
             self.sconfig.set_swift_tunnel_listen_port(7758)
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
             self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
-            
+
             # rename old collected torrent directory
             try:
                 if not os.path.exists(destdir):
@@ -363,7 +363,7 @@ class ABCApp():
                 if not os.path.exists(torrcolldir) and os.path.isdir(old_collected_torrent_dir):
                     os.rename(old_collected_torrent_dir, torrcolldir)
                     print >>sys.stderr,"main: Moved dir with old collected torrents to", torrcolldir
-                    
+
                 # Arno, 2008-10-23: Also copy torrents the user got himself
                 old_own_torrent_dir = os.path.join(state_dir, 'torrent')
                 for name in os.listdir(old_own_torrent_dir):
@@ -372,25 +372,25 @@ class ABCApp():
                     if not os.path.exists(newpath):
                         print >>sys.stderr,"main: Copying own torrent",oldpath,newpath
                         os.rename(oldpath,newpath)
-                    
+
                 # Internal tracker
             except:
                 print_exc()
 
         # 22/08/08 boudewijn: convert abc.conf to SessionConfig
         self.utility.convert__presession_4_1__4_2(self.sconfig)
-        
+
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
-        
+
         # Arno, 2012-05-04: swift
         self.sconfig.set_swift_tunnel_listen_port(7758)
         self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
         self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
-        
+
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
-        
+
         # apply trick to obtain the executable location
         # see http://www.py2exe.org/index.cgi/WhereAmI
         # Niels, 2012-01-31: py2exe should only apply to windows
@@ -399,21 +399,21 @@ class ABCApp():
                 """Returns whether we are frozen via py2exe.
                 This will affect how we find out where we are located."""
                 return hasattr(sys, "frozen")
-    
+
             def module_path():
                 """ This will get us the program's directory,
                 even if we are frozen using py2exe"""
                 if we_are_frozen():
                     return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
-                
+
                 filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
                 return os.path.abspath(os.path.join(filedir, '..', '..'))
-            
+
             self.sconfig.set_install_dir(module_path())
-            
+
         else:
             self.sconfig.set_install_dir(self.installdir)
-            
+
         print >> sys.stderr, "Tribler is using",  self.sconfig.get_install_dir(), "as working directory"
 
         # Arno, 2012-05-21: Swift part II
@@ -423,7 +423,7 @@ class ABCApp():
                 swiftbinpath = os.path.join(os.getcwdu(),"..","MacOS","swift")
         self.sconfig.set_swift_path(swiftbinpath)
         print >>sys.stderr,"Tribler is expecting swift in",swiftbinpath
-        
+
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         self.utility.session = s
@@ -451,7 +451,7 @@ class ABCApp():
 
         # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
         self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
-        
+
         # 15/05/12 niels: fixing swift port + disabling overlay
         defaultDLConfig.set_swift_listen_port(7758)
         defaultDLConfig.dlconfig['overlay'] = False
@@ -488,10 +488,10 @@ class ABCApp():
         ltmgr = LibtorrentMgr.getInstance(s, self.utility)
         ltmgr.set_upload_rate_limit(maxup*1024)
         ltmgr.set_download_rate_limit(maxdown*1024)
- 
-# SelectiveSeeding _       
+
+# SelectiveSeeding _
         self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
-        # self.seedingcount = 0 
+        # self.seedingcount = 0
 # _SelectiveSeeding
 
         # seeding stats crawling
@@ -503,8 +503,8 @@ class ABCApp():
             self.seedingstats_settings = seedstatsdb.loadCrawlingSettings()
             self.seedingstats_enabled = self.seedingstats_settings[0][2]
             self.seedingstats_interval = self.seedingstats_settings[0][1]
-         
-        
+
+
         # Only allow updates to come in after we defined ratelimiter
         self.prevActiveDownloads = []
         s.set_download_states_callback(self.sesscb_states_callback)
@@ -520,10 +520,10 @@ class ABCApp():
                 if self.frame.searchlist:
                     manager = self.frame.searchlist.GetManager()
                     manager.downloadStarted(objectID)
-                
+
                 manager = self.frame.selectedchannellist.GetManager()
                 manager.downloadStarted(objectID)
-            
+
             manager = self.frame.librarylist.GetManager()
             manager.downloadStarted(objectID)
 
@@ -536,18 +536,18 @@ class ABCApp():
                     from Tribler.community.search.community import SearchCommunity
                     if isinstance(community, SearchCommunity):
                         nr_connections = community.get_nr_connections()
-            
+
             return nr_connections
-            
+
         def do_wx(delayedResult):
             nr_connections = delayedResult.get()
-            
+
             #self.frame.SRstatusbar.set_reputation(myRep, total_down, total_up)
-            
+
             #bitmap is 16px wide, -> but first and last pixel do not add anything.
             percentage = min(1.0, (nr_connections + 1) / 16.0)
             self.frame.SRstatusbar.SetConnections(percentage, nr_connections)
-        
+
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
             startWorker(do_wx, do_db, uId = "tribler.set_reputation")
@@ -562,13 +562,13 @@ class ABCApp():
     def sesscb_states_callback(self, dslist):
         if not self.ready:
             return (5.0, False)
-        
+
         wantpeers = False
-        if DEBUG: 
+        if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()    
-            
+            print >>sys.stderr,"main: Stats: Total torrents found",torrentdb.size(),"peers",peerdb.size()
+
         try:
             # Print stats on Console
             if DEBUG:
@@ -617,25 +617,25 @@ class ABCApp():
             for ds in dslist:
                 if ds.get_download() == d:
                     playds = ds
-                    
+
             # Apply status displaying from SwarmPlayer
             if playds:
                 def do_video():
                     videoplayer_mediastate = self.videoplayer.get_state()
-    
+
                     totalhelping = 0
                     totalspeed = {UPLOAD:0.0,DOWNLOAD:0.0}
                     for ds in dslist:
                         totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
                         totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
                         totalhelping += ds.get_num_peers()
-    
+
                     [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(playds,videoplayer_mediastate,"Tribler",self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
                     # Update status msg and progress bar
                     if topmsg != '':
-                        
+
                         if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
-                            # In SwarmPlayer we would display "Decoding: N secs" 
+                            # In SwarmPlayer we would display "Decoding: N secs"
                             # when VLC was playing but the video was not yet
                             # being displayed (because VLC was looking for an
                             # I-frame). We would display it in the area where
@@ -649,45 +649,45 @@ class ABCApp():
                             text = topmsg
                     else:
                         text = msg
-                        
+
                     #print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
                     playds.vod_status_msg = text
                     self.videoplayer.set_player_status_and_progress(text,playds.get_pieces_complete())
                 wx.CallAfter(do_video)
-            
+
             # Check to see if a download has finished
             newActiveDownloads = []
             doCheckpoint = False
             for ds in dslist:
-                state = ds.get_status() 
+                state = ds.get_status()
                 safename = ds.get_download().get_def().get_name()
-                
+
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
-                    
+
                 elif state == DLSTATUS_SEEDING:
                     if safename in self.prevActiveDownloads:
-                        download = ds.get_download() 
+                        download = ds.get_download()
                         cdef = download.get_def()
-                        
+
                         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
                         destdir = os.path.basename(download.get_dest_dir())
                         if destdir != coldir:
                             hash = cdef.get_id()
-                            
+
                             notifier = Notifier.getInstance()
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
-                            
+
                             # Arno, 2012-05-04: Swift reseeding
                             if self.utility.config.Read('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
                                 self.sesscb_reseed_via_swift(download)
-                                
+
                             doCheckpoint = True
-            
+
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
                 self.utility.session.checkpoint()
-            
+
             # SelectiveSeeding_
             # Apply seeding policy every 60 seconds, for performance
             # Boudewijn 12/01/10: apply seeding policies immediately
@@ -703,18 +703,18 @@ class ABCApp():
             # restarting of torrents before and after VOD playback
             # occurs.
             self.videoplayer.restart_other_downloads(no_collected_list)
-                     
+
             # Adjust speeds once every 4 seconds
             adjustspeeds = False
             if self.rateadjustcount % 4 == 0:
                 adjustspeeds = True
             self.rateadjustcount += 1
-    
+
             if adjustspeeds:
                 swift_dslist = [ds for ds in no_collected_list if ds.get_download().get_def().get_def_type() == 'swift']
                 self.ratelimiter.add_downloadstatelist(swift_dslist)
                 self.ratelimiter.adjust_speeds()
-                
+
                 if DEBUG_DOWNLOADS:
                     for ds in dslist:
                         cdef = ds.get_download().get_def()
@@ -724,54 +724,54 @@ class ABCApp():
                             print >>sys.stderr,"tribler: SW",dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD)
                         else:
                             print >>sys.stderr,"tribler: BT",dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD)
- 
+
             # Crawling Seeding Stats_
             if self.seedingstats_enabled == 1:
                 snapshot_seeding_stats = False
                 if self.seeding_snapshot_count % self.seedingstats_interval == 0:
                     snapshot_seeding_stats = True
                 self.seeding_snapshot_count += 1
-                
+
                 if snapshot_seeding_stats:
                     bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
                     reputation = bc_db.getMyReputation()
-                
+
                     seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
                     seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
             # _Crawling Seeding Stats
-            
+
         except:
             print_exc()
-        
+
         return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):
         #Niels: first remove all "swift" torrent collect checkpoints
         dir = self.utility.session.get_downloads_pstate_dir()
         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
-        
+
         filelist = os.listdir(dir)
         filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.pickle')]
-        
+
         for file in filelist:
             try:
                 pstate = self.utility.session.lm.load_download_pstate(file)
                 dlconfig = pstate['dlconfig']
-                
+
                 if dlconfig.get('saveas', ''):
                     destdir = os.path.basename(dlconfig['saveas'])
                     if destdir == coldir:
                         os.remove(file)
             except:
                 pass
-            
+
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         user_download_choice = UserDownloadChoice.get_singleton()
         initialdlstatus_dict = {}
         for id, state in user_download_choice.get_download_states().iteritems():
             if state == 'stop':
                 initialdlstatus_dict[id] = DLSTATUS_STOPPED
-        
+
         self.utility.session.load_checkpoint(initialdlstatus_dict = initialdlstatus_dict)
 
     def guiservthread_checkpoint_timer(self):
@@ -785,16 +785,16 @@ class ABCApp():
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
-    
+
     @forceWxThread
     def sesscb_ntfy_activities(self,events):
         if self.ready and self.frame.ready:
             for args in events:
                 objectID = args[2]
                 args = args[3:]
-        
+
                 self.frame.setActivity(objectID, *args)
-    
+
     @forceWxThread
     def sesscb_ntfy_reachable(self,subject,changeType,objectID,msg):
         if self.ready and self.frame.ready:
@@ -807,52 +807,52 @@ class ABCApp():
                 subject = args[0]
                 changeType = args[1]
                 objectID = args[2]
-            
+
                 if self.frame.channellist:
                     if len(args) > 3:
                         myvote = args[3]
                     else:
                         myvote = False
-                    
+
                     manager = self.frame.channellist.GetManager()
                     manager.channelUpdated(objectID, subject == NTFY_VOTECAST, myvote = myvote)
-                
+
                 manager = self.frame.selectedchannellist.GetManager()
                 manager.channelUpdated(objectID, stateChanged = changeType == NTFY_STATE, modified = changeType == NTFY_MODIFIED)
-                
+
                 if changeType == NTFY_CREATE:
                     if self.frame.channellist:
                         self.frame.channellist.SetMyChannelId(objectID)
-                    
+
                     self.torrentfeed.register(self.utility.session, objectID)
                     self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                
+
                 self.frame.managechannel.channelUpdated(objectID, created = changeType == NTFY_CREATE, modified = changeType == NTFY_MODIFIED)
-    
+
     @forceWxThread
     def sesscb_ntfy_torrentupdates(self, events):
         if self.ready and self.frame.ready:
             infohashes = [args[2] for args in events]
-            
+
             if self.frame.searchlist:
                 manager = self.frame.searchlist.GetManager()
                 manager.torrentsUpdated(infohashes)
-                
+
                 manager = self.frame.selectedchannellist.GetManager()
                 manager.torrentsUpdated(infohashes)
-                
+
                 manager = self.frame.playlist.GetManager()
                 manager.torrentsUpdated(infohashes)
-                
+
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
-            
+
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon = 'seed')
-        
+
         if self.ready and self.frame.ready:
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)
-            
+
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:
             self.guiUtility.library_manager.magnet_started(objectID)
@@ -862,16 +862,16 @@ class ABCApp():
             self.guiUtility.library_manager.magnet_got_piece(objectID, args[0])
         elif changetype == NTFY_MAGNET_CLOSE:
             self.guiUtility.library_manager.magnet_close(objectID)
-        
+
     @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             if changeType == NTFY_INSERT:
                 self.frame.managechannel.playlistCreated(objectID)
-                
+
                 manager = self.frame.selectedchannellist.GetManager()
                 manager.playlistCreated(objectID)
-                
+
             else:
                 self.frame.managechannel.playlistUpdated(objectID, modified = changeType == NTFY_MODIFIED)
 
@@ -881,56 +881,56 @@ class ABCApp():
                     infohash = False
                 manager = self.frame.selectedchannellist.GetManager()
                 manager.playlistUpdated(objectID, infohash, modified = changeType == NTFY_MODIFIED)
-                
+
                 manager = self.frame.playlist.GetManager()
                 manager.playlistUpdated(objectID, modified = changeType == NTFY_MODIFIED)
-                
-    @forceWxThread     
+
+    @forceWxThread
     def sesscb_ntfy_commentupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnCommentCreated(objectID)
             self.frame.playlist.OnCommentCreated(objectID)
-    
+
     @forceWxThread
     def sesscb_ntfy_modificationupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnModificationCreated(objectID)
             self.frame.playlist.OnModificationCreated(objectID)
-            
+
     @forceWxThread
     def sesscb_ntfy_moderationupdats(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnModerationCreated(objectID)
             self.frame.playlist.OnModerationCreated(objectID)
-    
+
     @forceWxThread
     def sesscb_ntfy_markingupdates(self, subject, changeType, objectID, *args):
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
             self.frame.playlist.OnModerationCreated(objectID)
-    
+
     @forceWxThread
     def sesscb_ntfy_dispersy(self, subject = None, changeType = None, objectID = None, *args):
         disp = Dispersy.get_instance()
         disp.attach_progress_handler(self.frame.progressHandler)
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
-        
+
         startWorker(None, self.loadSessionCheckpoint, delay = 5.0, workerType="guiTaskQueue")
-               
-    @forceWxThread     
+
+    @forceWxThread
     def onError(self, e):
         print_exc()
         type, value, stack = sys.exc_info()
         backtrace = traceback.format_exception(type, value, stack)
-        
+
         win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
         win.CreateOutputWindow('')
         for line in backtrace:
             win.write(line)
-            
+
         win.ShowModal()
-        
-    def MacOpenFile(self, filename): 
+
+    def MacOpenFile(self, filename):
         print >> sys.stderr, filename
         target = FileDropTarget(self.frame)
         target.OnDropFiles(None, None, [filename])
@@ -943,7 +943,7 @@ class ABCApp():
         # write all persistent data to disk
         if self.i2is:
             self.i2is.shutdown()
-        if self.torrentfeed:    
+        if self.torrentfeed:
             self.torrentfeed.shutdown()
         if self.webUI:
             self.webUI.stop()
@@ -951,15 +951,15 @@ class ABCApp():
             self.guiserver.shutdown()
         if self.videoplayer:
             self.videoplayer.shutdown()
-            
+
         delete_status_holders()
-        
+
         if self.frame:
             del self.frame
-        
+
         # Niels: lets add a max waiting time for this session shutdown.
         session_shutdown_start = time()
-        
+
         # Don't checkpoint, interferes with current way of saving Preferences,
         # see Tribler/Main/Dialogs/abcoption.py
         if self.utility:
@@ -972,19 +972,19 @@ class ABCApp():
                 print >>sys.stderr,"main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds"%(waittime-diff)
                 sleep(3)
             print >>sys.stderr,"main: ONEXIT Session is shutdown"
-            
+
             # Shutdown libtorrent session after checkpoints have been made
             LibtorrentMgr.getInstance().shutdown()
-            
+
             try:
                 print >>sys.stderr,"main: ONEXIT cleaning database"
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
                 peerdb._db.clean_db(randint(0,24) == 0, exiting = True)
             except:
                 print_exc()
-            
+
             print >>sys.stderr,"main: ONEXIT deleting instances"
-            
+
             Session.del_instance()
             GUIUtility.delInstance()
             GUITaskQueue.delInstance()
@@ -992,11 +992,11 @@ class ABCApp():
             GUIDBProducer.delInstance()
             LibtorrentMgr.delInstance()
             TorrentChecking.delInstance()
-        
+
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
         return 0
-    
+
     def db_exception_handler(self,e):
         if DEBUG:
             print >> sys.stderr,"main: Database Exception handler called",e,"value",e.args,"#"
@@ -1009,27 +1009,27 @@ class ABCApp():
             print >> sys.stderr, "main: db_exception_handler error", e, type(e)
             print_exc()
             #print_stack()
-            
-        self.onError(e) 
-    
+
+        self.onError(e)
+
     def getConfigPath(self):
         return self.utility.getConfigPath()
 
     def startWithRightView(self):
         if self.params[0] != "":
             self.guiUtility.ShowPage('my_files')
- 
+
     def i2ithread_readlinecallback(self,ic,cmd):
         """ Called by Instance2Instance thread """
-        
+
         print >>sys.stderr,"main: Another instance called us with cmd",cmd
         ic.close()
-        
+
         if cmd.startswith('START '):
             param = cmd[len('START '):].strip()
             torrentfilename = None
             if param.startswith('http:'):
-                # Retrieve from web 
+                # Retrieve from web
                 f = tempfile.NamedTemporaryFile()
                 n = urllib2.urlopen(param)
                 data = n.read()
@@ -1039,7 +1039,7 @@ class ABCApp():
                 torrentfilename = f.name
             else:
                 torrentfilename = param
-                
+
             # Switch to GUI thread
             # New for 5.0: Start in VOD mode
             def start_asked_download():
@@ -1054,14 +1054,14 @@ class ABCApp():
             wx.CallAfter(start_asked_download)
 
     def sesscb_reseed_via_swift(self, td, callback = None):
-        # Arno, 2012-05-07: root hash calculation may take long time, halting 
-        # SessionCallbackThread meaning download statuses won't be updated. 
+        # Arno, 2012-05-07: root hash calculation may take long time, halting
+        # SessionCallbackThread meaning download statuses won't be updated.
         # Offload to diff thread.
         #
         t = Thread(target = self.workerthread_reseed_via_swift_run, args = (td, callback), name = "SwiftRootHashCalculator")
         t.start()
         # apparently daemon by default
-        
+
     def workerthread_reseed_via_swift_run(self, td, callback = None):
         # Open issues:
         # * how to display these "parallel" downloads in GUI?
@@ -1074,19 +1074,19 @@ class ABCApp():
         try:
             if prctlimported:
                 prctl.set_name(currentThread().getName())
-            
+
             # 1. Get torrent info
             tdef = td.get_def()
             destdir = td.get_dest_dir()
-            
+
             # renaming swarmname for now not supported in swift
             if td.correctedinfoname != fix_filebasename(tdef.get_name_as_unicode()):
                 return
-    
+
             # 2. Convert to swift def
             sdef = SwiftDef()
             # RESEEDTODO: set to swift inf of pymDHT
-            sdef.set_tracker("127.0.0.1:9999") 
+            sdef.set_tracker("127.0.0.1:9999")
             iotuples = td.get_dest_files()
             for i,o in iotuples:
                 #print >>sys.stderr,"python: add_content",i,o
@@ -1098,9 +1098,9 @@ class ABCApp():
                         xi = xi.replace("\\","/")
                     si = xi.encode("UTF-8") # spec format
                     sdef.add_content(o,si) # multi-file .torrent
-                
+
             specpn = sdef.finalize(self.sconfig.get_swift_path(),destdir=destdir)
-                    
+
             # 3. Save swift multifile spec (if multifile)
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1] # Point to file on disk
@@ -1108,20 +1108,20 @@ class ABCApp():
                 # Store multi-file spec as .<roothashhex> alongside files
                 mfpath = os.path.join(destdir,"."+sdef.get_roothash_as_hex() )
                 storagepath = mfpath # Point to spec file
-                
+
                 # Reuse .mhash and .mbinmap (happens automatically for single-file)
                 try:
                     import shutil
-                    
+
                     shutil.move(specpn, mfpath)
                     shutil.move(specpn+'.mhash', mfpath+'.mhash')
                     shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
                 except:
                     print_exc()
-                
+
             # 4. Start Swift download via GUI Thread
             wx.CallAfter(self.frame.startReseedSwiftDownload, tdef, storagepath, sdef)
-            
+
             # 5. Call the callback to notify
             if callback:
                 callback(sdef)
@@ -1139,13 +1139,13 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 
     topmsg = ''
     msg = ''
-    
+
     logmsgs = ds.get_log_messages()
     logmsg = None
     if DEBUG and len(logmsgs) > 0:
         print >>sys.stderr,"main: Log",logmsgs[0]
         logmsg = logmsgs[-1][1]
-        
+
     preprogress = ds.get_vod_prebuffering_progress()
     playable = ds.get_vod_playable()
     t = ds.get_vod_playable_after()
@@ -1155,7 +1155,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         if t > eta_time:
             break
         intime = eta_msg
-    
+
     #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
     #print >>sys.stderr,"main: ETA is",t,"secs"
     # if t > float(2 ** 30):
@@ -1172,7 +1172,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     #             intime = "%dm:%02ds" % (m,s)
     #     else:
     #         intime = "%dh:%02dm:%02ds" % (h,m,s)
-            
+
     #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 
     if ds.get_status() == DLSTATUS_HASHCHECKING:
@@ -1188,17 +1188,17 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     elif playable:
         if not said_start_playback:
             msg = "Starting playback..."
-            
+
         if videoplayer_mediastate == MEDIASTATE_STOPPED and said_start_playback:
             if totalhelping == 0:
                 topmsg = u"Please leave the "+appname+" running, this will help other "+appname+" users to download faster."
             else:
                 topmsg = u"Helping "+str(totalhelping)+" "+appname+" users to download. Please leave it running in the background."
-                
+
             # Display this on status line
             # TODO: Show balloon in systray when closing window to indicate things continue there
             msg = ''
-            
+
         elif videoplayer_mediastate == MEDIASTATE_PLAYING:
             said_start_playback = True
             # It may take a while for VLC to actually start displaying
@@ -1214,11 +1214,11 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             decodeprogress += 1
             msg = ''
         elif videoplayer_mediastate == MEDIASTATE_PAUSED:
-            # msg = "Buffering... " + str(int(100.0*preprogress))+"%" 
+            # msg = "Buffering... " + str(int(100.0*preprogress))+"%"
             msg = "Buffering... " + str(int(100.0*preprogress))+"%. " + intime
         else:
             msg = ''
-            
+
     elif preprogress != 1.0:
         pstr = str(int(preprogress*100))
         npeers = ds.get_num_peers()
@@ -1229,7 +1229,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             msg = "Prebuffering "+pstr+"% done (connected to 1 peer). " + intime
         else:
             msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" peers). " + intime
-            
+
         try:
             d = ds.get_download()
             tdef = d.get_def()
@@ -1238,14 +1238,14 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
                 videofile = videofiles[0]
             else:
                 videofile = None
-            
+
             bitrate = None
             if tdef.get_def_type() == "torrent":
                 try:
                     bitrate = tdef.get_bitrate(videofile)
                 except:
                     print_exc()
-            
+
             if bitrate is None:
                 msg += ' This video may not play properly because its bitrate is unknown.'
         except:
@@ -1253,7 +1253,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     else:
         # msg = "Waiting for sufficient download speed... "+intime
         msg = 'Waiting for sufficient download speed... ' + intime
-        
+
     """
     npeers = ds.get_num_peers()
     if npeers == 1:
@@ -1262,8 +1262,8 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
     """
     return [topmsg,msg,said_start_playback,decodeprogress]
-        
-        
+
+
 ##############################################################
 #
 # Main Program Start Here
@@ -1273,7 +1273,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 def run(params = None):
     if params is None:
         params = [""]
-    
+
     if len(sys.argv) > 1:
         params = sys.argv[1:]
     try:
@@ -1285,13 +1285,13 @@ def run(params = None):
             single_instance_checker = wx.SingleInstanceChecker("tribler-" + wx.GetUserId())
         else:
             single_instance_checker = LinuxSingleInstanceChecker("tribler")
-    
+
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
             #Send  torrent info to abc single instance
             if params[0] != "":
                 torrentfilename = params[0]
                 i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
-                
+
             print "Client shutting down. Detected another instance."
         else:
             arg0 = sys.argv[0].lower()
@@ -1300,10 +1300,10 @@ def run(params = None):
                 installdir = os.path.abspath(os.path.dirname(unicode(sys.argv[0])))
             else:
                 # call the unicode specific getcwdu() otherwise homedirectories may crash
-                installdir = os.getcwdu()  
+                installdir = os.getcwdu()
             # Arno: don't chdir to allow testing as other user from other dir.
             #os.chdir(installdir)
-    
+
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
@@ -1325,14 +1325,13 @@ def run(params = None):
     except:
         print_exc()
 
-        
+
     # This is the right place to close the database, unfortunately Linux has
     # a problem, see ABCFrame.OnCloseWindow
     #
     #if sys.platform != 'linux2':
     #    tribler_done(configpath)
     #os._exit(0)
-    
+
 if __name__ == '__main__':
     run()
-

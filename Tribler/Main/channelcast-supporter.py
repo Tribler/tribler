@@ -39,7 +39,7 @@ def main():
     if opt.statedir: sscfg.set_state_dir(os.path.realpath(opt.statedir))
     if opt.port: sscfg.set_listen_port(opt.port)
     if opt.nickname: sscfg.set_nickname(opt.nickname)
-    
+
     # set_moderationcast_promote_own() will ensure your moderations on
     # the RSS feed items are sent to any peer you connect to on the
     # overlay.
@@ -57,17 +57,17 @@ def main():
         print >>sys.stdout, "Incoming torrent:", infohash.encode("HEX")
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
 
-    print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())    
+    print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())
 
     try:
         while True:
             x = sys.stdin.read()
     except:
         print_exc()
-    
+
     session.shutdown()
     print "Shutting down..."
-    time.sleep(5)    
+    time.sleep(5)
 
 if __name__ == "__main__":
     main()

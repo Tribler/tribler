@@ -28,18 +28,18 @@ REPLY_IP='127.0.0.10'
 
 class TestDialbackReplyActive(TestAsServer):
 
-    """  
-    Testing DIALBACK_REPLY message of Dialback extension V1 
+    """
+    Testing DIALBACK_REPLY message of Dialback extension V1
 
-    This test checks how the Tribler code responds to good and bad 
+    This test checks how the Tribler code responds to good and bad
     DIALBACK_REPLY messages. I.e. the Tribler client initiates
     the dialback by connecting to us and sending a DIALBACK_REQUEST and we
     reply with good and bad messages.
 
     This test allows authoritative answers from superpeers.
 
-    WARNING: Each of the test_ methods should be tested by running the TestCase 
-    in a separate Python interpreter to prevent problems with our singleton 
+    WARNING: Each of the test_ methods should be tested by running the TestCase
+    in a separate Python interpreter to prevent problems with our singleton
     classes, e.g. SuperPeerDB, etc.
     """
 
@@ -66,7 +66,7 @@ class TestDialbackReplyActive(TestAsServer):
 
         statsdir = os.path.join(self.install_path, LIBRARYNAME, 'Core', 'Statistics')
         os.makedirs(statsdir)
-        
+
         superpeerfilename = os.path.join(spdir, 'superpeer.txt')
         print >> sys.stderr,"test: writing",self.NLISTENERS,"superpeers to",superpeerfilename
         f = open(superpeerfilename, "w")
@@ -90,9 +90,9 @@ class TestDialbackReplyActive(TestAsServer):
             content = '127.0.0.1, '+str(self.mylistenport[i])+', '+show_permid(self.mypermids[i])+', FakeSuperPeer\n'
             f.write(content)
         f.close()
-        
+
         self.config.set_install_dir(self.install_path)
-        
+
         srcfiles = []
         srcfiles.append(os.path.join(LIBRARYNAME,"schema_sdb_v"+str(CURRENT_MAIN_DB_VERSION)+".sql"))
         srcfiles.append(os.path.join(LIBRARYNAME,"Core","Statistics","tribler_seedingstats_sdb.sql"))
@@ -111,11 +111,11 @@ class TestDialbackReplyActive(TestAsServer):
         f.write('')
         f.close()
         """
-        
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPostSession(self)
-        
+
         self.myoriginalip = self.session.get_external_ip()
 
     def tearDown(self):
@@ -129,13 +129,13 @@ class TestDialbackReplyActive(TestAsServer):
 
     #
     # Good DIALBACK_REQUEST, builds on TestDialbackReply code
-    #    
+    #
     def singtest_good_dreply(self):
         self._test_dreply(self.create_good_dreply,True)
 
     #
     # Bad DIALBACK_REQUEST, builds on TestDialbackReply code
-    #    
+    #
     def singtest_bad_not_bdecodable(self):
         print >>sys.stderr,"test: *** NOT DECODABLE TEST"
         self._test_dreply(self.create_not_bdecodable,False)
@@ -168,7 +168,7 @@ class TestDialbackReplyActive(TestAsServer):
                     break
             self.assert_(msg[0] == DIALBACK_REQUEST)
             self.check_drequest(msg[1:])
-            
+
             # Proper behaviour is to try to send a reply using a new return connection
             s2 = BTConnection('localhost',self.hisport,mylistenport=self.mylistenport[i],user_infohash=dialback_infohash)
             s2.read_handshake_medium_rare(close_ok = True)
@@ -177,7 +177,7 @@ class TestDialbackReplyActive(TestAsServer):
                 print >> sys.stderr,"test: sending DIALBACK_REPLY #",i
                 s2.send(resp)
             time.sleep(2)
-            # the other side should always close the 
+            # the other side should always close the
             # connection, either because we're done or he didn't like our
             # bad DIALBACK_REPLY message
             msg = s2.recv()
@@ -192,13 +192,13 @@ class TestDialbackReplyActive(TestAsServer):
 
         ext_ip = self.session.get_external_ip()
         print >>sys.stderr,"test: External IP address after test is",ext_ip
-        
+
         if diff_ips_test:
             if self.config.sessconfig['dialback_trust_superpeers'] == 1:
                 good = True
             else:
                 good = False
-                
+
         if good:
             self.assert_(ext_ip == REPLY_IP)
         else:
@@ -236,17 +236,17 @@ class TestDialbackReplyActive(TestAsServer):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. SuperPeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_dra.py <method name>"
     else:
         suite.addTest(TestDialbackReplyActive(sys.argv[1]))
-    
+
     return suite
 
 def main():
     unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
-    
+
 if __name__ == "__main__":
     main()

@@ -30,7 +30,7 @@ DEBUG = False
 class MiscInfoPanel(wx.Panel):
     def __init__(self, parent, dialog):
         wx.Panel.__init__(self, parent, -1)
-        
+
         self.dialog = dialog
         self.utility = dialog.utility
 
@@ -41,12 +41,12 @@ class MiscInfoPanel(wx.Panel):
         self.createdBy = wx.TextCtrl(self, -1)
         outerbox.Add(self.createdBy, 0, wx.EXPAND|wx.ALL, 5)
 
-        # Comment:        
+        # Comment:
         outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('comment')), 0, wx.EXPAND|wx.ALL, 5)
-        self.commentCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)        
+        self.commentCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
         outerbox.Add(self.commentCtl, 0, wx.EXPAND|wx.ALL, 5)
 
-        # Playtime:        
+        # Playtime:
         outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('playtime')), 0, wx.EXPAND|wx.ALL, 5)
         self.playtCtl = wx.TextCtrl(self, -1)
         outerbox.Add(self.playtCtl, 0, wx.EXPAND|wx.ALL, 5)
@@ -62,22 +62,22 @@ class MiscInfoPanel(wx.Panel):
         xbox.Add(browsebtn, 0, wx.ALL, 5)
         ybox.Add(xbox, 0, wx.EXPAND|wx.ALL, 5)
         outerbox.Add(ybox, 0, wx.ALL|wx.EXPAND, 5)
-      
+
         self.SetSizerAndFit(outerbox)
-        
+
         self.loadValues()
 
     def loadValues(self, Read = None):
         if Read is None:
             Read = self.utility.makerconfig.Read
-        
+
         self.createdBy.SetValue(Read('created_by'))
         self.commentCtl.SetValue(Read('comment'))
 
     def saveConfig(self, event = None):
         self.utility.makerconfig.Write('created_by', self.createdBy.GetValue())
         self.utility.makerconfig.Write('comment', self.commentCtl.GetValue())
-        
+
     def getParams(self):
         params = {}
 
@@ -86,18 +86,18 @@ class MiscInfoPanel(wx.Panel):
             try:
                 im = wx.Image(thumbfn)
                 ims = im.Scale(171,96)
-    
+
                 [thumbhandle,thumbfilename] = mkstemp("torrent-thumb")
                 os.close(thumbhandle)
                 ims.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
-                params['thumb'] = thumbfilename 
+                params['thumb'] = thumbfilename
             except:
                 print_exc()
 
         playt = self.playtCtl.GetValue()
         if playt != '':
             params['playtime'] = playt
-        
+
         comment = self.commentCtl.GetValue()
         if comment != '':
             params['comment'] = comment
@@ -105,13 +105,13 @@ class MiscInfoPanel(wx.Panel):
         createdby = self.createdBy.GetValue()
         if comment != '':
             params['created by'] = createdby
-            
+
         return params
 
 
     def onBrowseThumb(self, evt):
         path = ''
-            
+
         # open the image browser dialog
         dlg = ib.ImageDialog(self, path)
         dlg.Centre()
@@ -129,7 +129,7 @@ class MiscInfoPanel(wx.Panel):
         else:
             pass
 
-        dlg.Destroy()        
+        dlg.Destroy()
 
     def show_inputerror(self,txt):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
@@ -147,7 +147,7 @@ class MiscInfoPanel(wx.Panel):
 class TrackerInfoPanel(wx.Panel):
     def __init__(self, parent, dialog):
         wx.Panel.__init__(self, parent, -1)
-        
+
         self.dialog = dialog
         self.utility = dialog.utility
 
@@ -183,10 +183,10 @@ class TrackerInfoPanel(wx.Panel):
         announcesection.Add(self.annText, 0, wx.ALL, 5)
 
         announceurl_box = wx.BoxSizer(wx.HORIZONTAL)
-       
+
         self.annCtl = wx.ComboBox(self, -1, "", choices = self.announcehistory, style=wx.CB_DROPDOWN)
         announceurl_box.Add(self.annCtl, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
-        
+
         self.addbutton = wx.Button(self, -1, "+", size = (30, -1))
         self.addbutton.SetToolTipString(self.utility.lang.get('add'))
         wx.EVT_BUTTON(self, self.addbutton.GetId(), self.addAnnounce)
@@ -199,26 +199,26 @@ class TrackerInfoPanel(wx.Panel):
 
         announcesection.Add(announceurl_box, 0, wx.EXPAND)
 
-        # Announce List:        
+        # Announce List:
         self.annListText = wx.StaticText(self, -1, self.utility.lang.get('announcelist'))
         announcesection.Add(self.annListText, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-       
+
         self.annListCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
         self.annListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
-        
+
         announcesection.Add(self.annListCtl, 1, wx.EXPAND|wx.TOP, 5)
-        
+
         outerbox.Add(announcesection, 0, wx.EXPAND|wx.ALL, 3)
-      
+
         # HTTP Seeds:
         outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('httpseeds')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-       
+
         self.httpSeeds = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
         self.httpSeeds.SetToolTipString(self.utility.lang.get('httpseedshelp'))
         outerbox.Add(self.httpSeeds, 1, wx.EXPAND|wx.ALL, 5)
-      
+
         self.SetSizerAndFit(outerbox)
-        
+
         self.loadValues()
 
     def loadValues(self, Read = None):
@@ -237,9 +237,9 @@ class TrackerInfoPanel(wx.Panel):
         self.annCtl.SetValue(Read('announcedefault'))
 
         self.annListCtl.SetValue(Read('announce-list'))
-        
+
         self.toggle_itracker(useitracker,manualtrackerconfig)
-        
+
         self.httpSeeds.SetValue(Read('httpseeds'))
 
 
@@ -262,7 +262,7 @@ class TrackerInfoPanel(wx.Panel):
                 self.annListCtl.Disable()
                 self.addbutton.Disable()
                 self.delbutton.Disable()
-                
+
             self.dialog.fileInfoPanel.startnow.SetValue(True)
             self.dialog.fileInfoPanel.startnow.Disable()
         else:
@@ -293,7 +293,7 @@ class TrackerInfoPanel(wx.Panel):
             return
         self.announcehistory.append(announceurl)
         self.annCtl.Append(announceurl)
-        
+
     def removeAnnounce(self, event = None):
         index = self.annCtl.GetSelection()
         if index != -1:
@@ -305,11 +305,11 @@ class TrackerInfoPanel(wx.Panel):
                 pass
 
     def announceCopy(self, event = None):
-        dl = wx.FileDialog(self.dialog, 
-                           self.utility.lang.get('choosedottorrentfiletouse'), 
-                           '', 
-                           '', 
-                           self.utility.lang.get('torrentfileswildcard') + ' (*.torrent)|*.torrent', 
+        dl = wx.FileDialog(self.dialog,
+                           self.utility.lang.get('choosedottorrentfiletouse'),
+                           '',
+                           '',
+                           self.utility.lang.get('torrentfileswildcard') + ' (*.torrent)|*.torrent',
                            wx.OPEN)
         if dl.ShowModal() == wx.ID_OK:
             try:
@@ -331,7 +331,7 @@ class TrackerInfoPanel(wx.Panel):
                 else:
                     self.annListCtl.SetValue('')
             except:
-                return                
+                return
 
     def getAnnounceList(self):
         text = self.annListCtl.GetValue()
@@ -345,7 +345,7 @@ class TrackerInfoPanel(wx.Panel):
             if sublist:
                 list.append(sublist)
         return list
-        
+
     def getHTTPSeedList(self):
         text = self.httpSeeds.GetValue()
         list = []
@@ -363,13 +363,13 @@ class TrackerInfoPanel(wx.Panel):
             params['usinginternaltracker'] = True
         else:
             params['usinginternaltracker'] = False
-            
+
         if self.manualover.GetValue(): # Use manual specification of trackers
             # Announce list
             annlist = self.getAnnounceList()
             if annlist:
                 params['announce-list'] = annlist
-            
+
             # Announce URL
             announceurl = None
             index = self.annCtl.GetSelection()
@@ -381,26 +381,26 @@ class TrackerInfoPanel(wx.Panel):
                     announceurl = tier1[0]
             else:
                 announceurl = self.annCtl.GetValue()
-                    
+
             if announceurl is None:
                 # What should we do here?
                 announceurl = ""
-    
+
             params['announce'] = announceurl
         else:
             # Use just internal tracker
             params['announce'] = self.utility.session.get_internal_tracker_url()
-                   
+
         # HTTP Seeds
         httpseedlist = self.getHTTPSeedList()
         if httpseedlist:
             params['httpseeds'] = httpseedlist
 
         return params
-    
+
     def OnInternalTracker(self,event=None):
         self.toggle_itracker(self.itracker.GetValue(),self.manualover.GetValue())
-    
+
 
 
 ################################################################
@@ -409,11 +409,11 @@ class TrackerInfoPanel(wx.Panel):
 #
 # Class for choosing a file when creating a torrent
 #
-################################################################        
+################################################################
 class FileInfoPanel(wx.Panel):
     def __init__(self, parent, dialog):
         wx.Panel.__init__(self, parent, -1)
-        
+
         self.dialog = dialog
         self.utility = dialog.utility
 
@@ -434,7 +434,7 @@ class FileInfoPanel(wx.Panel):
         wx.EVT_BUTTON(self, button2.GetId(), self.selectFile)
         maketorrent_box.Add(button2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
-        outerbox.Add(maketorrent_box, 0, wx.EXPAND)        
+        outerbox.Add(maketorrent_box, 0, wx.EXPAND)
 
         # Merkle:
         merkletorrent_box = wx.BoxSizer(wx.HORIZONTAL)
@@ -444,26 +444,26 @@ class FileInfoPanel(wx.Panel):
 
         # Piece size:
         piecesize_box = wx.BoxSizer(wx.HORIZONTAL)
-        
+
         piecesize_box.Add(wx.StaticText(self, -1, self.utility.lang.get('piecesize')), 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        
+
         abbrev_mb = " " + self.utility.lang.get('MB')
         abbrev_kb = " " + self.utility.lang.get('KB')
-        
-        piece_choices = [self.utility.lang.get('automatic'), 
-                         '2' + abbrev_mb, 
-                         '1' + abbrev_mb, 
-                         '512' + abbrev_kb, 
-                         '256' + abbrev_kb, 
-                         '128' + abbrev_kb, 
-                         '64' + abbrev_kb, 
+
+        piece_choices = [self.utility.lang.get('automatic'),
+                         '2' + abbrev_mb,
+                         '1' + abbrev_mb,
+                         '512' + abbrev_kb,
+                         '256' + abbrev_kb,
+                         '128' + abbrev_kb,
+                         '64' + abbrev_kb,
                          '32' + abbrev_kb]
         self.piece_length = wx.Choice(self, -1, choices = piece_choices)
         self.piece_length_list = [0, 2**21, 2**20, 2**19, 2**18, 2**17, 2**16, 2**15]
         piecesize_box.Add(self.piece_length, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
-        
+
         outerbox.Add(piecesize_box, 0, wx.EXPAND)
-        
+
 
 #        panel.DragAcceptFiles(True)
 #        wx.EVT_DROP_FILES(panel, self.selectdrop)
@@ -484,7 +484,7 @@ class FileInfoPanel(wx.Panel):
         savetordefbox.Add(self.savetordeftext, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
         savetordefbox.Add(browsebtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 3)
         savetorrentbox.Add(savetordefbox, 0, wx.EXPAND)
-        
+
         savetorrentbox.Add(savetorrb2, 0)
 
         savetorrentbox.Add(savetorrb3, 0, wx.TOP, 4)
@@ -502,7 +502,7 @@ class FileInfoPanel(wx.Panel):
 
         self.makehash_sha1 = wx.CheckBox(self, -1, self.utility.lang.get('makehash_sha1'))
         optionalhash.Add(self.makehash_sha1, 0, wx.TOP, 4)
-        
+
         self.createtorrentsig = wx.CheckBox(self, -1, self.utility.lang.get('createtorrentsig'))
         optionalhash.Add(self.createtorrentsig, 0, wx.TOP, 4)
 
@@ -512,7 +512,7 @@ class FileInfoPanel(wx.Panel):
         outerbox.Add(self.startnow, 0, wx.ALIGN_LEFT|wx.ALL, 5)
 
         self.SetSizerAndFit(outerbox)
-        
+
         self.loadValues()
 
 #        panel.DragAcceptFiles(True)
@@ -527,20 +527,20 @@ class FileInfoPanel(wx.Panel):
         self.makehash_sha1.SetValue(Read('makehash_sha1', "boolean"))
         self.createmerkletorrent.SetValue(Read('createmerkletorrent', "boolean"))
         self.createtorrentsig.SetValue(Read('createtorrentsig', "boolean"))
-        
-        self.savetor[Read('savetorrent', "int")].SetValue(True)        
+
+        self.savetor[Read('savetorrent', "int")].SetValue(True)
         self.piece_length.SetSelection(Read('piece_size', "int"))
         self.savetordeftext.SetValue(Read('savetordeffolder'))
-        
-    def saveConfig(self, event = None):        
+
+    def saveConfig(self, event = None):
         self.utility.makerconfig.Write('startnow', self.startnow.GetValue(), "boolean")
-        
+
         self.utility.makerconfig.Write('makehash_md5', self.makehash_md5.GetValue(), "boolean")
         self.utility.makerconfig.Write('makehash_crc32', self.makehash_crc32.GetValue(), "boolean")
         self.utility.makerconfig.Write('makehash_sha1', self.makehash_sha1.GetValue(), "boolean")
         self.utility.makerconfig.Write('createmerkletorrent', self.createmerkletorrent.GetValue(), "boolean")
         self.utility.makerconfig.Write('createtorrentsig', self.createtorrentsig.GetValue(), "boolean")
-            
+
         self.utility.makerconfig.Write('savetordeffolder', self.savetordeftext.GetValue())
 
         for i in range(3):
@@ -550,27 +550,27 @@ class FileInfoPanel(wx.Panel):
         self.utility.makerconfig.Write('piece_size', self.piece_length.GetSelection())
 
     def selectDir(self, event = None):
-        dlg = wx.DirDialog(self.dialog, 
-                           self.utility.lang.get('selectdir'), 
+        dlg = wx.DirDialog(self.dialog,
+                           self.utility.lang.get('selectdir'),
                            style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
             self.dirCtl.SetValue(dlg.GetPath())
         dlg.Destroy()
 
     def onBrowseDir(self, event = None):
-        dlg = wx.DirDialog(self.dialog, 
-                           self.utility.lang.get('choosetordeffolder'), 
+        dlg = wx.DirDialog(self.dialog,
+                           self.utility.lang.get('choosetordeffolder'),
                            style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
             self.savetordeftext.SetValue(dlg.GetPath())
         dlg.Destroy()
 
     def selectFile(self, event = None):
-        dlg = wx.FileDialog(self.dialog, 
-                            self.utility.lang.get('choosefiletouse'), 
-                            '', 
-                            '', 
-                            self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*', 
+        dlg = wx.FileDialog(self.dialog,
+                            self.utility.lang.get('choosefiletouse'),
+                            '',
+                            '',
+                            self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*',
                             wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.dirCtl.SetValue(dlg.GetPath())
@@ -579,19 +579,19 @@ class FileInfoPanel(wx.Panel):
     def selectdrop(self, x):
         list = x.m_files
         self.dirCtl.SetValue(x[0])
-    
+
     def getParams(self):
         params = {}
         self.targeted = []
-        
+
         params['piece length'] = self.piece_length_list[self.piece_length.GetSelection()]
-        
+
         if self.makehash_md5.GetValue():
             params['makehash_md5'] = True
         if self.makehash_crc32.GetValue():
             params['makehash_crc32'] = True
         if self.makehash_sha1.GetValue():
-            params['makehash_sha1'] = True   
+            params['makehash_sha1'] = True
         if self.createmerkletorrent.GetValue():
             params['createmerkletorrent'] = 1
         if self.createtorrentsig.GetValue():
@@ -600,18 +600,18 @@ class FileInfoPanel(wx.Panel):
         for i in range(3):
             if self.savetor[i].GetValue():
                 break
-        
+
         if i == 0:
-            defdestfolder = self.savetordeftext.GetValue()                    
+            defdestfolder = self.savetordeftext.GetValue()
 #
 
             # Check if default download folder is not a file and create it if necessary
             if os.path.exists(defdestfolder):
                 if not os.path.isdir(defdestfolder):
-                    dlg = wx.MessageDialog(self, 
+                    dlg = wx.MessageDialog(self,
                                            message = self.utility.lang.get('notadir') + '\n' + \
-                                                     self.utility.lang.get('savedtofolderwithsource'), 
-                                           caption = self.utility.lang.get('error'), 
+                                                     self.utility.lang.get('savedtofolderwithsource'),
+                                           caption = self.utility.lang.get('error'),
                                            style = wx.OK | wx.ICON_ERROR)
                     dlg.ShowModal()
                     dlg.Destroy()
@@ -620,20 +620,20 @@ class FileInfoPanel(wx.Panel):
                 try:
                     os.makedirs(defdestfolder)
                 except:
-                    dlg = wx.MessageDialog(self, 
+                    dlg = wx.MessageDialog(self,
                                            message = self.utility.lang.get('invalidwinname') + '\n'+ \
-                                                     self.utility.lang.get('savedtofolderwithsource'), 
-                                           caption = self.utility.lang.get('error'), 
+                                                     self.utility.lang.get('savedtofolderwithsource'),
+                                           caption = self.utility.lang.get('error'),
                                            style = wx.OK | wx.ICON_ERROR)
                     dlg.ShowModal()
                     dlg.Destroy()
                     defdestfolder = ""
-                     
 
-#                
+
+#
             params['target'] = defdestfolder
-                
-            self.targeted = defdestfolder                 
+
+            self.targeted = defdestfolder
 
         elif i == 2:
             dl = wx.DirDialog(self, style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
@@ -647,7 +647,7 @@ class FileInfoPanel(wx.Panel):
             self.targeted = ""
 
         return params
-    
+
     def getTargeted(self):
         targeted = self.targeted
         return targeted
@@ -672,22 +672,22 @@ class TorrentMaker(wx.Frame):
             self.SetIcon(self.utility.icon)
 
         panel = wx.Panel(self, -1)
-        
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.notebook = wx.Notebook(panel, -1)
-                
+
         self.fileInfoPanel = FileInfoPanel(self.notebook, self)
         self.notebook.AddPage(self.fileInfoPanel, self.utility.lang.get('fileinfo'))
-        
+
         self.trackerInfoPanel = TrackerInfoPanel(self.notebook, self)
         self.notebook.AddPage(self.trackerInfoPanel, self.utility.lang.get('trackerinfo'))
 
         self.miscInfoPanel = MiscInfoPanel(self.notebook, self)
         self.notebook.AddPage(self.miscInfoPanel, self.utility.lang.get('miscinfo'))
-        
-        sizer.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)        
-        
+
+        sizer.Add(self.notebook, 1, wx.EXPAND|wx.ALL, 5)
+
         btnbox = wx.BoxSizer(wx.HORIZONTAL)
         b3 = wx.Button(panel, -1, self.utility.lang.get('saveasdefaultconfig'))
         btnbox.Add(b3, 0, wx.EXPAND)
@@ -697,7 +697,7 @@ class TorrentMaker(wx.Frame):
 
         b4 = wx.Button(panel, -1, self.utility.lang.get('close'))
         btnbox.Add(b4, 0, wx.EXPAND)
-        
+
         sizer.Add(btnbox, 0, wx.ALIGN_CENTER|wx.ALL, 10)
 
         wx.EVT_BUTTON(panel, b2.GetId(), self.complete)
@@ -705,9 +705,9 @@ class TorrentMaker(wx.Frame):
         wx.EVT_BUTTON(panel, b4.GetId(), self.closeWin)
 
         panel.SetSizerAndFit(sizer)
-        
+
         self.Fit()
-        
+
         self.Show()
 
     def closeWin(self, event = None):
@@ -716,26 +716,26 @@ class TorrentMaker(wx.Frame):
         self.utility.makerconfig.Write('announcehistory', self.trackerInfoPanel.announcehistory, "bencode-list")
 
         self.Destroy()
-        
+
     def saveConfig(self, event = None):
         self.fileInfoPanel.saveConfig()
         self.trackerInfoPanel.saveConfig()
         self.miscInfoPanel.saveConfig()
-        
+
         self.utility.makerconfig.Flush()
-    
+
     def complete(self, event = None):
         if DEBUG:
             print "complete thread",currentThread()
 
         filename = self.fileInfoPanel.dirCtl.GetValue()
         if filename == '':
-            dlg = wx.MessageDialog(self, message = self.utility.lang.get('youmustselectfileordir'), 
+            dlg = wx.MessageDialog(self, message = self.utility.lang.get('youmustselectfileordir'),
                 caption = self.utility.lang.get('error'), style = wx.OK | wx.ICON_ERROR)
             dlg.ShowModal()
             dlg.Destroy()
             return
-        
+
         params = {}
         params.update(tdefdefaults)
         params.update(self.fileInfoPanel.getParams())
@@ -762,21 +762,21 @@ class CompleteDir:
     def __init__(self, parent, srcpath, params):
         self.srcpath = srcpath
         self.params = params
-        self.startnow = parent.fileInfoPanel.startnow.GetValue() 
-        
+        self.startnow = parent.fileInfoPanel.startnow.GetValue()
+
         self.usinginternaltracker = False
         if 'usinginternaltracker' in params:
             self.usinginternaltracker = params['usinginternaltracker']
             del params['usinginternaltracker']
             self.startnow = True # Always start seeding immediately
-            
+
         self.params = params
         self.parent = parent
         self.utility = self.parent.utility
         self.flag = Event()
         self.separatetorrents = False
         self.files = []
-        
+
         if os.path.isdir(srcpath):
             self.choicemade = Event()
             frame = wx.Frame(None, -1, self.utility.lang.get('btmaketorrenttitle'), size = (1, 1))
@@ -784,7 +784,7 @@ class CompleteDir:
             panel = wx.Panel(frame, -1)
             gridSizer = wx.FlexGridSizer(cols = 1, vgap = 8, hgap = 8)
             gridSizer.AddGrowableRow(1)
-            gridSizer.Add(wx.StaticText(panel, -1, 
+            gridSizer.Add(wx.StaticText(panel, -1,
                     self.utility.lang.get('dirnotice')), 0, wx.ALIGN_CENTER)
             gridSizer.Add(wx.StaticText(panel, -1, ''))
 
@@ -806,13 +806,13 @@ class CompleteDir:
 
             cancelbut = wx.Button(panel, -1, self.utility.lang.get('cancel'))
             def canceled(e, self = self):
-                self.frame.Destroy()                
+                self.frame.Destroy()
             wx.EVT_BUTTON(frame, cancelbut.GetId(), canceled)
             b.Add(cancelbut, 0)
             gridSizer.Add(b, 0, wx.ALIGN_CENTER)
             border = wx.BoxSizer(wx.HORIZONTAL)
             border.Add(gridSizer, 1, wx.EXPAND | wx.ALL, 4)
-            
+
             panel.SetSizer(border)
             panel.SetAutoLayout(True)
             frame.Show()
@@ -855,7 +855,7 @@ class CompleteDir:
         frame.Show(True)
         Thread(target = self.complete).start()
 
-    def complete(self):        
+    def complete(self):
         try:
             if self.separatetorrents:
                 completedir(self.srcpath, self.params, self.flag, self.progressCallback, self.fileCallback)
@@ -868,20 +868,20 @@ class CompleteDir:
 
     def errorCallback(self,e):
         wx.CallAfter(self.onError,e)
-    
+
     def onError(self,e):
         self.currentLabel.SetLabel(self.utility.lang.get('error'))
         self.button.SetLabel(self.utility.lang.get('close'))
-        dlg = wx.MessageDialog(None, 
-                               message = self.utility.lang.get('error') + ' - ' + str(e), 
-                               caption = self.utility.lang.get('error'), 
+        dlg = wx.MessageDialog(None,
+                               message = self.utility.lang.get('error') + ' - ' + str(e),
+                               caption = self.utility.lang.get('error'),
                                style = wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         dlg.Destroy()
 
     def completeCallback(self):
         wx.CallAfter(self.onComplete)
-    
+
     def onComplete(self):
         self.currentLabel.SetLabel(self.utility.lang.get('Done'))
         self.gauge.SetValue(1000)
@@ -916,25 +916,25 @@ class CompleteDir:
                     absorig = os.path.abspath(orig)
                     if os.path.isfile(absorig):
                         # To seed a file, destdir must be one up.
-                        destdir = os.path.dirname(absorig) 
+                        destdir = os.path.dirname(absorig)
                     else:
                         destdir = absorig
-                        
+
                     tdef = TorrentDef.load(torrentfilename)
                     defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
                     dscfg = defaultDLConfig.copy()
                     dscfg.set_dest_dir(destdir)
                     self.utility.session.start_download(tdef,dscfg)
-                    
+
                 except Exception,e:
                     print_exc()
                     self.onError(e)
 
 
 def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilenameCallback):
-    
+
     tdef = TorrentDef()
-    
+
     if not os.path.isdir(srcpath):
         if 'playtime' in params:
             tdef.add_content(srcpath,playtime=params['playtime'])
@@ -950,7 +950,7 @@ def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilename
                 tdef.add_content(inpath,outpath,playtime=params['playtime'])
             else:
                 tdef.add_content(inpath,outpath)
-            
+
     if params['comment']:
         tdef.set_comment(params['comment'])
     if params['created by']:
@@ -982,14 +982,14 @@ def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilename
         tdef.set_signature_keypair_filename(params['torrentsigkeypairfilename'])
     if params['thumb']:
         tdef.set_thumbnail(params['thumb'])
-        
+
     tdef.finalize(userabortflag=userabortflag,userprogresscallback=progressCallback)
-    
+
     if params['createmerkletorrent']:
         postfix = TRIBLER_TORRENT_EXT
     else:
         postfix = '.torrent'
-    
+
     if 'target' in params and params['target']:
         torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)
     else:
@@ -998,12 +998,12 @@ def make_meta_file(srcpath,params,userabortflag,progressCallback,torrentfilename
             torrentfilename = a + postfix
         else:
             torrentfilename = os.path.join(a, b + postfix)
-            
+
     tdef.save(torrentfilename)
-    
+
     # Inform higher layer we created torrent
     torrentfilenameCallback(srcpath,torrentfilename)
-    
+
 def completedir(srcpath, params, userabortflag, progressCallback, torrentfilenameCallback):
     merkle_torrent = params['createmerkletorrent'] == 1
     if merkle_torrent:
@@ -1019,10 +1019,9 @@ def completedir(srcpath, params, userabortflag, progressCallback, torrentfilenam
         if srcfile[-len(ext):] != ext and (srcfile + ext) not in srcfiles:
             goodfile = os.path.join(srcpath, srcfile)
             goodfiles.append(goodfile)
-        
+
     for goodfile in goodfiles:
         basename = os.path.split(goodfile)[-1]
         # Ignore cores, CVS and dotfiles
         if basename not in FILESTOIGNORE and basename[0] != '.':
             make_meta_file(goodfile, params,userabortflag,progressCallback,torrentfilenameCallback)
-    

@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 #
 
@@ -34,32 +34,32 @@ def state_callback(ds):
 
 def vod_ready_callback(d,mimetype,stream,filename):
     """ Called by the Session when the content of the Download is ready
-     
+
     Called by Session thread """
     print >>sys.stderr,"main: VOD ready callback called ###########################################################",mimetype
 
 def get_usage(defs):
     return parseargs.formatDefinitions(defs,80)
-    
+
 
 if __name__ == "__main__":
 
     config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
     print >>sys.stderr,"config is",config
     print "fileargs is",fileargs
-    
+
     if config['name'] == '':
         print "Usage:  ",get_usage(argsdef)
         sys.exit(0)
-        
-    
+
+
     print "Press Ctrl-C to stop the download"
 
     try:
         os.remove(os.path.join(config['destdir'],config['name']))
     except:
         print_exc()
-    
+
     sscfg = SessionStartupConfig()
     statedir = tempfile.mkdtemp()
     sscfg.set_state_dir(statedir)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     sscfg.set_overlay(False)
     sscfg.set_dialback(True)
     sscfg.set_dispersy(False)
-    
+
     s = Session(sscfg)
 
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     if len(config['thumb']) > 0:
         tdef.set_thumbnail(config['thumb'])
     tdef.finalize()
-    
+
     torrentbasename = config['name']+'.tstream'
     torrentfilename = os.path.join(config['destdir'],torrentbasename)
     tdef.save(torrentfilename)
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(config['destdir'])
     dscfg.set_live_aux_seeders( [
-            # servers: 
+            # servers:
             ("130.161.211.232",8764), # ss1
             ("130.161.211.233",8764), # ss2
             ("130.161.211.234",8764), # ss3
@@ -104,7 +104,7 @@ if __name__ == "__main__":
             ("130.37.198.236",8764), # jip
 
             # machines to verify the video stream:
-            ("130.161.159.89",8620), # jd's laptop 
+            ("130.161.159.89",8620), # jd's laptop
             ("130.161.159.210",8620), # arno's st interface
             ] )
     if config['source'] == '-':
@@ -130,16 +130,16 @@ if __name__ == "__main__":
         # File source
         source = open(config['source'],"rb")
         dscfg.set_video_ratelimit(tdef.get_bitrate())
-    
-    restartstatefilename = config['name']+'.restart' 
+
+    restartstatefilename = config['name']+'.restart'
     dscfg.set_video_source(source, restartstatefilename=restartstatefilename)
 
     dscfg.set_max_uploads(config['nuploads'])
 
     d = s.start_download(tdef,dscfg)
     d.set_state_callback(state_callback,getpeerlist=False)
-   
-    # condition variable would be prettier, but that don't listen to 
+
+    # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
     #time.sleep(sys.maxint/2048)
     #try:
@@ -150,8 +150,7 @@ if __name__ == "__main__":
     cond = Condition()
     cond.acquire()
     cond.wait()
-    
+
     s.shutdown()
-    time.sleep(3)    
+    time.sleep(3)
     shutil.rmtree(statedir)
-    

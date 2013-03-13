@@ -1,4 +1,4 @@
-# Written by Arno Bakker and ABC authors 
+# Written by Arno Bakker and ABC authors
 # see LICENSE.txt for license information
 
 import sys
@@ -19,12 +19,12 @@ class RateManager:
         self.currenttotal = {}
         self.dset = Set()
         self.clear_downloadstates()
-        
+
     def add_downloadstate(self,ds):
         """ Returns the number of unique states currently stored """
         if DEBUG:
             print >>sys.stderr,"RateManager: add_downloadstate",`ds.get_download().get_def().get_infohash()`
-            
+
         self.lock.acquire()
         try:
             d = ds.get_download()
@@ -40,7 +40,7 @@ class RateManager:
     def add_downloadstatelist(self, dslist):
         for ds in dslist:
             self.add_downloadstate(ds)
-            
+
     def adjust_speeds(self):
         """ Adjust speeds for the specified set of downloads and clears the set """
         self.lock.acquire()
@@ -80,11 +80,11 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
-    2. For all torrents for which no desired speeds have been set, 
+    2. For all torrents for which no desired speeds have been set,
        the global limit is equally divided amongst all downloads.
        (however small the piece of the pie may be).
     3. There are separate global limits for download speed, upload speed
-       and upload speed when all torrents are seeding. 
+       and upload speed when all torrents are seeding.
     """
     def __init__(self):
         RateManager.__init__(self)
@@ -97,17 +97,17 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         self.lock.acquire()
         self.global_max_speed[direct] = speed
         self.lock.release()
-        
+
     def set_global_max_seedupload_speed(self,speed):
         self.lock.acquire()
         self.global_max_seedupload_speed = speed
         self.lock.release()
 
     def calc_and_set_speed_limits(self, dir = UPLOAD):
-        
+
         if DEBUG:
             print >>sys.stderr,"RateManager: calc_and_set_speed_limits",dir
-        
+
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]+self.statusmap[DLSTATUS_SEEDING]
         else:
@@ -129,16 +129,16 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         # No active file, not need to calculate
         if not workingset:
             return
-        
+
         globalmaxspeed = self.get_global_max_speed(dir)
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:
             # Unlimited speed
             for ds in workingset:
                 d = ds.get_download()
-                d.set_max_speed(dir,d.get_max_desired_speed(dir)) 
+                d.set_max_speed(dir,d.get_max_desired_speed(dir))
             return
-        
+
         if DEBUG:
             print >>sys.stderr,"RateManager: calc_and_set_speed_limits: globalmaxspeed is",globalmaxspeed,dir
 
@@ -156,7 +156,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
             # Rest divides globalmaxspeed equally
             localmaxspeed = globalmaxspeed / float(len(todoset))
             # if too small than user's problem
-            
+
             if DEBUG:
                 print >>sys.stderr,"RateManager: calc_and_set_speed_limits: localmaxspeed is",localmaxspeed,dir
 
@@ -171,17 +171,17 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
             return self.global_max_seedupload_speed
         else:
             return self.global_max_speed[dir]
-           
+
 
 class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager):
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
-    2. For all torrents for which no desired speeds have been set, 
+    2. For all torrents for which no desired speeds have been set,
        the global limit is divided on demand amongst all downloads.
     3. There are separate global limits for download speed, upload speed
-       and upload speed when all torrents are seeding. 
-       
+       and upload speed when all torrents are seeding.
+
     TODO: if vod: give all of global limit? Do this at higher level: stop
     all dls when going to VOD
     """
@@ -191,10 +191,10 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
         self.ROOM = 5.0 # the amount of room in speed underutilizing downloads get
 
     def calc_and_set_speed_limits(self, dir = UPLOAD):
-        
+
         if DEBUG:
             print >>sys.stderr,"RateManager: calc_and_set_speed_limits",dir
-        
+
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]+self.statusmap[DLSTATUS_SEEDING]
         else:
@@ -219,16 +219,16 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
         # No active file, not need to calculate
         if not workingset:
             return
-        
+
         globalmaxspeed = self.get_global_max_speed(dir)
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:
             # Unlimited speed
             for ds in workingset:
                 d = ds.get_download()
-                d.set_max_speed(dir,d.get_max_desired_speed(dir)) 
+                d.set_max_speed(dir,d.get_max_desired_speed(dir))
             return
-        
+
         if DEBUG:
             print >>sys.stderr,"RateManager: calc_and_set_speed_limits: globalmaxspeed is",globalmaxspeed,dir
 
@@ -246,7 +246,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
             # Rest divides globalmaxspeed based on their demand
             localmaxspeed = globalmaxspeed / float(len(todoset))
             # if too small than user's problem
-            
+
             if DEBUG:
                 print >>sys.stderr,"RateManager: calc_and_set_speed_limits: localmaxspeed is",localmaxspeed,dir
 
@@ -257,7 +257,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                 d = ds.get_download()
                 currspeed = ds.get_current_speed(dir)
                 currmaxspeed = d.get_max_speed(dir)
-                
+
                 newmaxspeed = currspeed+self.ROOM
                 if currspeed >= (currmaxspeed-3.0): # dl needs more
                     downloadsatmax = True
@@ -280,7 +280,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                         d.set_max_speed(dir,newmaxspeed)
                     else:
                         todoset2.append(ds)
-    
+
                 # Divide the unused bandwidth equally amongst others
                 if len(todoset2) > 0:
                     pie = float(len(todoset2)) * localmaxspeed + totalunused
@@ -303,13 +303,13 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
-    2. For all torrents for which no desired speeds have been set, 
+    2. For all torrents for which no desired speeds have been set,
        the global limit is divided amongst all downloads that have peers.
        Torrents without user-prefs or peers get a max equal to the global max.
        They'll get throttled again to an equal share in the next iteration
        after peers connect.
     3. There are separate global limits for download speed, upload speed
-       and upload speed when all torrents are seeding. 
+       and upload speed when all torrents are seeding.
     """
     def __init__(self):
         UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self)
@@ -317,10 +317,10 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
         self.ROOM = 5.0 # the amount of room in speed underutilizing downloads get
 
     def calc_and_set_speed_limits(self, dir = UPLOAD):
-        
+
         if DEBUG:
             print >>sys.stderr,"RateManager: calc_and_set_speed_limits",dir
-        
+
         if dir == UPLOAD:
             workingset = self.statusmap[DLSTATUS_DOWNLOADING]+self.statusmap[DLSTATUS_SEEDING]
         else:
@@ -349,23 +349,23 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 print >>sys.stderr,"RateManager: set_lim: working is",d.get_def().get_name()
 
         globalmaxspeed = self.get_global_max_speed(dir)
-        
+
         #TEST globalmaxspeed = 1.0
         if DEBUG:
             print >>sys.stderr,"RateManager: set_lim: globalmaxspeed is",globalmaxspeed,dir
 
-        
+
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:
             # Unlimited speed
             for ds in workingset:
                 d = ds.get_download()
-                d.set_max_speed(dir,d.get_max_desired_speed(dir)) 
+                d.set_max_speed(dir,d.get_max_desired_speed(dir))
             for ds in inactiveset:
                 d = ds.get_download()
-                d.set_max_speed(dir,d.get_max_desired_speed(dir)) # 0 is default 
+                d.set_max_speed(dir,d.get_max_desired_speed(dir)) # 0 is default
             return
-        
+
         if DEBUG:
             print >>sys.stderr,"RateManager: set_lim: globalmaxspeed is",globalmaxspeed,dir
 
@@ -383,7 +383,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
             # Rest divides globalmaxspeed based on their demand
             localmaxspeed = globalmaxspeed / float(len(todoset))
             # if too small than user's problem
-            
+
             if DEBUG:
                 print >>sys.stderr,"RateManager: set_lim: localmaxspeed is",localmaxspeed,dir
 
@@ -407,5 +407,4 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 setspeed = min(desspeed,globalmaxspeed)
             if DEBUG:
                 print >>sys.stderr,"RateManager: set_lim:",d.get_def().get_name(),"InactQ",setspeed
-            d.set_max_speed(dir,setspeed) 
-                
+            d.set_max_speed(dir,setspeed)

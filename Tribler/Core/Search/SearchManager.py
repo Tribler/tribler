@@ -20,12 +20,12 @@ def split_into_keywords(string, filterStopwords = False):
 
     We currently split on non-alphanumeric characters and the
     underscore.
-    
+
     If filterStopwords is True a small stopword filter is using to reduce the number of keywords
     """
     if filterStopwords:
         return [keyword for keyword in re_keywordsplit.split(string.lower()) if len(keyword) > 0 and keyword not in dialog_stopwords]
-    
+
     return [keyword for keyword in re_keywordsplit.split(string.lower()) if len(keyword) > 0]
 
 def filter_keywords(keywords):
@@ -34,7 +34,7 @@ def filter_keywords(keywords):
 def fts3_preprocess(keywords):
     fts3_only = []
     normal_keywords = []
-    
+
     keywords = keywords.split()
     for keyword in keywords:
         if keyword[0] == '-':
@@ -45,7 +45,7 @@ def fts3_preprocess(keywords):
             fts3_only.append(keyword)
         else:
             normal_keywords.append(keyword)
-    
+
     return fts3_only, " ".join(normal_keywords)
 
 class SearchManager:
@@ -53,27 +53,25 @@ class SearchManager:
     a searchNames() method that returns records with at least a 'name' field
     in them.
     """
-    
+
     def __init__(self,dbhandler):
         self.dbhandler = dbhandler
         # self.keywordsearch = KeywordSearch()
-    
+
     def search(self, kws, maxhits=None):
         """ Called by any thread """
         if DEBUG:
             print >>sys.stderr,"SearchManager: search",kws
-            
+
         hits = self.dbhandler.searchNames(kws)
         if maxhits is None:
             return hits
         else:
             return hits[:maxhits]
-    
+
     def searchLibrary(self):
         return self.dbhandler.getTorrents(sort = "name", library = True)
-    
+
     def searchChannels(self, query): ##
-        data = self.dbhandler.searchChannels(query) 
+        data = self.dbhandler.searchChannels(query)
         return data
-
-

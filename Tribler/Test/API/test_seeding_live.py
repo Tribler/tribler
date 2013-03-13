@@ -23,7 +23,7 @@ from Tribler.Core.BitTornado.bitfield import Bitfield
 DEBUG=True
 
 class TestSeeding(TestAsServer):
-    """ 
+    """
     Testing seeding via new tribler API:
     """
 
@@ -33,14 +33,14 @@ class TestSeeding(TestAsServer):
         print >>sys.stderr,"test: Giving Session time to startup"
         time.sleep(5)
         print >>sys.stderr,"test: Session should have started up"
-    
+
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
-        
+
         self.config.set_overlay(False)
         self.config.set_internal_tracker(True)
-        
+
         self.mylistenport = 4810
 
     def setUpPostSession(self):
@@ -48,7 +48,7 @@ class TestSeeding(TestAsServer):
 
 
     def test_live_torrent(self):
-        """ 
+        """
             I want to start a Tribler client once and then connect to
             it many times. So there must be only one test method
             to prevent setUp() from creating a new client every time.
@@ -61,7 +61,7 @@ class TestSeeding(TestAsServer):
         #self.subtest_connect2downloader()
         self.subtest_download()
 
-    
+
     def setup_seeder(self):
         self.tdef = TorrentDef()
         # semi automatic
@@ -77,58 +77,58 @@ class TestSeeding(TestAsServer):
 
         self.torrentfn = os.path.join(self.session.get_state_dir(),"gen.torrent")
         self.tdef.save(self.torrentfn)
-        
+
         print >>sys.stderr,"test: setup_seeder: name is",self.tdef.metainfo['info']['name']
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(os.getcwd())
-        
+
         # File source
         source = InfiniteSource(piecesize)
         self.dscfg.set_video_ratelimit(self.bitrate)
         self.dscfg.set_video_source(source)
-        
+
         d = self.session.start_download(self.tdef,self.dscfg)
-        
+
         d.set_state_callback(self.seeder_state_callback)
-        
+
     def seeder_state_callback(self,ds):
         d = ds.get_download()
         print >>sys.stderr,"test: seeder:",dlstatus_strings[ds.get_status()],ds.get_progress()
         return (1.0,False)
 
-        
+
     def subtest_download(self):
         """ Now download the file via another Session """
-        
+
         self.config2 = self.config.copy() # not really necess
         self.config_path2 = tempfile.mkdtemp()
         self.config2.set_state_dir(self.config_path2)
         self.config2.set_listen_port(self.mylistenport)
         self.session2 = Session(self.config2,ignore_singleton=True)
-        
+
         # Allow session2 to start
         print >>sys.stderr,"test: downloader: Sleeping 3 secs to let Session2 start"
         time.sleep(3)
-        
+
         tdef2 = TorrentDef.load(self.torrentfn)
 
         dscfg2 = DownloadStartupConfig()
         dscfg2.set_dest_dir(self.config_path2)
         dscfg2.set_video_event_callback(self.downloader_vod_ready_callback)
-        
+
         d = self.session2.start_download(tdef2,dscfg2)
         d.set_state_callback(self.downloader_state_callback)
-        
+
         time.sleep(40)
         # To test if BITFIELD is indeed wrapping around.
         self.subtest_connect2downloader()
         time.sleep(80)
-    
+
     def downloader_state_callback(self,ds):
         d = ds.get_download()
         print >>sys.stderr,"test: download:",dlstatus_strings[ds.get_status()],ds.get_progress()
-        
+
         return (1.0,False)
 
     def downloader_vod_ready_callback(self,d,event,params):
@@ -144,13 +144,13 @@ class TestSeeding(TestAsServer):
 
 
     def subtest_connect2downloader(self):
-        
+
         print >> sys.stderr,"test: verifier: Connecting to seeder to check bitfield"
-        
+
         infohash = self.tdef.get_infohash()
         s = BTConnection('localhost',self.mylistenport,user_infohash=infohash)
         s.read_handshake_medium_rare()
-        
+
         try:
             s.s.settimeout(10.0)
             resp = s.recv()
@@ -168,15 +168,15 @@ class TestSeeding(TestAsServer):
             b2[0] = True
             msg = BITFIELD+b2.tostring()
             s.send(msg)
-            
+
             time.sleep(5)
-            
+
         except socket.timeout:
             print >> sys.stderr,"test: verifier: Timeout, peer didn't reply"
             self.assert_(False)
         s.close()
-        
-        
+
+
 class InfiniteSource:
     def __init__(self, piece_length):
         self.emptypiece = " " * piece_length
@@ -188,16 +188,16 @@ class InfiniteSource:
         pass
 
 
-        
+
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_seeding.py <method name>"
     else:
         suite.addTest(TestSeeding(sys.argv[1]))
-    
+
     return suite
 
 def main():

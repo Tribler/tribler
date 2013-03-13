@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# Updated by George Milescu 
+# Updated by George Milescu
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
 
@@ -7,7 +7,7 @@
 # WARNING: When extending this class:
 #
 # 1. Add a JavaDoc description for each method you add.
-# 2. Also add the methods to APIImplementation/SessionRuntimeConfig.py  
+# 2. Also add the methods to APIImplementation/SessionRuntimeConfig.py
 # 3. Document your changes in API.py
 #
 #
@@ -24,34 +24,34 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
 
 class SessionConfigInterface:
-    """ 
-    (key,value) pair config of global parameters, 
+    """
+    (key,value) pair config of global parameters,
     e.g. PermID keypair, listen port, max upload speed, etc.
-    
+
     Use SessionStartupConfig from creating and manipulation configurations
     before session startup time. This is just a parent class.
     """
     def __init__(self,sessconfig=None):
-        """ Constructor. 
-        @param sessconfig Optional dictionary used internally 
+        """ Constructor.
+        @param sessconfig Optional dictionary used internally
         to make this a copy constructor.
         """
 
         if sessconfig is not None: # copy constructor
             self.sessconfig = sessconfig
             return
-        
+
         self.sessconfig = {}
-        
+
         # Define the built-in default here
         self.sessconfig.update(sessdefaults)
-        
+
         # Set video_analyser_path
         if sys.platform == 'win32':
             ffmpegname = "ffmpeg.exe"
         else:
             ffmpegname = "ffmpeg"
-    
+
         ffmpegpath = find_prog_in_PATH(ffmpegname)
         if ffmpegpath is None:
             if sys.platform == 'win32':
@@ -73,28 +73,28 @@ class SessionConfigInterface:
         does not yet exist it will be created at Session create time.
         """
         self.sessconfig['state_dir'] = statedir
-    
+
     def get_state_dir(self):
-        """ Returns the directory the Session stores its state in. 
+        """ Returns the directory the Session stores its state in.
         @return An absolute path name. """
         return self.sessconfig['state_dir']
-    
+
     def set_install_dir(self,installdir):
-        """ Set the directory in which the Tribler Core software is installed. 
+        """ Set the directory in which the Tribler Core software is installed.
         @param installdir An absolute path name
         """
         self.sessconfig['install_dir'] = installdir
-    
+
     def get_install_dir(self):
         """ Returns the directory the Tribler Core software is installed in.
         @return An absolute path name. """
         return self.sessconfig['install_dir']
-    
-    
+
+
     def set_permid_keypair_filename(self,keypairfilename):
-        """ Set the filename containing the Elliptic Curve keypair to use for 
-        PermID-based authentication in this Session. 
-        
+        """ Set the filename containing the Elliptic Curve keypair to use for
+        PermID-based authentication in this Session.
+
         Note: if a Session is started with a SessionStartupConfig that
         points to an existing state dir and that state dir contains a saved
         keypair, that keypair will be used unless a different keypair is
@@ -106,7 +106,7 @@ class SessionConfigInterface:
         """ Returns the filename of the Session's keypair.
         @return An absolute path name. """
         return self.sessconfig['eckeypairfilename']
-    
+
 
     def set_listen_port(self,port):
         """ Set the UDP and TCP listen port for this Session.
@@ -119,7 +119,7 @@ class SessionConfigInterface:
         """ Returns the current UDP/TCP listen port.
         @return Port number. """
         return self.sessconfig['minport']
-        
+
     #
     # Advanced network settings
     #
@@ -144,7 +144,7 @@ class SessionConfigInterface:
         return self.sessconfig['bind']
 
     def set_upnp_mode(self,value):
-        """ Use to autoconfigure a UPnP router to forward the UDP/TCP listen 
+        """ Use to autoconfigure a UPnP router to forward the UDP/TCP listen
         port to this host:
         <pre>
          * UPNPMODE_DISABLED: Autoconfigure turned off.
@@ -152,12 +152,12 @@ class SessionConfigInterface:
          * UPNPMODE_WIN32_UPnP_UPnPDeviceFinder: Use Windows COM interface (faster)
          * UPNPMODE_UNIVERSAL_DIRECT: Talk UPnP directly to the network (best)
         </pre>
-        @param value UPNPMODE_* 
+        @param value UPNPMODE_*
         """
         self.sessconfig['upnp_nat_access'] = value
 
     def get_upnp_mode(self):
-        """ Returns the UPnP mode set. 
+        """ Returns the UPnP mode set.
         @return UPNPMODE_* """
         return self.sessconfig['upnp_nat_access']
 
@@ -185,10 +185,10 @@ class SessionConfigInterface:
         return self.sessconfig['timeout_check_interval']
 
     #
-    # Enable/disable Tribler features 
+    # Enable/disable Tribler features
     #
     def set_megacache(self,value):
-        """ Enable megacache databases to cache peers, torrent files and 
+        """ Enable megacache databases to cache peers, torrent files and
         preferences (default = True).
         @param value Boolean. """
         self.sessconfig['megacache'] = value
@@ -202,9 +202,9 @@ class SessionConfigInterface:
     # Secure Overlay
     #
     def set_overlay(self,value):
-        """ Enable overlay swarm to enable Tribler's special features 
+        """ Enable overlay swarm to enable Tribler's special features
         (default = True).
-        @param value Boolean. 
+        @param value Boolean.
         """
         self.sessconfig['overlay'] = value
 
@@ -237,32 +237,32 @@ class SessionConfigInterface:
         self.sessconfig['buddycast'] = value
 
     def get_buddycast(self):
-        """ Returns whether buddycast is enabled at startup. 
+        """ Returns whether buddycast is enabled at startup.
         @return Boolean."""
         return self.sessconfig['buddycast']
 
     def set_start_recommender(self,value):
-        """ Buddycast can be temporarily disabled via this parameter 
+        """ Buddycast can be temporarily disabled via this parameter
         (default = True). Must have been enabled at startup, see
         set_buddycast().
-        @param value Boolean. 
+        @param value Boolean.
         """
         self.sessconfig['start_recommender'] = value
 
     def get_start_recommender(self):
-        """ Returns whether Buddycast is temporarily enabled. 
+        """ Returns whether Buddycast is temporarily enabled.
         @return Boolean."""
         return self.sessconfig['start_recommender']
 
     def set_buddycast_interval(self,value):
-        """ Number of seconds to pause between exchanging preference with a 
+        """ Number of seconds to pause between exchanging preference with a
         peer in Buddycast.
         @param value A number of seconds.
         """
         self.sessconfig['buddycast_interval'] = value
 
     def get_buddycast_interval(self):
-        """ Returns the number of seconds between Buddycast pref. exchanges. 
+        """ Returns the number of seconds between Buddycast pref. exchanges.
         @return A number of seconds. """
         return self.sessconfig['buddycast_interval']
 
@@ -272,12 +272,12 @@ class SessionConfigInterface:
         <pre>
          * BCCOLPOLICY_SIMPLE: Simplest solution: per torrent/buddycasted peer/4 hours,
          </pre>
-        @param value BCCOLPOLICY_* 
+        @param value BCCOLPOLICY_*
         """
         self.sessconfig['buddycast_collecting_solution'] = value
 
     def get_buddycast_collecting_solution(self):
-        """ Returns the Buddycast collecting solution. 
+        """ Returns the Buddycast collecting solution.
         @return BCOLPOLICY_* """
         return self.sessconfig['buddycast_collecting_solution']
 
@@ -300,15 +300,15 @@ class SessionConfigInterface:
         self.sessconfig['proxyservice_dir'] = value
 
     def get_proxyservice_dir(self):
-        """ Returns the directory for proxyservice storage. 
+        """ Returns the directory for proxyservice storage.
         @return An absolute path name. """
         return self.sessconfig['proxyservice_dir']
 
     def set_proxyservice_status(self,value):
         """ Set the status of the proxyservice (on or off).
-        
+
         ProxyService off means the current node could not be used as a proxy. ProxyService on means other nodes will be able to use it as a proxy.
-        
+
         @param value: one of the possible two values: PROXYSERVICE_OFF, PROXYSERVICE_ON
         """
         if value == PROXYSERVICE_OFF or value == PROXYSERVICE_ON:
@@ -329,9 +329,9 @@ class SessionConfigInterface:
     # Torrent file collecting
     #
     def set_torrent_collecting(self,value):
-        """ Automatically collect torrents from peers in the network (default = 
+        """ Automatically collect torrents from peers in the network (default =
         True).
-        @param value Boolean. 
+        @param value Boolean.
         """
         self.sessconfig['torrent_collecting'] = value
 
@@ -361,7 +361,7 @@ class SessionConfigInterface:
         """ Returns the directory to save collected torrents.
         @return An absolute path name. """
         return self.sessconfig['torrent_collecting_dir']
-    
+
     def set_torrent_collecting_rate(self,value):
         """ Maximum download rate to use for torrent collecting.
         @param value A rate in KB/s. """
@@ -375,7 +375,7 @@ class SessionConfigInterface:
     def set_torrent_checking(self,value):
         """ Whether to automatically check the health of collected torrents by
         contacting their trackers (default = True).
-        @param value Boolean 
+        @param value Boolean
         """
         self.sessconfig['torrent_checking'] = value
 
@@ -396,13 +396,13 @@ class SessionConfigInterface:
         return self.sessconfig['torrent_checking_period']
 
     def set_stop_collecting_threshold(self,value):
-        """ Stop collecting more torrents if the disk has less than this limit 
+        """ Stop collecting more torrents if the disk has less than this limit
         @param value A limit in MB.
         """
         self.sessconfig['stop_collecting_threshold'] = value
 
     def get_stop_collecting_threshold(self):
-        """ Returns the disk-space limit when to stop collecting torrents. 
+        """ Returns the disk-space limit when to stop collecting torrents.
         @return A number of megabytes. """
         return self.sessconfig['stop_collecting_threshold']
 
@@ -412,12 +412,12 @@ class SessionConfigInterface:
     #
     def set_dialback(self,value):
         """ Use other peers to determine external IP address (default = True)
-        @param value Boolean 
+        @param value Boolean
         """
         self.sessconfig['dialback'] = value
 
     def get_dialback(self):
-        """ Returns whether to use the dialback mechanism. 
+        """ Returns whether to use the dialback mechanism.
         @return Boolean. """
         return self.sessconfig['dialback']
 
@@ -429,7 +429,7 @@ class SessionConfigInterface:
         """ Enable social networking. If enabled, a message containing the
         user's nickname and icon is sent to each Tribler peer met
         (default = True).
-        @param value Boolean 
+        @param value Boolean
         """
         self.sessconfig['socnet'] = value
 
@@ -463,7 +463,7 @@ class SessionConfigInterface:
             return None, None
         else:
             return self.sessconfig['mugshot']
-    
+
     def set_peer_icon_path(self,value):
         """ Directory to store received peer icons (Default is statedir +
         STATEDIR_PEERICON_DIR).
@@ -476,7 +476,7 @@ class SessionConfigInterface:
         return self.sessconfig['peer_icon_path']
 
     #
-    # Tribler remote query: ask other peers when looking for a torrent file 
+    # Tribler remote query: ask other peers when looking for a torrent file
     # or peer
     #
     def set_remote_query(self,value):
@@ -487,7 +487,7 @@ class SessionConfigInterface:
         self.sessconfig['rquery'] = value
 
     def get_remote_query(self):
-        """ Returns whether remote query is enabled. 
+        """ Returns whether remote query is enabled.
         @return Boolean. """
         return self.sessconfig['rquery']
 
@@ -516,12 +516,12 @@ class SessionConfigInterface:
         @param value An absolute path name.
         """
         self.sessconfig['videoanalyserpath'] = value
-    
+
     def get_video_analyser_path(self):
         """ Returns the path of the FFMPEG video analyser.
         @return An absolute path name. """
         return self.sessconfig['videoanalyserpath'] # strings immutable
-    
+
 
     #
     # Tribler's internal tracker
@@ -581,7 +581,7 @@ class SessionConfigInterface:
     def set_tracker_allowed_list(self,value):
         """ Only allow peers to register for torrents that appear in the
         specified file. Cannot be used in combination with set_tracker_allowed_dir()
-        @param value An absolute filename containing a list of torrent infohashes in hex format, one per 
+        @param value An absolute filename containing a list of torrent infohashes in hex format, one per
         line. """
         self.sessconfig['tracker_allowed_list'] = value
 
@@ -603,14 +603,14 @@ class SessionConfigInterface:
         return self.sessconfig['tracker_allowed_controls']
 
     def set_tracker_allowed_ips(self,value):
-        """ Only allow connections from IPs specified in the given file; file 
+        """ Only allow connections from IPs specified in the given file; file
         contains subnet data in the format: aa.bb.cc.dd/len.
         @param value An absolute path name.
         """
         self.sessconfig['tracker_allowed_ips'] = value
 
     def get_tracker_allowed_ips(self):
-        """ Returns the filename containing allowed IP addresses. 
+        """ Returns the filename containing allowed IP addresses.
         @return An absolute path name."""
         return self.sessconfig['tracker_allowed_ips']
 
@@ -622,12 +622,12 @@ class SessionConfigInterface:
         self.sessconfig['tracker_banned_ips'] = value
 
     def get_tracker_banned_ips(self):
-        """ Returns the filename containing banned IP addresses. 
+        """ Returns the filename containing banned IP addresses.
         @return An absolute path name. """
         return self.sessconfig['tracker_banned_ips']
 
     def set_tracker_only_local_override_ip(self,value):
-        """ Ignore the 'ip' parameter in the GET announce from machines which 
+        """ Ignore the 'ip' parameter in the GET announce from machines which
         aren't on local network IPs.
         <pre>
          * ITRACK_IGNORE_ANNOUNCEIP_NEVER
@@ -639,12 +639,12 @@ class SessionConfigInterface:
         self.sessconfig['tracker_only_local_override_ip'] = value
 
     def get_tracker_only_local_override_ip(self):
-        """ Returns the ignore policy for 'ip' parameters in announces. 
+        """ Returns the ignore policy for 'ip' parameters in announces.
         @return ITRACK_IGNORE_ANNOUNCEIP_* """
         return self.sessconfig['tracker_only_local_override_ip']
 
     def set_tracker_parse_dir_interval(self,value):
-        """ Seconds between reloading of allowed_dir or allowed_file and 
+        """ Seconds between reloading of allowed_dir or allowed_file and
         allowed_ips and banned_ips lists.
         @param value A number of seconds.
         """
@@ -665,7 +665,7 @@ class SessionConfigInterface:
         * ITRACKSCRAPE_ALLOW_SPECIFIC: Allow scrape requests for a specific torrent.
         * ITRACKSCRAPE_ALLOW_FULL: Allow scrape of all torrents at once.
         </pre>
-        @param value ITRACKSCRAPE_* 
+        @param value ITRACKSCRAPE_*
         """
         self.sessconfig['tracker_scrape_allowed'] = value
 
@@ -677,7 +677,7 @@ class SessionConfigInterface:
     def set_tracker_allow_get(self,value):
         """ Setting this parameter adds a /file?hash={hash} links to the
         overview page that the internal tracker makes available via HTTP
-        at hostname:listenport. These links allow users to download the 
+        at hostname:listenport. These links allow users to download the
         torrent file from the internal tracker. Use with 'allowed_dir' parameter.
         @param value Boolean.
         """
@@ -694,26 +694,26 @@ class SessionConfigInterface:
     # Controls for internal tracker's output as Web server
     #
     def set_tracker_favicon(self,value):
-        """ File containing image/x-icon data to return when browser requests 
+        """ File containing image/x-icon data to return when browser requests
         favicon.ico from the internal tracker. (Default = Tribler/Images/tribler.ico)
-        @param value An absolute filename. 
+        @param value An absolute filename.
         """
         self.sessconfig['tracker_favicon'] = value
 
     def get_tracker_favicon(self):
-        """ Returns the filename of the internal tracker favicon. 
+        """ Returns the filename of the internal tracker favicon.
         @return An absolute path name. """
         return self.sessconfig['tracker_favicon']
 
     def set_tracker_show_infopage(self,value):
-        """ Whether to display an info page when the tracker's root dir is 
+        """ Whether to display an info page when the tracker's root dir is
         requested via HTTP.
         @param value Boolean
         """
         self.sessconfig['tracker_show_infopage'] = value
 
     def get_tracker_show_infopage(self):
-        """ Returns whether to show an info page on the internal tracker. 
+        """ Returns whether to show an info page on the internal tracker.
         @return Boolean. """
         return self.sessconfig['tracker_show_infopage']
 
@@ -724,7 +724,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_infopage_redirect'] = value
 
     def get_tracker_infopage_redirect(self):
-        """ Returns the URL to redirect request for info pages to. 
+        """ Returns the URL to redirect request for info pages to.
         @return URL """
         return self.sessconfig['tracker_infopage_redirect']
 
@@ -735,7 +735,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_show_names'] = value
 
     def get_tracker_show_names(self):
-        """ Returns whether the tracker displays names from the 'allowed dir'. 
+        """ Returns whether the tracker displays names from the 'allowed dir'.
         @return Boolean. """
         return self.sessconfig['tracker_show_names']
 
@@ -747,7 +747,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_keep_dead'] = value
 
     def get_tracker_keep_dead(self):
-        """ Returns whether to keep dead torrents for statistics. 
+        """ Returns whether to keep dead torrents for statistics.
         @return Boolean. """
         return self.sessconfig['tracker_keep_dead']
 
@@ -762,7 +762,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_reannounce_interval'] = value
 
     def get_tracker_reannounce_interval(self):
-        """ Returns the reannounce interval for the internal tracker. 
+        """ Returns the reannounce interval for the internal tracker.
         @return A number of seconds. """
         return self.sessconfig['tracker_reannounce_interval']
 
@@ -774,15 +774,15 @@ class SessionConfigInterface:
         self.sessconfig['tracker_response_size'] = value
 
     def get_tracker_response_size(self):
-        """ Returns the number of peers to send in a tracker reply. 
+        """ Returns the number of peers to send in a tracker reply.
         @return A number of peers. """
         return self.sessconfig['tracker_response_size']
 
     def set_tracker_nat_check(self,value):
-        """ How many times the internal tracker should attempt to check if a 
+        """ How many times the internal tracker should attempt to check if a
         downloader is behind a  Network Address Translator (NAT) or firewall.
         If it is, the downloader won't be registered at the tracker, as other
-        peers can probably not contact it. 
+        peers can probably not contact it.
         @param value A number of times, 0 = don't check.
         """
         self.sessconfig['tracker_nat_check'] = value
@@ -797,14 +797,14 @@ class SessionConfigInterface:
     # Internal tracker persistence
     #
     def set_tracker_dfile(self,value):
-        """ File to store recent downloader info in (default = Session state 
+        """ File to store recent downloader info in (default = Session state
         dir + STATEDIR_ITRACKER_DIR + tracker.db
         @param value An absolute path name.
         """
         self.sessconfig['tracker_dfile'] = value
 
     def get_tracker_dfile(self):
-        """ Returns the tracker database file. 
+        """ Returns the tracker database file.
         @return An absolute path name. """
         return self.sessconfig['tracker_dfile']
 
@@ -815,12 +815,12 @@ class SessionConfigInterface:
          * ITRACKDBFORMAT_BENCODE: Use BitTorrent bencoding to store records.
          * ITRACKDBFORMAT_PICKLE: Use Python pickling to store records.
         </pre>
-        @param value ITRACKDBFORFMAT_* 
+        @param value ITRACKDBFORFMAT_*
         """
         self.sessconfig['tracker_dfile_format'] = value
 
     def get_tracker_dfile_format(self):
-        """ Returns the format of the tracker database file. 
+        """ Returns the format of the tracker database file.
         @return ITRACKDBFORMAT_* """
         return self.sessconfig['tracker_dfile_format']
 
@@ -832,7 +832,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_save_dfile_interval'] = value
 
     def get_tracker_save_dfile_interval(self):
-        """ Returns the tracker-database save interval. 
+        """ Returns the tracker-database save interval.
         @return A number of seconds. """
         return self.sessconfig['tracker_save_dfile_interval']
 
@@ -843,7 +843,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_logfile'] = value
 
     def get_tracker_logfile(self):
-        """ Returns the device name to write log messages to. 
+        """ Returns the device name to write log messages to.
         @return A device name. """
         return self.sessconfig['tracker_logfile']
 
@@ -854,7 +854,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_min_time_between_log_flushes'] = value
 
     def get_tracker_min_time_between_log_flushes(self):
-        """ Returns time between tracker log flushes. 
+        """ Returns time between tracker log flushes.
         @return A number of seconds. """
         return self.sessconfig['tracker_min_time_between_log_flushes']
 
@@ -865,26 +865,26 @@ class SessionConfigInterface:
         self.sessconfig['tracker_log_nat_checks'] = value
 
     def get_tracker_log_nat_checks(self):
-        """ Returns whether to log NAT-check attempts to the tracker log. 
+        """ Returns whether to log NAT-check attempts to the tracker log.
         @return Boolean. """
         return self.sessconfig['tracker_log_nat_checks']
 
     def set_tracker_hupmonitor(self,value):
-        """ Whether to reopen the tracker log file upon receipt of a SIGHUP 
+        """ Whether to reopen the tracker log file upon receipt of a SIGHUP
         signal (Mac/UNIX only).
         @param value Boolean.
         """
         self.sessconfig['tracker_hupmonitor'] = value
 
     def get_tracker_hupmonitor(self):
-        """ Returns whether to reopen the tracker log file upon receipt of a 
-        SIGHUP signal. 
+        """ Returns whether to reopen the tracker log file upon receipt of a
+        SIGHUP signal.
         @return Boolean. """
         return self.sessconfig['tracker_hupmonitor']
 
 
     #
-    # Esoteric tracker config parameters 
+    # Esoteric tracker config parameters
     #
     def set_tracker_socket_timeout(self,value):
         """ Set timeout for closing connections to trackers.
@@ -893,7 +893,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_socket_timeout'] = value
 
     def get_tracker_socket_timeout(self):
-        """ Returns the tracker socket timeout. 
+        """ Returns the tracker socket timeout.
         @return A number of seconds. """
         return self.sessconfig['tracker_socket_timeout']
 
@@ -905,7 +905,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_timeout_downloaders_interval'] = value
 
     def get_tracker_timeout_downloaders_interval(self):
-        """ Returns the number of seconds between checks for expired peers. 
+        """ Returns the number of seconds between checks for expired peers.
         @return A number of seconds. """
         return self.sessconfig['tracker_timeout_downloaders_interval']
 
@@ -917,12 +917,12 @@ class SessionConfigInterface:
         self.sessconfig['tracker_timeout_check_interval'] = value
 
     def get_tracker_timeout_check_interval(self):
-        """ Returns timeout for connections to the internal tracker. 
+        """ Returns timeout for connections to the internal tracker.
         @return A number of seconds. """
         return self.sessconfig['tracker_timeout_check_interval']
 
     def set_tracker_min_time_between_cache_refreshes(self,value):
-        """ Minimum time before a cache is considered stale and is 
+        """ Minimum time before a cache is considered stale and is
         flushed.
         @param value A number of seconds.
         """
@@ -945,7 +945,7 @@ class SessionConfigInterface:
         self.sessconfig['tracker_multitracker_enabled'] = value
 
     def get_tracker_multitracker_enabled(self):
-        """ Returns whether multitracking is enabled. 
+        """ Returns whether multitracking is enabled.
         @return Boolean. """
         return self.sessconfig['tracker_multitracker_enabled']
 
@@ -954,38 +954,38 @@ class SessionConfigInterface:
         <pre>
          * ITRACKMULTI_ALLOW_NONE: Don't allow.
          * ITRACKMULTI_ALLOW_AUTODETECT: Allow for allowed torrents (see set_tracker_allowed_dir())
-         * ITRACKMULTI_ALLOW_ALL: Allow for all. 
+         * ITRACKMULTI_ALLOW_ALL: Allow for all.
         </pre>
         @param value ITRACKMULTI_ALLOW_*
         """
         self.sessconfig['tracker_multitracker_allowed'] = value
 
     def get_tracker_multitracker_allowed(self):
-        """ Returns the multitracker allow policy of the internal tracker. 
+        """ Returns the multitracker allow policy of the internal tracker.
         @return ITRACKMULTI_ALLOW_* """
         return self.sessconfig['tracker_multitracker_allowed']
 
     def set_tracker_multitracker_reannounce_interval(self,value):
         """ Seconds between outgoing tracker announces to the other trackers in
         a multi-tracker setup.
-        @param value A number of seconds. 
+        @param value A number of seconds.
         """
         self.sessconfig['tracker_multitracker_reannounce_interval'] = value
 
     def get_tracker_multitracker_reannounce_interval(self):
-        """ Returns the multitracker reannouce interval. 
+        """ Returns the multitracker reannouce interval.
         @return A number of seconds. """
         return self.sessconfig['tracker_multitracker_reannounce_interval']
 
     def set_tracker_multitracker_maxpeers(self,value):
         """ Number of peers to retrieve from the other trackers in a tracker
-         announce in a multi-tracker setup. 
+         announce in a multi-tracker setup.
          @param value A number of peers.
          """
         self.sessconfig['tracker_multitracker_maxpeers'] = value
 
     def get_tracker_multitracker_maxpeers(self):
-        """ Returns the number of peers to retrieve from another tracker. 
+        """ Returns the number of peers to retrieve from another tracker.
         @return A number of peers. """
         return self.sessconfig['tracker_multitracker_maxpeers']
 
@@ -997,33 +997,33 @@ class SessionConfigInterface:
         self.sessconfig['tracker_aggregate_forward'] = value
 
     def get_tracker_aggregate_forward(self):
-        """ Returns the aggregate forward URL and optional password as a 2-item 
-        list. 
+        """ Returns the aggregate forward URL and optional password as a 2-item
+        list.
         @return URL """
         return self.sessconfig['tracker_aggregate_forward']
 
     def set_tracker_aggregator(self,value):
-        """ Whether to act as a data aggregator rather than a tracker. 
-        To enable, set to True or <password>; if password is set, then an 
+        """ Whether to act as a data aggregator rather than a tracker.
+        To enable, set to True or <password>; if password is set, then an
         incoming password is required for access.
         @param value Boolean or string.
         """
         self.sessconfig['tracker_aggregator'] = value
 
     def get_tracker_aggregator(self):
-        """ Returns the tracker aggregator parameter. 
+        """ Returns the tracker aggregator parameter.
         @return Boolean or string. """
         return self.sessconfig['tracker_aggregator']
 
     def set_tracker_multitracker_http_timeout(self,value):
         """ Time to wait before assuming that an HTTP connection
-        to another tracker in a multi-tracker setup has timed out. 
+        to another tracker in a multi-tracker setup has timed out.
         @param value A number of seconds.
         """
         self.sessconfig['tracker_multitracker_http_timeout'] = value
 
     def get_tracker_multitracker_http_timeout(self):
-        """ Returns timeout for inter-multi-tracker HTTP connections. 
+        """ Returns timeout for inter-multi-tracker HTTP connections.
         @return A number of seconds. """
         return self.sessconfig['tracker_multitracker_http_timeout']
 
@@ -1038,7 +1038,7 @@ class SessionConfigInterface:
         self.sessconfig['superpeer'] = value
 
     def get_superpeer(self):
-        """ Returns whether the Session runs in superpeer mode. 
+        """ Returns whether the Session runs in superpeer mode.
         @return Boolean. """
         return self.sessconfig['superpeer']
 
@@ -1073,20 +1073,20 @@ class SessionConfigInterface:
         """
         c = dscfg.copy()
         self.sessconfig['proxy_default_dlcfg'] = c.dlconfig # copy internal dict
-        
+
     def get_proxy_default_dlcfg(self):
         """ Returns the DownloadStartupConfig with which to start new Proxy Downloads
-        when the client is asked to relay as a proxy. 
+        when the client is asked to relay as a proxy.
         @return DownloadStartupConfig
         """
         dlconfig = self.sessconfig['proxy_default_dlcfg']
         if dlconfig is None:
             return None
         else:
-            from Tribler.Core.DownloadConfig import DownloadStartupConfig 
+            from Tribler.Core.DownloadConfig import DownloadStartupConfig
             return DownloadStartupConfig(dlconfig)
     #
-    # _ProxyService        
+    # _ProxyService
 
 
     #
@@ -1098,7 +1098,7 @@ class SessionConfigInterface:
         @param value Boolean.
         """
         self.sessconfig['nat_detect'] = value
-    
+
     def set_puncturing_internal_port(self, puncturing_internal_port):
         """ The listening port of the puncturing module.
         @param puncturing_internal_port integer. """
@@ -1121,7 +1121,7 @@ class SessionConfigInterface:
         @return Boolean
         """
         return self.sessconfig['nat_detect']
-    
+
     def get_puncturing_internal_port(self):
         """ Returns the listening port of the puncturing module.
         @return integer. """
@@ -1150,8 +1150,8 @@ class SessionConfigInterface:
         """ Whether crawler messages are processed
         @return Boolean. """
         return self.sessconfig['crawler']
-    
-    # 
+
+    #
     # Local Peer Discovery using IP Multicast
     #
     def set_multicast_local_peer_discovery(self,value):
@@ -1161,7 +1161,7 @@ class SessionConfigInterface:
         @param value Boolean
         """
         self.sessconfig['multicast_local_peer_discovery'] = value
-        
+
     def get_multicast_local_peer_discovery(self):
         """
         Returns whether local peer discovery is enabled.
@@ -1173,61 +1173,61 @@ class SessionConfigInterface:
     # VoteCast
     #
     def set_votecast_recent_votes(self, value):
-        """ Sets the maximum limit for the recent votes by the user, 
-        that will be forwarded to connected peers 
-        @param value int 
+        """ Sets the maximum limit for the recent votes by the user,
+        that will be forwarded to connected peers
+        @param value int
         """
-        self.sessconfig['votecast_recent_votes'] = value 
+        self.sessconfig['votecast_recent_votes'] = value
 
     def get_votecast_recent_votes(self):
-        """ Returns the maximum limit for the recent votes by the user, 
-        that will be forwarded to connected peers 
-        @return int 
+        """ Returns the maximum limit for the recent votes by the user,
+        that will be forwarded to connected peers
+        @return int
         """
         return self.sessconfig['votecast_recent_votes']
-    
+
     def set_votecast_random_votes(self, value):
         """ Sets the maximum limit for the user's votes that are different from recent ones
-        but selected randomly; these votes will be forwarded to connected peers along with recent votes 
-        @param value int 
+        but selected randomly; these votes will be forwarded to connected peers along with recent votes
+        @param value int
         """
         self.sessconfig['votecast_random_votes'] = value
 
     def get_votecast_random_votes(self):
         """ Returns the maximum limit for the user's votes that are different from recent ones
-        but selected randomly; these votes will be forwarded to connected peers along with recent votes 
-        @return int 
-        """        
+        but selected randomly; these votes will be forwarded to connected peers along with recent votes
+        @return int
+        """
         return self.sessconfig['votecast_random_votes']
 
     #
     # ChannelCast
     #
     def set_channelcast_recent_own_subscriptions(self, value):
-        """ Sets the maximum limit for the recent subscriptions by the user, 
-        that will be forwarded to connected peers 
-        @param value int 
+        """ Sets the maximum limit for the recent subscriptions by the user,
+        that will be forwarded to connected peers
+        @param value int
         """
         self.sessconfig['channelcast_recent_own_subscriptions'] = value
 
     def get_channelcast_recent_own_subscriptions(self):
-        """ Returns the maximum limit for the recent subscriptions by the user, 
-        that will be forwarded to connected peers 
-        @return int 
+        """ Returns the maximum limit for the recent subscriptions by the user,
+        that will be forwarded to connected peers
+        @return int
         """
         return self.sessconfig['channelcast_recent_own_subscriptions']
-    
+
     def set_channelcast_random_own_subscriptions(self, value):
         """ Sets the maximum limit for the user's subscriptions that are different from recent ones
-        but selected randomly; these subscriptions will be forwarded to connected peers 
-        @param value int 
+        but selected randomly; these subscriptions will be forwarded to connected peers
+        @param value int
         """
         self.sessconfig['channelcast_random_own_subscriptions'] = value
 
     def get_channelcast_random_own_subscriptions(self):
         """ Returns the maximum limit for the user's subscriptions that are different from recent ones
-        but selected randomly; these subscriptions will be forwarded to connected peers 
-        @return int 
+        but selected randomly; these subscriptions will be forwarded to connected peers
+        @return int
         """
         return self.sessconfig['channelcast_random_own_subscriptions']
     #
@@ -1235,12 +1235,12 @@ class SessionConfigInterface:
     #
     def set_dispersy(self, value):
         """ Enable or disable Dispersy (default = True).
-        @param value Boolean. 
+        @param value Boolean.
         """
         self.sessconfig['dispersy'] = value
 
     def get_dispersy(self):
-        """ Returns whether Dispersy is enabled. 
+        """ Returns whether Dispersy is enabled.
         @return Boolean.
         """
         return self.sessconfig['dispersy']
@@ -1268,7 +1268,7 @@ class SessionConfigInterface:
         @param value  Boolean
         """
         self.sessconfig['swiftproc'] = value
-    
+
     def get_swift_proc(self):
         """ Return whether support for swift Downloads via an external
         swift C++ process is enabled.
@@ -1281,7 +1281,7 @@ class SessionConfigInterface:
         @param value An absolute path name.
         """
         self.sessconfig['swiftpath'] = value
-    
+
     def get_swift_path(self):
         """ Returns the path of the swift binary.
         @return An absolute path name. """
@@ -1292,7 +1292,7 @@ class SessionConfigInterface:
         @param value A path name.
         """
         self.sessconfig['swiftworkingdir'] = value
-    
+
     def get_swift_working_dir(self):
         """ Returns the working directory for the swift binary.
         @return A path name. """
@@ -1322,60 +1322,60 @@ class SessionConfigInterface:
         self.sessconfig['swiftdlsperproc'] = value
 
     def get_swift_downloads_per_process(self):
-        """ Returns the number of downloads per swift process. 
+        """ Returns the number of downloads per swift process.
         @return A number of downloads. """
         return self.sessconfig['swiftdlsperproc']
 
-    
+
     #
     # Config for swift tunneling e.g. dispersy traffic
     #
     def set_swift_tunnel_listen_port(self,port):
         """ Set the UDP port for the swift process
-        (download-to-process mapping permitting). 
+        (download-to-process mapping permitting).
         @param port A port number.
         """
         self.sessconfig['swifttunnellistenport'] = port
 
     def get_swift_tunnel_listen_port(self):
-        """ Returns the UDP port of the swift process. 
+        """ Returns the UDP port of the swift process.
 
         @return Port number. """
         return self.sessconfig['swifttunnellistenport']
 
     def set_swift_tunnel_cmdgw_listen_port(self,port):
         """ Set the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting). 
+        (download-to-process mapping permitting).
         @param port A port number.
         """
         self.sessconfig['swifttunnelcmdgwlistenport'] = port
 
     def get_swift_tunnel_cmdgw_listen_port(self):
         """ Returns the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting). 
+        (download-to-process mapping permitting).
 
         @return Port number. """
         return self.sessconfig['swifttunnelcmdgwlistenport']
-    
+
     def set_swift_tunnel_httpgw_listen_port(self,port):
         """ Set the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting). 
+        (download-to-process mapping permitting).
         @param port A port number.
         """
         self.sessconfig['swifttunnelhttpgwlistenport'] = port
 
     def get_swift_tunnel_httpgw_listen_port(self):
-        """ Returns the TCP listen port for the CMDGW of the swift process. 
+        """ Returns the TCP listen port for the CMDGW of the swift process.
 
         @return Port number. """
         return self.sessconfig['swifttunnelhttpgwlistenport']
 
-    
-    
 
-class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):  
+
+
+class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):
     """ Class to configure a Session """
-    
+
     def __init__(self,sessconfig=None):
         SessionConfigInterface.__init__(self,sessconfig)
 
@@ -1385,7 +1385,7 @@ class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):
     def load(filename):
         """
         Load a saved SessionStartupConfig from disk.
-        
+
         @param filename  An absolute Unicode filename
         @return SessionStartupConfig object
         """
@@ -1408,7 +1408,7 @@ class SessionStartupConfig(SessionConfigInterface,Copyable,Serializable):
 
     #
     # Copyable interface
-    # 
+    #
     def copy(self):
         config = copy.copy(self.sessconfig)
         return SessionStartupConfig(config)

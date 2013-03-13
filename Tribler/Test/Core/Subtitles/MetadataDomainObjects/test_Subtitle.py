@@ -20,7 +20,7 @@ class SubtitlesTest(unittest.TestCase):
         self.assertFalse(sub is None)
         self.assertFalse(sub.subtitleExists())
         self.assertRaises(AssertionError, sub.computeChecksum)
-        
+
     def testChecksums(self):
         path = os.path.join(RES_DIR,PATH_TO_SRT)
         sub = SubtitleInfo("ita",path)
@@ -30,25 +30,25 @@ class SubtitlesTest(unittest.TestCase):
         with codecs.open(path, "rb", "utf-8") as subFile:
             sha1Hasher.update(subFile.read())
         expectedChecksum = sha1Hasher.digest()
-        
-        
+
+
         sub.computeChecksum()
-        
+
         self.assertEquals(expectedChecksum,
                           sub.checksum)
-        
+
         self.assertTrue(sub.verifyChecksum())
-    
+
     def testSubsExists(self):
         path = os.path.join(RES_DIR,PATH_TO_SRT)
         sub = SubtitleInfo("rus","fakepath")
         self.assertFalse(sub.subtitleExists())
         sub.path = os.path.abspath(path)
         self.assertTrue(sub.subtitleExists())
-        
-    
+
+
 def suite():
-    return unittest.TestLoader().loadTestsFromTestCase(SubtitlesTest) 
+    return unittest.TestLoader().loadTestsFromTestCase(SubtitlesTest)
 
 
 if __name__ == "__main__":

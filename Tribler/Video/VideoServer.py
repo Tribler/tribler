@@ -21,7 +21,7 @@ DEBUGCONTENT = False
 DEBUGWEBUI = False
 DEBUGLOCK = False
 DEBUGBASESERV = False
-        
+
 def bytestr2int(b):
     if b == "":
         return None
@@ -30,10 +30,10 @@ def bytestr2int(b):
 
 
 class AbstractPathMapper:
-    
+
     def __init__(self):
         pass
-    
+
     def get(self,path):
         msg = 'AbstractPathMapper: Unknown path '+path
         stream = StringIO(msg)
@@ -45,26 +45,26 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
 #class VideoHTTPServer(BaseHTTPServer.HTTPServer):
     """
     Arno: not using ThreadingMixIn makes it a single-threaded server.
-    
+
     2009-09-08: Previously single or multi didn't matter because there would
     always just be one request for one HTTP path. Now we started supporting HTTP
     range queries and that results in parallel requests on the same path
     (and thus our stream object). The reason there are parallel requests
-    is due to the funky way VLC uses HTTP range queries: It does not request 
+    is due to the funky way VLC uses HTTP range queries: It does not request
     begin1-end1, begin2-end2, begin2-end2, but begin1- & begin2- &
     begin3-. That is, it requests almost the whole file everytime, and in
-    parallel too, aborting the earlier connections as it proceeds. 
-    
+    parallel too, aborting the earlier connections as it proceeds.
+
     2009-12-05: I now made it Multi-threaded to also handle the NSSA search
     API requests. The concurrency issue on the p2p streams is handled by
     adding a lock per stream.
     """
     __single = None
-    
+
     def __init__(self,port):
         if VideoHTTPServer.__single:
             raise RuntimeError, "HTTPServer is Singleton"
-        VideoHTTPServer.__single = self 
+        VideoHTTPServer.__single = self
 
         self.port = port
         BaseHTTPServer.HTTPServer.__init__( self, ("127.0.0.1",self.port), SimpleServer )
@@ -72,20 +72,20 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         self.allow_reuse_address = True
         #self.request_queue_size = 10
 
-        self.lock = RLock()        
-        
+        self.lock = RLock()
+
         self.urlpath2streaminfo = {} # Maps URL to streaminfo
         self.mappers = [] # List of PathMappers
-        
+
         self.errorcallback = None
         self.statuscallback = None
-        
+
     def getInstance(*args, **kw):
         if VideoHTTPServer.__single is None:
             VideoHTTPServer(*args, **kw)
         return VideoHTTPServer.__single
     getInstance = staticmethod(getInstance)
-    
+
     def background_serve( self ):
         name = "VideoHTTPServerThread-1"
         self.thread2 = Thread(target=self.serve_forever,name=name)
@@ -106,7 +106,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         if DEBUGLOCK:
             print >>sys.stderr,"vs: set_input: unlock",urlpath,currentThread().getName()
         self.lock.release()
-        
+
     def acquire_inputstream(self,urlpath):
 
         streaminfo = None
@@ -156,7 +156,7 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         if DEBUGLOCK:
             print >>sys.stderr,"vs: del_input: enter",urlpath
         streaminfo = self.acquire_inputstream(urlpath)
-        
+
         if DEBUGLOCK:
             print >>sys.stderr,"vs: del_input: lock",urlpath,currentThread().getName()
         self.lock.acquire()
@@ -180,15 +180,15 @@ class VideoHTTPServer(ThreadingMixIn,BaseHTTPServer.HTTPServer):
         """ WARNING: mappers cannot be added dynamically, must be registered before background_serve()
         """
         self.mappers.append(mapper)
-    
+
     def handle_error(self, request, client_address):
         """ Error inside the BaseHTTPServer that reports errors like:
           File "c:\Python265\lib\socket.py", line 406, in readline
             data = self._sock.recv(self._rbufsize)
           error: [Errno 10053] An established connection was aborted by the software in your host machine
-          
+
           As this fill the log when VLC uses HTTP range requests in its brutal
-          way (send offset, close conn, send offset+10K-, close conn), 
+          way (send offset, close conn, send offset+10K-, close conn),
           only print when really wanted.
         """
         if DEBUGBASESERV:
@@ -208,10 +208,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
         pass
 
     def do_GET(self):
-        """ 
+        """
         Handle HTTP GET request. See remark about VLC's use of HTTP GET RANGE
         requests above.
-        
+
         Called by a separate thread for each request.
         """
         global DEBUG
@@ -220,11 +220,11 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 DEBUG = DEBUGWEBUI
             else:
                 DEBUG = DEBUGCONTENT
-            
+
             if DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range'),currentThread().getName()
                 #print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
-                
+
             # 1. Get streaminfo for the data we should return in response
             nbytes2send = None
             nbyteswritten= 0
@@ -233,11 +233,11 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             except:
                 streaminfo = None
             #print >>sys.stderr,"videoserv: do_GET: Got streaminfo",`streaminfo`
-            
+
             # Ric: modified to create a persistent connection in case it's requested (HTML5)
             if self.request_version == 'HTTP/1.1':
                 self.protocol_version = 'HTTP/1.1'
-                
+
             try:
                 if streaminfo is None or ('statuscode' in streaminfo and streaminfo['statuscode'] != 200):
                     # 2. Send error response
@@ -245,7 +245,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         streaminfo = {'statuscode':500,'statusmsg':"Internal Server Error, couldn't find resource"}
                     if DEBUG:
                         print >>sys.stderr,"videoserv: do_GET: Cannot serve request",streaminfo['statuscode'],currentThread().getName()
-                        
+
                     self.send_response(streaminfo['statuscode'])
                     if streaminfo['statuscode'] == 301:
                         self.send_header("Location", streaminfo['statusmsg'])
@@ -266,27 +266,27 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     else:
                         blocksize = 65536
                     if 'svc' in streaminfo:
-                        # When in SVC mode we return all data that we have 
+                        # When in SVC mode we return all data that we have
                         # currently. Subsequent requests will
                         # return the next batch of data.
                         svc = streaminfo['svc']
                     else:
                         svc = False
 
-        
+
                 #mimetype = 'application/x-mms-framed'
                 #mimetype = 'video/H264'
                 if DEBUG:
                     print >>sys.stderr,"videoserv: do_GET: MIME type is",mimetype,"length",length,"blocksize",blocksize,currentThread().getName()
-    
-                # 3. Support for HTTP range queries: 
+
+                # 3. Support for HTTP range queries:
                 # http://tools.ietf.org/html/rfc2616#section-14.35
                 firstbyte = 0
                 if length is not None:
                     lastbyte = length-1
                 else:
                     lastbyte = None # to avoid print error below
-    
+
                 range = self.headers.getheader('range')
                 if self.RANGE_REQUESTS_ENABLED and length and range:
                     # Handle RANGE query
@@ -299,9 +299,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         firstbytestr, lastbytestr = string.split(seek,'-')
                         firstbyte = bytestr2int(firstbytestr)
                         lastbyte = bytestr2int(lastbytestr)
-                
+
                         if length is None:
-                            # - No length (live) 
+                            # - No length (live)
                             bad = True
                         elif firstbyte is None and lastbyte is None:
                             # - Invalid input
@@ -310,13 +310,13 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                             bad = True
                         elif lastbyte >= length:
                             if firstbyte is None:
-                                """ If the entity is shorter than the specified 
+                                """ If the entity is shorter than the specified
                                 suffix-length, the entire entity-body is used.
                                 """
                                 lastbyte = length-1
                             else:
                                 bad = True
-                        
+
                     if bad:
                         # Send 416 - Requested Range not satisfiable and exit
                         self.send_response(416)
@@ -326,9 +326,9 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                             crheader = "bytes */"+str(length)
                         self.send_header("Content-Range",crheader)
                         self.end_headers()
-                        
+
                         return
-                    
+
                     if firstbyte is not None and lastbyte is None:
                         # "100-" : byte 100 and further
                         nbytes2send = length - firstbyte
@@ -338,42 +338,42 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         nbytes2send = lastbyte
                         firstbyte = length - lastbyte
                         lastbyte = length - 1
-                        
+
                     else:
                         nbytes2send = lastbyte+1 - firstbyte
-            
+
                     # Arno, 2010-01-08: Fixed bug, now return /length
                     crheader = "bytes "+str(firstbyte)+"-"+str(lastbyte)+"/"+str(length)
-            
+
                     self.send_response(206)
                     self.send_header("Content-Range",crheader)
                 else:
                     # Normal GET request
                     nbytes2send = length
                     self.send_response(200)
-            
-            
+
+
                 if DEBUG:
                     print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
-            
-            
+
+
                 # 4. Seek in stream to desired offset, unless svc
                 if not svc:
                     try:
                         stream.seek(firstbyte)
                     except:
-                        # Arno, 2010-10-17: Live will throw harmless exception, 
+                        # Arno, 2010-10-17: Live will throw harmless exception,
                         # Ogg live needs it to reset to "send header" first state.
                         # Better solution is to have OggMagicStream with
                         # ControlledStream in BackgroundProcess.py
                         print_exc()
-        
+
                 # For persistent connections keep the socket alive!
                 if self.request_version == 'HTTP/1.1':
                     self.send_header("Connection", "Keep-Alive")
                     # test.. to be adjusted depending on the request
                     self.send_header("Keep-Alive", "timeout=15, max=100")
-                    
+
                 # 5. Send headers
                 self.send_header("Content-Type", mimetype)
                 self.send_header("Accept-Ranges", "bytes")
@@ -390,17 +390,17 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     self.send_header("Transfer-Encoding", "chunked")
                 self.end_headers()
-    
-    
+
+
                 if svc:
                     # 6. Send body: For SVC we send all we currently have, not blocking.
                     data = stream.read()
-                    
-                    if len(data) > 0: 
+
+                    if len(data) > 0:
                         self.wfile.write(data)
                     elif len(data) == 0:
                         if DEBUG:
-                            print >>sys.stderr,"videoserv: svc: stream.read() no data" 
+                            print >>sys.stderr,"videoserv: svc: stream.read() no data"
                 else:
                     # 6. Send body (completely, a Range: or an infinite stream in chunked encoding
                     done = False
@@ -408,12 +408,12 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         data = stream.read(blocksize)
                         if len(data) == 0:
                             done = True
-                        
+
                         #print >>sys.stderr,"videoserv: HTTP: read",len(data),"bytes",currentThread().getName()
-                        
+
                         if length is None:
                             # If length unknown, use chunked encoding
-                            # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1 
+                            # http://www.ietf.org/rfc/rfc2616.txt, $3.6.1
                             self.wfile.write("%x\r\n" % (len(data)))
                         if len(data) > 0:
                             # Limit output to what was asked on range queries:
@@ -426,18 +426,18 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                             else:
                                 self.wfile.write(data)
                                 nbyteswritten += len(data)
-                            
+
                             #print >>sys.stderr,"videoserv: HTTP: wrote total",nbyteswritten
-                            
+
                         if length is None:
                             # If length unknown, use chunked encoding
                             self.wfile.write("\r\n")
-        
+
                         if done:
                             if DEBUG:
-                                print >>sys.stderr,"videoserv: do_GET: stream reached EOF or range query's send limit",currentThread().getName() 
+                                print >>sys.stderr,"videoserv: do_GET: stream reached EOF or range query's send limit",currentThread().getName()
                             break
-                        
+
                     if nbyteswritten != nbytes2send:
                         print >>sys.stderr,"videoserv: do_GET: Sent wrong amount, wanted",nbytes2send,"got",nbyteswritten,currentThread().getName()
 
@@ -446,10 +446,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         stream.close()
                         if self.server.statuscallback is not None:
                             self.server.statuscallback("Done")
-                    
+
             finally:
                 self.server.release_inputstream(self.path)
-            
+
         except socket.error,e2:
             #if DEBUG:
             #    print >>sys.stderr,"videoserv: SocketError occured while serving",currentThread().getName()
@@ -460,7 +460,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             print_exc()
             self.error(e,self.path)
 
-        
+
 
 
     def error(self,e,url):
@@ -474,25 +474,25 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class VideoRawVLCServer:
     __single = None
-    
+
     def __init__(self):
         if VideoRawVLCServer.__single:
             raise RuntimeError, "VideoRawVLCServer is Singleton"
-        VideoRawVLCServer.__single = self 
+        VideoRawVLCServer.__single = self
 
         self.lock = RLock()
         self.oldsid = None
         self.sid2streaminfo = {}
-        
-        
+
+
         #self.lastsid = None # workaround bug? in raw inf
-        
+
     def getInstance(*args, **kw):
         if VideoRawVLCServer.__single is None:
             VideoRawVLCServer(*args, **kw)
         return VideoRawVLCServer.__single
     getInstance = staticmethod(getInstance)
-    
+
     def set_inputstream(self,streaminfo,sid):
         """ Store a record for stream ID "sid" which may be
         retrieved by VLC anytime after this call
@@ -501,12 +501,12 @@ class VideoRawVLCServer:
         try:
             print >>sys.stderr,"VLCRawServer: setting sid",sid
             self.sid2streaminfo[sid] = streaminfo
-            
+
             # workaround
             # self.lastsid = sid
         finally:
             self.lock.release()
-        
+
     def get_inputstream(self,sid):
         """ Get the record for the given stream """
         # TODO: locking?
@@ -525,7 +525,7 @@ class VideoRawVLCServer:
             # workaround
             #sid = self.lastsid
             #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: stream override sid",sid
-            
+
             if self.oldsid is not None and self.oldsid != sid:
                 # Switched streams, garbage collect old
                 oldstream = self.sid2streaminfo[self.oldsid]['stream']
@@ -535,7 +535,7 @@ class VideoRawVLCServer:
                 except:
                     print_exc()
             self.oldsid = sid
-            
+
             streaminfo = self.get_inputstream(sid)
             #print >>sys.stderr,"rawread: sid",sid,"n",buflen
             data = streaminfo['stream'].read(buflen)
@@ -546,25 +546,25 @@ class VideoRawVLCServer:
             else:
                 bufc[0:size]=data
             #print >>sys.stderr,"VideoRawVLCServer:ReadDataCallback: bufc size ", len(bufc)
-            
+
             return size
         except:
             print_exc()
             return -1
-        
+
     def SeekDataCallback(self, pos, sid):
         try:
             # WARNING: CURRENT 0.8.6h binaries have bug in vlcglue.c: pos is just a long int , not a long long int.
-            
+
             #print >>sys.stderr,"VideoRawVLCServer: SeekDataCallback: stream",sid,"seeking to", pos,"oldsid",self.oldsid
             # Arno: TODO: add support for seeking
             if True:
                 streaminfo = self.get_inputstream(sid)
                 streaminfo['stream'].seek(pos,os.SEEK_SET)
                 return 0
-            
+
             return -1
-        
+
         except:
             print_exc()
             return -1
@@ -575,11 +575,11 @@ class MultiHTTPServer(ThreadingMixIn,VideoHTTPServer):
     """ MuliThreaded HTTP Server """
 
     __single = None
-    
+
     def __init__(self,port):
         if MultiHTTPServer.__single:
             raise RuntimeError, "MultiHTTPServer is Singleton"
-        MultiHTTPServer.__single = self 
+        MultiHTTPServer.__single = self
 
         self.port = port
         BaseHTTPServer.HTTPServer.__init__( self, ("127.0.0.1",self.port), SimpleServer )
@@ -587,11 +587,11 @@ class MultiHTTPServer(ThreadingMixIn,VideoHTTPServer):
         self.allow_reuse_address = True
         #self.request_queue_size = 10
 
-        self.lock = RLock()        
-        
+        self.lock = RLock()
+
         self.urlpath2streaminfo = {} # Maps URL to streaminfo
         self.mappers = [] # List of PathMappers
-        
+
         self.errorcallback = None
         self.statuscallback = None
 

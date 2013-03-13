@@ -23,18 +23,18 @@ CATEGORY = ' Video'
 
 class TestQueryReplyActive(TestAsServer):
 
-    """  
-    Testing QUERY_REPLY message of Query extension V1 
+    """
+    Testing QUERY_REPLY message of Query extension V1
 
-    This test checks how the Tribler code responds to good and bad 
+    This test checks how the Tribler code responds to good and bad
     QUERY_REPLY messages. I.e. the Tribler client initiates
     the dialback by connecting to us and sending a QUERY and we
     reply with good and bad messages.
 
     This test allows authoritative answers from superpeers.
 
-    WARNING: Each of the test_ methods should be tested by running the TestCase 
-    in a separate Python interpreter to prevent problems with our singleton 
+    WARNING: Each of the test_ methods should be tested by running the TestCase
+    in a separate Python interpreter to prevent problems with our singleton
     classes, e.g. SuperPeerDB, etc.
     """
 
@@ -59,45 +59,45 @@ class TestQueryReplyActive(TestAsServer):
         self.pretest_q('SIMPLE+METADATA',keyword)
 
     def pretest_q(self,queryprefix,keyword):
-        
+
         query = queryprefix+' '+keyword
-        
+
         self.content_name = keyword.upper()+' S22E44'
         self.tdef = TorrentDef()
         self.tdef.set_tracker('http://localhost:0/announce')
         self.tdef.set_piece_length(2 ** 15)
         self.tdef.create_live(self.content_name,2 ** 16)
         self.tdef.finalize()
-        
+
         # 1. First connect to Tribler
         self.openconn = OLConnection(self.my_keypair,'localhost',self.hisport)
         sleep(3)
-        
+
         # 2. Make Tribler send query
         self.query = query
         self.session.query_connected_peers(query,self.query_usercallback,max_peers_to_query=10)
 
     def query_usercallback(self,permid,query,hits):
-        
+
         print >>sys.stderr,"test: query_usercallback:",`permid`,`query`,`hits`
-        
+
         self.assert_(query == self.query)
         self.assert_(permid == self.my_permid)
         self.check_good_qreply(hits)
-        
+
         # TODO: if SIMPLE+METADATA: check torrent now in db.
-        
+
 
     #
     # Good SIMPLE QUERY, builds on TestQueryReply code
-    #    
+    #
     def singtest_good_simple_reply(self):
         self.pretest_simple('hallo')
         self._test_qreply(self.create_good_simple_reply,True)
 
     #
     # Good SIMPLE+METADATA QUERY, builds on TestQueryReply code
-    #    
+    #
     def singtest_good_simpleplustorrents_reply(self):
         self.pretest_simpleplustorrents('hallo')
         self._test_qreply(self.create_good_simpleplustorrents_reply,True)
@@ -105,14 +105,14 @@ class TestQueryReplyActive(TestAsServer):
 
     #
     # Good SIMPLE QUERY Unicode, builds on TestQueryReply code
-    #    
+    #
     def singtest_good_simple_reply_unicode(self):
         self.pretest_simple(u'Ch\u00e8rie')
         self._test_qreply(self.create_good_simple_reply,True)
 
     #
     # Good SIMPLE+METADATA QUERY Unicode, builds on TestQueryReply code
-    #    
+    #
     def singtest_good_simpleplustorrents_reply_unicode(self):
         self.pretest_simpleplustorrents(u'Ch\u00e8rie')
         self._test_qreply(self.create_good_simpleplustorrents_reply,True)
@@ -120,14 +120,14 @@ class TestQueryReplyActive(TestAsServer):
 
     #
     # Bad QUERY, builds on TestQueryReply code
-    #    
+    #
     def singtest_bad_not_bdecodable(self):
         self.pretest_simple('hallo')
         self._test_qreply(self.create_not_bdecodable,False)
 
     #
     # Bad SIMPLE+METADATA QUERY, builds on TestQueryReply code
-    #    
+    #
     def singtest_bad_not_bdecodable_torrentfile(self):
         self.pretest_simpleplustorrents('hallo')
         self._test_qreply(self.create_not_bdecodable_torrentfile,False)
@@ -147,7 +147,7 @@ class TestQueryReplyActive(TestAsServer):
         print >> sys.stderr,"test: Received overlay message",getMessageName(msg[0])
         self.assert_(msg[0] == QUERY)
         id = self.check_rquery(msg[1:])
-        
+
         resp = gen_qreply(id)
         print >> sys.stderr,"test: sending QUERY_REPLY"
         s.send(resp)
@@ -173,20 +173,20 @@ class TestQueryReplyActive(TestAsServer):
         # OLPROTO_PROTO_ELEVENTH
         # set later r['torrent_size'] = 42
         r['channel_permid'] = '$' * 83
-        r['channel_name'] = 'Nitin Channel' 
-        
+        r['channel_name'] = 'Nitin Channel'
+
         d2 = {}
         d2[self.tdef.get_infohash()] = r
-        
+
         d = {}
         d['id'] = id
         d['a'] = d2
         return d
-        
+
     def create_good_simple_reply(self,id):
         d = self.create_good_simple_reply_dict(id)
         bmetainfo = bencode(self.tdef.get_metainfo())
-        d['a'][self.tdef.get_infohash()]['torrent_size'] = len(bmetainfo) 
+        d['a'][self.tdef.get_infohash()]['torrent_size'] = len(bmetainfo)
         b = bencode(d)
         return QUERY_REPLY+b
 
@@ -194,12 +194,12 @@ class TestQueryReplyActive(TestAsServer):
         d = self.create_good_simple_reply_dict(id)
         bmetainfo = bencode(self.tdef.get_metainfo())
         d['a'][self.tdef.get_infohash()]['torrent_size'] = len(bmetainfo)
-        d['a'][self.tdef.get_infohash()]['metatype'] = 'application/x-tribler-stream' 
-        d['a'][self.tdef.get_infohash()]['metadata'] = bmetainfo 
+        d['a'][self.tdef.get_infohash()]['metatype'] = 'application/x-tribler-stream'
+        d['a'][self.tdef.get_infohash()]['metadata'] = bmetainfo
         b = bencode(d)
         return QUERY_REPLY+b
 
-    
+
 
     def check_good_qreply(self,hits):
         self.assert_(len(hits) == 1)
@@ -210,7 +210,7 @@ class TestQueryReplyActive(TestAsServer):
         self.assert_(hit['leecher'] == LEECHERS)
         self.assert_(hit['seeder'] == SEEDERS)
         self.assert_(hit['category'] ==  CATEGORY)
-    
+
         # OLPROTO_VERSION_ELEVENTH
         bmetainfo = bencode(self.tdef.get_metainfo())
         self.assert_(hit['torrent_size'] == len(bmetainfo))
@@ -243,17 +243,17 @@ class TestQueryReplyActive(TestAsServer):
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. SuperPeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_rquery_active_reply.py <method name>"
     else:
         suite.addTest(TestQueryReplyActive(sys.argv[1]))
-    
+
     return suite
 
 def main():
     unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
-    
+
 if __name__ == "__main__":
     main()

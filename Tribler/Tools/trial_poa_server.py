@@ -79,12 +79,12 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """
 
         print format%args
-        
+
     def failed(self, code, message = None):
         """
         Request failed, return error
         """
-        
+
         try:
             if message:
                 print "Sending %d (%s)"%(code, message)
@@ -97,20 +97,20 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.end_headers()
             except Exception,e:
                 print >>sys.stderr, "Error sending end_headers - I guess I shouldn't do  it then"
-            
+
             #self.wfile.close()
         except Exception,e:
-            
+
             # Error sending error...  Log and ingnore
             print >>sys.stderr, "Error sending error %s, ignoring (%s)"%(code, e)
 
             # TODO: Remove this error thingy
             raise Exception("Could not send error")
-        
+
         return False
 
 
-       
+
 
     def prepareSend(self, type, size=None, response=200):
 
@@ -162,11 +162,11 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except Exception,e:
             print >>sys.stderr, "Missing key for swarm '%s'"%swarm_id,e
             return self.failed(404)
-        
+
         self.prepareSend("application/octet-stream", len(poa))
         self.wfile.write(poa)
         self.wfile.close()
-        
+
     def generate_poa(self, swarm_id, perm_id):
         """
         Generate a POA if the swarm-id private key is available
@@ -189,11 +189,11 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             torrent_keypair = ClosedSwarm.read_cs_keypair(key_file)
         except Exception,e:
             raise Exception("Bad torrent key file")
-            
+
         # TODO? Sanity - check that this key matches the torrent
 
         poa = ClosedSwarm.create_poa(swarm_id, torrent_keypair, perm_id)
-        
+
         status.create_and_add_event("allowed", [swarm_id, perm_id])
         status.get_status_element("poas_generated").inc()
 
@@ -209,9 +209,9 @@ class WebServer(threading.Thread):
         self.running = False
 
     def run(self):
-        
+
         self.running = True
-        
+
         print "WebServer Running on port %s"%self.port
 
         while self.running:
@@ -221,7 +221,7 @@ class WebServer(threading.Thread):
             except Exception,e:
                 if e.args[0] != "unpack non-sequence":
                     print >>sys.stderr, "Error handling request",e
-                
+
                 # Ignore these, Just means that there was no request
                 # waiting for us
                 pass
@@ -238,17 +238,17 @@ class WebServer(threading.Thread):
 
 if __name__ == "__main__":
 
-    KEY_PATH = "./"    
+    KEY_PATH = "./"
 
     status = Status.get_status_holder("LivingLab")
     id = "poa_generator"
-    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes 
+    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
     status.add_reporter(reporter)
 
     status.create_status_element("poas_generated", 0)
     status.create_status_element("poas_failed", 0)
-    
-        
+
+
     ws = WebServer(8080)
     ws.start()
 
@@ -257,6 +257,3 @@ if __name__ == "__main__":
     print "Stopping server"
     reporter.stop()
     ws.stop()
-    
-
-    

@@ -11,11 +11,11 @@ def parse_log_line(line, line_num):
         raise KeyboardInterrupt
     except:
         return None
-    
+
     if key == 'BUCA_STA':
         data['nRound'] = int(terms[2])
         data['nPeer'] = int(terms[3])
-        data['nPref'] = int(terms[4]) 
+        data['nPref'] = int(terms[4])
         data['nConnCandidates'] = int(terms[5])
         data['nBlockSendList'] = int(terms[6])
         data['nBlockRecvList'] = int(terms[7])
@@ -37,7 +37,7 @@ def parse_log_line(line, line_num):
         except Exception, msg:
             print >> sys.stderr, "Error in parse the log on line %d:"%line_num, Exception, msg
             return None
-            
+
     elif key == 'RECV_MSG' or key == 'SEND_MSG':
         try:
             data['ip'] = terms[2]
@@ -50,13 +50,13 @@ def parse_log_line(line, line_num):
             if key == 'RECV_MSG':
                 data['msg']['permid'] = data['permid']
                 data['msg']['ip']  = data['ip']
-                data['msg']['port'] = data['port'] 
+                data['msg']['port'] = data['port']
         except KeyboardInterrupt:
             raise KeyboardInterrupt
         except Exception, msg:
             print >> sys.stderr, "Error in eval the msg on line %d:"%line_num, Exception, msg
             return None
-    
+
     elif key == 'RECV_QRY':
         try:
             data['permid'] = terms[2]
@@ -70,13 +70,13 @@ def parse_log_line(line, line_num):
         except Exception, msg:
             print >> sys.stderr, "Error in eval the msg on line %d:"%line_num, Exception, msg
             return None
-        
+
     elif key == 'RPLY_QRY':
         pass
-    
+
     if len(data) == 1:
         return None
-    
+
     return key, data
 
 def parse_log_file(file_path):
@@ -88,7 +88,7 @@ def parse_log_file(file_path):
         if not line.startswith('#'):
             yield parse_log_line(line, i)
     file.close()
-    
+
 def parse_log_file_readall(file_path, N_BREAK):
     file = open(file_path)
     i = 0
@@ -129,13 +129,13 @@ def get_buddycast_data(file_path):
                     yield data['permid'], int(data['oversion']), data['msg']
     file.close()
 
-        
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print >> sys.stderr, "Must specify the path or directory of logs"
         sys.exit(1)
-    
+
     i = 1
     for file_path in yield_files2load(sys.argv[1:]):
         print >> sys.stderr, "load", i, file_path

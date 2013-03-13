@@ -31,4 +31,3 @@ class Conversion(BinaryConversion):
             raise DropPacket("Unable to decode UTF-8")
 
         return offset, placeholder.meta.payload.implement(text)
-

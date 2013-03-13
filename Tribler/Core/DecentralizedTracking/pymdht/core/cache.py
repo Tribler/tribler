@@ -26,7 +26,7 @@ class CachedLookup(object):
     def add_peers(self, peers):
         for peer in peers:
             self.peers.add(peer)
-    
+
 
 class Cache(object):
 
@@ -41,7 +41,7 @@ class Cache(object):
                               self.validity_time):
                 del self.cached_lookups[i-1]
         self.cached_lookups.append(cached_lookup)
-        
+
     def get_cached_lookup(self, info_hash):
         for cached_lookup in self.cached_lookups:
             if cached_lookup.info_hash == info_hash:

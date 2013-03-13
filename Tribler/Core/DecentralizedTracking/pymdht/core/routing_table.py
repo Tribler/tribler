@@ -9,7 +9,7 @@ logger = logging.getLogger('dht')
 
 
 class SuperBucket(object):
-    def __init__(self, index, max_nodes, ips_in_main, 
+    def __init__(self, index, max_nodes, ips_in_main,
                  ips_in_replacement):
         self.index = index
         self.main = Bucket(max_nodes, ips_in_main)
@@ -31,7 +31,7 @@ class Bucket(object):
         if i >= 0:
             return self.rnodes[i]
         # return None when node is not found
-        
+
     def add(self, rnode):
         assert len(self.rnodes) < self.max_rnodes
         rnode.bucket_insertion_ts = time.time()
@@ -47,7 +47,7 @@ class Bucket(object):
         del self.rnodes[i]
         if self.ips_in_table is not None:
             self.ips_in_table.remove(node_.ip)
-        
+
     def __repr__(self):
         return '\n'.join(['b>'] + [repr(rnode) for rnode in self.rnodes])
 
@@ -64,7 +64,7 @@ class Bucket(object):
 
     def __ne__(self, other):
         return not self == other
-    
+
     def there_is_room(self, min_places=1):
         return len(self.rnodes) + min_places <=  self.max_rnodes
 
@@ -79,7 +79,7 @@ class Bucket(object):
                 freshest_ts = rnode.last_seen
                 freshest_rnode = rnode
         return freshest_rnode
-    
+
     def get_stalest_rnode(self):
         oldest_ts = time.time()
         stalest_rnode = None
@@ -107,7 +107,7 @@ class Bucket(object):
 #                 highest_rtt = rnode.rtt
 #                 highest_rtt_rnode = rnode
 #         return highest_rtt_rnode
-    
+
     def _find(self, node_):
         for i, rnode in enumerate(self.rnodes):
             if rnode == node_:
@@ -115,13 +115,13 @@ class Bucket(object):
         return -1 # not found
 
 
-    
+
 NUM_SBUCKETS = 160 # log_distance returns a number in range [-1,159]
 NUM_NODES = 8
 class RoutingTable(object):
     '''
     '''
- 
+
     def __init__(self, my_node, nodes_per_bucket):
         assert len(nodes_per_bucket) == NUM_SBUCKETS
         self.my_node = my_node
@@ -143,7 +143,7 @@ class RoutingTable(object):
                                   self._ips_in_replacement)
             self.sbuckets[index] = sbucket
         return sbucket
-        
+
     def get_closest_rnodes(self, log_distance, max_rnodes, exclude_myself):
         result = []
         index = log_distance
@@ -157,7 +157,7 @@ class RoutingTable(object):
         # Include myself (when appropiate)
         if not exclude_myself:
             result.append(self.my_node)
-        # If that wasn't enough we'll provide more (farther away) nodes 
+        # If that wasn't enough we'll provide more (farther away) nodes
         for i in range(index + 1, NUM_SBUCKETS):
             sbucket = self.sbuckets[i]
             if not sbucket:
@@ -165,7 +165,7 @@ class RoutingTable(object):
             result.extend(sbucket.main.rnodes[:max_rnodes-len(result)])
             if len(result) == max_rnodes:
                 break
-        return result 
+        return result
 
     def find_next_bucket_with_room_index(self, node_=None, log_distance=None):
         index = log_distance or node_.distance(self.my_node).log
@@ -175,7 +175,7 @@ class RoutingTable(object):
             if sbucket is None or self.sbuckets[i].main.there_is_room():
                 return i
         # return None when all buckets are full
-    
+
     def get_main_rnodes(self):
         rnodes = []
         for i in range(0, NUM_SBUCKETS):
@@ -190,11 +190,11 @@ class RoutingTable(object):
             if sbucket and len(sbucket.main):
                 print i, len(sbucket.main), len(sbucket.replacement)
         print 'Total:', self.num_rnodes
-    
+
     def __repr__(self):
         begin = ['==============RoutingTable============= BEGIN']
         data = ['%d %r' % (i, sbucket)
                 for i, sbucket in enumerate(self.sbuckets)]
-        
+
         end = ['==============RoutingTable============= END']
         return '\n'.join(begin + data + end)

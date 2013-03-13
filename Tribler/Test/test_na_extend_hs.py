@@ -22,10 +22,10 @@ from Tribler.Core.Utilities.Crypto import sha
 DEBUG=True
 
 class TestNetworkAwareExtendHandshake(TestExtendHandshake):
-    """ 
+    """
     Test our network awareness code that tries to detect if we're behind
     the same NAT and if so, connect via the internal network.
-    
+
     See BitTornado/BT1/Connecter.py
     """
 
@@ -36,7 +36,7 @@ class TestNetworkAwareExtendHandshake(TestExtendHandshake):
     def setUpPreSession(self):
         """ override TestAsServer """
         TestExtendHandshake.setUpPreSession(self)
-    
+
     def setUpPostSession(self):
         """ override TestAsServer """
         TestExtendHandshake.setUpPostSession(self)
@@ -45,17 +45,17 @@ class TestNetworkAwareExtendHandshake(TestExtendHandshake):
         self.setUpMyListenSocket()
 
         self.myid = "R------andomPeer4811"
-        
+
     def setUpDownloadConfig(self):
         dscfg = TestExtendHandshake.setUpDownloadConfig(self)
-        
+
         dscfg.set_same_nat_try_internal(True)
         dscfg.set_unchoke_bias_for_internal(481)
         return dscfg
 
     def setUpMyListenSocket(self):
         self.destport = 4811
-        
+
         # Start our server side, to with Tribler will try to connect
         self.destss = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.destss.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -66,31 +66,31 @@ class TestNetworkAwareExtendHandshake(TestExtendHandshake):
         """ Send EXTEND hs to Tribler with yourip set to 127.0.0.1, so it
         appears we are using the same IP address. Tribler doesn't know its
         own external IP address, so it will do a loopback test to yourip
-        to check. If this check succeeds it will connect to us via the 
+        to check. If this check succeeds it will connect to us via the
         internal network, i.e., our internal interface self.destss.
         """
         self.session.lm.upnp_ext_ip = None
         self.subtest_good_tribler_extend_hs()
-       
-        
+
+
     def singtest_ext_ip_known(self):
         """ Same as singtest_ext_ip_unknown() except no loopback test is needed
         as Tribler knows its external IP and it will be the same as the sent yourip.
         """
         self.session.lm.upnp_ext_ip = '127.0.0.1'
         self.subtest_good_tribler_extend_hs()
-        
-        
+
+
     #
     # Good EXTEND handshake message
     #
     def subtest_good_tribler_extend_hs(self):
         self._test_good(self.create_good_tribler_extend_hs,infohash=self.infohash)
-        
+
     def _test_good(self,msg_gen_func,options=None,infohash=None):
-        
+
         print >>sys.stderr,"test: test good, gen_func",msg_gen_func
-        
+
         if options is None and infohash is None:
             s = BTConnection('localhost',self.hisport,myid=self.myid)
         elif options is None:
@@ -123,7 +123,7 @@ class TestNetworkAwareExtendHandshake(TestExtendHandshake):
         s2 = BTConnection('',0,conn,user_infohash=self.infohash,myid=self.myid)
         s2.send(INTERESTED)
         s2.read_handshake_medium_rare()
-        
+
         # Is it him?
         self.assert_(s.hisid == s2.hisid)
 
@@ -137,9 +137,9 @@ class TestNetworkAwareExtendHandshake(TestExtendHandshake):
                     break
         except socket.timeout:
             self.assert_(False)
-                
+
         self.assert_(True)
-        
+
 
     def create_good_tribler_extend_hs(self):
         d = {}
@@ -163,18 +163,18 @@ class TestNetworkAwareExtendHandshake(TestExtendHandshake):
         val = m['Tr_OVERLAYSWARM']
         self.assert_(type(val) == IntType)
         self.assert_(val == 253)
-        
+
         print >>sys.stderr,"test: Reply is",`d`
 
 def test_suite():
     suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent 
+    # We should run the tests in a separate Python interpreter to prevent
     # problems with our singleton classes, e.g. PeerDB, etc.
     if len(sys.argv) != 2:
         print "Usage: python test_na_extend_hs.py <method name>"
     else:
         suite.addTest(TestNetworkAwareExtendHandshake(sys.argv[1]))
-    
+
     return suite
 
 def main():
