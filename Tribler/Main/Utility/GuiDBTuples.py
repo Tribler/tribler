@@ -8,12 +8,13 @@ from Tribler.Video.utils import videoextdefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
     CHANNEL_REQ_COLUMNS
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
-    DLSTATUS_SEEDING, DLSTATUS_REPEXING, DLSTATUS_HASHCHECKING,\
+    DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,\
     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,\
-    DLSTATUS_STOPPED_ON_ERROR
+    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA
 from Tribler.Main.vwxGUI.IconsManager import data2wxBitmap, IconsManager, SMALL_ICON_MAX_DIM
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Core.Search.SearchManager import split_into_keywords
+import binascii
 
 DEBUGDB = False
 
@@ -109,7 +110,7 @@ class MergedDs:
         return getattr(self.dslist[0], name)
     
     def get_status(self):
-        order = [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_REPEXING, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STOPPED]
+        order = [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STOPPED]
         status1, status2 = self.dslist[0].get_status(), self.dslist[1].get_status()
         
         def return_in_order(status1, status2, order):
@@ -184,7 +185,7 @@ class Torrent(Helper):
     
     @cacheProperty
     def infohash_as_hex(self):
-        return hexlify(self.infohash).upper()
+        return binascii.hexlify(self.infohash).upper()
     
     @cacheProperty
     def channel(self):
@@ -215,12 +216,15 @@ class Torrent(Helper):
         stateList = []
         if self.ds:
             status = self.ds.get_status()
-            if status in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
+            if status == DLSTATUS_STOPPED:
                 stateList.append('stopped')
                 
             if status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
                 stateList.append('active')
             
+            if status in [DLSTATUS_METADATA]:
+                stateList.append('metadata')
+                            
             if status in [DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
                 stateList.append('checking')
                 

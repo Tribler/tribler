@@ -2,7 +2,7 @@
 import wx
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel, ActionButton
+from Tribler.Main.vwxGUI.widgets import _set_font, MaxBetterText, NotebookPanel
 from Tribler.Core.API import *
 
 from list import *
@@ -332,9 +332,9 @@ class SelectedChannelList(GenericSearchList):
     def _special_icon(self, item):
         if not isinstance(item, PlaylistItem) and self.channel:
             if self.channel.isFavorite():
-                return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.channel.name
+                return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.channel.name
             else:
-                return self.outFavoriteChannel, "This torrent is not part of one of your favorite channels"
+                return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
         else:
             pass
 
@@ -429,9 +429,9 @@ class SelectedChannelList(GenericSearchList):
             
             shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
-                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, DragItem) for torrent in torrents]
+                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, DragItem) for torrent in torrents]
             else:
-                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0], torrent, TorrentListItem) for torrent in torrents] 
+                data += [(torrent.infohash,[torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, TorrentListItem) for torrent in torrents] 
             self.list.SetData(data)
             
         else:
@@ -467,9 +467,9 @@ class SelectedChannelList(GenericSearchList):
         if data:
             if isinstance(data, Torrent):
                 if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
-                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data, DragItem)
+                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0, None], data, DragItem)
                 else:
-                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0], data)
+                    data = (data.infohash,[data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0, None], data)
             else:
                 data = (data.id,[data.name, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
@@ -530,56 +530,11 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def OnRemoveVote(self, event):
-        channel = self.channel
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-                
-            self._DoRemoveVote(channel)
-    
-    @forceDBThread    
-    def _DoRemoveVote(self, channel):
-        #Set self.channel to None to prevent updating twice
-        id = channel.id
-        self.channel = None
-        self.channelsearch_manager.remove_vote(id)
-        
-        manager = self.GetManager()
-        # Arno, 2012-07-18: Is this correct, ChannelManager.reload is forceDBThread
-        wx.CallAfter(manager.reload, id)
-        
-        # Ensure that ChannelList no longer shows this channel as a favorite
-        self.guiutility.frame.channellist.GetManager().refresh_partial((channel.id, ))
+        self.guiutility.RemoveFavorite(event, self.channel)
     
     @warnWxThread
     def OnFavorite(self, event = None):
-        channel = self.channel
-        
-        if channel:
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-    
-            self._DoFavorite(channel)
-
-    @forcePrioDBThread    
-    def _DoFavorite(self, channel):
-        id = channel.id
-        
-        #Set self.channel to None to prevent updating twice
-        self.channel = None
-        self.channelsearch_manager.favorite(id)
-        
-        self.uelog.addEvent(message="ChannelList: user marked a channel as favorite", type = 2)
-        
-        manager = self.GetManager()
-        wx.CallAfter(manager.reload, id)
-        
-        # Ensure that ChannelList shows this channel as a favorite        
-        self.guiutility.frame.channellist.GetManager().refresh_partial((channel.id, ))
+        self.guiutility.MarkAsFavorite(event, self.channel)
     
     @warnWxThread
     def OnSpam(self, event):
@@ -878,9 +833,9 @@ class Playlist(SelectedChannelList):
     def _special_icon(self, item):
         if not isinstance(item, PlaylistItem) and self.playlist and self.playlist.channel:
             if self.playlist.channel.isFavorite():
-                return self.inFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.playlist.channel.name
+                return self.inFavoriteChannel, self.outFavoriteChannel, "This torrent is part of one of your favorite channels, %s"%self.playlist.channel.name
             else:
-                return self.outFavoriteChannel, "This torrent is not part of one of your favorite channels"
+                return self.outFavoriteChannel, self.inFavoriteChannel, "This torrent is not part of one of your favorite channels"
         else:
             pass
     

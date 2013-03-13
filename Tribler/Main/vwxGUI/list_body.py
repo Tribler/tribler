@@ -73,44 +73,46 @@ class ListItem(wx.Panel):
                     option = 0
                     size = (self.columns[i]['width'], -1)
                     
+                control = None
                 remaining_width = size[0]
                 addColumnname = self.columns[i].get('showColumname', True) and self.columns[i].get('name', False)
                 type = self.columns[i].get('type', 'label')
                 if type == 'label':
-                    str_data = self.columns[i].get('fmt', unicode)(self.data[i])
-                    
-                    prefix = self.columns[i]['name'] + ": " if addColumnname else ''
-                    str_data = prefix + str_data
-                    
-                    control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
-    
-                    fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
-                    fontSize = self.columns[i].get('fontSize', 0)
-                    if fontWeight != wx.FONTWEIGHT_NORMAL or fontSize:
-                        _set_font(control, size_increment = fontSize, fontweight = fontWeight)
-    
-                    #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
-                    control.SetLabel(str_data.replace('&', "&&"))
+                    if self.data[i] or self.columns[i].get('showEmpty', True):
+                        str_data = self.columns[i].get('fmt', unicode)(self.data[i])
+                       
+                        prefix = self.columns[i]['name'] + ": " if addColumnname else ''
+                        str_data = prefix + str_data
+                        
+                        control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+        
+                        fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
+                        fontSize = self.columns[i].get('fontSize', 0)
+                        if fontWeight != wx.FONTWEIGHT_NORMAL or fontSize:
+                            _set_font(control, size_increment = fontSize, fontweight = fontWeight)
+        
+                        #niels: wx magic prevents us from passing this string with the constructor, ampersands will not work
+                        control.SetLabel(str_data.replace('&', "&&"))
                     
                 else:
-                    if addColumnname:
-                        control = StaticText(self, -1, self.columns[i]['name']+": ", style = self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
-                        self._add_control(control, -1, 0, 0)
-                        remaining_width -= control.GetSize()[0]
-                    
-                    if type == 'method':                  
-                        control = self.columns[i]['method'](self, self)
-                    
+                    method_control = self.columns[i]['method'](self, self) if type == 'method' else None
+                    if method_control or self.columns[i].get('showEmpty', True):
+                        if addColumnname:
+                            control = StaticText(self, -1, self.columns[i]['name']+": ", style = self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+                            self._add_control(control, -1, 0, 0)
+                            remaining_width -= control.GetSize()[0]
+                    control = method_control or control
+
+                spacing = 0
+                if isinstance(control, Iterable):
+                    control, spacing = control
+
+                self.controls.append(control)
+                self.columns[i]['controlindex'] = len(self.controls) - 1
+                
                 if control:
-                    spacing = 0
-                    if isinstance(control, Iterable):
-                        control, spacing = control
-                    
                     control.icon = self._get_icon(i, 'icon')
                     control.icon_right = self._get_icon(i, 'icon_right')
-                    
-                    self.controls.append(control)
-                    self.columns[i]['controlindex'] = len(self.controls) - 1
                     
                     if remaining_width != size[0]:
                         control.SetMinSize((remaining_width, control.GetMinSize()[1]))
@@ -126,7 +128,7 @@ class ListItem(wx.Panel):
                             self.parent_list.parent_list.header.ResizeColumn(i, self.columns[i]['width'])
                         else:
                             if width != LIST_AUTOSIZEHEADER:
-                                self.hSizer.Add((width, -1), 0, wx.LEFT, 3) 
+                                self.hSizer.Add((width, -1), 0, wx.LEFT, 3)
 
         if rightSpacer > 0:
             self.hSizer.AddSpacer((rightSpacer, -1))
@@ -255,6 +257,9 @@ class ListItem(wx.Panel):
         
         if column.get('show', True):
             control_index = column['controlindex']
+            if not self.controls[control_index]:
+                return False, False                
+           
             self.controls[control_index].icon = self._get_icon(columnindex, 'icon', self.controls[control_index].icon)
             self.controls[control_index].icon_right = self._get_icon(columnindex, 'icon_right', self.controls[control_index].icon_right)
             
@@ -300,7 +305,9 @@ class ListItem(wx.Panel):
         column = self.columns[columnindex]
         if column.get('show', True):
             control_index = column['controlindex']
-            self.controls[control_index].SetToolTipString(tooltip)
+            control = self.controls[control_index]
+            if control:
+                control.SetToolTipString(tooltip)
     
     @warnWxThread
     def Highlight(self, timeout = 3.0, revert = True, colour = LIST_HIGHTLIGHT):
@@ -368,7 +375,7 @@ class ListItem(wx.Panel):
                     child.SetBackgroundColour(color)
             
             for control in self.controls:
-                if getattr(control, 'icon', False) and control.icon.type:
+                if control and getattr(control, 'icon', False) and control.icon.type:
                     state = 1 if self.expanded else 0
                     control.icon.SetBitmap(self.GetIcon(control.icon.type, self.GetBackgroundColour(), state))
                     control.icon.Refresh()
@@ -436,7 +443,7 @@ class ListItem(wx.Panel):
                 self.ShowSelected()
             
                 for control in self.controls:
-                    if control.icon and control.icon.type:
+                    if control and control.icon and control.icon.type:
                         control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 1))
         else:
             self.DoCollapse()
@@ -476,7 +483,7 @@ class ListItem(wx.Panel):
         self.expanded = False
             
         for control in self.controls:
-            if control.icon and control.icon.type:
+            if control and control.icon and control.icon.type:
                 control.icon.SetBitmap(self.GetIcon(control.icon.type, self.list_selected, 0))
 
     @warnWxThread

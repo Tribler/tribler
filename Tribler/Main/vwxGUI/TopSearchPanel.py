@@ -10,8 +10,8 @@ from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, NetworkBuzzDBHandler
 
-from widgets import ActionButton, GradientPanel, RoundedPanel, TextCtrlAutoComplete, ProgressButton
-from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED
+from widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
+from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.vwxGUI.list_bundle import BundleListView
 from Tribler.Main.vwxGUI.channel import SelectedChannelList
@@ -37,7 +37,7 @@ class TopSearchPanelStub():
     def Layout(self):
         pass
 
-class TopSearchPanel(GradientPanel):
+class TopSearchPanel(FancyPanel):
     def __init__(self, parent):
         if DEBUG:
             print >> sys.stderr , "TopSearchPanel: __init__"
@@ -51,13 +51,14 @@ class TopSearchPanel(GradientPanel):
         self.nbdb = None
         self.collectedTorrents = {}
 
-        GradientPanel.__init__(self, parent, border = wx.BOTTOM)
+        FancyPanel.__init__(self, parent, border = wx.BOTTOM)
+        self.SetBorderColour(SEPARATOR_GREY)
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.AddComponents()
         self.Bind(wx.EVT_SIZE, self.OnResize)
         
     def AddComponents(self):
         self.SetForegroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOWTEXT))
-        self.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_BACKGROUND))
         
         if DEBUG:
             print >> sys.stderr, "TopSearchPanel: OnCreate"
@@ -69,7 +70,8 @@ class TopSearchPanel(GradientPanel):
             self.searchField.SetDescriptiveText('Search Files or Channels')
             self.searchField.SetMinSize((400, 20))
         else:
-            self.searchFieldPanel = RoundedPanel(self)            
+            self.searchFieldPanel = FancyPanel(self, radius = 5, border = wx.ALL)        
+            self.searchFieldPanel.SetBorderColour(SEPARATOR_GREY, highlight = TRIBLER_RED)  
             self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback = self.complete, selectcallback = self.OnAutoComplete)
             # Since we have set the style to wx.NO_BORDER, the default height will be too large. Therefore, we need to set the correct height.
             _, height = self.GetTextExtent("Gg")
@@ -92,6 +94,9 @@ class TopSearchPanel(GradientPanel):
         download_bmp = self.Bitmap("images/download.png", wx.BITMAP_TYPE_ANY)
         self.download_btn = ActionButton(self, -1, download_bmp)
         self.download_btn.Enable(False)
+        upload_bmp = self.Bitmap("images/upload.png", wx.BITMAP_TYPE_ANY)
+        self.upload_btn = ActionButton(self, -1, upload_bmp)
+        self.upload_btn.Enable(False)
         stop_bmp = self.Bitmap("images/pause.png", wx.BITMAP_TYPE_ANY)
         self.stop_btn = ActionButton(self, -1, stop_bmp)
         self.stop_btn.Enable(False)
@@ -133,24 +138,18 @@ class TopSearchPanel(GradientPanel):
         mainSizer.AddSpacer((40,0))
 
         #add buttons
-        self.buttonSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        #add buttons horizontally
-        buttonBoxSizer = wx.BoxSizer(wx.HORIZONTAL)
-        buttonBoxSizer.Add(self.download_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.stop_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.delete_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.play_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(wx.StaticLine(self, -1, style=wx.LI_VERTICAL), 0, wx.EXPAND|wx.ALL, 5)
-        buttonBoxSizer.Add(self.add_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonBoxSizer.Add(self.settings_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        self.buttonSizer.Add(buttonBoxSizer, 1)
-        mainSizer.Add(self.buttonSizer,0,wx.EXPAND)
+        buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
+        buttonSizer.Add(self.download_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.upload_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.stop_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.delete_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.play_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.AddSpacer((35,0))
+        buttonSizer.AddStretchSpacer()
+        buttonSizer.Add(self.add_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        buttonSizer.Add(self.settings_btn, 0, wx.CENTER|wx.RIGHT, 5)
+        mainSizer.Add(buttonSizer, 1, wx.EXPAND)
 
-        #niels: add strechingspacer, all controls added before 
-        #this spacer will be aligned to the left of the screen
-        #all controls added after, will be to the right
-        mainSizer.AddStretchSpacer()
         self.SetSizer(mainSizer)
         self.Layout()
     
@@ -233,6 +232,7 @@ class TopSearchPanel(GradientPanel):
         inDownloads = self.guiutility.guiPage == 'my_files'
         
         if torrents:
+            isMultiple = len(torrents) > 1
             usedCollectedTorrents = set()
             states = [0,0,0,0,0,0,0] #we have 7 different states, able to resume seeding, resume downloading, download, stop seeding, stop downloading, delete, or play
             for torrent in torrents:
@@ -261,12 +261,10 @@ class TopSearchPanel(GradientPanel):
                         
                     usedCollectedTorrents.add(torrent.infohash)
             
-            enableDownload = states[0] + states[1] + states[2]
+            enableDownload = states[1] + states[2]
             if enableDownload:
-                if enableDownload > 1:
-                    self.SetButtonHandler(self.download_btn, self.OnDownload, 'Resume downloading/seeding the selected torrents.')
-                elif states[0]:
-                    self.SetButtonHandler(self.download_btn, self.OnResume, 'Resume seeding this torrent.')
+                if isMultiple:
+                    self.SetButtonHandler(self.download_btn, self.OnDownload, 'Resume downloading %d torrent(s).' % enableDownload)
                 elif states[1]:
                     self.SetButtonHandler(self.download_btn, self.OnResume, 'Resume downloading this torrent.')
                 else:
@@ -274,10 +272,19 @@ class TopSearchPanel(GradientPanel):
             else:
                 self.SetButtonHandler(self.download_btn, None)
                     
+            enableUpload = states[0]
+            if enableUpload:
+                if isMultiple:
+                    self.SetButtonHandler(self.upload_btn, self.OnUpload, 'Resume seeding %d torrent(s).' % enableUpload)
+                else:
+                    self.SetButtonHandler(self.upload_btn, self.OnUpload, 'Resume seeding this torrent.')
+            else:
+                self.SetButtonHandler(self.upload_btn, None)
+            
             enableStop = states[3] + states[4]
             if enableStop:
-                if enableStop > 1:
-                    self.SetButtonHandler(self.stop_btn, self.OnStop, 'Stop downloading/seeding the selected torrents.')
+                if isMultiple:
+                    self.SetButtonHandler(self.stop_btn, self.OnStop, 'Stop %d torrent(s).' % enableStop)
                 elif states[3]:
                     self.SetButtonHandler(self.stop_btn, self.OnStop, 'Stop seeding this torrent.')
                 else:
@@ -286,13 +293,13 @@ class TopSearchPanel(GradientPanel):
                 self.SetButtonHandler(self.stop_btn, None)
             
             if states[5] > 1:
-                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete the selected torrents.')
+                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete %d torrent(s).' % states[5])
             elif states[5]:
-                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete the selected torrent.')
+                self.SetButtonHandler(self.delete_btn, self.OnDelete, 'Delete this torrent.')
             else:
                 self.SetButtonHandler(self.delete_btn, None)
             
-            if states[6] > 1:
+            if isMultiple:
                 self.SetButtonHandler(self.play_btn, self.OnPlay, 'Start playing one of the selected torrents.')
             elif states[6]:
                 self.SetButtonHandler(self.play_btn, self.OnPlay, 'Start playing this torrent.')
@@ -318,6 +325,7 @@ class TopSearchPanel(GradientPanel):
             
     def ClearButtonHandlers(self):
         self.SetButtonHandler(self.download_btn, None)
+        self.SetButtonHandler(self.upload_btn, None)
         self.SetButtonHandler(self.play_btn, None)
         self.SetButtonHandler(self.stop_btn, None)
         self.SetButtonHandler(self.delete_btn, None)
@@ -329,23 +337,28 @@ class TopSearchPanel(GradientPanel):
             if 'stopped' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
             else:
-                if self.guiutility.frame.searchlist.IsShownOnScreen():
-                    self.guiutility.frame.searchlist.StartDownload(torrent, None)
-                elif self.guiutility.frame.selectedchannellist.IsShownOnScreen():
+                if self.guiutility.frame.selectedchannellist.IsShownOnScreen():
                     self.guiutility.frame.selectedchannellist.StartDownload(torrent, None)
                 else:
-                    response = self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles = None)
-                    if response:
-                        self.guiutility.Notify('Downloading .Torrent file (%s)'%response, icon = wx.ART_INFORMATION)
+                    self.guiutility.frame.searchlist.StartDownload(torrent, None)
 
                 refresh_library = True
                 
         if event:
             button = event.GetEventObject()
             button.Enable(False)
+            wx.CallLater(3000, button.Enable, True)
             
         if refresh_library:
             wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
+            
+    def OnUpload(self, event):
+        for torrent in self.__getTorrents():
+            if 'completed' in torrent.state:
+                self.guiutility.library_manager.resumeTorrent(torrent)
+        if event:
+            button = event.GetEventObject()
+            button.Enable(False)
 
     def OnPlay(self, event):
         #Select the first playable torrent. Return if none can be found

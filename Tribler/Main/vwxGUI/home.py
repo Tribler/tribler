@@ -469,14 +469,14 @@ class DispersyPanel(HomePanel):
             
             ("Candidates reuse", 'Candidates discovered (intro or stumbled) vs Candidates active in more than one community', lambda stats: ratio(stats.total_candidates_overlapped, stats.total_candidates_discovered)),
             
-            ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being send', lambda stats: ratio(stats.delay_send, stats.delay_count)),
+            ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being sent', lambda stats: ratio(stats.delay_send, stats.delay_count)),
             ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
             
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
-            ("Bloom reuse", '', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_new for c in stats.communities))),
+            ("Bloom reuse", 'Total number of bloomfilters reused vs bloomfilters sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send for c in stats.communities))),
             ("Revision", '', lambda stats: str(max(stats.revision.itervalues()))),
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
             ]
@@ -504,21 +504,31 @@ class DispersyPanel(HomePanel):
         self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
         vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
 
-        vTreeSizer = wx.BoxSizer(wx.VERTICAL)
+        self.vTreeSizer = wx.BoxSizer(wx.VERTICAL)
         self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
         self.tree.blockUpdate = False
         self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
         
-        vTreeSizer.Add(self.tree, 1, wx.EXPAND)
+        self.vTreeSizer.Add(self.tree, 1, wx.EXPAND)
         self.includeDebug = wx.CheckBox(panel, -1, "Collect debug")
         self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
-        vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
+        self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
         
         vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
-        vSizer.Add(vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(self.vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
         panel.SetSizer(vSizer)
         return panel
+    
+    def ExpandTree(self, expand = True):
+        sizer = self.panel.GetSizer()
+        sizerItem = sizer.GetItem(self.vTreeSizer)
+        
+        newProportion = 4 if expand else 1
+        if sizerItem.GetProportion() != newProportion:
+            sizerItem.SetProportion(newProportion)
+            
+            self.panel.Layout()
 
     def CreateColumns(self):
         self.textdict = {}
@@ -548,6 +558,9 @@ class DispersyPanel(HomePanel):
 
         elif event.Leaving():
             tree.blockUpdate = False
+            
+        if tree == self.tree:
+            self.ExpandTree(tree.blockUpdate)
 
         event.Skip()
 
@@ -585,7 +598,7 @@ class DispersyPanel(HomePanel):
                 addValue(keyNode, value)
 
         def addDict(parentNode, nodedict):
-            for key, value in nodedict.iteritems():
+            for key, value in nodedict.items():
                 key = str(key)
                 prepend = ''
                 if not isinstance(value, (list, dict)):

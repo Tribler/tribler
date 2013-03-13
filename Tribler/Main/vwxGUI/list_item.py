@@ -3,6 +3,7 @@ import wx
 import sys
 import json
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText, _set_font, TagText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
@@ -11,6 +12,7 @@ from list_details import *
 from _abcoll import Iterable
 from datetime import timedelta
 import urllib
+from Tribler.Main.Utility.GuiDBTuples import MergedDs
 
 class ColumnsManager:
     __single = None
@@ -48,8 +50,11 @@ class DoubleLineListItem(ListItem):
             iconSizer = wx.BoxSizer(wx.VERTICAL)
             for index, icon in enumerate(self.icons):
                 if icon:
-                    bmp = wx.StaticBitmap(self, -1, icon[0])
-                    bmp.SetToolTipString(icon[1])
+                    bmp = ActionButton(self, bitmap = icon[0], hover = False)
+                    bmp.SetBitmapDisabled(icon[1] or icon[0])
+                    bmp.SetBitmapHover(icon[1] or icon[0])
+                    bmp.SetToolTipString(icon[2])
+                    bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
                     if index < len(self.icons)-1:
                         iconSizer.Add(bmp, 0, wx.CENTER|wx.BOTTOM, 7)
                     else:
@@ -101,7 +106,7 @@ class DoubleLineListItem(ListItem):
     def _add_columnresizing(self, sline, column_index):
         sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
         # Take hidden columns into account
-        control_index = len([column for column in self.columns[:column_index] if column['show']])
+        control_index = self.columns[column_index]['controlindex']
                     
         def OnLeftDown(event):
             eo = event.GetEventObject()
@@ -174,10 +179,14 @@ class DoubleLineListItem(ListItem):
         
         new_icons = self.GetIcons()
         for index, new_icon in enumerate(new_icons):
-            if new_icon and (new_icon[0].ConvertToImage().GetData() != self.icons[index].GetBitmap().ConvertToImage().GetData() or \
-                             new_icon[1] != self.icons[index].GetToolTip().GetTip()):
-                self.icons[index].SetBitmap(new_icon[0])
-                self.icons[index].SetToolTipString(new_icon[1])
+            if new_icon and (new_icon[0].ConvertToImage().GetData() != self.icons[index].GetBitmapLabel().ConvertToImage().GetData() or \
+                             new_icon[2] != self.icons[index].GetToolTip().GetTip()):
+                self.icons[index].SetBitmapLabel(new_icon[0])
+                self.icons[index].SetBitmapDisabled(new_icon[1] or new_icon[0])
+                self.icons[index].SetBitmapHover(new_icon[1] or new_icon[0])
+                self.icons[index].SetToolTipString(new_icon[2])
+                self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3] if len(new_icon) > 3 else None)
+                self.icons[index].Enable(True)
                 self.icons[index].Show(True)
             elif not new_icon and self.icons[index]:
                 self.icons[index].Show(False)
@@ -276,25 +285,8 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
 class TorrentListItem(DoubleLineListItemWithButtons):
 
     def __init__(self, *args, **kwargs):
-        DoubleLineListItem.__init__(self, *args, **kwargs)        
-
-        torcoldir    = self.guiutility.utility.session.get_torrent_collecting_dir()
-        rel_thumbdir = 'thumbs-'+binascii.hexlify(self.original_data.infohash)
-        abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
-        if os.path.exists(abs_thumbdir):
-            if not os.listdir(abs_thumbdir):
-                return
-            # Override the settings flags set by AddComponents
-            self.controls[0].SetMinSize(self.controls[0].GetBestSize())
-            self.titleSizer.Detach(self.controls[0])
-            self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
-            
-            # Add icon right after the torrent title, indicating that the torrent has thumbnails
-            snapshot = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
-            snapshot = wx.StaticBitmap(self, -1, snapshot)
-            snapshot.SetToolTipString("This torrent has thumbnails.")
-            self.AddEvents(snapshot)
-            self.titleSizer.Add(snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
+        DoubleLineListItem.__init__(self, *args, **kwargs)
+        self.SetThumbnailIcon()
 
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows = True)
@@ -311,10 +303,36 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             
     @warnWxThread        
     def GetIcons(self):
-        if getattr(self.parent_list.parent_list, '_special_icon', None) and getattr(self.parent_list.parent_list, '_status_icon', None):
-            return [self.parent_list.parent_list._special_icon(self), self.parent_list.parent_list._status_icon(self)]
+        if getattr(self.parent_list.parent_list, '_status_icon', None):
+            return [self.parent_list.parent_list._status_icon(self)]
         else:
             return []
+        
+    @warnWxThread
+    def RefreshData(self, data):
+        DoubleLineListItem.RefreshData(self, data)
+        self.SetThumbnailIcon()
+            
+    def SetThumbnailIcon(self):
+        torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
+        rel_thumbdir = 'thumbs-'+binascii.hexlify(self.original_data.infohash)
+        abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
+        has_thumbnails = os.path.exists(abs_thumbdir) and os.listdir(abs_thumbdir)
+        
+        if has_thumbnails and not getattr(self, 'snapshot', None):
+            # Override the settings flags set by AddComponents
+            self.controls[0].SetMinSize(self.controls[0].GetBestSize())
+            self.titleSizer.Detach(self.controls[0])
+            self.titleSizer.Insert(0, self.controls[0], 0, wx.CENTER)
+            
+            # Add icon right after the torrent title, indicating that the torrent has thumbnails
+            snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
+            self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
+            self.snapshot.SetToolTipString("This torrent has thumbnails.")
+            self.AddEvents(self.snapshot)
+            self.titleSizer.Add(self.snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
+            self.Layout()
+            wx.CallAfter(self.Refresh)
         
     @warnWxThread        
     def GetContextMenu(self):
@@ -381,6 +399,9 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         
         
 class ChannelListItem(DoubleLineListItemWithButtons):
+    def __init__(self, *args, **kwargs):
+        DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
+        self.last_my_vote = None
         
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
@@ -396,9 +417,9 @@ class ChannelListItem(DoubleLineListItemWithButtons):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
             if self.original_data.my_vote == 2:
-                self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.RemoveFavorite(evt, data))
+                self.AddButton("Remove Favorite", lambda evt, data = self.original_data: self.guiutility.RemoveFavorite(evt, data))
             elif not self.original_data.isMyChannel():
-                self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.parent_list.parent_list.MarkAsFavorite(evt, data))
+                self.AddButton("Mark as Favorite", lambda evt, data = self.original_data: self.guiutility.MarkAsFavorite(evt, data))
             self.last_my_vote = self.original_data.my_vote
         
     @warnWxThread
@@ -421,7 +442,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
 class ChannelListItemAssociatedTorrents(ChannelListItem):
     def __init__(self, *args, **kwargs):
         self.at_index = -1
-        DoubleLineListItemWithButtons.__init__(self, *args, **kwargs)
+        ChannelListItem.__init__(self, *args, **kwargs)
         
     def AddComponents(self, *args, **kwargs):
         DoubleLineListItemWithButtons.AddComponents(self, *args, **kwargs)
@@ -505,22 +526,43 @@ class PlaylistItemNoButton(PlaylistItem):
 class LibraryListItem(DoubleLineListItem):
             
     def GetIcons(self):
-        return [self.parent_list.parent_list._swift_icon(self)]        
+        return [self.parent_list.parent_list._torrent_icon(self), self.parent_list.parent_list._swift_icon(self)]        
 
     def GetContextMenu(self):
         menu = DoubleLineListItem.GetContextMenu(self)
         
-        menu_items = [('Explore files', self.OnExplore)]
-            
-        if 'seeding' in self.original_data.state:
-            menu_items.append(('Add to my channel', self.OnAddToMyChannel))
+        menu_items = [('Add to my channel', self.OnAddToMyChannel)] if 'seeding' in self.original_data.state else []
+        menu_items += [None, ('Explore files', self.OnExplore)]
+        menu_items += [('Change download location..', self.OnMove)] if self.original_data.infohash else []
+        menu_items += [('Force recheck', self.OnRecheck)] if 'metadata' not in self.original_data.state and 'checking' not in self.original_data.state else []
         
-        for label, handler in menu_items:
-            itemid = wx.NewId()
-            menu.Append(itemid, label)
-            menu.Bind(wx.EVT_MENU, handler, id=itemid)
-        return menu
+        for item in menu_items:
+            if not item:
+                menu.AppendSeparator()
+            else:
+                label, handler = item
+                itemid = wx.NewId()
+                menu.Append(itemid, label)
+                menu.Bind(wx.EVT_MENU, handler, id=itemid)
 
+        if 'completed' in self.original_data.state or 'seeding' in self.original_data.state:
+            torrent = self.original_data
+            tdef = torrent.ds.get_download().get_def() if torrent.ds else None
+            if tdef and tdef.get_def_type() == 'torrent':
+                is_forced = UserDownloadChoice.get_singleton().get_download_state(tdef.get_id()) == 'restartseed'
+                itemid = wx.NewId()
+                menu.AppendCheckItem(itemid, 'Force seed')
+                menu.Check(itemid, is_forced)
+                menu.Bind(wx.EVT_MENU, lambda evt, force_seed = not is_forced: self.OnSeed(evt, force_seed), id=itemid)
+        
+        return menu
+    
+    def OnSeed(self, event, force_seed):
+        self.guiutility.library_manager.resumeTorrent(self.original_data, force_seed = force_seed)
+
+    def OnRecheck(self, event):
+        self.original_data.ds.get_download().force_recheck()
+        
     @forceDBThread    
     def OnAddToMyChannel(self, event):
         didAdd = self.guiutility.channelsearch_manager.createTorrent(None, self.original_data)
@@ -534,6 +576,91 @@ class LibraryListItem(DoubleLineListItem):
             def gui_call():
                 self.guiutility.Notify('New torrent added to My Channel', "Torrent '%s' has been added to My Channel" % self.original_data.name, icon = wx.ART_INFORMATION)
             wx.CallAfter(gui_call)
+            
+    def OnMove(self, event):
+        items = self.guiutility.frame.librarylist.GetExpandedItems()
+        torrents = [item[1].original_data for item in items if isinstance(item[1].original_data, Torrent) or isinstance(item[1].original_data, CollectedTorrent)]
+        
+        dlg = wx.DirDialog(self, "Choose where to move the selected torrent(s)", style = wx.DEFAULT_DIALOG_STYLE)
+        dlg.SetPath(self.original_data.ds.get_download().get_dest_dir())
+        if dlg.ShowModal() == wx.ID_OK:
+            new_dir = dlg.GetPath()
+            for torrent in torrents:
+                if torrent.ds:
+                    self._MoveDownload(torrent.ds, new_dir)
+            
+    def _MoveDownload(self, download_state, new_dir):
+        def modify_config(download):
+            self.guiutility.library_manager.deleteTorrentDownload(download, None, removestate = False)
+            
+            cdef = download.get_def()
+            dscfg = DownloadStartupConfig(download.dlconfig)
+            dscfg.set_dest_dir(new_dir)
+            
+            return cdef, dscfg
+        
+        def rename_or_merge(old, new):
+            if os.path.exists(old):
+                if os.path.exists(new):
+                    files = os.listdir(old)
+                    for file in files:
+                        oldfile = os.path.join(old, file)
+                        newfile = os.path.join(new, file)
+                        
+                        if os.path.isdir(oldfile):
+                            self.rename_or_merge(oldfile, newfile)
+                            
+                        elif os.path.exists(newfile):
+                            os.remove(newfile)
+                            os.rename(oldfile, newfile)
+                        else:
+                            os.rename(oldfile, newfile)
+                else:
+                    os.renames(old, new)
+                
+        destdirs = download_state.get_download().get_dest_files()
+        if len(destdirs) > 1:
+            old = os.path.commonprefix([os.path.split(path)[0] for _,path in destdirs])
+            _, old_dir = new = os.path.split(old)
+            new = os.path.join(new_dir, old_dir)
+        else:
+            old = destdirs[0][1]
+            _, old_file = os.path.split(old)
+            new = os.path.join(new_dir, old_file)
+        
+        print >> sys.stderr, "Creating new downloadconfig"
+        if isinstance(download_state, MergedDs):
+            dslist = download_state.dslist
+        else:
+            dslist = [download_state]
+        
+        # Remove Swift downloads
+        to_start = []
+        for ds in dslist:
+            download = ds.get_download()
+            if download.get_def().get_def_type() == 'swift':
+                to_start.append(modify_config(download))
+        
+        # Move torrents
+        storage_moved = False
+        for ds in dslist:
+            download = ds.get_download()
+            if download.get_def().get_def_type() == 'torrent':
+                print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+                download.move_storage(new_dir)
+                if download.get_save_path() == new_dir:
+                    storage_moved = True
+                
+        # If libtorrent hasn't moved the files yet, move them now
+        if not storage_moved:
+            print >> sys.stderr, "Moving from", old, "to", new, "newdir", new_dir
+            movelambda = lambda: rename_or_merge(old, new)
+            self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
+                
+        # Start Swift downloads again..
+        for cdef, dscfg in to_start:
+            startlambda = lambda cdef=cdef, dscfg=dscfg: self.guiutility.utility.session.start_download(cdef, dscfg)
+            self.guiutility.utility.session.lm.rawserver.add_task(startlambda, 0.0)
         
     def OnExplore(self, event):
         path = self._GetPath()

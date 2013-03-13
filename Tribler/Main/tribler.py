@@ -213,26 +213,15 @@ class ABCApp():
                 channel_only = f.readline()
                 f.close()
             
-            internal_frame = False
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
-                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
-                if not self.guiUtility.useExternalVideo:
-                    internal_frame = True
-           
-            self.frame = MainFrame(None, channel_only, internal_frame, self.splash.tick)
+            self.frame = MainFrame(None, channel_only, PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()), self.splash.tick)
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(self.utility.getPath()):
                 vlcwrap = self.videoplayer.get_vlcwrap()
             
-                self.guiUtility.useExternalVideo = self.guiUtility.utility.config.Read('popup_player', "boolean")
-                if self.guiUtility.useExternalVideo:
-                    self.frame.videoframe = VideoMacFrame(self.frame,self.utility,"Videoplayer",os.path.join(self.installdir,'Tribler','Images','tribler.ico'), vlcwrap)
-                    self.videoplayer.set_videoframe(self.frame.videoframe)
-                else:
-                    self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
-                    self.videoplayer.set_videoframe(self.frame.videoframe)
+                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel,self.utility,vlcwrap)
+                self.videoplayer.set_videoframe(self.frame.videoframe)
                 
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)
@@ -501,7 +490,7 @@ class ABCApp():
         ltmgr.set_download_rate_limit(maxdown*1024)
  
 # SelectiveSeeding _       
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read, os.path.join(state_dir, STATEDIR_SEEDINGMANAGER_DIR))
+        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
         # self.seedingcount = 0 
 # _SelectiveSeeding
 
@@ -523,12 +512,6 @@ class ABCApp():
         # Schedule task for checkpointing Session, to avoid hash checks after
         # crashes.
         self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
-        
-        progress('Starting repexer')
-        # RePEX: Start scheduler and logger
-        from Tribler.Core.DecentralizedTracking.repex import RePEXScheduler, RePEXLogger
-        #RePEXLogger.getInstance().start() #no more need for logging
-        RePEXScheduler.getInstance().start()
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject,changeType,objectID,*args):
@@ -799,8 +782,6 @@ class ABCApp():
             print >>sys.stderr,"main: Checkpointing Session"
             self.utility.session.checkpoint()
 
-            # write all persistent data to disk
-            self.seedingmanager.write_all_storage()
             self.guiserver.add_task(self.guiservthread_checkpoint_timer,SESSION_CHECKPOINT_INTERVAL)
         except:
             print_exc()
@@ -867,7 +848,7 @@ class ABCApp():
                 manager.torrentsUpdated(infohashes)
             
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
-        self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading." % args[0], icon = wx.ART_INFORMATION)
+        self.guiUtility.Notify("Download Completed", "Torrent '%s' has finished downloading. Now seeding." % args[0], icon = 'seed')
         
         if self.ready and self.frame.ready:
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)
@@ -960,8 +941,6 @@ class ABCApp():
         self.done = True
 
         # write all persistent data to disk
-        if self.seedingmanager:
-            self.seedingmanager.write_all_storage()
         if self.i2is:
             self.i2is.shutdown()
         if self.torrentfeed:    

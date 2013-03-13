@@ -29,6 +29,7 @@
 
 import sys
 import copy
+
 from traceback import print_exc,print_stack
 from threading import RLock,currentThread
 from Tribler.Core import NoDispersyRLock
@@ -70,8 +71,13 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.curspeeds = {DOWNLOAD:0.0,UPLOAD:0.0} # bytes/s
         self.numleech = 0
         self.numseeds = 0
+        self.contentbytes = {DOWNLOAD:0,UPLOAD:0} # bytes
+
         self.done = False  # when set it means this download is being removed
         self.midict = {}
+        self.time_seeding = [0, None]
+        self.total_up = 0
+        self.total_down = 0
         
         self.lm_network_vod_event_callback = None
         self.askmoreinfo = False
@@ -112,8 +118,15 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dlruntimeconfig= {}
             self.dlruntimeconfig['max_desired_upload_rate'] = 0
             self.dlruntimeconfig['max_desired_download_rate'] = 0
-    
-    
+
+            if pstate and pstate.has_key('dlstate'):
+                dlstate = pstate['dlstate']
+                if dlstate.has_key('time_seeding'):
+                    self.time_seeding = [dlstate['time_seeding'], None]
+                if dlstate.has_key('total_up'):
+                    self.total_up = dlstate['total_up']
+                if dlstate.has_key('total_down'):
+                    self.total_down = dlstate['total_down']    
     
             if DEBUG:
                 print >>sys.stderr,"SwiftDownloadImpl: setup: initialdlstatus",`self.sdef.get_roothash_as_hex()`,initialdlstatus
@@ -155,9 +168,18 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     # SwiftProcess callbacks
     #
-    def i2ithread_info_callback(self,dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds):
+    def i2ithread_info_callback(self,dlstatus,progress,dynasize,dlspeed,ulspeed,numleech,numseeds,contentdl,contentul):
         self.dllock.acquire()
         try:
+            if dlstatus == DLSTATUS_SEEDING and self.dlstatus != dlstatus:
+                # started seeding
+                self.time_seeding[0] = self.get_seeding_time()
+                self.time_seeding[1] = time.time()
+            elif dlstatus != DLSTATUS_SEEDING and self.dlstatus != dlstatus:
+                # stopped seeding
+                self.time_seeding[0] = self.get_seeding_time()
+                self.time_seeding[1] = None
+                
             self.dlstatus = dlstatus
             self.dynasize = dynasize
             self.progress = progress
@@ -165,6 +187,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.curspeeds[UPLOAD] = ulspeed
             self.numleech = numleech
             self.numseeds = numseeds
+            self.contentbytes = {DOWNLOAD:contentdl,UPLOAD:contentul}
         finally:
             self.dllock.release()
     
@@ -274,7 +297,22 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             return self.midict
         finally:
             self.dllock.release()
-
+            
+    def get_seeding_time(self):
+        return self.time_seeding[0] + (time.time() - self.time_seeding[1] if self.time_seeding[1] != None else 0)
+    
+    def get_total_up(self):
+        return self.total_up + self.contentbytes[UPLOAD]
+    
+    def get_total_down(self):
+        return self.total_down + self.contentbytes[DOWNLOAD]
+    
+    def get_seeding_statistics(self):
+        seeding_stats = {}
+        seeding_stats['total_up'] = self.get_total_up()
+        seeding_stats['total_down'] = self.get_total_down()
+        seeding_stats['time_seeding'] = self.get_seeding_time()
+        return seeding_stats
 
     def network_get_stats(self,getpeerlist):
         """
@@ -301,11 +339,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
         stats['spew'] = self.network_create_spew_from_peerlist()
+
+        seeding_stats = self.get_seeding_statistics()
         
         logmsgs = []
-        coopdl_helpers = None
-        coopdl_coordinator = None
-        return (status,stats,logmsgs,coopdl_helpers,coopdl_coordinator)
+        return (status,stats,seeding_stats,logmsgs)
 
 
     def network_create_statistics_reponse(self):
@@ -377,10 +415,10 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             if self.sp is None:
                 if DEBUG:
                     print >>sys.stderr,"SwiftDownloadImpl: network_get_state: Download not running"
-                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop)
+                ds = DownloadState(self,DLSTATUS_STOPPED,self.error,self.progressbeforestop,seeding_stats=self.get_seeding_statistics())
             else:
-                (status,stats,logmsgs,proxyservice_proxy_list,proxyservice_doe_list) = self.network_get_stats(getpeerlist)
-                ds = DownloadState(self,status,self.error,self.get_progress(),stats=stats,logmsgs=logmsgs,proxyservice_proxy_list=proxyservice_proxy_list,proxyservice_doe_list=proxyservice_doe_list)
+                (status,stats,seeding_stats,logmsgs) = self.network_get_stats(getpeerlist)
+                ds = DownloadState(self,status,self.error,self.get_progress(),stats=stats,seeding_stats=seeding_stats,logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
             
             if sessioncalling:
@@ -434,6 +472,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 self.session.lm.spm.release_sp(self.sp)
                 self.sp = None
 
+            self.time_seeding = [self.get_seeding_time(), None]
+            
             # Offload the removal of the dlcheckpoint to another thread
             if removestate:
                 # To remove:
@@ -444,7 +484,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 # content and .mhash file is removed by swift engine if requested
                 roothash = self.sdef.get_roothash() 
                 self.session.uch.perform_removestate_callback(roothash,None,False)
-
+        
             return (self.sdef.get_roothash(),pstate)
         finally:
             self.dllock.release()
@@ -548,6 +588,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
         pstate['dlstate']['swarmcache'] = None
+        pstate['dlstate'].update(ds.get_seeding_statistics())
         
         if DEBUG:
             print >>sys.stderr,"SwiftDownloadImpl: netw_get_pers_state: status",dlstatus_strings[ds.get_status()],"progress",ds.get_progress()

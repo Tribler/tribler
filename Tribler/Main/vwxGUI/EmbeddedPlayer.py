@@ -257,7 +257,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.enableFullScreen()
         self.enablePlay()
         self.enableStop()
-        self.enableScroll()
+#        self.enableScroll()
 
     def StartPlay(self):
         """ Start playing the new item after VLC has stopped playing the old

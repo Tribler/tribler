@@ -18,7 +18,8 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText,\
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText,\
-    ProgressButton, GradientPanel, TransparentText, LinkText, StaticBitmaps
+    ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps,\
+    TransparentStaticBitmap, Graph
 
 from list_body import ListBody
 from widgets import _set_font
@@ -33,7 +34,7 @@ from Tribler.Video.VideoUtility import limit_resolution
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 DEBUG = False
 
-class AbstractDetails(GradientPanel):
+class AbstractDetails(FancyPanel):
     
     @warnWxThread
     def _create_tab(self, notebook, tabname, header = None, spacer = 0, border = 0):
@@ -118,7 +119,7 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def __init__(self, parent, torrent, compact=False, noChannel=False):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
 
         self.guiutility = GUIUtility.getInstance()
@@ -133,7 +134,7 @@ class TorrentDetails(AbstractDetails):
         self.isReady = False
         self.noChannel = noChannel
         
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         
         self.timeouttimer = None
@@ -200,7 +201,7 @@ class TorrentDetails(AbstractDetails):
                     self.vSizer.Insert(5, self.messageGauge, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
                     self.Layout()
                 
-                self.timeouttimer = wx.CallLater(10000, self._timeout)
+                self.timeouttimer = wx.CallLater(10000, self._timeout) if not self.guiutility.frame.librarylist.IsShownOnScreen() else None
            
             startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs = (self.torrent,), wkwargs = {'callback':self.showTorrent}, priority = GUI_PRI_DISPERSY)
     
@@ -438,7 +439,7 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.SetMinSize((1,-1))
             
             vSizer = wx.BoxSizer(wx.VERTICAL)
-            if isinstance(self, LibraryDetails):
+            if isinstance(self, LibraryDetails) and not self.torrent.swift_hash:
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.LEFT)
                 vSizer.Add(wx.StaticLine(parent, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
                 ulfont = self.GetFont()
@@ -1039,7 +1040,7 @@ class TorrentDetails(AbstractDetails):
         finished   = progress == 1.0
         status     = None
 
-        if self.torrent.magnetstatus:
+        if self.torrent.magnetstatus or statusflag == DLSTATUS_METADATA:
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up')*1024
@@ -1053,10 +1054,10 @@ class TorrentDetails(AbstractDetails):
         elif statusflag == DLSTATUS_DOWNLOADING:
             dls = ds.get_current_speed('down')*1024
             status = 'Downloading @ %s' % self.utility.speed_format_new(dls)
-        elif statusflag in [DLSTATUS_STOPPED, DLSTATUS_REPEXING]:
+        elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
             
-        if status and not finished and self.torrent.progress and statusflag in [DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_REPEXING]:           
+        if status and not finished and self.torrent.progress and statusflag in [DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED]:           
             status += " (%.1f%%)" % (self.torrent.progress*100)
 
         if status:
@@ -1127,8 +1128,10 @@ class TorrentDetails(AbstractDetails):
 
 class LibraryDetails(TorrentDetails):
     @warnWxThread
-    def __init__(self, parent, torrent):
+    def __init__(self, parent, torrent, bw_history):
         self.old_progress = -1
+        self.refresh_counter = 0
+        self.bw_history = bw_history
         TorrentDetails.__init__(self, parent, torrent)
         
         # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
@@ -1204,6 +1207,13 @@ class LibraryDetails(TorrentDetails):
 
         peersPanel.SetSizer(vSizer)
         self.notebook.InsertPage(2, peersPanel, "Peers")
+        
+        self.speedPanel = Graph(self.notebook)
+        self.speedPanel.SetAxisLabels('Time (5 second update interval)', 'kB/s')
+        self.speedPanel.SetMaxPoints(120)
+        self.speedPanel.AddGraph(wx.Colour(0, 162, 232), [bw[1] for bw in self.bw_history], "Download speed")
+        self.speedPanel.AddGraph(wx.Colour(163, 73, 164), [bw[0] for bw in self.bw_history], "Upload speed")
+        self.notebook.AddPage(self.speedPanel, "Speed")
     
         if showTab:
             for i in range(self.notebook.GetPageCount()):
@@ -1247,8 +1257,13 @@ class LibraryDetails(TorrentDetails):
     @warnWxThread
     def _Refresh(self, ds = None):
         TorrentDetails._Refresh(self, ds)
-        
+
         if self.isReady:
+            self.refresh_counter += 1
+            if self.refresh_counter % 5 == 0:
+                self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
+                self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
+            
             #register callback for peerlist update
             self.peerList.Freeze()
             
@@ -1324,6 +1339,8 @@ class LibraryDetails(TorrentDetails):
                     
                     useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.listCtrl.GetItemCount() > 100
                     selected_files = ds.get_download().get_selected_files()
+                    if ds.get_download().get_def().get_def_type() == 'swift':
+                        selected_files = [file.split('/')[1] for file in selected_files]
                     if useSimple:
                         if selected_files:
                             for i in range(self.listCtrl.GetItemCount()):
@@ -1368,7 +1385,7 @@ class LibraryDetails(TorrentDetails):
 class ChannelDetails(AbstractDetails):
 
     def __init__(self, parent, channel):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
 
         self.guiutility = GUIUtility.getInstance()
@@ -1377,7 +1394,7 @@ class ChannelDetails(AbstractDetails):
         
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -1470,7 +1487,7 @@ class ChannelDetails(AbstractDetails):
 class PlaylistDetails(AbstractDetails):
 
     def __init__(self, parent, playlist):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
 
         self.guiutility = GUIUtility.getInstance()
@@ -1479,7 +1496,7 @@ class PlaylistDetails(AbstractDetails):
 
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.torrents = None
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1628,10 +1645,10 @@ class PlaylistDetails(AbstractDetails):
             self._addOverview(self.overview, self.overviewSizer)
         
 
-class AbstractInfoPanel(GradientPanel):
+class AbstractInfoPanel(FancyPanel):
 
     def __init__(self, parent):
-        GradientPanel.__init__(self, parent)
+        FancyPanel.__init__(self, parent)
         self.Hide()
         
         self.guiutility = GUIUtility.getInstance()
@@ -1640,7 +1657,7 @@ class AbstractInfoPanel(GradientPanel):
         
         self.parent = parent
         self.isReady = False
-        self.SetBackgroundColour(wx.Colour(246,246,246))
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
         self.mainSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1673,7 +1690,7 @@ class AbstractInfoPanel(GradientPanel):
         
     def AddMessage(self, message, colour = wx.Colour(50,50,50), bold = False):
         if not self.textSizer.GetChildren():
-            self.messageSizer.Insert(0, wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION)), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
+            self.messageSizer.Insert(0, TransparentStaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION)), 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 15)
         
         message = TransparentText(self, -1, message)
         _set_font(message, size_increment = 2, fontcolour = colour, fontweight = wx.FONTWEIGHT_NORMAL if not bold else wx.FONTWEIGHT_BOLD)
@@ -1853,8 +1870,6 @@ class ProgressPanel(wx.BoxSizer):
             if status == DLSTATUS_SEEDING:
                 eta += ", seeding"
                 return_val = 2
-            elif status == DLSTATUS_REPEXING:
-                eta += ", repexing"
             elif status == DLSTATUS_WAITING4HASHCHECK:
                 eta += ', waiting for hashcheck'
             elif status == DLSTATUS_HASHCHECKING:

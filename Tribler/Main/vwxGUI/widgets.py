@@ -17,6 +17,7 @@ from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR,\
     SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
+from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 DEBUG = False
 
@@ -1414,11 +1415,12 @@ def _set_font(control, size_increment = 0, fontweight = wx.FONTWEIGHT_NORMAL, fo
     
 
 class ActionButton(wx.Panel):
-    def __init__(self, parent, id=-1, bitmap=wx.NullBitmap, **kwargs):
+    def __init__(self, parent, id=-1, bitmap=wx.NullBitmap, hover = True, **kwargs):
         wx.Panel.__init__(self, parent, id, size = bitmap.GetSize(), **kwargs)
+        self.SetBackgroundColour(parent.GetBackgroundColour())
         image = bitmap.ConvertToImage()
         self.bitmaps = [bitmap]
-        self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)))
+        self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if hover else bitmap)
         self.bitmaps.append(wx.BitmapFromImage(image.ConvertToGreyscale().AdjustChannels(1.0, 1.0, 1.0, 0.3)))
         self.enabled = True
         self.handler = None
@@ -1427,25 +1429,46 @@ class ActionButton(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnFocus)
 
+    def GetBitmapLabel(self):
+        return self.bitmaps[0]
+    
+    def SetBitmapLabel(self, bitmap):
+        if bitmap:
+            self.bitmaps[0] = bitmap
+        
+    def GetBitmapHover(self):
+        return self.bitmaps[1]
+    
+    def SetBitmapHover(self, bitmap):
+        if bitmap:
+            self.bitmaps[1] = bitmap
+
+    def GetBitmapDisabled(self):
+        return self.bitmaps[2]
+    
+    def SetBitmapDisabled(self, bitmap):
+        if bitmap:
+            self.bitmaps[2] = bitmap
+
     def OnEraseBackground(self, event):
         pass
 
     def OnPaint(self, event):
-        width, height = self.GetClientSizeTuple()
-        buffer = wx.EmptyBitmap(width, height)
         # Use double duffered drawing to prevent flickering
-        dc = wx.BufferedPaintDC(self, buffer)
+        dc = wx.BufferedPaintDC(self)
         if not getattr(self.GetParent(), 'bitmap', None):
-            # Draw the background using the backgroundcolour from the parent
-            dc.SetBackground(wx.Brush(self.GetParent().GetBackgroundColour()))
+            # Draw the background using the backgroundcolour
+            dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
             dc.Clear()
         else:
             # Draw the background using the bitmap from the parent (TopSearchPanel)
             rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
             sub = self.GetParent().bitmap.GetSubBitmap(rect) 
             dc.DrawBitmap(sub, 0, 0)
-        # Draw the button to the buffer
-        dc.DrawBitmap(self.GetBitmap(), 0, 0)
+        # Draw the button using a gc (dc doesn't do transparency very well)
+        bitmap = self.GetBitmap()
+        gc = wx.GraphicsContext.Create(dc)
+        gc.DrawBitmap(bitmap, 0, 0, *bitmap.GetSize())
 
     def OnMouseAction(self, event):
         if event.Entering() or event.Leaving():
@@ -1462,10 +1485,10 @@ class ActionButton(wx.Panel):
             return self.bitmaps[1]
         return self.bitmaps[0]
 
-    def Bind(self, event, handler, **kwargs):
+    def Bind(self, event, handler):
         if event == wx.EVT_LEFT_UP:
             self.handler = handler
-        wx.Panel.Bind(self, event, handler, **kwargs)
+        wx.Panel.Bind(self, event, handler)
 
     def Enable(self, enable):
         if enable and self.handler:
@@ -1590,61 +1613,37 @@ class ProgressButton(ActionButton):
             x = (width-textWidth)/2
             y = (height-textHeight)/2
             dc.DrawText(self.label, x, y)
+            
 
-
-class GradientPanel(wx.Panel):
+class FancyPanel(wx.Panel):
 
     def __init__(self, *args, **kwargs):
+        self.radius = kwargs.pop('radius', 0)
         self.border = kwargs.pop('border', 0)
-        self.colour1 = kwargs.pop('colour1', GRADIENT_LGREY)
-        self.colour2 = kwargs.pop('colour2', GRADIENT_DGREY)
         wx.Panel.__init__(self, *args, **kwargs)
+        self.focus = None
+        self.colour1 = self.colour2 = None
+        self.border_colour = self.border_highlight = None
         self.bitmap = wx.EmptyBitmap(*self.GetClientSizeTuple())
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         
-    def OnEraseBackground(self, event):
-        pass
-
-    def OnPaint(self, event):
-        x, y, width, height = self.GetClientRect()
-        buffer = wx.EmptyBitmap(width, height)
-        dc = wx.BufferedPaintDC(self, buffer)
-        gc = wx.GraphicsContext.Create(dc)
-        gc.SetPen(wx.TRANSPARENT_PEN)
-        br = gc.CreateLinearGradientBrush(x, y, x, y+height, self.colour1, self.colour2)
-        gc.SetBrush(br)
-        path = gc.CreatePath()
-        path.AddRectangle(x, y, width, height)
-        path.CloseSubpath()
-        gc.DrawPath(path)
-        dc.SetPen(wx.Pen(SEPARATOR_GREY, 1, wx.SOLID))
-        if bool(self.border & wx.RIGHT):
-            dc.DrawLine(x+width-1, y, x+width-1, y+height-1)
-        if bool(self.border & wx.LEFT):
-            dc.DrawLine(x, y, x, y+height-1)
-        if bool(self.border & wx.TOP):
-            dc.DrawLine(x, y, x+width-1, y)
-        if bool(self.border & wx.BOTTOM):
-            dc.DrawLine(x, y+height-1, x+width-1, y+height-1)
-        self.bitmap = buffer
+    def SetBorderColour(self, colour, highlight = None):
+        self.border_colour = colour
+        if highlight:
+            self.border_highlight = highlight
+            self.focus = False
+            self.Bind(wx.EVT_SET_FOCUS, self.OnSetFocus)
+            self.Bind(wx.EVT_CHILD_FOCUS, self.OnSetFocus)
+            self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
+            self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
+        self.Refresh()
         
-
-class RoundedPanel(wx.Panel):
-
-    def __init__(self, *args, **kwargs):
-        self.border_colour = kwargs.pop('border_colour', None)
-        wx.Panel.__init__(self, *args, **kwargs)
-        self.focus = False
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_SET_FOCUS, self.OnSetFocus)
-        self.Bind(wx.EVT_CHILD_FOCUS, self.OnSetFocus)
-        self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
-        self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
-        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
-
-    def OnEraseBackground(self, event):
-        pass
+    def SetBackgroundColour(self, colour1, colour2 = None):
+        self.colour1 = colour1
+        self.colour2 = colour2 if colour2 else colour1
+        wx.Panel.SetBackgroundColour(self, self.colour1)
+        self.Refresh()
 
     def OnSetFocus(self, event):
         self.focus = True
@@ -1658,31 +1657,60 @@ class RoundedPanel(wx.Panel):
         if event.Entering() or event.Leaving():
             self.Refresh()
         event.Skip()
+        
+    def OnEraseBackground(self, event):
+        pass
 
     def OnPaint(self, event):
-        dc = wx.BufferedPaintDC(self)
-        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
-        dc.Clear()
-        if getattr(self.GetParent(), 'bitmap', None):
-            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect) 
-            dc.DrawBitmap(sub, 0, 0)
-        gc = wx.GraphicsContext.Create(dc)
         x, y, width, height = self.GetClientRect()
-        gc.SetBrush(wx.Brush(self.GetBackgroundColour()))
-        if not self.border_colour:
-            if self.focus:
-                gc.SetPen(wx.Pen(GRADIENT_LRED, 1, wx.SOLID))
-            elif self.GetScreenRect().Contains(wx.GetMousePosition()):
-                gc.SetPen(wx.Pen(AdjustColour(SEPARATOR_GREY, -10), 1, wx.SOLID))
+        
+        # Use buffered drawing and save the buffer to a bitmap
+        buffer = wx.EmptyBitmap(width, height)
+        dc = wx.BufferedPaintDC(self, buffer)
+        
+        # For rounded panels, paint the background for the corners first
+        if self.radius > 0:
+            if getattr(self.GetParent(), 'bitmap', None):
+                rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+                sub = self.GetParent().bitmap.GetSubBitmap(rect) 
+                dc.DrawBitmap(sub, 0, 0)
             else:
-                gc.SetPen(wx.Pen(SEPARATOR_GREY, 1, wx.SOLID))
+                dc.SetBackground(wx.Brush(self.GetParent().GetBackgroundColour()))
+                dc.Clear()
+            
+        # Next, draw gradient/bitmap/regular background
+        gc = wx.GraphicsContext.Create(dc)
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        if self.colour1 != self.colour2:
+            gc.SetBrush(gc.CreateLinearGradientBrush(x, y, x, y+height, self.colour1, self.colour2))
+            gc.DrawRoundedRectangle(x, y, width, height, self.radius)
         else:
-            gc.SetPen(wx.Pen(self.border_colour, 1, wx.SOLID))
-        path = gc.CreatePath()
-        path.AddRoundedRectangle(x, y, width-1, height-1, 5)
-        path.CloseSubpath()
-        gc.DrawPath(path)
+            gc.SetBrush(wx.Brush(self.colour1 if self.colour1 else self.GetBackgroundColour()))
+            gc.DrawRoundedRectangle(x, y, width, height, self.radius)
+            
+        # Set border colour
+        gc.SetPen(wx.Pen(self.border_colour, 1, wx.SOLID) if self.border_colour else wx.TRANSPARENT_PEN)
+        if self.focus != None:
+            if self.focus:
+                gc.SetPen(wx.Pen(self.border_highlight, 1, wx.SOLID))
+            elif self.GetScreenRect().Contains(wx.GetMousePosition()):
+                gc.SetPen(wx.Pen(AdjustColour(self.border_colour, -10), 1, wx.SOLID))
+            
+        # Draw border
+        if self.radius > 0:
+            if self.border > 0:
+                gc.DrawRoundedRectangle(x, y, width-1, height-1, self.radius)
+        else:
+            if bool(self.border & wx.RIGHT):
+                gc.DrawLines([(x+width-1, y), (x+width-1, y+height-1)])
+            if bool(self.border & wx.LEFT):
+                gc.DrawLines([(x, y), (x, y+height-1)])
+            if bool(self.border & wx.TOP):
+                gc.DrawLines([(x, y), (x+width-1, y)])
+            if bool(self.border & wx.BOTTOM):
+                gc.DrawLines([(x, y+height-1), (x+width-1, y+height-1)])
+
+        self.bitmap = buffer
             
 
 class DottedBetterText(BetterText):
@@ -2059,7 +2087,7 @@ class TorrentStatus(wx.Panel):
         if isinstance(status, str):
             self.status = status
             
-        if status == 'Seeding':
+        if status.endswith('Seeding'):
             self.fill_colour = SEEDING_COLOUR
         if status == 'Completed':
             self.fill_colour = COMPLETED_COLOUR
@@ -2071,6 +2099,8 @@ class TorrentStatus(wx.Panel):
             self.fill_colour = DOWNLOADING_COLOUR
         if status == 'Stopped':
             self.fill_colour = STOPPED_COLOUR
+        if status == 'Fetching torrent':
+            self.fill_colour = self.back_colour
             
         self.SetMinSize((-1, -1))
             
@@ -2085,8 +2115,12 @@ class TorrentStatus(wx.Panel):
 
         if torrent.ds.status == 2 or 'checking' in torrent_state:
             status = 'Checking'
+        elif 'metadata' in torrent_state:
+            status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
+            if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_id()) == 'restartseed':
+                status = "[F] " + status
         elif finished:
             status = 'Completed'
         elif 'allocating' in torrent_state:
@@ -2151,7 +2185,7 @@ class TorrentStatus(wx.Panel):
         font =  self.GetFont()
         dc.SetFont(font)
         dc.SetTextForeground(colour)
-        if self.value == None:
+        if self.value == None or len(self.status) > 11:
             todraw = self.status
         else:
             todraw = "%s %.1f%%" % (self.status, self.value*100)
@@ -2185,7 +2219,38 @@ class TransparentText(wx.StaticText):
     def OnSize(self, event):
         self.Refresh()
         event.Skip()
-        
+
+
+class TransparentStaticBitmap(wx.StaticBitmap):
+
+    def __init__(self, *args, **kwargs):
+        wx.StaticBitmap.__init__(self, *args, **kwargs)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+    
+    def OnPaint(self, event):
+        # Use double duffered drawing to prevent flickering
+        dc = wx.BufferedPaintDC(self)
+        if not getattr(self.GetParent(), 'bitmap', None):
+            # Draw the background using the backgroundcolour
+            dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+            dc.Clear()
+        else:
+            # Draw the background using the bitmap from the parent
+            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            sub = self.GetParent().bitmap.GetSubBitmap(rect) 
+            dc.DrawBitmap(sub, 0, 0)
+        # Draw the bitmap using a gc (dc doesn't do transparency very well)
+        bitmap = self.GetBitmap()
+        gc = wx.GraphicsContext.Create(dc)
+        gc.DrawBitmap(bitmap, 0, 0, *bitmap.GetSize())
+
+
+    def OnSize(self, event):
+        self.Refresh()
+        event.Skip()        
+
 
 class TextCtrl(wx.TextCtrl):
 
@@ -2357,3 +2422,135 @@ class HorizontalGradientGauge(wx.Panel):
         x = (self.value / 100.0) * w
         gc.DrawLines([(x-1, 0), (x-1, h)])
         gc.DrawLines([(x+1, 0), (x+1, h)])
+        
+
+class Graph(wx.Panel):
+    def __init__(self, parent, grid_size = 4, max_points = 120, *args, **kwargs):
+        wx.Panel.__init__(self, parent, *args, **kwargs)
+        self.x_margins = (30,10)
+        self.y_margins = (10,20)
+        self.max_range = 0
+        self.grid_size = grid_size
+        self.config = []
+        self.data = []
+        self.font = self.GetFont()
+        self.font.SetPointSize(self.font.GetPointSize()-1)
+        self.SetAxisLabels("", "")
+        self.SetMaxPoints(max_points)
+        self.SetBackgroundColour(wx.WHITE)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        
+    def SetAxisLabels(self, x_label, y_label):
+        self.x_label = x_label
+        self.y_label = y_label
+        
+    def SetMaxPoints(self, max_points):
+        self.max_points = max_points
+        
+    def AddGraph(self, colour, data = [], label = ""):
+        self.data.append(data)
+        self.data[-1] = self.data[-1][-self.max_points:]
+        self.config.append((colour, label))
+        self.max_range = max(self.max_range, max(self.data[-1]) if self.data[-1] else 0)
+        self.Refresh()
+        
+    def SetData(self, graph_id, data):
+        self.data[graph_id] = data
+        self.data[graph_id] = self.data[graph_id][-self.max_points:]
+        self.max_range = max([max(column) for column in self.data if column])
+        self.Refresh()
+
+    def AppendData(self, graph_id, value):
+        self.data[graph_id].append(value)
+        if len(self.data[graph_id]) > self.max_points:
+            dropped_value = self.data[graph_id][0]
+            self.data[graph_id] = self.data[graph_id][-self.max_points:]
+            if dropped_value == self.max_range:
+                self.max_range = max([max(column) for column in self.data if column])
+        else:
+            self.max_range = max(self.max_range, value)
+        self.Refresh()
+    
+    def OnEraseBackground(self, event):
+        pass
+    
+    def OnPaint(self, event):
+        _, _, width, height = self.GetClientRect()
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+        self.DrawAxis(dc, width, height)
+        self.DrawGrid(dc, width, height)
+        self.DrawText(dc, width, height)
+        
+        gc = wx.GraphicsContext.Create(dc)
+        gc.SetBrush(wx.TRANSPARENT_BRUSH)
+        self.DrawGraphs(gc, width, height)
+        self.DrawLegend(gc, width, height)
+
+    def DrawAxis(self, dc, width, height):
+        dc.SetPen(wx.Pen((175, 175, 175), 1, wx.SOLID))
+        dc.DrawLine(self.x_margins[0], height - self.y_margins[1], self.x_margins[0], self.y_margins[0])
+        dc.DrawLine(self.x_margins[0], height - self.y_margins[1], width - self.x_margins[1], height - self.y_margins[1])
+
+    def DrawGrid(self, dc, width, height):
+        dashed_pen = wx.Pen((175, 175, 175), 1, wx.USER_DASH)
+        dashed_pen.SetDashes([4, 4])
+        dc.SetPen(dashed_pen)
+        grid_height = (height - self.y_margins[0] - self.y_margins[1]) / self.grid_size
+        for i in range(1, self.grid_size+1):
+            dc.DrawLine(self.x_margins[0], height - self.y_margins[1] - i * grid_height, width - self.x_margins[1], height - self.y_margins[1] - i * grid_height)
+
+    def DrawText(self, dc, width, height):
+        dc.SetFont(self.font)
+        dc.SetTextForeground(wx.Colour(130, 130, 130))
+        
+        # Draw labels along the x/y axis
+        x_width, _ = self.GetTextExtent(self.x_label)
+        _, y_height = self.GetTextExtent(self.y_label)
+        dc.DrawText(self.x_label, (width - self.x_margins[0] - self.x_margins[1] - x_width) / 2 + self.x_margins[0], height - self.y_margins[1])
+        if sys.platform == 'linux2': 
+            dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 270)
+        else:
+            dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 90)
+            
+        # Draw min/max values along the y axis
+        miny = "0"            
+        maxy = str(int(self.max_range+1))
+        miny_width, miny_height = self.GetTextExtent(miny)
+        maxy_width, maxy_height = self.GetTextExtent(maxy)
+        dc.DrawText(miny, max(0, self.x_margins[0] - miny_width), height - self.y_margins[1] - miny_height/2)
+        dc.DrawText(maxy, max(0, self.x_margins[0] - maxy_width), self.y_margins[0] - maxy_height/2)
+
+    def DrawGraphs(self, gc, width, height):
+        for graph_id, column in enumerate(self.data):
+            if column:
+                colour, _ = self.config[graph_id]
+                gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
+                num_points = len(column)
+                x_coords = [self.x_margins[0] + (i / float(self.max_points)) * (width - self.x_margins[0] - self.x_margins[1]) for i in range(0, num_points)]
+                if self.max_range != 0: 
+                    y_coords = [height - self.y_margins[1] - ((height - self.y_margins[0] - self.y_margins[1]) * column[i] / self.max_range) for i in range(0, num_points)]
+                else:
+                    y_coords = [height - self.y_margins[1] for i in range(0, num_points)]
+                y_coords = [min(height - self.y_margins[1] - 1, y_coord) for y_coord in y_coords]
+                gc.DrawLines(zip(x_coords, y_coords))
+                
+    def DrawLegend(self, gc, width, height):
+        gc.SetFont(self.font)
+        gc.SetPen(wx.Pen(wx.Colour(240, 240, 240, 200)))
+        gc.SetBrush(wx.Brush(wx.Colour(245, 245, 245, 150)))
+
+        rect_width = max([self.GetTextExtent(label)[0] for _, label in self.config]) + 30
+        rect_height = sum([self.GetTextExtent(label)[1] for _, label in self.config]) + 10
+        gc.DrawRectangle(self.x_margins[0] + 5, self.x_margins[1] + 5, rect_width, rect_height)
+                
+        next_y = self.y_margins[0] + 10
+        for colour, label in self.config:
+            label_width, label_height = self.GetTextExtent(label)
+            gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
+            gc.DrawLines([(self.x_margins[0] + 10, next_y + label_height / 2), (self.x_margins[0] + 25, next_y + label_height / 2)])
+            gc.SetPen(wx.BLACK_PEN)
+            gc.DrawText(label, self.x_margins[0] + 30, next_y)
+            next_y += label_height
