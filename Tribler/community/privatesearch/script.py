@@ -11,6 +11,7 @@ class SearchScript(ScenarioScriptBase):
         ScenarioScriptBase.__init__(self, 'barter.log', **kargs)
 
         self.late_join = int(kargs.get('latejoin', 1000))
+        self.do_search = int(kargs.get('dosearch', 1000))
         self.community_type = kargs.get('type', 'search')
         self.community_kargs = {}
         if 'ttl' in kargs:
@@ -79,7 +80,7 @@ class SearchScript(ScenarioScriptBase):
 
         if (self._community.ttl or self._community.forwarding_prob) and step > 0 and step % 100 == 0:
             nr_search = step / 100
-            if nr_search <= self.search_limit:
+            if nr_search <= self.search_limit and int(self._my_name) <= self.do_search:
                 self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
 
