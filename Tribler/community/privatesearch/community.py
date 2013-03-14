@@ -41,6 +41,7 @@ DEBUG = False
 DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
+FNEIGHBORS = 1
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
@@ -55,16 +56,16 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
         super(SearchCommunity, self).__init__(master)
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
@@ -77,6 +78,7 @@ class SearchCommunity(Community):
             self.forwarding_prob = float(ttl)
 
         self.neighbors = int(neighbors)
+        self.fneighbors = int(fneighbors)
         self.encryption = bool(encryption)
         self.log_searches = bool(log_searches)
 
@@ -453,7 +455,7 @@ class SearchCommunity(Community):
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
 
-    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=[], return_candidate=None):
+    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
         if identifier == None:
             identifier = self._dispersy.request_cache.generate_identifier()
             if self.log_searches:
@@ -466,7 +468,8 @@ class SearchCommunity(Community):
             bloomfilter = BloomFilter(0.01, 100)
 
         # put local results in bloomfilter
-        local_results = self._get_results(keywords, bloomfilter, True)
+        if results == None:
+            results = self._get_results(keywords, bloomfilter, True)
 
         random_peers, taste_buddies = self.get_randompeers_tastebuddies()
         shuffle(taste_buddies)
@@ -501,7 +504,7 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
 
-        return candidates, local_results
+        return candidates, results
 
     def on_search(self, messages):
         for message in messages:
@@ -523,19 +526,17 @@ class SearchCommunity(Community):
                 if self.ttl:
                     ttl = message.payload.ttl
                     ttl -= randint(0, 1)
-
                 else:
-                    if random() < self.forwarding_prob:
-                        ttl = 7
-                    else:
-                        ttl = 0
+                    ttl = 7 if random() < self.forwarding_prob else 0
 
                 if ttl:
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
+                    nrcandidates = randint(1, self.fneighbors)
+
                     callback = lambda keywords, newresults, candidate, myidentifier = message.payload.identifier: self._create_search_response(myidentifier, newresults, candidate)
-                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, 1, bloomfilter, results, message.candidate)
+                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, nrcandidates, bloomfilter, results, message.candidate)
 
                     self.search_forward += 1
                 else:
@@ -883,8 +884,8 @@ class SearchCommunity(Community):
 
 class ForwardCommunity(SearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
 
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -1029,8 +1030,8 @@ class ForwardCommunity(SearchCommunity):
 
 class PSearchCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
 
         self.key = pallier_init(self.key)
         self.my_vector_cache = [None, None]
