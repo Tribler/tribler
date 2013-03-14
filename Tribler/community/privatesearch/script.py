@@ -31,6 +31,9 @@ class SearchScript(ScenarioScriptBase):
         self.search_limit = int(kargs.get('search_limit', sys.maxint))
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
+        if self.late_join == 0:
+            self.manual_connect = True
+
         self.taste_buddies = set()
         self.not_connected_taste_buddies = set()
         self.nr_search = 0
@@ -130,7 +133,7 @@ class SearchScript(ScenarioScriptBase):
                     taste_ratio = ratio / float(self._nr_peers - self.late_join)
 
             recall = len(self.test_reply) / float(len(self.test_set))
-            recall /= float(self._nr_peers)
+            recall /= float(self.do_search)
 
             log("dispersy.log", "scenario-statistics", bootstrapped=taste_ratio, latejoin=latejoin, recall=recall, nr_search_=self.nr_search)
             log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward=self._community.search_forward, search_forward_success=self._community.search_forward_success, search_forward_timeout=self._community.search_forward_timeout, search_endpoint=self._community.search_endpoint, search_cycle_detected=self._community.search_cycle_detected, search_megacachesize=self._community.search_megacachesize, create_time_encryption=self._community.create_time_encryption, create_time_decryption=self._community.create_time_decryption, receive_time_encryption=self._community.receive_time_encryption)
