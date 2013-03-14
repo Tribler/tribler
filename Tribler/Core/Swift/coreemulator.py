@@ -145,5 +145,7 @@ if len(sys.argv) < 2:
 #pe =  PluginEmulator(62062,"START",sys.argv[1])
 #pe =  PluginEmulator(27758,"START","tswift://130.161.211.239:7758/836e482197b3db76914a19fd4ae6debd725c3284/go-open-vol-1/go-open-episode-01.mp4 destination")
 #pe =  PluginEmulator(27758,"START","tswift://127.0.0.1:7758/836e482197b3db76914a19fd4ae6debd725c3284/go-open-vol-1/go-open-episode-01.mp4 destination")
-pe =  PluginEmulator(37758,"START","tswift://127.0.0.1:7758/6d29cbb65b1f77d7a1860d6b1d375d152967ad7d C:\\Users\\arno\\Desktop\\TriblerDownloads")
+#pe =  PluginEmulator(37758,"START","tswift://127.0.0.1:7758/6d29cbb65b1f77d7a1860d6b1d375d152967ad7d C:\\Users\\arno\\Desktop\\TriblerDownloads")
+#pe =  PluginEmulator(37758,"START","tswift://127.0.0.1:7758/086a2b6cab9d58ab417f4c8976f78644399372ba \\Build\\release-6.1.x\\Tribler\\SwiftEngine\\media \\Build\\release-6.1.x\\Tribler\\SwiftEngine\\meta2")
+pe =  PluginEmulator(37758,"START","tswift://127.0.0.1:7758/086a2b6cab9d58ab417f4c8976f78644399372ba \\Build\\release-6.1.x\\Tribler\\SwiftEngine\\media")
 #pe =  PluginEmulator(4567,"SHUTDOWN","")

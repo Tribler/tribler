@@ -387,6 +387,7 @@ class ABCApp():
         self.sconfig.set_swift_tunnel_listen_port(7758)
         self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
         self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
+
         
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
@@ -1114,6 +1115,7 @@ class ABCApp():
                     import shutil
                     
                     shutil.move(specpn, mfpath)
+                    # METADIRTODO: move to separate meta dir
                     shutil.move(specpn+'.mhash', mfpath+'.mhash')
                     shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
                 except:

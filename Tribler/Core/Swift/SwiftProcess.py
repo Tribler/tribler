@@ -216,8 +216,10 @@ class SwiftProcess:
             maxulspeed=d.get_max_speed(UPLOAD)
             if maxulspeed == 0:
                 maxulspeed = None
+
+            metadir = d.get_swift_meta_dir()
                 
-            self.send_start(url,roothash_hex=roothash_hex,maxdlspeed=maxdlspeed,maxulspeed=maxulspeed,destdir=d.get_dest_dir())
+            self.send_start(url,roothash_hex=roothash_hex,maxdlspeed=maxdlspeed,maxulspeed=maxulspeed,destdir=d.get_dest_dir(),metadir=metadir)
 
         finally:
             self.splock.release()
@@ -364,13 +366,15 @@ class SwiftProcess:
     #
     # Internal methods
     #
-    def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None,destdir=None):
+    def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None,destdir=None,metadir=None):
         # assume splock is held to avoid concurrency on socket
         if DEBUG: print >>sys.stderr,"sp: send_start:",url,"destdir",destdir
         
         cmd = 'START '+url
         if destdir is not None:
             cmd += ' '+destdir.encode("UTF-8")
+            if metadir is not None:
+                cmd += ' '+metadir.encode("UTF-8")
         cmd += '\r\n'
         if maxdlspeed is not None:
             cmd += 'MAXSPEED '+roothash_hex+' DOWNLOAD '+str(float(maxdlspeed))+'\r\n'
