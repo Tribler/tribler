@@ -392,51 +392,70 @@ class SearchCommunity(Community):
         timeout_delay = 30.0
         cleanup_delay = 0.0
 
-        def __init__(self, community, keywords, ttl, callback, results=[], candidate=None):
+        def __init__(self, community, keywords, ttl, callback, results=[], return_candidate=None, requested_candidates=[]):
             self.community = community
             self.keywords = keywords
             self.callback = callback
             self.results = results
-            self.candidate = candidate
+            self.return_candidate = return_candidate
 
-            if self.candidate:
+            self.requested_candidates = requested_candidates
+            self.requested_mids = set()
+            for candidate in self.requested_candidates:
+                for member in candidate.get_members(community):
+                    self.requested_mids.add(member.mid)
+            self.received_candidates = []
+
+            # setting timeout
+            if self.return_candidate:
                 self.timeout_delay = 5.0
 
             self.timeout_delay += (ttl * 2)
-            self.timeout_delay += 14  # testing if this is influencing recall
-
             self.processed = False
 
-        def on_success(self, keywords, results, candidate):
-            shouldPop = True
+        def add_sum(self, candidate_mid, _sum):
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PSearchCommunity: got sum in RPSimilarityRequest"
+
+            if candidate_mid in self.requested_mids:
+                if DEBUG_VERBOSE:
+                    print >> sys.stderr, long(time()), "PSearchCommunity: added sum in RPSimilarityRequest"
+
+                self.received_candidates.append(candidate_mid)
+                self.received_sums.append((candidate_mid, _sum))
+
+        def on_success(self, candidate_mid, keywords, results, candidate):
+            shouldPop = False
             if not self.processed:
-                if self.candidate:
-                    results.extend(self.results)
-                    shuffle(results)
+                if candidate_mid in self.requested_mids:
+                    self.received_candidates.append(candidate_mid)
+                    self.results.extend(results)
+                    shuffle(self.results)
 
-                    self.callback(keywords, results, self.candidate)
-                    self.community.search_forward_success += 1
-                    self.processed = True
+                shouldPop = len(self.received_candidates) == len(self.requested_candidates)
+                if self.return_candidate:
+                    if shouldPop:
+                        self.callback(keywords, self.results, self.return_candidate)  # send message containing all results
+                        self.community.search_forward_success += 1
+                        self.processed = True
                 else:
-                    self.callback(keywords, results, candidate)
-                    shouldPop = False
-
+                    self.callback(keywords, results, candidate)  # local query, update immediately do not pass self.results as it contains all results
             return shouldPop
 
         def on_timeout(self):
             # timeout, message was probably lost return our local results
             if not self.processed:
                 self.processed = True
-                if self.candidate:
-                    self.callback(self.keywords, self.results, self.candidate)
+                if self.return_candidate:
+                    self.callback(self.keywords, self.results, self.return_candidate)
                     self.community.search_forward_timeout += 1
 
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
 
-    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None):
+    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=[], return_candidate=None):
         if identifier == None:
-            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl or 7, callback))
+            identifier = self._dispersy.request_cache.generate_identifier()
             if self.log_searches:
                 log("dispersy.log", "search-statistics", identifier=identifier, created_by_me=True)
 
@@ -478,6 +497,7 @@ class SearchCommunity(Community):
             self._dispersy._send([candidate], [message])
             candidates.append(candidate)
 
+        self._dispersy.request_cache.set(identifier, SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates))
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
 
@@ -515,8 +535,7 @@ class SearchCommunity(Community):
                         print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
                     callback = lambda keywords, newresults, candidate, myidentifier = message.payload.identifier: self._create_search_response(myidentifier, newresults, candidate)
-                    self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SearchRequest(self, keywords, ttl, callback, results, message.candidate))
-                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, 1, bloomfilter)
+                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, 1, bloomfilter, results, message.candidate)
 
                     self.search_forward += 1
                 else:
@@ -586,7 +605,7 @@ class SearchCommunity(Community):
                 if len(message.payload.results) > 0:
                     self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
-                removeCache = search_request.on_success(search_request.keywords, message.payload.results, message.candidate)
+                removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
                 if removeCache:
                     self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
 
