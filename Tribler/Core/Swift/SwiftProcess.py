@@ -35,24 +35,24 @@ class SwiftProcess:
         self.workdir = workdir
         self.zerostatedir = zerostatedir
         self.spmgr = spmgr
-        
+
         # Main UDP listen socket
         if listenport is None:
-            self.listenport = random.randint(10001,10999)  
+            self.listenport = random.randint(10001,10999)
         else:
             self.listenport = listenport
         # NSSA control socket
-        if cmdgwport is None: 
-            self.cmdport = random.randint(11001,11999)  
+        if cmdgwport is None:
+            self.cmdport = random.randint(11001,11999)
         else:
             self.cmdport = cmdgwport
         # content web server
         if httpgwport is None:
-            self.httpport = random.randint(12001,12999) 
+            self.httpport = random.randint(12001,12999)
         else:
             self.httpport = httpgwport
-        
-        # Security: only accept commands from localhost, enable HTTP gw, 
+
+        # Security: only accept commands from localhost, enable HTTP gw,
         # no stats/webUI web server
         args=[]
         # Arno, 2012-07-09: Unicode problems with popen
@@ -73,26 +73,26 @@ class SwiftProcess:
                 # Swift on Windows expects command line arguments as UTF-16.
                 # popen doesn't allow us to pass params in UTF-16, hence workaround.
                 # Format = hex encoded UTF-8
-                args.append("-3")    
+                args.append("-3")
                 zssafe = binascii.hexlify(zerostatedir.encode("UTF-8"))
                 args.append(zssafe)  # encoding that swift expects
             else:
-                args.append("-e") 
-                args.append(zerostatedir) 
+                args.append("-e")
+                args.append(zerostatedir)
             args.append("-T") # zero state connection timeout
             args.append("180") # seconds
-        #args.append("-B") # Enable debugging on swift        
-        
+        #args.append("-B") # Enable debugging on swift
+
         if True or DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
-        
+
         if sys.platform == "win32":
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             creationflags=0
 
         # See also SwiftDef::finalize popen
-        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir,creationflags=creationflags) 
+        self.popen = subprocess.Popen(args,close_fds=True,cwd=workdir,creationflags=creationflags)
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
@@ -100,23 +100,23 @@ class SwiftProcess:
 
     #
     # Instance2Instance
-    #   
+    #
     def start_cmd_connection(self):
         # Called by any thread, assume sessionlock is held
-        
+
         if self.is_alive():
             self.fastconn = FastI2IConnection(self.cmdport,self.i2ithread_readlinecallback,self.connection_lost)
         else:
             print >>sys.stderr,"sp: start_cmd_connection: Process dead? returncode",self.popen.returncode,"pid",self.popen.pid
-          
-            
+
+
     def i2ithread_readlinecallback(self,ic,cmd):
         #if DEBUG:
         #    print >>sys.stderr,"sp: Got command #"+cmd+"#"
-        
+
         if self.donestate != DONE_STATE_WORKING:
             return
-            
+
         words = cmd.split()
 
         if words[0] == "TUNNELRECV":
@@ -147,7 +147,7 @@ class SwiftProcess:
                     if DEBUG:
                         print >>sys.stderr,"sp: i2ithread_readlinecallback: unknown roothash",words[1]
                     return
-                
+
                 d = self.roothash2dl[roothash]
             except:
                 #print >>sys.stderr,"GOT", words
@@ -195,20 +195,20 @@ class SwiftProcess:
         try:
             if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
-            
+
             roothash = d.get_def().get_roothash()
             roothash_hex = d.get_def().get_roothash_as_hex()
 
             # Before send to handle INFO msgs
             self.roothash2dl[roothash] = d
             url = d.get_def().get_url()
-            
+
             # MULTIFILE
             if len(d.get_selected_files()) == 1:
                 specpath = d.get_selected_files()[0]
                 qpath = urllib.quote(specpath)
                 url += "/" + qpath
-            
+
             # Default is unlimited, so don't send MAXSPEED then
             maxdlspeed=d.get_max_speed(DOWNLOAD)
             if maxdlspeed == 0:
@@ -216,8 +216,10 @@ class SwiftProcess:
             maxulspeed=d.get_max_speed(UPLOAD)
             if maxulspeed == 0:
                 maxulspeed = None
-                
-            self.send_start(url,roothash_hex=roothash_hex,maxdlspeed=maxdlspeed,maxulspeed=maxulspeed,destdir=d.get_dest_dir())
+
+            metadir = d.get_swift_meta_dir()
+
+            self.send_start(url,roothash_hex=roothash_hex,maxdlspeed=maxdlspeed,maxulspeed=maxulspeed,destdir=d.get_dest_dir(),metadir=metadir)
 
         finally:
             self.splock.release()
@@ -232,28 +234,28 @@ class SwiftProcess:
 
         finally:
             self.splock.release()
-        
+
     def remove_download(self,d,removestate,removecontent):
         self.splock.acquire()
         try:
             if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
-            
+
             roothash_hex = d.get_def().get_roothash_as_hex()
-            
+
             self.send_remove(roothash_hex,removestate,removecontent)
-    
+
             # After send to handle INFO msgs
             roothash = d.get_def().get_roothash()
 
-            del self.roothash2dl[roothash] 
+            del self.roothash2dl[roothash]
         finally:
             self.splock.release()
 
     def get_downloads(self):
         self.splock.acquire()
         try:
-            return self.roothash2dl.values() 
+            return self.roothash2dl.values()
         finally:
             self.splock.release()
 
@@ -267,21 +269,21 @@ class SwiftProcess:
 
     def get_listen_port(self):
         return self.listenport
-    
+
 
     def set_max_speed(self,d,direct,speed):
         self.splock.acquire()
         try:
             if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
                 return
-            
+
             roothash_hex = d.get_def().get_roothash_as_hex()
-            
+
             # In Tribler Core API  = unlimited. In Swift CMDGW API
             # 0 = none.
             if speed == 0.0:
                 speed = 4294967296.0
-            
+
             self.send_max_speed(roothash_hex,direct,speed)
         finally:
             self.splock.release()
@@ -293,7 +295,7 @@ class SwiftProcess:
             # Arno, 2012-05-15: Allow during shutdown.
             if not self.is_alive():
                 return
-            
+
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_checkpoint(roothash_hex)
         finally:
@@ -305,7 +307,7 @@ class SwiftProcess:
         try:
             if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
                 return
-            
+
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_setmoreinfo(roothash_hex,enable)
         finally:
@@ -316,7 +318,7 @@ class SwiftProcess:
         try:
             if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
                 return
-            
+
             addrstr = addr[0]+':'+str(addr[1])
             roothash_hex = d.get_def().get_roothash_as_hex()
             self.send_peer_addr(roothash_hex,addrstr)
@@ -331,12 +333,12 @@ class SwiftProcess:
             self.donestate = DONE_STATE_EARLY_SHUTDOWN
         else:
             return
-        
+
         if self.popen is not None:
             # Tell engine to shutdown so it can deregister dls from tracker
             print >>sys.stderr,"sp: Telling process to shutdown"
             self.send_shutdown()
-                
+
 
     def network_shutdown(self):
         # Called by network thread, assume sessionlock is held
@@ -357,28 +359,30 @@ class SwiftProcess:
                 pass
             except:
                 print_exc()
-        
+
         if self.fastconn:
             self.fastconn.stop()
-    
+
     #
     # Internal methods
     #
-    def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None,destdir=None):
+    def send_start(self,url,roothash_hex=None,maxdlspeed=None,maxulspeed=None,destdir=None,metadir=None):
         # assume splock is held to avoid concurrency on socket
         if DEBUG: print >>sys.stderr,"sp: send_start:",url,"destdir",destdir
-        
+
         cmd = 'START '+url
         if destdir is not None:
             cmd += ' '+destdir.encode("UTF-8")
+            if metadir is not None:
+                cmd += ' '+metadir.encode("UTF-8")
         cmd += '\r\n'
         if maxdlspeed is not None:
             cmd += 'MAXSPEED '+roothash_hex+' DOWNLOAD '+str(float(maxdlspeed))+'\r\n'
         if maxulspeed is not None:
             cmd += 'MAXSPEED '+roothash_hex+' UPLOAD '+str(float(maxulspeed))+'\r\n'
-        
+
         self.write(cmd)
-        
+
     def send_remove(self,roothash_hex,removestate,removecontent):
         # assume splock is held to avoid concurrency on socket
         self.write('REMOVE '+roothash_hex+' '+str(int(removestate))+' '+str(int(removecontent))+'\r\n')
@@ -400,9 +404,9 @@ class SwiftProcess:
         else:
             cmd += ' UPLOAD '
         cmd += str(float(speed))+'\r\n'
-        
+
         self.write(cmd)
-        
+
     def send_tunnel(self,session,address,data):
         # assume splock is held to avoid concurrency on socket
         if DEBUG:
@@ -430,7 +434,7 @@ class SwiftProcess:
 
     def write(self,msg):
         self.fastconn.write(msg)
-        
+
     def get_cmdport(self):
         return self.cmdport
 

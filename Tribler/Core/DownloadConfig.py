@@ -833,7 +833,17 @@ class DownloadConfigInterface:
         @return Port number. """
         return self.dlconfig['swifthttpgwlistenport']
 
+    def set_swift_meta_dir(self,value):
+        """ Set the metadir for storing .m* files of this Download.
+        @param value An absolutepath.
+        """
+        self.dlconfig['swiftmetadir'] = value
 
+    def get_swift_meta_dir(self):
+        """ Return the metadir for storing .m* files of this Download.
+        @return An absolutepath.
+        """
+        return self.dlconfig['swiftmetadir']
 
 class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
     """

@@ -1114,6 +1114,7 @@ class ABCApp():
                     import shutil
 
                     shutil.move(specpn, mfpath)
+                    # METADIRTODO: move to separate meta dir
                     shutil.move(specpn+'.mhash', mfpath+'.mhash')
                     shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
                 except:

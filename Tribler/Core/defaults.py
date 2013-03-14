@@ -210,7 +210,7 @@ dldefaults['correctedfilename'] = None
 dldefaults['swiftlistenport'] = None
 dldefaults['swiftcmdgwlistenport'] = None
 dldefaults['swifthttpgwlistenport'] = None
-
+dldefaults['swiftmetadir'] = None
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None
