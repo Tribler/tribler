@@ -16,7 +16,13 @@ class SearchScript(ScenarioScriptBase):
         self.community_type = kargs.get('type', 'search')
         self.community_kargs = {}
         if 'ttl' in kargs:
-            self.community_kargs['ttl'] = kargs['ttl']
+            if kargs['ttl'][1] == ":":
+                self.community_kargs['ttl'] = (int(kargs['ttl'][0]), int(kargs['ttl'][1:]))
+            elif kargs['ttl'][1] == ".":
+                self.community_kargs['ttl'] = float(kargs['ttl'])
+            else:
+                self.community_kargs['ttl'] = int(kargs['ttl'])
+
         if 'neighbors' in kargs:
             self.community_kargs['neighbors'] = int(kargs['neighbors'])
         if 'fneighbors' in kargs:

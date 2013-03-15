@@ -70,13 +70,7 @@ class SearchCommunity(Community):
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
 
-        self.ttl = None
-        self.forwarding_prob = None
-        if float(ttl) > 1:
-            self.ttl = int(ttl)
-        else:
-            self.forwarding_prob = float(ttl)
-
+        self.ttl = ttl
         self.neighbors = int(neighbors)
         self.fneighbors = int(fneighbors)
         self.encryption = bool(encryption)
@@ -478,8 +472,10 @@ class SearchCommunity(Community):
         candidates = []
         for _ in xrange(nrcandidates):
             if ttl == None:
-                if self.ttl:
-                    _ttl = randint(1, self.ttl)
+                if isinstance(self.ttl, tuple):
+                    _ttl = randint(self.ttl[0], self.ttl[1])
+                elif isinstance(self.ttl, int):
+                    _ttl = self.ttl
                 else:
                     _ttl = 1
             else:
@@ -523,11 +519,11 @@ class SearchCommunity(Community):
                 if not results and DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: no results"
 
-                if self.ttl:
+                if isinstance(self.ttl, (int, tuple)):
                     ttl = message.payload.ttl
                     ttl -= randint(0, 1)
                 else:
-                    ttl = 7 if random() < self.forwarding_prob else 0
+                    ttl = 7 if random() < self.ttl else 0
 
                 if ttl:
                     if DEBUG:
