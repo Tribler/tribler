@@ -1101,22 +1101,37 @@ class ABCApp():
 
             specpn = sdef.finalize(self.sconfig.get_swift_path(),destdir=destdir)
 
-            # 3. Save swift multifile spec (if multifile)
+            # 3. Save swift files to metadata dir
+            metadir = os.path.join(get_default_dest_dir(), STATEDIR_TORRENTCOLL_DIR, 'swift_meta')
+            if not os.path.exists(metadir):
+                os.makedirs(metadir)
+
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1] # Point to file on disk
+
+                sfpath = os.path.join(metadir, os.path.split(storagepath)[1])
+
+                try:
+                    import shutil
+
+                    shutil.move(storagepath + '.mhash', sfpath + '.mhash')
+                    shutil.move(storagepath + '.mbinmap', sfpath + '.mbinmap')
+                except:
+                    print_exc()
+
             else:
-                # Store multi-file spec as .<roothashhex> alongside files
-                mfpath = os.path.join(destdir,"."+sdef.get_roothash_as_hex() )
-                storagepath = mfpath # Point to spec file
+                storagepath = os.path.join(destdir, "." + sdef.get_roothash_as_hex())
+
+                # Store multi-file spec as .<roothashhex> in the metadir
+                mfpath = os.path.join(metadir, "." + sdef.get_roothash_as_hex())
 
                 # Reuse .mhash and .mbinmap (happens automatically for single-file)
                 try:
                     import shutil
 
                     shutil.move(specpn, mfpath)
-                    # METADIRTODO: move to separate meta dir
-                    shutil.move(specpn+'.mhash', mfpath+'.mhash')
-                    shutil.move(specpn+'.mbinmap', mfpath+'.mbinmap')
+                    shutil.move(specpn + '.mhash', mfpath + '.mhash')
+                    shutil.move(specpn + '.mbinmap', mfpath + '.mbinmap')
                 except:
                     print_exc()
 
