@@ -1106,6 +1106,7 @@ class GenericSearchList(SizeList):
         channel = getattr(item.original_data, 'channel', None)
         if channel:
             control = wx.Panel(item)
+            control.SetBackgroundColour(item.GetBackgroundColour())
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             if channel.isFavorite():
                 sizer.Add(wx.StaticBitmap(control, bitmap = self.favorite), 0, wx.RIGHT, 5)
