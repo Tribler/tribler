@@ -1,4 +1,5 @@
 import sys
+from random import randint
 
 from community import SearchCommunity, PSearchCommunity, HSearchCommunity
 from Tribler.dispersy.script import ScenarioScriptBase
@@ -27,12 +28,18 @@ class SearchScript(ScenarioScriptBase):
             return v.lower() in ("yes", "true", "t", "1")
 
         self.manual_connect = str2bool(kargs.get('manual_only', 'false'))
+        self.random_connect = str2bool(kargs.get('random_connect', 'false'))
+
         self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0))
         self.search_limit = int(kargs.get('search_limit', sys.maxint))
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
         if self.late_join == 0:
             self.manual_connect = True
+
+        if self.random_connect:
+            self.manual_connect = True
+            self.bootstrap_percentage = 0
 
         self.taste_buddies = set()
         self.not_connected_taste_buddies = set()
@@ -120,6 +127,16 @@ class SearchScript(ScenarioScriptBase):
 
                     if int(self._my_name) > self.late_join:
                         self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=1.0)
+
+                # connect to a random peer
+                if self.random_connect and len(self.taste_buddies) <= 10:
+                    peer_id = int(self._my_name)
+                    while peer_id == int(self._my_name):
+                        peer_id = randint(1, self._nr_peers)
+
+                    ip, port = self.get_peer_ip_port(peer_id)
+                    self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=1.0)
+
 
     def log_statistics(self):
         while True:
