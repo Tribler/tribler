@@ -81,9 +81,9 @@ class SearchScript(ScenarioScriptBase):
         if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
 
-        perform_search = (step + 100) % 200 == 0 and (self._community.ttl or self._community.forwarding_prob)
+        perform_search = (step + 200) % 300 == 0 and (self._community.ttl or self._community.forwarding_prob)
         if perform_search:
-            nr_search = (step + 100) / 200
+            nr_search = (step + 200) / 300
             if nr_search <= self.search_limit and int(self._my_name) <= self.do_search:
                 self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
@@ -192,4 +192,4 @@ class SearchScript(ScenarioScriptBase):
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
 
-            yield 10.0
+            yield 15.0
