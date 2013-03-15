@@ -533,10 +533,8 @@ class SearchCommunity(Community):
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
-                    nrcandidates = randint(1, self.fneighbors)
-
                     callback = lambda keywords, newresults, candidate, myidentifier = message.payload.identifier: self._create_search_response(myidentifier, newresults, candidate)
-                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, nrcandidates, bloomfilter, results, message.candidate)
+                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                     self.search_forward += 1
                 else:
