@@ -41,6 +41,7 @@ DEBUG = False
 DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
+FNEIGHBORS = 1
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
@@ -55,16 +56,16 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
         super(SearchCommunity, self).__init__(master)
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
@@ -77,6 +78,7 @@ class SearchCommunity(Community):
             self.forwarding_prob = float(ttl)
 
         self.neighbors = int(neighbors)
+        self.fneighbors = int(fneighbors)
         self.encryption = bool(encryption)
         self.log_searches = bool(log_searches)
 
@@ -392,51 +394,70 @@ class SearchCommunity(Community):
         timeout_delay = 30.0
         cleanup_delay = 0.0
 
-        def __init__(self, community, keywords, ttl, callback, results=[], candidate=None):
+        def __init__(self, community, keywords, ttl, callback, results=[], return_candidate=None, requested_candidates=[]):
             self.community = community
             self.keywords = keywords
             self.callback = callback
             self.results = results
-            self.candidate = candidate
+            self.return_candidate = return_candidate
 
-            if self.candidate:
+            self.requested_candidates = requested_candidates
+            self.requested_mids = set()
+            for candidate in self.requested_candidates:
+                for member in candidate.get_members(community):
+                    self.requested_mids.add(member.mid)
+            self.received_candidates = []
+
+            # setting timeout
+            if self.return_candidate:
                 self.timeout_delay = 5.0
 
             self.timeout_delay += (ttl * 2)
-            self.timeout_delay += 14  # testing if this is influencing recall
-
             self.processed = False
 
-        def on_success(self, keywords, results, candidate):
-            shouldPop = True
+        def add_sum(self, candidate_mid, _sum):
+            if DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PSearchCommunity: got sum in RPSimilarityRequest"
+
+            if candidate_mid in self.requested_mids:
+                if DEBUG_VERBOSE:
+                    print >> sys.stderr, long(time()), "PSearchCommunity: added sum in RPSimilarityRequest"
+
+                self.received_candidates.append(candidate_mid)
+                self.received_sums.append((candidate_mid, _sum))
+
+        def on_success(self, candidate_mid, keywords, results, candidate):
+            shouldPop = False
             if not self.processed:
-                if self.candidate:
-                    results.extend(self.results)
-                    shuffle(results)
+                if candidate_mid in self.requested_mids:
+                    self.received_candidates.append(candidate_mid)
+                    self.results.extend(results)
+                    shuffle(self.results)
 
-                    self.callback(keywords, results, self.candidate)
-                    self.community.search_forward_success += 1
-                    self.processed = True
+                shouldPop = len(self.received_candidates) == len(self.requested_candidates)
+                if self.return_candidate:
+                    if shouldPop:
+                        self.callback(keywords, self.results, self.return_candidate)  # send message containing all results
+                        self.community.search_forward_success += 1
+                        self.processed = True
                 else:
-                    self.callback(keywords, results, candidate)
-                    shouldPop = False
-
+                    self.callback(keywords, results, candidate)  # local query, update immediately do not pass self.results as it contains all results
             return shouldPop
 
         def on_timeout(self):
             # timeout, message was probably lost return our local results
             if not self.processed:
                 self.processed = True
-                if self.candidate:
-                    self.callback(self.keywords, self.results, self.candidate)
+                if self.return_candidate:
+                    self.callback(self.keywords, self.results, self.return_candidate)
                     self.community.search_forward_timeout += 1
 
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
 
-    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None):
+    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
         if identifier == None:
-            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl or 7, callback))
+            identifier = self._dispersy.request_cache.generate_identifier()
             if self.log_searches:
                 log("dispersy.log", "search-statistics", identifier=identifier, created_by_me=True)
 
@@ -447,7 +468,8 @@ class SearchCommunity(Community):
             bloomfilter = BloomFilter(0.01, 100)
 
         # put local results in bloomfilter
-        local_results = self._get_results(keywords, bloomfilter, True)
+        if results == None:
+            results = self._get_results(keywords, bloomfilter, True)
 
         random_peers, taste_buddies = self.get_randompeers_tastebuddies()
         shuffle(taste_buddies)
@@ -478,10 +500,11 @@ class SearchCommunity(Community):
             self._dispersy._send([candidate], [message])
             candidates.append(candidate)
 
+        self._dispersy.request_cache.set(identifier, SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates))
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
 
-        return candidates, local_results
+        return candidates, results
 
     def on_search(self, messages):
         for message in messages:
@@ -503,20 +526,17 @@ class SearchCommunity(Community):
                 if self.ttl:
                     ttl = message.payload.ttl
                     ttl -= randint(0, 1)
-
                 else:
-                    if random() < self.forwarding_prob:
-                        ttl = 7
-                    else:
-                        ttl = 0
+                    ttl = 7 if random() < self.forwarding_prob else 0
 
                 if ttl:
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
+                    nrcandidates = randint(1, self.fneighbors)
+
                     callback = lambda keywords, newresults, candidate, myidentifier = message.payload.identifier: self._create_search_response(myidentifier, newresults, candidate)
-                    self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SearchRequest(self, keywords, ttl, callback, results, message.candidate))
-                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, 1, bloomfilter)
+                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, nrcandidates, bloomfilter, results, message.candidate)
 
                     self.search_forward += 1
                 else:
@@ -586,7 +606,7 @@ class SearchCommunity(Community):
                 if len(message.payload.results) > 0:
                     self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
-                removeCache = search_request.on_success(search_request.keywords, message.payload.results, message.candidate)
+                removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
                 if removeCache:
                     self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
 
@@ -864,8 +884,8 @@ class SearchCommunity(Community):
 
 class ForwardCommunity(SearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
 
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -1010,8 +1030,8 @@ class ForwardCommunity(SearchCommunity):
 
 class PSearchCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
 
         self.key = pallier_init(self.key)
         self.my_vector_cache = [None, None]
