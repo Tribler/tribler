@@ -531,8 +531,8 @@ class MainFrame(wx.Frame):
                         else:
                             dscfg.set_selected_files(selectedFiles)
 
-                    # METADIRTODO: if swift and not .torrent call dscfg.set_swift_meta_dir() to dir with meta
-                    #dscfg.set_swift_meta_dir("C:\\Users\\arno\\Desktop\\TriblerDownloads\meta")
+                    if sdef and not tdef:
+                        dscfg.set_swift_meta_dir(os.path.join(get_default_dest_dir(), STATEDIR_TORRENTCOLL_DIR, 'swift_meta'))
 
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
