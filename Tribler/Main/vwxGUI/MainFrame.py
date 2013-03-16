@@ -532,7 +532,7 @@ class MainFrame(wx.Frame):
                             dscfg.set_selected_files(selectedFiles)
 
                     if sdef and not tdef:
-                        dscfg.set_swift_meta_dir(os.path.join(get_default_dest_dir(), STATEDIR_TORRENTCOLL_DIR, 'swift_meta'))
+                        dscfg.set_swift_meta_dir(os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
                     print >>sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)

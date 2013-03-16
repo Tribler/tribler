@@ -287,6 +287,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def __init__(self, *args, **kwargs):
         DoubleLineListItem.__init__(self, *args, **kwargs)
         self.SetThumbnailIcon()
+        self.dlbutton = None
 
     def AddButtons(self):
         self.buttonSizer.Clear(deleteWindows = True)
@@ -298,8 +299,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 break
         
         if do_add:
-            button = self.AddButton("Download", lambda evt: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
-            button.Enable('completed' not in self.original_data.state)
+            self.dlbutton = self.AddButton("Download", lambda evt: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
+            self.dlbutton.Enable('completed' not in self.original_data.state and 'active' not in self.original_data.state)
             
     @warnWxThread        
     def GetIcons(self):
@@ -312,6 +313,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def RefreshData(self, data):
         DoubleLineListItem.RefreshData(self, data)
         self.SetThumbnailIcon()
+        if self.dlbutton:
+            self.dlbutton.Enable('completed' not in self.original_data.state and 'active' not in self.original_data.state)
             
     def SetThumbnailIcon(self):
         torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
