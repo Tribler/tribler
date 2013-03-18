@@ -86,6 +86,9 @@ class SearchScript(ScenarioScriptBase):
 
         self._dispersy.callback.register(self.monitor_taste_buddy, delay=1.0)
 
+        # my_name is only available after _run method is called
+        self.search_offset = 200 + (int(self._my_name) % 10)
+
         return community
 
     def do_steps(self):
@@ -96,9 +99,11 @@ class SearchScript(ScenarioScriptBase):
         if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
 
-        perform_search = (step + 200) % 300 == 0 and (self._community.ttl or self._community.forwarding_prob)
+        search_step = step + self.search_offset
+
+        perform_search = search_step % 300 == 0 and (self._community.ttl or self._community.forwarding_prob)
         if perform_search:
-            nr_search = (step + 200) / 300
+            nr_search = search_step / 300
             if nr_search <= self.search_limit and int(self._my_name) <= self.do_search:
                 self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
