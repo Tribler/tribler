@@ -87,7 +87,7 @@ class SearchScript(ScenarioScriptBase):
         self._dispersy.callback.register(self.monitor_taste_buddy, delay=1.0)
 
         # my_name is only available after _run method is called
-        self.search_offset = 200 + (int(self._my_name) % 10)
+        self.search_offset = 200 + (int(self._my_name) % int(self.search_spacing))
 
         return community
 
