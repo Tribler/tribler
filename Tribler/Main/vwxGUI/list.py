@@ -1681,7 +1681,7 @@ class LibraryList(SizeList):
                    {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name':'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name':'Swift ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name':'Swift time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
+                   {'name':'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
         
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8, 9, 10])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
