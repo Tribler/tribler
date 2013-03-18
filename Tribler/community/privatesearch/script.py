@@ -39,6 +39,7 @@ class SearchScript(ScenarioScriptBase):
 
         self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0))
         self.search_limit = int(kargs.get('search_limit', sys.maxint))
+        self.search_spacing = float(kargs.get('search_spacing', 15.0))
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
 
         if self.late_join == 0:
@@ -216,4 +217,4 @@ class SearchScript(ScenarioScriptBase):
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
 
-            yield 15.0
+            yield self.search_spacing
