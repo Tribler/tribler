@@ -83,11 +83,12 @@ class SaveAs(wx.Dialog):
             torrentsearch_manager = self.guiutility.torrentsearch_manager
             def do_collect(delayedResult):
                 torrent = delayedResult.get()
-                def callback():
-                    torrent_filename = torrentsearch_manager.getCollectedFilename(torrent)
-                    tdef = TorrentDef.load(torrent_filename)
-                    wx.CallAfter(self.SetCollected, tdef)
-                torrentsearch_manager.getTorrent(torrent, callback)
+                if torrent:
+                    def callback():
+                        torrent_filename = torrentsearch_manager.getCollectedFilename(torrent)
+                        tdef = TorrentDef.load(torrent_filename)
+                        wx.CallAfter(self.SetCollected, tdef)
+                    torrentsearch_manager.getTorrent(torrent, callback)
             def do_db():
                 return torrentsearch_manager.getTorrentByInfohash(tdef.get_infohash())
             startWorker(do_collect, do_db, retryOnBusy = True, priority = GUI_PRI_DISPERSY)
