@@ -404,16 +404,9 @@ class MainFrame(wx.Frame):
                 self.startDownload(url_filename, cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
 
     def startDownloadFromMagnet(self, url, destdir = None, cmdline=False, selectedFiles = None, vodmode = False):
-        def torrentdef_retrieved(tdef):
-            print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            wx.CallAfter(self.startDownload, tdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
-
-        if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
-            print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
-            self.guiUtility.Notify("Download from magnet failed", icon = wx.ART_WARNING)
-            return False
-
-        print >> sys.stderr, "Trying to retrieve metadata for:", url
+        name, infohash, _ = MagnetLink.parse_url(url)
+        tdef = TorrentDefNoMetainfo(infohash, name, url = url)
+        wx.CallAfter(self.startDownload, tdef = tdef, cmdline = cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
         return True
 
     def startDownloadFromSwift(self, url, destdir = None):
