@@ -519,7 +519,9 @@ class SearchCommunity(Community):
                 if not results and DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: no results"
 
-                if isinstance(self.ttl, (int, tuple)):
+                if isinstance(self.ttl, int):
+                    ttl = message.payload.ttl - 1
+                elif isinstance(self.ttl, tuple):
                     ttl = message.payload.ttl
                     ttl -= randint(0, 1)
                 else:
