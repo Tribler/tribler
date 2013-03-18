@@ -404,16 +404,9 @@ class MainFrame(wx.Frame):
                 self.startDownload(url_filename, cmdline=True, selectedFiles = selectedFiles, vodmode = vod)
 
     def startDownloadFromMagnet(self, url, destdir = None, cmdline=False, selectedFiles = None, vodmode = False):
-        def torrentdef_retrieved(tdef):
-            print >> sys.stderr, "Retrieved metadata for:", tdef.get_name()
-            wx.CallAfter(self.startDownload, tdef = tdef, cmdline=cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
-
-        if not TorrentDef.retrieve_from_magnet(url, torrentdef_retrieved):
-            print >> sys.stderr, "MainFrame.startDownloadFromMagnet() Can not use url to retrieve torrent"
-            self.guiUtility.Notify("Download from magnet failed", icon = wx.ART_WARNING)
-            return False
-
-        print >> sys.stderr, "Trying to retrieve metadata for:", url
+        name, infohash, _ = MagnetLink.parse_url(url)
+        tdef = TorrentDefNoMetainfo(infohash, name, url = url)
+        wx.CallAfter(self.startDownload, tdef = tdef, cmdline = cmdline, destdir = destdir, selectedFiles = selectedFiles, vodmode = vodmode)
         return True
 
     def startDownloadFromSwift(self, url, destdir = None):
@@ -467,6 +460,12 @@ class MainFrame(wx.Frame):
                     dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
                     dlg.CenterOnParent()
 
+                    if isinstance(tdef, TorrentDefNoMetainfo):                    
+                        # Correct for the smaller size of the dialog if there is no metainfo
+                        center_pos = dlg.GetPosition()
+                        center_pos[1] -= 150
+                        dlg.SetPosition(center_pos)
+
                     if dlg.ShowModal() == wx.ID_OK:
                         #for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
@@ -474,6 +473,10 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
+
+                        # If the dialog has collected a torrent, use the new tdef
+                        tdef = dlg.GetCollected() or tdef
+                        cdef = sdef or tdef
                     else:
                         cancelDownload = True
                     dlg.Destroy()

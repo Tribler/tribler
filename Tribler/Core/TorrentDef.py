@@ -1137,11 +1137,12 @@ class TorrentDef(ContentDefinition,Serializable,Copyable):
 
 class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
-    def __init__(self, infohash, name):
+    def __init__(self, infohash, name, url=None):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         self.infohash = infohash
         self.name = name
+        self.url = url
 
     def get_name(self):
         return self.name
@@ -1163,6 +1164,9 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_metainfo(self):
         return None
+
+    def get_url(self):
+        return self.url
 
     def is_multifile_torrent(self):
         return False
