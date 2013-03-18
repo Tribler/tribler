@@ -106,6 +106,7 @@ class SearchScript(ScenarioScriptBase):
             nr_search = search_step / 300
             if nr_search <= self.search_limit and int(self._my_name) <= self.do_search:
                 self.nr_search = nr_search
+                self.test_reply.clear()
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
 
         return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
