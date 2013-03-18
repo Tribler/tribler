@@ -25,6 +25,7 @@ import urllib
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+import shutil
 original_open_https = urllib.URLopener.open_https
 import M2Crypto # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -1102,36 +1103,31 @@ class ABCApp():
             specpn = sdef.finalize(self.sconfig.get_swift_path(),destdir=destdir)
 
             # 3. Save swift files to metadata dir
-            metadir = os.path.join(get_default_dest_dir(), STATEDIR_TORRENTCOLL_DIR, 'swift_meta')
+            metadir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
             if not os.path.exists(metadir):
                 os.makedirs(metadir)
 
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1] # Point to file on disk
-
-                sfpath = os.path.join(metadir, os.path.split(storagepath)[1])
+                metapath = os.path.join(metadir, os.path.split(storagepath)[1])
 
                 try:
-                    import shutil
-
-                    shutil.move(storagepath + '.mhash', sfpath + '.mhash')
-                    shutil.move(storagepath + '.mbinmap', sfpath + '.mbinmap')
+                    shutil.move(storagepath + '.mhash', metapath + '.mhash')
+                    shutil.move(storagepath + '.mbinmap', metapath + '.mbinmap')
                 except:
                     print_exc()
 
             else:
-                storagepath = os.path.join(destdir, "." + sdef.get_roothash_as_hex())
-
-                # Store multi-file spec as .<roothashhex> in the metadir
-                mfpath = os.path.join(metadir, "." + sdef.get_roothash_as_hex())
+                # Store multi-file spec as .<roothashhex> alongside files
+                mfpath = os.path.join(destdir, "."+sdef.get_roothash_as_hex())
+                storagepath = mfpath # Point to spec file
+                metapath = os.path.join(metadir, "."+sdef.get_roothash_as_hex())
 
                 # Reuse .mhash and .mbinmap (happens automatically for single-file)
                 try:
-                    import shutil
-
                     shutil.move(specpn, mfpath)
-                    shutil.move(specpn + '.mhash', mfpath + '.mhash')
-                    shutil.move(specpn + '.mbinmap', mfpath + '.mbinmap')
+                    shutil.move(specpn + '.mhash', metapath + '.mhash')
+                    shutil.move(specpn + '.mbinmap', metapath + '.mbinmap')
                 except:
                     print_exc()
 

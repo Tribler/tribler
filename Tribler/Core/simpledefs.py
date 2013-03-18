@@ -44,6 +44,7 @@ STATEDIR_ITRACKER_DIR = 'itracker'
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
+STATEDIR_SWIFTRESEED_DIR = os.path.join(STATEDIR_TORRENTCOLL_DIR, 'swift_reseeds')
 
 # 13-04-2010, Andrea: subtitles collecting dir default
 STATEDIR_SUBSCOLL_DIR = 'collected_subtitles_files'
