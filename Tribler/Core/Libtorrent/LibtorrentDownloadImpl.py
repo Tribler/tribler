@@ -321,6 +321,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def on_metadata_received_alert(self, alert):
         self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
+
+        trackers = [tracker['url'] for tracker in self.handle.trackers()]
+        if trackers:
+            if len(trackers) > 1:
+                self.metadata["announce-list"] = [trackers]
+            else:
+                self.metadata["announce"] = trackers[0]
+
         self.tdef = TorrentDef.load_from_dict(self.metadata)
         self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
         self.set_files()

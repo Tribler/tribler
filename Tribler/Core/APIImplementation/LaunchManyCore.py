@@ -390,6 +390,7 @@ class TriblerLaunchMany(Thread):
 
             if isinstance(tdef, TorrentDefNoMetainfo):
                 self.torrent_db.addInfohash(tdef.get_infohash(), commit=commit)
+                self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name().encode('utf_8'), commit=commit)
                 write_my_pref()
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
