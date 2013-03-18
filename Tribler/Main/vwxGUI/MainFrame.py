@@ -467,6 +467,12 @@ class MainFrame(wx.Frame):
                     dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
                     dlg.CenterOnParent()
 
+                    if isinstance(tdef, TorrentDefNoMetainfo):                    
+                        # Correct for the smaller size of the dialog if there is no metainfo
+                        center_pos = dlg.GetPosition()
+                        center_pos[1] -= 150
+                        dlg.SetPosition(center_pos)
+
                     if dlg.ShowModal() == wx.ID_OK:
                         #for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
@@ -474,6 +480,10 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
+
+                        # If the dialog has collected a torrent, use the new tdef
+                        tdef = dlg.GetCollected() or tdef
+                        cdef = sdef or tdef
                     else:
                         cancelDownload = True
                     dlg.Destroy()
