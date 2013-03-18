@@ -50,3 +50,7 @@ TODO
  - Take care of not accidentally commiting a submodule change with git commit -a
  - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.
 
+## Branching notes
+  - The branches starting with svn_ are there for historical reasons, they will eventually be tagged and removed. Do _not_ fork them or commit stuff to them. They should be considered read-only.
+  - The master branch will contain the latest released code (starting from release 6.1.x, the first release after moving to GitHub)
+  - The devel branch contains the unreleased code which will make it into the next release.
