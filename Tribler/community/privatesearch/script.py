@@ -17,7 +17,7 @@ class SearchScript(ScenarioScriptBase):
         self.community_kargs = {}
         if 'ttl' in kargs:
 
-            if len(kargs['ttl']) > 1 and kargs['ttl'][1] == ":":
+            if len(kargs['ttl']) > 1 and kargs['ttl'][1] == "t":
                 self.community_kargs['ttl'] = (int(kargs['ttl'][0]), int(kargs['ttl'][1:]))
             elif len(kargs['ttl']) > 1 and kargs['ttl'][1] == ".":
                 self.community_kargs['ttl'] = float(kargs['ttl'])
