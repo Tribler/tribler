@@ -659,8 +659,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.handle = None
                 else:
                     self.handle.pause()
-                    pstate['engineresumedata'] = self.handle.write_resume_data() if getattr(self.handle.status(), 'has_metadata', False) else None
-                    self.dlstate = DLSTATUS_STOPPED
+                    pstate['engineresumedata'] = self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None
                 self.pstate_for_restart = pstate
             else:
                 # This method is also called at Session shutdown, where one may
@@ -785,7 +784,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle == None:
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart['engineresumedata']
-            elif getattr(self.handle.status(), 'has_metadata', False):
+            elif isinstance(self.tdef, TorrentDef):
                 resdata = self.handle.write_resume_data()
             pstate['engineresumedata'] = resdata
             return (self.tdef.get_infohash(), pstate)
