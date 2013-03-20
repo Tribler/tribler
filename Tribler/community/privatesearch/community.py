@@ -505,7 +505,6 @@ class SearchCommunity(Community):
         shuffle(random_peers)
 
         candidates = []
-        max_ttl = ttl if ttl else -1
         for _ in xrange(nrcandidates):
             if ttl == None:
                 if isinstance(self.ttl, tuple):
@@ -514,7 +513,6 @@ class SearchCommunity(Community):
                     _ttl = self.ttl
                 else:
                     _ttl = 1
-                max_ttl = max(max_ttl, _ttl)
             else:
                 _ttl = ttl
 
@@ -534,7 +532,7 @@ class SearchCommunity(Community):
             candidates.append(candidate)
 
         if candidates:
-            this_request = SearchCommunity.SearchRequest(self, keywords, max_ttl, callback, results, return_candidate, requested_candidates=candidates)
+            this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
             if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
                 self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
             else:
