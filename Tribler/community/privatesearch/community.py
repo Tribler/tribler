@@ -508,8 +508,10 @@ class SearchCommunity(Community):
             if ttl == None:
                 if isinstance(self.ttl, tuple):
                     _ttl = randint(self.ttl[0], self.ttl[1])
+
                 elif isinstance(self.ttl, int):
                     _ttl = self.ttl
+
                 else:
                     _ttl = 1
             else:
@@ -530,14 +532,15 @@ class SearchCommunity(Community):
             self._dispersy._send([candidate], [message])
             candidates.append(candidate)
 
-        this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
-        if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
-            self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
-        else:
-            self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest).add_request(this_request)
+        if candidates:
+            this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
+            if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
+                self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
+            else:
+                self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest).add_request(this_request)
 
-        if DEBUG:
-            print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
+            if DEBUG:
+                print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
 
         return candidates, results
 
@@ -572,14 +575,20 @@ class SearchCommunity(Community):
             else:
                 ttl = 7 if random() < self.ttl else 0
 
-            if ttl:
+            send_response = ttl > 0
+            if not send_response:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
-                self.create_search(message.payload.keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
-                self.search_forward += 1
-            else:
+                candidates, _ = self.create_search(message.payload.keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
+
+                if len(candidates):
+                    self.search_forward += 1
+                else:
+                    send_response = True
+
+            if send_response:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: ttl == 0 returning"
                 self._create_search_response(message.payload.identifier, results, message.candidate)
