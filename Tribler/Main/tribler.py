@@ -1118,14 +1118,12 @@ class ABCApp():
                     print_exc()
 
             else:
-                # Store multi-file spec as .<roothashhex> alongside files
-                mfpath = os.path.join(destdir, "."+sdef.get_roothash_as_hex())
-                storagepath = mfpath # Point to spec file
-                metapath = os.path.join(metadir, "."+sdef.get_roothash_as_hex())
+                storagepath = destdir # Point to dest dir
+                metapath = os.path.join(metadir, sdef.get_roothash_as_hex())
 
                 # Reuse .mhash and .mbinmap (happens automatically for single-file)
                 try:
-                    shutil.move(specpn, mfpath)
+                    shutil.move(specpn, metapath + '.mfspec')
                     shutil.move(specpn + '.mhash', metapath + '.mhash')
                     shutil.move(specpn + '.mbinmap', metapath + '.mbinmap')
                 except:
