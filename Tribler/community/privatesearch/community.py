@@ -468,6 +468,10 @@ class SearchCommunity(Community):
             for search_request in self.search_requests:
                 search_request.on_timeout()
 
+        @property
+        def keywords(self):
+            return self.search_requests[0].keywords
+
     def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
         if identifier == None:
             identifier = self._dispersy.request_cache.generate_identifier()
