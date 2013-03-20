@@ -99,6 +99,7 @@ class SearchCommunity(Community):
         self.search_endpoint = 0
         self.search_cycle_detected = 0
         self.search_megacachesize = 0
+        self.search_no_candidates_remain = 0
 
         self.create_time_encryption = 0.0
         self.create_time_decryption = 0.0
@@ -541,6 +542,8 @@ class SearchCommunity(Community):
 
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
+        else:
+            self.search_no_candidates_remain += 1
 
         return candidates, results
 
