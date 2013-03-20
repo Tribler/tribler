@@ -906,9 +906,29 @@ class SearchCommunity(Community):
                 sock_addresses.add(candidate.sock_addr)
 
         if ignore_candidates:
-            random_peers = [candidate for candidate in random_peers if candidate.mid not in ignore_candidates]
-            taste_buddies = [candidate for candidate in taste_buddies if candidate.mid not in ignore_candidates]
+            _random_peers = []
+            _taste_buddies = []
+            for candidate in random_peers:
+                add = True
+                for member in candidate.get_members(self):
+                    if member.mid in ignore_candidates:
+                        add = False
+                        break
 
+                if add:
+                    _random_peers.append(candidate)
+
+            for candidate in taste_buddies:
+                add = True
+                for member in candidate.get_members(self):
+                    if member.mid in ignore_candidates:
+                        add = False
+                        break
+
+                if add:
+                    _taste_buddies.append(candidate)
+
+            return _random_peers, _taste_buddies
         return random_peers, taste_buddies
 
 class ForwardCommunity(SearchCommunity):
