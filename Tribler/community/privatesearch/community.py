@@ -464,6 +464,9 @@ class SearchCommunity(Community):
                 if search_request.did_request(candidate_mid):
                     return search_request.on_success(candidate_mid, keywords, results, candidate)
 
+        def on_timeout(self):
+            for search_request in self.search_requests:
+                search_request.on_timeout()
 
     def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
         if identifier == None:
@@ -542,16 +545,13 @@ class SearchCommunity(Community):
                 print >> sys.stderr, long(time()), "SearchCommunity: got search request for", keywords
 
             # detect cycle
-            results = False
+            results = []
             if not self._dispersy.request_cache.has(identifier, SearchCommunity.SearchRequest):
                 results = self._get_results(keywords, bloomfilter, False)
+                if not results and DEBUG:
+                    print >> sys.stderr, long(time()), "SearchCommunity: no results"
             else:
                 self.search_cycle_detected += 1
-
-            if not results:  # setting results to false to prevent creases
-                results = False
-                if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: no results"
 
             if isinstance(self.ttl, int):
                 ttl = message.payload.ttl - 1
