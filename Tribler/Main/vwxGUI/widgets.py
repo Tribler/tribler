@@ -2127,8 +2127,12 @@ class TorrentStatus(wx.Panel):
             status = 'Waiting'
         elif 'downloading' in torrent_state:
             status = 'Downloading'
-        else:
+        elif 'error' in torrent_state:
+            status = 'Stopped on error'
+        elif 'stopped' in torrent_state:
             status = 'Stopped'
+        else:
+            status = 'Unknown'
 
         self.SetValue(progress)
         self.SetStatus(status)

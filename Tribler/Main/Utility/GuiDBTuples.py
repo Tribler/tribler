@@ -218,6 +218,9 @@ class Torrent(Helper):
             status = self.ds.get_status()
             if status == DLSTATUS_STOPPED:
                 stateList.append('stopped')
+                
+            if status == DLSTATUS_STOPPED_ON_ERROR:
+                stateList.append('error')
 
             if status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
                 stateList.append('active')
