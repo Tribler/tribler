@@ -509,10 +509,8 @@ class SearchCommunity(Community):
             if ttl == None:
                 if isinstance(self.ttl, tuple):
                     _ttl = randint(self.ttl[0], self.ttl[1])
-
                 elif isinstance(self.ttl, int):
                     _ttl = self.ttl
-
                 else:
                     _ttl = 1
             else:
@@ -534,7 +532,7 @@ class SearchCommunity(Community):
             candidates.append(candidate)
 
         if candidates:
-            this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
+            this_request = SearchCommunity.SearchRequest(self, keywords, ttl, callback, results, return_candidate, requested_candidates=candidates)
             if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
                 self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
             else:
@@ -578,7 +576,7 @@ class SearchCommunity(Community):
             else:
                 ttl = 7 if random() < self.ttl else 0
 
-            send_response = ttl > 0
+            send_response = ttl == 0
             if not send_response:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
