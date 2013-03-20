@@ -460,9 +460,14 @@ class SearchCommunity(Community):
             return requested_candidates
 
         def on_success(self, candidate_mid, keywords, results, candidate):
-            for search_request in self.search_requests:
+            for i in range(len(self.search_requests) - 1, -1, -1):
+                search_request = self.search_requests[i]
                 if search_request.did_request(candidate_mid):
-                    return search_request.on_success(candidate_mid, keywords, results, candidate)
+                    if search_request.on_success(candidate_mid, keywords, results, candidate):
+                        self.search_requests.pop(i)
+                    break
+
+            return len(self.search_requests) == 0
 
         def on_timeout(self):
             for search_request in self.search_requests:
