@@ -500,6 +500,10 @@ class SearchCommunity(Community):
         else:
             ignore_candidates = set()
 
+        if return_candidate:
+            for member in return_candidate.get_members(self):
+                ignore_candidates.add(member.mid)
+
         random_peers, taste_buddies = self.get_randompeers_tastebuddies(ignore_candidates)
         shuffle(taste_buddies)
         shuffle(random_peers)
@@ -571,8 +575,10 @@ class SearchCommunity(Community):
 
             elif isinstance(self.ttl, tuple):
                 ttl = message.payload.ttl
-                ttl -= randint(0, 1)
-
+                if ttl == 1:
+                    ttl -= 1 if random() < 0.33 else 0
+                else:
+                    ttl -= 1
             else:
                 ttl = 7 if random() < self.ttl else 0
 
