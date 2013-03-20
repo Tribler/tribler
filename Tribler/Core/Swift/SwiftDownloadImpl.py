@@ -156,7 +156,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
             
         if not self.dlconfig.has_key('swiftmetadir') and not os.path.isdir(self.get_dest_dir()):
-            # We nust be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
+            # We must be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
             metadir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
             self.set_swift_meta_dir(metadir)
             if not os.path.exists(metadir):
@@ -164,8 +164,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
             is_multifile = self.get_dest_dir().endswith("." + self.get_def().get_roothash_as_hex())
             path_old = self.get_dest_dir()
-            path_new = os.path.join(metadir, "." + self.get_def().get_roothash_as_hex() if is_multifile else os.path.split(self.get_dest_dir())[1])
+            path_new = os.path.join(metadir, self.get_def().get_roothash_as_hex() if is_multifile else os.path.split(self.get_dest_dir())[1])
             try:
+                if is_multifile:
+                    shutil.move(path_old, path_new + '.mfspec')
+                    self.dlconfig['saveas'] = os.path.split(self.get_dest_dir())[0]
                 shutil.move(path_old + '.mhash', path_new + '.mhash')
                 shutil.move(path_old + '.mbinmap', path_new + '.mbinmap')
             except:

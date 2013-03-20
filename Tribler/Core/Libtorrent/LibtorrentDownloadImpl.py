@@ -355,7 +355,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 print >> sys.stderr, "LibtorrentDownloadImpl: setting send_buffer_watermark to", 2 * settings.send_buffer_watermark
                 settings.send_buffer_watermark = 2 * settings.send_buffer_watermark 
                 self.ltmgr.ltsession.set_settings(settings)
-        # When the write is too small, double the buffer size to a maximum of 64MiB. Again, this is the same mechanism as Deluge uses.
+        # When the write cache is too small, double the buffer size to a maximum of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
             settings = self.ltmgr.ltsession.settings()
             if settings.max_queued_disk_bytes <= 33554432:
