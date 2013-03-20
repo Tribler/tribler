@@ -157,6 +157,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
         
+        resume_data = pstate.get('engineresumedata', None) if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
@@ -174,9 +175,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.orig_files = [torrent_file.path for torrent_file in torrentinfo.files()]
             
             atp["ti"] = torrentinfo
-            if pstate and pstate.get('engineresumedata', None):
-                atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
-            print >> sys.stderr, self.tdef.get_name_as_unicode(), pstate.get('engineresumedata', None) if pstate else None
+            if resume_data:
+                atp["resume_data"] = lt.bencode(resume_data)
+            print >> sys.stderr, self.tdef.get_name_as_unicode(), resume_data
         else:
             if self.tdef.get_url():
                 # We prefer to use an url, since it may contain trackers
@@ -192,8 +193,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
                 self.set_vod_mode()
-            if initialdlstatus != DLSTATUS_STOPPED:
+                
+            # If we lost resume_data always resume download in order to force checking
+            if initialdlstatus != DLSTATUS_STOPPED or not resume_data: 
                 self.handle.resume()
+                
+                # If we only needed to perform checking, pause download after it is complete
+                self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
+                
+        else:
+            print >> sys.stderr, "Could not add torrent to LibtorrentManager", self.tdef.get_name_as_unicode()
             
         with self.dllock:
             self.cew_scheduled = False
@@ -365,9 +374,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def on_torrent_checked_alert(self, alert):
         if self.pause_after_next_hashcheck:
-            self.handle.pause()
             self.pause_after_next_hashcheck = False
-            self.dlstate = DLSTATUS_STOPPED
+            self.handle.pause()
         
     def update_lt_stats(self):
         status = self.handle.status()
@@ -605,7 +613,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle is None:
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
-                ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop)
+                ds = DownloadState(self, DLSTATUS_WAITING4HASHCHECK, self.error, self.progressbeforestop)
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
                 ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, seeding_stats = seeding_stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs)
@@ -697,6 +705,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         # Called by any thread 
         if DEBUG:
             print >>sys.stderr,"LibtorrentDownloadImpl: restart:", self.tdef.get_name()
+        
         with self.dllock:
             if self.handle is None:
                 self.error = None
