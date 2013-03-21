@@ -40,7 +40,9 @@ class SearchScript(ScenarioScriptBase):
         self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0))
         self.search_limit = int(kargs.get('search_limit', sys.maxint))
         self.search_spacing = float(kargs.get('search_spacing', 15.0))
+
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
+        self.community_kargs['use_megacache'] = str2bool(kargs.get('use_megacache', 'true'))
 
         if self.late_join == 0:
             self.manual_connect = True

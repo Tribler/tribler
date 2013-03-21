@@ -56,16 +56,16 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches, use_megacache=use_megacache)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches, use_megacache=use_megacache)
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
         super(SearchCommunity, self).__init__(master)
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
@@ -75,6 +75,7 @@ class SearchCommunity(Community):
         self.fneighbors = int(fneighbors)
         self.encryption = bool(encryption)
         self.log_searches = bool(log_searches)
+        self.use_megacache = bool(use_megacache)
 
         self.taste_buddies = []
         self.my_preference_cache = [None, None]
@@ -653,7 +654,7 @@ class SearchCommunity(Community):
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
 
-                if len(message.payload.results) > 0:
+                if len(message.payload.results) > 0 and self.use_megacache:
                     self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
                 removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
@@ -958,8 +959,8 @@ class SearchCommunity(Community):
 
 class ForwardCommunity(SearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches, use_megacache)
 
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -1104,8 +1105,8 @@ class ForwardCommunity(SearchCommunity):
 
 class PSearchCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches, use_megacache)
 
         self.key = pallier_init(self.key)
         self.my_vector_cache = [None, None]
