@@ -80,18 +80,23 @@ class SaveAs(wx.Dialog):
             vSizer.Add(sizer, 1, wx.EXPAND|wx.BOTTOM, 3)
             self.SetSize((600,150))
 
-            torrentsearch_manager = self.guiutility.torrentsearch_manager
-            def do_collect(delayedResult):
-                torrent = delayedResult.get()
-                if torrent:
-                    def callback():
-                        torrent_filename = torrentsearch_manager.getCollectedFilename(torrent)
-                        tdef = TorrentDef.load(torrent_filename)
-                        wx.CallAfter(self.SetCollected, tdef)
-                    torrentsearch_manager.getTorrent(torrent, callback)
-            def do_db():
-                return torrentsearch_manager.getTorrentByInfohash(tdef.get_infohash())
-            startWorker(do_collect, do_db, retryOnBusy = True, priority = GUI_PRI_DISPERSY)
+            url = tdef.get_url()
+            if url and url.startswith("magnet:"):
+                retrieve_from_magnet = lambda: TorrentDef.retrieve_from_magnet(url, lambda tdef: wx.CallAfter(self.SetCollected, tdef))
+                startWorker(None, retrieve_from_magnet, retryOnBusy = True, priority = GUI_PRI_DISPERSY)
+            else:
+                torrentsearch_manager = self.guiutility.torrentsearch_manager
+                def do_collect(delayedResult):
+                    torrent = delayedResult.get()
+                    if torrent:
+                        def callback():
+                            torrent_filename = torrentsearch_manager.getCollectedFilename(torrent)
+                            tdef = TorrentDef.load(torrent_filename)
+                            wx.CallAfter(self.SetCollected, tdef)
+                        torrentsearch_manager.getTorrent(torrent, callback)
+                def do_db():
+                    return torrentsearch_manager.getTorrentByInfohash(tdef.get_infohash())
+                startWorker(do_collect, do_db, retryOnBusy = True, priority = GUI_PRI_DISPERSY)
 
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
