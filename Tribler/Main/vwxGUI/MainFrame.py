@@ -374,7 +374,8 @@ class MainFrame(wx.Frame):
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         # Init video player
-        print >> sys.stderr, 'GUI ready'
+        progress('GUI complete')
+
         self.Thaw()
         self.ready = True
 
