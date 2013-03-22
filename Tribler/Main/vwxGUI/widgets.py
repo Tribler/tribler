@@ -2119,7 +2119,7 @@ class TorrentStatus(wx.Panel):
             status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
-            if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_id()) == 'restartseed':
+            if 'forced' in torrent_state:
                 status = "[F] " + status
         elif finished:
             status = 'Completed'
