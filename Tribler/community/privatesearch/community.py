@@ -94,6 +94,7 @@ class SearchCommunity(Community):
         self.max_prefs = max_prefs
         self.max_h_prefs = max_hprefs
 
+        self.search_timeout = 0
         self.search_forward = 0
         self.search_forward_success = 0
         self.search_forward_timeout = 0
@@ -442,6 +443,8 @@ class SearchCommunity(Community):
 
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
+                else:
+                    self.community.search_timeout += (len(self.requested_candidates) - len(self.received_candidates))
 
     class MSearchRequest(SearchRequest):
         search_requests = []
