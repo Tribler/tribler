@@ -10,6 +10,7 @@ import json
 import binascii
 from threading import RLock
 from traceback import print_exc,print_stack
+from collections import defaultdict
 
 from Tribler.Core.simpledefs import *
 #from Tribler.Utilities.Instance2Instance import *
@@ -98,6 +99,9 @@ class SwiftProcess:
         self.donestate = DONE_STATE_WORKING  # shutting down
         self.fastconn = None
 
+        # callbacks for when swift detect a channel close
+        self._channel_close_callbacks = defaultdict(list)
+
     #
     # Instance2Instance
     #
@@ -140,6 +144,26 @@ class SwiftProcess:
 
             if words[0] == "ERROR":
                 print >>sys.stderr,"sp: i2ithread_readlinecallback:",cmd
+
+            elif words[0] == "CLOSE_EVENT":
+                roothash_hex = words[1]
+                address = words[2].split(":")
+                raw_bytes_up = int(words[3])
+                raw_bytes_down = int(words[4])
+                cooked_bytes_up = int(words[5])
+                cooked_bytes_down = int(words[6])
+
+                if roothash_hex in self._channel_close_callbacks:
+                    for callback in self._channel_close_callbacks[roothash_hex]:
+                        try:
+                            callback(roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down)
+                        except:
+                            pass
+                for callback in self._channel_close_callbacks["ALL"]:
+                    try:
+                        callback(roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down)
+                    except:
+                        pass
 
             self.splock.acquire()
             try:
@@ -185,7 +209,6 @@ class SwiftProcess:
                 d.i2ithread_moreinfo_callback(midict)
             elif words[0] == "ERROR":
                 d.i2ithread_info_callback(DLSTATUS_STOPPED_ON_ERROR,0.0,0,0.0,0.0,0,0,0,0)
-
 
     #
     # Swift Mgmt interface
@@ -313,6 +336,26 @@ class SwiftProcess:
         finally:
             self.splock.release()
 
+    def set_subscribe_channel_close(self, download, enable, callback):
+        # Note that CALLBACK is called on the i2ithread, and hence should not lock
+        self.splock.acquire()
+        try:
+            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+                return
+
+            roothash_hex = download.get_def().get_roothash_as_hex() if (download is None or download != "ALL") else "ALL"
+            if enable:
+                if not self._channel_close_callbacks[roothash_hex]:
+                    self.send_subscribe(roothash_hex, "CHANNEL_CLOSE", True)
+                self._channel_close_callbacks[roothash_hex].append(callback)
+
+            else:
+                self._channel_close_callbacks[roothash_hex].remove(callback)
+                if not self._channel_close_callbacks[roothash_hex]:
+                    self.send_subscribe(roothash_hex, "CHANNEL_CLOSE", False)
+        finally:
+            self.splock.release()
+
     def add_peer(self,d,addr):
         self.splock.acquire()
         try:
@@ -421,6 +464,22 @@ class SwiftProcess:
         if enable:
             onoff = "1"
         self.write('SETMOREINFO '+roothash_hex+' '+onoff+'\r\n')
+
+    def send_subscribe(self, roothash_hex, event_type, enable):
+        """
+        Subscribe to a libswift event.
+
+        ROOTHASH_HEX can currently only be "ALL"
+        EVENT_TYPE can currently only be "CHANNEL_CLOSE"
+        ENABLE can be either True or False
+        """
+        assert roothash_hex == "ALL"
+        assert event_type == "CHANNEL_CLOSE"
+        assert isinstance(enable, bool), type(enable)
+        # assume splock is held to avoid concurrency on socket
+        if DEBUG:
+            print >>sys.stderr,"sp: send_subscribe:", roothash_hex, event_type, enable
+        self.write("SUBSCRIBE %s %s %d\r\n" % (roothash_hex, event_type, int(enable),))
 
     def send_peer_addr(self,roothash_hex,addrstr):
         # assume splock is held to avoid concurrency on socket
