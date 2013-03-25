@@ -17,6 +17,7 @@ from .payload import EffortRecordPayload, PingPayload, PongPayload, DebugRequest
 
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication, MemberAuthentication
 from Tribler.dispersy.candidate import BootstrapCandidate, WalkCandidate
+from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
@@ -84,6 +85,9 @@ class BandwidthGuess(object):
         # up- and download in kilobytes (i.e. bytes / 1024, hence the float)
         self.upload = upload
         self.download = download
+        # temporary up- and download in kilobytes (i.e. bytes / 1024, hence the float)
+        self.tmp_upload = 0.0
+        self.tmp_download = 0.0
 
 class EffortCommunity(Community):
     @classmethod
@@ -91,7 +95,7 @@ class EffortCommunity(Community):
         return [Member(MASTER_MEMBER_PUBLIC_KEY)]
 
     @classmethod
-    def load_community(cls, master):
+    def load_community(cls, master, swift_process):
         dispersy = Dispersy.get_instance()
         try:
             # test if this community already exists
@@ -99,19 +103,28 @@ class EffortCommunity(Community):
         except StopIteration:
             # join the community with a new my_member, using a cheap cryptography key
             ec = ec_generate_key(u"NID_secp160r1")
-            return cls.join_community(master, Member(ec_to_public_bin(ec), ec_to_private_bin(ec)))
+            return cls.join_community(master, Member(ec_to_public_bin(ec), ec_to_private_bin(ec)), swift_process)
         else:
             if classification == cls.get_classification():
-                return super(EffortCommunity, cls).load_community(master)
+                return super(EffortCommunity, cls).load_community(master, swift_process)
             else:
                 raise RuntimeError("Unable to load an EffortCommunity that has been killed")
 
-    def __init__(self, master):
+    def __init__(self, master, swift_process):
         # original walker callbacks (will be set during super(...).__init__)
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
 
         super(EffortCommunity, self).__init__(master)
+
+        # _SWIFT is a SwiftProcess instance (allowing us to schedule CLOSE_EVENT callbacks)
+        self._swift = swift_process
+        # subscribe to events.  22/03/13 Boudewijn: Dispersy is not allowed to call swift because it
+        # may cause database locks if people incorrectly keep the session locked.
+        temp_thread = Callback()
+        temp_thread.register(self._swift.set_subscribe_channel_close, ("ALL", True, self.i2ithread_channel_close))
+        temp_thread.register(temp_thread.stop)
+        temp_thread.start("Temporary-EffortCommunity")
 
         # _DATABASE stores all direct observations and indirect hearsay
         self._database = EffortDatabase.get_instance(self._dispersy)
@@ -202,6 +215,13 @@ class EffortCommunity(Community):
         if __debug__: dprint()
         super(EffortCommunity, self).unload_community()
 
+        # unsubscribe from events.  22/03/13 Boudewijn: Dispersy is not allowed to call swift
+        # because it may cause database locks if people incorrectly keep the session locked.
+        temp_thread = Callback()
+        temp_thread.register(self._swift.set_subscribe_channel_close, ("ALL", False, self.i2ithread_channel_close))
+        temp_thread.register(temp_thread.stop)
+        temp_thread.start("Temporary-EffortCommunity")
+
         # cancel outstanding pings
         for ping_candidate in self._slope.itervalues():
             self._dispersy.callback.unregister(ping_candidate.callback_id)
@@ -212,11 +232,24 @@ class EffortCommunity(Community):
                                    [(database_id, history.origin, buffer(history.bytes)) for database_id, history in self._observations.iteritems()])
 
         # update all up and download values
-        self.download_state_callback([])
+        self.download_state_callback([], closing=True)
 
         # store all cached bandwidth guesses
         self._database.executemany(u"INSERT OR REPLACE INTO bandwidth_guess (ip, member, timestamp, upload, download) VALUES (?, ?, ?, ?, ?)",
                                    [(unicode(ip), guess.member.database_id if guess.member else 0, guess.timestamp, int(guess.upload), int(guess.download)) for ip, guess in self._bandwidth_guesses.iteritems()])
+
+    def i2ithread_channel_close(self, *args):
+        self._dispersy.callback.register(self._channel_close, args)
+
+    def _channel_close(self, roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down):
+        assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
+
+        dprint("swift channel close ", address[0], ":", address[1], " with +", cooked_bytes_up, " -", cooked_bytes_down, force=1)
+        guess = self._get_bandwidth_guess_from_ip(address[0])
+        guess.upload += cooked_bytes_up / 1024.0
+        guess.download += cooked_bytes_down / 1024.0
+        guess.tmp_upload = 0.0
+        guess.tmp_download = 0.0
 
     def _observation(self, candidate, member, now, update_record=True):
         if not isinstance(candidate, BootstrapCandidate):
@@ -284,7 +317,7 @@ class EffortCommunity(Community):
         else:
             return self._get_bandwidth_guess_from_ip(ip)
 
-    def download_state_callback(self, states):
+    def download_state_callback(self, states, closing=False):
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
         assert isinstance(states, list)
         timestamp = int(time())
@@ -294,6 +327,8 @@ class EffortCommunity(Community):
                       for state
                       in states
                       if state.get_download().get_def().get_def_type() == "swift" and state.get_peerlist())
+
+        dprint("swift state callback [", len(states), ", ", len(active), ", ", sum(len(state.get_peerlist()) for state in active.itervalues()), "]", force=1)
 
         # get global up and download for swift
         for state in active.itervalues():
@@ -311,8 +346,13 @@ class EffortCommunity(Community):
                 if __debug__: dprint(identifier.encode("HEX"), "] ", ip, " +", up, " +", down)
                 guess = self._get_bandwidth_guess_from_ip(ip)
                 guess.timestamp = timestamp
-                guess.upload += up
-                guess.download += down
+                guess.tmp_upload += up
+                guess.tmp_download += down
+                if closing:
+                    guess.upload += guess.tmp_upload
+                    guess.download += guess.tmp_download
+                    guess.tmp_upload = 0.0
+                    guess.tmp_download = 0.0
 
         for identifier, state in active.iteritems():
             if identifier in old:
@@ -322,8 +362,13 @@ class EffortCommunity(Community):
                     if __debug__: dprint(identifier.encode("HEX"), "] ", ip, " +", up, " +", down)
                     guess = self._get_bandwidth_guess_from_ip(ip)
                     guess.timestamp = timestamp
-                    guess.upload += up
-                    guess.download += down
+                    guess.tmp_upload += up
+                    guess.tmp_download += down
+                    if closing:
+                        guess.upload += guess.tmp_upload
+                        guess.download += guess.tmp_download
+                        guess.tmp_upload = 0.0
+                        guess.tmp_download = 0.0
 
             # set OLD for the next call to DOWNLOAD_STATE_CALLBACK
             new[identifier] = dict((peer["ip"], (peer["utotal"], peer["dtotal"])) for peer in state.get_peerlist() if peer["utotal"] > 0.0 or peer["dtotal"] > 0.0)
@@ -370,8 +415,8 @@ class EffortCommunity(Community):
         if __debug__: dprint("asking ", second_member.mid.encode("HEX"), " to sign ", bin(history.long))
         guess = self._try_bandwidth_guess_from_member(second_member)
         if guess:
-            first_up = int(guess.upload)
-            first_down = int(guess.download)
+            first_up = int(guess.upload + guess.tmp_upload)
+            first_down = int(guess.download + guess.tmp_download)
         else:
             first_up = 0
             first_down = 0
@@ -446,8 +491,8 @@ class EffortCommunity(Community):
         first_down = message.payload.first_down
         guess = self._try_bandwidth_guess_from_member(first_member)
         if guess:
-            second_up = int(guess.upload)
-            second_down = int(guess.download)
+            second_up = int(guess.upload + guess.tmp_upload)
+            second_down = int(guess.download + guess.tmp_download)
         else:
             second_up = 0
             second_down = 0
