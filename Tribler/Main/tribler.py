@@ -39,7 +39,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
-from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
+# from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -155,8 +155,8 @@ class ABCApp():
 
         # DISPERSY will be set when available
         self.dispersy = None
-        # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
-        self.effort_community = None
+        # # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
+        # self.effort_community = None
 
         self.seedingmanager = None
         self.i2is = None
@@ -555,11 +555,11 @@ class ABCApp():
             startWorker(do_wx, do_db, uId="tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
-    def _dispersy_get_effort_community(self):
-        try:
-            return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
-        except KeyError:
-            return None
+    # def _dispersy_get_effort_community(self):
+    #     try:
+    #         return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
+    #     except KeyError:
+    #         return None
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
@@ -601,21 +601,21 @@ class ABCApp():
             if not self.dispersy:
                 self.dispersy = Dispersy.has_instance()
 
-            if not self.effort_community:
-                self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
+            # if not self.effort_community:
+            #     self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
 
-            if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
-                if self.effort_community.has_been_killed:
-                    # set EFFORT_COMMUNITY to None.  next state callback we will again get the
-                    # effort community resulting in the HardKilledCommunity instead
-                    self.effort_community = None
-                else:
-                    if self.lastwantpeers:
-                        self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
+            # if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
+            #     if self.effort_community.has_been_killed:
+            #         # set EFFORT_COMMUNITY to None.  next state callback we will again get the
+            #         # effort community resulting in the HardKilledCommunity instead
+            #         self.effort_community = None
+            #     else:
+            #         if self.lastwantpeers:
+            #             self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
 
-                    # only request peer info every 120 intervals
-                    if self.ratestatecallbackcount % 120 == 0:
-                        wantpeers = True
+            #         # only request peer info every 120 intervals
+            #         if self.ratestatecallbackcount % 120 == 0:
+            #             wantpeers = True
 
 
             # Find State of currently playing video
