@@ -840,7 +840,9 @@ LIMIT 1000""", (last_record_pushed,)))
 
             try:
                 if __debug__: dprint("pushing ", len(data), " bytes (compressed)")
-                connection = HTTPConnection("effortreporter.tribler.org")
+                timeout = 0.1 if shutdown else 5.0
+                dprint(timeout, force=1)
+                connection = HTTPConnection("effortreporter.tribler.org", timeout=timeout)
                 # connection.set_debuglevel(1)
                 connection.putrequest("POST", "/post/post.py")
                 connection.putheader("Content-Type", "application/zip")
