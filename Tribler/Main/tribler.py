@@ -39,7 +39,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
-from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
+# from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -155,8 +155,8 @@ class ABCApp():
 
         # DISPERSY will be set when available
         self.dispersy = None
-        # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
-        self.effort_community = None
+        # # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
+        # self.effort_community = None
 
         self.seedingmanager = None
         self.i2is = None
@@ -462,11 +462,12 @@ class ABCApp():
         # Create global rate limiter
         progress('Setting up ratelimiters')
         self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
-        self.rateadjustcount = 0
 
-        # Counter to suppress console output containing download
-        # current statistics
-        self.rateprintcount = 0
+        # Counter to suppress some event from occurring
+        self.ratestatecallbackcount = 0
+
+        # So we know if we asked for peer details last cycle
+        self.lastwantpeers = False
 
         # boudewijn 01/04/2010: hack to fix the seedupload speed that
         # was never used and defaulted to 0 (unlimited upload)
@@ -554,17 +555,18 @@ class ABCApp():
             startWorker(do_wx, do_db, uId="tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
-    def _dispersy_get_effort_community(self):
-        try:
-            return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
-        except KeyError:
-            return None
+    # def _dispersy_get_effort_community(self):
+    #     try:
+    #         return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
+    #     except KeyError:
+    #         return None
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
             return (5.0, False)
 
         wantpeers = False
+        self.ratestatecallbackcount += 1
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
@@ -573,7 +575,7 @@ class ABCApp():
         try:
             # Print stats on Console
             if DEBUG:
-                if self.rateprintcount % 5 == 0:
+                if self.ratestatecallbackcount % 5 == 0:
                     for ds in dslist:
                         safename = `ds.get_download().get_def().get_name()`
                         if DEBUG:
@@ -581,7 +583,6 @@ class ABCApp():
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                             print >> sys.stderr, "main: Error:", `ds.get_error()`
-                self.rateprintcount += 1
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -600,17 +601,22 @@ class ABCApp():
             if not self.dispersy:
                 self.dispersy = Dispersy.has_instance()
 
-            if not self.effort_community:
-                self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
+            # if not self.effort_community:
+            #     self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
 
-            if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
-                if self.effort_community.has_been_killed:
-                    # set EFFORT_COMMUNITY to None.  next state callback we will again get the
-                    # effort community resulting in the HardKilledCommunity instead
-                    self.effort_community = None
-                else:
-                    wantpeers = True
-                    self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
+            # if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
+            #     if self.effort_community.has_been_killed:
+            #         # set EFFORT_COMMUNITY to None.  next state callback we will again get the
+            #         # effort community resulting in the HardKilledCommunity instead
+            #         self.effort_community = None
+            #     else:
+            #         if self.lastwantpeers:
+            #             self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
+
+            #         # only request peer info every 120 intervals
+            #         if self.ratestatecallbackcount % 120 == 0:
+            #             wantpeers = True
+
 
             # Find State of currently playing video
             playds = None
@@ -707,9 +713,8 @@ class ABCApp():
 
             # Adjust speeds once every 4 seconds
             adjustspeeds = False
-            if self.rateadjustcount % 4 == 0:
+            if self.ratestatecallbackcount % 4 == 0:
                 adjustspeeds = True
-            self.rateadjustcount += 1
 
             if adjustspeeds:
                 swift_dslist = [ds for ds in no_collected_list if ds.get_download().get_def().get_def_type() == 'swift']
@@ -744,6 +749,7 @@ class ABCApp():
         except:
             print_exc()
 
+        self.lastwantpeers = wantpeers
         return (1.0, wantpeers)
 
     def loadSessionCheckpoint(self):

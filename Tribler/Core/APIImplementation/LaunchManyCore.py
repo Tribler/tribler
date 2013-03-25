@@ -41,7 +41,7 @@ from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
 from Tribler.dispersy.community import HardKilledCommunity
-from Tribler.community.effort.community import EffortCommunity
+# from Tribler.community.effort.community import EffortCommunity
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -178,21 +178,18 @@ class TriblerLaunchMany(Thread):
             swift_exists = config['swiftproc'] and (os.path.exists(config['swiftpath']) or os.path.exists(config['swiftpath'] + '.exe'))
             if swift_exists:
                 self.spm = SwiftProcessMgr(config['swiftpath'], config['swiftcmdlistenport'], config['swiftdlsperproc'], self.session.get_swift_tunnel_listen_port(), self.sesslock)
+                try:
+                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
+                except OSError:
+                    # could not find/run swift
+                    print >> sys.stderr, "lmc: could not start a swift process"
+
             else:
                 self.spm = None
+                self.swift_process = None
 
             self.rtorrent_handler = None
             if config['torrent_collecting']:
-                # Arno, 2012-05-16: Start default swift process if not already by
-                # dispersy.
-                if config['dispersy-tunnel-over-swift'] == False and self.spm:
-                    try:
-                        swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
-                    except OSError:
-                        print >> sys.stderr, "lmc: could not start a swift process"
-                        # could not find/run swift
-                        pass
-
                 self.rtorrent_handler = RemoteTorrentHandler.getInstance()
 
     def init(self):
@@ -286,7 +283,7 @@ class TriblerLaunchMany(Thread):
             else:
                 schedule = []
                 schedule.append((SearchCommunity, (self.session.dispersy_member,), {}))
-                schedule.append((EffortCommunity, (), {}))
+                # schedule.append((EffortCommunity, (self.swift_process,), {}))
                 schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
                 schedule.append((ChannelCommunity, (), {}))
 
@@ -320,16 +317,9 @@ class TriblerLaunchMany(Thread):
 
         # set communication endpoint
         endpoint = None
-        if config['dispersy-tunnel-over-swift'] and self.spm:
-            try:
-                swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
-            except OSError:
-                # could not find/run swift
-                print >> sys.stderr, "lmc: could not start a swift process"
-
-            else:
-                endpoint = TunnelEndpoint(swift_process, self.dispersy)
-                swift_process.add_download(endpoint)
+        if config['dispersy-tunnel-over-swift'] and self.swift_process:
+            endpoint = TunnelEndpoint(swift_process, self.dispersy)
+            swift_process.add_download(endpoint)
 
         if endpoint is None:
             endpoint = RawserverEndpoint(self.rawserver, self.dispersy, config['dispersy_port'])
@@ -343,7 +333,7 @@ class TriblerLaunchMany(Thread):
         # define auto loads
         self.dispersy.define_auto_load(HardKilledCommunity)
         self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
-        self.dispersy.define_auto_load(EffortCommunity)
+        # self.dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
         self.dispersy.define_auto_load(ChannelCommunity)
         self.dispersy.define_auto_load(PreviewChannelCommunity)
 
