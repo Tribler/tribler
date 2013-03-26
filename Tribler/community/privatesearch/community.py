@@ -694,7 +694,7 @@ class SearchCommunity(Community):
                 self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
             if self.log_searches:
-                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords, request=search_request)
+                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords, request=str(search_request))
 
             removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
             if removeCache:
