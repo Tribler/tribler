@@ -459,6 +459,7 @@ class SearchCommunity(Community):
             if __debug__:
                 requested_candidates = self.get_requested_candidates()
                 assert all(mid not in requested_candidates for mid in search_request.requested_mids), "requested candidates cannot overlap"
+                assert search_request.identifier == self.identifier
 
             self.search_requests.append(search_request)
 
@@ -548,10 +549,14 @@ class SearchCommunity(Community):
 
         if candidates:
             this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
-            if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
-                self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
+            this_request.identifier = identifier
+
+            prev_request = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest)
+            if prev_request:
+                assert prev_request.keywords == keywords
+                prev_request.add_request(this_request)
             else:
-                self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest).add_request(this_request)
+                self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
 
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
