@@ -568,15 +568,7 @@ class SearchCommunity(Community):
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchCommunity: got search request for", keywords
 
-            # detect cycle
-            results = []
-            if not self._dispersy.request_cache.has(identifier, SearchCommunity.SearchRequest):
-                results = self._get_results(keywords, bloomfilter, False)
-                if not results and DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: no results"
-            else:
-                self.search_cycle_detected += 1
-
+            # compute new ttl
             if isinstance(self.ttl, int):
                 ttl = message.payload.ttl - 1
 
@@ -585,27 +577,41 @@ class SearchCommunity(Community):
                 if ttl > 1:
                     ttl -= 1
                 else:
-                    ttl = 0 if random() < 0.33 else 1
+                    ttl = 0 if random() < 0.5 else 1
             else:
                 ttl = 7 if random() < self.ttl else 0
 
-            send_response = ttl == 0
-            if not send_response:
+            forward_message = ttl > 0
+
+            # detect cycle
+            results = []
+            if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
+                results = self._get_results(keywords, bloomfilter, False)
+                if not results and DEBUG:
+                    print >> sys.stderr, long(time()), "SearchCommunity: no results"
+            else:
+                self.search_cycle_detected += 1
+
+                cache = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest)
+                if cache.keywords != keywords:  # abort, return
+                    forward_message = False
+
+            if forward_message:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
-                candidates, _ = self.create_search(message.payload.keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
+                candidates, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                 if len(candidates):
                     self.search_forward += 1
                 else:
-                    send_response = True
+                    forward_message = False
 
-            if send_response:
+            if not forward_message:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: ttl == 0 returning"
-                self._create_search_response(message.payload.identifier, results, message.candidate)
+                    print >> sys.stderr, long(time()), "SearchCommunity: returning"
+                self._create_search_response(identifier, results, message.candidate)
                 self.search_endpoint += 1
 
     def _get_results(self, keywords, bloomfilter, local):
