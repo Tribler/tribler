@@ -459,6 +459,7 @@ class SearchCommunity(Community):
                 requested_candidates = self.get_requested_candidates()
                 assert all(mid not in requested_candidates for mid in search_request.requested_mids), "requested candidates cannot overlap"
                 assert search_request.identifier == self.identifier
+                assert search_request.keywords == self.keywords
 
             self.search_requests.append(search_request)
 
@@ -693,7 +694,7 @@ class SearchCommunity(Community):
                 self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
             if self.log_searches:
-                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords)
+                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords, request=search_request)
 
             removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
             if removeCache:
