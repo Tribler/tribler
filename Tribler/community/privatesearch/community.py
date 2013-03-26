@@ -508,36 +508,39 @@ class SearchCommunity(Community):
             for member in return_candidate.get_members(self):
                 ignore_candidates.add(member.mid)
 
-        random_peers, taste_buddies = self.get_randompeers_tastebuddies(ignore_candidates)
-        shuffle(taste_buddies)
-        shuffle(random_peers)
-
+        # impose upper limit for forwarding
         candidates = []
-        for _ in xrange(nrcandidates):
-            if ttl == None:
-                if isinstance(self.ttl, tuple):
-                    _ttl = randint(self.ttl[0], self.ttl[1])
-                elif isinstance(self.ttl, int):
-                    _ttl = self.ttl
+
+        if len(ignore_candidates) < 15:
+            random_peers, taste_buddies = self.get_randompeers_tastebuddies(ignore_candidates)
+            shuffle(taste_buddies)
+            shuffle(random_peers)
+
+            for _ in xrange(nrcandidates):
+                if ttl == None:
+                    if isinstance(self.ttl, tuple):
+                        _ttl = randint(self.ttl[0], self.ttl[1])
+                    elif isinstance(self.ttl, int):
+                        _ttl = self.ttl
+                    else:
+                        _ttl = 1
                 else:
-                    _ttl = 1
-            else:
-                _ttl = ttl
+                    _ttl = ttl
 
-            # prefer taste buddies, fallback to random peers
-            if taste_buddies:
-                candidate = taste_buddies.pop()
-            elif random_peers:
-                candidate = random_peers.pop()
-            else:
-                break
+                # prefer taste buddies, fallback to random peers
+                if taste_buddies:
+                    candidate = taste_buddies.pop()
+                elif random_peers:
+                    candidate = random_peers.pop()
+                else:
+                    break
 
-            # create channelcast request message
-            meta = self.get_meta_message(u"search-request")
-            message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), payload=(identifier, _ttl, keywords, bloomfilter))
-            self._dispersy._send([candidate], [message])
-            candidates.append(candidate)
+                # create request message
+                meta = self.get_meta_message(u"search-request")
+                message = meta.impl(authentication=(self._my_member,),
+                                    distribution=(self.global_time,), payload=(identifier, _ttl, keywords, bloomfilter))
+                self._dispersy._send([candidate], [message])
+                candidates.append(candidate)
 
         if candidates:
             this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
@@ -579,10 +582,10 @@ class SearchCommunity(Community):
 
             elif isinstance(self.ttl, tuple):
                 ttl = message.payload.ttl
-                if ttl == 1:
-                    ttl -= 1 if random() < 0.33 else 0
-                else:
+                if ttl > 1:
                     ttl -= 1
+                else:
+                    ttl = 0 if random() < 0.33 else 1
             else:
                 ttl = 7 if random() < self.ttl else 0
 
