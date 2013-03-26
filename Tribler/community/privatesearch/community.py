@@ -446,12 +446,12 @@ class SearchCommunity(Community):
                     self.community.search_timeout += (len(self.requested_candidates) - len(self.received_candidates))
 
     class MSearchRequest(SearchRequest):
-        search_requests = []
 
         def __init__(self, search_request):
             self.timeout_delay = search_request.timeout_delay
             self.cleanup_delay = search_request.cleanup_delay
-
+            
+            self.search_requests = []
             self.search_requests.append(search_request)
 
         def add_request(self, search_request):
@@ -692,9 +692,6 @@ class SearchCommunity(Community):
 
             if len(message.payload.results) > 0 and self.use_megacache:
                 self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
-
-            if self.log_searches:
-                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords, request=str(search_request))
 
             removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
             if removeCache:
