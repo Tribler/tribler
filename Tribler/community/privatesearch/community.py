@@ -456,6 +456,10 @@ class SearchCommunity(Community):
             self.add_request(search_request)
 
         def add_request(self, search_request):
+            if __debug__:
+                requested_candidates = self.get_requested_candidates()
+                assert all(mid not in requested_candidates for mid in search_request.requested_mids), "requested candidates cannot overlap"
+
             self.search_requests.append(search_request)
 
         def get_requested_candidates(self):
@@ -554,7 +558,7 @@ class SearchCommunity(Community):
         else:
             self.search_no_candidates_remain += 1
 
-        return candidates, results
+        return candidates, results, identifier
 
     def on_search(self, messages):
         for message in messages:
@@ -601,7 +605,7 @@ class SearchCommunity(Community):
                     print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
-                candidates, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
+                candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                 if len(candidates):
                     self.search_forward += 1
