@@ -150,7 +150,7 @@ class SearchCommunity(Community):
 
     def initiate_meta_messages(self):
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self._dispersy._generic_timeline_check, self.on_search),
-                Message(self, u"search-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchResponsePayload(), self._dispersy._generic_timeline_check, self.on_search_response),
+                Message(self, u"search-response", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchResponsePayload(), self.check_search_response, self.on_search_response),
                 Message(self, u"torrent-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), TorrentRequestPayload(), self._dispersy._generic_timeline_check, self.on_torrent_request),
                 Message(self, u"torrent", MemberAuthentication(encoding="sha1"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"ASC", priority=128), CommunityDestination(node_count=0), TorrentPayload(), self._dispersy._generic_timeline_check, self.on_torrent),
                 Message(self, u"ping", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
@@ -658,35 +658,47 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchCommunity: returning", len(results), "results to", candidate
 
+    def check_search_response(self, messages):
+        for message in messages:
+            accepted, _ = self._timeline.check(message)
+            if not accepted:
+                yield DelayMessageByProof(message)
+                continue
+
+            if not self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.MSearchRequest):
+                if DEBUG:
+                    print >> sys.stderr, long(time()), "SearchCommunity: got search response identifier not found", message.payload.identifier
+
+                yield DropMessage(message, "invalid response identifier")
+                continue
+
+            yield message
+
     def on_search_response(self, messages):
         for message in messages:
             # fetch callback using identifier
-            search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.SearchRequest)
-            if search_request:
+            search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.MSearchRequest)
+            if DEBUG:
+                print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
+
+            if len(message.payload.results) > 0 and self.use_megacache:
+                self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
+
+            removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
+            if removeCache:
+                self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
+
+            # see if we need to join some channels
+            channels = set([result[10] for result in message.payload.results if result[10]])
+            if channels:
+                channels = self._get_unknown_channels(channels)
+
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
+                    print >> sys.stderr, long(time()), "SearchCommunity: joining %d preview communities" % len(channels)
 
-                if len(message.payload.results) > 0 and self.use_megacache:
-                    self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
-
-                removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
-                if removeCache:
-                    self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
-
-                # see if we need to join some channels
-                channels = set([result[10] for result in message.payload.results if result[10]])
-                if channels:
-                    channels = self._get_unknown_channels(channels)
-
-                    if DEBUG:
-                        print >> sys.stderr, long(time()), "SearchCommunity: joining %d preview communities" % len(channels)
-
-                    for cid in channels:
-                        community = self._get_channel_community(cid)
-                        community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
-            else:
-                if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: got search response identifier not found", message.payload.identifier
+                for cid in channels:
+                    community = self._get_channel_community(cid)
+                    community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
 
     class PingRequestCache(IntroductionRequestCache):
         cleanup_delay = 0.0
