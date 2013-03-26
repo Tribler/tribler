@@ -428,8 +428,6 @@ class SearchCommunity(Community):
                     self.community.search_forward_success += 1
 
                 if not self.return_candidate:
-                    if self.community.log_searches:
-                        log("barter.log", "success", identifier=self.identifier, keywords=keywords, candidate_mid=candidate_mid)
                     self.callback(keywords, results, candidate)  # local query, update immediately do not pass self.results as it contains all results
 
             return self.processed
@@ -693,6 +691,9 @@ class SearchCommunity(Community):
 
             if len(message.payload.results) > 0 and self.use_megacache:
                 self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
+
+            if self.log_searches:
+                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords)
 
             removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
             if removeCache:
