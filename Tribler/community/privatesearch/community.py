@@ -453,7 +453,7 @@ class SearchCommunity(Community):
             self.timeout_delay = search_request.timeout_delay
             self.cleanup_delay = search_request.cleanup_delay
 
-            self.add_request(search_request)
+            self.search_requests.append(search_request)
 
         def add_request(self, search_request):
             if __debug__:
