@@ -416,22 +416,23 @@ class SearchCommunity(Community):
             return candidate_mid in self.requested_mids
 
         def on_success(self, candidate_mid, keywords, results, candidate):
-            shouldPop = False
             if not self.processed:
                 if self.did_request(candidate_mid):
                     self.received_candidates.append(candidate_mid)
                     self.results.extend(results)
                     shuffle(self.results)
 
-                shouldPop = len(self.received_candidates) == len(self.requested_candidates)
-                if self.return_candidate:
-                    if shouldPop:
-                        self.callback(keywords, self.results, self.return_candidate)  # send message containing all results
-                        self.community.search_forward_success += 1
-                        self.processed = True
-                else:
+                self.processed = len(self.received_candidates) == len(self.requested_candidates)
+                if self.return_candidate and self.processed:
+                    self.callback(keywords, self.results, self.return_candidate)  # send message containing all results
+                    self.community.search_forward_success += 1
+
+                if not self.return_candidate:
+                    if self.log_searches:
+                        log("barter.log", "success", identifier=self.identifier, keywords=keywords, candidate_mid=candidate_mid)
                     self.callback(keywords, results, candidate)  # local query, update immediately do not pass self.results as it contains all results
-            return shouldPop
+
+            return self.processed
 
         def on_timeout(self):
             # timeout, message was probably lost return our local results
@@ -491,7 +492,7 @@ class SearchCommunity(Community):
         if identifier == None:
             identifier = self._dispersy.request_cache.generate_identifier()
             if self.log_searches:
-                log("dispersy.log", "search-statistics", identifier=identifier, created_by_me=True)
+                log("dispersy.log", "search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
 
         if nrcandidates == None:
             nrcandidates = self.neighbors
@@ -504,8 +505,9 @@ class SearchCommunity(Community):
             results = self._get_results(keywords, bloomfilter, True)
 
         # fetch requested candidates from previous forward
-        if self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
-            ignore_candidates = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest).get_requested_candidates()
+        prev_request = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest)
+        if prev_request:
+            ignore_candidates = prev_request.get_requested_candidates()
         else:
             ignore_candidates = set()
 
@@ -551,7 +553,6 @@ class SearchCommunity(Community):
             this_request = SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates)
             this_request.identifier = identifier
 
-            prev_request = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest)
             if prev_request:
                 assert prev_request.keywords == keywords
                 prev_request.add_request(this_request)
