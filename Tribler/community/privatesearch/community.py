@@ -428,7 +428,7 @@ class SearchCommunity(Community):
                     self.community.search_forward_success += 1
 
                 if not self.return_candidate:
-                    if self.log_searches:
+                    if self.community.log_searches:
                         log("barter.log", "success", identifier=self.identifier, keywords=keywords, candidate_mid=candidate_mid)
                     self.callback(keywords, results, candidate)  # local query, update immediately do not pass self.results as it contains all results
 
