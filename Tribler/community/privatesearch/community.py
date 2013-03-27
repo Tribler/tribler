@@ -693,9 +693,6 @@ class SearchCommunity(Community):
             if len(message.payload.results) > 0 and self.use_megacache:
                 self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
-            if self.log_searches:
-                log("barter.log", "success", identifier=message.payload.identifier, keywords=search_request.keywords, request=str(search_request))
-
             removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
             if removeCache:
                 self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
