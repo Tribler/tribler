@@ -446,12 +446,12 @@ class SearchCommunity(Community):
                     self.community.search_timeout += (len(self.requested_candidates) - len(self.received_candidates))
 
     class MSearchRequest(SearchRequest):
-        search_requests = []
 
         def __init__(self, search_request):
             self.timeout_delay = search_request.timeout_delay
             self.cleanup_delay = search_request.cleanup_delay
 
+            self.search_requests = []
             self.search_requests.append(search_request)
 
         def add_request(self, search_request):
@@ -517,7 +517,7 @@ class SearchCommunity(Community):
         # impose upper limit for forwarding
         candidates = []
 
-        if len(ignore_candidates) < 15:
+        if len(ignore_candidates) < self.neighbors:
             random_peers, taste_buddies = self.get_randompeers_tastebuddies(ignore_candidates)
             shuffle(taste_buddies)
             shuffle(random_peers)
