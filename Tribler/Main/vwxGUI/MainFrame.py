@@ -467,16 +467,16 @@ class MainFrame(wx.Frame):
                         dlg.SetPosition(center_pos)
 
                     if dlg.ShowModal() == wx.ID_OK:
+                        # If the dialog has collected a torrent, use the new tdef
+                        tdef = dlg.GetCollected() or tdef
+                        cdef = sdef or tdef
+
                         #for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
                             destdir, correctedFilename = os.path.split(dlg.GetPath())
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
-
-                        # If the dialog has collected a torrent, use the new tdef
-                        tdef = dlg.GetCollected() or tdef
-                        cdef = sdef or tdef
                     else:
                         cancelDownload = True
                     dlg.Destroy()
