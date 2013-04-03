@@ -789,6 +789,7 @@ class TorrentFilter(BaseFilter):
     def Reset(self):
         self.search.Clear()
         self.filesize.Reset()
+        self.slider_minmax = (0, 0)
         self.slider_positions = (0, 0)
         
     def GetSliderMinMax(self):
