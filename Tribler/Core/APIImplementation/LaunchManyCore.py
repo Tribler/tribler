@@ -741,7 +741,7 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.shutdown()
 
         if self.dispersy:
-            self.dispersy.stop(timeout=2.0)
+            self.dispersy.stop(timeout=float(sys.maxint))
 
         if self.session.sessconfig['megacache']:
             self.peer_db.delInstance()
