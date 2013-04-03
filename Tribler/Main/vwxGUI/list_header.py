@@ -669,11 +669,12 @@ class TorrentFilter(BaseFilter):
         menu.Bind(wx.EVT_MENU, lambda x: self.parent_list.OnSort(-1, False), id=itemid)
         menu.Check(itemid, sortcolumn == -1)                
         for index, column in enumerate(self.columns):
-            sortAsc = column.get('sortAsc', False)
-            itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, column['name'])
-            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
-            menu.Check(itemid, sortcolumn == index)
+            if column.get('show', True):
+                sortAsc = column.get('sortAsc', False)
+                itemid = wx.NewId()
+                menu.AppendRadioItem(itemid, column['name'])
+                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
             menu.AppendSeparator()
@@ -1063,13 +1064,14 @@ class ChannelFilter(BaseFilter):
         
         menu = wx.Menu()
         for index, column in enumerate(self.columns):
-            sortAsc = column.get('sortAsc', False)
-            sortDef = column.get('defaultSorted', False)
-            sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
-            itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, column['name'])
-            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
-            menu.Check(itemid, sortcolumn == index)
+            if column.get('show', True):
+                sortAsc = column.get('sortAsc', False)
+                sortDef = column.get('defaultSorted', False)
+                sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
+                itemid = wx.NewId()
+                menu.AppendRadioItem(itemid, column['name'])
+                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
             menu.AppendSeparator()
@@ -1233,13 +1235,14 @@ class DownloadFilter(BaseFilter):
         
         menu = wx.Menu()
         for index, column in enumerate(self.columns):
-            sortAsc = column.get('sortAsc', False)
-            sortDef = column.get('defaultSorted', False)
-            sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
-            itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, column['name'] if column['name'] else 'Progress')
-            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
-            menu.Check(itemid, sortcolumn == index)
+            if column.get('show', True):
+                sortAsc = column.get('sortAsc', False)
+                sortDef = column.get('defaultSorted', False)
+                sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
+                itemid = wx.NewId()
+                menu.AppendRadioItem(itemid, column['name'] if column['name'] else 'Progress')
+                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
             menu.AppendSeparator()
