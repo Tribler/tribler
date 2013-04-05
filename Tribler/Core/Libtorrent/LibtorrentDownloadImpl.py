@@ -82,6 +82,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.finished_time = 0.0
         self.done = False
         self.pause_after_next_hashcheck = False
+        self.checkpoint_after_next_hashcheck = False
         self.prebuffsize = 5*1024*1024
         self.queue_position = -1
 
@@ -347,10 +348,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         elif self.session.lm.torrent_db:
             self.session.lm.torrent_db.addExternalTorrent(self.tdef, source = '', extra_info = {'status':'good'}, commit = True)
             
-        # Checkpoint
-        (infohash, pstate) = self.network_checkpoint()
-        checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
-        self.session.lm.rawserver.add_task(checkpoint, 0)
+        self.checkpoint()
 
     def on_file_renamed_alert(self, alert):
         if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs) and all(self.handle.file_priorities()):
@@ -376,6 +374,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
             self.handle.pause()
+        if self.checkpoint_after_next_hashcheck:
+            self.checkpoint_after_next_hashcheck = False
+            self.checkpoint()
         
     def update_lt_stats(self):
         status = self.handle.status()
@@ -469,6 +470,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
                 if self.dlstate == DLSTATUS_STOPPED:
                     self.pause_after_next_hashcheck = True
+                self.checkpoint_after_next_hashcheck = True
                 self.handle.resume()
                 self.handle.force_recheck()
                 
@@ -774,7 +776,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def checkpoint(self):
         """ Called by any thread """
-        self.network_checkpoint()
+        (infohash, pstate) = self.network_checkpoint()
+        checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
+        self.session.lm.rawserver.add_task(checkpoint, 0)
     
     def network_checkpoint(self):
         """ Called by network thread """
