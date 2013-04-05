@@ -256,14 +256,14 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
     def AddButtons(self):
         pass
         
-    def AddButton(self, label, handler):
+    def AddButton(self, label, handler, right_spacer = 10):
         if handler == None or label == None:
             return
 
         button = ProgressButton(self, -1, label)
         button.Bind(wx.EVT_LEFT_UP, handler)
         self.AddEvents(button)
-        self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 10)
+        self.buttonSizer.Add(button, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, right_spacer)
         self.Layout()
         self.ShowSelected()
         return button
