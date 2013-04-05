@@ -57,6 +57,7 @@ class LibtorrentMgr:
         self.torlock = NoDispersyRLock()
         self.torrents = {}
         self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+        self.trsession.lm.rawserver.add_task(self.reachability_check, 1)
 
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
@@ -169,3 +170,9 @@ class LibtorrentMgr:
                         print >> sys.stderr, "LibtorrentMgr: alert for invalid torrent"
                 alert = self.ltsession.pop_alert()
             self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+
+    def reachability_check(self):
+        if self.ltsession and self.ltsession.status().has_incoming_connections:
+            self.trsession.lm.dialback_reachable_callback()
+        else:
+            self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
