@@ -28,11 +28,9 @@ class LibtorrentMgr:
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
         fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
-        self.ltsession = lt.session(lt.fingerprint(*fingerprint))
+        # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
+        self.ltsession = lt.session(lt.fingerprint(*fingerprint), flags = 1)
         self.ltsession.set_settings(settings)
-        self.ltsession.add_extension(lt.create_ut_metadata_plugin)
-        self.ltsession.add_extension(lt.create_ut_pex_plugin)
-        self.ltsession.add_extension(lt.create_smart_ban_plugin)
         self.ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
