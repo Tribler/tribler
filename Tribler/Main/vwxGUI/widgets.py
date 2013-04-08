@@ -2514,10 +2514,7 @@ class Graph(wx.Panel):
         x_width, _ = self.GetTextExtent(self.x_label)
         _, y_height = self.GetTextExtent(self.y_label)
         dc.DrawText(self.x_label, (width - self.x_margins[0] - self.x_margins[1] - x_width) / 2 + self.x_margins[0], height - self.y_margins[1])
-        if sys.platform == 'linux2':
-            dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 270)
-        else:
-            dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 90)
+        dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 90)
 
         # Draw min/max values along the y axis
         miny = "0"
