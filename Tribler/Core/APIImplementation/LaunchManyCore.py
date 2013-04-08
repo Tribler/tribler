@@ -74,6 +74,7 @@ class TriblerLaunchMany(Thread):
         self.setName("Network" + self.getName())
         self.initComplete = False
         self.registered = False
+        self.dispersy = None
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -192,6 +193,23 @@ class TriblerLaunchMany(Thread):
             if config['torrent_collecting']:
                 self.rtorrent_handler = RemoteTorrentHandler.getInstance()
 
+            # Dispersy
+            self.session.dispersy_member = None
+            if config['dispersy']:
+                # use the same member key as that from Tribler
+                from Tribler.Core.permid import read_keypair
+                keypair = read_keypair(self.session.get_permid_keypair_filename())
+
+                # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
+                # required to ensure that the BitTornado core can access the dispersy instance.
+                self.dispersy = self.database_thread.call(self.start_dispersy_core, (config, keypair, self.database_thread))
+
+                # load all communities after some time
+                self.database_thread.register(self.dispersy_load_communities, (self.dispersy,))
+
+                # notify dispersy finished loading
+                self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+
     def init(self):
         config = self.session.sessconfig  # Should be safe at startup
 
@@ -253,95 +271,80 @@ class TriblerLaunchMany(Thread):
             # initialise the first instance
             MagnetHandler.get_instance(self.rawserver)
 
-        # Dispersy (depends on swift for tunneling)
-        self.dispersy = None
-        self.dispersy_thread = None
-        self.session.dispersy_member = None
-        if config['dispersy']:
-            self.dispersy_thread = self.database_thread
-
-            # use the same member key as that from Tribler
-            from Tribler.Core.permid import read_keypair
-            keypair = read_keypair(self.session.get_permid_keypair_filename())
-
-            # 01/11/11 Boudewijn: we will now block until start_dispersy completed.  This is
-            # required to ensure that the BitTornado core can access the dispersy instance.
-            self.dispersy_thread.call(self.start_dispersy, (config, keypair))
-
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
 
         self.initComplete = True
 
-    def start_dispersy(self, config, keypair):
-        def load_communities():
-            if sys.argv[0].endswith("dispersy-channel-booster.py"):
-                schedule = []
-                schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True}))
-                schedule.append((ChannelCommunity, (), {}))
-
-            else:
-                schedule = []
-                schedule.append((SearchCommunity, (self.session.dispersy_member,), {}))
-                # schedule.append((EffortCommunity, (self.swift_process,), {}))
-                schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
-                schedule.append((ChannelCommunity, (), {}))
-
-            for cls, args, kargs in schedule:
-                counter = -1
-                for counter, master in enumerate(cls.get_master_members()):
-                    if self.dispersy.has_community(master.mid):
-                        continue
-
-                    if __debug__: print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX"), "#%d" % counter
-                    try:
-                        cls.load_community(master, *args, **kargs)
-                    except:
-                        # Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
-                        print_exc()
-
-                    # release thread before loading next community
-                    yield 0.0
-
-                if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
+    def start_dispersy_core(self, config, keypair, dispersy_callback):
+        assert dispersy_callback.is_current_thread, "Must be called on Dispersy thread"
 
         # start dispersy
         config = self.session.sessconfig
         working_directory = unicode(config['state_dir'])
 
         if sys.argv[0].endswith("dispersy-channel-booster.py"):
-            dispersy_cls = __import__("Tribler.Main.dispersy-channel-booster", fromlist=["BoosterDispersy"]).BoosterDispersy
-            self.dispersy = dispersy_cls.get_instance(self.dispersy_thread, working_directory, singleton_placeholder=Dispersy)
+            BoosterDispersy = __import__("Tribler.Main.dispersy-channel-booster", fromlist=["BoosterDispersy"]).BoosterDispersy
+            dispersy = BoosterDispersy(dispersy_callback, working_directory, singleton_placeholder=Dispersy)
         else:
-            self.dispersy = Dispersy.get_instance(self.dispersy_thread, working_directory)
+            dispersy = Dispersy(dispersy_callback, working_directory)
 
         # set communication endpoint
         endpoint = None
         if config['dispersy-tunnel-over-swift'] and self.swift_process:
-            endpoint = TunnelEndpoint(swift_process, self.dispersy)
-            swift_process.add_download(endpoint)
+            endpoint = TunnelEndpoint(self.swift_process, dispersy)
+            self.swift_process.add_download(endpoint)
 
         if endpoint is None:
-            endpoint = RawserverEndpoint(self.rawserver, self.dispersy, config['dispersy_port'])
+            endpoint = RawserverEndpoint(self.rawserver, dispersy, config['dispersy_port'])
 
-        self.dispersy.endpoint = endpoint
-        print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1]
+        dispersy.endpoint = endpoint
+        print >> sys.stderr, "lmc: Dispersy is listening on port", dispersy.wan_address[1]
 
         from Tribler.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
-        self.session.dispersy_member = self.dispersy.get_member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
+        self.session.dispersy_member = dispersy.get_member(ec_to_public_bin(keypair), ec_to_private_bin(keypair))
 
         # define auto loads
-        self.dispersy.define_auto_load(HardKilledCommunity)
-        self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
-        # self.dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
-        self.dispersy.define_auto_load(ChannelCommunity)
-        self.dispersy.define_auto_load(PreviewChannelCommunity)
+        dispersy.define_auto_load(HardKilledCommunity)
+        dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
+        # dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
+        dispersy.define_auto_load(ChannelCommunity)
+        dispersy.define_auto_load(PreviewChannelCommunity)
 
-        # load all communities after some time
-        self.dispersy_thread.register(load_communities)
+        return dispersy
 
-        # notify dispersy finished loading
-        self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+    def dispersy_load_communities(self, dispersy):
+        assert dispersy.callback.is_current_thread, "Must be called on Dispersy thread"
+
+        if sys.argv[0].endswith("dispersy-channel-booster.py"):
+            schedule = []
+            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True}))
+            schedule.append((ChannelCommunity, (), {}))
+
+        else:
+            schedule = []
+            schedule.append((SearchCommunity, (self.session.dispersy_member,), {}))
+            # schedule.append((EffortCommunity, (self.swift_process,), {}))
+            schedule.append((AllChannelCommunity, (self.session.dispersy_member,), {}))
+            schedule.append((ChannelCommunity, (), {}))
+
+        for cls, args, kargs in schedule:
+            counter = -1
+            for counter, master in enumerate(cls.get_master_members(dispersy)):
+                if dispersy.has_community(master.mid):
+                    continue
+
+                if __debug__: print >> sys.stderr, "lmc: loading", cls.get_classification(), "-", master.mid.encode("HEX"), "#%d" % counter
+                try:
+                    cls.load_community(dispersy, master, *args, **kargs)
+                except:
+                    # Niels: 07-03-2012 busyerror will cause dispersy not to try other communities
+                    print_exc()
+
+                # release thread before loading next community
+                yield 0.0
+
+            if __debug__: print >> sys.stderr, "lmc: restored", counter + 1, cls.get_classification(), "communities"
 
     def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, commit=True, setupDelay=0, hidden=False):
         """ Called by any thread """
@@ -740,8 +743,11 @@ class TriblerLaunchMany(Thread):
         if self.torrent_checking:
             self.torrent_checking.shutdown()
 
+        if self.database_thread:
+            self.database_thread.stop(timeout=666.666)
+
         if self.dispersy:
-            self.dispersy.stop(timeout=float(sys.maxint))
+            self.dispersy.stop()
 
         if self.session.sessconfig['megacache']:
             self.peer_db.delInstance()

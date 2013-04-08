@@ -111,11 +111,11 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def __init__(self, master, integrate_with_tribler = True):
+    def __init__(self, dispersy, master, integrate_with_tribler = True):
         self.integrate_with_tribler = integrate_with_tribler
 
         self._channel_id = None
-        super(ChannelCommunity, self).__init__(master)
+        super(ChannelCommunity, self).__init__(dispersy, master)
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler

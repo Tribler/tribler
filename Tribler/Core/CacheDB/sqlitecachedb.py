@@ -287,7 +287,7 @@ class SQLiteCacheDBBase:
         curs = self.cursor_table
         cur = curs.get(thread_name, None)    # return [cur, cur, lib] or None
         #print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
-        if cur is None and create:
+        if cur is None and create and self.class_variables['db_path']:
             self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])    # create a new db obj for this thread
             cur = curs.get(thread_name)
 
@@ -308,7 +308,7 @@ class SQLiteCacheDBBase:
             #assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
             return self.cursor_table[thread_name]
 
-        assert dbfile_path, "You must specify the path of database file"
+        assert dbfile_path, "You must specify the path of database file for"
 
         if dbfile_path.lower() != ':memory:':
             db_dir,db_filename = os.path.split(dbfile_path)
@@ -1977,8 +1977,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         from Tribler.dispersy.dispersy import Dispersy
                         from Tribler.Core.TorrentDef import TorrentDef
 
-                        dispersy = Dispersy.get_instance()
-                        dispersy.callback.register(create_my_channel, delay = 10.0)
+                        global _callback
+                        _callback.register(create_my_channel, delay = 10.0)
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
@@ -2282,11 +2282,11 @@ def try_register(db, callback = None):
         try:
             # check again if _callback hasn't been set, but now we are thread safe
             if not _callback:
-                if not callback:
-                    from Tribler.dispersy.dispersy import Dispersy
-                    dispersy = Dispersy.has_instance()
-                    if dispersy:
-                        callback = dispersy.callback
+                # if not callback:
+                #     from Tribler.dispersy.dispersy import Dispersy
+                #     dispersy = Dispersy.has_instance()
+                #     if dispersy:
+                #         callback = dispersy.callback
 
                 if callback and callback.is_running:
                     print >> sys.stderr, "Using actual DB thread", callback
