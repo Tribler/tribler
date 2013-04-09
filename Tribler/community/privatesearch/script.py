@@ -101,7 +101,7 @@ class SearchScript(ScenarioScriptBase):
             if os.path.isdir(dirpath):
                 try:
                     if int(dirname) != self._my_name:
-                        scenario_fp = open(os.path.join(dir, 'data/bartercast.log'))
+                        scenario_fp = open(os.path.join(dirpath, 'data/bartercast.log'))
                         for line in scenario_fp:
                             commands = line.split()
                             if int(commands[0]) > 1:
