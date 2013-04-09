@@ -114,9 +114,6 @@ class SearchScript(ScenarioScriptBase):
                         scenario_fp.close()
                 except:
                     print_exc()
-
-        print >> sys.stderr, self.file_availability
-
         return community
 
     def do_steps(self):
