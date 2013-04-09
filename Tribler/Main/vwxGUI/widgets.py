@@ -1875,6 +1875,7 @@ class MinMaxSlider(wx.Panel):
 class SimpleNotebook(wx.Panel):
 
     def __init__(self, *args, **kwargs):
+        self.show_single_tab = kwargs.pop('show_single_tab', True)
         wx.Panel.__init__(self, *args, **kwargs)
         self.ad     = None
         self.labels = []
@@ -1888,9 +1889,9 @@ class SimpleNotebook(wx.Panel):
         self.hSizer_panel.SetBackgroundColour(FILTER_GREY)
         self.hSizer_panel.SetMinSize((-1,25))
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        separator = wx.Panel(self, size = (-1, 1))
-        separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Add(separator, 0, wx.EXPAND)
+        self.top_separator = wx.Panel(self, size = (-1, 1))
+        self.top_separator.SetBackgroundColour(SEPARATOR_GREY)
+        vSizer.Add(self.top_separator, 0, wx.EXPAND)
         vSizer.Add(self.hSizer_panel, 0, wx.EXPAND)
         separator = wx.Panel(self, size = (-1, 1))
         separator.SetBackgroundColour(SEPARATOR_GREY)
@@ -1917,6 +1918,7 @@ class SimpleNotebook(wx.Panel):
         sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
         self.hSizer_labels.Add(label, 0, wx.RIGHT|wx.LEFT|wx.CENTER, self.lspace)
         self.hSizer_labels.Add(sline, 0, wx.EXPAND|wx.ALL|wx.CENTER|wx.TOP|wx.BOTTOM, 5)
+        self.hSizer_labels.Layout()
         page.Show(False)
         index = len(self.hSizer_panels.GetChildren())-1 if self.ad else len(self.hSizer_panels.GetChildren())
         self.hSizer_panels.Insert(index, page, 100, wx.EXPAND)
@@ -1926,6 +1928,8 @@ class SimpleNotebook(wx.Panel):
             self.SetSelection(self.GetPageCount()-1)
         else:
             self.Layout()
+        if not self.show_single_tab:
+            self.ShowTabs(self.GetPageCount() > 1)
 
     def InsertPage(self, index, page, text, select = False):
         if not ( index >= 0 and index < self.GetPageCount() ):
@@ -1935,6 +1939,7 @@ class SimpleNotebook(wx.Panel):
         sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
         self.hSizer_labels.Insert(index*2, label, 0, wx.RIGHT|wx.LEFT|wx.CENTER, self.lspace)
         self.hSizer_labels.Insert(index*2+1, sline, 0, wx.EXPAND|wx.CENTER|wx.TOP|wx.BOTTOM, 5)
+        self.hSizer_labels.Layout()
         page.Show(False)
         szr_index = index-1 if self.ad else index
         self.hSizer_panels.Insert(szr_index, page, 100, wx.EXPAND)
@@ -1944,9 +1949,29 @@ class SimpleNotebook(wx.Panel):
             self.SetSelection(self.GetPageCount()-1)
         else:
             self.Layout()
+        if not self.show_single_tab:
+            self.ShowTabs(self.GetPageCount() > 1)
 
     def RemovePage(self, index):
-        pass
+        remove_current = self.GetCurrentPage() == index
+        remove_last = self.GetPageCount() == index
+        page = self.labels.pop(index)
+        page.Show(False)
+        label = self.panels.pop(index)
+        label.Show(False)
+        self.hSizer_labels.Remove(index*2)
+        if not remove_last:
+            sline = self.hSizer_labels.GetItem(index*2)
+            sline = sline.GetWindow() if getattr(sline, 'IsWindow', False) and sline.IsWindow() else sline
+            sline.Show(False)
+            self.hSizer_labels.Remove(index*2)
+        self.hSizer_panels.Remove(index)
+        if remove_current:
+            self.SetSelection(self.GetPageCount()-1)
+        if not self.show_single_tab:
+            self.ShowTabs(self.GetPageCount() > 1)
+        else:
+            self.Layout()
 
     def GetPageText(self, num_page):
         if num_page >= 0 and num_page < self.GetPageCount():
@@ -1980,7 +2005,11 @@ class SimpleNotebook(wx.Panel):
         self.Layout()
 
         event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
+        event.SetEventObject(self)
         wx.PostEvent(self.GetEventHandler(), event)
+
+    def GetSelection(self):
+        return self.pshown or 0
 
     def ChangeSelection(self, num_page):
         self.SetSelection(num_page)
@@ -2000,6 +2029,11 @@ class SimpleNotebook(wx.Panel):
             self.hSizer_panels.Add(panel, 0, wx.EXPAND)
         self.ad = panel
         panel.Show(True)
+        self.Layout()
+
+    def ShowTabs(self, show = True):
+        self.hSizer_panel.Show(show)
+        self.top_separator.Show(show)
         self.Layout()
 
 

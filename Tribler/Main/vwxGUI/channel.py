@@ -262,16 +262,7 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def _PostInit(self):
-        #Hack to prevent focus on tabs
-        PageContainer.SetFocus = lambda a: None
-
-        style = fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS|fnb.FNB_NODRAG
-        self.notebook = FlatNotebook(self.parent, style = style)
-        if getattr(self.notebook, 'SetAGWWindowStyleFlag', False):
-            self.notebook.SetAGWWindowStyleFlag(style)
-        else:
-            self.notebook.SetWindowStyleFlag(style)
-        self.notebook.SetTabAreaColour(self.background)
+        self.notebook = SimpleNotebook(self.parent, show_single_tab = False, style = wx.NB_NOPAGETHEME)
         self.notebook.SetForegroundColour(self.parent.GetForegroundColour())
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
