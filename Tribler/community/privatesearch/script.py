@@ -251,7 +251,7 @@ class SearchScript(ScenarioScriptBase):
             yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
 
     def perform_searches(self):
-        for infohash in (self.test_set - self.test_reply):
+        for infohash in self.test_set:
             candidates, local_results, identifier = self._community.create_search([unicode(infohash)], self.log_search_response)
             candidates = map(str, candidates)
             log(self._logfile, "send search query for '%s' with identifier %d to %d candidates" % (infohash, identifier, len(candidates)), candidates=candidates)
