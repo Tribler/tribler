@@ -1673,7 +1673,7 @@ class Das4DBStub():
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
         if infohash in self.myMegaSet:
             self.myMegaSet.remove(infohash)
-            for i in xrange(len(self.myMegaCache) + 1, -1, -1):
+            for i in xrange(len(self.myMegaCache) - 1, -1, -1):
                 row = self.myMegaCache[i]
                 if row[0] == infohash:
                     self.myMegaCache.pop(i)
