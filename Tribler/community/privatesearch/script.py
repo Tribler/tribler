@@ -1,5 +1,8 @@
 import sys
+import os
 from random import randint
+from collections import defaultdict
+from traceback import print_exc
 
 from community import SearchCommunity, PSearchCommunity, HSearchCommunity
 from Tribler.dispersy.script import ScenarioScriptBase
@@ -58,6 +61,7 @@ class SearchScript(ScenarioScriptBase):
         self.did_reply = set()
         self.test_set = set()
         self.test_reply = set()
+        self.file_availability = defaultdict(lambda:0)
 
     def join_community(self, my_member):
         self.my_member = my_member
@@ -90,6 +94,28 @@ class SearchScript(ScenarioScriptBase):
 
         # my_name is only available after _run method is called
         self.search_offset = 200 + (int(self._my_name) % int(self.search_spacing))
+
+        # parse datasets of all other peers
+        for dirname in os.listdir('./..'):
+            dirpath = os.path.join('./..', dirname)
+            if os.path.isdir(dirpath):
+                try:
+                    if int(dirname) != self._my_name:
+                        scenario_fp = open(os.path.join(dir, 'data/bartercast.log'))
+                        for line in scenario_fp:
+                            commands = line.split()
+                            if int(commands[0]) > 1:
+                                break
+
+                            if commands[1] in ['download', 'testset']:
+                                infohash = commands[2]
+                                infohash = infohash + " "* (20 - len(infohash))
+                                self.file_availability[infohash] += 1
+                        scenario_fp.close()
+                except:
+                    print_exc()
+
+        print >> sys.stderr, self.file_availability
 
         return community
 
