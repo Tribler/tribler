@@ -60,8 +60,8 @@ class SearchScript(ScenarioScriptBase):
 
         self.did_reply = set()
         self.test_set = set()
-        self.test_reply = set()
-        self.file_availability = defaultdict(lambda:0)
+        self.test_reply = defaultdict(list)
+        self.file_availability = defaultdict(int)
 
     def join_community(self, my_member):
         self.my_member = my_member
@@ -195,7 +195,14 @@ class SearchScript(ScenarioScriptBase):
             recall = len(self.test_reply) / float(len(self.test_set))
             recall /= float(self.do_search)
 
-            log("dispersy.log", "scenario-statistics", bootstrapped=taste_ratio, latejoin=latejoin, recall=recall, nr_search_=self.nr_search)
+            unique_sources = float(sum(self.file_availability[infohash] for infohash in self.test_set))
+            paths_found = sum(len(paths) for paths in self.test_reply.itervalues()) / unique_sources
+            sources_found = sum(len(set(paths)) for paths in self.test_reply.itervalues()) / unique_sources
+
+            paths_found /= float(self.do_search)
+            sources_found /= float(self.do_search)
+
+            log("dispersy.log", "scenario-statistics", bootstrapped=taste_ratio, latejoin=latejoin, recall=recall, nr_search_=self.nr_search, paths_found=paths_found, sources_found=sources_found)
             log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward=self._community.search_forward, search_forward_success=self._community.search_forward_success, search_forward_timeout=self._community.search_forward_timeout, search_endpoint=self._community.search_endpoint, search_cycle_detected=self._community.search_cycle_detected, search_no_candidates_remain=self._community.search_no_candidates_remain, search_megacachesize=self._community.search_megacachesize, create_time_encryption=self._community.create_time_encryption, create_time_decryption=self._community.create_time_decryption, receive_time_encryption=self._community.receive_time_encryption, search_timeout=self._community.search_timeout)
             yield 5.0
 
@@ -213,13 +220,17 @@ class SearchScript(ScenarioScriptBase):
     def log_search_response(self, keywords, results, candidate):
         for result in results:
             if result[0] in self.test_set:
-                self.test_reply.add(result[0])
+                self.test_reply[result[0]].append(result[1])
 
         recall = len(self.test_reply) / float(len(self.test_set))
+
+        unique_sources = float(sum(self.file_availability[infohash] for infohash in self.test_set))
+        paths_found = sum(len(paths) for paths in self.test_reply.itervalues()) / unique_sources
+        sources_found = sum(len(set(paths)) for paths in self.test_reply.itervalues()) / unique_sources
         if results:
-            log(self._logfile, "results", recall=recall, keywords=keywords, candidate=str(candidate), results=results)
+            log(self._logfile, "results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), results=results)
         else:
-            log(self._logfile, "no results", recall=recall, keywords=keywords, candidate=str(candidate))
+            log(self._logfile, "no results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate))
 
     def monitor_taste_buddy(self):
         while True:
