@@ -223,11 +223,11 @@ class SearchScript(ScenarioScriptBase):
         for result in results:
             if result[0] in self.test_set:
                 ip, port = result[1].split()
-                port = int(port[:-1])
-                self.test_reply[result[0]].append(port)
+                peer = int(port[:-1]) - 12000
+                self.test_reply[result[0]].append(peer)
 
-                if port not in self.file_availability[result[0]]:
-                    print >> sys.stderr, "peer", port, "does not have", result[0]
+                if peer not in self.file_availability[result[0]]:
+                    print >> sys.stderr, "peer", peer, "does not have", result[0]
 
         recall = len(self.test_reply) / float(len(self.test_set))
         paths_found = sum(len(paths) for paths in self.test_reply.itervalues())
