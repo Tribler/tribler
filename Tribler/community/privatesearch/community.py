@@ -1630,13 +1630,13 @@ class Das4DBStub():
 
         self.myPreferences = set()
         self.myTestPreferences = set()
-        
+
         try:
             # python 2.7 only...
             from collections import OrderedDict
         except ImportError:
             from python27_ordereddict import OrderedDict
-        
+
         self.myMegaCache = OrderedDict()
         self.id2category = {1:u''}
 
@@ -1662,15 +1662,15 @@ class Das4DBStub():
         my_preferences = {}
         for infohash in self.getMyPrefListInfohash(local=local):
             my_preferences[infohash] = unicode(self._dispersy._lan_address)
-        for infohash, resutls in self.myMegaCache.iteritems():
+        for infohash, results in self.myMegaCache.iteritems():
             if infohash not in my_preferences:
                 my_preferences[infohash] = results[1]
-            
+
         results = []
         for keyword in keywords:
             infohash = str(keyword)
             if infohash in my_preferences:
-                results.append((infohash, unicode(self._dispersy._lan_address), 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
+                results.append((infohash, my_preferences[infohash], 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
         return results
 
     def on_search_response(self, results):
