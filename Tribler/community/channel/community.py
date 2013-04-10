@@ -1225,7 +1225,7 @@ class ChannelCommunity(Community):
     def _get_packet_id(self, global_time, mid):
         if global_time and mid:
             try:
-                packet_id,  = self._dispersy_database.execute(u"""
+                packet_id,  = self._dispersy.database.execute(u"""
                     SELECT sync.id
                     FROM sync
                     JOIN member ON (member.id = sync.member)

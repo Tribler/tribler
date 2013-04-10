@@ -612,7 +612,7 @@ class SearchCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except KeyError:
             if __debug__: dprint("join preview community ", cid.encode("HEX"))
-            return PreviewChannelCommunity.join_community(self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
+            return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
