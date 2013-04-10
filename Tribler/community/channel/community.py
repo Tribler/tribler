@@ -41,17 +41,14 @@ class MissingChannelCache(MissingSomethingCache):
         return "-missing-channel-%s-" % (message.community.cid,)
 
 _register_task = None
-def register_task(*args, **kwargs):
+def register_callback(callback):
     global _register_task
     if not _register_task:
-        # 21/11/11 Boudewijn: there are conditions where the Dispersy instance has not yet been
-        # created.  In this case we must wait.
+        _register_task = callback.register
 
-        dispersy = Dispersy.has_instance()
-        while not dispersy:
-            sleep(0.1)
-            dispersy = Dispersy.has_instance()
-        _register_task = dispersy.callback.register
+def register_task(*args, **kwargs):
+    global _register_task
+    assert _register_task, "_REGISTER_TASK must have been set"
     return _register_task(*args, **kwargs)
 
 def forceDispersyThread(func):
@@ -113,6 +110,7 @@ class ChannelCommunity(Community):
     """
     def __init__(self, dispersy, master, integrate_with_tribler = True):
         self.integrate_with_tribler = integrate_with_tribler
+        register_callback(dispersy.callback)
 
         self._channel_id = None
         super(ChannelCommunity, self).__init__(dispersy, master)
