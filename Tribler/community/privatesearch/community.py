@@ -1662,7 +1662,7 @@ class Das4DBStub():
         my_preferences = {}
         for infohash in self.getMyPrefListInfohash(local=local):
             my_preferences[infohash] = unicode(self._dispersy._lan_address)
-        for infohash, resutls in self.myMegaCache:
+        for infohash, resutls in self.myMegaCache.iteritems():
             if infohash not in my_preferences:
                 my_preferences[infohash] = results[1]
             
