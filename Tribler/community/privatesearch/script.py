@@ -227,7 +227,7 @@ class SearchScript(ScenarioScriptBase):
                 self.test_reply[result[0]].append(peer)
 
                 if peer not in self.file_availability[result[0]]:
-                    print >> sys.stderr, "peer", peer, "does not have", result[0]
+                    print >> sys.stderr, "peer", peer, "does not have", result[0], self.file_availability[result[0]]
 
         recall = len(self.test_reply) / float(len(self.test_set))
         paths_found = sum(len(paths) for paths in self.test_reply.itervalues())
