@@ -221,8 +221,11 @@ class SearchScript(ScenarioScriptBase):
         for result in results:
             if result[0] in self.test_set:
                 ip, port = result[1].split()
-                port = port[:-1]
-                self.test_reply[result[0]].append(int(port))
+                port = int(port[:-1])
+                self.test_reply[result[0]].append(port)
+
+                if port not in self.file_availability[result[0]]:
+                    print >> sys.stderr, "peer", port, "does not have", infohash
 
         recall = len(self.test_reply) / float(len(self.test_set))
 
