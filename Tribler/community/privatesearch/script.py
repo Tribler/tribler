@@ -1,8 +1,9 @@
 import sys
 import os
-from random import randint
+from random import randint, shuffle
 from collections import defaultdict
 from traceback import print_exc
+from time import sleep
 
 from community import SearchCommunity, PSearchCommunity, HSearchCommunity
 from Tribler.dispersy.script import ScenarioScriptBase
@@ -71,7 +72,6 @@ class SearchScript(ScenarioScriptBase):
 
         log(self._logfile, "joining community with kargs", kargs=self.community_kargs)
 
-
         if self.community_type == 'search':
             community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         elif self.community_type == 'hsearch':
@@ -96,24 +96,15 @@ class SearchScript(ScenarioScriptBase):
         self.search_offset = 200 + (int(self._my_name) % int(self.search_spacing))
 
         # parse datasets of all other peers
-        for dirname in os.listdir('./..'):
-            dirpath = os.path.join('./..', dirname)
-            if os.path.isdir(dirpath):
-                try:
-                    if int(dirname) != self._my_name:
-                        scenario_fp = open(os.path.join(dirpath, 'data/bartercast.log'))
-                        for line in scenario_fp:
-                            commands = line.split()
-                            if int(commands[0]) > 1:
-                                break
+        fp = open('data/file_availability.log')
+        for line in fp:
+            infohash, peers = line.strip().split()
+            infohash = infohash + " "* (20 - len(infohash))
 
-                            if commands[1] in ['download', 'testset']:
-                                infohash = commands[2]
-                                infohash = infohash + " "* (20 - len(infohash))
-                                self.file_availability[infohash].append(int(dirname))
-                        scenario_fp.close()
-                except:
-                    print_exc()
+            peers = [peer for peer in map(int, peers.split(',')) if peer != int(self._my_name)]
+            self.file_availability[infohash] = peers
+        fp.close()
+
         return community
 
     def do_steps(self):
