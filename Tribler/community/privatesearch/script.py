@@ -61,7 +61,7 @@ class SearchScript(ScenarioScriptBase):
         self.did_reply = set()
         self.test_set = set()
         self.test_reply = defaultdict(list)
-        self.file_availability = defaultdict(int)
+        self.file_availability = defaultdict(list)
 
     def join_community(self, my_member):
         self.my_member = my_member
@@ -110,7 +110,7 @@ class SearchScript(ScenarioScriptBase):
                             if commands[1] in ['download', 'testset']:
                                 infohash = commands[2]
                                 infohash = infohash + " "* (20 - len(infohash))
-                                self.file_availability[infohash] += 1
+                                self.file_availability[infohash].append(int(dirname))
                         scenario_fp.close()
                 except:
                     print_exc()
@@ -191,9 +191,13 @@ class SearchScript(ScenarioScriptBase):
             recall = len(self.test_reply) / float(len(self.test_set))
             recall /= float(self.do_search)
 
-            unique_sources = float(sum(self.file_availability[infohash] for infohash in self.test_set))
+            unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iteritems()]))
             paths_found = sum(len(paths) for paths in self.test_reply.itervalues()) / unique_sources
-            sources_found = sum(len(set(paths)) for paths in self.test_reply.itervalues()) / unique_sources
+
+            sources_found = 0
+            for infohash, peers in self.test_reply.iteritems():
+                sources_found += sum(peer in self.file_availability[infohash] for peer in peers)
+            sources_found = sources_found / unique_sources
 
             paths_found /= float(self.do_search)
             sources_found /= float(self.do_search)
@@ -216,13 +220,20 @@ class SearchScript(ScenarioScriptBase):
     def log_search_response(self, keywords, results, candidate):
         for result in results:
             if result[0] in self.test_set:
-                self.test_reply[result[0]].append(result[1])
+                ip, port = result[1].split()
+                port = port[:-1]
+                self.test_reply[result[0]].append(int(port))
 
         recall = len(self.test_reply) / float(len(self.test_set))
 
-        unique_sources = float(sum(self.file_availability[infohash] for infohash in self.test_set))
+        unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iteritems()]))
         paths_found = sum(len(paths) for paths in self.test_reply.itervalues()) / unique_sources
-        sources_found = sum(len(set(paths)) for paths in self.test_reply.itervalues()) / unique_sources
+
+        sources_found = 0
+        for infohash, peers in self.test_reply.iteritems():
+            sources_found += sum(peer in self.file_availability[infohash] for peer in peers)
+        sources_found = sources_found / unique_sources
+
         if results:
             log(self._logfile, "results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), results=results)
         else:
