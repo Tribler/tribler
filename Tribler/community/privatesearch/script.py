@@ -191,13 +191,15 @@ class SearchScript(ScenarioScriptBase):
             recall = len(self.test_reply) / float(len(self.test_set))
             recall /= float(self.do_search)
 
-            unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iteritems()]))
-            paths_found = sum(len(paths) for paths in self.test_reply.itervalues()) / unique_sources
-
+            paths_found = sum(len(paths) for paths in self.test_reply.itervalues())
             sources_found = 0
             for infohash, peers in self.test_reply.iteritems():
                 sources_found += sum(peer in self.file_availability[infohash] for peer in peers)
-            sources_found = sources_found / unique_sources
+
+            unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iterkeys()]))
+            if unique_sources:
+                sources_found = sources_found / unique_sources
+                paths_found = paths_found / unique_sources
 
             paths_found /= float(self.do_search)
             sources_found /= float(self.do_search)
@@ -225,17 +227,18 @@ class SearchScript(ScenarioScriptBase):
                 self.test_reply[result[0]].append(port)
 
                 if port not in self.file_availability[result[0]]:
-                    print >> sys.stderr, "peer", port, "does not have", infohash
+                    print >> sys.stderr, "peer", port, "does not have", result[0]
 
         recall = len(self.test_reply) / float(len(self.test_set))
-
-        unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iteritems()]))
-        paths_found = sum(len(paths) for paths in self.test_reply.itervalues()) / unique_sources
-
+        paths_found = sum(len(paths) for paths in self.test_reply.itervalues())
         sources_found = 0
         for infohash, peers in self.test_reply.iteritems():
             sources_found += sum(peer in self.file_availability[infohash] for peer in peers)
-        sources_found = sources_found / unique_sources
+
+        unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iterkeys()]))
+        if unique_sources:
+            sources_found = sources_found / unique_sources
+            paths_found = paths_found / unique_sources
 
         if results:
             log(self._logfile, "results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), results=results)
