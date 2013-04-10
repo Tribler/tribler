@@ -632,7 +632,7 @@ class SearchCommunity(Community):
                     channel_details = dbresult[-10:]
 
                     dbresult = list(dbresult[:10])
-                    dbresult[1] = unicode(dbresult[1]) + (u"_bf" if bloomfilter else u"_nobf")
+                    dbresult[1] = unicode(dbresult[1])
                     dbresult[2] = long(dbresult[2])
                     dbresult[3] = int(dbresult[3])
                     dbresult[4] = [self._torrent_db.id2category[dbresult[4]], ]
@@ -1630,9 +1630,14 @@ class Das4DBStub():
 
         self.myPreferences = set()
         self.myTestPreferences = set()
-
-        self.myMegaCache = []
-        self.myMegaSet = set()
+        
+        try:
+            # python 2.7 only...
+            from collections import OrderedDict
+        except ImportError:
+            from python27_ordereddict import OrderedDict
+        
+        self.myMegaCache = OrderedDict()
         self.id2category = {1:u''}
 
     def addMyPreference(self, torrent_id, data):
@@ -1654,8 +1659,13 @@ class Das4DBStub():
         return preferences
 
     def searchNames(self, keywords, local=True, keys=[]):
-        my_preferences = set(self.getMyPrefListInfohash(local=local)) | self.myMegaSet
-
+        my_preferences = {}
+        for infohash in self.getMyPrefListInfohash(local=local):
+            my_preferences[infohash] = unicode(self._dispersy._lan_address)
+        for infohash, resutls in self.myMegaCache:
+            if infohash not in my_preferences:
+                my_preferences[infohash] = results[1]
+            
         results = []
         for keyword in keywords:
             infohash = str(keyword)
@@ -1665,32 +1675,28 @@ class Das4DBStub():
 
     def on_search_response(self, results):
         for result in results:
-            if result[0] not in self.myMegaSet:
-                self.myMegaCache.append((result[0], result[0], 0, 0, 0, time()))
-                self.myMegaSet.add(result[0])
-        return len(self.myMegaSet)
+            if result[0] not in self.myMegaCache:
+                self.myMegaCache[result[0]] = (result[0], result[1], 0, 0, 0, time())
+        return len(self.myMegaCache)
 
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
-        if infohash in self.myMegaSet:
-            self.myMegaSet.remove(infohash)
-            for i in xrange(len(self.myMegaCache) - 1, -1, -1):
-                row = self.myMegaCache[i]
-                if row[0] == infohash:
-                    self.myMegaCache.pop(i)
+        if infohash in self.myMegaCache:
+            del self.myMegaCache[infohash]
 
     def on_pingpong(self, torrents):
-        unknown_torrents = [[infohash, ] for infohash, _, _, _, _ in torrents if infohash not in self.myMegaSet]
+        unknown_torrents = [[infohash, ] for infohash, _, _, _, _ in torrents if infohash not in self.myMegaCache]
         if len(unknown_torrents) > 5:
             unknown_torrents = sample(unknown_torrents, 5)
         return self.on_search_response(unknown_torrents)
 
     def getRecentlyCollectedSwiftHashes(self, limit=None):
+        megaCache = self.myMegaCache.values()
         if limit:
-            return self.myMegaCache[-limit:]
-        return self.myMegaCache
+            return megaCache[-limit:]
+        return megaCache
 
     def getRandomlyCollectedSwiftHashes(self, leastRecent=0, limit=None):
-        megaCache = self.myMegaCache[:]
+        megaCache = self.myMegaCache.values()
         shuffle(megaCache)
 
         if limit:
