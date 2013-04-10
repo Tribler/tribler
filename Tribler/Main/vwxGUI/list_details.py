@@ -365,6 +365,7 @@ class TorrentDetails(AbstractDetails):
         #Create filelist
         if len(self.torrent.files) > 0:
             parent = wx.Panel(self.notebook)
+            parent.SetBackgroundColour(wx.WHITE)
             
             self.listCtrl = SelectableListCtrl(parent)
             self.listCtrl.InsertColumn(0, 'Name')
@@ -445,6 +446,7 @@ class TorrentDetails(AbstractDetails):
                 ulfont = self.GetFont()
                 ulfont.SetUnderlined(True)
                 self.filesFooter = LinkText(parent, 'Click here to modify which files should be downloaded.', fonts = [self.GetFont(), ulfont], colours = [self.GetForegroundColour(), wx.RED])
+                self.filesFooter.SetBackgroundColour(parent.GetBackgroundColour())
                 self.filesFooter.Bind(wx.EVT_LEFT_UP, self.OnChangeSelection)
                 vSizer.Add(self.filesFooter, 0, wx.EXPAND|wx.ALL, 3)
             else:
