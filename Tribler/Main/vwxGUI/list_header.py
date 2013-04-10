@@ -1272,10 +1272,6 @@ class ListItemHeader(wx.Panel):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(self.header_list, 1, wx.EXPAND)
-        
-        filter_separator = wx.Panel(self, size = (-1, 1))
-        filter_separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Add(filter_separator, 0, wx.EXPAND)
         self.SetSizer(vSizer)
     
     def SetTitle(self, item):
