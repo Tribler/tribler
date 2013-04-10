@@ -2478,6 +2478,7 @@ class Graph(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
 
     def SetAxisLabels(self, x_label, y_label):
         self.x_label = x_label
@@ -2592,3 +2593,7 @@ class Graph(wx.Panel):
             gc.SetPen(wx.BLACK_PEN)
             gc.DrawText(label, self.x_margins[0] + 30, next_y)
             next_y += label_height
+
+    def OnSize(self, event):
+        self.Refresh()
+        event.Skip()
