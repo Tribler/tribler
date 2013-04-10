@@ -2501,11 +2501,14 @@ class Graph(wx.Panel):
 
     def AppendData(self, graph_id, value):
         self.data[graph_id].append(value)
+        
+        dropped_value = None
         if len(self.data[graph_id]) > self.max_points:
             dropped_value = self.data[graph_id][0]
             self.data[graph_id] = self.data[graph_id][-self.max_points:]
-            if dropped_value == self.max_range:
-                self.max_range = max([max(column) for column in self.data if column])
+
+        if dropped_value != None and dropped_value == self.max_range:
+            self.max_range = max([max(column) for column in self.data if column])
         else:
             self.max_range = max(self.max_range, value)
         self.Refresh()
