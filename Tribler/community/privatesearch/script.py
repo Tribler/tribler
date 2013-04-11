@@ -232,9 +232,9 @@ class SearchScript(ScenarioScriptBase):
             paths_found = paths_found / unique_sources
 
         if results:
-            log(self._logfile, "results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), results=results)
+            log(self._logfile, "results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), results=results, unique_sources=unique_sources)
         else:
-            log(self._logfile, "no results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate))
+            log(self._logfile, "no results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), unique_sources=unique_sources)
 
     def monitor_taste_buddy(self):
         while True:
