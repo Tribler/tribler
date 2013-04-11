@@ -224,7 +224,7 @@ class SearchScript(ScenarioScriptBase):
         paths_found = sum(len(paths) for paths in self.test_reply.itervalues())
         sources_found = 0
         for infohash, peers in self.test_reply.iteritems():
-            sources_found += sum(peer in self.file_availability[infohash] for peer in peers)
+            sources_found += sum(peer in self.file_availability[infohash] for peer in set(peers))
 
         unique_sources = float(sum([len(self.file_availability[infohash]) for infohash in self.test_reply.iterkeys()]))
         if unique_sources:
