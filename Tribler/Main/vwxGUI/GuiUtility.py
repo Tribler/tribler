@@ -303,7 +303,7 @@ class GUIUtility:
         else:
             from __init__ import GRADIENT_LGREY
             self.frame.splitter_bottom_window.SetBackgroundColour(GRADIENT_LGREY)
-        if self.guiPage != 'mychannel':
+        if self.guiPage not in ['mychannel', 'home']:
             self.frame.splitter.Show(show)
         self.frame.splitter_bottom.Layout()
         self.frame.splitter_bottom_window.Refresh()
