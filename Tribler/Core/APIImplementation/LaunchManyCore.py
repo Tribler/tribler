@@ -214,18 +214,9 @@ class TriblerLaunchMany(Thread):
 
 
             if self.dispersy:
-                # classes defined BEFORE dispersy.start will be loaded immediately
-                self.dispersy.define_auto_load(HardKilledCommunity)
-                self.dispersy.define_auto_load(AllChannelCommunity, (self.session.dispersy_member,), {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {})
-                # self.dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
-                self.dispersy.define_auto_load(ChannelCommunity)
 
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness
                 self.dispersy.start()
-
-                # classes defined AFTER dispersy.start will be loaded on demand
-                self.dispersy.define_auto_load(PreviewChannelCommunity)
-
                 print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1]
 
                 # use the same member key as that from Tribler
@@ -233,6 +224,22 @@ class TriblerLaunchMany(Thread):
                 from Tribler.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
                 keypair = read_keypair(self.session.get_permid_keypair_filename())
                 self.session.dispersy_member = callback.call(self.dispersy.get_member, (ec_to_public_bin(keypair), ec_to_private_bin(keypair)))
+
+                def define_communities():
+                    # must be called on the Dispersy thread
+                    self.dispersy.define_auto_load(HardKilledCommunity, load=True)
+                    self.dispersy.define_auto_load(SearchCommunity,
+                                                   (self.session.dispersy_member,),
+                                                   load=True)
+                    self.dispersy.define_auto_load(AllChannelCommunity,
+                                                   (self.session.dispersy_member,),
+                                                   {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                                   load=True)
+                    # self.dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
+                    self.dispersy.define_auto_load(ChannelCommunity, load=True)
+                    self.dispersy.define_auto_load(PreviewChannelCommunity)
+                self.dispersy.callback.call(define_communities)
+                print >>sys.stderr, "lmc: Dispersy communities are ready"
 
                 # notify dispersy finished loading
                 self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
