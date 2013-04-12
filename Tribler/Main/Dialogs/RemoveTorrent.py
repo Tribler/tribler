@@ -5,8 +5,7 @@ import wx
 import os
 import sys
 
-from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText,\
-    EditText
+from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText, EditText
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
@@ -28,12 +27,14 @@ class RemoveTorrent(wx.Dialog):
             height = 200
         
         wx.Dialog.__init__(self, parent, -1, 'Are you sure you want to remove this torrent?', size=(600, height))
+        bitmap = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticBitmap(self, -1, wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)), 0, wx.RIGHT, 10)
+        hSizer.Add(wx.StaticBitmap(self, -1, bitmap), 0, wx.RIGHT, 10)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         firstLine = StaticText(self, -1, "Delete '%s' from disk, or just remove them from your downloads?"%torrent.name)
         _set_font(firstLine, fontweight = wx.FONTWEIGHT_BOLD)
+        firstLine.Wrap(self.GetSize()[0]-bitmap.GetSize()[0]-10)
         firstLine.SetMinSize((1, -1))
         
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
