@@ -477,7 +477,6 @@ class DispersyPanel(HomePanel):
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
             ("Bloom reuse", 'Total number of bloomfilters reused vs bloomfilters sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send for c in stats.communities))),
-            ("Revision", '', lambda stats: str(max(stats.revision.itervalues()))),
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
             ]
 
