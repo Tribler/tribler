@@ -15,8 +15,6 @@ from time import sleep, time
 from Tribler.Main.tribler import run
 from Tribler.Core.Session import Session
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.dispersy.singleton import Singleton
-from Tribler.dispersy.member import Member
 import shutil
 
 try:
