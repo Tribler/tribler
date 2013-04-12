@@ -7,13 +7,9 @@ from Tribler.community.effort.community import EffortCommunity, MASTER_MEMBER_PU
 from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.dispersy.dprint import dprint
 from Tribler.dispersy.member import Member
-from Tribler.dispersy.revision import update_revision_information
 from Tribler.dispersy.script import ScriptBase
 from Tribler.dispersy.tool.scenarioscript import ScenarioScript
 from Tribler.dispersy.tool.lencoder import bz2log
-
-# update version information directly from SVN
-update_revision_information("$HeadURL$", "$Revision$")
 
 class CrawlerScript(ScriptBase):
     @property
