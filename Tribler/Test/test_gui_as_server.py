@@ -60,14 +60,17 @@ class TestGuiAsServer(unittest.TestCase):
         
     def startTest(self, callback):
         self.quitting = False
-        
-        def wait_for_init():
+        def wait_for_frame():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
+            self.frame = self.guiUtility.frame
+            self.CallConditional(30, lambda : self.frame.ready, callback)
+
+        def wait_for_init():
+            print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
 
             self.guiUtility = GUIUtility.getInstance()
-            self.frame = self.guiUtility.frame
             
-            self.CallConditional(30, lambda : self.frame.ready, callback)
+            self.CallConditional(30, lambda : self.guiUtility.frame, wait_for_frame)
         
         def wait_for_instance():
             print >> sys.stderr, "tgs: found instance, staring to wait for lm to be initcomplete"
