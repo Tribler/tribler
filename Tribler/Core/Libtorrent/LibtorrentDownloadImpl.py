@@ -520,7 +520,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['vod_playable'] = self.progress == 1.0 or (stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
-        stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist else None
+        stats['spew'] = self.network_create_spew_from_peerlist() if True in getpeerlist or self.tdef.get_infohash() in getpeerlist else None
 
         seeding_stats = {}
         seeding_stats['total_up'] = self.all_time_upload
@@ -603,7 +603,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             
         return plist
         
-    def set_state_callback(self, usercallback, getpeerlist = False, delay = 0.0):
+    def set_state_callback(self, usercallback, getpeerlist = [], delay = 0.0):
         """ Called by any thread """
         with self.dllock:
             network_get_state_lambda = lambda:self.network_get_state(usercallback, getpeerlist)
@@ -612,6 +612,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_get_state(self,usercallback, getpeerlist, sessioncalling = False):
         """ Called by network thread """
         with self.dllock:
+            print >> sys.stderr, 'GETPEERLISTLIBTORRENT', self.tdef.get_infohash(), True in getpeerlist or self.tdef.get_infohash() in getpeerlist
             if self.handle is None:
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
@@ -809,7 +810,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}
-        ds = self.network_get_state(None, False, sessioncalling = True)
+        ds = self.network_get_state(None, [], sessioncalling = True)
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
         pstate['dlstate']['swarmcache'] = None

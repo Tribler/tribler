@@ -545,7 +545,7 @@ class MainFrame(wx.Frame):
 
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode=vodmode, torrentfilename=torrentfilename, dscfg=dscfg, selectedFile=selectedFile, selectedFiles=selectedFiles: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles)
-                        result.set_state_callback(state_lambda, getpeerlist=False, delay=15.0)
+                        result.set_state_callback(state_lambda, getpeerlist=[], delay=15.0)
 
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)

@@ -348,7 +348,7 @@ class Session(SessionRuntimeConfig):
         self.uch.perform_removestate_callback(id, [], False)
 
 
-    def set_download_states_callback(self,usercallback,getpeerlist=False):
+    def set_download_states_callback(self,usercallback,getpeerlist=[]):
         """
         See Download.set_state_callback. Calls usercallback with a list of
         DownloadStates, one for each Download in the Session as first argument.

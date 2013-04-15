@@ -519,7 +519,7 @@ class TriblerLaunchMany(Thread):
                 # stats. Causes MOREINFO message to be sent from swift proc
                 # for every initiated dl.
                 # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
-                d.set_moreinfo_stats(getpeerlist)
+                d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_roothash() in getpeerlist)
 
         network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback, getpeerlist)
         self.rawserver.add_task(network_set_download_states_callback_lambda, when)

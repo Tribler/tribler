@@ -278,7 +278,7 @@ def main():
             torrent_def = TorrentDef.load(torrent_file)
 
             d = s.start_download(torrent_def, download_startup_config)
-            d.set_state_callback(state_callback, getpeerlist=False)
+            d.set_state_callback(state_callback, getpeerlist=[])
         else:
             # setup and start download
             download_startup_config = DownloadStartupConfig()
@@ -287,7 +287,7 @@ def main():
             torrent_def = TorrentDef.load(torrent_file)
 
             d = s.start_download(torrent_def, download_startup_config)
-            d.set_state_callback(state_callback, getpeerlist=False)
+            d.set_state_callback(state_callback, getpeerlist=[])
 
         # if the client is a coordinator
         if test_mode == "doe":

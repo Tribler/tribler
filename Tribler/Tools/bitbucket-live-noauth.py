@@ -90,7 +90,7 @@ if cdef.get_def_type() == "torrent" and cdef.get_cs_keys():
 
 d = s.start_download( cdef, dscfg )
 
-d.set_state_callback(state_callback,getpeerlist=False)
+d.set_state_callback(state_callback,getpeerlist=[])
 
 while True:
     time.sleep(60)

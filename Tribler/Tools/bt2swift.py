@@ -94,7 +94,7 @@ def start_download(s,cdef,output_dir,listenport):
 
         
     d = s.start_download(cdef, dscfg)
-    d.set_state_callback(state_callback, getpeerlist=False)
+    d.set_state_callback(state_callback, getpeerlist=[])
     return d
     
 

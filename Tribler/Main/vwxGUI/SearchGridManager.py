@@ -809,7 +809,7 @@ class LibraryManager:
         # Gui callbacks
         self.gui_callback = []
         self.user_download_choice = UserDownloadChoice.get_singleton()
-        self.wantpeerdownloadstates = False
+        self.wantpeers = []
 
     def getInstance(*args, **kw):
         if LibraryManager.__single is None:
@@ -849,7 +849,7 @@ class LibraryManager:
             self.last_progress_update = time()
             startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
-        return self.wantpeerdownloadstates
+        return self.wantpeers
 
     def magnet_started(self, infohash):
         self.magnetlist[infohash] = [long(time()), 0, 0]
@@ -868,7 +868,7 @@ class LibraryManager:
         if infohash in self.magnetlist:
             del self.magnetlist[infohash]
 
-        return self.wantpeerdownloadstates
+        return self.wantpeers
 
     @forceWxThread
     def _do_gui_callback(self):
@@ -908,8 +908,15 @@ class LibraryManager:
         if callback in self.gui_callback:
             self.gui_callback.remove(callback)
 
-    def set_want_peers(self,b):
-        self.wantpeerdownloadstates = b
+    def set_want_peers(self, hashes, enable = True):
+        if not enable:
+            for h in hashes:
+                if h in self.wantpeers:
+                    self.wantpeers.remove(h)
+        else:
+            for h in hashes:
+                if hash not in self.wantpeers:
+                    self.wantpeers.append(h)
 
     def addDownloadState(self, torrent):
         # Add downloadstate data to a torrent instance

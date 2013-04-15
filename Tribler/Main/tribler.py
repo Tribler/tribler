@@ -565,7 +565,7 @@ class ABCApp():
         if not self.ready:
             return (5.0, False)
 
-        wantpeers = False
+        wantpeers = []
         self.ratestatecallbackcount += 1
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -615,7 +615,7 @@ class ABCApp():
 
             #         # only request peer info every 120 intervals
             #         if self.ratestatecallbackcount % 120 == 0:
-            #             wantpeers = True
+            #             wantpeers.append(True)
 
 
             # Find State of currently playing video

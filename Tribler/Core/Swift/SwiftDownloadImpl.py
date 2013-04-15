@@ -418,7 +418,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     # Retrieving DownloadState
     #
-    def set_state_callback(self,usercallback,getpeerlist=False,delay=0.0):
+    def set_state_callback(self,usercallback,getpeerlist=[],delay=0.0):
         """ Called by any thread """
         self.dllock.acquire()
         try:
@@ -433,6 +433,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by network thread """
         self.dllock.acquire()
         try:
+            print >> sys.stderr, 'GETPEERLISTSWIFT', self.sdef.get_roothash(), self.askmoreinfo
             if self.sp is None:
                 if DEBUG:
                     print >>sys.stderr,"SwiftDownloadImpl: network_get_state: Download not running"
@@ -605,7 +606,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}
-        ds = self.network_get_state(None,False,sessioncalling=True)
+        ds = self.network_get_state(None,[],sessioncalling=True)
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
         pstate['dlstate']['swarmcache'] = None
