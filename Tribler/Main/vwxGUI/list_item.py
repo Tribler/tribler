@@ -55,10 +55,11 @@ class DoubleLineListItem(ListItem):
                     bmp.SetBitmapHover(icon[1] or icon[0])
                     bmp.SetToolTipString(icon[2])
                     bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
+                    bmp.Show(icon[4] if len(icon) > 4 else True)
                     if index < len(self.icons)-1:
-                        iconSizer.Add(bmp, 0, wx.CENTER|wx.BOTTOM, 7)
+                        iconSizer.Add(bmp, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.BOTTOM, 7)
                     else:
-                        iconSizer.Add(bmp, 0, wx.CENTER)
+                        iconSizer.Add(bmp, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
                     self.icons[index] = bmp
             iconSizer.AddSpacer((33, -1))
             self.hSizer.Add(iconSizer, 0, wx.ALIGN_CENTER_VERTICAL)

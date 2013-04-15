@@ -28,10 +28,6 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage, DelayMessageByProof
 from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.resolution import PublicResolution, LinearResolution
-from Tribler.dispersy.revision import update_revision_information, get_revision
-
-# update version information directly from SVN
-update_revision_information("$HeadURL$", "$Revision$")
 
 # generated: Fri Sep 28 11:08:39 2012
 # curve: high <<< NID_sect571r1 >>>
@@ -753,7 +749,7 @@ class EffortCommunity(Community):
             response = meta.impl(authentication=(self._my_member,),
                                  distribution=(self.global_time,),
                                  destination=(message.candidate,),
-                                 payload=(get_revision(), time(), observations, records, views))
+                                 payload=(0, time(), observations, records, views))
             self._dispersy.store_update_forward([response], False, False, True)
 
     def check_debug_response(self, messages):

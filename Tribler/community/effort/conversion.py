@@ -6,10 +6,6 @@ from .efforthistory import EffortHistory
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
-from Tribler.dispersy.revision import update_revision_information
-
-# update version information directly from SVN
-update_revision_information("$HeadURL$", "$Revision$")
 
 class EffortConversion(BinaryConversion):
     def __init__(self, community):
