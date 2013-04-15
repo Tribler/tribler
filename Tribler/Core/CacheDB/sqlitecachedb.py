@@ -2424,12 +2424,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 while True:
                     yield 300.0
             except GeneratorExit:
-                print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: COMMIT"
-                try:
-                    self._execute("COMMIT;")
-                except:
-                    print >> sys.stderr, "COMMIT FAILED"
-                    print_exc()
+                self.commitNow(exiting=True)
 
         global _cacheCommit, _shouldCommit
         try:
@@ -2464,17 +2459,17 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                 self._execute("VACUUM;")
 
 
-            # if not exiting:
-            #     try:
-            #         print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
-            #         self._execute("BEGIN;")
-            #     except:
-            #         print >> sys.stderr, "BEGIN FAILED"
-            #         raise
-            # else:
-            #     print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
+            if not exiting:
+                try:
+                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: BEGIN"
+                    self._execute("BEGIN;")
+                except:
+                    print >> sys.stderr, "BEGIN FAILED"
+                    raise
+            else:
+                print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
 
-            #print_stack()
+            print_stack()
 
         elif vacuum:
             self._execute("VACUUM;")
