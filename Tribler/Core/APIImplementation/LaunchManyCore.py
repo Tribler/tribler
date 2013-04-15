@@ -149,6 +149,37 @@ class TriblerLaunchMany(Thread):
             # we may want to remove DATABASE_THREAD member
             self.database_thread = callback
 
+            if self.dispersy:
+                # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
+                # However, for now we must start self.dispersy.callback before running
+                # try_register(nocachedb, self.database_thread)!
+                self.dispersy.start()
+                print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
+
+                # use the same member key as that from Tribler
+                from Tribler.Core.permid import read_keypair
+                from Tribler.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
+                keypair = read_keypair(self.session.get_permid_keypair_filename())
+                self.session.dispersy_member = callback.call(self.dispersy.get_member, (ec_to_public_bin(keypair), ec_to_private_bin(keypair)))
+
+                def define_communities():
+                    # must be called on the Dispersy thread
+                    self.dispersy.define_auto_load(HardKilledCommunity, load=True)
+                    self.dispersy.define_auto_load(SearchCommunity,
+                                                   (self.session.dispersy_member,),
+                                                   load=True)
+                    self.dispersy.define_auto_load(AllChannelCommunity,
+                                                   (self.session.dispersy_member,),
+                                                   {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                                   load=True)
+                    # self.dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
+                    self.dispersy.define_auto_load(ChannelCommunity, load=True)
+                    self.dispersy.define_auto_load(PreviewChannelCommunity)
+                self.dispersy.callback.call(define_communities)
+                print >>sys.stderr, "lmc: Dispersy communities are ready"
+
+                # notify dispersy finished loading
+                self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
             # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
             if config['megacache']:
@@ -211,38 +242,6 @@ class TriblerLaunchMany(Thread):
             self.rtorrent_handler = None
             if config['torrent_collecting']:
                 self.rtorrent_handler = RemoteTorrentHandler.getInstance()
-
-
-            if self.dispersy:
-
-                # TODO: see if we can postpone dispersy.start to improve GUI responsiveness
-                self.dispersy.start()
-                print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
-
-                # use the same member key as that from Tribler
-                from Tribler.Core.permid import read_keypair
-                from Tribler.dispersy.crypto import ec_to_public_bin, ec_to_private_bin
-                keypair = read_keypair(self.session.get_permid_keypair_filename())
-                self.session.dispersy_member = callback.call(self.dispersy.get_member, (ec_to_public_bin(keypair), ec_to_private_bin(keypair)))
-
-                def define_communities():
-                    # must be called on the Dispersy thread
-                    self.dispersy.define_auto_load(HardKilledCommunity, load=True)
-                    self.dispersy.define_auto_load(SearchCommunity,
-                                                   (self.session.dispersy_member,),
-                                                   load=True)
-                    self.dispersy.define_auto_load(AllChannelCommunity,
-                                                   (self.session.dispersy_member,),
-                                                   {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
-                                                   load=True)
-                    # self.dispersy.define_auto_load(EffortCommunity, (self.swift_process,))
-                    self.dispersy.define_auto_load(ChannelCommunity, load=True)
-                    self.dispersy.define_auto_load(PreviewChannelCommunity)
-                self.dispersy.callback.call(define_communities)
-                print >>sys.stderr, "lmc: Dispersy communities are ready"
-
-                # notify dispersy finished loading
-                self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
     def init(self):
         config = self.session.sessconfig  # Should be safe at startup
