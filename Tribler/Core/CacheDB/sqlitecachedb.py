@@ -2419,22 +2419,10 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
     @forceDBThread
     def initialBegin(self):
-        def watchdog():
-            try:
-                while True:
-                    yield 300.0
-            except GeneratorExit:
-                self.commitNow(exiting=True)
-
         global _cacheCommit, _shouldCommit
         try:
             print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: BEGIN"
             self._execute("BEGIN;")
-
-            global _callback
-            assert _callback
-            assert _callback.is_running
-            _callback.register(watchdog)
             
         except:
             print >> sys.stderr, "INITIAL BEGIN FAILED"
@@ -2469,7 +2457,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             else:
                 print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
 
-            print_stack()
+            # print_stack()
 
         elif vacuum:
             self._execute("VACUUM;")
