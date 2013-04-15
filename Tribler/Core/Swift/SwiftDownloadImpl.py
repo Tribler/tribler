@@ -433,7 +433,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by network thread """
         self.dllock.acquire()
         try:
-            print >> sys.stderr, 'GETPEERLISTSWIFT', self.sdef.get_roothash(), self.askmoreinfo
             if self.sp is None:
                 if DEBUG:
                     print >>sys.stderr,"SwiftDownloadImpl: network_get_state: Download not running"

@@ -612,7 +612,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def network_get_state(self,usercallback, getpeerlist, sessioncalling = False):
         """ Called by network thread """
         with self.dllock:
-            print >> sys.stderr, 'GETPEERLISTLIBTORRENT', self.tdef.get_infohash(), True in getpeerlist or self.tdef.get_infohash() in getpeerlist
             if self.handle is None:
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
