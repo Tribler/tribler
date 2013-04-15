@@ -2425,7 +2425,11 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
                     yield 300.0
             except GeneratorExit:
                 print >> sys.stderr, "SQLiteNoCacheDB.initialBegin: COMMIT"
-                self._execute("COMMIT;")
+                try:
+                    self._execute("COMMIT;")
+                except:
+                    print >> sys.stderr, "COMMIT FAILED"
+                    print_exc()
 
         global _cacheCommit, _shouldCommit
         try:
