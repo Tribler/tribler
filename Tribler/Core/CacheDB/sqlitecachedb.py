@@ -2276,7 +2276,6 @@ _callback_lock = RLock()
 
 def try_register(db, callback = None):
     global _callback, _callback_lock
-    print >> sys.stderr, "try_register", _callback, callback, callback.is_running if callback else ""
 
     if not _callback:
         _callback_lock.acquire()
