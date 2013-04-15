@@ -2276,18 +2276,13 @@ _callback_lock = RLock()
 
 def try_register(db, callback = None):
     global _callback, _callback_lock
+    print >> sys.stderr, "try_register", _callback, callback
 
     if not _callback:
         _callback_lock.acquire()
         try:
             # check again if _callback hasn't been set, but now we are thread safe
             if not _callback:
-                # if not callback:
-                #     from Tribler.dispersy.dispersy import Dispersy
-                #     dispersy = Dispersy.has_instance()
-                #     if dispersy:
-                #         callback = dispersy.callback
-
                 if callback and callback.is_running:
                     print >> sys.stderr, "Using actual DB thread", callback
                     _callback = callback
@@ -2303,6 +2298,7 @@ def try_register(db, callback = None):
 
 def unregister():
     global _callback
+    print >> sys.stderr, "No longer using actual DB thread", _callback
     _callback = None
 
 def register_task(db, *args, **kwargs):

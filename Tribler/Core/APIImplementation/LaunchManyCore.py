@@ -217,7 +217,7 @@ class TriblerLaunchMany(Thread):
 
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness
                 self.dispersy.start()
-                print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1]
+                print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
 
                 # use the same member key as that from Tribler
                 from Tribler.Core.permid import read_keypair
@@ -708,6 +708,7 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.shutdown()
 
         if self.dispersy:
+            print >>sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
             self.dispersy.stop(666.666)
 
         if self.session.sessconfig['megacache']:
