@@ -2607,7 +2607,6 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     @classmethod
     def delInstance(cls, *args, **kw):
-        print >> sys.stderr, "*** sqlitecachedb:delInstance", cls.__single.cursor_table if cls.__single else None
         cls.__single = None
 
     def __init__(self, *args, **kargs):
