@@ -9,10 +9,8 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination,\
     CommunityDestination
-from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import DirectDistribution,\
     FullSyncDistribution
-from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.resolution import PublicResolution
 
@@ -43,7 +41,7 @@ class SearchCommunity(Community):
     A single community that all Tribler members join and use to disseminate .torrent files.
     """
     @classmethod
-    def get_master_members(cls):
+    def get_master_members(cls, dispersy):
 #generated: Mon May  7 17:43:59 2012
 #curve: high <<< NID_sect571r1 >>>
 #len: 571 bits ~ 144 bytes signature
@@ -56,21 +54,20 @@ class SearchCommunity(Community):
 #OACmKXT1V0kQ11Fm1lKduvAW54CQr7+vg3M=
 #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373".decode("HEX")
-        master = Member(master_key)
+        master = dispersy.get_member(master_key)
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler = True):
-        dispersy_database = DispersyDatabase.get_instance()
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler = True):
         try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
+            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler = integrate_with_tribler)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler)
+            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler = integrate_with_tribler)
 
-    def __init__(self, master, integrate_with_tribler = True):
-        super(SearchCommunity, self).__init__(master)
+    def __init__(self, dispersy, master, integrate_with_tribler = True):
+        super(SearchCommunity, self).__init__(dispersy, master)
 
         self.integrate_with_tribler = integrate_with_tribler
         self.taste_buddies = []
@@ -615,7 +612,7 @@ class SearchCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except KeyError:
             if __debug__: dprint("join preview community ", cid.encode("HEX"))
-            return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
+            return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []

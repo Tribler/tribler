@@ -12,7 +12,6 @@ from Tribler.dispersy.database import IgnoreCommits
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
-from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message, DropMessage,\
     BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
@@ -50,7 +49,7 @@ class AllChannelCommunity(Community):
      - P randomly choosen .torrent files, created by ourselves
     """
     @classmethod
-    def get_master_members(cls):
+    def get_master_members(cls, dispersy):
 # generated: Fri Nov 25 10:51:27 2011
 # curve: high <<< NID_sect571r1 >>>
 # len: 571 bits ~ 144 bytes signature
@@ -63,25 +62,24 @@ class AllChannelCommunity(Community):
 # 9f+uxEEpaIo46jX4eSBf2+EXMj5zB2Vh8RI=
 # -----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405548a13626683d4788ab19393fa15c9e9d6f5ce0ff47737747fa511af6c4e956f523dc3d1ae8d7b83b850f21ab157dd4320331e2f136aa01e70d8c96df665acd653725e767da9b5079f25cebea808832cd16015815797906e90753d135ed2d796b9dfbafaf1eae2ebea3b8846716c15814e96b93ae0f5ffaec44129688a38ea35f879205fdbe117323e73076561f112".decode("HEX")
-        master = Member(master_key)
+        master = dispersy.get_member(master_key)
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler = True, auto_join_channel = False):
-        dispersy_database = DispersyDatabase.get_instance()
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler = True, auto_join_channel = False):
         try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
+            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
         else:
-            return super(AllChannelCommunity, cls).load_community(master, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
+            return super(AllChannelCommunity, cls).load_community(dispersy, master, integrate_with_tribler = integrate_with_tribler, auto_join_channel = auto_join_channel)
 
     @property
     def dispersy_sync_bloom_filter_strategy(self):
         return self._dispersy_claim_sync_bloom_filter_modulo
 
-    def __init__(self, master, integrate_with_tribler = True, auto_join_channel = False):
-        super(AllChannelCommunity, self).__init__(master)
+    def __init__(self, dispersy, master, integrate_with_tribler = True, auto_join_channel = False):
+        super(AllChannelCommunity, self).__init__(dispersy, master)
 
         self.integrate_with_tribler = integrate_with_tribler
         self.auto_join_channel = auto_join_channel
@@ -466,10 +464,10 @@ class AllChannelCommunity(Community):
         except KeyError:
             if self.auto_join_channel:
                 if __debug__: dprint("join channel community ", cid.encode("HEX"))
-                return ChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
+                return ChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
             else:
                 if __debug__: dprint("join preview community ", cid.encode("HEX"))
-                return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
+                return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def unload_preview(self):
         while True:

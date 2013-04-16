@@ -304,7 +304,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
-        if Dispersy.has_instance():
+        if self.dispersy:
             self.sesscb_ntfy_dispersy()
         else:
             s.add_observer(self.sesscb_ntfy_dispersy, NTFY_DISPERSY, [NTFY_STARTED])
@@ -428,6 +428,7 @@ class ABCApp():
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         self.utility.session = s
+        self.dispersy = s.lm.dispersy
 
         progress('Loading userdownloadchoice')
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -532,9 +533,8 @@ class ABCApp():
     def set_reputation(self):
         def do_db():
             nr_connections = 0
-            if Dispersy.has_instance():
-                dispersy = Dispersy.get_instance()
-                for community in dispersy.get_communities():
+            if self.dispersy:
+                for community in self.dispersy.get_communities():
                     from Tribler.community.search.community import SearchCommunity
                     if isinstance(community, SearchCommunity):
                         nr_connections = community.get_nr_connections()
@@ -597,9 +597,6 @@ class ABCApp():
                 wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
             except:
                 print_exc()
-
-            if not self.dispersy:
-                self.dispersy = Dispersy.has_instance()
 
             # if not self.effort_community:
             #     self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
@@ -918,7 +915,8 @@ class ABCApp():
 
     @forceWxThread
     def sesscb_ntfy_dispersy(self, subject=None, changeType=None, objectID=None, *args):
-        disp = Dispersy.get_instance()
+        assert self.utility.session.lm.dispersy
+        disp = self.utility.session.lm.dispersy
         disp.attach_progress_handler(self.frame.progressHandler)
         disp._callback.attach_exception_handler(self.frame.exceptionHandler)
 

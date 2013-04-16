@@ -341,11 +341,11 @@ class TorrentManager:
             self.library_manager = library_manager
             self.channel_manager = channel_manager
 
-            if Dispersy.has_instance():
-                self.dispersy = Dispersy.get_instance()
-            else:
+            self.dispersy = session.lm.dispersy
+            if not self.dispersy:
                 def dispersy_started(subject,changeType,objectID):
-                    self.dispersy = Dispersy.get_instance()
+                    assert session.lm.dispersy
+                    self.dispersy = session.lm.dispersy
                     self.session.remove_observer(dispersy_started)
 
                 self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
@@ -1016,7 +1016,7 @@ class LibraryManager:
         self.torrent_db.updateTorrent(infohash, swift_hash = roothash)
 
         # Niels 09-01-2013: we need to commit now to prevent possibly forgetting the link between this torrent and the roothash
-        dispersy = Dispersy.get_instance()
+        dispersy = self.guiUtility.utility.lm.dispersy
         startWorker(None, dispersy._commit_now)
 
     def deleteTorrent(self, torrent, removecontent = False):
@@ -1198,18 +1198,18 @@ class ChannelManager:
             self.library_manager = library_manager
             self.remote_th = RemoteTorrentHandler.getInstance()
 
-            if Dispersy.has_instance():
-                self.dispersy = Dispersy.get_instance()
+            self.dispersy = session.lm.dispersy
+            if self.dispersy:
                 self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
 
             else:
                 def dispersy_started(subject,changeType,objectID):
-                    self.dispersy = Dispersy.get_instance()
-                    self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
-
+                    assert session.lm.dispersy
+                    self.dispersy = session.lm.dispersy
                     self.session.remove_observer(dispersy_started)
 
                 self.session.add_observer(dispersy_started,NTFY_DISPERSY,[NTFY_STARTED])
+
         else:
             raise RuntimeError('ChannelManager already connected')
 

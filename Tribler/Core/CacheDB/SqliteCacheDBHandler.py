@@ -2535,10 +2535,8 @@ class ChannelCastDBHandler(BasicDBHandler):
     def _get_my_dispersy_cid(self):
         if not self.my_dispersy_cid:
             from Tribler.community.channel.community import ChannelCommunity
-            from Tribler.dispersy.dispersy import Dispersy
-            dispersy = Dispersy.get_instance()
 
-            for community in dispersy.get_communities():
+            for community in self.session.lm.dispersy.get_communities():
                 if isinstance(community, ChannelCommunity) and community.master_member and community.master_member.private_key:
                     self.my_dispersy_cid = community.cid
                     break
