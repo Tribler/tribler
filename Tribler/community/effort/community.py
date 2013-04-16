@@ -22,7 +22,6 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.distribution import LastSyncDistribution, DirectDistribution
 from Tribler.dispersy.dprint import dprint
 from Tribler.dispersy.member import Member
@@ -87,12 +86,11 @@ class BandwidthGuess(object):
 
 class EffortCommunity(Community):
     @classmethod
-    def get_master_members(cls):
-        return [Member(MASTER_MEMBER_PUBLIC_KEY)]
+    def get_master_members(cls, dispersy):
+        return [dispersy.get_member(MASTER_MEMBER_PUBLIC_KEY)]
 
     @classmethod
-    def load_community(cls, master, swift_process):
-        dispersy = Dispersy.get_instance()
+    def load_community(cls, dispersy, master, swift_process):
         try:
             # test if this community already exists
             classification, = next(dispersy.database.execute(u"SELECT classification FROM community WHERE master = ?", (master.database_id,)))
@@ -106,7 +104,7 @@ class EffortCommunity(Community):
             else:
                 raise RuntimeError("Unable to load an EffortCommunity that has been killed")
 
-    def __init__(self, master, swift_process):
+    def __init__(self, dispersy, master, swift_process):
         # original walker callbacks (will be set during super(...).__init__)
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
@@ -123,7 +121,7 @@ class EffortCommunity(Community):
         temp_thread.start("Temporary-EffortCommunity")
 
         # _DATABASE stores all direct observations and indirect hearsay
-        self._database = EffortDatabase.get_instance(self._dispersy)
+        self._database = EffortDatabase(self._dispersy)
 
         # _OBSERVATIONS cache (reduce _DATABASE access)
         self._observations_length = 512
