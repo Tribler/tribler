@@ -308,7 +308,7 @@ class SQLiteCacheDBBase:
             #assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
             return self.cursor_table[thread_name]
 
-        assert dbfile_path, "You must specify the path of database file for"
+        assert dbfile_path, "You must specify the path of database file"
 
         if dbfile_path.lower() != ':memory:':
             db_dir,db_filename = os.path.split(dbfile_path)
@@ -2297,14 +2297,12 @@ def try_register(db, callback = None):
 
 def unregister():
     global _callback
-    print >> sys.stderr, "No longer using actual DB thread", _callback
     _callback = None
 
 def register_task(db, *args, **kwargs):
     global _callback
     if not _callback:
         try_register(db)
-
     if not _callback or not _callback.is_running:
         def fakeDispersy(call, args=(), kwargs = {}):
             call(*args, **kwargs)
@@ -2456,7 +2454,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             else:
                 print >> sys.stderr, "SQLiteNoCacheDB.commitNow: not calling BEGIN exiting"
 
-            # print_stack()
+            #print_stack()
 
         elif vacuum:
             self._execute("VACUUM;")
