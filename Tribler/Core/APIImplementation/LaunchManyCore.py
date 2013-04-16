@@ -280,7 +280,7 @@ class TriblerLaunchMany(Thread):
             # Start up KTH mainline DHT
             # TODO: Can I get the local IP number?
             try:
-                mainlineDHT.init(('127.0.0.1', 7757), config['state_dir'])
+                mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'])
             except:
                 print_exc()
 
