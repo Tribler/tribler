@@ -71,8 +71,8 @@ class SearchCommunity(Community):
         self.integrate_with_tribler = bool(integrate_with_tribler)
 
         self.ttl = ttl
-        self.neighbors = int(neighbors)
-        self.fneighbors = int(fneighbors)
+        self.neighbors = neighbors
+        self.fneighbors = fneighbors
         self.encryption = bool(encryption)
         self.log_searches = bool(log_searches)
         self.use_megacache = bool(use_megacache)
@@ -495,6 +495,9 @@ class SearchCommunity(Community):
 
         if nrcandidates == None:
             nrcandidates = self.neighbors
+            
+        if isinstance(nrcandidates, tuple):
+            nrcandidates = randint(nrcandidates[0], nrcandidates[1])
 
         if bloomfilter == None:
             bloomfilter = BloomFilter(0.01, 100)

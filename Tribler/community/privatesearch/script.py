@@ -15,23 +15,23 @@ class SearchScript(ScenarioScriptBase):
     def __init__(self, **kargs):
         ScenarioScriptBase.__init__(self, 'barter.log', **kargs)
 
+        def parse_tuplestr(v):
+            if len(v) > 1 and v[1] == "t":
+                return (int(v[0]), int(v[2:]))
+            if len(v) > 1 and v[1] == ".":
+                return float(v)
+            return int(v)
+
         self.late_join = int(kargs.get('latejoin', 1000))
         self.do_search = int(kargs.get('dosearch', 1000))
         self.community_type = kargs.get('type', 'search')
         self.community_kargs = {}
         if 'ttl' in kargs:
-
-            if len(kargs['ttl']) > 1 and kargs['ttl'][1] == "t":
-                self.community_kargs['ttl'] = (int(kargs['ttl'][0]), int(kargs['ttl'][2:]))
-            elif len(kargs['ttl']) > 1 and kargs['ttl'][1] == ".":
-                self.community_kargs['ttl'] = float(kargs['ttl'])
-            else:
-                self.community_kargs['ttl'] = int(kargs['ttl'])
-
+            self.community_kargs['ttl'] = parse_tuplestr(kargs['ttl'])
         if 'neighbors' in kargs:
-            self.community_kargs['neighbors'] = int(kargs['neighbors'])
+            self.community_kargs['neighbors'] = parse_tuplestr(kargs['neighbors'])
         if 'fneighbors' in kargs:
-            self.community_kargs['fneighbors'] = int(kargs['fneighbors'])
+            self.community_kargs['fneighbors'] = parse_tuplestr(kargs['fneighbors'])
         if 'max_prefs' in kargs:
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
 
