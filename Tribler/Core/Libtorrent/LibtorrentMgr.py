@@ -48,6 +48,7 @@ class LibtorrentMgr:
         except:
             print >> sys.stderr, "LibtorrentMgr: could not restore dht state, starting from scratch"
             self.ltsession.start_dht(None)
+
         self.ltsession.add_dht_router('router.bittorrent.com', 6881)
         self.ltsession.add_dht_router('router.utorrent.com', 6881)
         self.ltsession.add_dht_router('router.bitcomet.com', 6881)
@@ -56,6 +57,7 @@ class LibtorrentMgr:
         self.torrents = {}
         self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
         self.trsession.lm.rawserver.add_task(self.reachability_check, 1)
+        self.trsession.lm.rawserver.add_task(self.monitor_dht, 5)
 
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
@@ -174,3 +176,10 @@ class LibtorrentMgr:
             self.trsession.lm.dialback_reachable_callback()
         else:
             self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
+
+    def monitor_dht(self):
+        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
+        if self.ltsession and self.ltsession.status().dht_nodes <= 1:
+            print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
+            self.ltsession.start_dht(None)
+            self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
