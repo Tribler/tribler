@@ -498,6 +498,17 @@ class SearchCommunity(Community):
             
         if isinstance(nrcandidates, tuple):
             nrcandidates = randint(nrcandidates[0], nrcandidates[1])
+            
+        if ttl == None:
+            if isinstance(self.ttl, tuple):
+                _ttl = randint(self.ttl[0], self.ttl[1])
+            elif isinstance(self.ttl, int):
+                _ttl = self.ttl
+            else:
+                _ttl = 1
+        else:
+            _ttl = ttl
+
 
         if bloomfilter == None:
             bloomfilter = BloomFilter(0.01, 100)
@@ -526,16 +537,6 @@ class SearchCommunity(Community):
             shuffle(random_peers)
 
             for _ in xrange(nrcandidates):
-                if ttl == None:
-                    if isinstance(self.ttl, tuple):
-                        _ttl = randint(self.ttl[0], self.ttl[1])
-                    elif isinstance(self.ttl, int):
-                        _ttl = self.ttl
-                    else:
-                        _ttl = 1
-                else:
-                    _ttl = ttl
-
                 # prefer taste buddies, fallback to random peers
                 if taste_buddies:
                     candidate = taste_buddies.pop()
