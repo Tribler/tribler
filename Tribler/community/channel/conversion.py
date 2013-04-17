@@ -407,7 +407,7 @@ class ChannelConversion(BinaryConversion):
         assert len(mid) == 20
         if global_time and mid:
             try:
-                packet_id, packet, message_name = self._dispersy_database.execute(u"""
+                packet_id, packet, message_name = self._community.dispersy.database.execute(u"""
                     SELECT sync.id, sync.packet, meta_message.name
                     FROM sync
                     JOIN member ON (member.id = sync.member)

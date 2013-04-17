@@ -77,9 +77,6 @@ class AllChannelScenarioScript(ScenarioScriptBase):
                 self.want_to_join = True
 
         if self.want_to_join:
-            from Tribler.dispersy.dispersy import Dispersy
-            dispersy = Dispersy.get_instance()
-
             log(self._logfile, "trying-to-join-community")
 
             cid = self._community._channelcast_db.getChannelIdFromDispersyCID(None)

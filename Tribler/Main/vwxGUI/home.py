@@ -24,7 +24,6 @@ from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 from Tribler.Core.Utilities.utilities import show_permid_short
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from Tribler.dispersy.dispersy import Dispersy
 from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.Tag.Extraction import TermExtraction
@@ -276,7 +275,7 @@ class Stats(XRCPanel):
 
             session = Session.get_instance()
             frame.locals['session'] = session
-            frame.locals['dispersy'] = Dispersy.get_instance()
+            frame.locals['dispersy'] = session.lm.dispersy
 
         except Exception:
             import traceback
@@ -436,7 +435,9 @@ class NetworkPanel(HomePanel):
 class DispersyPanel(HomePanel):
     def __init__(self, parent):
         self.buildColumns = False
-        self.dispersy = Dispersy.has_instance()
+
+        guiutility = GUIUtility.getInstance()
+        self.dispersy = guiutility.utility.session.lm.dispersy
         if not self.dispersy:
             raise RuntimeError("Dispersy has not started yet")
 
