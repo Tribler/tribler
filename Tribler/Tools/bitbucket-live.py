@@ -59,7 +59,7 @@ dscfg.set_max_uploads(16)
 
 d = s.start_download( tdef, dscfg )
 
-d.set_state_callback(state_callback,getpeerlist=[])
+d.set_state_callback(state_callback)
 
 while True:
     time.sleep(60)

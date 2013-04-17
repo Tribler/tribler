@@ -563,7 +563,7 @@ class ABCApp():
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return (5.0, False)
+            return (5.0, [])
 
         wantpeers = []
         self.ratestatecallbackcount += 1

@@ -532,7 +532,7 @@ class TorrentRequester(Requester):
                 download = self.session.start_download(sdef, dcfg, hidden=True)
 
                 state_lambda = lambda ds, infohash=infohash, roothash=roothash, doMagnet=doMagnet: self.check_progress(ds, infohash, roothash, doMagnet)
-                download.set_state_callback(state_lambda, getpeerlist=[], delay=self.SWIFT_CANCEL)
+                download.set_state_callback(state_lambda, delay=self.SWIFT_CANCEL)
                 download.started_downloading = time()
 
             except DuplicateDownloadException:
@@ -718,7 +718,7 @@ class ThumbnailRequester(Requester):
                 download = self.session.start_download(sdef, dcfg, hidden=True)
 
                 state_lambda = lambda ds, roothash=roothash: self.check_progress(ds, roothash)
-                download.set_state_callback(state_lambda, getpeerlist=[], delay=self.SWIFT_CANCEL)
+                download.set_state_callback(state_lambda, delay=self.SWIFT_CANCEL)
                 download.started_downloading = time()
 
             except DuplicateDownloadException:

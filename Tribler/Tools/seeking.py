@@ -171,7 +171,7 @@ def createTorr(filename):
         if config['debug']:
             print >>sys.stderr, "Seeding the newly created torrent"
         d = SESSION.start_download(tdef,dcfg)
-        d.set_state_callback(state_callback,getpeerlist=[])
+        d.set_state_callback(state_callback)
 
 
 def state_callback(ds):
@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     d = s.start_download( tdef, dscfg )
 
-    d.set_state_callback(state_callback,getpeerlist=[])
+    d.set_state_callback(state_callback)
 
     while not QUIT_NOW:
         time.sleep(10)

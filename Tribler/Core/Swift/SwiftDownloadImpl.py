@@ -418,7 +418,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     #
     # Retrieving DownloadState
     #
-    def set_state_callback(self,usercallback,getpeerlist=[],delay=0.0):
+    def set_state_callback(self,usercallback,getpeerlist=False,delay=0.0):
         """ Called by any thread """
         self.dllock.acquire()
         try:
@@ -605,7 +605,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}
-        ds = self.network_get_state(None,[],sessioncalling=True)
+        ds = self.network_get_state(None,False,sessioncalling=True)
         pstate['dlstate']['status'] = ds.get_status()
         pstate['dlstate']['progress'] = ds.get_progress()
         pstate['dlstate']['swarmcache'] = None

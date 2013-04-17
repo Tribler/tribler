@@ -137,7 +137,7 @@ if __name__ == "__main__":
     dscfg.set_max_uploads(config['nuploads'])
 
     d = s.start_download(tdef,dscfg)
-    d.set_state_callback(state_callback,getpeerlist=[])
+    d.set_state_callback(state_callback)
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
