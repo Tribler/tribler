@@ -520,7 +520,7 @@ class SearchCommunity(Community):
         # impose upper limit for forwarding
         candidates = []
 
-        if len(ignore_candidates) < self.neighbors:
+        if len(ignore_candidates) < 10:
             random_peers, taste_buddies = self.get_randompeers_tastebuddies(ignore_candidates)
             shuffle(taste_buddies)
             shuffle(random_peers)
