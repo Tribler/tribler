@@ -2,7 +2,7 @@ from struct import pack, unpack_from
 from random import sample
 import zlib
 
-from Tribler.dispersy.encoding import encode, decode
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket, Packet,\
     DelayPacketByMissingMessage, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import BinaryConversion

@@ -1,7 +1,7 @@
 from struct import pack, unpack_from
 from random import choice, sample
 
-from Tribler.dispersy.encoding import encode, decode
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 
