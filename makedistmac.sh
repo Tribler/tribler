@@ -8,6 +8,10 @@
 # Based on original Makefile by JD Mol.
 
 APPNAME=Tribler
+if [ -e .TriblerVersion ]; then
+    DMGNAME="Tribler-$(cat .TriblerVersion)"
+fi
+
 export LIBRARYNAME=Tribler
 
 PYVER=2.7
@@ -115,8 +119,11 @@ hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$AP
 rm -f dist/temp/rw.dmg
 
 # add EULA
-hdiutil unflatten dist/$APPNAME.dmg 
+hdiutil unflatten dist/$APPNAME.dmg
 /Developer/Tools/DeRez -useDF $LIBRARYNAME/Main/Build/Mac/SLAResources.rsrc > dist/temp/sla.r
-/Developer/Tools/Rez -a dist/temp/sla.r -o dist/$APPNAME.dmg 
-hdiutil flatten dist/$APPNAME.dmg 
+/Developer/Tools/Rez -a dist/temp/sla.r -o dist/$APPNAME.dmg
+hdiutil flatten dist/$APPNAME.dmg
 
+if [ ! -z "$DMGNAME" ]; then
+    mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
+fi
