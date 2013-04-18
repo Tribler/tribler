@@ -1,3 +1,20 @@
+tribler (6.1) unstable; urgency=low
+
+  * New upstream release.
+  * Faster downloads: We have switched from the old python based bittorrent core to Rasterbar's libtorrent, so expect less resource usage too, we are saturating a symmetric 100Mb/s connection without much trouble.
+  * Less disk and CPU consumption used for community synchronization.
+  * UI improvements (download speed graphs, some new icons, general UI cleanup...)
+  * Throttling (Bandwidth limitation) is working again.
+  * The LibSwift engine has been updated too.
+  * The "Save as" dialog has been modified to improve usability when downloading from magnet links.
+  * Thumbnails for downloaded media: Now when a new video file gets downloaded, Tribler will automatically create a thumbnail and make it available to the rest of peers to be shown on the search results.
+  * Fixed freezing at startup on some machines.
+  * Fixed race conditions and lockups in synchronizations.
+  * Various bug fixes and minor improvements.
+  * Fixes for the bugs reported by the community during beta1 and beta2 (Thanks!)
+
+ -- Elric Milon <e.milon@tudelft.nl>  Thu, 18 Apr 2013 17:39:59 +0200
+
 tribler (6.0.0+svn20121015.r28821-1) unstable; urgency=low
 
   * New upstream release.
