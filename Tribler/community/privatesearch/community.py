@@ -4,6 +4,7 @@ from os import path
 from time import time
 from random import sample, randint, shuffle, random
 from Crypto.Util.number import bytes_to_long, long_to_bytes
+from math import ceil
 
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
@@ -493,12 +494,6 @@ class SearchCommunity(Community):
             if self.log_searches:
                 log("dispersy.log", "search-statistics", identifier=identifier, keywords=keywords, created_by_me=True)
 
-        if nrcandidates == None:
-            nrcandidates = self.neighbors
-            
-        if isinstance(nrcandidates, tuple):
-            nrcandidates = randint(nrcandidates[0], nrcandidates[1])
-            
         if ttl == None:
             if isinstance(self.ttl, tuple):
                 _ttl = randint(self.ttl[0], self.ttl[1])
@@ -509,6 +504,13 @@ class SearchCommunity(Community):
         else:
             _ttl = ttl
 
+        if nrcandidates == None:
+            nrcandidates = self.neighbors
+
+        if isinstance(nrcandidates, tuple):
+            nrcandidates = randint(nrcandidates[0], nrcandidates[1])
+        elif isinstance(nrcandidates, float):
+            nrcandidates = ceil(_ttl * nrcandidates)
 
         if bloomfilter == None:
             bloomfilter = BloomFilter(0.01, 100)
