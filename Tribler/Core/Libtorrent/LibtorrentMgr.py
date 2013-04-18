@@ -17,30 +17,30 @@ DHTSTATE_FILENAME = "ltdht.state"
 class LibtorrentMgr:
     # Code to make this a singleton
     __single = None
-        
+
     def __init__(self, trsession, utility):
         if LibtorrentMgr.__single:
             raise RuntimeError, "LibtorrentMgr is singleton"
-        LibtorrentMgr.__single = self 
-        
+        LibtorrentMgr.__single = self
+
         self.utility = utility
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
         fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
         # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
-        self.ltsession = lt.session(lt.fingerprint(*fingerprint), flags = 1)
+        self.ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
         self.ltsession.set_settings(settings)
         self.ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
                                       lt.alert.category_t.storage_notification |
-                                      lt.alert.category_t.performance_warning )
-        self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port()+10)
+                                      lt.alert.category_t.performance_warning)
+        self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
         self.ltsession.start_upnp()
-        
+
         # Start DHT
         try:
             dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
@@ -52,7 +52,7 @@ class LibtorrentMgr:
         self.ltsession.add_dht_router('router.bittorrent.com', 6881)
         self.ltsession.add_dht_router('router.utorrent.com', 6881)
         self.ltsession.add_dht_router('router.bitcomet.com', 6881)
-        
+
         self.torlock = NoDispersyRLock()
         self.torrents = {}
         self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
@@ -61,15 +61,15 @@ class LibtorrentMgr:
 
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
-            LibtorrentMgr(*args, **kw)       
+            LibtorrentMgr(*args, **kw)
         return LibtorrentMgr.__single
     getInstance = staticmethod(getInstance)
-    
+
     def delInstance():
         del LibtorrentMgr.__single
         LibtorrentMgr.__single = None
     delInstance = staticmethod(delInstance)
-            
+
     def shutdown(self):
         # Save DHT state
         dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
@@ -81,9 +81,9 @@ class LibtorrentMgr:
 
     def set_max_connections(self, conns):
         self.ltsession.set_max_connections(conns)
-        
+
     def set_upload_rate_limit(self, rate):
-        self.ltsession.set_upload_rate_limit(rate)    
+        self.ltsession.set_upload_rate_limit(rate)
 
     def get_upload_rate_limit(self):
         return self.ltsession.upload_rate_limit()
@@ -93,7 +93,10 @@ class LibtorrentMgr:
 
     def get_download_rate_limit(self):
         return self.ltsession.download_rate_limit()
-        
+
+    def get_dht_nodes(self):
+        return self.ltsession.status().dht_nodes
+
     def queue_position_up(self, infohash):
         with self.torlock:
             download = self.torrents.get(hexlify(infohash), None)
@@ -114,22 +117,22 @@ class LibtorrentMgr:
             if download:
                 download.handle.queue_position_top()
                 self._refresh_queue_positions()
-        
+
     def queue_position_bottom(self, infohash):
         with self.torlock:
             download = self.torrents.get(hexlify(infohash), None)
             if download:
                 download.handle.queue_position_bottom()
                 self._refresh_queue_positions()
-        
+
     def _refresh_queue_positions(self):
         for d in self.torrents.values():
             d.queue_position = d.handle.queue_position()
-                
+
     def add_torrent(self, torrentdl, atp):
         handle = self.ltsession.add_torrent(atp)
         infohash = str(handle.info_hash())
-        with self.torlock:            
+        with self.torlock:
             if infohash in self.torrents:
                 raise DuplicateDownloadException()
             self.torrents[infohash] = torrentdl
@@ -137,7 +140,7 @@ class LibtorrentMgr:
             print >> sys.stderr, "LibtorrentMgr: added torrent", infohash
         return handle
 
-    def remove_torrent(self, torrentdl, removecontent = False):
+    def remove_torrent(self, torrentdl, removecontent=False):
         handle = torrentdl.handle
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
@@ -151,12 +154,12 @@ class LibtorrentMgr:
                     print >> sys.stderr, "LibtorrentMgr: cannot remove torrent", infohash, "because it does not exists"
         elif DEBUG:
             print >> sys.stderr, "LibtorrentMgr: cannot remove invalid torrent"
-        
+
     def process_alerts(self):
         if self.ltsession:
             alert = self.ltsession.pop_alert()
             while alert:
-                handle = getattr(alert, 'handle', None) 
+                handle = getattr(alert, 'handle', None)
                 if handle:
                     if handle.is_valid():
                         infohash = str(handle.info_hash())
@@ -179,7 +182,13 @@ class LibtorrentMgr:
 
     def monitor_dht(self):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
-        if self.ltsession and self.ltsession.status().dht_nodes <= 1:
-            print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
-            self.ltsession.start_dht(None)
-            self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
+        if self.ltsession:
+            if self.get_dht_nodes() <= 10:
+                print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
+                self.ltsession.start_dht(None)
+
+            else:
+                print >> sys.stderr, "LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes
+                return
+
+        self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
