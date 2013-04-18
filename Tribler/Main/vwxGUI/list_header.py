@@ -669,11 +669,12 @@ class TorrentFilter(BaseFilter):
         menu.Bind(wx.EVT_MENU, lambda x: self.parent_list.OnSort(-1, False), id=itemid)
         menu.Check(itemid, sortcolumn == -1)                
         for index, column in enumerate(self.columns):
-            sortAsc = column.get('sortAsc', False)
-            itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, column['name'])
-            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
-            menu.Check(itemid, sortcolumn == index)
+            if column.get('show', True):
+                sortAsc = column.get('sortAsc', False)
+                itemid = wx.NewId()
+                menu.AppendRadioItem(itemid, column['name'])
+                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
             menu.AppendSeparator()
@@ -789,6 +790,7 @@ class TorrentFilter(BaseFilter):
     def Reset(self):
         self.search.Clear()
         self.filesize.Reset()
+        self.slider_minmax = (0, 0)
         self.slider_positions = (0, 0)
         
     def GetSliderMinMax(self):
@@ -880,131 +882,18 @@ class TorrentFilter(BaseFilter):
                 self.filter_sizer.Layout()
                 
 class SelectedChannelFilter(TorrentFilter):
-    def __init__(self, parent, parent_list, spacers = [10,3], show_bundle = False):
-
-        self.heading_cols = [{'name':'Name', 'fontSize': 2, 'showColumname': False}]        
-        self.heading_list = None
-        
-        TorrentFilter.__init__(self, parent, parent_list, spacers)
         
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
-        
         self.search.SetDescriptiveText('Filter channel content')
-        
-        self.heading_list = self.GetHeadingList(self)
 
-        vSizer = self.GetSizer()
-        vSizer.Insert(1, self.heading_list, 1, wx.EXPAND)
-        
-        filter_separator = wx.Panel(self, size = (-1, 1))
-        filter_separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Insert(1, filter_separator, 0, wx.EXPAND)
     
-    @warnWxThread
-    def SetHeading(self, item):
-        if item:
-            if isinstance(item, Channel):
-                channel = item
-                if self.heading_list.InList(channel.id):
-                    self.heading_list.RemoveKey(channel.id)
-
-                self.heading_list.SetData([(channel.id, [channel.name], channel, ChannelListItemNoButton)], force = True)
-                
-                new_item = self.heading_list.GetItem(channel.id)
-                new_item.SetTitleSizerHeight(30)
-                new_item.list_deselected = FILTER_GREY
-                new_item.SetHideButtons(False)
-                                
-                self.heading_list.Layout()
-
-    def SetHeadingButtons(self, channel):
-        item = self.heading_list.GetItems()[0]
-        num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
-        
-        channelstate, iamModerator = channel.getState()
-        
-        open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
-        allow2edit = channel.my_vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
-        item.buttonSizer.Clear(deleteWindows = True)
-        
-        if channel.my_vote == 0 and not iamModerator:
-            item.AddButton("Mark as Spam", self.parent_list.OnSpam)
-            item.AddButton("Mark as Favorite", self.parent_list.OnFavorite)
-        else:
-            if open2edit or allow2edit:
-                item.AddButton("Edit this Channel", self.parent_list.OnManage)
-            if channel.my_vote == -1:
-                item.AddButton("This is not Spam", self.parent_list.OnRemoveVote)
-            elif channel.my_vote == 2:
-                item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote)
-            elif not open2edit and not allow2edit:
-                item.AddButton("Edit this Channel", self.parent_list.OnManage)
-                
-    def OnExpand(self, item):
-        if isinstance(item, ChannelListItem):
-            from Tribler.Main.vwxGUI.list_details import ChannelDetails
-            cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
-            item.expandedPanel = cd
-            self.parent_list.list.DeselectAll()
-            self.guiutility.SetBottomSplitterWindow(cd)
-            
-        return True
-    
-    def OnCollapse(self, item, panel):
-        if panel:
-            panel.Destroy()
-            self.parent_list.ResetBottomWindow()
-        wx.CallAfter(self.guiutility.frame.top_bg.TorrentsChanged)
-
-    def GetHeadingList(self, parent):
-        return FixedListBody(parent, self, self.heading_cols, singleExpanded = True)
-    
-class SelectedPlaylistFilter(SelectedChannelFilter):
+class SelectedPlaylistFilter(TorrentFilter):
 
     def AddComponents(self, spacers):
-        SelectedChannelFilter.AddComponents(self, spacers)
-        
+        TorrentFilter.AddComponents(self, spacers)
         self.search.SetDescriptiveText('Filter playlist content')
 
-    @warnWxThread
-    def SetHeading(self, item):
-        if item:
-            if isinstance(item, Playlist):
-                playlist = item
-                if self.heading_list.InList(playlist.id):
-                    self.heading_list.RemoveKey(playlist.id)
-
-                self.heading_list.SetData([(playlist.id,[playlist.name], playlist, PlaylistItemNoButton)], force = True)
-
-                new_item = self.heading_list.GetItem(playlist.id)
-                new_item.SetTitleSizerHeight(30)
-                                
-                from Tribler.Main.vwxGUI.widgets import TagText
-                tag = TagText(new_item, -1, label='channel', fill_colour = wx.Colour(210,252,120))
-                tag.SetToolTipString("Click on this icon to return to %s's channel"%playlist.channel.name)
-                new_item.AddEvents(tag)
-                tag.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(playlist.channel))
-                new_item.titleSizer.Insert(0, tag, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
-                new_item.titleSizer.Insert(1, (5,-1))
-                new_item.titleSizer.Insert(2, wx.StaticBitmap(new_item, -1, self.icon_right), 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
-                new_item.titleSizer.Insert(3, (5,-1))
-                new_item.buttonSizer.Clear(deleteWindows = True)
-                
-                new_item.list_deselected = FILTER_GREY
-                new_item.ShowSelected()
-
-                self.heading_list.Layout()
-    
-    def OnExpand(self, item):
-        if isinstance(item, PlaylistItem):
-            from Tribler.Main.vwxGUI.list_details import PlaylistDetails
-            pd = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
-            item.expandedPanel = pd
-            self.parent_list.list.DeselectAll()
-            self.guiutility.SetBottomSplitterWindow(pd)
-            
-        return True
     
 class ChannelFilter(BaseFilter):
     def __init__(self, parent, parent_list, spacers = [10,3]):
@@ -1062,13 +951,14 @@ class ChannelFilter(BaseFilter):
         
         menu = wx.Menu()
         for index, column in enumerate(self.columns):
-            sortAsc = column.get('sortAsc', False)
-            sortDef = column.get('defaultSorted', False)
-            sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
-            itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, column['name'])
-            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
-            menu.Check(itemid, sortcolumn == index)
+            if column.get('show', True):
+                sortAsc = column.get('sortAsc', False)
+                sortDef = column.get('defaultSorted', False)
+                sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
+                itemid = wx.NewId()
+                menu.AppendRadioItem(itemid, column['name'])
+                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
             menu.AppendSeparator()
@@ -1151,7 +1041,7 @@ class ChannelFilter(BaseFilter):
 
 class DownloadFilter(BaseFilter):
     def __init__(self, parent, parent_list, spacers = [10,3]):
-        self.guiutility =  GUIUtility.getInstance()
+        self.guiutility = GUIUtility.getInstance()
         self.slider_minmax = (0, 0)
         self.slider_positions = (0, 0)
         self.conversion_factor = 1048576.0
@@ -1232,13 +1122,14 @@ class DownloadFilter(BaseFilter):
         
         menu = wx.Menu()
         for index, column in enumerate(self.columns):
-            sortAsc = column.get('sortAsc', False)
-            sortDef = column.get('defaultSorted', False)
-            sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
-            itemid = wx.NewId()
-            menu.AppendRadioItem(itemid, column['name'] if column['name'] else 'Progress')
-            menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
-            menu.Check(itemid, sortcolumn == index)
+            if column.get('show', True):
+                sortAsc = column.get('sortAsc', False)
+                sortDef = column.get('defaultSorted', False)
+                sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
+                itemid = wx.NewId()
+                menu.AppendRadioItem(itemid, column['name'] if column['name'] else 'Progress')
+                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
             menu.AppendSeparator()
@@ -1361,6 +1252,138 @@ class DownloadFilter(BaseFilter):
                 
     def ResizeColumn(self, *args, **kwargs):
         pass
+
+
+class ListItemHeader(wx.Panel):
+    def __init__(self, parent, parent_list):
+        wx.Panel.__init__(self, parent)
+        
+        self.guiutility = GUIUtility.getInstance()
+        
+        self.SetBackgroundColour(FILTER_GREY)
+        self.SetForegroundColour(parent.GetForegroundColour())      
+        
+        self.icon_down = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
+        self.icon_right = self.icon_down.ConvertToImage().Rotate90(False).ConvertToBitmap()
+
+        self.parent_list  = parent_list
+        self.header_cols = [{'name':'Name', 'fontSize': 2, 'showColumname': False}]        
+        self.header_list = self.GetHeaderList(self)
+
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        vSizer.Add(self.header_list, 1, wx.EXPAND)
+        self.SetSizer(vSizer)
+    
+    def SetTitle(self, item):
+        pass
+
+    def SetButtons(self, channel):
+        pass
+                
+    def OnExpand(self, item):
+        return True
+    
+    def OnCollapse(self, item, panel):
+        if panel:
+            panel.Destroy()
+            self.parent_list.ResetBottomWindow()
+        wx.CallAfter(self.guiutility.frame.top_bg.TorrentsChanged)
+
+    def GetHeaderList(self, parent):
+        return FixedListBody(parent, self, self.header_cols, singleExpanded = True)
+    
+    
+class ChannelHeader(ListItemHeader):
+
+    @warnWxThread
+    def SetTitle(self, item):
+        if item and isinstance(item, Channel):
+            channel = item
+            if self.header_list.InList(channel.id):
+                self.header_list.RemoveKey(channel.id)
+
+            self.header_list.SetData([(channel.id, [channel.name], channel, ChannelListItemNoButton)], force = True)
+            
+            new_item = self.header_list.GetItem(channel.id)
+            new_item.SetTitleSizerHeight(30)
+            new_item.list_deselected = FILTER_GREY
+            new_item.SetHideButtons(False)
+                            
+            self.header_list.Layout()
+                
+    def SetButtons(self, channel):
+        item = self.header_list.GetItems()[0]
+        num_items = len(self.parent_list.list.raw_data) if self.parent_list.list.raw_data else 0
+        
+        channelstate, iamModerator = channel.getState()
+        
+        open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
+        allow2edit = channel.my_vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
+        item.buttonSizer.Clear(deleteWindows = True)
+        
+        if channel.my_vote == 0 and not iamModerator:
+            item.AddButton("Mark as Spam", self.parent_list.OnSpam, 4)
+            item.AddButton("Mark as Favorite", self.parent_list.OnFavorite, 4)
+        else:
+            if open2edit or allow2edit:
+                item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
+            if channel.my_vote == -1:
+                item.AddButton("This is not Spam", self.parent_list.OnRemoveVote, 4)
+            elif channel.my_vote == 2:
+                item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote, 4)
+            elif not open2edit and not allow2edit:
+                item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
+    
+    def OnExpand(self, item):
+        if isinstance(item, ChannelListItem):
+            from Tribler.Main.vwxGUI.list_details import ChannelDetails
+            cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
+            item.expandedPanel = cd
+            self.parent_list.list.DeselectAll()
+            self.guiutility.SetBottomSplitterWindow(cd)
+            
+        return ListItemHeader.OnExpand(self, item)
+    
+class PlaylistHeader(ListItemHeader):
+
+    @warnWxThread
+    def SetTitle(self, item):
+        if item and isinstance(item, Playlist):
+            playlist = item
+            if self.header_list.InList(playlist.id):
+                self.header_list.RemoveKey(playlist.id)
+
+            self.header_list.SetData([(playlist.id,[playlist.name], playlist, PlaylistItemNoButton)], force = True)
+
+            new_item = self.header_list.GetItem(playlist.id)
+            new_item.SetTitleSizerHeight(30)
+                            
+            from Tribler.Main.vwxGUI.widgets import TagText
+            tag = TagText(new_item, -1, label='channel', fill_colour = wx.Colour(210,252,120))
+            tag.SetToolTipString("Click on this icon to return to %s's channel"%playlist.channel.name)
+            new_item.AddEvents(tag)
+            tag.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(playlist.channel))
+            new_item.titleSizer.Insert(0, tag, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
+            new_item.titleSizer.Insert(1, (5,-1))
+            new_item.titleSizer.Insert(2, wx.StaticBitmap(new_item, -1, self.icon_right), 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
+            new_item.titleSizer.Insert(3, (5,-1))
+            new_item.buttonSizer.Clear(deleteWindows = True)
+            
+            new_item.list_deselected = FILTER_GREY
+            new_item.ShowSelected()
+
+            self.header_list.Layout()
+    
+    def OnExpand(self, item):
+        if isinstance(item, PlaylistItem):
+            from Tribler.Main.vwxGUI.list_details import PlaylistDetails
+            pd = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
+            item.expandedPanel = pd
+            self.parent_list.list.DeselectAll()
+            self.guiutility.SetBottomSplitterWindow(pd)
+            
+        return ListItemHeader.OnExpand(self, item)
+
 
 class DetailHeader(wx.Panel):
     def __init__(self, parent, title = ""):

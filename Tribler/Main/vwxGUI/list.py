@@ -1106,6 +1106,7 @@ class GenericSearchList(SizeList):
         channel = getattr(item.original_data, 'channel', None)
         if channel:
             control = wx.Panel(item)
+            control.SetBackgroundColour(item.GetBackgroundColour())
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             if channel.isFavorite():
                 sizer.Add(wx.StaticBitmap(control, bitmap = self.favorite), 0, wx.RIGHT, 5)
@@ -1680,7 +1681,7 @@ class LibraryList(SizeList):
                    {'name':'Ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name':'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name':'Swift ratio', 'width':'15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name':'Swift time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
+                   {'name':'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False}]
         
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults = [2, 7, 8, 9, 10])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -1711,18 +1712,12 @@ class LibraryList(SizeList):
         return "%.2f"%value
     
     def _swift_icon(self, item):
-        ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[1]
-        if ds and ds.get_download().get_def().get_def_type() == 'swift' and ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
-            return self.hasSwift, None, "Using Swift for this download"
-        else:
-            return self.hasNothing, None, ""
+        # Always return icon, toggle icon from RefreshItems
+        return self.hasSwift, None, "Using Swift for this download", None, False
 
     def _torrent_icon(self, item):
-        ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
-        if ds and ds.get_download().get_def().get_def_type() == 'torrent' and ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
-            return self.hasTorrent, None, "Using Bittorrent for this download"
-        else:
-            return self.hasNothing, None, ""
+        # Always return icon, toggle icon from RefreshItems
+        return self.hasTorrent, None, "Using Bittorrent for this download", None, False
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -1932,14 +1927,13 @@ class LibraryList(SizeList):
                     self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
                 
                 # For updating torrent icons
-                old_t_ds = oldDS.get(item.original_data.infohash, None)
-                old_t_ds = old_t_ds if not isinstance(old_t_ds, MergedDs) else old_t_ds.dslist[0]
-                new_t_ds = item.original_data.ds if not isinstance(item.original_data.ds, MergedDs) else item.original_data.ds.dslist[0]
-                if old_t_ds and new_t_ds:
-                    old_status = old_t_ds.get_status()
-                    new_status = new_t_ds.get_status()
-                    if old_status != new_status and (old_status == DLSTATUS_STOPPED or new_status == DLSTATUS_STOPPED):
-                        item.RefreshData([item.original_data.infohash, item.data, item.original_data])
+                torrent_ds, swift_ds = item.original_data.dslist
+                torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
+                                  torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                swift_enabled = bool(swift_ds) and swift_ds.get_download().get_def().get_def_type() == 'swift' and \
+                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]
+                item.icons[0].Show(torrent_enabled)
+                item.icons[1].Show(swift_enabled)
 
         if newFilter:
             self.newfilter = False

@@ -422,11 +422,11 @@ class CommentFooter(ListFooter, AbstractDetails):
             sizer = wx.BoxSizer(wx.VERTICAL)
             sizer.AddSpacer((-1, 7))
             self.commentbox.SetMinSize((200, -1))
+            sizer.Add(self.commentbox, 1, wx.EXPAND)
         else:
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.commentbox.SetMinSize((-1, 70))
-            
-        sizer.Add(self.commentbox, 1, wx.EXPAND)
+            sizer.Add(self.commentbox, 1, wx.EXPAND|wx.TOP, 7)            
         
         if self.horizontal:
             sizer.AddSpacer((-1, 7))
