@@ -9,7 +9,6 @@ from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.script import ScriptBase
-from Tribler.dispersy.debug import Node
 from Tribler.dispersy.dprint import dprint
 from Tribler.dispersy.tool.lencoder import log
 
