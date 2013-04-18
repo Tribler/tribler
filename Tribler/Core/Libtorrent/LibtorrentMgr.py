@@ -41,6 +41,11 @@ class LibtorrentMgr:
         self.set_download_rate_limit(-1)
         self.ltsession.start_upnp()
 
+        # Load metadata extension
+        self.ltsession.add_extension(lt.create_metadata_plugin)
+        self.ltsession.add_extension(lt.create_ut_metadata_plugin)
+        self.ltsession.add_extension(lt.create_smart_ban_plugin)
+
         # Start DHT
         try:
             dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
