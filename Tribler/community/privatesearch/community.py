@@ -510,7 +510,7 @@ class SearchCommunity(Community):
         if isinstance(nrcandidates, tuple):
             nrcandidates = randint(nrcandidates[0], nrcandidates[1])
         elif isinstance(nrcandidates, float):
-            nrcandidates = ceil(_ttl * nrcandidates)
+            nrcandidates = int(ceil(_ttl * nrcandidates))
 
         if bloomfilter == None:
             bloomfilter = BloomFilter(0.01, 100)
