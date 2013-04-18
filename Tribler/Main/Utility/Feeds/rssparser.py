@@ -7,7 +7,6 @@ import sys
 from copy import deepcopy
 from shutil import copyfile
 from Tribler.Subscriptions.rss_client import URLHistory
-from Tribler.Main.Utility.Feeds import feedparser
 from Tribler.Core.TorrentDef import TorrentDef
 from traceback import print_exc
 import time
@@ -17,6 +16,11 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
+
+try:
+    from Tribler.Main.Utility.Feeds import feedparser
+except:
+    import feedparser #Feedparser is installed as a package in ubuntu
 
 URLHIST_TIMEOUT = 7*24*3600.0   # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30*60    # reload a rss source every n seconds

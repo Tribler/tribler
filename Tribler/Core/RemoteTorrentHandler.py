@@ -494,6 +494,7 @@ class TorrentRequester(Requester):
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         self.dscfg = defaultDLConfig.copy()
         self.dscfg.set_dest_dir(session.get_torrent_collecting_dir())
+        self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
 
     def doFetch(self, hash, candidates):
@@ -689,6 +690,7 @@ class ThumbnailRequester(Requester):
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         self.dscfg = defaultDLConfig.copy()
         self.dscfg.set_dest_dir(session.get_torrent_collecting_dir())
+        self.dscfg.set_swift_meta_dir(session.get_torrent_collecting_dir())
 
     def doFetch(self, hash_tuple, candidates):
         roothash, infohash = hash_tuple

@@ -37,6 +37,8 @@ from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import *
 from Tribler.Core.DownloadState import *
 from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeConfig
+from Tribler.Core.DownloadConfig import get_default_dest_dir
+import shutil
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
 # Send PLAY after receiving 2^layer * 1024 bytes
@@ -152,6 +154,25 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         if self.get_mode() == DLMODE_VOD:        
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
+            
+        if not self.dlconfig.has_key('swiftmetadir') and not os.path.isdir(self.get_dest_dir()):
+            # We must be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
+            metadir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
+            self.set_swift_meta_dir(metadir)
+            if not os.path.exists(metadir):
+                os.makedirs(metadir)
+
+            is_multifile = self.get_dest_dir().endswith("." + self.get_def().get_roothash_as_hex())
+            path_old = self.get_dest_dir()
+            path_new = os.path.join(metadir, self.get_def().get_roothash_as_hex() if is_multifile else os.path.split(self.get_dest_dir())[1])
+            try:
+                if is_multifile:
+                    shutil.move(path_old, path_new + '.mfspec')
+                    self.dlconfig['saveas'] = os.path.split(self.get_dest_dir())[0]
+                shutil.move(path_old + '.mhash', path_new + '.mhash')
+                shutil.move(path_old + '.mbinmap', path_new + '.mbinmap')
+            except:
+                print_exc()
             
         # Synchronous: starts process if needed
         self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port() )

@@ -262,46 +262,23 @@ class SelectedChannelList(GenericSearchList):
     
     @warnWxThread
     def _PostInit(self):
-        if self.guiutility.frame.top_bg:
-            self.header = self.CreateHeader(self.parent)
-        else:
-            raise NotYetImplementedException('')
-#            self.header = ChannelOnlyHeader(self.parent, self, [])
-#            
-#            def showSettings(event):
-#                self.guiutility.ShowPage('settings')
-#                
-#            def showLibrary(event):
-#                self.guiutility.ShowPage('my_files')
-#                
-#            self.header.SetEvents(showSettings, showLibrary)
-        
-        self.Add(self.header, 0, wx.EXPAND)
-        
-        #Hack to prevent focus on tabs
-        PageContainer.SetFocus = lambda a: None
-
-        style = fnb.FNB_HIDE_ON_SINGLE_TAB|fnb.FNB_NO_X_BUTTON|fnb.FNB_NO_NAV_BUTTONS|fnb.FNB_NODRAG
-        self.notebook = FlatNotebook(self.parent, style = style)
-        if getattr(self.notebook, 'SetAGWWindowStyleFlag', False):
-            self.notebook.SetAGWWindowStyleFlag(style)
-        else:
-            self.notebook.SetWindowStyleFlag(style)
-        self.notebook.SetTabAreaColour(self.background)
+        self.notebook = SimpleNotebook(self.parent, show_single_tab = False, style = wx.NB_NOPAGETHEME)
         self.notebook.SetForegroundColour(self.parent.GetForegroundColour())
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
         
-        list = wx.Panel(self.notebook)
-        list.SetForegroundColour(self.notebook.GetForegroundColour())
-        list.SetFocus = list.SetFocusIgnoringChildren
+        contentList = wx.Panel(self.notebook)
+        contentList.SetForegroundColour(self.notebook.GetForegroundColour())
+        contentList.SetFocus = contentList.SetFocusIgnoringChildren
 
+        self.header = self.CreateHeader(contentList)
+        self.list = self.CreateList(contentList)
+        
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.list = self.CreateList(list)
+        vSizer.Add(self.header, 0, wx.EXPAND)
         vSizer.Add(self.list, 1, wx.EXPAND)
-        
-        list.SetSizer(vSizer)
-        self.notebook.AddPage(list, "Contents")
+        contentList.SetSizer(vSizer)
+
+        self.notebook.AddPage(contentList, "Contents")
         
         self.commentList = NotebookPanel(self.notebook)
         self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
@@ -322,6 +299,9 @@ class SelectedChannelList(GenericSearchList):
         listSizer.Add(self.leftLine, 0, wx.EXPAND)
         listSizer.Add(self.notebook, 1, wx.EXPAND)
         listSizer.Add(self.rightLine, 0, wx.EXPAND)
+        
+        self.top_header = self.CreateTopHeader(self.parent)
+        self.Add(self.top_header, 0, wx.EXPAND)
         self.Add(listSizer, 1, wx.EXPAND)
         
         self.SetBackgroundColour(self.background)
@@ -340,7 +320,11 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def CreateHeader(self, parent):
-        return SelectedChannelFilter(self.parent, self, show_bundle = False)
+        return SelectedChannelFilter(parent, self, show_bundle = False)
+    
+    @warnWxThread
+    def CreateTopHeader(self, parent):
+        return ChannelHeader(parent, self)
     
     @warnWxThread
     def Reset(self):
@@ -404,7 +388,7 @@ class SelectedChannelList(GenericSearchList):
         
         #Update header + list ids
         self.ResetBottomWindow()
-        self.header.SetHeadingButtons(self.channel)
+        self.top_header.SetButtons(self.channel)
         self.commentList.GetManager().SetIds(channel = self.channel)
         self.activityList.GetManager().SetIds(channel = self.channel)
         self.moderationList.GetManager().SetIds(channel = self.channel)
@@ -412,7 +396,7 @@ class SelectedChannelList(GenericSearchList):
     @warnWxThread
     def SetTitle(self, channel):
         self.title = channel.name
-        self.header.SetHeading(channel)
+        self.top_header.SetTitle(channel)
         self.Layout()
    
     def GetManager(self):
@@ -485,7 +469,7 @@ class SelectedChannelList(GenericSearchList):
             details = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, noChannel = True)
             item.expandedPanel = details
         self.guiutility.SetBottomSplitterWindow(details)
-        self.header.heading_list.DeselectAll()
+        self.top_header.header_list.DeselectAll()
         return True     
 
     @warnWxThread
@@ -846,7 +830,11 @@ class Playlist(SelectedChannelList):
     
     @warnWxThread
     def CreateHeader(self, parent):
-        return SelectedPlaylistFilter(self.parent, self, show_bundle = False)
+        return SelectedPlaylistFilter(parent, self, show_bundle = False)
+    
+    @warnWxThread
+    def CreateTopHeader(self, parent):
+        return PlaylistHeader(parent, self)
     
     def Set(self, playlist):
         self.playlist = playlist
@@ -855,7 +843,7 @@ class Playlist(SelectedChannelList):
         if self.notebook.GetPageCount() > 0:
             self.notebook.SetSelection(0)
         if self.playlist:
-            self.header.SetHeading(self.playlist)
+            self.top_header.SetTitle(self.playlist)
             self.Layout()
     
     def SetTitle(self, title, description):

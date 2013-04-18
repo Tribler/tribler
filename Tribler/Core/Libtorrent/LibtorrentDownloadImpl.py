@@ -82,6 +82,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.finished_time = 0.0
         self.done = False
         self.pause_after_next_hashcheck = False
+        self.checkpoint_after_next_hashcheck = False
         self.prebuffsize = 5*1024*1024
         self.queue_position = -1
 
@@ -151,11 +152,13 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         atp = {}
         atp["save_path"] = str(self.dlconfig['saveas'])
-        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
+        # Using full allocation seems to fix issues with streaming certain files.
+        atp["storage_mode"] = lt.storage_mode_t.storage_mode_allocate if self.get_mode() == DLMODE_VOD else lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
         
+        resume_data = pstate.get('engineresumedata', None) if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
             metainfo = self.tdef.get_metainfo()
             torrentinfo = lt.torrent_info(metainfo)
@@ -173,11 +176,15 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.orig_files = [torrent_file.path for torrent_file in torrentinfo.files()]
             
             atp["ti"] = torrentinfo
-            if pstate and pstate.get('engineresumedata', None):
-                atp["resume_data"] = lt.bencode(pstate['engineresumedata'])
-            print >> sys.stderr, self.tdef.get_name_as_unicode(), pstate.get('engineresumedata', None) if pstate else None
+            if resume_data:
+                atp["resume_data"] = lt.bencode(resume_data)
+            print >> sys.stderr, self.tdef.get_name_as_unicode(), resume_data
         else:
-            atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
+            if self.tdef.get_url():
+                # We prefer to use an url, since it may contain trackers
+                atp["url"] = self.tdef.get_url()
+            else:
+                atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
             atp["name"] = str(self.tdef.get_name())
 
         self.handle = self.ltmgr.add_torrent(self, atp)
@@ -187,8 +194,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
                 self.set_vod_mode()
-            if initialdlstatus != DLSTATUS_STOPPED:
+                
+            # If we lost resume_data always resume download in order to force checking
+            if initialdlstatus != DLSTATUS_STOPPED or not resume_data: 
                 self.handle.resume()
+                
+                # If we only needed to perform checking, pause download after it is complete
+                self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
+                
+        else:
+            print >> sys.stderr, "Could not add torrent to LibtorrentManager", self.tdef.get_name_as_unicode()
             
         with self.dllock:
             self.cew_scheduled = False
@@ -301,48 +316,80 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         if self.handle and self.handle.is_valid():
             
-            status = self.handle.status()
-
             with self.dllock:
 
                 if alert_type == 'metadata_received_alert':
-                    self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
-                    self.tdef = TorrentDef.load_from_dict(self.metadata)
-                    self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
-                    self.set_files()
-                    
-                    if self.session.lm.rtorrent_handler:
-                        self.session.lm.rtorrent_handler.save_torrent(self.tdef)
-                    elif self.session.lm.torrent_db:
-                        self.session.lm.torrent_db.addExternalTorrent(self.tdef, source = '', extra_info = {'status':'good'}, commit = True)
-                        
-                    # Checkpoint
-                    (infohash, pstate) = self.network_checkpoint()
-                    checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
-                    self.session.lm.rawserver.add_task(checkpoint, 0)
-
-                if alert_type == 'file_renamed_alert':
-                    if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs) and all(self.handle.file_priorities()):
-                        os.rmdir(self.unwanteddir_abs)
-                        
-                if alert_type == 'torrent_checked_alert' and self.pause_after_next_hashcheck:
-                    self.handle.pause()
-                    self.pause_after_next_hashcheck = False
-                    self.dlstate = DLSTATUS_STOPPED
+                    self.on_metadata_received_alert(alert)
+                elif alert_type == 'file_renamed_alert':
+                    self.on_file_renamed_alert(alert)
+                elif alert_type == 'performance_alert':
+                    self.on_performance_alert(alert)
+                elif alert_type == 'torrent_checked_alert':
+                    self.on_torrent_checked_alert(alert)
                 else:
-                    if alert_type == 'torrent_paused_alert':
-                        self.dlstate = DLSTATUS_STOPPED_ON_ERROR if status.error else DLSTATUS_STOPPED
-                    else:
-                        self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
+                    self.update_lt_stats()                 
 
-                self.error = unicode(status.error) if status.error else None
-                self.length = float(status.total_wanted)
-                self.progress = status.progress
-                self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
-                self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
-                self.all_time_upload = status.all_time_upload
-                self.all_time_download = status.all_time_download
-                self.finished_time = status.finished_time
+    def on_metadata_received_alert(self, alert):
+        self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
+
+        trackers = [tracker['url'] for tracker in self.handle.trackers()]
+        if trackers:
+            if len(trackers) > 1:
+                self.metadata["announce-list"] = [trackers]
+            else:
+                self.metadata["announce"] = trackers[0]
+
+        self.tdef = TorrentDef.load_from_dict(self.metadata)
+        self.orig_files = [torrent_file.path for torrent_file in lt.torrent_info(self.metadata).files()]
+        self.set_files()
+        
+        if self.session.lm.rtorrent_handler:
+            self.session.lm.rtorrent_handler.save_torrent(self.tdef)
+        elif self.session.lm.torrent_db:
+            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source = '', extra_info = {'status':'good'}, commit = True)
+            
+        self.checkpoint()
+
+    def on_file_renamed_alert(self, alert):
+        if os.path.exists(self.unwanteddir_abs) and not os.listdir(self.unwanteddir_abs) and all(self.handle.file_priorities()):
+            os.rmdir(self.unwanteddir_abs)
+            
+    def on_performance_alert(self, alert):
+        # When the send buffer watermark is too low, double the buffer size to a maximum of 50MiB. This is the same mechanism as Deluge uses.
+        if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"): 
+            settings = self.ltmgr.ltsession.settings()
+            if settings.send_buffer_watermark <= 26214400:
+                print >> sys.stderr, "LibtorrentDownloadImpl: setting send_buffer_watermark to", 2 * settings.send_buffer_watermark
+                settings.send_buffer_watermark = 2 * settings.send_buffer_watermark 
+                self.ltmgr.ltsession.set_settings(settings)
+        # When the write cache is too small, double the buffer size to a maximum of 64MiB. Again, this is the same mechanism as Deluge uses.
+        elif alert.message().endswith("max outstanding disk writes reached"):
+            settings = self.ltmgr.ltsession.settings()
+            if settings.max_queued_disk_bytes <= 33554432:
+                print >> sys.stderr, "LibtorrentDownloadImpl: setting max_queued_disk_bytes to", 2 * settings.max_queued_disk_bytes
+                settings.max_queued_disk_bytes = 2 * settings.max_queued_disk_bytes 
+                self.ltmgr.ltsession.set_settings(settings) 
+
+    def on_torrent_checked_alert(self, alert):
+        if self.pause_after_next_hashcheck:
+            self.pause_after_next_hashcheck = False
+            self.handle.pause()
+        if self.checkpoint_after_next_hashcheck:
+            self.checkpoint_after_next_hashcheck = False
+            self.checkpoint()
+        
+    def update_lt_stats(self):
+        status = self.handle.status()
+        self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
+        self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
+        self.error = unicode(status.error) if status.error else None
+        self.length = float(status.total_wanted)
+        self.progress = status.progress
+        self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
+        self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
+        self.all_time_upload = status.all_time_upload
+        self.all_time_download = status.all_time_download
+        self.finished_time = status.finished_time
                     
     def set_files(self):
         metainfo = self.tdef.get_metainfo()
@@ -423,6 +470,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle is not None and not isinstance(self.tdef, TorrentDefNoMetainfo):
                 if self.dlstate == DLSTATUS_STOPPED:
                     self.pause_after_next_hashcheck = True
+                self.checkpoint_after_next_hashcheck = True
                 self.handle.resume()
                 self.handle.force_recheck()
                 
@@ -567,7 +615,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle is None:
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: network_get_state: Download not running"
-                ds = DownloadState(self, DLSTATUS_STOPPED, self.error, self.progressbeforestop)
+                ds = DownloadState(self, DLSTATUS_WAITING4HASHCHECK, self.error, self.progressbeforestop)
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
                 ds = DownloadState(self, status, self.error, self.get_progress(), stats = stats, seeding_stats = seeding_stats, filepieceranges = self.filepieceranges, logmsgs = logmsgs)
@@ -613,8 +661,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.handle = None
                 else:
                     self.handle.pause()
-                    pstate['engineresumedata'] = self.handle.write_resume_data() if getattr(self.handle.status(), 'has_metadata', False) else None
-                    self.dlstate = DLSTATUS_STOPPED
+                    pstate['engineresumedata'] = self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None
                 self.pstate_for_restart = pstate
             else:
                 # This method is also called at Session shutdown, where one may
@@ -659,6 +706,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         # Called by any thread 
         if DEBUG:
             print >>sys.stderr,"LibtorrentDownloadImpl: restart:", self.tdef.get_name()
+        
         with self.dllock:
             if self.handle is None:
                 self.error = None
@@ -728,7 +776,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def checkpoint(self):
         """ Called by any thread """
-        self.network_checkpoint()
+        (infohash, pstate) = self.network_checkpoint()
+        checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
+        self.session.lm.rawserver.add_task(checkpoint, 0)
     
     def network_checkpoint(self):
         """ Called by network thread """
@@ -738,7 +788,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle == None:
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart['engineresumedata']
-            elif getattr(self.handle.status(), 'has_metadata', False):
+            elif isinstance(self.tdef, TorrentDef):
                 resdata = self.handle.write_resume_data()
             pstate['engineresumedata'] = resdata
             return (self.tdef.get_infohash(), pstate)
