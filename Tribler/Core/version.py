@@ -1,10 +1,2 @@
-#!/usr/bin/env python
-
-#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#
-###                                                                   ###
-###  This file will be overwritten when building a package/installer! ###
-###                                                                   ###
-#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#WARNING!#
-
-version_id='GIT'
-build_date='0/0/0'
+version_id = "6.2.0-GIT"
+build_date = "Thu Apr 18 17:12:34 2013"
