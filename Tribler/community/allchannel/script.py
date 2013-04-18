@@ -26,13 +26,13 @@ class AllChannelScenarioScript(ScenarioScriptBase):
         self._dispersy.define_auto_load(ChannelCommunity, (), {"integrate_with_tribler":False})
         self._dispersy.define_auto_load(PreviewChannelCommunity, (), {"integrate_with_tribler":False})
 
-    def join_community(self, my_member):
+    def join_community(self, dispersy, my_member):
         self.my_member = my_member
 
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403cbbfd2dfb67a7db66c88988df56f93fa6e7f982f9a6a0fa8898492c8b8cae23e10b159ace60b7047012082a5aa4c6e221d7e58107bb550436d57e046c11ab4f51f0ab18fa8f58d0346cc12d1cc2b61fc86fe5ed192309152e11e3f02489e30c7c971dd989e1ce5030ea0fb77d5220a92cceb567cbc94bc39ba246a42e215b55e9315b543ddeff0209e916f77c0d747".decode("HEX")
-        master = Member(master_key)
+        master = dispersy.get_member(master_key)
 
-        return AllChannelCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler = False)
+        return AllChannelCommunity.join_community(dispersy, master, self.my_member, self.my_member, integrate_with_tribler = False)
 
     def execute_scenario_cmds(self, commands):
         torrents = []
@@ -42,7 +42,7 @@ class AllChannelScenarioScript(ScenarioScriptBase):
 
             if cur_command[0] == 'create':
                 log(self._logfile, "creating-community")
-                self.my_channel = ChannelCommunity.create_community(self.my_member, integrate_with_tribler = False)
+                self.my_channel = ChannelCommunity.create_community(self._dispersy, self.my_member, integrate_with_tribler = False)
 
                 log(self._logfile, "creating-channel-message")
                 self.my_channel.create_channel(u'', u'')
