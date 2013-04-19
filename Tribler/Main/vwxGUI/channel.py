@@ -513,39 +513,20 @@ class SelectedChannelList(GenericSearchList):
         wx.CallAfter(gui_call)
     
     @warnWxThread
-    def OnRemoveVote(self, event):
+    def OnRemoveFavorite(self, event):
         self.guiutility.RemoveFavorite(event, self.channel)
     
     @warnWxThread
     def OnFavorite(self, event = None):
         self.guiutility.MarkAsFavorite(event, self.channel)
+
+    @warnWxThread
+    def OnRemoveSpam(self, event):
+        self.guiutility.RemoveSpam(event, self.channel)
     
     @warnWxThread
     def OnSpam(self, event):
-        channel = self.channel
-        if channel:
-            dialog = wx.MessageDialog(None, "Are you sure you want to report %s's channel as spam?" % self.title, "Report spam", wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
-            if dialog.ShowModal() == wx.ID_YES:
-                self._DoSpam(channel)
-            
-            if event:
-                button = event.GetEventObject()
-                button.Enable(False)
-                wx.CallLater(5000, button.Enable, True)
-            
-            dialog.Destroy()
-        
-    @forcePrioDBThread
-    def _DoSpam(self, channel):
-        #Set self.channel to None to prevent updating twice
-        id = channel.id
-        self.channel = None
-        self.channelsearch_manager.spam(id)
-        
-        self.uelog.addEvent(message="ChannelList: user marked a channel as spam", type = 2)
-            
-        manager = self.GetManager()
-        wx.CallAfter(manager.reload, id)     
+        self.guiutility.MarkAsSpam(event, self.channel)
     
     @warnWxThread
     def OnManage(self, event):

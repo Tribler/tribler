@@ -1328,9 +1328,9 @@ class ChannelHeader(ListItemHeader):
             if open2edit or allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
             if channel.my_vote == -1:
-                item.AddButton("This is not Spam", self.parent_list.OnRemoveVote, 4)
+                item.AddButton("This is not Spam", self.parent_list.OnRemoveSpam, 4)
             elif channel.my_vote == 2:
-                item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote, 4)
+                item.AddButton("Remove Favorite", self.parent_list.OnRemoveFavorite, 4)
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
     
