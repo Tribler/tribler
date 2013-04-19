@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from hashlib import sha1
 from itertools import islice
 from time import time
@@ -26,7 +29,6 @@ import sys
 from random import sample
 
 if __debug__:
-    from Tribler.dispersy.dprint import dprint
     from Tribler.dispersy.tool.lencoder import log
 
 CHANNELCAST_FIRST_MESSAGE = 3.0
@@ -387,7 +389,7 @@ class AllChannelCommunity(Community):
                     communities[cid] = self._get_channel_community(cid)
 
             for message in messages:
-                if __debug__: dprint(message)
+                logger.debug("%s", message)
 
                 community = communities.get(message.payload.cid)
                 if community:
@@ -416,7 +418,7 @@ class AllChannelCommunity(Community):
         if self.integrate_with_tribler:
             votelist = []
             for message in messages:
-                if __debug__: dprint(message)
+                logger.debug("%s", message)
                 dispersy_id = message.packet_id
                 channel_id = getattr(message, "channel_id", 0)
 
@@ -463,10 +465,10 @@ class AllChannelCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except KeyError:
             if self.auto_join_channel:
-                if __debug__: dprint("join channel community ", cid.encode("HEX"))
+                logger.debug("join channel community %s", cid.encode("HEX"))
                 return ChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
             else:
-                if __debug__: dprint("join preview community ", cid.encode("HEX"))
+                logger.debug("join preview community %s", cid.encode("HEX"))
                 return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def unload_preview(self):
@@ -475,8 +477,7 @@ class AllChannelCommunity(Community):
 
             cleanpoint = time() - 300
             inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
-            if __debug__:
-                dprint("cleaning ", len(inactive), "/", len(self.dispersy._communities), " previewchannel communities")
+            logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
             for community in inactive:
                 community.unload_community()
