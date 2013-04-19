@@ -410,7 +410,7 @@ class NetworkPanel(HomePanel):
             nr_channels = self.channelcastdb.getNrChannels()
             self._UpdateStats(stats, nr_channels)
 
-        startWorker(None, db_callback, uId ="NetworkPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId =u"NetworkPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, stats, nr_channels):
@@ -577,7 +577,7 @@ class DispersyPanel(HomePanel):
             self.dispersy.statistics.update(database=includeStuffs)
             self._UpdateStats(self.dispersy.statistics)
 
-        startWorker(None, db_callback, uId ="DispersyPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId =u"DispersyPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, stats):
@@ -722,7 +722,7 @@ class NewTorrentPanel(HomePanel):
             if torrent:
                 self._UpdateStats(torrent)
 
-        startWorker(None, db_callback, uId ="NewTorrentPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId =u"NewTorrentPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, torrent):
@@ -762,7 +762,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
             self._RefreshList(topTen)
 
-        startWorker(None, db_callback, uId ="PopularTorrentPanel_RefreshList",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId =u"PopularTorrentPanel_RefreshList",priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -878,7 +878,7 @@ class BuzzPanel(wx.Panel):
 
             if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
                 self.OnRefreshTimer(force = True, fromDBThread = True)
-        startWorker(None, do_db, uId="NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
+        startWorker(None, do_db, uId=u"NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
