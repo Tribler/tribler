@@ -1,4 +1,8 @@
 # Written by Niels Zeilemaker
+
+import logging
+logger = logging.getLogger(__name__)
+
 import sys
 from os import path
 from time import time
@@ -31,9 +35,6 @@ from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt
 from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
-
-if __debug__:
-    from Tribler.dispersy.dprint import dprint
 
 DEBUG = False
 DEBUG_VERBOSE = False
@@ -132,19 +133,19 @@ class SearchCommunity(Community):
             if cycle < 2:
                 # poke bootstrap peers
                 for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    if __debug__: dprint("extra walk to ", candidate)
+                    logger.debug("extra walk to %s", candidate)
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
             candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once=True) if candidate]
             for candidate in candidates:
-                if __debug__: dprint("extra walk to ", candidate)
+                logger.debug("extra walk to %s", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
 
             # wait for NAT hole punching
             yield 1.0
 
-        if __debug__: dprint("finished")
+        logger.debug("finished")
 
     def initiate_meta_messages(self):
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self._dispersy._generic_timeline_check, self.on_search),
@@ -775,7 +776,7 @@ class SearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except KeyError:
-            if __debug__: dprint("join preview community ", cid.encode("HEX"))
+            logger.debug("join preview community %s", cid.encode("HEX"))
             return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):

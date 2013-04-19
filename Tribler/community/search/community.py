@@ -1,4 +1,8 @@
 #Written by Niels Zeilemaker
+
+import logging
+logger = logging.getLogger(__name__)
+
 import sys
 from time import time
 from random import shuffle
@@ -30,9 +34,6 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler,\
 from Tribler.Core.TorrentDef import TorrentDef
 from os import path
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-
-if __debug__:
-    from Tribler.dispersy.dprint import dprint
 
 DEBUG = False
 SWIFT_INFOHASHES = 0
@@ -105,19 +106,19 @@ class SearchCommunity(Community):
             if cycle < 2:
                 # poke bootstrap peers
                 for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    if __debug__: dprint("extra walk to ", candidate)
+                    logger.debug("extra walk to %s", candidate)
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
             candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once = True) if candidate]
             for candidate in candidates:
-                if __debug__: dprint("extra walk to ", candidate)
+                logger.debug("extra walk to %s", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
 
             # wait for NAT hole punching
             yield 1.0
 
-        if __debug__: dprint("finished")
+        logger.debug("finished")
 
     def initiate_meta_messages(self):
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self.check_search, self.on_search),
@@ -451,11 +452,11 @@ class SearchCommunity(Community):
             self._create_pingpong(u"torrent-collect-request", candidates)
 
     def check_torrent_collect_request(self, messages):
-        if __debug__: dprint(len(messages))
+        logger.debug("%d messages received", len(messages))
         return messages
 
     def on_torrent_collect_request(self, messages):
-        if __debug__: dprint(len(messages))
+        logger.debug("%d messages received", len(messages))
         candidates = [message.candidate for message in messages]
         identifiers = [message.payload.identifier for message in messages]
 
@@ -463,20 +464,20 @@ class SearchCommunity(Community):
         self.on_torrent_collect_response(messages, verifyRequest = False)
 
     def check_torrent_collect_response(self, messages):
-        if __debug__: dprint(len(messages))
+        logger.debug("%d messages received", len(messages))
         return messages
 
     def on_torrent_collect_response(self, messages, verifyRequest = True):
-        if __debug__: dprint(len(messages))
+        logger.debug("%d messages received", len(messages))
         toInsert = {}
         toCollect = {}
         toPopularity = {}
         for message in messages:
             if verifyRequest:
                 pong_request = self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.PingRequestCache)
-                if __debug__: dprint("pop", pong_request.helper_candidate if pong_request else " (unknown)")
+                logger.debug("pop %s", pong_request.helper_candidate if pong_request else "unknown")
             else:
-                if __debug__: dprint("no-pop")
+                logger.debug("no-pop")
                 pong_request = True
 
             if pong_request and message.payload.hashtype == SWIFT_INFOHASHES:
@@ -611,7 +612,7 @@ class SearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except KeyError:
-            if __debug__: dprint("join preview community ", cid.encode("HEX"))
+            logger.debug("join preview community %s", cid.encode("HEX"))
             return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
