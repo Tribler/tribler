@@ -552,7 +552,7 @@ class ABCApp():
 
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
-            startWorker(do_wx, do_db, uId="tribler.set_reputation")
+            startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
     # def _dispersy_get_effort_community(self):

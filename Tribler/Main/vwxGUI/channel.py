@@ -116,7 +116,7 @@ class ChannelManager(BaseManager):
                 self._on_data(total_items, nrfiltered, torrentList, playlists)
         
         if self.list.channel:
-            startWorker(do_gui, db_callback, uId = "ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(do_gui, db_callback, uId = u"ChannelManager_refresh_list_%d"%self.list.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -773,7 +773,7 @@ class PlaylistManager(BaseManager):
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
             
         if self.list.playlist:            
-            startWorker(self._on_data, db_call, uId = "PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(self._on_data, db_call, uId = u"PlaylistManager_refresh_list_%d"%self.list.playlist.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         
     @forceDBThread
     def refresh_partial(self, ids):
@@ -904,7 +904,7 @@ class ManageChannelFilesManager(BaseManager):
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents = False)
         
-        startWorker(self._on_data, db_call, uId = "ManageChannelFilesManager_refresh_%d"%self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_data, db_call, uId = u"ManageChannelFilesManager_refresh_%d"%self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -1051,7 +1051,7 @@ class ManageChannelPlaylistsManager(BaseManager):
             _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.channel)
             return playlistList
         
-        startWorker(self.list.SetDelayedData, db_call, uId = "ManageChannelPlaylistsManager_refresh_%d"%self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self.list.SetDelayedData, db_call, uId = u"ManageChannelPlaylistsManager_refresh_%d"%self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
        
     def refresh_partial(self, playlist_id):
         startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True,priority=GUI_PRI_DISPERSY)
