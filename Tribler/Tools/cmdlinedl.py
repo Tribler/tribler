@@ -124,7 +124,7 @@ def main():
         raise ValueError("cmdlinedl does not support live torrents")
 
     d = s.start_download(cdef, dscfg)
-    d.set_state_callback(state_callback, getpeerlist=False)
+    d.set_state_callback(state_callback, getpeerlist=[])
 
     #
     # loop while waiting for CTRL-C (or any other signal/interrupt)

@@ -1138,11 +1138,20 @@ class LibraryDetails(TorrentDetails):
         
         # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
         # so only do it when needed for display.
-        self.guiutility.library_manager.set_want_peers(True)
+        self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=True)
         
     def __del__(self):
         TorrentDetails.__del__(self)
-        self.guiutility.library_manager.set_want_peers(False)
+        self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=False)
+        
+    def getHashes(self):
+        hashes = []
+        if self.torrent:
+            if self.torrent.swift_hash:            
+                hashes.append(self.torrent.swift_hash)
+            if self.torrent.infohash:            
+                hashes.append(self.torrent.infohash)
+        return hashes
          
     @forceWxThread
     def _timeout(self):
