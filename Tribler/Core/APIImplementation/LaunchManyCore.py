@@ -658,12 +658,15 @@ class TriblerLaunchMany(Thread):
         if (tdef or sdef) and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
-                    if tdef:
-                        initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
-                        self.add(tdef, dscfg, pstate, initialdlstatus, commit=commit, setupDelay=setupDelay)
+                    if not self.download_exists((tdef or sdef).get_id()):
+                        if tdef:
+                            initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
+                            self.add(tdef, dscfg, pstate, initialdlstatus, commit=commit, setupDelay=setupDelay)
+                        else:
+                            initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
+                            self.swift_add(sdef, dscfg, pstate, initialdlstatus)
                     else:
-                        initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
-                        self.swift_add(sdef, dscfg, pstate, initialdlstatus)
+                        print >> sys.stderr, "tlm: not resuming checkpoint because download has already been added"
 
                 except Exception, e:
                     self.rawserver_nonfatalerrorfunc(e)
