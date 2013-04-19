@@ -847,7 +847,7 @@ class LibraryManager:
 
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
-            startWorker(None, self.updateProgressInDB, uId="LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(None, self.updateProgressInDB, uId=u"LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         return self.wantpeerdownloadstates
 

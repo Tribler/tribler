@@ -133,7 +133,7 @@ class RemoteSearchManager(BaseManager):
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
         delay = 0.5 if remote else 0.0
         workerType = "guiTaskQueue" if remote else "dbThread"
-        startWorker(self._on_refresh, db_callback, delay=delay, uId = "RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = workerType, priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_refresh, db_callback, delay=delay, uId = u"RemoteSearchManager_refresh_%s"%self.oldkeywords, retryOnBusy=True, workerType = workerType, priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
@@ -157,7 +157,7 @@ class RemoteSearchManager(BaseManager):
             [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
             return total_channels
         
-        startWorker(self._on_refresh_channel, db_callback, uId = "RemoteSearchManager_refresh_channel_%s"%self.oldkeywords, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_refresh_channel, db_callback, uId = u"RemoteSearchManager_refresh_channel_%s"%self.oldkeywords, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
     
     def _on_refresh_channel(self, delayedResult):
         self.list.SetNrChannels(delayedResult.get())
@@ -217,7 +217,7 @@ class LocalSearchManager(BaseManager):
         self.prev_refresh_if = 0
     
     def refresh(self):
-        startWorker(self._on_data, self.library_manager.getHitsInCategory, uId = "LocalSearchManager_refresh", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_data, self.library_manager.getHitsInCategory, uId = u"LocalSearchManager_refresh", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
     
     def refresh_partial(self, ids):
         for infohash in ids:
@@ -236,7 +236,7 @@ class LocalSearchManager(BaseManager):
         if force or diff > 30:
             self.prev_refresh_if = time()
 
-            startWorker(None, db_call, uId="LocalSearchManager_refresh_if_exists", retryOnBusy=True,priority=GUI_PRI_DISPERSY)
+            startWorker(None, db_call, uId=u"LocalSearchManager_refresh_if_exists", retryOnBusy=True,priority=GUI_PRI_DISPERSY)
         else:
             print >> sys.stderr, long(time()), "Not scheduling a refresh, update limit", long(time()), long(self.prev_refresh_if)
             
@@ -334,7 +334,7 @@ class ChannelSearchManager(BaseManager):
                     total_items, data = self.channelsearch_manager.getMyChannels()                   
                 return data, category
             
-            startWorker(self._on_data_delayed, db_callback, uId = "ChannelSearchManager_refresh_%s"%category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(self._on_data_delayed, db_callback, uId = u"ChannelSearchManager_refresh_%s"%category, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         else:
             if search_results:
@@ -377,7 +377,7 @@ class ChannelSearchManager(BaseManager):
                         channel.torrents = oldChannel.torrents
             
                 self.list.RefreshData(id, channel)
-        startWorker(do_gui, do_db, uId = "ChannelSearchManager_refresh_partial", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(do_gui, do_db, uId = u"ChannelSearchManager_refresh_partial", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
       
     def SetCategory(self, category, force_refresh = False):
         if category != self.category:

@@ -84,6 +84,9 @@ class GUIDBProducer():
                 print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)"%name
             return
 
+        assert uId is None or isinstance(uId, unicode), type(uId)
+        assert name is None or isinstance(name, unicode), type(name)
+
         if uId:
             try:
                 self.uIdsLock.acquire()
@@ -159,7 +162,7 @@ class GUIDBProducer():
                 print_exc()
                 print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)"%name
 
-        wrapper.__name__ = name
+        wrapper.__name__ = str(name)
 
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
@@ -298,11 +301,11 @@ def startWorker(
             try:
                 filename, line, function, text = extract_stack(limit = 2)[0]
                 _, filename = os.path.split(filename)
-                jobID = "%s:%s (%s)"%(filename, line, function)
+                jobID = u"%s:%s (%s)"%(filename, line, function)
             except:
                 pass
         else:
-            jobID = str(randint(1,10000000))
+            jobID = unicode(randint(1,10000000))
 
     result = ASyncDelayedResult(jobID)
     app = wx.GetApp()
