@@ -45,7 +45,7 @@ def print_version():
 def states_callback(dslist):
     for ds in dslist:
         state_callback(ds)
-    return (STATUS_REPORT_INTERVAL, False)
+    return (STATUS_REPORT_INTERVAL, [])
 
 # Print torrent statistics
 def state_callback(ds):
@@ -93,7 +93,7 @@ def start_download(s,cdef,output_dir,listenport):
 
         
     d = s.start_download(cdef, dscfg)
-    d.set_state_callback(state_callback, getpeerlist=False)
+    d.set_state_callback(state_callback, getpeerlist=[])
     return d
     
 

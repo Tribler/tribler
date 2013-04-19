@@ -55,7 +55,7 @@ def states_callback(dslist):
         print >>sys.stderr,"All seeding, checkpointing Session to enable quick restart"
         sesjun.checkpoint()
         
-    return (1.0, False)
+    return (1.0, [])
 
 def state_callback(ds):
     d = ds.get_download()
@@ -127,7 +127,7 @@ def main():
     s = Session(sscfg)
     global sesjun
     sesjun = s
-    s.set_download_states_callback(states_callback, getpeerlist=False)
+    s.set_download_states_callback(states_callback, getpeerlist=[])
     
     # Restore previous Session
     s.load_checkpoint()

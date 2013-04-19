@@ -399,7 +399,7 @@ class WebIFPathMapper(AbstractPathMapper):
         self.upspeed = upspeed
 
         # Arno,2010-07-16: Continuous
-        return (1.0, False)
+        return (1.0, [])
 
 
     def statusPage(self):
