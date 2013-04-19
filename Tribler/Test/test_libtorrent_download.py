@@ -128,7 +128,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
     def startTest(self, callback):
         def wait_for_libtorrent():
             ltmgr = LibtorrentMgr.getInstance()
-            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 100, callback)
+            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
 
         TestGuiAsServer.startTest(self, wait_for_libtorrent)
 
