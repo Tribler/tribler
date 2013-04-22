@@ -612,7 +612,7 @@ class ABCApp():
                     self.barter_community = None
                 else:
                     if True in self.lastwantpeers:
-                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist,))
+                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
 
                     # only request peer info every 120 intervals
                     if self.ratestatecallbackcount % 120 == 0:

@@ -12,6 +12,8 @@ class BarterConversion(BinaryConversion):
         self.define_meta_message(chr(1), community.get_meta_message(u"barter-record"), self._encode_barter_record, self._decode_barter_record)
         self.define_meta_message(chr(2), community.get_meta_message(u"ping"), self._encode_ping_pong, self._decode_ping_pong)
         self.define_meta_message(chr(3), community.get_meta_message(u"pong"), self._encode_ping_pong, self._decode_ping_pong)
+        self.define_meta_message(chr(4), community.get_meta_message(u"member-request"), self._encode_identifier, self._decode_identifier)
+        self.define_meta_message(chr(5), community.get_meta_message(u"member-response"), self._encode_identifier, self._decode_identifier)
 
     def _encode_barter_record(self, message):
         payload = message.payload
@@ -65,7 +67,7 @@ class BarterConversion(BinaryConversion):
         if len(data) < offset + 3:
             raise DropPacket("Insufficient packet size (_decode_ping_pong)")
 
-        key_length, identifier, = self._struct_BH.unpack_from(data, offset)
+        key_length, identifier = self._struct_BH.unpack_from(data, offset)
         offset += 3
 
         if len(data) < offset + key_length:
@@ -77,3 +79,15 @@ class BarterConversion(BinaryConversion):
         offset += key_length
 
         return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier, member)
+
+    def _encode_identifier(self, message):
+        return self._struct_Q.pack(message.payload.identifier),
+
+    def _decode_identifier(self, placeholder, offset, data):
+        if len(data) < offset + 8:
+            raise DropPacket("Insufficient packet size (_decode_identifier)")
+
+        identifier, = self._struct_Q.unpack_from(data, offset)
+        offset += 8
+
+        return offset, placeholder.meta.payload.Implementation(placeholder.meta.payload, identifier)

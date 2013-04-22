@@ -13,11 +13,11 @@ from time import time
 from .conversion import BarterConversion
 from .database import BarterDatabase
 from .efforthistory import CYCLE_SIZE, EffortHistory
-from .payload import BarterRecordPayload, PingPayload, PongPayload
+from .payload import BarterRecordPayload, PingPayload, PongPayload, MemberRequestPayload, MemberResponsePayload
 
 from Tribler.dispersy.callback import Callback
-from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication
-from Tribler.dispersy.candidate import WalkCandidate
+from Tribler.dispersy.authentication import DoubleMemberAuthentication, NoAuthentication, MemberAuthentication
+from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate, Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
@@ -63,6 +63,14 @@ class PingCache(Cache):
         if isinstance(self.candidate, WalkCandidate):
             self.candidate.obsolete(self.community, time())
 
+class MemberRequestCache(Cache):
+    def __init__(self, func):
+        super(MemberRequestCache, self).__init__()
+        self.func = func
+
+    def on_timeout(self):
+        logger.warning("unable to find missing member [id:%d]", self.identifier)
+
 class RecordCandidate(object):
     """
     Container class for a candidate that is on our slope.
@@ -94,20 +102,22 @@ class BarterCommunity(Community):
         return [dispersy.get_member(MASTER_MEMBER_PUBLIC_KEY)]
 
     @classmethod
-    def load_community(cls, dispersy, master, **kargs):
+    def load_community(cls, dispersy, master, *args, **kargs):
         try:
             # test if this community already exists
             classification, = next(dispersy.database.execute(u"SELECT classification FROM community WHERE master = ?", (master.database_id,)))
         except StopIteration:
             # join the community with a new my_member, using a cheap cryptography key
-            return cls.join_community(dispersy, master, dispersy.get_new_member(u"NID_secp160r1"), **kargs)
+            return cls.join_community(dispersy, master, dispersy.get_new_member(u"NID_secp160r1"), *args, **kargs)
         else:
             if classification == cls.get_classification():
-                return super(BarterCommunity, cls).load_community(dispersy, master, **kargs)
+                return super(BarterCommunity, cls).load_community(dispersy, master, *args, **kargs)
             else:
                 raise RuntimeError("Unable to load an BarterCommunity that has been killed")
 
     def __init__(self, dispersy, master, swift_process):
+        logger.debug("loading the Barter community")
+
         # original walker callbacks (will be set during super(...).__init__)
         self._original_on_introduction_request = None
         self._original_on_introduction_response = None
@@ -125,10 +135,24 @@ class BarterCommunity(Community):
 
         # _DATABASE stores all direct observations and indirect hearsay
         self._database = BarterDatabase(self._dispersy)
+        self._database.open()
+
+        options = dict(self._database.execute(u"SELECT key, value FROM option"))
+        # _TOTAL_UP and _TOTAL_DOWN contain the total up and down statistics received from swift
+        self._total_up = long(options.get(u"total-up", 0L))
+        self._total_down = long(options.get(u"total-down", 0L))
+        # _UNKNOWN_UP and _UNKNOWN_DOWN contain the total up and down statistics received from swift
+        # where we were able to associate to a Dispersy member
+        self._associated_up = long(options.get(u"associated-up", 0L))
+        self._associated_down = long(options.get(u"associated-down", 0L))
 
         # _BOOKS cache (reduce _DATABASE access)
         self._books_length = 512
         self._books = OrderedDict()
+
+        # _ADDRESS_ASSOCIATION
+        self._address_association_length = 512
+        self._address_association = OrderedDict()
 
         # _DOWNLOAD_STATES contains all peers that are currently downloading.  when we determine
         # that a peer is missing, we will update its bandwidth statistics
@@ -169,6 +193,8 @@ class BarterCommunity(Community):
         return [Message(self, u"barter-record", DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request, encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record, batch=BatchConfiguration(max_window=4.5)),
                 Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self.check_ping, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
+                Message(self, u"member-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MemberRequestPayload(), self.check_member_request, self.on_member_request),
+                Message(self, u"member-response", MemberAuthentication(encoding="bin"), PublicResolution(), DirectDistribution(), CandidateDestination(), MemberResponsePayload(), self.check_member_response, self.on_member_response),
                 ]
 
     def _initialize_meta_messages(self):
@@ -197,6 +223,7 @@ class BarterCommunity(Community):
         return super(BarterCommunity, self).dispersy_cleanup_community(message)
 
     def unload_community(self):
+        logger.debug("unloading the Barter community")
         super(BarterCommunity, self).unload_community()
 
         # unsubscribe from events.  22/03/13 Boudewijn: Dispersy is not allowed to call swift
@@ -212,11 +239,18 @@ class BarterCommunity(Community):
         self._slope = {}
 
         # update all up and download values
-        self.download_state_callback([])
+        self.download_state_callback([], False)
 
         # store all cached bookkeeping
         self._database.executemany(u"INSERT OR REPLACE INTO book (member, cycle, effort, upload, download) VALUES (?, ?, ?, ?, ?)",
                                    [(book.member.database_id, book.cycle, buffer(book.effort.bytes), book.upload, book.download) for book in self._books.itervalues()])
+
+        # store bandwidth counters
+        self._database.executemany(u"INSERT OR REPLACE INTO option (key, value) VALUES (?, ?)",
+                                   [(u"total-up", buffer(str(self._total_up))),
+                                    (u"total-down", buffer(str(self._total_down))),
+                                    (u"associated-up", buffer(str(self._associated_up))),
+                                    (u"associated-down", buffer(str(self._associated_down)))])
 
         # close database
         self._database.close()
@@ -249,21 +283,71 @@ class BarterCommunity(Community):
                                        (old.member.database_id, old.cycle, buffer(old.effort.bytes), old.upload, old.download))
         return book
 
+    def update_book_from_address(self, swift_address, timestamp, bytes_up, bytes_down, delayed=True):
+        """
+        Updates the book associated with SWIFT_ADDRESS.
+
+        When we do not yet know the book associated with SWIFT_ADDRESS we will attempt to retrieve
+        this information, the update will only occur when this is successful.
+        """
+        assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
+
+        def _update(member):
+            if member:
+                book = self.get_book(member)
+                book.cycle = max(book.cycle, int(timestamp / CYCLE_SIZE))
+                book.upload += bytes_up
+                book.download += bytes_down
+
+                self._associated_up += bytes_up
+                self._associated_down += bytes_down
+                return True
+            return False
+
+        def _delayed_update(response):
+            logger.debug("retrieved member %s from swift address %s:%d [id:%d]",
+                         response.authentication.member.mid.encode("HEX"),
+                         swift_address[0],
+                         swift_address[1],
+                         identifier)
+            return _update(response.authentication.member)
+
+        self._total_up += bytes_up
+        self._total_down += bytes_down
+
+        if not _update(self._address_association.get(swift_address)):
+            # we do not have the member associated to the address, we will attempt to retrieve it
+            cache = MemberRequestCache(_delayed_update)
+            identifier = self._dispersy.request_cache.claim(cache)
+            meta = self._meta_messages[u"member-request"]
+            request = meta.impl(distribution=(self.global_time,),
+                                destination=(Candidate(swift_address, True),), # assume tunnel=True
+                                payload=(identifier,))
+            logger.debug("trying to obtain member from swift address %s:%d [id:%d]",
+                         swift_address[0],
+                         swift_address[1],
+                         identifier)
+            self._dispersy.store_update_forward([request], False, False, True)
+
     def i2ithread_channel_close(self, *args):
         self._dispersy.callback.register(self._channel_close, args)
 
     def _channel_close(self, roothash_hex, address, raw_bytes_up, raw_bytes_down, cooked_bytes_up, cooked_bytes_down):
+        assert isinstance(roothash_hex, str), type(roothash_hex)
+        assert isinstance(address, tuple), type(address)
+        assert isinstance(raw_bytes_up, (int, long)), type(raw_bytes_up)
+        assert isinstance(raw_bytes_down, (int, long)), type(raw_bytes_down)
+        assert isinstance(cooked_bytes_up, (int, long)), type(cooked_bytes_up)
+        assert isinstance(cooked_bytes_down, (int, long)), type(cooked_bytes_down)
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
         logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
+        if cooked_bytes_up or cooked_bytes_down:
+            self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=False)
 
-        # TODO use the swift tunnel to retrieve the public key on the other side of the connection
-        # book = self.get_book(address)
-        # book.upload += cooked_bytes_up
-        # book.download += cooked_bytes_down
-
-    def download_state_callback(self, states):
+    def download_state_callback(self, states, delayed):
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
-        assert isinstance(states, list)
+        assert isinstance(states, list), type(states)
+        assert isinstance(delayed, bool), type(delayed)
         timestamp = int(time())
 
         # get all swift downloads that have peers
@@ -284,28 +368,24 @@ class BarterCommunity(Community):
 
         # find downloads that stopped
         for identifier in set(old.iterkeys()).difference(set(active.iterkeys())):
-            for ip, (up, down) in old[identifier].iteritems():
-                logger.debug("%s]  %s  +%d   -%d", identifier.encode("HEX"), ip, up, down)
-                # TODO use the swift tunnel to retrieve the public key on the other side of the connection
-                # guess = self._get_bandwidth_guess_from_ip(ip)
-                # guess.timestamp = timestamp
-                # guess.upload += up
-                # guess.download += down
+            for address, (up, down) in old[identifier].iteritems():
+                logger.debug("%s]  %s:%d  +%d   -%d", identifier.encode("HEX"), address[0], address[1], up, down)
+                self.update_book_from_address(address, timestamp, up, down, delayed=delayed)
 
         for identifier, state in active.iteritems():
             if identifier in old:
                 # find peers that left
-                for ip in set(old[identifier]).difference(set(peer["ip"] for peer in state.get_peerlist())):
-                    up, down = old[identifier][ip]
-                    logger.debug("%s]  %s  +%d   -%d", identifier.encode("HEX"), ip, up, down)
-                    # TODO use the swift tunnel to retrieve the public key on the other side of the connection
-                    # guess = self._get_bandwidth_guess_from_ip(ip)
-                    # guess.timestamp = timestamp
-                    # guess.upload += up
-                    # guess.download += down
+                for address in set(old[identifier]).difference(set((peer["ip"], peer["port"]) for peer in state.get_peerlist())):
+                    up, down = old[identifier][address]
+                    logger.debug("%s]  %s:%d  +%d   -%d", identifier.encode("HEX"), address[0], address[1], up, down)
+                    self.update_book_from_address(address, timestamp, up, down, delayed=delayed)
 
             # set OLD for the next call to DOWNLOAD_STATE_CALLBACK
-            new[identifier] = dict((peer["ip"], (peer["utotal"], peer["dtotal"])) for peer in state.get_peerlist() if peer["utotal"] > 0.0 or peer["dtotal"] > 0.0)
+            new[identifier] = dict(((str(peer["ip"]), peer["port"]),
+                                    (long(peer["utotal"] * 1024), long(peer["dtotal"] * 1024)))
+                                   for peer
+                                   in state.get_peerlist()
+                                   if peer["utotal"] > 0.0 or peer["dtotal"] > 0.0)
 
     def on_introduction_request(self, messages):
         try:
@@ -313,10 +393,13 @@ class BarterCommunity(Community):
         finally:
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
-                book = self.get_book(message.authentication.member)
-                if book.cycle < cycle:
-                    book.cycle = cycle
-                    book.effort.set(cycle * CYCLE_SIZE)
+                if not isinstance(message.candidate, BootstrapCandidate):
+                    logger.debug("received introduction-request message from %s", message.candidate)
+
+                    book = self.get_book(message.authentication.member)
+                    if book.cycle < cycle:
+                        book.cycle = cycle
+                        book.effort.set(cycle * CYCLE_SIZE)
 
     def on_introduction_response(self, messages):
         try:
@@ -324,10 +407,13 @@ class BarterCommunity(Community):
         finally:
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
-                book = self.get_book(message.authentication.member)
-                if book.cycle < cycle:
-                    book.cycle = cycle
-                    book.effort.set(cycle * CYCLE_SIZE)
+                if not isinstance(message.candidate, BootstrapCandidate):
+                    logger.debug("received introduction-request message from %s", message.candidate)
+
+                    book = self.get_book(message.authentication.member)
+                    if book.cycle < cycle:
+                        book.cycle = cycle
+                        book.effort.set(cycle * CYCLE_SIZE)
 
     def create_barter_record(self, second_member):
         """
@@ -620,3 +706,26 @@ class BarterCommunity(Community):
         logger.debug("storing %d barter records", len(messages))
         self._database.executemany(u"INSERT OR REPLACE INTO record (sync, first_member, second_member, global_time, cycle, effort, upload_first_to_second, upload_second_to_first, first_timestamp, second_timestamp, first_upload, first_download, second_upload, second_download) VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?)",
                                    (ordering(message) for message in messages))
+
+    def check_member_request(self, messages):
+        # stupidly accept everything...
+        return messages
+
+    def on_member_request(self, messages):
+        meta = self._meta_messages[u"member-response"]
+        responses = [meta.impl(distribution=(self._global_time,),
+                               destination=(request.candidate,),
+                               payload=(request.payload.identifier,))
+                     for request
+                     in messages]
+        self._dispersy.store_update_forward(responses, False, False, True)
+
+    def check_member_response(self, messages):
+        # stupidly accept everything...
+        return messages
+
+    def on_member_response(self, messages):
+        for message in messages:
+            cache = self._dispersy.request_cache.pop(message.payload.identifier, MemberRequestCache)
+            if cache:
+                cache.func(message, cache)

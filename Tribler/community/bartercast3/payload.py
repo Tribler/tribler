@@ -41,3 +41,15 @@ class PongPayload(Payload):
             super(PongPayload.Implementation, self).__init__(meta)
             self.identifier = identifier
             self.member = member
+
+class MemberRequestPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier):
+            super(MemberRequestPayload.Implementation, self).__init__(meta)
+            self.identifier = identifier
+
+class MemberResponsePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, identifier):
+            super(MemberResponsePayload.Implementation, self).__init__(meta)
+            self.identifier = identifier
