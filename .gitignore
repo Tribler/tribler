@@ -2,3 +2,4 @@
 *.pyo
 swift
 /.Tribler/
+/.noseids
