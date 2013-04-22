@@ -52,7 +52,14 @@ class BarterDatabase(Database):
     def __init__(self, dispersy):
         self._dispersy = dispersy
         super(BarterDatabase, self).__init__(path.join(dispersy.working_directory, u"sqlite", u"barter.db"))
-        dispersy.database.attach_commit_callback(self.commit)
+
+    def open(self):
+        self._dispersy.database.attach_commit_callback(self.commit)
+        return super(BarterDatabase, self).open()
+
+    def close(self, commit=True):
+        self._dispersy.database.detach_commit_callback(self.commit)
+        return super(BarterDatabase, self).close(commit)
 
     def cleanup(self):
         self.executescript(cleanup)
