@@ -471,7 +471,7 @@ class ABCApp():
         self.ratestatecallbackcount = 0
 
         # So we know if we asked for peer details last cycle
-        self.lastwantpeers = False
+        self.lastwantpeers = []
 
         # boudewijn 01/04/2010: hack to fix the seedupload speed that
         # was never used and defaulted to 0 (unlimited upload)
@@ -597,7 +597,7 @@ class ABCApp():
                         no_collected_list.append(ds)
                 # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
                 # so only do it when needed for display.
-                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
+                wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
             except:
                 print_exc()
 
@@ -611,12 +611,12 @@ class ABCApp():
                     # community resulting in the HardKilledCommunity instead
                     self.barter_community = None
                 else:
-                    if self.lastwantpeers:
+                    if True in self.lastwantpeers:
                         self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist,))
 
                     # only request peer info every 120 intervals
                     if self.ratestatecallbackcount % 120 == 0:
-                        wantpeers = True
+                        wantpeers.append(True)
 
             # Find State of currently playing video
             playds = None
