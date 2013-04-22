@@ -95,7 +95,7 @@ class TestVideoOnDemand(TestAsServer):
                 ds.get_current_speed(UPLOAD), \
                 ds.get_current_speed(DOWNLOAD))
     
-        return (1.0, False)
+        return (1.0, [])
 
 
     def sesscb_vod_event_callback(self,d,event,params):

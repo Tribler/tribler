@@ -49,7 +49,7 @@ if __name__ == "__main__":
     #dcfg.set_selected_files('field-trip-west-siberia.avi')
 
     d = s.start_download(tdef,dcfg)
-    d.set_state_callback(state_callback,1)
+    d.set_state_callback(state_callback,True)
     #d.set_max_upload(100)
 
     time.sleep(10)

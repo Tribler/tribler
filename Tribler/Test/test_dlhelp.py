@@ -115,7 +115,7 @@ class TestDownloadHelp(TestAsServer):
         for ds in dslist:
             print >>sys.stderr,"stats: coordinator",`ds.get_doe_list()`
             print >>sys.stderr,"stats: helpers",`ds.get_proxy_list()`
-        return (0.5,False)
+        return (0.5,[])
 
     #
     # Good 2fast

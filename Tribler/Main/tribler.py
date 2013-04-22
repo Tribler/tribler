@@ -12,6 +12,9 @@
 # see LICENSE.txt for license information
 #########################################################################
 
+import logging.config
+logging.config.fileConfig("logger.conf")
+
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
 # freakout when "http://www.tribler.org/version" is redirected to
@@ -563,9 +566,9 @@ class ABCApp():
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return (5.0, False)
+            return (5.0, [])
 
-        wantpeers = False
+        wantpeers = []
         self.ratestatecallbackcount += 1
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -614,7 +617,6 @@ class ABCApp():
                     # only request peer info every 120 intervals
                     if self.ratestatecallbackcount % 120 == 0:
                         wantpeers = True
-
 
             # Find State of currently playing video
             playds = None
