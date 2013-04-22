@@ -122,6 +122,7 @@ class SwiftProcess:
             return
 
         words = cmd.split()
+        assert all(isinstance(word, str) for word in words)
 
         if words[0] == "TUNNELRECV":
             address, session = words[1].split("/")
@@ -148,6 +149,7 @@ class SwiftProcess:
             elif words[0] == "CLOSE_EVENT":
                 roothash_hex = words[1]
                 address = words[2].split(":")
+                address = (address[0], int(address[1]))
                 raw_bytes_up = int(words[3])
                 raw_bytes_down = int(words[4])
                 cooked_bytes_up = int(words[5])
