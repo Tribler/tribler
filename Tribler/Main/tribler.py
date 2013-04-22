@@ -12,6 +12,9 @@
 # see LICENSE.txt for license information
 #########################################################################
 
+import logging.config
+logging.config.fileConfig("logger.conf")
+
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
 # freakout when "http://www.tribler.org/version" is redirected to
