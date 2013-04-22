@@ -6,7 +6,7 @@ from binascii import hexlify, unhexlify
 from Tribler.dispersy.decorator import Constructor, constructor
 
 # a cycle is defined as a N second period
-CYCLE_SIZE = 60.0
+CYCLE_SIZE = 60.0 * 30
 
 # the number of bits used per history
 BIT_COUNT = 64 * 8
