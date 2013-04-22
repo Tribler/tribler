@@ -305,11 +305,15 @@ class BarterCommunity(Community):
             return False
 
         def _delayed_update(response):
+            member = response.authentication.member
             logger.debug("retrieved member %s from swift address %s:%d [id:%d]",
-                         response.authentication.member.mid.encode("HEX"),
+                         member.mid.encode("HEX"),
                          swift_address[0],
                          swift_address[1],
                          identifier)
+            self._address_association[swift_address] = member
+            if len(self._address_association) > self._address_association_length:
+                self._address_association.popitem(False)
             return _update(response.authentication.member)
 
         self._total_up += bytes_up
