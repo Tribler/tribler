@@ -145,7 +145,7 @@ class TestProxyServiceAsCoordinator(TestAsServer):
             print >>sys.stderr,"stats: coordinator",`ds.get_doe_list()`
             print >>sys.stderr,"stats: helpers",`ds.get_proxy_list()`
         print >>sys.stderr, ""
-        return (0.5,False)
+        return (0.5,[])
 
     # Creates dictionary with the correct (good) commands used by the coordinator to test the helper
     def get_genresdict(self):

@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
 
     d = s.start_download(tdef,dscfg)
-    d.set_state_callback(state_callback,getpeerlist=False)
+    d.set_state_callback(state_callback)
 
     while True:
         try:

@@ -491,17 +491,17 @@ class TriblerLaunchMany(Thread):
             self.sesslock.release()
 
         for d in dllist:
-            if d.get_def().get_def_type() == "swift":
-                # Arno, 2012-05-23: At Niels' request to get total transferred
-                # stats. Causes MOREINFO message to be sent from swift proc
-                # for every initiated dl.
-                # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
-                d.set_moreinfo_stats(getpeerlist)
+            # Arno, 2012-05-23: At Niels' request to get total transferred
+            # stats. Causes MOREINFO message to be sent from swift proc
+            # for every initiated dl.
+            # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
+            # 2013-04-17: Libtorrent now uses set_moreinfo_stats as well.
+            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_id() in getpeerlist)
 
-        network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback, getpeerlist)
+        network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback)
         self.rawserver.add_task(network_set_download_states_callback_lambda, when)
 
-    def network_set_download_states_callback(self, usercallback, getpeerlist):
+    def network_set_download_states_callback(self, usercallback):
         """ Called by network thread """
         self.sesslock.acquire()
         try:
@@ -517,7 +517,7 @@ class TriblerLaunchMany(Thread):
         dslist = []
         for d in dllist:
             try:
-                ds = d.network_get_state(None, getpeerlist, sessioncalling=True)
+                ds = d.network_get_state(None, False, sessioncalling=True)
                 dslist.append(ds)
             except:
                 # Niels, 2012-10-18: If Swift connection is crashing, it will raise an exception

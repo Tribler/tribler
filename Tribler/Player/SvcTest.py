@@ -168,7 +168,7 @@ def run_test(params = None):
 
     d = s.start_download( tdef, dcfg )
 
-    d.set_state_callback(state_callback,getpeerlist=False)
+    d.set_state_callback(state_callback)
     print >>sys.stderr,"main: Saving content to", d.get_dest_files()
 
     while True:

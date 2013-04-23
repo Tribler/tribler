@@ -373,7 +373,7 @@ class BaseApp(wx.App,InstanceConnectionHandler):
         wx.CallAfter(self.gui_states_callback_wrapper,dslist,haspeerlist)
 
         #print >>sys.stderr,"main: SessStats:",self.getpeerlistcount,getpeerlist,haspeerlist
-        return (1.0,getpeerlist)
+        return (1.0,[getpeerlist])
 
 
     def gui_states_callback_wrapper(self,dslist,haspeerlist):

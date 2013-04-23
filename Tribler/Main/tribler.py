@@ -12,6 +12,9 @@
 # see LICENSE.txt for license information
 #########################################################################
 
+import logging.config
+logging.config.fileConfig("logger.conf")
+
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
 # freakout when "http://www.tribler.org/version" is redirected to
@@ -540,7 +543,7 @@ class ABCApp():
 
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
-            startWorker(do_wx, do_db, uId="tribler.set_reputation")
+            startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
     # def _dispersy_get_effort_community(self):
@@ -551,9 +554,9 @@ class ABCApp():
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return (5.0, False)
+            return (5.0, [])
 
-        wantpeers = False
+        wantpeers = []
         self.ratestatecallbackcount += 1
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
@@ -600,7 +603,7 @@ class ABCApp():
 
             #         # only request peer info every 120 intervals
             #         if self.ratestatecallbackcount % 120 == 0:
-            #             wantpeers = True
+            #             wantpeers.append(True)
 
 
             # Find State of currently playing video

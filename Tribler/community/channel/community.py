@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from random import expovariate, choice, randint
 from struct import pack
 from time import sleep
@@ -28,7 +31,6 @@ import binascii
 from Tribler.Core.Utilities.utilities import str2bin
 
 if __debug__:
-    from Tribler.dispersy.dprint import dprint
     from Tribler.dispersy.tool.lencoder import log
 
 class MissingChannelCache(MissingSomethingCache):
@@ -307,9 +309,8 @@ class ChannelCommunity(Community):
 
     def _disp_on_channel(self, messages):
         for message in messages:
-            if __debug__:
-                assert self._cid == self._master_member.mid
-                dprint(message.candidate, " ", self._cid.encode("HEX"))
+            assert self._cid == self._master_member.mid
+            logger.debug("%s %s", message.candidate, self._cid.encode("HEX"))
 
             authentication_member = message.authentication.member
             if authentication_member == self._my_member:
@@ -367,7 +368,7 @@ class ChannelCommunity(Community):
     def _disp_on_torrent(self, messages):
         torrentlist = []
         for message in messages:
-            if __debug__: dprint(message)
+            logger.debug("%s", message)
 
             dispersy_id = message.packet_id
             authentication_member = message.authentication.member
@@ -442,7 +443,7 @@ class ChannelCommunity(Community):
 
     def _disp_on_playlist(self, messages):
         for message in messages:
-            if __debug__: dprint(message)
+            logger.debug("%s", message)
             dispersy_id = message.packet_id
             authentication_member = message.authentication.member
             if authentication_member == self._my_member:
@@ -517,7 +518,7 @@ class ChannelCommunity(Community):
 
     def _disp_on_comment(self, messages):
         for message in messages:
-            if __debug__: dprint(message)
+            logger.debug("%s", message)
 
             dispersy_id = message.packet_id
 
@@ -603,8 +604,7 @@ class ChannelCommunity(Community):
             try:
                 latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
             except:
-                from Tribler.dispersy.dprint import dprint
-                dprint(exception=1, force=1)
+                logger.error(exc_info=True)
 
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
@@ -680,7 +680,7 @@ class ChannelCommunity(Community):
         playlistDict = {}
 
         for message in messages:
-            if __debug__: dprint(message)
+            logger.debug("%s", message)
 
             dispersy_id = message.packet_id
             message_name = message.payload.modification_on.name
@@ -873,7 +873,7 @@ class ChannelCommunity(Community):
             cache = MissingChannelCache(timeout)
             self._dispersy.request_cache.set(identifier, cache)
 
-            if __debug__: dprint(candidate, " sending missing-channel ", self._cid.encode("HEX"))
+            logger.debug("%s sending missing-channel %s", candidate, self._cid.encode("HEX"))
             meta = self._meta_messages[u"missing-channel"]
             request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
             self._dispersy.store_update_forward([request], False, False, True)
@@ -978,7 +978,7 @@ class ChannelCommunity(Community):
 
     def _disp_on_moderation(self, messages):
         for message in messages:
-            if __debug__: dprint(message)
+            logger.debug("%s", message)
 
             dispersy_id = message.packet_id
 
