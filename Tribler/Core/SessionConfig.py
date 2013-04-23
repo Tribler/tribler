@@ -155,24 +155,6 @@ class SessionConfigInterface:
         @return list """
         return self.sessconfig['bind']
 
-    def set_upnp_mode(self, value):
-        """ Use to autoconfigure a UPnP router to forward the UDP/TCP listen
-        port to this host:
-        <pre>
-         * UPNPMODE_DISABLED: Autoconfigure turned off.
-         * UPNPMODE_WIN32_HNetCfg_NATUPnP: Use Windows COM interface (slow)
-         * UPNPMODE_WIN32_UPnP_UPnPDeviceFinder: Use Windows COM interface (faster)
-         * UPNPMODE_UNIVERSAL_DIRECT: Talk UPnP directly to the network (best)
-        </pre>
-        @param value UPNPMODE_*
-        """
-        self.sessconfig['upnp_nat_access'] = value
-
-    def get_upnp_mode(self):
-        """ Returns the UPnP mode set.
-        @return UPNPMODE_* """
-        return self.sessconfig['upnp_nat_access']
-
     def set_autoclose_timeout(self, value):
         """ Time to wait between closing sockets which nothing has been received
         on.
@@ -1100,54 +1082,6 @@ class SessionConfigInterface:
     #
     # _ProxyService
 
-
-    #
-    # NAT Puncturing servers information setting
-    #
-    def set_nat_detect(self, value):
-        """ Whether to try to detect the type of Network Address Translator
-        in place.
-        @param value Boolean.
-        """
-        self.sessconfig['nat_detect'] = value
-
-    def set_puncturing_internal_port(self, puncturing_internal_port):
-        """ The listening port of the puncturing module.
-        @param puncturing_internal_port integer. """
-        self.sessconfig['puncturing_internal_port'] = puncturing_internal_port
-
-    def set_stun_servers(self, stun_servers):
-        """ The addresses of the STUN servers (at least 2)
-        @param stun_servers List of (hostname/ip,port) tuples. """
-        self.sessconfig['stun_servers'] = stun_servers
-
-    def set_pingback_servers(self, pingback_servers):
-        """ The addresses of the pingback servers (at least 1)
-        @param pingback_servers List of (hostname/ip,port) tuples. """
-        self.sessconfig['pingback_servers'] = pingback_servers
-
-    # Puncturing servers information retrieval
-    def get_nat_detect(self):
-        """ Whether to try to detect the type of Network Address Translator
-        in place.
-        @return Boolean
-        """
-        return self.sessconfig['nat_detect']
-
-    def get_puncturing_internal_port(self):
-        """ Returns the listening port of the puncturing module.
-        @return integer. """
-        return self.sessconfig['puncturing_internal_port']
-
-    def get_stun_servers(self):
-        """ Returns the addresses of the STUN servers.
-        @return List of (hostname/ip,port) tuples. """
-        return self.sessconfig['stun_servers']
-
-    def get_pingback_servers(self):
-        """ Returns the addresses of the pingback servers.
-        @return List of (hostname/ip,port) tuples. """
-        return self.sessconfig['pingback_servers']
 
     #
     # Crawler
