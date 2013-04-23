@@ -80,6 +80,22 @@ class RecordCandidate(object):
         self.candidate = candidate
         self.callback_id = callback_id
 
+class Association(object):
+    def __init__(self):
+        self.timestamp = 0.0
+        self.member = None
+
+    def retrieve(self):
+        """
+        Returns True when this association may be updated again.
+        """
+        now = time()
+        if now - self.timestamp > 60.0:
+            self.timestamp = now
+            return True
+
+        return False
+
 class Book(object):
     """
     Container class for all the bookkeeping information per peer.
@@ -150,7 +166,7 @@ class BarterCommunity(Community):
         self._books_length = 512
         self._books = OrderedDict()
 
-        # _ADDRESS_ASSOCIATION
+        # _ADDRESS_ASSOCIATION containing address:Association pairs
         self._address_association_length = 512
         self._address_association = OrderedDict()
 
@@ -319,7 +335,11 @@ class BarterCommunity(Community):
         self._total_up += bytes_up
         self._total_down += bytes_down
 
-        if not _update(self._address_association.get(swift_address)):
+        association = self._address_association.get(swift_address, Association())
+        if association.member:
+            _update(association.member)
+
+        elif delayed and association.retrieve():
             # we do not have the member associated to the address, we will attempt to retrieve it
             cache = MemberRequestCache(_delayed_update)
             identifier = self._dispersy.request_cache.claim(cache)
@@ -332,6 +352,11 @@ class BarterCommunity(Community):
                          swift_address[1],
                          identifier)
             self._dispersy.store_update_forward([request], False, False, True)
+
+        else:
+            logger.debug("not yet allowed to obtain member from swift address %s:%d",
+                         swift_address[0],
+                         swift_address[1])
 
     def i2ithread_channel_close(self, *args):
         self._dispersy.callback.register(self._channel_close, args)
