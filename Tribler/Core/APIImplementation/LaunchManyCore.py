@@ -12,6 +12,7 @@ import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
 from traceback import print_exc, print_stack
 import traceback
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 try:
     prctlimported = True
@@ -117,7 +118,7 @@ class TriblerLaunchMany(Thread):
             if swift_exists:
                 self.spm = SwiftProcessMgr(config['swiftpath'], config['swiftcmdlistenport'], config['swiftdlsperproc'], self.session.get_swift_tunnel_listen_port(), self.sesslock)
                 try:
-                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
+                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
                 except OSError:
                     # could not find/run swift
                     print >> sys.stderr, "lmc: could not start a swift process"
@@ -145,7 +146,7 @@ class TriblerLaunchMany(Thread):
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
                 self.dispersy.start()
-                print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
+                print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
 
             else:
                 # new database stuff will run on only one thread
@@ -241,7 +242,7 @@ class TriblerLaunchMany(Thread):
                     self.dispersy.define_auto_load(ChannelCommunity, load=True)
                     self.dispersy.define_auto_load(PreviewChannelCommunity)
                 self.dispersy.callback.call(define_communities)
-                print >>sys.stderr, "lmc: Dispersy communities are ready"
+                print >> sys.stderr, "lmc: Dispersy communities are ready"
 
                 # notify dispersy finished loading
                 self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
@@ -283,6 +284,13 @@ class TriblerLaunchMany(Thread):
                 mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'])
             except:
                 print_exc()
+
+        maxup = self.utility.config.Read('maxuploadrate', "int")
+        maxdown = self.utility.config.Read('maxdownloadrate', "int")
+
+        self.ltmgr = LibtorrentMgr.getInstance(self.session)
+        self.ltmgr.set_upload_rate_limit(maxup * 1024)
+        self.ltmgr.set_download_rate_limit(maxdown * 1024)
 
         # add task for tracker checking
         self.torrent_checking = None
@@ -710,7 +718,7 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.shutdown()
 
         if self.dispersy:
-            print >>sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
+            print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
             self.dispersy.stop(666.666)
 
         if self.session.sessconfig['megacache']:
@@ -759,6 +767,11 @@ class TriblerLaunchMany(Thread):
 
         # Arno, 2010-08-09: Stop Session pool threads only after gracetime
         self.session.uch.shutdown()
+
+        # Shutdown libtorrent session after checkpoints have been made
+        if self.ltmgr:
+            self.ltmgr.shutdown()
+        LibtorrentMgr.delInstance()
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
@@ -819,25 +832,13 @@ class TriblerLaunchMany(Thread):
             self._run()
 
     def start_upnp(self):
-        """ Arno: as the UPnP discovery and calls to the firewall can be slow,
-        do it in a separate thread. When it fails, it should report popup
-        a dialog to inform and help the user. Or report an error in textmode.
-
-        Must save type here, to handle case where user changes the type
-        In that case we still need to delete the port mapping using the old mechanism
-
-        Called by network thread """
-
         if DEBUG:
             print >> sys.stderr, "tlm: start_upnp()"
+
         self.set_activity(NTFY_ACT_UPNP)
+
         self.upnp_thread = UPnPThread(self.upnp_type, self.locally_guessed_ext_ip, self.listen_port, self.upnp_failed_callback, self.upnp_got_ext_ip_callback)
         self.upnp_thread.start()
-
-    def stop_upnp(self):
-        """ Called by network thread """
-        if self.upnp_type > 0:
-            self.upnp_thread.shutdown()
 
     def upnp_failed_callback(self, upnp_type, listenport, error_type, exc=None, listenproto='TCP'):
         """ Called by UPnP thread TODO: determine how to pass to API user

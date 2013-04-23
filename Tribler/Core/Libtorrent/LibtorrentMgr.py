@@ -18,12 +18,11 @@ class LibtorrentMgr:
     # Code to make this a singleton
     __single = None
 
-    def __init__(self, trsession, utility):
+    def __init__(self, trsession):
         if LibtorrentMgr.__single:
             raise RuntimeError, "LibtorrentMgr is singleton"
         LibtorrentMgr.__single = self
 
-        self.utility = utility
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
