@@ -51,7 +51,7 @@ class TestExtendHandshake(TestAsServer):
         # Let Tribler start downloading an non-functioning torrent, so
         # we can talk to a normal download engine.
 
-        self.torrentfn = os.path.join('extend_hs_dir','dummydata.merkle.torrent')
+        self.torrentfn = os.path.join(os.path.dirname(__file__), 'extend_hs_dir','dummydata.merkle.torrent')
         tdef = TorrentDef.load(self.torrentfn)
 
         dscfg = self.setUpDownloadConfig()
@@ -66,7 +66,6 @@ class TestExtendHandshake(TestAsServer):
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(self.config_path)
         return dscfg
-
 
     def test_all(self):
         """
