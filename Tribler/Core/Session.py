@@ -23,11 +23,11 @@ from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandl
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core import NoDispersyRLock
 
-GOTM2CRYPTO=False
+GOTM2CRYPTO = False
 try:
     import M2Crypto
     import Tribler.Core.permid as permidmod
-    GOTM2CRYPTO=True
+    GOTM2CRYPTO = True
 except ImportError:
     pass
 
@@ -45,7 +45,7 @@ class Session(SessionRuntimeConfig):
     __single = None
 
 
-    def __init__(self,scfg=None,ignore_singleton=False):
+    def __init__(self, scfg=None, ignore_singleton=False):
         """
         A Session object is created which is configured following a copy of the
         SessionStartupConfig scfg. (copy constructor used internally)
@@ -69,7 +69,7 @@ class Session(SessionRuntimeConfig):
         self.sesslock = NoDispersyRLock()
 
         # Determine startup config to use
-        if scfg is None: # If no override
+        if scfg is None:  # If no override
             try:
                 # Then try to read from default location
                 state_dir = Session.get_default_state_dir()
@@ -80,13 +80,9 @@ class Session(SessionRuntimeConfig):
                 print_exc()
                 scfg = SessionStartupConfig()
             self.sessconfig = scfg.sessconfig
-        else: # overrides any saved config
+        else:  # overrides any saved config
             # Work from copy
             self.sessconfig = copy.copy(scfg.sessconfig)
-
-        #Niels: 11/05/2012, turning off overlay
-        self.sessconfig['overlay'] = 0
-        self.sessconfig['crawler'] = 0
 
         # Create dir for session state, if not exist
         state_dir = self.sessconfig['state_dir']
@@ -102,7 +98,7 @@ class Session(SessionRuntimeConfig):
             collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
             self.sessconfig['torrent_collecting_dir'] = collected_torrent_dir
 
-        collected_subtitles_dir = self.sessconfig.get('subtitles_collecting_dir',None)
+        collected_subtitles_dir = self.sessconfig.get('subtitles_collecting_dir', None)
         if not collected_subtitles_dir:
             collected_subtitles_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_SUBSCOLL_DIR)
             self.sessconfig['subtitles_collecting_dir'] = collected_subtitles_dir
@@ -117,7 +113,7 @@ class Session(SessionRuntimeConfig):
         # Let user handle that, he's got default_state_dir, etc.
 
         # Core init
-        #print >>sys.stderr,'Session: __init__ config is', self.sessconfig
+        # print >>sys.stderr,'Session: __init__ config is', self.sessconfig
 
         if GOTM2CRYPTO:
             permidmod.init()
@@ -127,23 +123,23 @@ class Session(SessionRuntimeConfig):
             #
             # 1. keypair
             #
-            pairfilename = os.path.join(self.sessconfig['state_dir'],'ec.pem')
+            pairfilename = os.path.join(self.sessconfig['state_dir'], 'ec.pem')
             if self.sessconfig['eckeypairfilename'] is None:
                 self.sessconfig['eckeypairfilename'] = pairfilename
 
-            if os.access(self.sessconfig['eckeypairfilename'],os.F_OK):
+            if os.access(self.sessconfig['eckeypairfilename'], os.F_OK):
                 # May throw exceptions
                 self.keypair = permidmod.read_keypair(self.sessconfig['eckeypairfilename'])
             else:
                 self.keypair = permidmod.generate_keypair()
 
                 # Save keypair
-                pubfilename = os.path.join(self.sessconfig['state_dir'],'ecpub.pem')
-                permidmod.save_keypair(self.keypair,pairfilename)
-                permidmod.save_pub_key(self.keypair,pubfilename)
+                pubfilename = os.path.join(self.sessconfig['state_dir'], 'ecpub.pem')
+                permidmod.save_keypair(self.keypair, pairfilename)
+                permidmod.save_pub_key(self.keypair, pubfilename)
 
         # 2. Downloads persistent state dir
-        dlpstatedir = os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+        dlpstatedir = os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR)
         if not os.path.isdir(dlpstatedir):
             os.mkdir(dlpstatedir)
 
@@ -153,7 +149,7 @@ class Session(SessionRuntimeConfig):
             os.mkdir(trackerdir)
 
         if self.sessconfig['tracker_dfile'] is None:
-            self.sessconfig['tracker_dfile'] = os.path.join(trackerdir,'tracker.db')
+            self.sessconfig['tracker_dfile'] = os.path.join(trackerdir, 'tracker.db')
 
         if self.sessconfig['tracker_allowed_dir'] is None:
             self.sessconfig['tracker_allowed_dir'] = trackerdir
@@ -168,14 +164,14 @@ class Session(SessionRuntimeConfig):
 
         # 5. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:
-            self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'],STATEDIR_PEERICON_DIR)
+            self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
             if not os.path.isdir(self.sessconfig['peer_icon_path']):
                 os.mkdir(self.sessconfig['peer_icon_path'])
 
         # 6. Poor man's versioning of SessionConfig, add missing
         # default values. Really should use PERSISTENTSTATE_CURRENTVERSION
         # and do conversions.
-        for key,defvalue in sessdefaults.iteritems():
+        for key, defvalue in sessdefaults.iteritems():
             if key not in self.sessconfig:
                 self.sessconfig[key] = defvalue
 
@@ -183,23 +179,15 @@ class Session(SessionRuntimeConfig):
             # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
             self.sessconfig['live_aux_seeders'] = sessdefaults['live_aux_seeders']
 
-        if not 'nat_detect' in self.sessconfig:
-            self.sessconfig['nat_detect'] = sessdefaults['nat_detect']
-        if not 'puncturing_internal_port' in self.sessconfig:
-            self.sessconfig['puncturing_internal_port'] = sessdefaults['puncturing_internal_port']
-        if not 'stun_servers' in self.sessconfig:
-            self.sessconfig['stun_servers'] = sessdefaults['stun_servers']
-        if not 'pingback_servers' in self.sessconfig:
-            self.sessconfig['pingback_servers'] = sessdefaults['pingback_servers']
         if not 'mainline_dht' in self.sessconfig:
             self.sessconfig['mainline_dht'] = sessdefaults['mainline_dht']
 
         # SWIFTPROC
         if self.sessconfig['swiftpath'] is None:
             if sys.platform == "win32":
-                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'],"swift.exe")
+                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift.exe")
             else:
-                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'],"swift")
+                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift")
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
@@ -209,7 +197,7 @@ class Session(SessionRuntimeConfig):
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany()
-        self.lm.register(self,self.sesslock)
+        self.lm.register(self, self.sesslock)
         self.lm.start()
 
     #
@@ -278,13 +266,13 @@ class Session(SessionRuntimeConfig):
         """
         # locking by lm
         if cdef.get_def_type() == "torrent":
-            return self.lm.add(cdef,dcfg,initialdlstatus=initialdlstatus,hidden=hidden)
+            return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
         else:
             # SWIFTPROC
-            return self.lm.swift_add(cdef,dcfg,initialdlstatus=initialdlstatus,hidden=hidden)
+            return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
 
 
-    def resume_download_from_file(self,filename):
+    def resume_download_from_file(self, filename):
         """
         Recreates Download from resume file
 
@@ -311,7 +299,7 @@ class Session(SessionRuntimeConfig):
         # locking by lm
         return self.lm.get_download(hash)
 
-    def remove_download(self,d,removecontent=False, removestate=True, hidden=False):
+    def remove_download(self, d, removecontent=False, removestate=True, hidden=False):
         """
         Stops the download and removes it from the session.
         @param d The Download to remove
@@ -324,10 +312,10 @@ class Session(SessionRuntimeConfig):
         """
         # locking by lm
         if d.get_def().get_def_type() == "torrent":
-            self.lm.remove(d,removecontent=removecontent,removestate=removestate, hidden=hidden)
+            self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
         else:
             # SWIFTPROC
-            self.lm.swift_remove(d,removecontent=removecontent,removestate=removestate, hidden=hidden)
+            self.lm.swift_remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
 
     def remove_download_by_id(self, id, removecontent=False, removestate=True):
         """
@@ -341,14 +329,14 @@ class Session(SessionRuntimeConfig):
         downloadList = self.get_downloads()
         for download in downloadList:
             if download.get_def().get_id() == id:
-                self.remove_download(download,removecontent,removestate)
+                self.remove_download(download, removecontent, removestate)
                 return
 
         self.lm.remove_id(id)
         self.uch.perform_removestate_callback(id, [], False)
 
 
-    def set_download_states_callback(self,usercallback,getpeerlist=None):
+    def set_download_states_callback(self, usercallback, getpeerlist=None):
         """
         See Download.set_state_callback. Calls usercallback with a list of
         DownloadStates, one for each Download in the Session as first argument.
@@ -362,7 +350,7 @@ class Session(SessionRuntimeConfig):
 
         @param usercallback A function adhering to the above spec.
         """
-        self.lm.set_download_states_callback(usercallback,getpeerlist or [])
+        self.lm.set_download_states_callback(usercallback, getpeerlist or [])
 
 
     #
@@ -426,11 +414,11 @@ class Session(SessionRuntimeConfig):
         try:
             url = None
             if 'tracker_url' in self.sessconfig:
-                url = self.sessconfig['tracker_url'] # user defined override, e.g. specific hostname
+                url = self.sessconfig['tracker_url']  # user defined override, e.g. specific hostname
             if url is None:
                 ip = self.lm.get_ext_ip()
                 port = self.get_listen_port()
-                url = 'http://'+ip+':'+str(port)+'/announce/'
+                url = 'http://' + ip + ':' + str(port) + '/announce/'
             return url
         finally:
             self.sesslock.release()
@@ -445,11 +433,11 @@ class Session(SessionRuntimeConfig):
             if self.sessconfig['state_dir'] is None:
                 return None
             else:
-                return os.path.join(self.sessconfig['state_dir'],STATEDIR_ITRACKER_DIR)
+                return os.path.join(self.sessconfig['state_dir'], STATEDIR_ITRACKER_DIR)
         finally:
             self.sesslock.release()
 
-    def add_to_internal_tracker(self,tdef):
+    def add_to_internal_tracker(self, tdef):
         """ Add a torrent def to the list of torrents tracked by the internal
         tracker. Use this method to use the Session as a standalone tracker.
         @param tdef A finalized TorrentDef.
@@ -461,14 +449,14 @@ class Session(SessionRuntimeConfig):
             filename = self.get_internal_tracker_torrentfilename(infohash)
             tdef.save(filename)
 
-            print >>sys.stderr,"Session: add_to_int_tracker: saving to",filename,"url-compat",tdef.get_url_compat()
+            print >> sys.stderr, "Session: add_to_int_tracker: saving to", filename, "url-compat", tdef.get_url_compat()
 
             # Bring to attention of Tracker thread
             self.lm.tracker_rescan_dir()
         finally:
             self.sesslock.release()
 
-    def remove_from_internal_tracker(self,tdef):
+    def remove_from_internal_tracker(self, tdef):
         """ Remove a torrent def from the list of torrents tracked by the
         internal tracker. Use this method to use the Session as a standalone
         tracker.
@@ -477,7 +465,7 @@ class Session(SessionRuntimeConfig):
         infohash = tdef.get_infohash()
         self.remove_from_internal_tracker_by_infohash(infohash)
 
-    def remove_from_internal_tracker_by_infohash(self,infohash):
+    def remove_from_internal_tracker_by_infohash(self, infohash):
         """ Remove a torrent def from the list of torrents tracked by the
         internal tracker. Use this method to use the Session as a standalone
         tracker.
@@ -488,8 +476,8 @@ class Session(SessionRuntimeConfig):
         try:
             filename = self.get_internal_tracker_torrentfilename(infohash)
             if DEBUG:
-                print >>sys.stderr,"Session: removing itracker entry",filename
-            if os.access(filename,os.F_OK):
+                print >> sys.stderr, "Session: removing itracker entry", filename
+            if os.access(filename, os.F_OK):
                 os.remove(filename)
             # Bring to attention of Tracker thread
             self.lm.tracker_rescan_dir()
@@ -499,7 +487,7 @@ class Session(SessionRuntimeConfig):
     #
     # Notification of events in the Session
     #
-    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID = None, cache = 0):
+    def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID=None, cache=0):
         """ Add an observer function function to the Session. The observer
         function will be called when one of the specified events (changeTypes)
         occurs on the specified subject.
@@ -522,16 +510,16 @@ class Session(SessionRuntimeConfig):
         TODO: Jelle will add per-subject/event description here ;o)
 
         """
-        #Called by any thread
-        self.uch.notifier.add_observer(func, subject, changeTypes, objectID, cache=cache) # already threadsafe
+        # Called by any thread
+        self.uch.notifier.add_observer(func, subject, changeTypes, objectID, cache=cache)  # already threadsafe
 
     def remove_observer(self, func):
         """ Remove observer function. No more callbacks will be made.
         @param func The observer function to remove. """
-        #Called by any thread
-        self.uch.notifier.remove_observer(func) # already threadsafe
+        # Called by any thread
+        self.uch.notifier.remove_observer(func)  # already threadsafe
 
-    def open_dbhandler(self,subject):
+    def open_dbhandler(self, subject):
         """ Opens a connection to the specified database. Only the thread
         calling this method may use this connection. The connection must be
         closed with close_dbhandler() when this thread exits.
@@ -565,12 +553,12 @@ class Session(SessionRuntimeConfig):
             elif subject == NTFY_CHANNELCAST:
                 return self.lm.channelcast_db
             else:
-                raise ValueError('Cannot open DB subject: '+subject)
+                raise ValueError('Cannot open DB subject: ' + subject)
         finally:
             self.sesslock.release()
 
 
-    def close_dbhandler(self,dbhandler):
+    def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
 
@@ -579,7 +567,7 @@ class Session(SessionRuntimeConfig):
     #
     # Persistence and shutdown
     #
-    def load_checkpoint(self,initialdlstatus=None, initialdlstatus_dict = {}):
+    def load_checkpoint(self, initialdlstatus=None, initialdlstatus_dict={}):
         """ Restart Downloads from checkpoint, if any.
 
         This method allows the API user to manage restoring downloads.
@@ -595,19 +583,19 @@ class Session(SessionRuntimeConfig):
 
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir. """
-        #Called by any thread
-        self.checkpoint_shutdown(stop=False,checkpoint=True,gracetime=None,hacksessconfcheckpoint=False)
+        # Called by any thread
+        self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
 
-    def shutdown(self,checkpoint=True,gracetime=2.0,hacksessconfcheckpoint=True):
+    def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.
         @param checkpoint Whether to checkpoint the Session state on shutdown.
         @param gracetime Time to allow for graceful shutdown + signoff (seconds).
         """
         # Called by any thread
         self.lm.early_shutdown()
-        self.checkpoint_shutdown(stop=True,checkpoint=checkpoint,gracetime=gracetime,hacksessconfcheckpoint=hacksessconfcheckpoint)
+        self.checkpoint_shutdown(stop=True, checkpoint=checkpoint, gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
         # Arno, 2010-08-09: now shutdown after gracetime
-        #self.uch.shutdown()
+        # self.uch.shutdown()
 
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal
@@ -623,11 +611,11 @@ class Session(SessionRuntimeConfig):
         # Called by network thread
         self.sesslock.acquire()
         try:
-            return os.path.join(self.sessconfig['state_dir'],STATEDIR_DLPSTATE_DIR)
+            return os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR)
         finally:
             self.sesslock.release()
 
-    def download_torrentfile(self, infohash = None, roothash = None, usercallback = None, prio = 0):
+    def download_torrentfile(self, infohash=None, roothash=None, usercallback=None, prio=0):
         """ Try to download the torrentfile without a known source.
         A possible source could be the DHT.
         If the torrent is succesfully
@@ -642,9 +630,9 @@ class Session(SessionRuntimeConfig):
         from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
         rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrent(None,infohash,roothash,usercallback,prio)
+        rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
 
-    def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio = 0):
+    def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully
         received, the usercallback method is called with the infohash as first
@@ -660,9 +648,9 @@ class Session(SessionRuntimeConfig):
         from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
         rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrent(candidate,infohash,roothash,usercallback,prio)
+        rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
 
-    def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio = 0):
+    def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully
         received, the usercallback method is called with the infohash as first
@@ -678,12 +666,12 @@ class Session(SessionRuntimeConfig):
         from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
         rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrentmessages(candidate,infohashes,usercallback,prio)
+        rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
 
     #
     # Internal persistence methods
     #
-    def checkpoint_shutdown(self,stop,checkpoint,gracetime,hacksessconfcheckpoint):
+    def checkpoint_shutdown(self, stop, checkpoint, gracetime, hacksessconfcheckpoint):
         """ Checkpoints the Session and optionally shuts down the Session.
         @param stop Whether to shutdown the Session as well.
         @param checkpoint Whether to checkpoint at all, or just to stop.
@@ -700,13 +688,13 @@ class Session(SessionRuntimeConfig):
             if hacksessconfcheckpoint:
                 try:
                     self.save_pstate_sessconfig()
-                except Exception,e:
+                except Exception, e:
                     self.lm.rawserver_nonfatalerrorfunc(e)
 
             # Checkpoint all Downloads and stop NetworkThread
             if DEBUG or stop:
-                print >>sys.stderr,"Session: checkpoint_shutdown"
-            self.lm.checkpoint(stop=stop,checkpoint=checkpoint,gracetime=gracetime)
+                print >> sys.stderr, "Session: checkpoint_shutdown"
+            self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
         finally:
             self.sesslock.release()
 
@@ -722,50 +710,15 @@ class Session(SessionRuntimeConfig):
         """ Return the name of the file where a session config is saved by default.
         @return A filename
         """
-        return os.path.join(state_dir,STATEDIR_SESSCONFIG)
+        return os.path.join(state_dir, STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
 
 
-    def get_internal_tracker_torrentfilename(self,infohash):
+    def get_internal_tracker_torrentfilename(self, infohash):
         """ Return the absolute pathname of the torrent file used by the
         internal tracker.
         @return A filename
         """
         trackerdir = self.get_internal_tracker_dir()
-        basename = binascii.hexlify(infohash)+'.torrent' # ignore .tribe stuff, not vital
-        return os.path.join(trackerdir,basename)
-
-    def get_nat_type(self, callback=None):
-        """ Return the type of Network Address Translator (NAT) detected.
-
-        When a callback parameter is supplied it will always be
-        called. When the NAT-type is already known the callback will
-        be made instantly. Otherwise, the callback will be made when
-        the NAT discovery has finished.
-
-        The callback will be called by a popup thread which can be used
-        indefinitely (within reason) by the higher level code.
-
-        Return values:
-        "Blocked"
-        "Open Internet"
-        "Restricted Cone Firewall"
-        "Port Restricted Cone Firewall"
-        "Full Cone NAT"
-        "Restricted Cone NAT"
-        "Port Restricted Cone NAT"
-        "Symmetric NAT"
-        "Unknown NAT/Firewall"
-
-        @param callback Optional callback used to notify the NAT type
-        @return String
-        """
-        # TODO: define constants in simpledefs for these
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            from Tribler.Core.NATFirewall.ConnectionCheck import ConnectionCheck
-
-            return ConnectionCheck.getInstance(self).get_nat_type(callback=callback)
-        finally:
-            self.sesslock.release()
+        basename = binascii.hexlify(infohash) + '.torrent'  # ignore .tribe stuff, not vital
+        return os.path.join(trackerdir, basename)

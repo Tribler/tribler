@@ -352,8 +352,6 @@ class ABCApp():
             torrcolldir = os.path.join(destdir, STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
-            self.sconfig.set_nat_detect(True)
-
             # Arno, 2012-05-04: swift
             self.sconfig.set_swift_tunnel_listen_port(7758)
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
