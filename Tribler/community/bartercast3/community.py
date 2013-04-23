@@ -21,7 +21,7 @@ from Tribler.dispersy.candidate import WalkCandidate, BootstrapCandidate, Candid
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
-from Tribler.dispersy.distribution import LastSyncDistribution, DirectDistribution
+from Tribler.dispersy.distribution import LastSyncDistribution, DirectDistribution, GlobalTimePruning
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage
 from Tribler.dispersy.requestcache import Cache
 from Tribler.dispersy.resolution import PublicResolution
@@ -206,7 +206,8 @@ class BarterCommunity(Community):
         return self._dispersy_claim_sync_bloom_filter_modulo
 
     def initiate_meta_messages(self):
-        return [Message(self, u"barter-record", DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request, encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record, batch=BatchConfiguration(max_window=4.5)),
+        pruning = GlobalTimePruning(10000, 11000)
+        return [Message(self, u"barter-record", DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request, encoding="bin"), PublicResolution(), LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1, pruning=pruning), CommunityDestination(node_count=10), BarterRecordPayload(), self.check_barter_record, self.on_barter_record, batch=BatchConfiguration(max_window=4.5)),
                 Message(self, u"ping", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self.check_ping, self.on_ping),
                 Message(self, u"pong", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong),
                 Message(self, u"member-request", NoAuthentication(), PublicResolution(), DirectDistribution(), CandidateDestination(), MemberRequestPayload(), self.check_member_request, self.on_member_request),
@@ -369,7 +370,6 @@ class BarterCommunity(Community):
         assert isinstance(cooked_bytes_up, (int, long)), type(cooked_bytes_up)
         assert isinstance(cooked_bytes_down, (int, long)), type(cooked_bytes_down)
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
-        logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
         if cooked_bytes_up or cooked_bytes_down:
             logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
             self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=False)
