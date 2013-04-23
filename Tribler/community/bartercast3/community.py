@@ -371,6 +371,7 @@ class BarterCommunity(Community):
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
         logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
         if cooked_bytes_up or cooked_bytes_down:
+            logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
             self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=False)
 
     def download_state_callback(self, states, delayed):
