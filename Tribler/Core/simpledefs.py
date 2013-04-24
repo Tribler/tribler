@@ -3,7 +3,7 @@
 """ Simple definitions for the Tribler Core. """
 import os
 
-DLSTATUS_ALLOCATING_DISKSPACE = 0 # TODO: make sure this get set when in this alloc mode
+DLSTATUS_ALLOCATING_DISKSPACE = 0  # TODO: make sure this get set when in this alloc mode
 DLSTATUS_WAITING4HASHCHECK = 1
 DLSTATUS_HASHCHECKING = 2
 DLSTATUS_DOWNLOADING = 3
@@ -28,7 +28,7 @@ DOWNLOAD = 'down'
 
 DLMODE_NORMAL = 0
 DLMODE_VOD = 1
-DLMODE_SVC = 2 # Ric: added download mode for Scalable Video Coding (SVC)
+DLMODE_SVC = 2  # Ric: added download mode for Scalable Video Coding (SVC)
 
 PERSISTENTSTATE_CURRENTVERSION = 4
 """
@@ -62,10 +62,10 @@ NTFY_COMMENTS = 'comments'
 NTFY_MODIFICATIONS = 'modifications'
 NTFY_MARKINGS = 'markings'
 NTFY_MODERATIONS = 'moderations'
-NTFY_SUPERPEERS = 'superpeers' # use NTFY_PEERS !!
-NTFY_FRIENDS = 'friends'       # use NTFY_PEERS !!
-NTFY_MYPREFERENCES = 'mypreferences' # currently not observable
-NTFY_BARTERCAST = 'bartercast' # currently not observable
+NTFY_SUPERPEERS = 'superpeers'  # use NTFY_PEERS !!
+NTFY_FRIENDS = 'friends'  # use NTFY_PEERS !!
+NTFY_MYPREFERENCES = 'mypreferences'  # currently not observable
+NTFY_BARTERCAST = 'bartercast'  # currently not observable
 NTFY_MYINFO = 'myinfo'
 NTFY_SEEDINGSTATS = 'seedingstats'
 NTFY_SEEDINGSTATSSETTINGS = 'seedingstatssettings'
@@ -73,22 +73,22 @@ NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
 
 # non data handler subjects
-NTFY_ACTIVITIES = 'activities' # an activity was set (peer met/dns resolved)
-NTFY_REACHABLE = 'reachable'   # the Session is reachable from the Internet
-NTFY_PROXYDOWNLOADER = "proxydownloader" # the proxydownloader object was created
-NTFY_PROXYDISCOVERY= "proxydiscovery" # a new proxy was discovered
+NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
+NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet
+NTFY_PROXYDOWNLOADER = "proxydownloader"  # the proxydownloader object was created
+NTFY_PROXYDISCOVERY = "proxydiscovery"  # a new proxy was discovered
 # ProxyService 90s Test_
-#NTFY_GUI_STARTED = "guistarted"
+# NTFY_GUI_STARTED = "guistarted"
 # _ProxyService 90s Test
-NTFY_DISPERSY = 'dispersy'     # an notification regarding dispersy
+NTFY_DISPERSY = 'dispersy'  # an notification regarding dispersy
 
 # changeTypes
-NTFY_UPDATE = 'update'         # data is updated
-NTFY_INSERT = 'insert'         # new data is inserted
-NTFY_DELETE = 'delete'         # data is deleted
-NTFY_CREATE = 'create'         # new data is created, meaning in the case of Channels your own channel is created
-NTFY_SEARCH_RESULT = 'search_result'     # new search result
-NTFY_CONNECTION = 'connection' # connection made or broken
+NTFY_UPDATE = 'update'  # data is updated
+NTFY_INSERT = 'insert'  # new data is inserted
+NTFY_DELETE = 'delete'  # data is deleted
+NTFY_CREATE = 'create'  # new data is created, meaning in the case of Channels your own channel is created
+NTFY_SEARCH_RESULT = 'search_result'  # new search result
+NTFY_CONNECTION = 'connection'  # connection made or broken
 NTFY_STARTED = 'started'
 NTFY_STATE = 'state'
 NTFY_MODIFIED = 'modified'
@@ -116,12 +116,6 @@ DISKALLOC_BACKGROUND = 'background'
 DISKALLOC_PREALLOCATE = 'pre-allocate'
 DISKALLOC_SPARSE = 'sparse'
 
-# UPnP modes, see SessionConfig.set_upnp_mode
-UPNPMODE_DISABLED = 0
-UPNPMODE_WIN32_HNetCfg_NATUPnP = 1
-UPNPMODE_WIN32_UPnP_UPnPDeviceFinder = 2
-UPNPMODE_UNIVERSAL_DIRECT = 3
-
 # Buddycast Collecting Policy parameters
 BCCOLPOLICY_SIMPLE = 1
 # BCCOLPOLICY_T4T = 2 # Future work
@@ -132,7 +126,7 @@ ITRACKSCRAPE_ALLOW_SPECIFIC = 'specific'
 ITRACKSCRAPE_ALLOW_FULL = 'full'
 
 ITRACKDBFORMAT_BENCODE = 'bencode'
-ITRACKDBFORMAT_PICKLE= 'pickle'
+ITRACKDBFORMAT_PICKLE = 'pickle'
 
 ITRACKMULTI_ALLOW_NONE = 'none'
 ITRACKMULTI_ALLOW_AUTODETECT = 'autodetect'
@@ -152,15 +146,15 @@ PROXYSERVICE_ROLE_NONE = 'none-role'
 
 DOE_MODE_OFF = 0
 DOE_MODE_PRIVATE = 1
-DOE_MODE_SPEED= 2
+DOE_MODE_SPEED = 2
 
 PROXYSERVICE_OFF = 0
 PROXYSERVICE_ON = 1
 
 # Methods for authentication of the source in live streaming
-LIVE_AUTHMETHOD_NONE = "None"   # No auth, also no abs. piece nr. or timestamp.
-LIVE_AUTHMETHOD_ECDSA = "ECDSA" # Elliptic Curve DSA signatures
-LIVE_AUTHMETHOD_RSA = "RSA"     # RSA signatures
+LIVE_AUTHMETHOD_NONE = "None"  # No auth, also no abs. piece nr. or timestamp.
+LIVE_AUTHMETHOD_ECDSA = "ECDSA"  # Elliptic Curve DSA signatures
+LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 
 # Video-On-Demand / live events
 VODEVENT_START = "start"
@@ -171,7 +165,7 @@ VODEVENT_RESUME = "resume"
 # Friendship messages
 F_REQUEST_MSG = "REQ"
 F_RESPONSE_MSG = "RESP"
-F_FORWARD_MSG = "FWD" # Can forward any type of other friendship message
+F_FORWARD_MSG = "FWD"  # Can forward any type of other friendship message
 
 
 # States for a friend
@@ -182,13 +176,13 @@ FS_HE_INVITED = 3
 FS_I_DENIED = 4
 FS_HE_DENIED = 5
 
-P2PURL_SCHEME = "tribe" # No colon
-SWIFT_URL_SCHEME = "tswift" # No colon
+P2PURL_SCHEME = "tribe"  # No colon
+SWIFT_URL_SCHEME = "tswift"  # No colon
 
 URL_MIME_TYPE = 'text/x-url'
 TSTREAM_MIME_TYPE = "application/x-ns-stream"
 
-TRIBLER_TORRENT_EXT = ".tribe" # Unused
+TRIBLER_TORRENT_EXT = ".tribe"  # Unused
 
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20

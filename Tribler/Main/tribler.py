@@ -352,8 +352,6 @@ class ABCApp():
             torrcolldir = os.path.join(destdir, STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
-            self.sconfig.set_nat_detect(True)
-
             # Arno, 2012-05-04: swift
             self.sconfig.set_swift_tunnel_listen_port(7758)
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
@@ -483,22 +481,10 @@ class ABCApp():
             self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
             self.ratelimiter.set_global_max_seedupload_speed(maxup)
 
-
         maxdown = self.utility.config.Read('maxdownloadrate', "int")
         self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
 
-#        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
-#        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
-        self.utility.ratelimiter = self.ratelimiter
-
-        ltmgr = LibtorrentMgr.getInstance(s, self.utility)
-        ltmgr.set_upload_rate_limit(maxup * 1024)
-        ltmgr.set_download_rate_limit(maxdown * 1024)
-
-# SelectiveSeeding _
         self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
-        # self.seedingcount = 0
-# _SelectiveSeeding
 
         # seeding stats crawling
         self.seeding_snapshot_count = 0
@@ -695,16 +681,7 @@ class ABCApp():
             if doCheckpoint:
                 self.utility.session.checkpoint()
 
-            # SelectiveSeeding_
-            # Apply seeding policy every 60 seconds, for performance
-            # Boudewijn 12/01/10: apply seeding policies immediately
-            # applyseedingpolicy = False
-            # if self.seedingcount % 60 == 0:
-            #     applyseedingpolicy = True
-            # self.seedingcount += 1
-            # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(no_collected_list)
-            # _SelectiveSeeding
 
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
@@ -986,9 +963,6 @@ class ABCApp():
                 sleep(3)
             print >> sys.stderr, "main: ONEXIT Session is shutdown"
 
-            # Shutdown libtorrent session after checkpoints have been made
-            LibtorrentMgr.getInstance().shutdown()
-
             try:
                 print >> sys.stderr, "main: ONEXIT cleaning database"
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
@@ -1003,7 +977,6 @@ class ABCApp():
             GUITaskQueue.delInstance()
             SQLiteCacheDB.delInstance()
             GUIDBProducer.delInstance()
-            LibtorrentMgr.delInstance()
             TorrentChecking.delInstance()
 
         if not ALLOW_MULTIPLE:

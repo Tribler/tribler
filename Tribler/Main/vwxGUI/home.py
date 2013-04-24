@@ -12,14 +12,14 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl,\
+from Tribler.Main.vwxGUI.widgets import BetterListCtrl, SelectableListCtrl, \
     TextCtrlAutoComplete, BetterText as StaticText, _set_font
 from Tribler.Category.Category import Category
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from __init__ import LIST_GREY, LIST_LIGHTBLUE
 
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler,  ChannelCastDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import NetworkBuzzDBHandler, TorrentDBHandler, ChannelCastDBHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 from Tribler.Core.Utilities.utilities import show_permid_short
@@ -46,41 +46,41 @@ class Home(XRCPanel):
         text.SetFont(font)
 
         textSizer = wx.FlexGridSizer(2, 2, 3, 7)
-        if sys.platform == 'darwin': # mac
+        if sys.platform == 'darwin':  # mac
             self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            self.searchBox = TextCtrlAutoComplete(self, entrycallback = self.parent.top_bg.complete, selectcallback = self.parent.top_bg.OnAutoComplete)
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback=self.parent.top_bg.complete, selectcallback=self.parent.top_bg.OnAutoComplete)
 
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
         self.searchBox.SetFont(font)
         self.searchBox.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
 
-        if sys.platform == 'darwin': # mac
+        if sys.platform == 'darwin':  # mac
             self.searchBox.SetMinSize((450, self.searchBox.GetTextExtent('T')[1] + 5))
         else:
             self.searchBox.SetMinSize((450, -1))
         self.searchBox.SetFocus()
 
-        textSizer.Add(text, 0, wx.EXPAND|wx.RIGHT, 7)
+        textSizer.Add(text, 0, wx.EXPAND | wx.RIGHT, 7)
         scalingSizer = wx.BoxSizer(wx.HORIZONTAL)
         scalingSizer.Add(self.searchBox)
 
-        if sys.platform == 'darwin': # mac
+        if sys.platform == 'darwin':  # mac
             searchButton = wx.Button(self, -1, '\n')
             searchButton.SetLabel('Search')
         else:
             searchButton = wx.Button(self, -1, 'Search')
         searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
 
-        scalingSizer.Add(searchButton, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
+        scalingSizer.Add(searchButton, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
 
         textSizer.Add(scalingSizer, 0, wx.ALIGN_CENTER_VERTICAL)
-        textSizer.AddSpacer((1,1))
+        textSizer.AddSpacer((1, 1))
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, "Take me to "))
-        channelLink = LinkStaticText(self, "channels", icon = None)
+        channelLink = LinkStaticText(self, "channels", icon=None)
 
         channelLink.Bind(wx.EVT_LEFT_UP, self.OnChannels)
         hSizer.Add(channelLink)
@@ -91,7 +91,7 @@ class Home(XRCPanel):
         vSizer.AddStretchSpacer()
 
         self.buzzpanel = BuzzPanel(self)
-        self.buzzpanel.SetMinSize((-1,180))
+        self.buzzpanel.SetMinSize((-1, 180))
         self.buzzpanel.Show(self.guiutility.ReadGuiSetting('show_buzz', True))
         vSizer.Add(self.buzzpanel, 0, wx.EXPAND)
 
@@ -139,7 +139,7 @@ class Home(XRCPanel):
             self.searchBox.SelectAll()
 
 class Stats(XRCPanel):
-    def __init__(self, parent = None):
+    def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
         self.createTimer = None
         self.isReady = False
@@ -149,7 +149,7 @@ class Stats(XRCPanel):
         try:
             disp = DispersyPanel(self)
         except:
-            #Dispersy not ready, try again in 5s
+            # Dispersy not ready, try again in 5s
             if self.createTimer is None:
                 self.createTimer = wx.CallLater(5000, self._DoInit)
             else:
@@ -167,21 +167,21 @@ class Stats(XRCPanel):
         self.memdumpButton.Bind(wx.EVT_BUTTON, self.OnMemdump)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+        hSizer.Add(self.dowserStatus, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 3)
         hSizer.Add(self.dowserButton)
         hSizer.Add(self.memdumpButton, 0, wx.RIGHT, 3)
-        vSizer.Add(hSizer,0, wx.ALIGN_RIGHT|wx.TOP|wx.BOTTOM, 3)
+        vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT | wx.TOP | wx.BOTTOM, 3)
 
-        vSizer.Add(disp, 1, wx.EXPAND|wx.BOTTOM, 3)
+        vSizer.Add(disp, 1, wx.EXPAND | wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND|wx.RIGHT, 7)
+        hSizer.Add(NetworkPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
         self.activity = ActivityPanel(self)
         hSizer.Add(self.activity, 1, wx.EXPAND)
         vSizer.Add(hSizer, 0, wx.EXPAND)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND|wx.RIGHT, 7)
+        hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
         hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 7)
         vSizer.Add(hSizer, 0, wx.EXPAND)
 
@@ -200,10 +200,10 @@ class Stats(XRCPanel):
             self.activity.onActivity(msg)
 
     def onKey(self, event):
-        if event.ControlDown() and (event.GetKeyCode() == 73 or event.GetKeyCode() == 105): #ctrl + i
+        if event.ControlDown() and (event.GetKeyCode() == 73 or event.GetKeyCode() == 105):  # ctrl + i
             self._showInspectionTool()
 
-        elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100): #ctrl + d
+        elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100):  # ctrl + d
             self._printDBStats()
         else:
             event.Skip()
@@ -223,7 +223,7 @@ class Stats(XRCPanel):
             self._stopDowser()
         else:
             if not self._startDowser():
-                dlg = wx.DirDialog(None, "Please select your dowser installation directory", style = wx.wx.DD_DIR_MUST_EXIST)
+                dlg = wx.DirDialog(None, "Please select your dowser installation directory", style=wx.wx.DD_DIR_MUST_EXIST)
                 if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
                     sys.path.append(dlg.GetPath())
                     self._startDowser()
@@ -285,9 +285,9 @@ class Stats(XRCPanel):
         torrentdb = TorrentDBHandler.getInstance()
         tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
         for table, in tables:
-            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s"%table)
+            print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table)
 
-    def Show(self, show = True):
+    def Show(self, show=True):
         if show:
             if not self.isReady:
                 self._DoInit()
@@ -295,7 +295,7 @@ class Stats(XRCPanel):
         XRCPanel.Show(self, show)
 
 class HomePanel(wx.Panel):
-    def __init__(self, parent, title, background, hspacer = (0,0)):
+    def __init__(self, parent, title, background, hspacer=(0, 0)):
         wx.Panel.__init__(self, parent)
 
         self.guiutility = GUIUtility.getInstance()
@@ -315,15 +315,15 @@ class HomePanel(wx.Panel):
         self.header = self.CreateHeader()
         self.header.SetTitle(title)
         self.header.SetBackgroundColour(background)
-        vSizer.Add(self.header, 0, wx.EXPAND|spacerFlags, spacer)
+        vSizer.Add(self.header, 0, wx.EXPAND | spacerFlags, spacer)
 
         self.panel = self.CreatePanel()
         if self.panel:
-            vSizer.Add(self.panel, 1, wx.EXPAND|spacerFlags, spacer)
+            vSizer.Add(self.panel, 1, wx.EXPAND | spacerFlags, spacer)
 
         self.footer = self.CreateFooter()
         self.footer.SetBackgroundColour(background)
-        vSizer.Add(self.footer, 0, wx.EXPAND|spacerFlags, spacer)
+        vSizer.Add(self.footer, 0, wx.EXPAND | spacerFlags, spacer)
 
         self.SetSizer(vSizer)
         self.Layout()
@@ -393,7 +393,7 @@ class NetworkPanel(HomePanel):
             gridSizer.Add(StaticText(panel, -1, 'WX:Free memory'))
             gridSizer.Add(self.freeMem, 0, wx.EXPAND)
 
-        vSizer.Add(gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
+        vSizer.Add(gridSizer, 0, wx.EXPAND | wx.LEFT, 7)
         panel.SetSizer(vSizer)
         return panel
 
@@ -410,7 +410,7 @@ class NetworkPanel(HomePanel):
             nr_channels = self.channelcastdb.getNrChannels()
             self._UpdateStats(stats, nr_channels)
 
-        startWorker(None, db_callback, uId =u"NetworkPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId=u"NetworkPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, stats, nr_channels):
@@ -461,8 +461,8 @@ class DispersyPanel(HomePanel):
             ("Download", '', lambda stats: self.utility.size_format(stats.total_down) + " or " + self.utility.size_format(int(stats.total_down / (stats.timestamp - stats.start))) + "/s"),
             ("Upload", '', lambda stats: self.utility.size_format(stats.total_up) + " or " + self.utility.size_format(int(stats.total_up / (stats.timestamp - stats.start))) + "/s"),
 
-            ("Packets send", 'Packets send vs Packets handled', lambda stats: ratio(stats.total_send, stats.received_count+stats.total_send)),
-            ("Packets received", 'Packets received vs Packets handled', lambda stats: ratio(stats.received_count, stats.received_count+stats.total_send)),
+            ("Packets send", 'Packets send vs Packets handled', lambda stats: ratio(stats.total_send, stats.received_count + stats.total_send)),
+            ("Packets received", 'Packets received vs Packets handled', lambda stats: ratio(stats.received_count, stats.received_count + stats.total_send)),
             ("Packets dropped", 'Packets dropped vs Packets received', lambda stats: ratio(stats.drop_count, stats.received_count)),
             ("Packets success", 'Messages successfully handled vs Packets received', lambda stats: ratio(stats.success_count, stats.received_count)),
             ("Packets delayed", 'Packets being delayed vs Packets reveived', lambda stats: ratio(stats.delay_count, stats.received_count)),
@@ -471,13 +471,13 @@ class DispersyPanel(HomePanel):
             ("Candidates reuse", 'Candidates discovered (intro or stumbled) vs Candidates active in more than one community', lambda stats: ratio(stats.total_candidates_overlapped, stats.total_candidates_discovered)),
 
             ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being sent', lambda stats: ratio(stats.delay_send, stats.delay_count)),
-            ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
 
             ("Walker success", '', lambda stats: ratio(stats.walk_success, stats.walk_attempt)),
             ("Walker success (from trackers)", 'Comparing the successes to tracker to overall successes.', lambda stats: ratio(stats.walk_bootstrap_success, stats.walk_bootstrap_attempt)),
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
-            ("Bloom reuse", 'Total number of bloomfilters reused vs bloomfilters sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send for c in stats.communities))),
+            ("Bloom reuse", 'Total number of bloomfilters reused vs introduction requests sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))),
+            ("Bloom skip", 'Total number of bloomfilters skipped vs introduction requests sent in this session', lambda stats: ratio(sum(c.sync_bloom_skip for c in stats.communities), sum(c.sync_bloom_send + c.sync_bloom_skip for c in stats.communities))),
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
             ]
 
@@ -488,10 +488,10 @@ class DispersyPanel(HomePanel):
 
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
-        vSizer.Add(self.gridSizer, 0, wx.EXPAND|wx.LEFT, 7)
+        vSizer.Add(self.gridSizer, 0, wx.EXPAND | wx.LEFT, 7)
 
         vSumSizer = wx.BoxSizer(wx.VERTICAL)
-        self.summary_tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
+        self.summary_tree = wx.TreeCtrl(panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.NO_BORDER)
         self.summary_tree.blockUpdate = False
         self.summary_tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.summary_tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
@@ -502,10 +502,10 @@ class DispersyPanel(HomePanel):
 
         vSumSizer.Add(self.summary_tree, 1, wx.EXPAND)
         self.includeStuffs = wx.CheckBox(panel, -1, "Include stuffs")
-        vSumSizer.Add(self.includeStuffs, 0, wx.TOP|wx.BOTTOM, 3)
+        vSumSizer.Add(self.includeStuffs, 0, wx.TOP | wx.BOTTOM, 3)
 
         self.vTreeSizer = wx.BoxSizer(wx.VERTICAL)
-        self.tree = wx.TreeCtrl(panel, style = wx.TR_DEFAULT_STYLE|wx.TR_HIDE_ROOT|wx.NO_BORDER)
+        self.tree = wx.TreeCtrl(panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.NO_BORDER)
         self.tree.blockUpdate = False
         self.tree.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseEvent)
         self.tree.Bind(wx.EVT_MOTION, self.OnMouseEvent)
@@ -513,14 +513,14 @@ class DispersyPanel(HomePanel):
         self.vTreeSizer.Add(self.tree, 1, wx.EXPAND)
         self.includeDebug = wx.CheckBox(panel, -1, "Collect debug")
         self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
-        self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP|wx.BOTTOM, 3)
+        self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP | wx.BOTTOM, 3)
 
-        vSizer.Add(vSumSizer, 2, wx.EXPAND|wx.LEFT, 10)
-        vSizer.Add(self.vTreeSizer, 1, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(vSumSizer, 2, wx.EXPAND | wx.LEFT, 10)
+        vSizer.Add(self.vTreeSizer, 1, wx.EXPAND | wx.LEFT, 10)
         panel.SetSizer(vSizer)
         return panel
 
-    def ExpandTree(self, expand = True):
+    def ExpandTree(self, expand=True):
         sizer = self.panel.GetSizer()
         sizerItem = sizer.GetItem(self.vTreeSizer)
 
@@ -538,7 +538,7 @@ class DispersyPanel(HomePanel):
             _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
             self.gridSizer.Add(header)
             self.textdict[strkey] = StaticText(self.panel, -1, '')
-            self.textdict[strkey].SetMinSize((200,-1))
+            self.textdict[strkey].SetMinSize((200, -1))
             self.gridSizer.Add(self.textdict[strkey])
 
             if strtooltip:
@@ -577,7 +577,7 @@ class DispersyPanel(HomePanel):
             self.dispersy.statistics.update(database=includeStuffs)
             self._UpdateStats(self.dispersy.statistics)
 
-        startWorker(None, db_callback, uId =u"DispersyPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId=u"DispersyPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, stats):
@@ -722,14 +722,14 @@ class NewTorrentPanel(HomePanel):
             if torrent:
                 self._UpdateStats(torrent)
 
-        startWorker(None, db_callback, uId =u"NewTorrentPanel_UpdateStats",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId=u"NewTorrentPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _UpdateStats(self, torrent):
         self.list.InsertStringItem(0, torrent['name'])
         size = self.list.GetItemCount()
         if size > 10:
-            self.list.DeleteItem(size-1)
+            self.list.DeleteItem(size - 1)
 
     def OnDoubleClick(self, event):
         selected = self.list.GetFirstSelected()
@@ -739,7 +739,7 @@ class NewTorrentPanel(HomePanel):
 
 class PopularTorrentPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Popular Torrents' , SEPARATOR_GREY, (1,0))
+        HomePanel.__init__(self, parent, 'Popular Torrents' , SEPARATOR_GREY, (1, 0))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -759,10 +759,10 @@ class PopularTorrentPanel(NewTorrentPanel):
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 
-            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where = familyfilter_sql , order_by = "(num_seeders+num_leechers) DESC", limit= 10)
+            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where=familyfilter_sql , order_by="(num_seeders+num_leechers) DESC", limit=10)
             self._RefreshList(topTen)
 
-        startWorker(None, db_callback, uId =u"PopularTorrentPanel_RefreshList",priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, uId=u"PopularTorrentPanel_RefreshList", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _RefreshList(self, topTen):
@@ -775,7 +775,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Recent Activity' , SEPARATOR_GREY, (1,0))
+        HomePanel.__init__(self, parent, 'Recent Activity' , SEPARATOR_GREY, (1, 0))
 
     @forceWxThread
     def onActivity(self, msg):
@@ -783,14 +783,14 @@ class ActivityPanel(NewTorrentPanel):
         self.list.InsertStringItem(0, msg)
         size = self.list.GetItemCount()
         if size > 50:
-            self.list.DeleteItem(size-1)
+            self.list.DeleteItem(size - 1)
 
 class BuzzPanel(wx.Panel):
     INACTIVE_COLOR = (255, 51, 0)
     ACTIVE_COLOR = (0, 105, 156)
 
     TERM_BORDERS = [15, 8, 8]
-    DISPLAY_SIZES = [3,5,5]
+    DISPLAY_SIZES = [3, 5, 5]
     REFRESH_EVERY = 5
 
     def __init__(self, parent):
@@ -798,29 +798,29 @@ class BuzzPanel(wx.Panel):
         self.SetBackgroundColour(wx.WHITE)
         self.SetForegroundColour(parent.GetForegroundColour())
 
-        #Niels 04-06-2012: termextraction needs a session variable, create instance from mainthread
+        # Niels 04-06-2012: termextraction needs a session variable, create instance from mainthread
         TermExtraction.getInstance()
 
-        self.nbdb       = None
+        self.nbdb = None
         self.xxx_filter = Category.getInstance().xxx_filter
         self.guiutility = GUIUtility.getInstance()
-        self.utility    = self.guiutility.utility
+        self.utility = self.guiutility.utility
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(DetailHeader(self, "Click below to explore what's hot"), 0, wx.EXPAND)
-        vSizer.AddSpacer((-1,10))
+        vSizer.AddSpacer((-1, 10))
 
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour(DEFAULT_BACKGROUND)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.panel.SetSizer(self.vSizer)
-        vSizer.Add(self.panel, 1, wx.EXPAND|wx.BOTTOM, 5)
+        vSizer.Add(self.panel, 1, wx.EXPAND | wx.BOTTOM, 5)
 
         self.footer = wx.StaticText(self)
-        vSizer.Add(self.footer, 0, wx.ALIGN_RIGHT|wx.RIGHT|wx.BOTTOM, 1)
+        vSizer.Add(self.footer, 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 1)
 
         self.tags = []
-        self.buzz_cache = [[],[],[]]
+        self.buzz_cache = [[], [], []]
         self.last_shown_buzz = None
 
         row1_font = self.GetFont()
@@ -839,13 +839,13 @@ class BuzzPanel(wx.Panel):
         self.panel.Bind(wx.EVT_LEAVE_WINDOW, self.OnLeaveWindow)
 
         text = wx.StaticText(self.panel, -1, '...collecting buzz information...')
-        _set_font(text, fontcolour = BuzzPanel.INACTIVE_COLOR)
+        _set_font(text, fontcolour=BuzzPanel.INACTIVE_COLOR)
         self.vSizer.AddStretchSpacer()
         self.vSizer.Add(text, 0, wx.ALIGN_CENTER)
         self.vSizer.AddStretchSpacer()
 
         self.refresh = 5
-        self.GetBuzzFromDB(doRefresh=True,samplesize=10)
+        self.GetBuzzFromDB(doRefresh=True, samplesize=10)
         self.guiutility.addList(self)
 
         self.timer = wx.Timer(self)
@@ -855,7 +855,7 @@ class BuzzPanel(wx.Panel):
         self.SetSizer(vSizer)
         self.Layout()
 
-    def do_or_schedule_refresh(self, force_refresh = False):
+    def do_or_schedule_refresh(self, force_refresh=False):
         # Only called when the FF is toggled.
         if self.guiutility.ShouldGuiUpdate():
             self.ForceUpdate()
@@ -865,30 +865,30 @@ class BuzzPanel(wx.Panel):
     def ForceUpdate(self):
         self.GetBuzzFromDB(doRefresh=True)
 
-    def GetBuzzFromDB(self, doRefresh=False, samplesize = NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
+    def GetBuzzFromDB(self, doRefresh=False, samplesize=NetworkBuzzDBHandler.DEFAULT_SAMPLE_SIZE):
         def do_db():
             if self.nbdb == None:
                 self.nbdb = NetworkBuzzDBHandler.getInstance()
 
-            self.buzz_cache = [[],[],[]]
+            self.buzz_cache = [[], [], []]
             buzz = self.nbdb.getBuzz(samplesize, with_freq=True, flat=True)
             for i in range(len(buzz)):
                 random.shuffle(buzz[i])
                 self.buzz_cache[i] = buzz[i]
 
             if len(self.tags) <= 1 and len(buzz) > 0 or doRefresh:
-                self.OnRefreshTimer(force = True, fromDBThread = True)
+                self.OnRefreshTimer(force=True, fromDBThread=True)
         startWorker(None, do_db, uId=u"NetworkBuzz.GetBuzzFromDB", priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
-    def OnRefreshTimer(self, event = None, force = False, fromDBThread = False):
+    def OnRefreshTimer(self, event=None, force=False, fromDBThread=False):
         self.refresh -= 1
         if self.refresh <= 0 or force or fromDBThread:
             if (self.IsShownOnScreen() and self.guiutility.ShouldGuiUpdate()) or force or fromDBThread:
                 # simple caching
                 # (Completely throws away the old cache and refills it)
                 if any(len(row) < 10 for row in self.buzz_cache) and not fromDBThread:
-                    self.GetBuzzFromDB(doRefresh = True)
+                    self.GetBuzzFromDB(doRefresh=True)
                     return
 
                 if self.guiutility.getFamilyFilter():
@@ -899,7 +899,7 @@ class BuzzPanel(wx.Panel):
                 # consume cache
                 # Note: if a term is fetched from two different row caches, it is shown in the
                 # higher-frequency row, regardless of which information is fresher.
-                filtered_buzz = [[],[],[]]
+                filtered_buzz = [[], [], []]
                 empty = True
                 added_terms = set()
                 for i in range(len(filtered_buzz)):
@@ -916,10 +916,10 @@ class BuzzPanel(wx.Panel):
                 self.last_shown_buzz = filtered_buzz
             self.refresh = BuzzPanel.REFRESH_EVERY
 
-        self.footer.SetLabel('Update in %d...'%self.refresh)
+        self.footer.SetLabel('Update in %d...' % self.refresh)
         self.Layout()
 
-    def getStaticText(self, term, font = None):
+    def getStaticText(self, term, font=None):
         if len(self.tags) > 0:
             text = self.tags.pop()
             text.SetLabel(term)
@@ -927,10 +927,10 @@ class BuzzPanel(wx.Panel):
             text.Reset()
 
         else:
-            text = LinkText(self.panel, term, fonts=[font, font], colours = [BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
+            text = LinkText(self.panel, term, fonts=[font, font], colours=[BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
             text.SetBackgroundColour(DEFAULT_BACKGROUND)
             text.Bind(wx.EVT_LEFT_UP, self.OnClick)
-        text.SetToolTipString("Click to search for '%s'"%term)
+        text.SetToolTipString("Click to search for '%s'" % term)
         return text
 
     def DisplayTerms(self, rows):
@@ -987,7 +987,7 @@ class BuzzPanel(wx.Panel):
             return False
 
         enter = getattr(self.panel, 'enter', False) or IsEnter(self)
-        timerstop = not enter #stop timer if one control has enter==true
+        timerstop = not enter  # stop timer if one control has enter==true
 
         if timerstop != self.timer.IsRunning():
             if not enter:
@@ -1016,7 +1016,7 @@ class BuzzPanel(wx.Panel):
 
         self.DoPauseResume()
 
-    def OnLeaveWindow(self, event = None):
+    def OnLeaveWindow(self, event=None):
         if event:
             evtobj = event.GetEventObject()
             evtobj.enter = False
