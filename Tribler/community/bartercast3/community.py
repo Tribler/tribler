@@ -155,12 +155,12 @@ class BarterCommunity(Community):
 
         options = dict(self._database.execute(u"SELECT key, value FROM option"))
         # _TOTAL_UP and _TOTAL_DOWN contain the total up and down statistics received from swift
-        self._total_up = long(options.get(u"total-up", 0L))
-        self._total_down = long(options.get(u"total-down", 0L))
+        self._total_up = long(str(options.get(u"total-up", 0L)))
+        self._total_down = long(str(options.get(u"total-down", 0L)))
         # _UNKNOWN_UP and _UNKNOWN_DOWN contain the total up and down statistics received from swift
         # where we were able to associate to a Dispersy member
-        self._associated_up = long(options.get(u"associated-up", 0L))
-        self._associated_down = long(options.get(u"associated-down", 0L))
+        self._associated_up = long(str(options.get(u"associated-up", 0L)))
+        self._associated_down = long(str(options.get(u"associated-down", 0L)))
 
         # _BOOKS cache (reduce _DATABASE access)
         self._books_length = 512
