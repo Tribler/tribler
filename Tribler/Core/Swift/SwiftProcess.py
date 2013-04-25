@@ -16,7 +16,6 @@ from Tribler.Core.simpledefs import *
 #from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.FastI2I import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
-from Tribler.Core import NoDispersyRLock
 
 DEBUG = False
 
@@ -31,7 +30,7 @@ class SwiftProcess:
 
     def __init__(self,binpath,workdir,zerostatedir,listenport,httpgwport,cmdgwport,spmgr):
         # Called by any thread, assume sessionlock is held
-        self.splock = NoDispersyRLock()
+        self.splock = RLock()
         self.binpath = binpath
         self.workdir = workdir
         self.zerostatedir = zerostatedir
