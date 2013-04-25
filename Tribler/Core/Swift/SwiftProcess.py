@@ -17,6 +17,11 @@ from Tribler.Core.simpledefs import *
 from Tribler.Utilities.FastI2I import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 
+try:
+    WindowsError
+except NameError:
+    WindowsError = Exception
+
 DEBUG = False
 
 DONE_STATE_WORKING = 0

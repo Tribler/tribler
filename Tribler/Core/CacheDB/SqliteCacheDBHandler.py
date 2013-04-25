@@ -39,6 +39,11 @@ from threading import currentThread, RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
 
+try:
+    WindowsError
+except NameError:
+    WindowsError = Exception
+
 # maxflow constants
 MAXFLOW_DISTANCE = 2
 ALPHA = float(1)/30000
