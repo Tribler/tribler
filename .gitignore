@@ -2,3 +2,7 @@
 *.pyo
 *~
 swift
+/.Tribler/
+/.noseids
+.#*
+\#*\#

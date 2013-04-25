@@ -49,8 +49,7 @@ class TestAsServer(unittest.TestCase):
         self.config.set_bartercast(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_dispersy(False)
-        # Assume all test scripts are run from Tribler/Test
-        self.config.set_install_dir(os.path.abspath(os.path.join('..','..')))
+        self.config.set_install_dir(os.path.abspath(os.path.join(__file__,'..','..','..')))
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()

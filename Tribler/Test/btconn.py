@@ -7,11 +7,9 @@ from binascii import b2a_hex
 from struct import pack,unpack
 from StringIO import StringIO
 
-from Tribler.Core.Overlay.SecureOverlay import OLPROTO_VER_CURRENT
-
 DEBUG=False
 
-current_version = OLPROTO_VER_CURRENT
+current_version = 3 # TODO: Fix this temporary hack.
 lowest_version = 2
 
 protocol_name = "BitTorrent protocol"
