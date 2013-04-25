@@ -380,16 +380,17 @@ class RemoteTorrentHandler:
 
     def getQueueSuccess(self):
         def getQueueSuccess(qname, requesters):
-            sum_requests = sum_success = 0
+            sum_requests = sum_success = sum_fail = 0
             print_value = False
             for requester in requesters.itervalues():
                 if requester.requests_success >= 0:
                     print_value = True
                     sum_requests += requester.requests_made
                     sum_success += requester.requests_success
+                    sum_fail += requester.requests_fail
 
             if print_value:
-                return "%s: %d/%d"%(qname, sum_success, sum_requests)
+                return "%s: %d/%d (busy:%d)"%(qname, sum_success, sum_success + sum_fail, sum_requests - sum_success - sum_fail)
             return ''
         return ", ".join([qstring for qstring in [getQueueSuccess("TQueue", self.trequesters), getQueueSuccess("DQueue", self.drequesters), getQueueSuccess("MQueue", self.mrequesters)] if qstring])
 
@@ -406,6 +407,7 @@ class Requester:
 
         self.requests_made = 0
         self.requests_success = 0
+        self.requests_fail = 0
 
     def add_request(self, hash, candidate, timeout = None):
         was_empty = self.queue.empty()
@@ -506,6 +508,7 @@ class TorrentRequester(Requester):
 
     def _doFetch(self, filename, hash, candidates):
         infohash, roothash = hash
+        attempting_download = False
 
         if filename:
             self.remote_th.notify_possible_torrent_infohash(infohash, True)
@@ -542,6 +545,11 @@ class TorrentRequester(Requester):
             except OperationNotEnabledByConfigurationException:
                 doMagnet = True
 
+            else:
+                if DEBUG:
+                    print >>sys.stderr,"rtorrent: start swift download for", bin2str(roothash), ip, port
+                attempting_download = True
+
             if download and candidates:
                 try:
                     for candidate in candidates:
@@ -557,7 +565,8 @@ class TorrentRequester(Requester):
             if doMagnet:
                 magnet_lambda = lambda infohash=infohash: self.magnet_requester.add_request(infohash, None)
                 self.scheduletask(magnet_lambda, t = self.MAGNET_TIMEOUT * (self.prio))
-            return True
+
+        return attempting_download
 
     def check_progress(self, ds, infohash, roothash, didMagnet):
         d = ds.get_download()
@@ -566,10 +575,15 @@ class TorrentRequester(Requester):
             remove_lambda = lambda d=d: self._remove_download(d)
             self.scheduletask(remove_lambda)
 
+            if DEBUG:
+                print >>sys.stderr,"rtorrent: swift failed download for", cdef.get_name(), bin2str(infohash)
+
             if not didMagnet:
                 if DEBUG:
                     print >>sys.stderr,"rtorrent: switching to magnet for", cdef.get_name(), bin2str(infohash)
                 self.magnet_requester.add_request(infohash, None, timeout = SWIFTFAILED_TIMEOUT)
+
+            self.requests_fail += 1
             return (0,False)
 
         elif ds.get_progress() == 1:
@@ -577,7 +591,7 @@ class TorrentRequester(Requester):
             self.scheduletask(remove_lambda)
 
             if DEBUG:
-                print >>sys.stderr,"rtorrent: swift finished for", cdef.get_name()
+                print >>sys.stderr,"rtorrent: swift finished for", cdef.get_name(), bin2str(infohash)
 
             self.remote_th.notify_possible_torrent_roothash(roothash)
             self.requests_success += 1
@@ -604,13 +618,17 @@ class TorrentMessageRequester(Requester):
         self.requests_success = -1
 
     def doFetch(self, hashes, candidates):
+        attempting_download = False
+
         if self.searchcommunity:
             if DEBUG:
                 print >>sys.stderr,"rtorrent: requesting torrent message", map(bin2str, hashes), candidates
 
             for candidate in candidates:
                 self.searchcommunity.create_torrent_request(hashes, candidate)
-        return True
+                attempting_download = True
+
+        return attempting_download
 
 class MagnetRequester(Requester):
     MAX_CONCURRENT = 1
@@ -677,6 +695,8 @@ class MagnetRequester(Requester):
         if infohash in self.requestedInfohashes:
             self.requestedInfohashes.remove(infohash)
 
+        self.requests_fail += 1
+
 
 class ThumbnailRequester(Requester):
     SWIFT_CANCEL = 30.0
@@ -694,6 +714,7 @@ class ThumbnailRequester(Requester):
 
     def doFetch(self, hash_tuple, candidates):
         roothash, infohash = hash_tuple
+        attempting_download = False
 
         if self.remote_th.has_thumbnail(infohash):
             self.remote_th.notify_possible_thumbnail_roothash(roothash)
@@ -728,6 +749,9 @@ class ThumbnailRequester(Requester):
             except OperationNotEnabledByConfigurationException:
                 pass
 
+            else:
+                attempting_download = True
+
             if download and candidates:
                 try:
                     for candidate in candidates:
@@ -739,7 +763,7 @@ class ThumbnailRequester(Requester):
                 except:
                     print_exc()
 
-        return True
+        return attempting_download
 
     def check_progress(self, ds, roothash):
         d = ds.get_download()
@@ -747,6 +771,7 @@ class ThumbnailRequester(Requester):
         if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR or time() - getattr(d, 'started_downloading', time()) > 45:
             remove_lambda = lambda d=d: self._remove_download(d)
             self.scheduletask(remove_lambda)
+            self.requests_fail += 1
             return (0,False)
 
         elif ds.get_progress() == 1:
@@ -757,6 +782,7 @@ class ThumbnailRequester(Requester):
                 print >>sys.stderr,"rtorrent: swift finished for", cdef.get_name()
 
             self.remote_th.notify_possible_thumbnail_roothash(roothash)
+            self.requests_success += 1
             return (0,False)
 
         return (5.0, True)
