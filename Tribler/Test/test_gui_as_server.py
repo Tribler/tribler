@@ -16,6 +16,14 @@ from Tribler.Main.tribler import run
 from Tribler.Core.Session import Session
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 import shutil
+from Tribler.Core import defaults
+
+STATE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_.Tribler")
+DEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_TriblerDownloads")
+
+# Set custom state_dir and dest_dir paths so we do not mess with local installs by accident.
+defaults.sessdefaults["state_dir"] = STATE_DIR
+defaults.sessdefaults["dest_dir"] = DEST_DIR
 
 try:
     from collections import OrderedDict
@@ -23,17 +31,20 @@ except ImportError:
     from .python27_ordereddict import OrderedDict
 
 class TestGuiAsServer(unittest.TestCase):
-    """ 
+    """
     Parent class for testing the gui-side of Tribler
     """
-    
+
     def setUp(self):
         """ unittest test setup code """
-        #If these directories still exist then the previous unittest caused a filelock.
-        #Hence this should not happen...
-        os.mkdir(".Tribler")
-        os.mkdir("TriblerDownloads")
-        
+        # Elric: If the files are still there it means that either the last run segfaulted or
+        # that there was some kind of lock on those and the tearDown wasn't able to delete them.
+        # In either case the test would fail, so just remove the dirs.
+        for dir_ in (STATE_DIR, DEST_DIR):
+            if os.path.exists(dir_):
+                shutil.rmtree(dir_)
+            os.mkdir(dir_)
+
         self.app = wx.GetApp()
         if not self.app:
             self.app = wx.PySimpleApp(redirect = False)
@@ -134,8 +145,8 @@ class TestGuiAsServer(unittest.TestCase):
         print >>sys.stderr,"teardown: Number of threads still running",len(ts)
         for t in ts:
             print >>sys.stderr,"teardown: Thread still running",t.getName(),"daemon",t.isDaemon(), "instance:", t
-        
-        dhtlog = os.path.join('.Tribler', 'pymdht.log')
+
+        dhtlog = os.path.join(STATE_DIR, 'pymdht.log')
         if os.path.exists(dhtlog):
             print >> sys.stderr,"teardown: content of pymdht.log"
             f = open(dhtlog, 'r')
@@ -145,16 +156,16 @@ class TestGuiAsServer(unittest.TestCase):
                     print >> sys.stderr, line
             f.close()
             print >> sys.stderr,"teardown: finished printing content of pymdht.log"
-        
-        shutil.rmtree(".Tribler")
-        shutil.rmtree("TriblerDownloads")
-        
+
+        shutil.rmtree(STATE_DIR)
+        shutil.rmtree(DEST_DIR)
+
         for boolean, reason in self.asserts:
             assert boolean, reason
-            
-        assert not os.path.exists(".Tribler"), ".Tribler should not exist"
-        assert not os.path.exists("TriblerDownloads"), "TriblerDownloads should not exist"
-            
+
+        assert not os.path.exists(STATE_DIR), "state_dir (%s) should not exist" % STATE_DIR
+        assert not os.path.exists(DEST_DIR), "dest_dir (%s) should not exist" % DEST_DIR
+
     def annotate(self, annotation, start = True, destdir = "output"):
         if not os.path.exists(destdir):
             os.makedirs(destdir)
