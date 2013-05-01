@@ -141,7 +141,7 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join(os.getcwd(), "API", "file.wmv"))
+        self.tdef.add_content(os.path.join((os.path.dirname(os.path.abspath(__file__)),"API", "file.wmv"))
         self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
