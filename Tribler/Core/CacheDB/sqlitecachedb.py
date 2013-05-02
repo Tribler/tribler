@@ -2619,6 +2619,9 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteNoCacheDB.__init__(self, *args, **kargs)
 
+    def schedule_task(self, task, delay=0.0):
+        register_task(None, task, delay=delay)
+
 if __name__ == '__main__':
     configure_dir = sys.argv[1]
     config = {}
