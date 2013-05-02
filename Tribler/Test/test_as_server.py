@@ -15,9 +15,10 @@ from M2Crypto import EC
 
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
 
-DEBUG=False
+DEBUG = False
 
 class TestAsServer(unittest.TestCase):
     """
@@ -49,22 +50,37 @@ class TestAsServer(unittest.TestCase):
         self.config.set_bartercast(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_dispersy(False)
-        self.config.set_install_dir(os.path.abspath(os.path.join(__file__,'..','..','..')))
+        self.config.set_install_dir(os.path.abspath(os.path.join(__file__, '..', '..', '..')))
 
         self.my_keypair = EC.gen_params(EC.NID_sect233k1)
         self.my_keypair.gen_key()
 
     def setUpPostSession(self):
         """ Should set self.his_keypair """
-        keypair_filename = os.path.join(self.config_path,'ec.pem')
+        keypair_filename = os.path.join(self.config_path, 'ec.pem')
         self.his_keypair = EC.load_key(keypair_filename)
 
     def tearDown(self):
         """ unittest test tear down code """
         if self.session is not None:
+            session_shutdown_start = time.time()
+            waittime = 60
+
             self.session.shutdown()
-            print >>sys.stderr,"test_as_server: sleeping after session shutdown"
-            time.sleep(2)
+            while not self.session.has_shutdown():
+                diff = time.time() - session_shutdown_start
+                if diff > waittime:
+                    print >> sys.stderr, "test_as_server: NOT Waiting for Session to shutdown, took too long"
+                    break
+
+                print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
+                time.sleep(1)
+
+            print >> sys.stderr, "test_as_server: Session is shutdown"
+
+            Session.del_instance()
+            SQLiteCacheDB.delInstance()
+
         try:
             shutil.rmtree(self.config_path)
         except:

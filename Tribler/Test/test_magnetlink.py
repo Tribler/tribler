@@ -19,13 +19,13 @@ from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 
 LISTEN_PORT = 12345
-DEBUG=True
+DEBUG = True
 
 class MagnetHelpers:
     def __init__(self, tdef):
         # the metadata that we will transfer
         infodata = bencode(tdef.get_metainfo()["info"])
-        self.metadata_list = [infodata[index:index+16*1024] for index in xrange(0, len(infodata), 16*1024)]
+        self.metadata_list = [infodata[index:index + 16 * 1024] for index in xrange(0, len(infodata), 16 * 1024)]
         assert len(self.metadata_list) > 100, "We need multiple pieces to test!"
         self.metadata_size = len(infodata)
 
@@ -141,7 +141,7 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join((os.path.dirname(os.path.abspath(__file__)),"API", "file.wmv"))
+        self.tdef.add_content(os.path.join((os.path.dirname(os.path.abspath(__file__)), "API", "file.wmv")))
         self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
@@ -151,9 +151,9 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
         # startup the client
         TestAsServer.setUp(self)
-        print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
+        print >> sys.stderr, "test: Giving MyLaunchMany time to startup"
         time.sleep(5)
-        print >>sys.stderr,"test: MyLaunchMany should have started up"
+        print >> sys.stderr, "test: MyLaunchMany should have started up"
 
     def create_good_url(self, infohash=None, title=None, tracker=None):
         url = "magnet:?xt=urn:btih:"
@@ -217,9 +217,9 @@ class TestMetadata(TestAsServer, MagnetHelpers):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        print >>sys.stderr,"test: Giving MyLaunchMany time to startup"
+        print >> sys.stderr, "test: Giving MyLaunchMany time to startup"
         time.sleep(5)
-        print >>sys.stderr,"test: MyLaunchMany should have started up"
+        print >> sys.stderr, "test: MyLaunchMany should have started up"
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
@@ -262,7 +262,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
 
         print >> sys.stderr, "test: teardown_seeder() complete"
 
-    def seeder_state_callback(self,ds):
+    def seeder_state_callback(self, ds):
         assert not self.seeder_teardown_complete
         self.seeder_setup_complete = (ds.get_status() == DLSTATUS_DOWNLOADING)
         d = ds.get_download()
@@ -322,7 +322,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
         self.bad_request_and_disconnect({"msg_type":0, "piece":len(self.metadata_list)})
         self.bad_request_and_disconnect({"msg_type":0, "piece":-1})
         self.bad_request_and_disconnect({"msg_type":0, "piece":"1"})
-        self.bad_request_and_disconnect({"msg_type":0, "piece":[1,2]})
+        self.bad_request_and_disconnect({"msg_type":0, "piece":[1, 2]})
         self.bad_request_and_disconnect({"msg_type":0, "PIECE":1})
 
     def bad_request_and_disconnect(self, payload):
