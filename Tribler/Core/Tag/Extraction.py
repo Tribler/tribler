@@ -14,11 +14,11 @@ import threading
 class TermExtraction:
     __single = None
     lock = threading.Lock()
-    
+
     def getInstance(*args, **kw):
         # Singleton pattern with double-checking
         if TermExtraction.__single is None:
-            TermExtraction.lock.acquire()   
+            TermExtraction.lock.acquire()
             try:
                 if TermExtraction.__single is None:
                     TermExtraction(*args, **kw)
@@ -26,23 +26,20 @@ class TermExtraction:
                 TermExtraction.lock.release()
         return TermExtraction.__single
     getInstance = staticmethod(getInstance)
-    
-    def __init__(self):
+
+    def __init__(self, install_dir='.'):
         if TermExtraction.__single is not None:
             raise RuntimeError, "TermExtraction is singleton"
         TermExtraction.__single = self
-        
-        from Tribler.Core.Session import Session
-        self.session = Session.get_instance()
-        
-        filterfn = os.path.join(self.session.get_install_dir(),LIBRARYNAME,'Core','Tag','stop_snowball.filter')
+
+        filterfn = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
         self.stopwords_filter = StopwordsFilter(stopwordsfilename=filterfn)
-        
-        self.containsdigits_filter = re.compile(r'\d',re.UNICODE)
-        self.alldigits_filter = re.compile(r'^\d*$',re.UNICODE)
-        self.isepisode_filter = re.compile(r'^s\d{2}e\d{2}',re.UNICODE)
-        
-        self.domain_terms = set('www net com org'.split())    
+
+        self.containsdigits_filter = re.compile(r'\d', re.UNICODE)
+        self.alldigits_filter = re.compile(r'^\d*$', re.UNICODE)
+        self.isepisode_filter = re.compile(r'^s\d{2}e\d{2}', re.UNICODE)
+
+        self.domain_terms = set('www net com org'.split())
 
     def extractTerms(self, name_or_keywords):
         """
@@ -57,7 +54,7 @@ class TermExtraction:
             keywords = split_into_keywords(name_or_keywords)
         else:
             keywords = name_or_keywords
-        
+
         return [term for term in keywords if self.isSuitableTerm(term)]
 
     def extractBiTermPhrase(self, name_or_keywords):

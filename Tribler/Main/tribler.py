@@ -13,6 +13,7 @@
 #########################################################################
 
 import logging.config
+from Tribler.Core.Tag.Extraction import TermExtraction
 logging.config.fileConfig("logger.conf")
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -188,6 +189,8 @@ class ABCApp():
 
             cat = Category.getInstance(self.utility.getPath())
             cat.init_from_main(self.utility)
+
+            TermExtraction.getInstance(self.utility.getPath())
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
