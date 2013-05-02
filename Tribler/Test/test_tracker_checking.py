@@ -1,18 +1,18 @@
-# Written by Yuan Yuan, Jie Yang
-# see LICENSE.txt for license information
-
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from time import sleep
+import unittest
 
-def run():
-    print "start run"
-#    torrent_db = TorrentDBHandler.getInstance()
-#    key = ['infohash', 'torrent_name', 'torrent_dir', 'relevance', 'info',
-#                'num_owners', 'leecher', 'seeder', 'category']
-#    data = torrent_db.getRecommendedTorrents(key)
-#
-#    for idata in data[54:100]:
-#        trackerChecking(idata)
-    t = TorrentChecking(2)
 
-run()
+class TestTorrentChecking(unittest.TestCase):
+
+    def setUp(self):
+        self.torrentChecking = TorrentChecking()
+
+    def test_torrent_checking(self):
+        infohash_str = 'TkFX5S4qd2DPW63La/VObgOH/Nc='
+        infohash = str2bin(infohash_str)
+
+        self.torrentChecking.addToQueue(infohash)
+
+    def tearDown(self):
+        self.torrentChecking.shutdown()
+        TorrentChecking.delInstance()
