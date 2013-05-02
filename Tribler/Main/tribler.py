@@ -364,7 +364,7 @@ class ABCApp():
         self.sconfig.set_torrent_collecting_max_torrents(50000)
 
         # Arno, 2012-05-04: swift
-        if not self.sconfig.get_swift_cmd_listen_port():
+        if not self.sconfig.get_swift_tunnel_listen_port():
             self.sconfig.set_swift_tunnel_listen_port(7758)
         if not self.sconfig.get_swift_tunnel_httpgw_listen_port():
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
