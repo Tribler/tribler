@@ -94,7 +94,11 @@ class TestGuiAsServer(unittest.TestCase):
 
             self.CallConditional(30, lambda : self.lm.initComplete, wait_for_guiutility)
 
-        self.CallConditional(30, Session.has_instance, wait_for_instance)
+        def wait_for_session():
+            print >> sys.stderr, "tgs: waiting for session instance"
+            self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
+
+        self.CallConditional(30, Session.has_instance, wait_for_session)
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]

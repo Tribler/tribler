@@ -1,17 +1,16 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-
 from  threading import currentThread
 
 from Tribler.Core.API import *
 from Tribler.Video.VideoServer import VideoHTTPServer
+from Tribler.Test.test_as_server import TestAsServer
 
+def state_callback(d, ds):
+    print >> sys.stderr, "main: Stats", dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error()
 
-def state_callback(d,ds):
-    print >>sys.stderr,"main: Stats",dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error()
-
-def vod_ready_callback(d,event,params):
-    print >>sys.stderr,"main: VOD ready callback called",currentThread().getName(),"###########################################################",params["mimetype"]
+def vod_ready_callback(d, event, params):
+    print >> sys.stderr, "main: VOD ready callback called", currentThread().getName(), "###########################################################", params["mimetype"]
 
     """
     f = open("video.avi","wb")
@@ -27,37 +26,41 @@ def vod_ready_callback(d,event,params):
     """
 
     videoserv = VideoHTTPServer.getInstance()
-    videoserv.set_inputstream('video/mpeg',params["stream"],None)
+    videoserv.set_inputstream('video/mpeg', params["stream"], None)
 
+class TestVod(TestAsServer):
 
-if __name__ == "__main__":
+    def setUpPreSession(self):
+        self.config = None
 
-    videoserv = VideoHTTPServer.getInstance() # create
-    videoserv.background_serve()
+    def setUpPostSession(self):
+        pass
 
-    s = Session()
+    def test_vod(self):
+        videoserv = VideoHTTPServer.getInstance()
+        videoserv.background_serve()
 
-    if sys.platform == 'win32':
-        tdef = TorrentDef.load('bla.torrent')
-    else:
-        tdef = TorrentDef.load('/tmp/bla.torrent')
-    dcfg = DownloadStartupConfig.get_copy_of_default()
-    #dcfg.set_saveas('/arno')
-    dcfg = DownloadStartupConfig.get_copy_of_default()
-    dcfg.set_video_start_callback(vod_ready_callback)
-    #dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
-    #dcfg.set_selected_files('field-trip-west-siberia.avi')
+        if sys.platform == 'win32':
+            tdef = TorrentDef.load('bla.torrent')
+        else:
+            tdef = TorrentDef.load('/tmp/bla.torrent')
 
-    d = s.start_download(tdef,dcfg)
-    d.set_state_callback(state_callback,True)
-    #d.set_max_upload(100)
+        # dcfg.set_saveas('/arno')
+        dcfg = DownloadStartupConfig.get_copy_of_default()
+        dcfg.set_video_start_callback(vod_ready_callback)
 
-    time.sleep(10)
+        # dcfg.set_selected_files('MATRIX-XP_engl_L.avi') # play this video
+        # dcfg.set_selected_files('field-trip-west-siberia.avi')
+        d = self.session.start_download(tdef, dcfg)
+        d.set_state_callback(state_callback, True)
+        # d.set_max_upload(100)
 
-    """
-    d.stop()
-    print "After stop"
-    time.sleep(5)
-    d.restart()
-    """
-    time.sleep(2500)
+        time.sleep(10)
+
+        """
+        d.stop()
+        print "After stop"
+        time.sleep(5)
+        d.restart()
+        """
+        time.sleep(2500)
