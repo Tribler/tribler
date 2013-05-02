@@ -12,6 +12,8 @@ import time
 from traceback import print_exc
 
 from M2Crypto import EC
+from threading import enumerate as enumerate_threads
+
 
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
@@ -77,6 +79,11 @@ class TestAsServer(unittest.TestCase):
                 time.sleep(1)
 
             print >> sys.stderr, "test_as_server: Session is shutdown"
+
+            ts = enumerate_threads()
+            print >> sys.stderr, "test_as_server: Number of threads still running", len(ts)
+            for t in ts:
+                print >> sys.stderr, "test_as_server: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
 
             Session.del_instance()
             SQLiteCacheDB.delInstance()

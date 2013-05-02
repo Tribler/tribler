@@ -129,9 +129,8 @@ class TestGuiAsServer(unittest.TestCase):
 
         if self.frame:
             self.frame.OnCloseWindow()
-
         else:
-            wx.CallLater(1000, self.app.ExitMainLoop)
+            wx.CallAfter(self.app.ExitMainLoop)
             wx.CallLater(2500, self.app.Exit)
 
     def tearDown(self):
