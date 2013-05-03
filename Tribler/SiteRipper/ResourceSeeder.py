@@ -18,21 +18,10 @@ class ResourceSeeder:
     
     def __init__(self, url):
         self.__injector = WebpageInjector(url)
-        
-    # TODO Generalize
-    def downloadAnImage(self):
-        images = self.__injector.findTags("img")
-        if images.__len__() == 0:
-            return None
-        image = images[0]
-        self.__injector.saveTagSource(image, "animage")
-        for files in os.listdir("."):
-            if files.startswith("animage."):
-                return os.path.abspath(files)
 
-    # FIXME: Creates a torrent for filename, but does
-    #        not recognize we already own the file
     def seedFile(self, filename):
+        """Start seeding an arbitrary file
+        """
         s = Session.get_instance()
         tdef = TorrentDef()
         tdef.add_content(filename)
@@ -43,3 +32,20 @@ class ResourceSeeder:
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(folder)
         s.start_download(tdef,dscfg)
+        
+    def findAndSeed(self, filter, filename, index = 0):
+        """Use a BeautifulSoup filter to find a resource
+            on our URL and start seeding it
+            Optionally supply a search result index
+            for the filter results (will seed the first
+            result by default)
+        """
+        resources = self.__injector.findTags(filter)
+        try:
+            resource = resources[index]
+            file = os.path.abspath(self.__injector.saveTagSource(resource, filename))
+            self.seedFile(file)
+            return True
+        except:
+            return False
+            

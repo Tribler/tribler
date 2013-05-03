@@ -87,6 +87,7 @@ class WebpageInjector:
         vile.write(filecontents.read())
         filecontents.close()
         vile.close()
+        return filename+ext
         
     def __resolveURL(self, url):
         return urllib2.urlparse.urljoin(self.__url, url, True)
@@ -94,9 +95,10 @@ class WebpageInjector:
     def saveTagSource(self, tag, filename):
         """Saves the file, pointed to by the src field of a tag,
             to disk
+            Returns the filename
         """
         url = tag['src']
-        self.__downloadResource(self.__resolveURL(url), filename)
+        return self.__downloadResource(self.__resolveURL(url), filename)
         
     def saveWebpageFile(self, filename):
         """Save your webpage alterations to a file.
