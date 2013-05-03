@@ -1208,6 +1208,7 @@ class MainFrame(wx.Frame):
     def set_wxapp(self, wxapp):
         self.wxapp = wxapp
 
+    @forceWxThread
     def quit(self, force=True):
         print >> sys.stderr, "mainframe: in quit"
         if self.wxapp is not None:
@@ -1218,6 +1219,6 @@ class MainFrame(wx.Frame):
             app = wx.GetApp()
 
         if app:
-            wx.CallAfter(app.ExitMainLoop)
+            app.ExitMainLoop()
             if force:
                 wx.CallLater(2500, app.Exit)
