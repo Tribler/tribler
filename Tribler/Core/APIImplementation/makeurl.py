@@ -109,7 +109,13 @@ def p2purl2metainfo(url):
     colidx = url.find(":")
     scheme = url[0:colidx]
     qidx = url.find("?")
+
+    if scheme != P2PURL_SCHEME:
+        raise ValueError("Unknown scheme "+P2PURL_SCHEME)
+
     if qidx == -1:
+        if url[2:].find('/') > -1:
+            raise ValueError("Malformed compact form URL")
         # Compact form, no authority part and path rootless
         authority = None
         path = None
@@ -146,10 +152,6 @@ def p2purl2metainfo(url):
                 port = None
         if port is not None and not port.isdigit():
             raise ValueError("Port not int")
-    
-    
-    if scheme != P2PURL_SCHEME:
-        raise ValueError("Unknown scheme "+P2PURL_SCHEME)
 
     metainfo = {}
     if authority and path:
