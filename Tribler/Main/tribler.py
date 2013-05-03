@@ -659,7 +659,8 @@ class ABCApp():
 
                     # print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
                     playds.vod_status_msg = text
-                    self.videoplayer.set_player_status_and_progress(text, playds.get_pieces_complete())
+                    vod_progress = playds.get_progress() if playds.get_status() == DLSTATUS_HASHCHECKING else playds.get_vod_prebuffering_progress()
+                    self.videoplayer.set_player_status_and_progress(text, playds.get_pieces_complete(), vod_progress)
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished

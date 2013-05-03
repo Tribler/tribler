@@ -22,7 +22,7 @@ from Tribler.Video.defs import *
 from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
 from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
-from Tribler.Main.vwxGUI.widgets import tribler_topButton, SwitchButton
+from Tribler.Main.vwxGUI.widgets import tribler_topButton, SwitchButton, VideoProgress
 
 from list_footer import ListFooter
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread
@@ -527,13 +527,14 @@ class EmbeddedPlayerPanel(wx.Panel):
     # Control on-screen information
     #
     @forceWxThread
-    def UpdateStatus(self,playerstatus,pieces_complete):
-        self.SetPlayerStatus(playerstatus)
+    def UpdateStatus(self,playerstatus,pieces_complete,vod_progress):
+        self.SetPlayerStatus(playerstatus,vod_progress)
         if self.vlcwrap is not None:
             self.UpdateProgressSlider(pieces_complete)
 
-    def SetPlayerStatus(self,s):
-        self.SetLoadingText(s)
+    def SetPlayerStatus(self,text,progress):
+        self.SetLoadingText(text)
+        self.SetProgress(progress)
 
     def SetContentName(self,s):
         self.vlcwin.set_content_name(s)
@@ -551,6 +552,9 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.statuslabel.Wrap(self.GetClientSize().width)
             self.statuslabel.Refresh()
             self.Layout()
+
+    def SetProgress(self,progress):
+        self.vlcwin.loading.SetValue(progress)
 
     #
     # Internal methods
@@ -626,7 +630,6 @@ class VLCLogoWindow(wx.Panel):
         self.SetBackgroundColour(bg)
         self.bg = bg
         self.vlcwrap = vlcwrap
-        self.animation_running = False
 
         self.contentname = None
         self.contentbm = None
@@ -634,13 +637,13 @@ class VLCLogoWindow(wx.Panel):
         self.vsizer = wx.BoxSizer(wx.VERTICAL)
 
         if animate:
-            animation = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','video_grey.gif')
-            self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, animation)
-            self.agVideo.Hide()
+            self.loading = VideoProgress(self, -1)
+            self.loading.Hide()
+            self.loading.SetMinSize((300, 300))
 
-            self.vsizer.Add(self.agVideo, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            self.vsizer.Add(self.loading, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
         else:
-            self.agVideo = None
+            self.loading = None
 
         self.hsizermain.Add(self.vsizer, 1, wx.CENTER)
         self.SetSizer(self.hsizermain)
@@ -675,22 +678,15 @@ class VLCLogoWindow(wx.Panel):
         else:
             self.contentbm = None
 
-    def is_animation_running(self):
-        return self.animation_running
-
     def show_loading(self):
-        if self.agVideo:
+        if self.loading:
             self.logo = None
-            self.agVideo.Show()
-            self.agVideo.Play()
-            self.animation_running = True
+            self.loading.Show()
             self.Refresh()
 
     def stop_animation(self):
-        if self.agVideo:
-            self.agVideo.Stop()
-            self.agVideo.Hide()
-            self.animation_running = False
+        if self.loading:
+            self.loading.Hide()
             self.Refresh()
 
     def OnPaint(self,evt):

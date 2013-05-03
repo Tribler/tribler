@@ -785,9 +785,9 @@ class VideoPlayer:
             self.videoframe.get_videopanel().SetPlayerStatus(msg)
 
     @forceWxThread
-    def set_player_status_and_progress(self,msg,pieces_complete):
+    def set_player_status_and_progress(self,msg,pieces_complete,vod_progress):
         if self.videoframe is not None:
-            self.videoframe.get_videopanel().UpdateStatus(msg,pieces_complete)
+            self.videoframe.get_videopanel().UpdateStatus(msg,pieces_complete,vod_progress)
 
     @forceWxThread
     def set_save_button(self,enable,savebutteneventhandler):

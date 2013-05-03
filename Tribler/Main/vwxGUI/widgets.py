@@ -2597,3 +2597,76 @@ class Graph(wx.Panel):
     def OnSize(self, event):
         self.Refresh()
         event.Skip()
+
+
+class VideoProgress(wx.Panel):
+
+    def __init__(self, parent, id=-1, label='Loading\n 0%', value = 0.0, fill_colour = wx.Colour(255,51,0), edge_colour = wx.Colour(200,200,200), text_colour = wx.Colour(190,190,190), **kwargs):
+        wx.Panel.__init__(self, parent, id, **kwargs)
+        self.fill_colour = fill_colour
+        self.edge_colour = edge_colour
+        self.text_colour = text_colour
+        self.prnt_colour = parent.GetBackgroundColour()
+        self.error = ''
+        self.SetValue(value)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+
+    def SetValue(self, value):
+        self.value = value
+        self.label = 'Loading\n %d%%' % (value * 100)
+        self.Refresh()
+
+    def SetError(self, error):
+        self.error = error
+
+    def SetLabel(self, label):
+        self.label = label
+        self.Refresh()
+
+    def SetBackgroundColour(self, colour):
+        self.prnt_colour = colour
+        self.Refresh()
+
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnPaint(self, event):
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.prnt_colour))
+        dc.Clear()
+
+        gc = wx.GraphicsContext.Create(dc)
+        width, height = self.GetClientSize()
+        radius = min(width-5, height-5) / 2
+        pi = math.pi
+
+        path = gc.CreatePath()
+        path.AddCircle(0, 0, radius)
+        path.AddCircle(0, 0, radius / 1.5)
+        gc.PushState()
+        gc.Translate(width / 2, height / 2)
+        gc.SetBrush(wx.Brush(wx.Colour(220,220,220)))
+        gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
+        gc.DrawPath(path)
+        
+        if not self.error:
+            path = gc.CreatePath()
+            path.AddArc(0, 0, radius, -pi/2, -pi/2 + self.value*2*pi, True)
+            x = self.value*2*pi - (pi/2)
+            path.AddLineToPoint(math.cos(x)*radius/1.5, math.sin(x)*radius/1.5)
+            path.AddArc(0, 0, radius / 1.5, -pi/2 + self.value*2*pi, -pi/2, False)
+            path.CloseSubpath()
+            gc.PopState()
+            gc.PushState()
+            gc.Translate(width / 2, height / 2)
+            gc.SetBrush(gc.CreateRadialGradientBrush(0, 0, 0, 0, radius, wx.Colour(255,255,255), self.fill_colour))
+            gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
+            gc.DrawPath(path)
+
+        font =  self.GetFont()
+        font.SetPixelSize((0, radius / 3.5))
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        dc.SetFont(font)
+        dc.SetTextForeground(self.text_colour)
+        dc.DrawLabel(self.error or self.label, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
