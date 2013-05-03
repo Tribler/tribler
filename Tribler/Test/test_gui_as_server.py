@@ -133,7 +133,11 @@ class TestGuiAsServer(unittest.TestCase):
         if self.frame:
             self.frame.OnCloseWindow()
         else:
-            self.Call(0, self.app.ExitMainLoop)
+            def do_quit():
+                self.app.ExitMainLoop
+                wx.WakeUpMainThread()
+
+            self.Call(1, do_quit)
             self.Call(2.5, self.app.Exit)
 
         self.quitting = True
