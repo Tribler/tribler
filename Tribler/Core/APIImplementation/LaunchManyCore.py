@@ -12,6 +12,7 @@ import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
 from traceback import print_exc, print_stack
 import traceback
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 try:
     prctlimported = True
@@ -28,8 +29,6 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.NATFirewall.guessip import get_my_wan_ip
-from Tribler.Core.NATFirewall.UPnPThread import UPnPThread
 from Tribler.Core.DecentralizedTracking import mainlineDHT
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
@@ -85,20 +84,12 @@ class TriblerLaunchMany(Thread):
             self.downloads = {}
             config = session.sessconfig  # Should be safe at startup
 
-            self.locally_guessed_ext_ip = self.guess_ext_ip_from_local_info()
-            self.upnp_ext_ip = None
-            self.dialback_ext_ip = None
-            self.yourip_ext_ip = None
-            self.udppuncture_handler = None
+            self.upnp_ports = []
+
             self.internaltracker = None
 
             # Orig
             self.sessdoneflag = Event()
-
-            # Following 2 attributes set/get by UPnPThread
-            self.upnp_thread = None
-            self.upnp_type = config['upnp_nat_access']
-            self.nat_detect = config['nat_detect']
 
             self.rawserver = RawServer(self.sessdoneflag,
                                        config['timeout_check_interval'],
@@ -118,6 +109,8 @@ class TriblerLaunchMany(Thread):
                 self.spm = SwiftProcessMgr(config['swiftpath'], config['swiftcmdlistenport'], config['swiftdlsperproc'], self.session.get_swift_tunnel_listen_port(), self.sesslock)
                 try:
                     self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
+                    self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
+
                 except OSError:
                     # could not find/run swift
                     print >> sys.stderr, "lmc: could not start a swift process"
@@ -146,6 +139,7 @@ class TriblerLaunchMany(Thread):
                 # try_register(nocachedb, self.database_thread)!
                 self.dispersy.start()
                 print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
+                self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
             else:
                 # new database stuff will run on only one thread
@@ -155,7 +149,6 @@ class TriblerLaunchMany(Thread):
             # we may want to remove DATABASE_THREAD member
             self.database_thread = callback
 
-            # do_cache -> do_overlay -> (do_buddycast, do_proxyservice)
             if config['megacache']:
                 import Tribler.Core.CacheDB.cachedb as cachedb
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler
@@ -185,24 +178,7 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
 
-                # Crawling
-                if config['crawler']:
-                    # ARNOCOMMENT, 2009-10-02: Should be moved out of core, used in Main client only.
-                    # initialize SeedingStats database
-                    cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
-
-                    # initialize VideoPlayback statistics database
-                    cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
-
-                    self.seedingstats_db = SeedingStatsDBHandler.getInstance()
-                    self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
-                else:
-                    self.crawler_db = None
-                    self.seedingstats_db = None
-                    self.seedingstatssettings_db = None
-
             else:
-                config['overlay'] = 0  # turn overlay off
                 config['torrent_checking'] = 0
                 self.peer_db = None
                 self.torrent_db = None
@@ -249,13 +225,7 @@ class TriblerLaunchMany(Thread):
     def init(self):
         config = self.session.sessconfig  # Should be safe at startup
 
-        self.secure_overlay = None
-        self.overlay_apps = None
-        config['buddycast'] = 0
-        config['socnet'] = 0
-        config['rquery'] = 0
-
-        if config['megacache'] or config['overlay']:
+        if config['megacache']:
             # Arno: THINK! whoever added this should at least have made the
             # config files configurable via SessionConfigInterface.
 
@@ -281,8 +251,14 @@ class TriblerLaunchMany(Thread):
             # TODO: Can I get the local IP number?
             try:
                 mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'])
+                self.upnp_ports.append((config['mainline_dht_port'], 'UDP'))
+
             except:
                 print_exc()
+
+        self.ltmgr = None
+        if config['libtorrent']:
+            self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
         self.torrent_checking = None
@@ -298,7 +274,6 @@ class TriblerLaunchMany(Thread):
                 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
                 self.torrent_checking_period = config['torrent_checking_period']
                 self.torrent_checking = TorrentChecking.getInstance(self.torrent_checking_period)
-                # self.torrent_checking_period = 5
                 self.run_torrent_check()
             except:
                 print_exc
@@ -702,10 +677,6 @@ class TriblerLaunchMany(Thread):
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
-        if self.overlay_apps is not None:
-            self.overlay_bridge.add_task(self.overlay_apps.early_shutdown, 0)
-        if self.udppuncture_handler is not None:
-            self.udppuncture_handler.shutdown()
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
         if self.torrent_checking:
@@ -724,11 +695,6 @@ class TriblerLaunchMany(Thread):
             self.mypref_db.delInstance()
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
-
-            if self.seedingstats_db:
-                self.seedingstats_db.delInstance()
-            if self.seedingstatssettings_db:
-                self.seedingstatssettings_db.delInstance()
 
             from Tribler.Core.CacheDB.sqlitecachedb import unregister
             unregister()
@@ -765,6 +731,11 @@ class TriblerLaunchMany(Thread):
         # Arno, 2010-08-09: Stop Session pool threads only after gracetime
         self.session.uch.shutdown()
 
+        # Shutdown libtorrent session after checkpoints have been made
+        if self.ltmgr:
+            self.ltmgr.shutdown()
+        LibtorrentMgr.delInstance()
+
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
         basename = binascii.hexlify(infohash) + '.pickle'
@@ -784,28 +755,6 @@ class TriblerLaunchMany(Thread):
         f.close()
         return pstate
 
-    #
-    # External IP address methods
-    #
-    def guess_ext_ip_from_local_info(self):
-        """ Called at creation time """
-        ip = get_my_wan_ip()
-        if ip is None:
-
-            # Niels: user in the forums reported that this
-            # socket.gethostname + socket.gethostbyname raised an exception
-            # returning 127.0.0.1 if it does
-            try:
-                host = socket.gethostbyname_ex(socket.gethostname())
-                ipaddrlist = host[2]
-                for ip in ipaddrlist:
-                    return ip
-            except:
-                pass
-            return '127.0.0.1'
-        else:
-            return ip
-
     def run(self):
         if prctlimported:
             prctl.set_name("Tribler" + currentThread().getName())
@@ -824,97 +773,28 @@ class TriblerLaunchMany(Thread):
             self._run()
 
     def start_upnp(self):
-        """ Arno: as the UPnP discovery and calls to the firewall can be slow,
-        do it in a separate thread. When it fails, it should report popup
-        a dialog to inform and help the user. Or report an error in textmode.
+        if self.ltmgr:
+            self.set_activity(NTFY_ACT_UPNP)
 
-        Must save type here, to handle case where user changes the type
-        In that case we still need to delete the port mapping using the old mechanism
-
-        Called by network thread """
-
-        if DEBUG:
-            print >> sys.stderr, "tlm: start_upnp()"
-        self.set_activity(NTFY_ACT_UPNP)
-        self.upnp_thread = UPnPThread(self.upnp_type, self.locally_guessed_ext_ip, self.listen_port, self.upnp_failed_callback, self.upnp_got_ext_ip_callback)
-        self.upnp_thread.start()
+            for port, protocol in self.upnp_ports:
+                if DEBUG:
+                    print >> sys.stderr, "tlm: adding upnp mapping for %d %s" % (port, protocol)
+                self.ltmgr.add_mapping(port, protocol)
 
     def stop_upnp(self):
-        """ Called by network thread """
-        if self.upnp_type > 0:
-            self.upnp_thread.shutdown()
+        if self.ltmgr:
+            self.ltmgr.delete_mappings()
 
-    def upnp_failed_callback(self, upnp_type, listenport, error_type, exc=None, listenproto='TCP'):
-        """ Called by UPnP thread TODO: determine how to pass to API user
-            In principle this is a non fatal error. But it is one we wish to
-            show to the user """
-        print >> sys.stderr, "UPnP mode " + str(upnp_type) + " request to firewall failed with error " + str(error_type) + " Try setting a different mode in Preferences. Listen port was " + str(listenport) + ", protocol" + listenproto, exc
-
-    def upnp_got_ext_ip_callback(self, ip):
-        """ Called by UPnP thread """
-        self.sesslock.acquire()
-        self.upnp_ext_ip = ip
-        self.sesslock.release()
-
-    def dialback_got_ext_ip_callback(self, ip):
-        """ Called by network thread """
-        self.sesslock.acquire()
-        self.dialback_ext_ip = ip
-        self.sesslock.release()
-
-    def yourip_got_ext_ip_callback(self, ip):
-        """ Called by network thread """
-        self.sesslock.acquire()
-        self.yourip_ext_ip = ip
-        if DEBUG:
-            print >> sys.stderr, "tlm: yourip_got_ext_ip_callback: others think my IP address is", ip
-        self.sesslock.release()
-
-    def get_ext_ip(self, unknowniflocal=False):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            if self.dialback_ext_ip is not None:
-                # more reliable
-                return self.dialback_ext_ip  # string immutable
-            elif self.upnp_ext_ip is not None:
-                # good reliability, if known
-                return self.upnp_ext_ip
-            elif self.yourip_ext_ip is not None:
-                # majority vote, could be rigged
-                return self.yourip_ext_ip
-            else:
-                # slighly wild guess
-                if unknowniflocal:
-                    return None
-                else:
-                    return self.locally_guessed_ext_ip
-        finally:
-            self.sesslock.release()
-
-
-    def get_int_ip(self):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            return self.locally_guessed_ext_ip
-        finally:
-            self.sesslock.release()
-
-
-    #
     # Events from core meant for API user
     #
     def dialback_reachable_callback(self):
         """ Called by overlay+network thread """
         self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
 
-
     def set_activity(self, type, str='', arg2=None):
         """ Called by overlay + network thread """
         # print >>sys.stderr,"tlm: set_activity",type,str,arg2
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
-
 
     def network_vod_event_callback(self, videoinfo, event, params):
         """ Called by network thread """
@@ -928,15 +808,14 @@ class TriblerLaunchMany(Thread):
         except:
             print_exc()
 
-
     def update_torrent_checking_period(self):
         # dynamically change the interval: update at least once per day
-        if self.overlay_apps and self.overlay_apps.metadata_handler:
-            ntorrents = self.overlay_apps.metadata_handler.num_torrents
+        if self.rtorrent_handler:
+            ntorrents = self.rtorrent_handler.num_torrents
             if ntorrents > 0:
                 self.torrent_checking_period = min(max(86400 / ntorrents, 30), 300)
+
         # print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
-        # self.torrent_checking_period = 1    ### DEBUG, remove it before release!!
 
     def run_torrent_check(self):
         """ Called by network thread """
@@ -946,8 +825,9 @@ class TriblerLaunchMany(Thread):
         try:
             from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
-            t = TorrentChecking.getInstance(self.torrent_checking_period)
+            t = TorrentChecking.getInstance(self.torrent_checking_period, self.session.sessconfig['torrent_collecting_dir'])
             t.setInterval(self.torrent_checking_period)
+
         except Exception, e:
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)

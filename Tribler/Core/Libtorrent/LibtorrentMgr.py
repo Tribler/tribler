@@ -18,12 +18,12 @@ class LibtorrentMgr:
     # Code to make this a singleton
     __single = None
 
-    def __init__(self, trsession, utility):
-        if LibtorrentMgr.__single:
-            raise RuntimeError, "LibtorrentMgr is singleton"
-        LibtorrentMgr.__single = self
+    def __init__(self, trsession, ignore_singleton=False):
+        if not ignore_singleton:
+            if LibtorrentMgr.__single:
+                raise RuntimeError, "LibtorrentMgr is singleton"
+            LibtorrentMgr.__single = self
 
-        self.utility = utility
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
@@ -39,7 +39,9 @@ class LibtorrentMgr:
         self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
-        self.ltsession.start_upnp()
+        self.upnp_mapper = self.ltsession.start_upnp()
+
+        print >> sys.stderr, "LibtorrentMgr: listening on %d" % self.ltsession.listen_port()
 
         # Start DHT
         try:
@@ -58,6 +60,8 @@ class LibtorrentMgr:
         self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
         self.trsession.lm.rawserver.add_task(self.reachability_check, 1)
         self.trsession.lm.rawserver.add_task(self.monitor_dht, 5)
+
+        self.upnp_mappings = {}
 
     def getInstance(*args, **kw):
         if LibtorrentMgr.__single is None:
@@ -154,6 +158,21 @@ class LibtorrentMgr:
                     print >> sys.stderr, "LibtorrentMgr: cannot remove torrent", infohash, "because it does not exists"
         elif DEBUG:
             print >> sys.stderr, "LibtorrentMgr: cannot remove invalid torrent"
+
+    def add_mapping(self, port, protocol='TCP'):
+        if self.upnp_mapper:
+            protocol_type = 2 if protocol == 'TCP' else 1
+            self.upnp_mappings[(port, protocol)] = self.upnp_mapper.add_mapping(protocol_type, port, port)
+
+    def delete_mapping(self, port, protocol='TCP'):
+        if self.upnp_mapper:
+            mapping = self.upnp_mappings[(port, protocol)]
+            self.upnp_mapper.delete_mapping(mapping)
+
+    def delete_mappings(self):
+        if self.upnp_mapper:
+            for mapping in self.upnp_mappings.itervalues():
+                self.upnp_mapper.delete_mapping(mapping)
 
     def process_alerts(self):
         if self.ltsession:
