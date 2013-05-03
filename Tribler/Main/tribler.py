@@ -26,7 +26,6 @@ logging.config.fileConfig("logger.conf")
 # This must be done in the first python file that is started.
 #
 import urllib
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
@@ -412,6 +411,7 @@ class ABCApp():
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
+        s.start()
         self.utility.session = s
         self.dispersy = s.lm.dispersy
 

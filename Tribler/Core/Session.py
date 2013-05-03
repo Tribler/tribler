@@ -60,12 +60,12 @@ class Session(SessionRuntimeConfig):
         at a time in a process. The ignore_singleton flag is used for testing.
         """
 
-
         if not ignore_singleton:
             if Session.__single:
                 raise RuntimeError, "Session is singleton"
             Session.__single = self
 
+        self.ignore_singleton = ignore_singleton
         self.sesslock = NoDispersyRLock()
 
         # Determine startup config to use
@@ -192,14 +192,6 @@ class Session(SessionRuntimeConfig):
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 
-        # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self)
-
-        # Create engine with network thread
-        self.lm = TriblerLaunchMany()
-        self.lm.register(self, self.sesslock)
-        self.lm.start()
-
     #
     # Class methods
     #
@@ -240,7 +232,6 @@ class Session(SessionRuntimeConfig):
         return statedir
 
     get_default_state_dir = staticmethod(get_default_state_dir)
-
 
     #
     # Public methods
@@ -585,6 +576,18 @@ class Session(SessionRuntimeConfig):
         """ Saves the internal session state to the Session's state dir. """
         # Called by any thread
         self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
+
+
+    def start(self):
+        """ Create the LaunchManyCore instance and start it"""
+
+        # Create handler for calling back the user via separate threads
+        self.uch = UserCallbackHandler(self)
+
+        # Create engine with network thread
+        self.lm = TriblerLaunchMany()
+        self.lm.register(self, self.sesslock)
+        self.lm.start()
 
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.

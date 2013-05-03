@@ -178,22 +178,6 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
 
-                # Crawling
-                if config['crawler']:
-                    # ARNOCOMMENT, 2009-10-02: Should be moved out of core, used in Main client only.
-                    # initialize SeedingStats database
-                    cachedb.init_seeding_stats(config, self.rawserver_fatalerrorfunc)
-
-                    # initialize VideoPlayback statistics database
-                    cachedb.init_videoplayback_stats(config, self.rawserver_fatalerrorfunc)
-
-                    self.seedingstats_db = SeedingStatsDBHandler.getInstance()
-                    self.seedingstatssettings_db = SeedingStatsSettingsDBHandler.getInstance()
-                else:
-                    self.crawler_db = None
-                    self.seedingstats_db = None
-                    self.seedingstatssettings_db = None
-
             else:
                 config['torrent_checking'] = 0
                 self.peer_db = None
@@ -274,7 +258,7 @@ class TriblerLaunchMany(Thread):
 
         self.ltmgr = None
         if config['libtorrent']:
-            self.ltmgr = LibtorrentMgr.getInstance(self.session)
+            self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
         self.torrent_checking = None
@@ -712,11 +696,6 @@ class TriblerLaunchMany(Thread):
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
 
-            if self.seedingstats_db:
-                self.seedingstats_db.delInstance()
-            if self.seedingstatssettings_db:
-                self.seedingstatssettings_db.delInstance()
-
             from Tribler.Core.CacheDB.sqlitecachedb import unregister
             unregister()
 
@@ -846,7 +825,7 @@ class TriblerLaunchMany(Thread):
         try:
             from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
-            t = TorrentChecking.getInstance(self.torrent_checking_period)
+            t = TorrentChecking.getInstance(self.torrent_checking_period, self.session.sessconfig['torrent_collecting_dir'])
             t.setInterval(self.torrent_checking_period)
 
         except Exception, e:

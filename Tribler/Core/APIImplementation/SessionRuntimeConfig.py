@@ -228,16 +228,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_superpeer(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_superpeer(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_superpeer(self)
-        finally:
-            self.sesslock.release()
-
     def set_overlay_log(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -345,26 +335,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_dialback(self)
-        finally:
-            self.sesslock.release()
-
-    def set_social_networking(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_social_networking(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_social_networking(self)
-        finally:
-            self.sesslock.release()
-
-    def set_remote_query(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_remote_query(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_remote_query(self)
         finally:
             self.sesslock.release()
 
@@ -808,26 +778,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_bartercast(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_bartercast(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_bartercast(self)
-        finally:
-            self.sesslock.release()
-
-    def set_superpeer_file(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_superpeer_file(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_superpeer_file(self)
-        finally:
-            self.sesslock.release()
-
     def set_buddycast_collecting_solution(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -853,19 +803,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     def set_puncturing_private_port(self, puncturing_private_port):
         raise OperationNotPossibleAtRuntimeException()
-
-    #
-    # Crawler
-    #
-    def set_crawler(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_crawler(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_crawler(self)
-        finally:
-            self.sesslock.release()
 
     #
     # Local Peer Discovery using IP Multicast

@@ -4,21 +4,16 @@
 import socket
 import sys
 from binascii import b2a_hex
-from struct import pack,unpack
+from struct import pack, unpack
 from StringIO import StringIO
 
-DEBUG=False
+DEBUG = False
 
-current_version = 3 # TODO: Fix this temporary hack.
+current_version = 3  # TODO: Fix this temporary hack.
 lowest_version = 2
 
 protocol_name = "BitTorrent protocol"
-# Enable Tribler extensions:
-# Left-most bit = Azureus Enhanced Messaging Protocol (AEMP)
-# Left+42 bit = Tribler Simple Merkle Hashes extension v0. Outdated, but still sent for compatibility.
-# Left+43 bit = Tribler Overlay swarm extension
-# Right-most bit = BitTorrent DHT extension
-tribler_option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
+default_option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
 def toint(s):
@@ -29,7 +24,7 @@ def tobinary(i):
         chr((i >> 8) & 0xFF) + chr(i & 0xFF))
 
 class BTConnection:
-    def __init__(self,hostname,port,opensock=None,user_option_pattern=None,user_infohash=None,myid=None,mylistenport=None,myoversion=None):
+    def __init__(self, hostname, port, opensock=None, user_option_pattern=None, user_infohash=None, myid=None, mylistenport=None, myoversion=None):
         assert user_option_pattern is None or isinstance(user_option_pattern, str)
         assert user_option_pattern is None or len(user_option_pattern) == 8
         assert user_infohash is None or isinstance(user_infohash, str)
@@ -60,10 +55,9 @@ class BTConnection:
         handshake = chr(len(protocol_name))
         handshake += protocol_name
         if user_option_pattern is None:
-            handshake += tribler_option_pattern
+            handshake += default_option_pattern
         else:
             handshake += user_option_pattern
-
         if user_infohash is None:
             self.expected_infohash = overlay_infohash
         else:
@@ -71,7 +65,7 @@ class BTConnection:
         handshake += self.expected_infohash
         handshake += self.myid
         if DEBUG:
-            print >>sys.stderr,"btconn: Sending handshake len",len(handshake)
+            print >> sys.stderr, "btconn: Sending handshake len", len(handshake)
         self.s.send(handshake)
 
     def get_my_id(self):
@@ -87,20 +81,20 @@ class BTConnection:
         data = self._readn(68)
         assert(data[0] == chr(len(protocol_name)))
         assert(data[1:20] == protocol_name)
-        assert(data[20:28] == tribler_option_pattern)
         assert(data[28:48] == self.expected_infohash)
+
         self.hisid = data[48:68]
         hisport = unpack('<H', self.hisid[14:16])[0]
         assert(hisport == self.hisport)
         low_ver = unpack('<H', self.hisid[16:18])[0]
         assert(low_ver == lowest_version)
         cur_ver = unpack('<H', self.hisid[18:20])[0]
-        #if DEBUG:
+        # if DEBUG:
         #    print >> sys.stderr, "btconn: his cur_ver: ", cur_ver
         #    print >> sys.stderr, "btconn: my curr_ver: ", current_version
         assert(cur_ver == current_version)
 
-    def read_handshake_medium_rare(self,close_ok = False):
+    def read_handshake_medium_rare(self, close_ok=False):
         data = self._readn(68)
         if len(data) == 0:
             if close_ok:
@@ -109,7 +103,6 @@ class BTConnection:
                 assert(len(data) > 0)
         assert(data[0] == chr(len(protocol_name)))
         assert(data[1:20] == protocol_name)
-        assert(data[20:28] == tribler_option_pattern)
         assert(data[28:48] == self.expected_infohash)
         self.hisid = data[48:68]
         # don't check encoded fields
@@ -117,7 +110,7 @@ class BTConnection:
     def close(self):
         self.s.close()
 
-    def send(self,data):
+    def send(self, data):
         """ send length-prefixed message """
         self.s.send(tobinary(len(data)))
         self.s.send(data)
@@ -129,14 +122,14 @@ class BTConnection:
             return size_data
         size = toint(size_data)
         if DEBUG and size > 10000:
-            print >> sys.stderr,"btconn: waiting for message size",size
+            print >> sys.stderr, "btconn: waiting for message size", size
         if size == 0:
             # BT keep alive message, don't report upwards
             return self.recv()
         else:
             return self._readn(size)
 
-    def _readn(self,n):
+    def _readn(self, n):
         """ read n bytes from socket stream """
         nwant = n
         while True:
@@ -148,14 +141,14 @@ class BTConnection:
                     continue
                 elif e[0] == 10054:
                     # WSAECONNRESET on Windows
-                    print >>sys.stderr,"btconn:",e,"converted to EOF"
-                    return '' # convert to EOF
+                    print >> sys.stderr, "btconn:", e, "converted to EOF"
+                    return ''  # convert to EOF
                 else:
                     raise e
             if DEBUG:
-                print >> sys.stderr,"btconn: _readn got",len(data),"bytes"
+                print >> sys.stderr, "btconn: _readn got", len(data), "bytes"
             if len(data) == 0:
-                #raise socket.error(ECONNRESET,'arno says connection closed')
+                # raise socket.error(ECONNRESET,'arno says connection closed')
                 return data
             nwant -= len(data)
             self.buffer.write(data)

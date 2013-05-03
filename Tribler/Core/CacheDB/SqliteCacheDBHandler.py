@@ -558,6 +558,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
 
+        self.category = None
 
     def register(self, category, torrent_dir):
         self.category = category
@@ -742,7 +743,7 @@ class TorrentDBHandler(BasicDBHandler):
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
-                "category_id":self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "category_id":self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode()) if self.category else []),
                 "status_id":self._getStatusID(extra_info.get("status", "unknown")),
                 "num_seeders":extra_info.get("seeder", -1),
                 "num_leechers":extra_info.get("leecher", -1),
@@ -1865,7 +1866,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         if infohash is None:
             # create a view?
-            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check
+            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
                      from CollectedTorrent T, TorrentTracker TT
                      where TT.torrent_id=T.torrent_id and announce_tier=1 """
             if policy.lower() == 'random':
@@ -1890,7 +1891,7 @@ class TorrentDBHandler(BasicDBHandler):
             res = self._db.fetchone(sql)
         else:
             # Niels: If we specifiy a particular torrent, allow for non-collected torrents (ie torrent from channels can have trackers before the .torrent is collected)
-            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check
+            sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
                      from Torrent T, TorrentTracker TT
                      where TT.torrent_id=T.torrent_id and announce_tier=1
                      and infohash=?
@@ -1912,7 +1913,8 @@ class TorrentDBHandler(BasicDBHandler):
                    'torrent_path':torrent_path,
                    'infohash':str2bin(res[4]),
                    'status':self.id2status[res[5]],
-                   'last_check':res[8]
+                   'last_check':res[8],
+                   'trackers':[res[9]],
                   }
             return res
 

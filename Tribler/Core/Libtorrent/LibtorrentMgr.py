@@ -18,10 +18,11 @@ class LibtorrentMgr:
     # Code to make this a singleton
     __single = None
 
-    def __init__(self, trsession):
-        if LibtorrentMgr.__single:
-            raise RuntimeError, "LibtorrentMgr is singleton"
-        LibtorrentMgr.__single = self
+    def __init__(self, trsession, ignore_singleton=False):
+        if not ignore_singleton:
+            if LibtorrentMgr.__single:
+                raise RuntimeError, "LibtorrentMgr is singleton"
+            LibtorrentMgr.__single = self
 
         self.trsession = trsession
         settings = lt.session_settings()
@@ -39,6 +40,8 @@ class LibtorrentMgr:
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
         self.upnp_mapper = self.ltsession.start_upnp()
+
+        print >> sys.stderr, "LibtorrentMgr: listening on %d" % self.ltsession.listen_port()
 
         # Start DHT
         try:
