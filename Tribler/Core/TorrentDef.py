@@ -162,6 +162,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
         return TorrentDef.retrieve_from_magnet(magnetlink, callback, timeout, max_connections)
 
+    @staticmethod
     def load_from_url(url):
         """
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
@@ -187,9 +188,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         else:
             f = urlOpenTimeout(url)
             return TorrentDef._read(f)
-    load_from_url = staticmethod(load_from_url)
 
-
+    @staticmethod
     def load_from_dict(metainfo):
         """
         Load a BT .torrent or Tribler .tribe file from the metainfo dictionary
@@ -200,7 +200,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """
         # Class method, no locking required
         return TorrentDef._create(metainfo)
-    load_from_dict = staticmethod(load_from_dict)
 
     #
     # ContentDefinition interface

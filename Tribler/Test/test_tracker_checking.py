@@ -9,7 +9,6 @@ from Tribler.Test.test_as_server import BASE_DIR
 from Tribler.Core.CacheDB import sqlitecachedb
 
 class TestTorrentChecking(unittest.TestCase):
-
     def setUp(self):
         config = {}
         config['state_dir'] = "."

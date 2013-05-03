@@ -24,7 +24,6 @@ logger = getLogger(__name__)
 
 from Tribler.Core.API import *
 
-
 DEBUG=False
 
 class TestP2PURLs(unittest.TestCase):
@@ -38,7 +37,6 @@ class TestP2PURLs(unittest.TestCase):
         tribe://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&a=RSA&b=AAIAAA
         tribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg
         """
-
         badurllist = []
 
         badurllist += [("ribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "wrong scheme")]
@@ -54,7 +52,6 @@ class TestP2PURLs(unittest.TestCase):
         badurllist += [("tribe://localhost?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b:AAFnGg", "some key value not separated by =")]
         badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=", "query with malformed key value")]
 
-
         # IPv6 addresses
         badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unclosed IPv6 literal address")]
         badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unopened IPv6 literal address")]
@@ -62,7 +59,6 @@ class TestP2PURLs(unittest.TestCase):
         badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unopened IPv6 literal address, no port")]
 
         self.run_badurllist(badurllist)
-
 
     def test_missing(self):
         badurllist = []
@@ -78,7 +74,6 @@ class TestP2PURLs(unittest.TestCase):
 
         # live
         badurllist += [("tribe://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&b=AAIAAA", "query with missing live auth method")]
-
 
         self.run_badurllist(badurllist)
 

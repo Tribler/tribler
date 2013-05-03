@@ -1,14 +1,14 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 #
-# TODO: 
+# TODO:
 # * Test suite
 # * Tracker support: how do they determine which files to seed.
 #
 # * Reverse support for URL-compat: URLs that do use infohash.
 #   - Make sure internal tracker understands URL-compat torrentfiles
 #   - Make sure internal tracker understands P2P URLs
-# 
+#
 # ISSUE: what if trackers have query parts? Is that officially/practically allowed?
 
 
@@ -33,11 +33,11 @@ DEBUG = False
 
 def metainfo2p2purl(metainfo):
     """ metainfo must be a Merkle torrent or a live torrent with an
-    'encoding' field set. 
+    'encoding' field set.
     @return URL
     """
     info = metainfo['info']
-    
+
     bitrate = None
     if 'azureus_properties' in metainfo:
         azprops = metainfo['azureus_properties']
@@ -45,18 +45,18 @@ def metainfo2p2purl(metainfo):
             content = metainfo['azureus_properties']['Content']
             if 'Speed Bps' in content:
                 bitrate = content['Speed Bps']
-                   
+
     if 'encoding' not in metainfo:
         encoding = 'utf-8'
     else:
         encoding = metainfo['encoding']
-                                                
+
     urldict = {}
 
     urldict['s'] = p2purl_encode_piecelength(info['piece length'])
     # Warning: mbcs encodings sometimes don't work well under python!
     urldict['n'] = p2purl_encode_name2url(info['name'],encoding)
-    
+
     if info.has_key('length'):
         urldict['l'] = p2purl_encode_nnumber(info['length'])
     else:
@@ -75,22 +75,22 @@ def metainfo2p2purl(metainfo):
         urldict['a'] = info['live']['authmethod']
     else:
         raise ValueError("url-compat and Merkle torrent must be on to create URL")
-        
+
     if bitrate is not None:
         urldict['b'] = p2purl_encode_nnumber(bitrate)
-        
+
     query = ''
     for k in ['n','r','k','l','s','a','b']:
         if k in urldict:
             if query != "":
                 query += '&'
             v = urldict[k]
-            if k == 'n': 
+            if k == 'n':
                 s = v
             else:
                 s = k+"="+v
             query += s
-        
+
     sidx = metainfo['announce'].find(":")
     hierpart = metainfo['announce'][sidx+1:]
     url = P2PURL_SCHEME+':'+hierpart+"?"+query
@@ -100,10 +100,10 @@ def metainfo2p2purl(metainfo):
 
 def p2purl2metainfo(url):
     """ Returns (metainfo,swarmid) """
-    
+
     if DEBUG:
         print >>sys.stderr,"p2purl2metainfo: URL",url
-        
+
     # Python's urlparse only supports a defined set of schemes, if not
     # recognized, everything becomes path. Handy.
     colidx = url.find(":")
@@ -160,8 +160,8 @@ def p2purl2metainfo(url):
         result = urlparse.urlparse(metainfo['announce'])
         if result[0] != "http":
             raise ValueError("Malformed tracker URL")
-        
-        
+
+
     reqinfo = p2purl_parse_query(query)
     metainfo.update(reqinfo)
 
@@ -170,7 +170,7 @@ def p2purl2metainfo(url):
     if DEBUG:
         print >>sys.stderr,"p2purl2metainfo: parsed",`metainfo`
 
-    
+
     return (metainfo,swarmid)
 
 def metainfo2swarmid(metainfo):
@@ -192,10 +192,10 @@ def p2purl_parse_query(query):
     gotps = False
     gotam = False
     gotbps = False
-    
+
     reqinfo = {}
     reqinfo['info'] = {}
-    
+
     # Hmmm... could have used urlparse.parse_qs
     kvs = query.split('&')
     for kv in kvs:
@@ -205,12 +205,12 @@ def p2purl_parse_query(query):
             reqinfo['encoding'] = 'UTF-8'
             gotname = True
             continue
-        
+
         k,v = kv.split('=')
-        
+
         if k =='k' or k == 'a' and not ('live' in reqinfo['info']):
             reqinfo['info']['live'] = {}
-        
+
         if k == 'n':
             reqinfo['info']['name'] = p2purl_decode_name2utf8(v)
             reqinfo['encoding'] = 'UTF-8'
@@ -237,7 +237,7 @@ def p2purl_parse_query(query):
             reqinfo['azureus_properties']['Content'] = {}
             reqinfo['azureus_properties']['Content']['Speed Bps'] = bitrate
             gotbps = True
-            
+
     if not gotname:
         raise ValueError("Missing name field")
     if not gotrh and not gotkey:
@@ -257,15 +257,15 @@ def p2purl_parse_query(query):
         raise ValueError("Missing bitrate field")
 
     return reqinfo
-            
+
 
 def pubkey2swarmid(livedict):
-    """ Calculate SHA1 of pubkey (or cert). 
-    Make X.509 Subject Key Identifier compatible? 
+    """ Calculate SHA1 of pubkey (or cert).
+    Make X.509 Subject Key Identifier compatible?
     """
     if DEBUG:
         print >>sys.stderr,"pubkey2swarmid:",livedict.keys()
-    
+
     if livedict['authmethod'] == "None":
         # No live-source auth
         return Rand.rand_bytes(20)
@@ -283,7 +283,7 @@ def p2purl_decode_name2utf8(v):
 
 def p2purl_encode_name2url(name,encoding):
     """ Encode name in specified encoding to URL escaped UTF-8 """
-    
+
     if encoding.lower() == 'utf-8':
         utf8name = name
     else:
@@ -297,7 +297,7 @@ def p2purl_decode_base64url(v):
     return b64urldecode(v)
 
 #
-# Convert Python number to binary value of sufficient bytes, 
+# Convert Python number to binary value of sufficient bytes,
 # in network-byte order and BASE64-URL encode that binary value, or vice versa.
 #
 def p2purl_decode_nnumber(s):
@@ -308,7 +308,7 @@ def p2purl_decode_nnumber(s):
         format = "l"
     else:
         format = "Q"
-    format = "!"+format # network-byte order       
+    format = "!"+format # network-byte order
     return unpack(format,b)[0]
 
 def p2purl_encode_nnumber(s):
@@ -342,7 +342,7 @@ def b64urlencode(input):
     output = output.replace('+','-')
     output = output.replace('/','_')
     return output
-    
+
 def b64urldecode(input):
     inter = input[:]
     # readd padding.
@@ -353,4 +353,3 @@ def b64urldecode(input):
     inter = inter.replace('_','/')
     output = b64decode(inter)
     return output
-
