@@ -106,7 +106,12 @@ class TestGuiAsServer(unittest.TestCase):
 
     def Call(self, seconds, callback):
         if not self.quitting:
-            wx.CallLater(seconds * 1000, callback)
+            if seconds:
+                wx.CallLater(seconds * 1000, callback)
+            elif not wx.Thread_IsMain():
+                wx.CallAfter(callback)
+            else:
+                callback()
 
     def CallConditional(self, timeout, condition, callback, assertMsg=None):
         t = time()
@@ -122,16 +127,20 @@ class TestGuiAsServer(unittest.TestCase):
                 else:
                     print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds" % timeout
                     self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
-        wx.CallAfter(DoCheck)
+        self.Call(0, DoCheck)
 
     def quit(self):
-        self.quitting = True
-
         if self.frame:
             self.frame.OnCloseWindow()
         else:
-            wx.CallAfter(self.app.ExitMainLoop)
-            wx.CallLater(2500, self.app.Exit)
+            def do_quit():
+                self.app.ExitMainLoop
+                wx.WakeUpMainThread()
+
+            self.Call(1, do_quit)
+            self.Call(2.5, self.app.Exit)
+
+        self.quitting = True
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
