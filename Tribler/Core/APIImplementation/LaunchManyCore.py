@@ -117,7 +117,7 @@ class TriblerLaunchMany(Thread):
             if swift_exists:
                 self.spm = SwiftProcessMgr(config['swiftpath'], config['swiftcmdlistenport'], config['swiftdlsperproc'], self.session.get_swift_tunnel_listen_port(), self.sesslock)
                 try:
-                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),self.session.get_torrent_collecting_dir(),self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port() )
+                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
                 except OSError:
                     # could not find/run swift
                     print >> sys.stderr, "lmc: could not start a swift process"
@@ -145,7 +145,7 @@ class TriblerLaunchMany(Thread):
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
                 self.dispersy.start()
-                print >>sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
+                print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
 
             else:
                 # new database stuff will run on only one thread
@@ -241,7 +241,7 @@ class TriblerLaunchMany(Thread):
                     self.dispersy.define_auto_load(ChannelCommunity, load=True)
                     self.dispersy.define_auto_load(PreviewChannelCommunity)
                 self.dispersy.callback.call(define_communities)
-                print >>sys.stderr, "lmc: Dispersy communities are ready"
+                print >> sys.stderr, "lmc: Dispersy communities are ready"
 
                 # notify dispersy finished loading
                 self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
@@ -698,6 +698,8 @@ class TriblerLaunchMany(Thread):
         shutdown tasks that takes some time and that can run in parallel
         to checkpointing, etc.
         """
+        print >> sys.stderr, "tlm: early_shutdown"
+
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
         if self.overlay_apps is not None:
@@ -710,8 +712,11 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.shutdown()
 
         if self.dispersy:
-            print >>sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
+            print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
             self.dispersy.stop(666.666)
+        else:
+            print >> sys.stderr, "lmc: Databasethread shutdown", "[%d]" % id(self.database_thread)
+            self.database_thread.stop(666.666)
 
         if self.session.sessconfig['megacache']:
             self.peer_db.delInstance()

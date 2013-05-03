@@ -13,6 +13,7 @@
 #########################################################################
 
 import logging.config
+from Tribler.Core.Tag.Extraction import TermExtraction
 logging.config.fileConfig("logger.conf")
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -189,6 +190,8 @@ class ABCApp():
             cat = Category.getInstance(self.utility.getPath())
             cat.init_from_main(self.utility)
 
+            TermExtraction.getInstance(self.utility.getPath())
+
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
             self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
@@ -346,51 +349,30 @@ class ABCApp():
         if create_new:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
-
-            # Set default Session params here
-            destdir = get_default_dest_dir()
-            torrcolldir = os.path.join(destdir, STATEDIR_TORRENTCOLL_DIR)
-            self.sconfig.set_torrent_collecting_dir(torrcolldir)
-
             self.sconfig.set_nat_detect(True)
 
-            # Arno, 2012-05-04: swift
-            self.sconfig.set_swift_tunnel_listen_port(7758)
-            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
+        # Set default Session params here
+        if not self.sconfig.get_dest_dir():
+            destdir = get_default_dest_dir()
+            self.sconfig.set_dest_dir(destdir)
 
-            # rename old collected torrent directory
-            try:
-                if not os.path.exists(destdir):
-                    os.makedirs(destdir)
-                old_collected_torrent_dir = os.path.join(state_dir, 'torrent2')
-                if not os.path.exists(torrcolldir) and os.path.isdir(old_collected_torrent_dir):
-                    os.rename(old_collected_torrent_dir, torrcolldir)
-                    print >> sys.stderr, "main: Moved dir with old collected torrents to", torrcolldir
+        if not os.path.isdir(self.sconfig.get_dest_dir()):
+            os.makedirs(self.sconfig.get_dest_dir())
 
-                # Arno, 2008-10-23: Also copy torrents the user got himself
-                old_own_torrent_dir = os.path.join(state_dir, 'torrent')
-                for name in os.listdir(old_own_torrent_dir):
-                    oldpath = os.path.join(old_own_torrent_dir, name)
-                    newpath = os.path.join(torrcolldir, name)
-                    if not os.path.exists(newpath):
-                        print >> sys.stderr, "main: Copying own torrent", oldpath, newpath
-                        os.rename(oldpath, newpath)
-
-                # Internal tracker
-            except:
-                print_exc()
-
-        # 22/08/08 boudewijn: convert abc.conf to SessionConfig
-        self.utility.convert__presession_4_1__4_2(self.sconfig)
+        if not self.sconfig.get_torrent_collecting_dir():
+            torrcolldir = os.path.join(self.sconfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
+            self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
 
         # Arno, 2012-05-04: swift
-        self.sconfig.set_swift_tunnel_listen_port(7758)
-        self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-        self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
+        if not self.sconfig.get_swift_tunnel_listen_port():
+            self.sconfig.set_swift_tunnel_listen_port(7758)
+        if not self.sconfig.get_swift_tunnel_httpgw_listen_port():
+            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
+        if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
+            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
 
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
