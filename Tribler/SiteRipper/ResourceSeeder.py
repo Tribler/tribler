@@ -33,9 +33,11 @@ class ResourceSeeder:
         dscfg.set_dest_dir(folder)
         s.start_download(tdef,dscfg)
         
-    def findAndSeed(self, filter, filename, index = 0):
+    def findAndSeed(self, filter, filename = None, index = 0):
         """Use a BeautifulSoup filter to find a resource
             on our URL and start seeding it
+            Optionally supply a filename for the downloaded
+            resource
             Optionally supply a search result index
             for the filter results (will seed the first
             result by default)
@@ -43,6 +45,8 @@ class ResourceSeeder:
         resources = self.__injector.findTags(filter)
         try:
             resource = resources[index]
+            if filename is None:
+                filename = resource['src'].split('/')[-1]
             file = os.path.abspath(self.__injector.saveTagSource(resource, filename))
             self.seedFile(file)
             return True

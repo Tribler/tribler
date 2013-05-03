@@ -40,7 +40,7 @@ def testDownloadResource():
 def testResourceSeeda():
     time.sleep(10) # Wait for tribler to start
     rs = ResourceSeeder("http://khmerkromrecipes.com/pages/herbvegg.html")
-    image = rs.findAndSeed("img", "animage") # Find the first img tag on the site and start seeding the image
+    image = rs.findAndSeed("img") # Find the first img tag on the site and start seeding the image
    
 def testResourceSeed(): 
     thread.start_new_thread( testResourceSeeda, () )
