@@ -2,8 +2,11 @@
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.SiteRipper.WebpageInjector import WebpageInjector
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Session import Session
 
 import os
+import urllib2
 
 class ResourceSeeder:
     """ResourceSeeder:
@@ -26,3 +29,17 @@ class ResourceSeeder:
         for files in os.listdir("."):
             if files.startswith("animage."):
                 return files
+
+    # FIXME: Creates a torrent for filename, but does
+    #        not recognize we already own the file
+    def seedFile(self, filename):
+        s = Session.get_instance()
+        tdef = TorrentDef()
+        tdef.add_content(filename)
+        tdef.set_tracker(s.get_internal_tracker_url())
+        tdef.finalize()
+        filepdesc = urllib2.urlparse.urlparse(filename)
+        folder = filepdesc[0] + filepdesc[1] + filepdesc[2]
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(folder)
+        s.start_download(tdef,dscfg)

@@ -2,6 +2,11 @@
 
 from Tribler.SiteRipper.WebpageInjector import WebpageInjector
 from Tribler.SiteRipper.ResourceSeeder import ResourceSeeder
+from Tribler.Main.tribler import run as Tribler_run
+
+
+import thread
+import time
 
 def imgfilter(tag):
     return tag.name == "img"
@@ -30,10 +35,15 @@ def testDownloadResource():
         print "Found image: " + imagetag['src']
         wpi.saveTagSource(imagetag, "out")
 
-def testResourceSeed():
+def testResourceSeeda():
+    time.sleep(10) # Wait for tribler to start
     rs = ResourceSeeder("http://khmerkromrecipes.com/pages/herbvegg.html")
     image = rs.downloadAnImage()
-    
+    rs.seedFile(image)
+   
+def testResourceSeed(): 
+    thread.start_new_thread( testResourceSeeda, () )
+    Tribler_run()
 
 testResourceSeed()
 #testDownloadAndInject()
