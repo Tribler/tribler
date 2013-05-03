@@ -3,15 +3,27 @@
 from Tribler.SiteRipper.WebpageInjector import WebpageInjector
 from Tribler.SiteRipper.ResourceSeeder import ResourceSeeder
 from Tribler.Main.tribler import run as Tribler_run
-
+from Tribler.Main.tribler import ABCApp
 
 import thread
 import time
 import urllib2
 import os
+import gc
 
 def imgfilter(tag):
     return tag.name == "img"
+
+def waitForTriblerStart():
+    app = None
+    while not app:
+        time.sleep(0.1)
+        for obj in gc.get_objects():
+            if isinstance(obj, ABCApp):
+                app = obj
+                break
+    while not app.ready:
+        time.sleep(0.1)
 
 def testDownloadAndInject():
     wpi = WebpageInjector("http://khmerkromrecipes.com/pages/herbvegg.html")
@@ -38,7 +50,7 @@ def testDownloadResource():
         wpi.saveTagSource(imagetag, "out")
 
 def testResourceSeeda():
-    time.sleep(10) # Wait for tribler to start
+    waitForTriblerStart()
     rs = ResourceSeeder("http://khmerkromrecipes.com/pages/herbvegg.html")
     image = rs.findAndSeed("img") # Find the first img tag on the site and start seeding the image
    
