@@ -1,6 +1,6 @@
 #!/usr/bin/python2.7
 
-from localwebpage import Webpage
+from Tribler.SiteRipper.Webpage import Webpage
 
 from bs4 import BeautifulSoup
 import urllib2

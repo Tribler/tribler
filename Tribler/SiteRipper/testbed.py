@@ -1,6 +1,7 @@
 #!/usr/bin/python2.7
 
-from webpageinjector import WebpageInjector
+from Tribler.SiteRipper.WebpageInjector import WebpageInjector
+from Tribler.SiteRipper.ResourceSeeder import ResourceSeeder
 
 def imgfilter(tag):
     return tag.name == "img"
@@ -29,5 +30,11 @@ def testDownloadResource():
         print "Found image: " + imagetag['src']
         wpi.saveTagSource(imagetag, "out")
 
-testDownloadAndInject()
+def testResourceSeed():
+    rs = ResourceSeeder("http://khmerkromrecipes.com/pages/herbvegg.html")
+    image = rs.downloadAnImage()
+    
+
+testResourceSeed()
+#testDownloadAndInject()
 #testDownloadResource()
