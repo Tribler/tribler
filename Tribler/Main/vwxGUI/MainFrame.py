@@ -1072,9 +1072,6 @@ class MainFrame(wx.Frame):
             except:
                 print_exc()
 
-        print >> sys.stderr, "mainframe: Calling Destroy"
-        self.Destroy()
-
         print >> sys.stderr, "mainframe: Calling quit"
         self.quit(event != None or force)
         self.Destroy()
@@ -1216,6 +1213,10 @@ class MainFrame(wx.Frame):
             app = wx.GetApp()
 
         if app:
-            wx.CallLater(1000, app.ExitMainLoop())
+            def do_exit():
+                app.ExitMainLoop()
+                wx.WakeUpMainThread()
+
+            wx.CallLater(1000, do_exit)  # cannot be called immediately, window will still be visible
             if force:
                 wx.CallLater(2500, app.Exit)
