@@ -470,17 +470,6 @@ class ABCApp():
 
         self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
 
-        # seeding stats crawling
-        self.seeding_snapshot_count = 0
-        seedstatsdb = s.open_dbhandler(NTFY_SEEDINGSTATSSETTINGS)
-        if seedstatsdb is None:
-            self.seedingstats_enabled = 0
-        else:
-            self.seedingstats_settings = seedstatsdb.loadCrawlingSettings()
-            self.seedingstats_enabled = self.seedingstats_settings[0][2]
-            self.seedingstats_interval = self.seedingstats_settings[0][1]
-
-
         # Only allow updates to come in after we defined ratelimiter
         self.prevActiveDownloads = []
         s.set_download_states_callback(self.sesscb_states_callback)
@@ -691,21 +680,6 @@ class ABCApp():
                             print >> sys.stderr, "tribler: SW", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD)
                         else:
                             print >> sys.stderr, "tribler: BT", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD)
-
-            # Crawling Seeding Stats_
-            if self.seedingstats_enabled == 1:
-                snapshot_seeding_stats = False
-                if self.seeding_snapshot_count % self.seedingstats_interval == 0:
-                    snapshot_seeding_stats = True
-                self.seeding_snapshot_count += 1
-
-                if snapshot_seeding_stats:
-                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                    reputation = bc_db.getMyReputation()
-
-                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
-            # _Crawling Seeding Stats
 
         except:
             print_exc()

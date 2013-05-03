@@ -17,7 +17,7 @@ from binascii import unhexlify
 
 HTTP_TIMEOUT = 30  # seconds
 
-DEBUG = True
+DEBUG = False
 ioErrors = {}
 
 def trackerChecking(torrent):
