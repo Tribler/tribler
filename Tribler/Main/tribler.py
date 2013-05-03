@@ -26,7 +26,6 @@ logging.config.fileConfig("logger.conf")
 # This must be done in the first python file that is started.
 #
 import urllib
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
@@ -412,6 +411,7 @@ class ABCApp():
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
+        s.start()
         self.utility.session = s
         self.dispersy = s.lm.dispersy
 
@@ -465,33 +465,10 @@ class ABCApp():
             self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
             self.ratelimiter.set_global_max_seedupload_speed(maxup)
 
-
         maxdown = self.utility.config.Read('maxdownloadrate', "int")
         self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
 
-#        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
-#        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
-        self.utility.ratelimiter = self.ratelimiter
-
-        ltmgr = LibtorrentMgr.getInstance(s, self.utility)
-        ltmgr.set_upload_rate_limit(maxup * 1024)
-        ltmgr.set_download_rate_limit(maxdown * 1024)
-
-# SelectiveSeeding _
         self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
-        # self.seedingcount = 0
-# _SelectiveSeeding
-
-        # seeding stats crawling
-        self.seeding_snapshot_count = 0
-        seedstatsdb = s.open_dbhandler(NTFY_SEEDINGSTATSSETTINGS)
-        if seedstatsdb is None:
-            self.seedingstats_enabled = 0
-        else:
-            self.seedingstats_settings = seedstatsdb.loadCrawlingSettings()
-            self.seedingstats_enabled = self.seedingstats_settings[0][2]
-            self.seedingstats_interval = self.seedingstats_settings[0][1]
-
 
         # Only allow updates to come in after we defined ratelimiter
         self.prevActiveDownloads = []
@@ -677,16 +654,7 @@ class ABCApp():
             if doCheckpoint:
                 self.utility.session.checkpoint()
 
-            # SelectiveSeeding_
-            # Apply seeding policy every 60 seconds, for performance
-            # Boudewijn 12/01/10: apply seeding policies immediately
-            # applyseedingpolicy = False
-            # if self.seedingcount % 60 == 0:
-            #     applyseedingpolicy = True
-            # self.seedingcount += 1
-            # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(no_collected_list)
-            # _SelectiveSeeding
 
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
@@ -712,21 +680,6 @@ class ABCApp():
                             print >> sys.stderr, "tribler: SW", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD)
                         else:
                             print >> sys.stderr, "tribler: BT", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD)
-
-            # Crawling Seeding Stats_
-            if self.seedingstats_enabled == 1:
-                snapshot_seeding_stats = False
-                if self.seeding_snapshot_count % self.seedingstats_interval == 0:
-                    snapshot_seeding_stats = True
-                self.seeding_snapshot_count += 1
-
-                if snapshot_seeding_stats:
-                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                    reputation = bc_db.getMyReputation()
-
-                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
-            # _Crawling Seeding Stats
 
         except:
             print_exc()
@@ -968,9 +921,6 @@ class ABCApp():
                 sleep(3)
             print >> sys.stderr, "main: ONEXIT Session is shutdown"
 
-            # Shutdown libtorrent session after checkpoints have been made
-            LibtorrentMgr.getInstance().shutdown()
-
             try:
                 print >> sys.stderr, "main: ONEXIT cleaning database"
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
@@ -985,7 +935,6 @@ class ABCApp():
             GUITaskQueue.delInstance()
             SQLiteCacheDB.delInstance()
             GUIDBProducer.delInstance()
-            LibtorrentMgr.delInstance()
             TorrentChecking.delInstance()
 
         if not ALLOW_MULTIPLE:

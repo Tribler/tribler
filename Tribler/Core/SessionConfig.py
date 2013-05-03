@@ -155,24 +155,6 @@ class SessionConfigInterface:
         @return list """
         return self.sessconfig['bind']
 
-    def set_upnp_mode(self, value):
-        """ Use to autoconfigure a UPnP router to forward the UDP/TCP listen
-        port to this host:
-        <pre>
-         * UPNPMODE_DISABLED: Autoconfigure turned off.
-         * UPNPMODE_WIN32_HNetCfg_NATUPnP: Use Windows COM interface (slow)
-         * UPNPMODE_WIN32_UPnP_UPnPDeviceFinder: Use Windows COM interface (faster)
-         * UPNPMODE_UNIVERSAL_DIRECT: Talk UPnP directly to the network (best)
-        </pre>
-        @param value UPNPMODE_*
-        """
-        self.sessconfig['upnp_nat_access'] = value
-
-    def get_upnp_mode(self):
-        """ Returns the UPnP mode set.
-        @return UPNPMODE_* """
-        return self.sessconfig['upnp_nat_access']
-
     def set_autoclose_timeout(self, value):
         """ Time to wait between closing sockets which nothing has been received
         on.
@@ -437,18 +419,6 @@ class SessionConfigInterface:
     # Tribler's social networking feature transmits a nickname and picture
     # to all Tribler peers it meets.
     #
-    def set_social_networking(self, value):
-        """ Enable social networking. If enabled, a message containing the
-        user's nickname and icon is sent to each Tribler peer met
-        (default = True).
-        @param value Boolean
-        """
-        self.sessconfig['socnet'] = value
-
-    def get_social_networking(self):
-        """ Returns whether social network is enabled.
-        @return Boolean. """
-        return self.sessconfig['socnet']
 
     def set_nickname(self, value):
         """ The nickname you want to show to others.
@@ -486,37 +456,6 @@ class SessionConfigInterface:
         """ Returns the directory to store peer icons.
         @return An absolute path name. """
         return self.sessconfig['peer_icon_path']
-
-    #
-    # Tribler remote query: ask other peers when looking for a torrent file
-    # or peer
-    #
-    def set_remote_query(self, value):
-        """ Enable queries from other peers. At the moment peers can ask
-        whether this Session has collected or opened a torrent that matches
-        a specified keyword query. (default = True)
-        @param value Boolean"""
-        self.sessconfig['rquery'] = value
-
-    def get_remote_query(self):
-        """ Returns whether remote query is enabled.
-        @return Boolean. """
-        return self.sessconfig['rquery']
-
-    #
-    # BarterCast
-    #
-    def set_bartercast(self, value):
-        """ Exchange upload/download statistics with peers (default = True)
-        @param value Boolean
-        """
-        self.sessconfig['bartercast'] = value
-
-    def get_bartercast(self):
-        """ Returns to exchange statistics with peers.
-        @return Boolean. """
-        return self.sessconfig['bartercast']
-
 
     #
     # For Tribler Video-On-Demand
@@ -1040,32 +979,6 @@ class SessionConfigInterface:
         return self.sessconfig['tracker_multitracker_http_timeout']
 
 
-    #
-    # For Tribler superpeer servers
-    #
-    def set_superpeer(self, value):
-        """ Run Session in super peer mode (default = disabled).
-        @param value Boolean.
-        """
-        self.sessconfig['superpeer'] = value
-
-    def get_superpeer(self):
-        """ Returns whether the Session runs in superpeer mode.
-        @return Boolean. """
-        return self.sessconfig['superpeer']
-
-    def set_superpeer_file(self, value):
-        """ File with addresses of superpeers (default = install_dir+
-        Tribler/Core/superpeer.txt).
-        @param value An absolute path name.
-        """
-        self.sessconfig['superpeer_file'] = value
-
-    def get_superpeer_file(self):
-        """ Returns the superpeer file.
-        @return An absolute path name. """
-        return self.sessconfig['superpeer_file']
-
     def set_overlay_log(self, value):
         """ File to log message to in super peer mode (default = No logging)
         @param value An absolute path name.
@@ -1102,74 +1015,11 @@ class SessionConfigInterface:
 
 
     #
-    # NAT Puncturing servers information setting
-    #
-    def set_nat_detect(self, value):
-        """ Whether to try to detect the type of Network Address Translator
-        in place.
-        @param value Boolean.
-        """
-        self.sessconfig['nat_detect'] = value
-
-    def set_puncturing_internal_port(self, puncturing_internal_port):
-        """ The listening port of the puncturing module.
-        @param puncturing_internal_port integer. """
-        self.sessconfig['puncturing_internal_port'] = puncturing_internal_port
-
-    def set_stun_servers(self, stun_servers):
-        """ The addresses of the STUN servers (at least 2)
-        @param stun_servers List of (hostname/ip,port) tuples. """
-        self.sessconfig['stun_servers'] = stun_servers
-
-    def set_pingback_servers(self, pingback_servers):
-        """ The addresses of the pingback servers (at least 1)
-        @param pingback_servers List of (hostname/ip,port) tuples. """
-        self.sessconfig['pingback_servers'] = pingback_servers
-
-    # Puncturing servers information retrieval
-    def get_nat_detect(self):
-        """ Whether to try to detect the type of Network Address Translator
-        in place.
-        @return Boolean
-        """
-        return self.sessconfig['nat_detect']
-
-    def get_puncturing_internal_port(self):
-        """ Returns the listening port of the puncturing module.
-        @return integer. """
-        return self.sessconfig['puncturing_internal_port']
-
-    def get_stun_servers(self):
-        """ Returns the addresses of the STUN servers.
-        @return List of (hostname/ip,port) tuples. """
-        return self.sessconfig['stun_servers']
-
-    def get_pingback_servers(self):
-        """ Returns the addresses of the pingback servers.
-        @return List of (hostname/ip,port) tuples. """
-        return self.sessconfig['pingback_servers']
-
-    #
-    # Crawler
-    #
-    def set_crawler(self, value):
-        """ Handle crawler messages when received (default = True)
-        @param value Boolean
-        """
-        self.sessconfig['crawler'] = value
-
-    def get_crawler(self):
-        """ Whether crawler messages are processed
-        @return Boolean. """
-        return self.sessconfig['crawler']
-
-    #
     # Local Peer Discovery using IP Multicast
     #
     def set_multicast_local_peer_discovery(self, value):
         """ Set whether the Session tries to detect local peers
-        using a local IP multicast. Overlay swarm (set_overlay()) must
-        be enabled as well.
+        using a local IP multicast. Only applies to LibTorrent
         @param value Boolean
         """
         self.sessconfig['multicast_local_peer_discovery'] = value
