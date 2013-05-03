@@ -28,7 +28,7 @@ class ResourceSeeder:
         self.__injector.saveTagSource(image, "animage")
         for files in os.listdir("."):
             if files.startswith("animage."):
-                return files
+                return os.path.abspath(files)
 
     # FIXME: Creates a torrent for filename, but does
     #        not recognize we already own the file
@@ -38,8 +38,8 @@ class ResourceSeeder:
         tdef.add_content(filename)
         tdef.set_tracker(s.get_internal_tracker_url())
         tdef.finalize()
-        filepdesc = urllib2.urlparse.urlparse(filename)
-        folder = filepdesc[0] + filepdesc[1] + filepdesc[2]
+        filepdesc = urllib2.urlparse.urlparse(filename).geturl()
+        folder = filepdesc[:filepdesc.rfind('/')+1]
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(folder)
         s.start_download(tdef,dscfg)

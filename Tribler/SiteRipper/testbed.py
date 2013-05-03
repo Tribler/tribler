@@ -7,6 +7,8 @@ from Tribler.Main.tribler import run as Tribler_run
 
 import thread
 import time
+import urllib2
+import os
 
 def imgfilter(tag):
     return tag.name == "img"
