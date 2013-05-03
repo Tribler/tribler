@@ -329,7 +329,10 @@ class ABCApp():
 
     def startAPI(self, progress):
         # Start Tribler Session
-        state_dir = Session.get_default_state_dir()
+        defaultConfig = SessionStartupConfig()
+        state_dir = defaultConfig.get_state_dir()
+        if not state_dir:
+            state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         if DEBUG:
@@ -348,7 +351,6 @@ class ABCApp():
         if create_new:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
-            self.sconfig.set_nat_detect(True)
 
         # Set default Session params here
         if not self.sconfig.get_dest_dir():
