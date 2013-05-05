@@ -18,7 +18,7 @@ from Tribler.Core.TorrentDef import *
 from Tribler.Core.DownloadConfig import *
 from Tribler.Core.Session import *
 from Tribler.Core.simpledefs import *
-from Tribler.Core.BitTornado.bitfield import Bitfield
+from Tribler.Core.Utilities.bitfield import Bitfield
 
 DEBUG=True
 

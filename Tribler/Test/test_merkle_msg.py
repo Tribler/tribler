@@ -15,7 +15,6 @@ from types import DictType, StringType, IntType, ListType
 from M2Crypto import Rand
 
 from Tribler.Test.test_as_server import TestAsServer
-from olconn import OLConnection
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig

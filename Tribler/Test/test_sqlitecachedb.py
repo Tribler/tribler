@@ -75,8 +75,6 @@ class SQLitePerformanceTest:
         try:
             self.testBrowse()
             self.testBrowseCategory()
-            self.testGetSimilarTorrents(200)
-            self.testGetPeerHistory(2000)
         finally:
             self.db.close()
 
@@ -219,12 +217,6 @@ class SQLitePerformanceTest:
         self.printTableRow(table_row)
         print
 
-    def getNumOwners(self, torrent_id):
-        sql = "select count(peer_id) from Preference where torrent_id=?"
-        pop_torrent = self.db.fetchone(sql, (torrent_id,))
-
-        return pop_torrent
-
 #    def getTorrentName(self, torrent_id):
 #        torrent_name_sql = "select name from CollectedTorrent where torrent_id=?"
 #        self.cur.execute(torrent_name_sql, (torrent_id,))
@@ -232,95 +224,6 @@ class SQLitePerformanceTest:
 #        if name is not None:
 #            return name[0]
 #        return None
-
-    def testGetSimilarTorrents(self, num, num_sim=10):
-        sql = 'select torrent_id from CollectedTorrent'
-        res = self.db.fetchall(sql)
-        shuffle(res)
-        start = time()
-        real_num = 0
-        real_num2 = 0
-        skip_time = 0
-        for torrent_id in res[:num]:
-            real_num += 1
-            torrent_id = torrent_id[0]
-            skip_begin = time()
-            pop_torrent = self.getNumOwners(torrent_id)
-            skip_time += time() - skip_begin
-            if pop_torrent < 2:
-                continue
-            sql = """
-                select torrent_id,count(torrent_id) as pop from Preference
-                where peer_id in
-                (select peer_id from Preference where torrent_id=?) and
-                torrent_id in (select torrent_id from CollectedTorrent)
-                group by torrent_id
-            """
-            sim_torrents = self.db.fetchall(sql, (torrent_id,))
-            sim_res = []
-            real_num2 += 1
-
-#
-            # print len(sim_torrents)
-            if len(sim_torrents) > num:
-                for sim_torrent_id, com in sim_torrents:
-                    if com < 1 or sim_torrent_id == torrent_id:
-                        continue
-                    pop_sim_torrent = self.getNumOwners(sim_torrent_id)
-                    sim = com / (pop_sim_torrent * pop_torrent) ** 0.5
-                    sim_res.append((sim, sim_torrent_id))
-                sim_res.sort()
-                sim_res.reverse()
-                sim_torrents_id = tuple([int(ti) for (sim, ti) in sim_res[:num_sim]])
-            else:
-                sim_torrents_id = tuple([int(ti) for (ti, co) in sim_torrents])
-
-            if len(sim_torrents_id) > 0:
-                if len(sim_torrents_id) == 1:
-                    sim_torrents = '(' + str(sim_torrents_id[0]) + ')'
-                else:
-                    sim_torrents = repr(sim_torrents_id)
-                sql = "select name,torrent_id from CollectedTorrent where torrent_id in " + \
-                   sim_torrents + " order by name"
-                sim_names = self.db.fetchall(sql)
-                # for name,ti in sim_names:
-                #    print name, ti
-
-
-            # print res
-        past = time() - start
-        if real_num > 0:
-            if real_num2 > 0:
-                print "Time for sim torrent %.4f %.4f" % (past / real_num, (past - skip_time) / real_num2), past, real_num, real_num2
-            else:
-                print "Time for sim torrent %.4f" % (past / real_num), '-', past, real_num, real_num2
-            return past / num
-        return 1
-
-    # TODO:
-    # suggest: 1. include torrent name in buddycast
-    #          2. create a table like pocketlens to maintain sim(Ii,Ij)
-    #          3. torrent in CollectedTorrent table may have no owners due to remove peers
-    #          4. In GUI, we may need a async display for sim torrents
-
-    def testGetPeerHistory(self, num):
-        sql = 'select peer_id from Peer'
-        res = self.db.fetchall(sql)
-        shuffle(res)
-        start = time()
-        real_num = 0
-        for peer_id in res[:num]:
-            peer_id = peer_id[0]
-            sql = """select name, torrent_id from CollectedTorrent
-                     where torrent_id in
-                     (select torrent_id from Preference where peer_id=?)
-                  """
-            res = self.db.fetchall(sql, (peer_id,))
-            real_num += 1
-        past = time() - start
-        if real_num > 0:
-            print "Time for peer history %.4f" % (past / real_num), past, real_num
-
 
 class TestSQLitePerformance(unittest.TestCase):
 
@@ -349,35 +252,14 @@ class TestSQLitePerformance(unittest.TestCase):
                 sqlite_test.testBrowseCategory()
                 sqlite_test.close()
 
-        class Worker3(Thread):
-            def run(self):
-                sqlite_test = SQLitePerformanceTest()
-                sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
-                sqlite_test.testGetSimilarTorrents(200)
-                sqlite_test.close()
-
-        class Worker4(Thread):
-            def run(self):
-                sqlite_test = SQLitePerformanceTest()
-                sqlite_test.initDB(TRIBLER_DB_PATH, CREATE_SQL_FILE)
-                sqlite_test.testGetPeerHistory(2000)
-                sqlite_test.close()
-
         w1 = Worker1()
         w2 = Worker2()
-        w3 = Worker3()
-        w4 = Worker4()
 
         w1.start()
         w2.start()
-        w3.start()
-        w4.start()
 
         w1.join()
         w2.join()
-        w3.join()
-        w4.join()
-
 
 class TestSqliteCacheDB(unittest.TestCase):
 
@@ -530,16 +412,12 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
 
     def write_data(self):
         db = SQLiteCacheDB.getInstance()
-        # db.begin()
         db.insert('person', lastname='a', firstname='b')
         values = []
         for i in range(100):
             value = (str(i), str(i ** 2))
             values.append(value)
         db.insertMany('person', values)
-        db.commit()
-        # db.begin()
-        db.commit()
         db.commit()
         db.close()
 
@@ -601,16 +479,6 @@ class TestThreadedSqliteCacheDB(unittest.TestCase):
 
     def test_basic_funcs_lib0(self):
         self.basic_funcs()
-
-    def test_new_thread_basic_funcs(self):
-        # test create/write/read db by 3 different threads
-        # 3 seperate connections should be created, one per thread
-        # print >> sys.stderr, '------>>>>> test_new_thread_basic_funcs', threading.currentThread().getName()
-        self.create_db(self.db_path)
-        thread.start_new_thread(self.write_data, ())
-        sleep(2)
-        thread.start_new_thread(self.read_data, ())
-        sleep(2)
 
     def test_concurrency(self):
         class Reader(Thread):

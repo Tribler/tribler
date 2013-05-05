@@ -833,8 +833,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         """ Called by any thread """
         pass
 
-    def connect_peer(self, ip, port):
-        self.handle.connect_peer((ip, port), 0)
+    #
+    # External addresses
+    #
+    def add_peer(self, addr):
+        """ Add a peer address from 3rd source (not tracker, not DHT) to this 
+        Download.
+        @param (hostname_ip,port) tuple
+        """
+        if self.handle is not None:
+            self.handle.connect_peer(addr, 0)
 
     # ARNOCOMMENT: better if we removed this from Core, user knows which
     # file he selected to play, let him figure out MIME type

@@ -7,10 +7,10 @@ import os
 import sys
 import time
 import socket
-from traceback import print_exc,print_stack
+from traceback import print_exc, print_stack
 
 from Tribler.Video.VideoServer import VideoHTTPServer
-
+from Tribler.Test.test_as_server import BASE_DIR
 
 DEBUG=False
 
@@ -28,7 +28,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         self.serv.background_serve()
         self.serv.register(self.videoservthread_error_callback,self.videoservthread_set_status_callback)
         
-        self.sourcefn = os.path.join("API","file.wmv") # 82KB or 82948 bytes
+        self.sourcefn = os.path.join(BASE_DIR, "API","file.wmv") # 82KB or 82948 bytes
         self.sourcesize = os.path.getsize(self.sourcefn)
          
     def tearDown(self):
@@ -173,7 +173,7 @@ class TestVideoHTTPServer(unittest.TestCase):
             self.assert_(data,expdata)
 
             try:
-                # Readed body, reading more should EOF (we disabled persist conn)
+                # Read body, reading more should EOF (we disabled persist conn)
                 data = s.recv(10240)
                 self.assert_(len(data) == 0)
         
@@ -190,15 +190,4 @@ class TestVideoHTTPServer(unittest.TestCase):
             else:
                 line = line+data
             if data == '\n' and len(line) >= 2 and line[-2:] == '\r\n':
-                return line        
-        
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestVideoHTTPServer))
-    
-    return suite
-
-if __name__ == "__main__":
-    unittest.main()
-        
+                return line

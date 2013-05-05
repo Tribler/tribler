@@ -259,19 +259,9 @@ class SQLiteCacheDBBase:
         # only close the connection object in this thread, don't close other thread's connection object
         thread_name = threading.currentThread().getName()
         cur = self.getCursor(create=False)
-
         if cur:
-            con = cur.getconnection()
-            cur.close()
-            con.close()
-            con = None
-            del self.cursor_table[thread_name]
-            # Arno, 2010-01-25: Remove entry in cache_transaction_table for this thread
-            try:
-                if thread_name in self.cache_transaction_table.keys():
-                    del self.cache_transaction_table[thread_name]
-            except:
-                print_exc()
+            self._close_cur(thread_name, cur)
+                
         if clean:  # used for test suite
             # Arno, 2012-08-02: As there is just Dispery thread here, removing
             # safe_dict() here
@@ -281,7 +271,23 @@ class SQLiteCacheDBBase:
             self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})
             self.cursor_table = safe_dict()
             self.cache_transaction_table = safe_dict()
-
+    
+    def close_all(self):
+        for thread_name, cur in self.cursor_table.items():
+            self._close_cur(thread_name, cur)
+        
+    def _close_cur(self, thread_name, cur):
+        con = cur.getconnection()
+        cur.close()
+        con.close()
+        
+        del self.cursor_table[thread_name]
+        # Arno, 2010-01-25: Remove entry in cache_transaction_table for this thread
+        try:
+            if thread_name in self.cache_transaction_table.keys():
+                del self.cache_transaction_table[thread_name]
+        except:
+            print_exc()
 
     # --------- static functions --------
     def getCursor(self, create=True):
@@ -1935,8 +1941,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                             global community
 
                             print >> sys.stderr, "Dispersy started, inserting torrents"
-                            torrent_dir = session.get_torrent_collecting_dir()
-
                             channel_id = self.fetchone(select_mychannel_id)
                             if channel_id:
                                 batch_insert = 50
@@ -2013,7 +2017,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
                     return
 
-                torrent_dir = session.get_torrent_collecting_dir()
                 values = []
                 for torrent_id, name, infohash, num_files, torrent_filename in records:
                     try:
@@ -2609,6 +2612,10 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     @classmethod
     def delInstance(cls, *args, **kw):
         cls.__single = None
+        
+    @classmethod
+    def hasInstance(cls, *args, **kw):
+        return cls.__single != None
 
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object

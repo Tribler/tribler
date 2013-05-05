@@ -241,41 +241,6 @@ class Utility:
                 set_config_func(v)
                 abc_config.DeleteEntry(name)
 
-    def convert__presession_4_1__4_2(self, session_config):
-        bool_ = lambda x: x == "1" and True or False
-        self._convert__helper_4_1__4_2(self.config, session_config.set_buddycast, "enablerecommender", bool_)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_buddycast_max_peers, "buddy_num", int)
-        # self._convert__helper_4_1__4_2(self.config, session_config.set_download_help, "enabledlhelp", bool_)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_internal_tracker_url, "internaltrackerurl")
-        self._convert__helper_4_1__4_2(self.config, session_config.set_listen_port, "minport", int)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_nickname, "myname")
-        self._convert__helper_4_1__4_2(self.config, session_config.set_start_recommender, "startrecommender", bool_)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_stop_collecting_threshold, "stopcollectingthreshold", int)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_torrent_collecting, "enabledlcollecting", bool_)
-        self._convert__helper_4_1__4_2(self.config, session_config.set_ip_for_tracker, "ip")
-        self._convert__helper_4_1__4_2(self.config, session_config.set_bind_to_addresses, "bind", lambda x:[x])
-
-    def convert__postsession_4_1__4_2(self, session, default_download_config):
-
-        # the mugshot was stored in icons/<hash>.jpg
-        # however... what is the permid???
-        safename = "%s.jpg" % sha(session.get_permid()).hexdigest()
-        safepath = os.path.join(self.dir_root, "icons", safename)
-        if os.path.exists(safepath):
-            session.set_mugshot(open(safepath, "r").read(), "image/jpeg")
-            os.remove(safepath)
-
-        bool_ = lambda x: x == "1" and True or False
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_alloc_rate, "alloc_rate", int)
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_alloc_type, "alloc_type")
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_dest_dir, "defaultfolder")
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_double_check_writes, "double_check", bool_)
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_lock_files, "lock_files", bool_)
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_lock_while_reading, "lock_while_reading", bool_)
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_max_conns, "max_connections", int)
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_max_files_open, "max_files_open", int)
-        self._convert__helper_4_1__4_2(self.config, default_download_config.set_triple_check_writes, "trible_check", bool_)
-
     def setupTorrentMakerConfig(self):
         # Arno, 2008-03-27: To keep fileformat compatible
         defaults = {

@@ -6,13 +6,13 @@ from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 class TestTimedTaskQueue(unittest.TestCase):
 
     def setUp(self):
-        pass
+        self.queue = TimedTaskQueue()
 
     def tearDown(self):
-        pass
+        self.queue.shutdown()
+        del self.queue
 
     def test_addTask(self):
-        self.queue = TimedTaskQueue()
         self.count = 0
         self.queue.add_task(self.task3a, 3)
         self.queue.add_task(self.task0, 0)
@@ -20,7 +20,6 @@ class TestTimedTaskQueue(unittest.TestCase):
         self.queue.add_task(self.task2, 1)
         sleep(6)
         assert self.count == 11
-        del self.queue
 
     def task0(self):
         self.count += 1
@@ -39,7 +38,6 @@ class TestTimedTaskQueue(unittest.TestCase):
         assert self.count == 7 or self.count == 11
 
     def test_addTask0FIFO(self):
-        self.queue = TimedTaskQueue()
         self.count = 0
         self.queue.add_task(self.task0a, 0)
         self.queue.add_task(self.task0b, 0)
@@ -47,7 +45,6 @@ class TestTimedTaskQueue(unittest.TestCase):
         self.queue.add_task(self.task0d, 0)
         sleep(6)
         assert self.count == 4
-        del self.queue
 
     def task0a(self):
         assert self.count == 0
@@ -64,16 +61,3 @@ class TestTimedTaskQueue(unittest.TestCase):
     def task0d(self):
         assert self.count == 3
         self.count = 4
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestTimedTaskQueue))
-
-    return suite
-
-def main():
-    unittest.main(defaultTest='test_suite')
-
-
-if __name__ == '__main__':
-    main()

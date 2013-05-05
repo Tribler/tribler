@@ -79,18 +79,6 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['state_dir']
 
-    def set_dest_dir(self, destdir):
-        """ Set the directory to store the downloads to.
-        @param destdir  A preferably absolute path name. If the directory
-        does not yet exist it will be created at Session create time.
-        """
-        self.sessconfig['dest_dir'] = destdir
-
-    def get_dest_dir(self):
-        """ Returns the directory to store downloads to.
-        @return An absolute path name. """
-        return self.sessconfig['dest_dir']
-
     def set_install_dir(self, installdir):
         """ Set the directory in which the Tribler Core software is installed.
         @param installdir An absolute path name
@@ -989,30 +977,6 @@ class SessionConfigInterface:
         """ Returns the file to log messages to or None.
         @return An absolute path name. """
         return self.sessconfig['overlay_log']
-
-    # ProxyService_
-    #
-    def set_proxy_default_dlcfg(self, dscfg):
-        """ Sets the DownloadStartupConfig with which to start new Proxy Downloads
-        when the client is asked to relay as a proxy.
-        """
-        c = dscfg.copy()
-        self.sessconfig['proxy_default_dlcfg'] = c.dlconfig  # copy internal dict
-
-    def get_proxy_default_dlcfg(self):
-        """ Returns the DownloadStartupConfig with which to start new Proxy Downloads
-        when the client is asked to relay as a proxy.
-        @return DownloadStartupConfig
-        """
-        dlconfig = self.sessconfig['proxy_default_dlcfg']
-        if dlconfig is None:
-            return None
-        else:
-            from Tribler.Core.DownloadConfig import DownloadStartupConfig
-            return DownloadStartupConfig(dlconfig)
-    #
-    # _ProxyService
-
 
     #
     # Local Peer Discovery using IP Multicast
