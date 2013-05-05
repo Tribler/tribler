@@ -12,7 +12,7 @@ import tempfile
 from Tribler.Core.API import TorrentDef
 from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
-from Tribler.Core.Overlay.permid import verify_torrent_signature
+from Tribler.Test.test_as_server import BASE_DIR
 
 DEBUG = False
 
@@ -156,10 +156,10 @@ class TestTorrentDef(unittest.TestCase):
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
 
-        dn = os.path.join(os.getcwd(),"contentdir")
+        dn = os.path.join(BASE_DIR,"API","contentdir")
         t.add_content(dn,"dirintorrent")
 
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn,os.path.join("dirintorrent","file.wmv"))
 
         t.set_tracker(TRACKER)
@@ -187,7 +187,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with playtime to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn,playtime=PLAYTIME)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -208,8 +208,8 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn1 = os.path.join(os.getcwd(),"contentdir","file.avi")
-        fn2 = os.path.join(os.getcwd(),"contentdir","file.txt")
+        fn1 = os.path.join(BASE_DIR,"API","contentdir","file.avi")
+        fn2 = os.path.join(BASE_DIR,"API","contentdir","file.txt")
         t.add_content(fn1,os.path.join("dirintorrent","file.avi"),playtime=PLAYTIME)
         t.add_content(fn2,os.path.join("dirintorrent","file.txt"))
         t.set_tracker(TRACKER)
@@ -237,7 +237,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with thumbnail to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         thumbfn = os.path.join(os.getcwd(),"thumb.jpg")
         t.add_content(fn)
         t.set_thumbnail(thumbfn)
@@ -260,7 +260,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         exphier = [[TRACKER],['http://tracker1.tribler.org:6969/announce','http://tracker2.tribler.org:7070/ann'],['http://www.cs.vu.nl','http://www.st.ewi.tudelft.nl','http://www.vuze.com']]
@@ -277,7 +277,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         expseeds = ['http://www.cs.vu.nl/index.html','http://www.st.ewi.tudelft.nl/index.html']
@@ -289,28 +289,12 @@ class TestTorrentDef(unittest.TestCase):
         realseeds = metainfo['httpseeds']
         self.assert_(realseeds == expseeds)
 
-    def subtest_add_content_torrentsig(self,merkle=True):
-        """ Add a single file to a TorrentDef and sign it """
-        t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
-        kpfn = os.path.join(os.getcwd(),"ec.pem")
-        t.add_content(fn)
-        t.set_signature_keypair_filename(kpfn)
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        ret = verify_torrent_signature(metainfo)
-        self.assert_(ret == True)
-
 
     def subtest_add_content_piece_length(self,merkle=True):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
         t.set_tracker(TRACKER)
@@ -325,7 +309,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file to a TorrentDef and save the latter"""
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -347,15 +331,3 @@ class TestTorrentDef(unittest.TestCase):
     def general_check(self,metainfo):
         self.assert_(isValidTorrentFile(metainfo))
         self.assert_(metainfo['announce'] == TRACKER)
-
-
-
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestTorrentDef))
-
-    return suite
-
-if __name__ == "__main__":
-    unittest.main()

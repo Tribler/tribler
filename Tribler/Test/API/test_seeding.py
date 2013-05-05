@@ -56,8 +56,7 @@ class TestSeeding(TestAsServer):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(BASE_DIR, "API", filename)
         self.tdef.add_content(self.sourcefn)
-        self.tdef.set_add_sha1hash(True)
-        self.tdef.set_dht_nodes([])
+        self.tdef.set_tracker("http://fake.net/announce")
         self.tdef.set_create_merkle_torrent(merkle)
         self.tdef.finalize()
 
@@ -125,7 +124,7 @@ class TestSeeding(TestAsServer):
 
         time.sleep(5)
 
-        d.connect_peer("127.0.0.1", self.hisport)
+        d.add_peer(("127.0.0.1", self.hisport))
         assert self.downloading_event.wait(60)
 
     def downloader_state_callback(self, ds):

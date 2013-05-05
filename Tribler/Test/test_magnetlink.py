@@ -8,15 +8,17 @@ import os
 import sys
 import time
 
-from Tribler.Test.test_as_server import TestAsServer
-from olconn import OLConnection
+from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.MessageID import getMessageName, protocol_name, EXTEND
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING,\
+    DLSTATUS_SEEDING
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
+import threading
+from traceback import print_exc
 
 LISTEN_PORT = 12345
 DEBUG = True
@@ -54,7 +56,6 @@ class MagnetHelpers:
         return val
 
     def read_extend_handshake(self, conn):
-        conn.s.settimeout(10.0)
         responce = conn.recv()
         self.assert_(len(responce) > 0)
         # print >>sys.stderr,"test: Got reply", getMessageName(responce[0])
@@ -62,7 +63,6 @@ class MagnetHelpers:
         return self.metadata_id_from_extend_handshake(responce[1:])
 
     def read_extend_metadata_request(self, conn):
-        conn.s.settimeout(10.0)
         while True:
             responce = conn.recv()
             assert len(responce) > 0
@@ -82,24 +82,26 @@ class MagnetHelpers:
         return payload["piece"]
 
     def read_extend_metadata_reply(self, conn, piece):
-        conn.s.settimeout(10.0)
         while True:
-            responce = conn.recv()
-            assert len(responce) > 0
+            response = conn.recv()
+            assert len(response) > 0
             # print >>sys.stderr,"test: Got data", getMessageName(responce[0])
-            if responce[0] == EXTEND:
+            if response[0] == EXTEND:
                 break
 
-        assert responce[0] == EXTEND
-        assert ord(responce[1]) == 42
+        assert response[0] == EXTEND
+        assert ord(response[1]) == 42
 
-        payload = bdecode(responce[2:])
-        assert payload["msg_type"] == 1
-        assert payload["piece"] == piece
-        assert payload["data"] == self.metadata_list[piece]
+        try:
+            payload = bdecode(response[2:])
+            assert payload["msg_type"] == 1
+            assert payload["piece"] == piece
+            assert payload["data"] == self.metadata_list[piece]
+        except:
+            print_exc()
+            print >> sys.stderr, response[2:]
 
     def read_extend_metadata_reject(self, conn, piece):
-        conn.s.settimeout(10.0)
         while True:
             responce = conn.recv()
             assert len(responce) > 0
@@ -141,7 +143,7 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join((os.path.dirname(os.path.abspath(__file__)), "API", "file.wmv")))
+        self.tdef.add_content(os.path.join(BASE_DIR, "API", "file.wmv"))
         self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
@@ -151,9 +153,6 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
         # startup the client
         TestAsServer.setUp(self)
-        print >> sys.stderr, "test: Giving MyLaunchMany time to startup"
-        time.sleep(5)
-        print >> sys.stderr, "test: MyLaunchMany should have started up"
 
     def create_good_url(self, infohash=None, title=None, tracker=None):
         url = "magnet:?xt=urn:btih:"
@@ -179,9 +178,11 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
         assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved)
 
-        # supply fake addresses (regular dht obviously wont work here)
-        for magnetlink in MagnetHandler.get_instance().get_magnets():
-            magnetlink._swarm.add_potential_peers([("localhost", LISTEN_PORT)])
+        def do_supply():
+            # supply fake addresses (regular dht obviously wont work here)
+            for magnetlink in MagnetHandler.get_instance().get_magnets():
+                magnetlink._swarm.add_potential_peers([("localhost", LISTEN_PORT)])
+        self.session.lm.rawserver.add_task(do_supply, delay = 5.0)
 
         # accept incoming connection
         self.server.settimeout(10.0)
@@ -217,76 +218,47 @@ class TestMetadata(TestAsServer, MagnetHelpers):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        print >> sys.stderr, "test: Giving MyLaunchMany time to startup"
-        time.sleep(5)
-        print >> sys.stderr, "test: MyLaunchMany should have started up"
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join(os.getcwd(), "API", "file.wmv"))
-        self.tdef.set_tracker(self.session.get_internal_tracker_url())
+        self.tdef.add_content(os.path.join(BASE_DIR, "API", "file.wmv"))
+        self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
         self.tdef.finalize()
-        # self.tdef.save(os.path.join(self.session.get_state_dir(), "gen.torrent"))
 
         MagnetHelpers.__init__(self, self.tdef)
 
+        self.setup_seeder()
+        
+    def tearDown(self):
+        self.teardown_seeder()
+        TestAsServer.tearDown(self)
+
     def setup_seeder(self):
-        self.seeder_setup_complete = False
-        self.seeder_teardown_complete = False
-        self.seeder_teardown = False
+        self.seeder_setup_complete = threading.Event()
 
         self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(os.getcwd())
+        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))
         self.download = self.session.start_download(self.tdef, self.dscfg)
         self.download.set_state_callback(self.seeder_state_callback)
 
-        counter = 0
-        while not self.seeder_setup_complete:
-            counter += 1
-            time.sleep(1)
-            assert counter < 30, "timeout"
-
+        assert self.seeder_setup_complete.wait(30)
         print >> sys.stderr, "test: setup_seeder() complete"
 
     def teardown_seeder(self):
-        self.seeder_teardown_complete = False
         self.session.remove_download(self.download)
-
-        counter = 0
-        while not self.seeder_setup_complete:
-            counter += 1
-            time.sleep(1)
-            assert counter < 30, "timeout"
-
         print >> sys.stderr, "test: teardown_seeder() complete"
 
     def seeder_state_callback(self, ds):
-        assert not self.seeder_teardown_complete
-        self.seeder_setup_complete = (ds.get_status() == DLSTATUS_DOWNLOADING)
+        if ds.get_status() == DLSTATUS_SEEDING:
+            self.seeder_setup_complete.set()
+             
         d = ds.get_download()
         print >> sys.stderr, "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
-        if self.seeder_teardown:
-            self.seeder_teardown_complete = True
-        else:
-            return (1.0, False)
+        return (1.0, False)
 
-    def test_all(self):
-        self.setup_seeder()
-        try:
-            self.subtest_good_flood()
-        finally:
-            self.teardown_seeder()
-
-        self.setup_seeder()
-        try:
-            self.subtest_good_request()
-            self.subtest_bad_request()
-        finally:
-            self.teardown_seeder()
-
-    def subtest_good_request(self):
+    def test_good_request(self):
         conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
@@ -303,7 +275,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
         self.read_extend_metadata_reply(conn, 3)
         self.read_extend_metadata_reply(conn, len(self.metadata_list) - 1)
 
-    def subtest_good_flood(self):
+    def test_good_flood(self):
         conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())
         conn.send(self.create_good_extend_handshake())
         conn.read_handshake_medium_rare()
@@ -318,7 +290,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
             else:
                 self.read_extend_metadata_reply(conn, piece)
 
-    def subtest_bad_request(self):
+    def test_bad_request(self):
         self.bad_request_and_disconnect({"msg_type":0, "piece":len(self.metadata_list)})
         self.bad_request_and_disconnect({"msg_type":0, "piece":-1})
         self.bad_request_and_disconnect({"msg_type":0, "piece":"1"})
@@ -333,12 +305,3 @@ class TestMetadata(TestAsServer, MagnetHelpers):
 
         conn.send(EXTEND + chr(metadata_id) + bencode(payload))
         self.read_extend_metadata_close(conn)
-
-if __name__ == "__main__":
-    tests = [TestMetadata, TestMagnetMiniBitTorrent]
-    test_dict = dict([(test.__name__, test) for test in tests])
-    if len(sys.argv) == 2 and sys.argv[1] in test_dict:
-        unittest.main(defaultTest=test_dict[sys.argv[1]])
-    else:
-        print >> sys.stderr, "What test do you want to run? "
-        print >> sys.stderr, "Available:", test_dict.keys()

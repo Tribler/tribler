@@ -50,3 +50,10 @@ def setup(logs_path, logs_level):
     logger_conf.setLevel(logs_level)
     logger_conf.setFormatter(logging.Formatter(FORMAT))
     logger.addHandler(logger_conf)
+    
+def close():
+    logger = logging.getLogger('dht')
+    for i in list(logger.handlers):
+        logger.removeHandler(i)
+        i.flush()
+        i.close()

@@ -53,9 +53,6 @@ class GUIUtility:
         # previous pages
         self.oldpage = []
 
-        # port number
-        self.port_number = None
-
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
 
@@ -555,12 +552,6 @@ class GUIUtility:
         if self.frame.ready:
             return self.frame.GUIupdate
         return True
-
-    #TODO: should be somewhere else
-    def set_port_number(self, port_number):
-        self.port_number = port_number
-    def get_port_number(self):
-        return self.port_number
 
     def addList(self, l):
         if l not in self.lists:

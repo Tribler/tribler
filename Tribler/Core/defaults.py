@@ -32,7 +32,6 @@ SESSDEFAULTS_VERSION = 2
 sessdefaults = {}
 sessdefaults['version'] = SESSDEFAULTS_VERSION
 sessdefaults['state_dir'] = None
-sessdefaults['dest_dir'] = None
 sessdefaults['install_dir'] = u'.'
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT

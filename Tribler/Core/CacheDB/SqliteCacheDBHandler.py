@@ -1961,6 +1961,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
         self.rlock = threading.RLock()
+        self.loadData()
 
     def loadData(self):
         """ Arno, 2010-02-04: Brute force update method for the self.recent_
@@ -1974,7 +1975,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 #            self.recent_preflist_with_swarmsize = self._getRecentLivePrefListOL11()
 #        finally:
 #            self.rlock.release()
-        pass
+        self.recent_preflist = self.recent_preflist_with_clicklog = self.recent_preflist_with_swarmsize = None
 
     def getMyPrefList(self, order_by=None):
         res = self.getAll('torrent_id', order_by=order_by)

@@ -23,7 +23,7 @@ DEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_Trible
 
 # Set custom state_dir and dest_dir paths so we do not mess with local installs by accident.
 defaults.sessdefaults["state_dir"] = STATE_DIR
-defaults.sessdefaults["dest_dir"] = DEST_DIR
+defaults.dldefaults["saveas"] = DEST_DIR
 
 try:
     from collections import OrderedDict

@@ -335,35 +335,15 @@ class ABCApp():
             state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
 
+        progress('Loading sessionconfig')
         if DEBUG:
             print >> sys.stderr, "main: Session config", cfgfilename
-
-        create_new = False
-        if os.path.exists(cfgfilename):
-            try:
-                self.sconfig = SessionStartupConfig.load(cfgfilename)
-            except:
-                print_exc()
-                create_new = True
-        else:
-            create_new = True
-
-        if create_new:
+        try:
+            self.sconfig = SessionStartupConfig.load(cfgfilename)
+        except:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
-
-        # Set default Session params here
-        if not self.sconfig.get_dest_dir():
-            destdir = get_default_dest_dir()
-            self.sconfig.set_dest_dir(destdir)
-
-        if not os.path.isdir(self.sconfig.get_dest_dir()):
-            os.makedirs(self.sconfig.get_dest_dir())
-
-        if not self.sconfig.get_torrent_collecting_dir():
-            torrcolldir = os.path.join(self.sconfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
-            self.sconfig.set_torrent_collecting_dir(torrcolldir)
-
+        
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
 
@@ -397,7 +377,6 @@ class ABCApp():
                 return os.path.abspath(os.path.join(filedir, '..', '..'))
 
             self.sconfig.set_install_dir(module_path())
-
         else:
             self.sconfig.set_install_dir(self.installdir)
 
@@ -410,6 +389,29 @@ class ABCApp():
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
         self.sconfig.set_swift_path(swiftbinpath)
         print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
+        
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())    
+        progress('Loading downloadconfig')
+        if DEBUG:
+            print >> sys.stderr, "main: Download config", dlcfgfilename
+        try:
+            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
+        except:
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            
+        if not defaultDLConfig.get_dest_dir():
+            defaultDLConfig.set_dest_dir(get_default_dest_dir())
+
+        if not os.path.isdir(defaultDLConfig.get_dest_dir()):
+            os.makedirs(defaultDLConfig.get_dest_dir())
+            
+        # 15/05/12 niels: fixing swift port
+        defaultDLConfig.set_swift_listen_port(7758)
+        
+        # Setting torrent collection dir based on default download dir
+        if not self.sconfig.get_torrent_collecting_dir():
+            torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
+            self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
@@ -419,33 +421,7 @@ class ABCApp():
 
         progress('Loading userdownloadchoice')
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-        UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.get_state_dir())
-
-        # set port number in GuiUtility
-        if DEBUG:
-            print >> sys.stderr, 'LISTEN PORT :' , s.get_listen_port()
-        port = s.get_listen_port()
-        self.guiUtility.set_port_number(port)
-
-        progress('Loading downloadconfig')
-        # Load the default DownloadStartupConfig
-        dlcfgfilename = get_default_dscfg_filename(s)
-        try:
-            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
-        except:
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            # print_exc()
-            defaultdestdir = os.path.join(get_default_dest_dir())
-            defaultDLConfig.set_dest_dir(defaultdestdir)
-
-        # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
-        self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
-
-        # 15/05/12 niels: fixing swift port + disabling overlay
-        defaultDLConfig.set_swift_listen_port(7758)
-        defaultDLConfig.dlconfig['overlay'] = False
-
-        s.set_proxy_default_dlcfg(defaultDLConfig)
+        UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
 
         # Create global rate limiter
         progress('Setting up ratelimiters')
@@ -932,12 +908,15 @@ class ABCApp():
 
             print >> sys.stderr, "main: ONEXIT deleting instances"
 
-            Session.del_instance()
-            GUIUtility.delInstance()
-            GUITaskQueue.delInstance()
+        Session.del_instance()
+        GUIUtility.delInstance()
+        GUITaskQueue.delInstance()
+        GUIDBProducer.delInstance()
+        TorrentChecking.delInstance()
+        
+        if SQLiteCacheDB.hasInstance():
+            SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
-            GUIDBProducer.delInstance()
-            TorrentChecking.delInstance()
 
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker

@@ -131,7 +131,7 @@ class SettingsDialog(wx.Dialog):
             self.elements['firewallStatus'].setSelected(2)
             self.elements['firewallStatusText'].SetLabel('Port is working')
 
-        self.currentPortValue = str(self.guiUtility.get_port_number())
+        self.currentPortValue = str(self.utility.session.get_listen_port())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
 
         self.elements['downloadCtrl'].SetValue(self.utility.getMaxDown())
@@ -302,7 +302,6 @@ class SettingsDialog(wx.Dialog):
                 scfg.set_dispersy_port(int(valport) - 1)
                 self.saveDefaultDownloadConfig(scfg)
 
-                self.guiUtility.set_port_number(valport)
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
 
@@ -438,15 +437,15 @@ class SettingsDialog(wx.Dialog):
                 dlg.allselected = not dlg.allselected
 
     def saveDefaultDownloadConfig(self, scfg):
+        state_dir = self.utility.session.get_state_dir()
+        
         # Save DownloadStartupConfig
-        dlcfgfilename = get_default_dscfg_filename(self.utility.session)
+        dlcfgfilename = get_default_dscfg_filename(state_dir)
         self.defaultDLConfig.save(dlcfgfilename)
 
         # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
         # Save SessionStartupConfig
         # Also change torrent collecting dir, which is by default in the default destdir
-
-        state_dir = self.utility.session.get_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
         defaultdestdir = self.defaultDLConfig.get_dest_dir()
         for target in [scfg,self.utility.session]:

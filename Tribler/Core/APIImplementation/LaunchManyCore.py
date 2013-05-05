@@ -242,11 +242,6 @@ class TriblerLaunchMany(Thread):
         self.multihandler.set_httphandler(self.httphandler)
 
         if config['mainline_dht']:
-            # import logging
-            # Arno,The equivalent of DEBUG=False for kadtracker
-            # logging.disable(logging.CRITICAL)
-            # New: see DecentralizedTracking/kadtracker/logging_conf.py
-
             # Start up KTH mainline DHT
             # TODO: Can I get the local IP number?
             try:
