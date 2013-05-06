@@ -57,7 +57,21 @@ def testResourceSeeda():
 def testResourceSeed(): 
     thread.start_new_thread( testResourceSeeda, () )
     Tribler_run()
+    
+def filterFindSeedableImage(tag):
+    return tag.name == "img" and tag.has_key('id') and tag['id'] == "DOWNLOAD_ME"
 
-testResourceSeed()
+def phase1():
+    waitForTriblerStart()
+    page = "file:" + os.getcwd() + "/Tribler/Test/SiteRipper/testsite.html"
+    rs = ResourceSeeder(page)
+    image = rs.findAndSeed(filterFindSeedableImage)
+
+def testPhase1():
+    thread.start_new_thread( phase1, () )
+    Tribler_run()
+
+testPhase1()
+#testResourceSeed()
 #testDownloadAndInject()
 #testDownloadResource()

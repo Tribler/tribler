@@ -43,13 +43,9 @@ class ResourceSeeder:
             result by default)
         """
         resources = self.__injector.findTags(filter)
-        try:
-            resource = resources[index]
-            if filename is None:
-                filename = resource['src'].split('/')[-1]
-            file = os.path.abspath(self.__injector.saveTagSource(resource, filename))
-            self.seedFile(file)
-            return True
-        except:
-            return False
+        resource = resources[index]
+        if filename is None:
+            filename = resource['src'].split('/')[-1]
+        file = os.path.abspath(self.__injector.saveTagSource(resource, filename))
+        self.seedFile(file)
             
