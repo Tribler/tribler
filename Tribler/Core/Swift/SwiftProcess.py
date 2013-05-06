@@ -142,7 +142,10 @@ class SwiftProcess:
             data = ic.buffer[:length]
             ic.buffer = ic.buffer[length:]
 
-            self.roothash2dl["dispersy"].i2ithread_data_came_in(session, (host, port), data)
+            try:
+                self.roothash2dl["dispersy-endpoint"].i2ithread_data_came_in(session, (host, port), data)
+            except KeyError:
+                print >> sys.stderr, "sp: Dispersy endpoint is not available"
 
         else:
             roothash = binascii.unhexlify(words[1])
