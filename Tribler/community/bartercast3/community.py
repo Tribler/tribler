@@ -110,7 +110,11 @@ class Book(object):
 
     @property
     def score(self):
-        return self.download - self.upload
+        """
+        Score is used to order members by how useful it is to make a (new) record with them.
+        """
+        # how much this member contributed - how much this member consumed
+        return self.upload - self.download
 
 class BarterCommunity(Community):
     @classmethod
