@@ -2297,6 +2297,8 @@ class ActivitiesList(List):
             self.guiutility.ShowPage('my_files')
         elif item.data[0] == 'Videoplayer':
             self.guiutility.ShowPlayer()
+        elif item.data[0] == 'Webbrowser':
+            self.guiutility.ShowPage('webbrowser')
         return True
 
     def OnCollapse(self, item, panel):
@@ -2360,6 +2362,8 @@ class ActivitiesList(List):
             itemKey = 4
         elif tab == 'videoplayer':
             itemKey = 5
+        elif tab == 'webbrowser':
+            itemKey = 6
         if itemKey:
             wx.CallAfter(self.Select, itemKey, True)
         return

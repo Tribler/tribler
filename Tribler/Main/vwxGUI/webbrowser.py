@@ -6,10 +6,16 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
     
-    def _PostInit(self):
-        sizer = wx._core.BoxSizer(wx._core.VERTICAL) 
-        self.browser = wx.html2.WebView.New(self) 
-        sizer.Add(self.browser, 1, wx._core.EXPAND, 10) 
-        self.SetSizer(sizer) 
-        #self.SetSize((700, 700)) 
+   
+    def __init__(self, parent=None):
+        XRCPanel.__init__(self, parent)
+        
+        self.webview = wx.html2.WebView.New(self)
+        
+        self.webview.LoadURL("http://www.google.com") 
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        sizer.Add(self.webview, 1, wx.EXPAND)
+        self.SetSizer(sizer)
  

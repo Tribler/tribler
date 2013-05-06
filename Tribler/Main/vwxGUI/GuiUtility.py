@@ -243,8 +243,7 @@ class GUIUtility:
             self.frame.Layout()
             self.frame.Thaw()
             
-            if page == 'webbrowser':
-                self.frame.webbrowser.Show()
+            
         #Set focus to page
         if page == 'search_results':
             self.frame.searchlist.Focus()
@@ -259,6 +258,9 @@ class GUIUtility:
             self.frame.selectedchannellist.Focus()
         elif page =='my_files':
             self.frame.librarylist.Focus()
+        elif page == 'webbrowser':
+            print 'Selected webbrowser'
+            self.frame.webbrowser.Show()
 
     def GetSelectedPage(self):
         if self.guiPage == 'home':

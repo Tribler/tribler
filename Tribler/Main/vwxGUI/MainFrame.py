@@ -263,6 +263,7 @@ class MainFrame(wx.Frame):
             hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
+            hSizer.Add(self.webbrowser,1,wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL)
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
