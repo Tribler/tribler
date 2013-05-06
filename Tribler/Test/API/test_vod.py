@@ -30,16 +30,20 @@ def vod_ready_callback(d, event, params):
 
 class TestVod(TestAsServer):
 
-    def setUpPreSession(self):
-        self.config = None
+    def setUp(self):
+        TestAsServer.setUp(self)
 
-    def setUpPostSession(self):
-        pass
+        self.port = 6789
+        self.serv = VideoHTTPServer.getInstance(self.port)
+        self.serv.background_serve()
+
+    def tearDown(self):
+        self.serv.shutdown()
+        VideoHTTPServer.delInstance()
+
+        TestAsServer.tearDown(self)
 
     def test_vod(self):
-        videoserv = VideoHTTPServer.getInstance()
-        videoserv.background_serve()
-
         if sys.platform == 'win32':
             tdef = TorrentDef.load('bla.torrent')
         else:
