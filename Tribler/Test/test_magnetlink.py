@@ -3,7 +3,6 @@
 
 from binascii import hexlify
 import socket
-import unittest
 import os
 import sys
 import time
@@ -13,9 +12,8 @@ from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.bencode import bencode, bdecode
-from Tribler.Core.MessageID import getMessageName, protocol_name, EXTEND
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING,\
-    DLSTATUS_SEEDING
+from Tribler.Core.MessageID import EXTEND
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import threading
 from traceback import print_exc
@@ -230,7 +228,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
         MagnetHelpers.__init__(self, self.tdef)
 
         self.setup_seeder()
-        
+
     def tearDown(self):
         self.teardown_seeder()
         TestAsServer.tearDown(self)
@@ -253,7 +251,7 @@ class TestMetadata(TestAsServer, MagnetHelpers):
     def seeder_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeder_setup_complete.set()
-             
+
         d = ds.get_download()
         print >> sys.stderr, "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
         return (1.0, False)
