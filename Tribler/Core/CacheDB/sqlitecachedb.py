@@ -68,6 +68,10 @@ config_dir = None
 install_dir = None
 TEST_OVERRIDE = False
 
+INITIAL_UPGRADE_PAUSE = 10
+SUCCESIVE_UPGRADE_PAUSE = 5
+UPGRADE_BATCH_SIZE = 100
+
 DEBUG = False
 DEBUG_THREAD = False
 DEBUG_TIME = True
@@ -250,6 +254,7 @@ class SQLiteCacheDBBase:
         self.category_table = None
         self.src_table = None
         self.applied_pragma = False
+        self.database_update = None
 
     def __del__(self):
         self.close()
@@ -488,13 +493,25 @@ class SQLiteCacheDBBase:
             return
         db_ver = int(db_ver)
         curr_ver = int(curr_ver)
-        # print "check db", db_ver, curr_ver
-        if db_ver != curr_ver or \
-               (not config_dir is None and (os.path.exists(os.path.join(config_dir, "upgradingdb.txt")) or os.path.exists(os.path.join(config_dir, "upgradingdb2.txt")) or os.path.exists(os.path.join(config_dir, "upgradingdb3.txt")))):
+
+        self.db_diff = max(0, curr_ver - db_ver)
+        if not self.db_diff:
+            self.db_diff = sum(os.path.exists(os.path.join(config_dir, filename)) if config_dir else 0 for filename in ["upgradingdb.txt", "upgradingdb2.txt", "upgradingdb3.txt"])
+
+        if self.db_diff:
+            self.database_update = threading.Semaphore(self.db_diff)
             self.updateDB(db_ver, curr_ver)
 
     def updateDB(self, db_ver, curr_ver):
         pass  # TODO
+
+    def waitForUpdateComplete(self):
+        if self.database_update:
+            for _ in range(self.db_diff):
+                self.database_update.acquire()
+
+            for _ in range(self.db_diff):
+                self.database_update.release()
 
     def readDBVersion(self):
         cur = self.getCursor()
@@ -1611,22 +1628,31 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         if my_permid:
             my_permid = bin2str(my_permid)
 
+        tqueue = None
+
         tmpfilename = os.path.join(state_dir, "upgradingdb.txt")
         if fromver < 4 or os.path.exists(tmpfilename):
+            self.database_update.acquire()
+
             def upgradeTorrents():
+                print >> sys.stderr, "Upgrading DB .. inserting into InvertedIndex"
+
                 # fetch some un-inserted torrents to put into the InvertedIndex
                 sql = """
                 SELECT torrent_id, name, torrent_file_name
                 FROM Torrent
                 WHERE torrent_id NOT IN (SELECT DISTINCT torrent_id FROM InvertedIndex)
                 AND torrent_file_name IS NOT NULL
-                LIMIT 20"""
+                LIMIT %d""" % UPGRADE_BATCH_SIZE
                 records = self.fetchall(sql)
 
                 if len(records) == 0:
                     # upgradation is complete and hence delete the temp file
-                    os.remove(tmpfilename)
-                    if DEBUG: print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
+                    if os.path.exists(tmpfilename):
+                        os.remove(tmpfilename)
+                        print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
+
+                    self.database_update.release()
                     return
 
                 for torrent_id, name, torrent_file_name in records:
@@ -1661,7 +1687,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.commit()
 
                 # upgradation not yet complete; comeback after 5 sec
-                tqueue.add_task(upgradeTorrents, 5)
+                tqueue.add_task(upgradeTorrents, SUCCESIVE_UPGRADE_PAUSE)
 
 
             # Create an empty file to mark the process of upgradation.
@@ -1672,9 +1698,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename, "w")
-                if DEBUG: print >> sys.stderr, "DB Upgradation: temp-file successfully created"
+                print >> sys.stderr, "DB Upgradation: temp-file successfully created", tmpfilename
             except:
-                if DEBUG: print >> sys.stderr, "DB Upgradation: failed to create temp-file"
+                print >> sys.stderr, "DB Upgradation: failed to create temp-file", tmpfilename
 
             if DEBUG: print >> sys.stderr, "Upgrading DB .. inserting into InvertedIndex"
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
@@ -1683,10 +1709,13 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             from Tribler.Core.TorrentDef import TorrentDef
 
             # start the upgradation after 10 seconds
-            tqueue = TimedTaskQueue("UpgradeDB")
-            tqueue.add_task(upgradeTorrents, 10)
+            if not tqueue:
+                tqueue = TimedTaskQueue("UpgradeDB")
+            tqueue.add_task(upgradeTorrents, INITIAL_UPGRADE_PAUSE)
 
         if fromver < 7:
+            self.database_update.acquire()
+
             # for now, fetch all existing torrents and extract terms
             from Tribler.Core.Tag.Extraction import TermExtraction
             extractor = TermExtraction.getInstance()
@@ -1729,7 +1758,11 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 dbg_ts2 = time()
                 print >> sys.stderr, 'DB Upgradation: extracting and inserting terms took %ss' % (dbg_ts2 - dbg_ts1)
 
+            self.database_update.release()
+
         if fromver < 8:
+            self.database_update.acquire()
+
             if DEBUG:
                 print >> sys.stderr, "STARTING UPGRADE"
                 import time
@@ -1757,8 +1790,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             if DEBUG:
                 print >> sys.stderr, "INSERTING NEW KEYWORDS TOOK", time.time() - t1, "INSERTING took", time.time() - t2
 
-        tmpfilename = os.path.join(state_dir, "upgradingdb2.txt")
-        if fromver < 9 or os.path.exists(tmpfilename):
+            self.database_update.release()
+
+        tmpfilename2 = os.path.join(state_dir, "upgradingdb2.txt")
+        if fromver < 9 or os.path.exists(tmpfilename2):
+            self.database_update.acquire()
+
             from Tribler.Core.Session import Session
             from time import time
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
@@ -1772,10 +1809,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             # ensure the temp-file is created, if it is not already
             try:
-                open(tmpfilename, "w")
-                print >> sys.stderr, "DB Upgradation: temp-file successfully created"
+                open(tmpfilename2, "w")
+                print >> sys.stderr, "DB Upgradation: temp-file successfully created", tmpfilename2
             except:
-                print >> sys.stderr, "DB Upgradation: failed to create temp-file"
+                print >> sys.stderr, "DB Upgradation: failed to create temp-file", tmpfilename2
 
             # start converting channelcastdb to new format
             finished_convert = "SELECT name FROM sqlite_master WHERE name='ChannelCast'"
@@ -1872,7 +1909,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 update_votes = "UPDATE _Channels SET nr_spam = ?, nr_favorite = ? WHERE id = ?"
                 self.executemany(update_votes, channel_tuples)
 
-                print >> sys.stderr, "Converting took", time() - t1
                 self.execute_write('DELETE FROM VoteCast WHERE mod_id <> ?', (my_permid,), commit=False)
                 self.execute_write('DELETE FROM ChannelCast WHERE publisher_id <> ?', (my_permid,))
 
@@ -1974,14 +2010,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                     drop_votecast = "DROP TABLE VoteCast"
                                     self.execute_write(drop_votecast)
                             else:
-                                dispersy.callback.register(insert_my_torrents, delay=10.0)
+                                dispersy.callback.register(insert_my_torrents, delay=float(SUCCESIVE_UPGRADE_PAUSE))
 
                         from Tribler.community.channel.community import ChannelCommunity
                         from Tribler.dispersy.dispersy import Dispersy
                         from Tribler.Core.TorrentDef import TorrentDef
 
                         global _callback
-                        _callback.register(create_my_channel, delay=10.0)
+                        _callback.register(create_my_channel, delay=float(INITIAL_UPGRADE_PAUSE))
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
@@ -1992,86 +2028,94 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     drop_votecast = "DROP TABLE VoteCast"
                     self.execute_write(drop_votecast)
 
-            def upgradeTorrents():
-                print >> sys.stderr, "Upgrading DB .. inserting into FullTextIndex"
+            def upgradeTorrents2():
+                if not os.path.exists(tmpfilename):
+                    print >> sys.stderr, "Upgrading DB .. inserting into FullTextIndex"
 
-                # fetch some un-inserted torrents to put into the FullTextIndex
-                sql = """
-                SELECT torrent_id, name, infohash, num_files, torrent_file_name
-                FROM CollectedTorrent
-                WHERE torrent_id NOT IN (SELECT rowid FROM FullTextIndex)
-                LIMIT 100"""
-                records = self.fetchall(sql)
+                    # fetch some un-inserted torrents to put into the FullTextIndex
+                    sql = """
+                    SELECT torrent_id, name, infohash, num_files, torrent_file_name
+                    FROM CollectedTorrent
+                    WHERE torrent_id NOT IN (SELECT rowid FROM FullTextIndex)
+                    LIMIT %d""" % UPGRADE_BATCH_SIZE
+                    records = self.fetchall(sql)
 
-                if len(records) == 0:
-                    # self.execute_write("DROP TABLE InvertedIndex")
 
-                    # upgradation is complete and hence delete the temp file
-                    os.remove(tmpfilename)
-                    print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
-                    return
+                    if len(records) == 0:
+                        self.execute_write("DROP TABLE InvertedIndex")
 
-                values = []
-                for torrent_id, name, infohash, num_files, torrent_filename in records:
-                    try:
-                        torrent_filename = os.path.join(torrent_dir, torrent_filename)
+                        if os.path.exists(tmpfilename2):
+                            # upgradation is complete and hence delete the temp file
+                            os.remove(tmpfilename2)
+                            print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename2
 
-                        # .torrent found, return complete filename
-                        if not os.path.isfile(torrent_filename):
-                            # .torrent not found, possibly a new torrent_collecting_dir
-                            torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                        self.database_update.release()
+                        return
+
+                    values = []
+                    for torrent_id, name, infohash, num_files, torrent_filename in records:
+                        try:
                             torrent_filename = os.path.join(torrent_dir, torrent_filename)
 
-                        if not os.path.isfile(torrent_filename):
-                            raise RuntimeError(".torrent file not found. Use fallback.")
+                            # .torrent found, return complete filename
+                            if not os.path.isfile(torrent_filename):
+                                # .torrent not found, possibly a new torrent_collecting_dir
+                                torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                                torrent_filename = os.path.join(torrent_dir, torrent_filename)
 
-                        torrentdef = TorrentDef.load(torrent_filename)
+                            if not os.path.isfile(torrent_filename):
+                                raise RuntimeError(".torrent file not found. Use fallback.")
 
-                        # Making sure that swarmname does not include extension for single file torrents
-                        swarmname = torrentdef.get_name_as_unicode()
-                        if not torrentdef.is_multifile_torrent():
-                            swarmname, _ = os.path.splitext(swarmname)
+                            torrentdef = TorrentDef.load(torrent_filename)
 
-                        filedict = {}
-                        fileextensions = set()
-                        for filename in torrentdef.get_files_as_unicode():
-                            filename, extension = os.path.splitext(filename)
-                            for keyword in split_into_keywords(filename, filterStopwords=True):
-                                filedict[keyword] = filedict.get(keyword, 0) + 1
+                            # Making sure that swarmname does not include extension for single file torrents
+                            swarmname = torrentdef.get_name_as_unicode()
+                            if not torrentdef.is_multifile_torrent():
+                                swarmname, _ = os.path.splitext(swarmname)
 
-                            fileextensions.add(extension[1:])
+                            filedict = {}
+                            fileextensions = set()
+                            for filename in torrentdef.get_files_as_unicode():
+                                filename, extension = os.path.splitext(filename)
+                                for keyword in split_into_keywords(filename, filterStopwords=True):
+                                    filedict[keyword] = filedict.get(keyword, 0) + 1
 
-                        filenames = filedict.keys()
-                        if len(filenames) > 1000:
-                            def popSort(a, b):
-                                return filedict[a] - filedict[b]
-                            filenames.sort(cmp=popSort, reverse=True)
-                            filenames = filenames[:1000]
+                                fileextensions.add(extension[1:])
 
-                    except RuntimeError:
-                        swarmname = dunno2unicode(name)
-                        fileextensions = set()
-                        filenames = []
+                            filenames = filedict.keys()
+                            if len(filenames) > 1000:
+                                def popSort(a, b):
+                                    return filedict[a] - filedict[b]
+                                filenames.sort(cmp=popSort, reverse=True)
+                                filenames = filenames[:1000]
 
-                        if num_files == 1:
-                            swarmname, extension = os.path.splitext(swarmname)
-                            fileextensions.add(extension[1:])
+                        except RuntimeError:
+                            swarmname = dunno2unicode(name)
+                            fileextensions = set()
+                            filenames = []
 
-                            filenames.extend(split_into_keywords(swarmname, filterStopwords=True))
+                            if num_files == 1:
+                                swarmname, extension = os.path.splitext(swarmname)
+                                fileextensions.add(extension[1:])
 
-                    values.append((torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions)))
+                                filenames.extend(split_into_keywords(swarmname, filterStopwords=True))
 
-                if len(values) > 0:
-                    self.executemany(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values, commit=True)
+                        values.append((torrent_id, swarmname, " ".join(filenames), " ".join(fileextensions)))
+
+                    if len(values) > 0:
+                        self.executemany(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values, commit=True)
 
                 # upgradation not yet complete; comeback after 5 sec
-                tqueue.add_task(upgradeTorrents, 5)
+                tqueue.add_task(upgradeTorrents2, SUCCESIVE_UPGRADE_PAUSE)
 
             # start the upgradation after 10 seconds
-            tqueue = TimedTaskQueue("UpgradeDB")
-            tqueue.add_task(upgradeTorrents, 10)
+            if not tqueue:
+                tqueue = TimedTaskQueue("UpgradeDB")
+            tqueue.add_task(upgradeTorrents2, INITIAL_UPGRADE_PAUSE)
 
         if fromver < 10:
+            self.database_update.acquire()
+
             rename_table = "ALTER TABLE _PlaylistTorrents RENAME TO _PlaylistTorrents2"
             self.execute_write(rename_table)
 
@@ -2094,11 +2138,19 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             drop_table = "DROP TABLE _PlaylistTorrents2"
             self.execute_write(drop_table)
 
+            self.database_update.release()
+
         if fromver < 11:
+            self.database_update.acquire()
+
             index = "CREATE INDEX IF NOT EXISTS ChannelTorIndex ON _ChannelTorrents(torrent_id)"
             self.execute_write(index)
 
+            self.database_update.release()
+
         if fromver < 12:
+            self.database_update.acquire()
+
             remove_indexes = ["Message_receive_time_idx", "Size_calc_age_idx", "Number_of_seeders_idx", "Number_of_leechers_idx", "Torrent_length_idx", "Torrent_num_seeders_idx", "Torrent_num_leechers_idx"]
             for index in remove_indexes:
                 self.execute_write("DROP INDEX %s" % index, commit=False)
@@ -2108,11 +2160,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("CREATE INDEX IF NOT EXISTS ChannelTorChanIndex ON _ChannelTorrents(torrent_id, channel_id)")
             self.clean_db(True)
 
-        if fromver < 13:
-            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');", commit=False)
+            self.database_update.release()
 
-        tmpfilename = os.path.join(state_dir, "upgradingdb3.txt")
-        if fromver < 14 or os.path.exists(tmpfilename):
+        if fromver < 13:
+            self.database_update.acquire()
+            self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');", commit=False)
+            self.database_update.release()
+
+        tmpfilename3 = os.path.join(state_dir, "upgradingdb3.txt")
+        if fromver < 14 or os.path.exists(tmpfilename3):
+            self.database_update.acquire()
+
             if fromver < 14:
                 self.execute_write("ALTER TABLE Torrent ADD COLUMN dispersy_id integer;", commit=False)
                 self.execute_write("ALTER TABLE Torrent ADD COLUMN swift_hash text;", commit=False)
@@ -2130,61 +2188,70 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
             # ensure the temp-file is created, if it is not already
             try:
-                open(tmpfilename, "w")
-                print >> sys.stderr, "DB Upgradation: temp-file successfully created"
+                open(tmpfilename3, "w")
+                print >> sys.stderr, "DB Upgradation: temp-file successfully created", tmpfilename3
             except:
-                print >> sys.stderr, "DB Upgradation: failed to create temp-file"
+                print >> sys.stderr, "DB Upgradation: failed to create temp-file", tmpfilename3
 
-            def upgradeTorrents():
-                print >> sys.stderr, "Upgrading DB .. hashing torrents"
+            def upgradeTorrents3():
+                if not (os.path.exists(tmpfilename2) or os.path.exists(tmpfilename)):
+                    print >> sys.stderr, "Upgrading DB .. hashing torrents"
 
-                rth = RemoteTorrentHandler.getInstance()
-                if rth.registered:
-
-                    sql = "SELECT infohash, torrent_file_name FROM CollectedTorrent WHERE swift_torrent_hash IS NULL or swift_torrent_hash = '' LIMIT 100"
-                    records = self.fetchall(sql)
-
-                    found = []
-                    not_found = []
-
-                    if len(records) == 0:
-                        os.remove(tmpfilename)
-                        print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename
-                        return
-
-                    for infohash, torrent_filename in records:
-                        if not os.path.isfile(torrent_filename):
-                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
-
-                        # .torrent found, return complete filename
-                        if not os.path.isfile(torrent_filename):
-                            # .torrent not found, use default collected_torrent_filename
-                            torrent_filename = get_collected_torrent_filename(str2bin(infohash))
-                            torrent_filename = os.path.join(torrent_dir, torrent_filename)
-
-                        if not os.path.isfile(torrent_filename):
-                            not_found.append((infohash,))
+                    rth = RemoteTorrentHandler.getInstance()
+                    if rth.registered or TEST_OVERRIDE:
+                        if not TEST_OVERRIDE:
+                            sql = "SELECT infohash, torrent_file_name FROM CollectedTorrent WHERE swift_torrent_hash IS NULL or swift_torrent_hash = '' LIMIT %d" % UPGRADE_BATCH_SIZE
+                            records = self.fetchall(sql)
                         else:
-                            sdef, swiftpath = rth._write_to_collected(torrent_filename)
-                            found.append((bin2str(sdef.get_roothash()), swiftpath, infohash))
+                            records = []
 
-                            os.remove(torrent_filename)
+                        found = []
+                        not_found = []
 
-                    update = "UPDATE Torrent SET swift_torrent_hash = ?, torrent_file_name = ? WHERE infohash = ?"
-                    self.executemany(update, found)
+                        if len(records) == 0:
+                            if os.path.exists(tmpfilename3):
+                                os.remove(tmpfilename3)
+                                print >> sys.stderr, "DB Upgradation: temp-file deleted", tmpfilename3
 
-                    remove = "UPDATE Torrent SET torrent_file_name = NULL WHERE infohash = ?"
-                    self.executemany(remove, not_found)
+                            self.database_update.release()
+                            return
+
+                        for infohash, torrent_filename in records:
+                            if not os.path.isfile(torrent_filename):
+                                torrent_filename = os.path.join(torrent_dir, torrent_filename)
+
+                            # .torrent found, return complete filename
+                            if not os.path.isfile(torrent_filename):
+                                # .torrent not found, use default collected_torrent_filename
+                                torrent_filename = get_collected_torrent_filename(str2bin(infohash))
+                                torrent_filename = os.path.join(torrent_dir, torrent_filename)
+
+                            if not os.path.isfile(torrent_filename):
+                                not_found.append((infohash,))
+                            else:
+                                sdef, swiftpath = rth._write_to_collected(torrent_filename)
+                                found.append((bin2str(sdef.get_roothash()), swiftpath, infohash))
+
+                                os.remove(torrent_filename)
+
+                        update = "UPDATE Torrent SET swift_torrent_hash = ?, torrent_file_name = ? WHERE infohash = ?"
+                        self.executemany(update, found)
+
+                        remove = "UPDATE Torrent SET torrent_file_name = NULL WHERE infohash = ?"
+                        self.executemany(remove, not_found)
 
                 # upgradation not yet complete; comeback after 5 sec
-                tqueue.add_task(upgradeTorrents, 5)
+                tqueue.add_task(upgradeTorrents3, SUCCESIVE_UPGRADE_PAUSE)
 
             # start the upgradation after 10 seconds
-            tqueue = TimedTaskQueue("UpgradeDB")
-            tqueue.add_task(upgradeTorrents, 30)
+            if not tqueue:
+                tqueue = TimedTaskQueue("UpgradeDB")
+            tqueue.add_task(upgradeTorrents3, INITIAL_UPGRADE_PAUSE)
 
         # Arno, 2012-07-30: Speed up
         if fromver < 15:
+            self.database_update.acquire()
+
             self.execute_write("UPDATE Torrent SET swift_hash = NULL WHERE swift_hash = '' OR swift_hash = 'None'")
             duplicates = [(id_,) for id_, count in self.execute_read("SELECT torrent_id, count(*) FROM Torrent WHERE swift_hash NOT NULL GROUP BY swift_hash") if count > 1]
             if duplicates:
@@ -2197,11 +2264,19 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 self.executemany("UPDATE Torrent SET swift_torrent_hash = NULL WHERE torrent_id = ?", duplicates)
             self.execute_write("CREATE UNIQUE INDEX IF NOT EXISTS Torrent_swift_torrent_hash_idx ON Torrent(swift_torrent_hash)")
 
+            self.database_update.release()
+
         # 02/08/2012 Boudewijn: the code allowed swift_torrent_hash to be an empty string
         if fromver < 16:
+            self.database_update.acquire()
+
             self.execute_write("UPDATE Torrent SET swift_torrent_hash = NULL WHERE swift_torrent_hash = '' OR swift_torrent_hash = 'None'")
 
+            self.database_update.release()
+
         if fromver < 17:
+            self.database_update.acquire()
+
             self.execute_write("DROP TABLE IF EXISTS PREFERENCE")
             self.execute_write("DROP INDEX IF EXISTS Preference_peer_id_idx")
             self.execute_write("DROP INDEX IF EXISTS Preference_torrent_id_idx")
@@ -2250,12 +2325,17 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             self.execute_write("DROP INDEX IF EXISTS Torrent_relevance_idx")
             self.execute_write("DROP INDEX IF EXISTS Torrent_name_idx")
 
+            self.database_update.release()
+
         if fromver < 18:
+            self.database_update.acquire()
+
             self.execute_write("DROP TABLE IF EXISTS BarterCast")
             self.execute_write("DROP INDEX IF EXISTS bartercast_idx")
             self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails')")
             self.execute_write("INSERT INTO MetaDataTypes ('name') VALUES ('video-info')")
 
+            self.database_update.release()
 
     def clean_db(self, vacuum=False):
         from time import time
@@ -2474,19 +2554,27 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         return self._executemany(sql, args)
 
     def cache_transaction(self, sql, args=None):
-        if DEPRECATION_DEBUG:
+        if not onDBThread():
+            SQLiteCacheDBV5.cache_transaction(self, sql, args)
+        elif DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use cache_transaction')
 
     def transaction(self, sql=None, args=None):
-        if DEPRECATION_DEBUG:
+        if not onDBThread():
+            SQLiteCacheDBV5.transaction(self, sql, args)
+        elif DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use transaction')
 
     def _transaction(self, sql, args=None):
-        if DEPRECATION_DEBUG:
+        if not onDBThread():
+            SQLiteCacheDBV5._transaction(self, sql, args)
+        elif DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use _transaction')
 
     def commit(self):
-        if DEPRECATION_DEBUG:
+        if not onDBThread():
+            SQLiteCacheDBV5.commit(self)
+        elif DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use commit')
 
     def clean_db(self, vacuum=False, exiting=False):
