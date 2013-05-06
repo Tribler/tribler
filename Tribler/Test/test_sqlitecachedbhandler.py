@@ -11,8 +11,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEO
 from bak_tribler_sdb import *
 from Tribler.Core.CacheDB import sqlitecachedb
 
-CREATE_SQL_FILE = os.path.join('Tribler', "schema_sdb_v" + str(CURRENT_MAIN_DB_VERSION) + ".sql")
-
 import Tribler.Core.CacheDB.sqlitecachedb
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -29,25 +27,12 @@ M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')
 BUSYTIMEOUT = 5000
 SQLiteCacheDB.DEBUG = False
 
-prev_values = [sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE]
-def modify_upgrade():
-    sqlitecachedb.INITIAL_UPGRADE_PAUSE = 3
-    sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE = 1
-    sqlitecachedb.UPGRADE_BATCH_SIZE = sys.maxint
-    sqlitecachedb.TEST_OVERRIDE = True
-
-def restore_upgrade():
-    sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE = prev_values
-    sqlitecachedb.TEST_OVERRIDE = False
-
 class TestSqliteBasicDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
-        self.sqlitedb.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.waitForUpdateComplete()
 
         self.db = BasicDBHandler(self.sqlitedb, 'Peer')
@@ -55,8 +40,6 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
-
-        restore_upgrade()
 
     def test_size(self):
         size = self.db.size()  # there are 3995 peers in the table, however the upgrade scripts remove 8 superpeers
@@ -134,11 +117,9 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
 class TestSqlitePeerDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
-        db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        db.initDB(dbpath)
         db.waitForUpdateComplete()
 
         self.p1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
@@ -154,7 +135,6 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         SQLiteCacheDB.delInstance()
 
         PeerDBHandler.delInstance()
-        restore_upgrade()
 
     def test_getList(self):
         p1 = self.pdb.getPeer(self.p1)
@@ -390,11 +370,9 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
 class TestTorrentDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
-        db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        db.initDB(dbpath)
         db.waitForUpdateComplete()
 
         self.tdb = TorrentDBHandler.getInstance()
@@ -404,8 +382,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         SQLiteCacheDB.delInstance()
 
         TorrentDBHandler.delInstance()
-
-        restore_upgrade()
 
     def test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
@@ -583,11 +559,9 @@ class TestTorrentDBHandler(unittest.TestCase):
 class TestMyPreferenceDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
-        db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        db.initDB(dbpath)
         db.waitForUpdateComplete()
 
         self.mdb = MyPreferenceDBHandler.getInstance()
@@ -597,8 +571,6 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
         MyPreferenceDBHandler.delInstance()
-
-        restore_upgrade()
 
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
