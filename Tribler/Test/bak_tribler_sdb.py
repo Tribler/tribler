@@ -18,13 +18,12 @@ def init_bak_tribler_sdb():
             print >> sys.stderr, "Missing bak_tribler.tar.gz"
             sys.exit(1)
 
+    for f in os.listdir(FILES_DIR):
+        if f.startswith('tribler.sdb'):
+            os.remove(os.path.join(FILES_DIR, f))
+
     if os.path.isfile(TRIBLER_DB_PATH_BACKUP):
         copyFile(TRIBLER_DB_PATH_BACKUP, TRIBLER_DB_PATH)
-        # print "refresh sqlite db", TRIBLER_DB_PATH
-
-    if os.path.exists(STATE_FILE_NAME_PATH):
-        os.remove(STATE_FILE_NAME_PATH)
-        print "remove journal file"
 
 def extract_db_files(file_dir, file_name):
     try:
