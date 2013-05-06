@@ -427,6 +427,8 @@ class BarterCommunity(Community):
                         book.cycle = cycle
                         book.effort.set(cycle * CYCLE_SIZE)
 
+                    self.try_adding_to_slope(message.candidate, book.member)
+
     def on_introduction_response(self, messages):
         try:
             return self._original_on_introduction_response(messages)
@@ -440,6 +442,8 @@ class BarterCommunity(Community):
                     if book.cycle < cycle:
                         book.cycle = cycle
                         book.effort.set(cycle * CYCLE_SIZE)
+
+                    self.try_adding_to_slope(message.candidate, book.member)
 
     def create_barter_record(self, second_member):
         """
