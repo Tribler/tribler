@@ -13,7 +13,7 @@ import apsw
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT, CURRENT_MAIN_DB_VERSION
 from bak_tribler_sdb import *
 
-CREATE_SQL_FILE = os.path.join('..', "schema_sdb_v" + str(CURRENT_MAIN_DB_VERSION) + ".sql")
+CREATE_SQL_FILE = os.path.join('Tribler', "schema_sdb_v" + str(CURRENT_MAIN_DB_VERSION) + ".sql")
 
 import Tribler.Core.CacheDB.sqlitecachedb
 
