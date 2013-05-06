@@ -454,6 +454,8 @@ class ABCApp():
             defaultdestdir = os.path.join(get_default_dest_dir())
             defaultDLConfig.set_dest_dir(defaultdestdir)
 
+        defaultDLConfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
+
         # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
         self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
 
@@ -1115,7 +1117,8 @@ class ABCApp():
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 
             # 3. Save swift files to metadata dir
-            metadir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
             if not os.path.exists(metadir):
                 os.makedirs(metadir)
 
