@@ -97,7 +97,7 @@ class TestTorrentDef(unittest.TestCase):
         t.set_tracker(TRACKER)
         t.finalize()
 
-        s = os.path.getsize(BASE_DIR, "API", "file.wmv")
+        s = os.path.getsize(fn)
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
@@ -122,10 +122,10 @@ class TestTorrentDef(unittest.TestCase):
         t.finalize()
 
         exps = 0L
-        for f in os.listdir(BASE_DIR, "API", "contentdir"):
+        for f in os.listdir(dn):
             if f.startswith('.'):
                 continue
-            p = os.path.join(BASE_DIR, "API", "contentdir", f)
+            p = os.path.join(dn, f)
             s = os.path.getsize(p)
             exps += s
             print "test: expected size", f, s
@@ -163,10 +163,10 @@ class TestTorrentDef(unittest.TestCase):
 
         # Check
         exps = os.path.getsize(fn)
-        for f in os.listdir(BASE_DIR, "API", "contentdir"):
+        for f in os.listdir(dn):
             if f.startswith('.'):
                 continue
-            p = os.path.join(BASE_DIR, "API", "contentdir", f)
+            p = os.path.join(dn, f)
             exps += os.path.getsize(p)
 
         metainfo = t.get_metainfo()
@@ -188,7 +188,7 @@ class TestTorrentDef(unittest.TestCase):
         t.set_tracker(TRACKER)
         t.finalize()
 
-        s = os.path.getsize(BASE_DIR, "API", "file.wmv")
+        s = os.path.getsize(os.path.join(BASE_DIR, "API", "file.wmv"))
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
