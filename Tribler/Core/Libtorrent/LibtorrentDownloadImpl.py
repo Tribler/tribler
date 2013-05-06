@@ -88,6 +88,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.vod_readpos = 0
         self.vod_pausepos = 0
         self.vod_status = ""
+        self.videoinfo = None
 
         self.lm_network_vod_event_callback = None
         self.pstate_for_restart = None
@@ -235,6 +236,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.videoinfo['mimetype'] = self.get_mimetype(filename)
         self.videoinfo['usercallback'] = lambda event, params : self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
         self.videoinfo['userevents'] = self.dlconfig['vod_userevents'][:]
+        # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
+        self.videoinfo['status'] = None
 
         self.handle.set_sequential_download(True)
 
@@ -309,6 +312,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD paused"
+
+    def get_vod_info(self):
+        return self.videoinfo
 
     def process_alert(self, alert, alert_type):
         if DEBUG or alert.category() in [lt.alert.category_t.error_notification, lt.alert.category_t.performance_warning]:

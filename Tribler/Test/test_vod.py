@@ -40,27 +40,7 @@ class TestVideoOnDemand(TestAsServer):
         TestAsServer.setUp(self)
         self.vodstarted = False
 
-    def setUpPreSession(self):
-        """ override TestAsServer """
-        TestAsServer.setUpPreSession(self)
-        self.config.set_overlay(False)
-        self.config.set_megacache(False)
-
-
-    def setUpPostSession(self):
-        """ override TestAsServer """
-        TestAsServer.setUpPostSession(self)
-
-
-    def tearDown(self):
-        print >> sys.stderr, "Test: Sleep before tear down"
-        time.sleep(10)
-
-        TestAsServer.tearDown(self)
-
-
     def create_torrent(self):
-
         [srchandle, self.sourcefn] = mkstemp()
         self.content = Rand.rand_bytes(self.contentlen)
         os.write(srchandle, self.content)
@@ -97,9 +77,7 @@ class TestVideoOnDemand(TestAsServer):
 
         return (1.0, [])
 
-
     def sesscb_vod_event_callback(self, d, event, params):
-
         if self.vodstarted:
             return
         self.vodstarted = True
@@ -125,8 +103,6 @@ class TestVideoOnDemand(TestAsServer):
             lastsize = 1
             self.stream_read(stream, lastoff, lastsize, self.piecelen)
 
-            print >> sys.stderr, "Test: stream: Passed?"
-
     def stream_read(self, stream, off, size, blocksize):
         stream.seek(off)
         data = stream.read(blocksize)
@@ -135,7 +111,7 @@ class TestVideoOnDemand(TestAsServer):
         self.assertEquals(data, self.content[off:off + size])
 
 
-    def singtest_99(self):
+    def test_99(self):
         self.contentlen = 99
         self.piecelen = 10
         self.create_torrent()
@@ -145,21 +121,18 @@ class TestVideoOnDemand(TestAsServer):
 
         dlist = self.session.get_downloads()
         d = dlist[0]
-        vs = d.sd.videostatus
+        vs = d.get_vod_info()['status']
 
+        if vs:
+            goodrange = ((0, 0), (9, 8))
+            self.assertEqual(vs.movie_range, goodrange)
+            self.assertEqual(vs.first_piecelen, 10)
+            self.assertEqual(vs.last_piecelen, 9)
+            self.assertEqual(vs.first_piece, 0)
+            self.assertEqual(vs.last_piece, 9)
+            self.assertEqual(vs.movie_numpieces, 10)
 
-        goodrange = ((0, 0), (9, 8))
-        self.assertEqual(vs.movie_range, goodrange)
-        self.assertEqual(vs.first_piecelen, 10)
-        self.assertEqual(vs.last_piecelen, 9)
-        self.assertEqual(vs.first_piece, 0)
-        self.assertEqual(vs.last_piece, 9)
-        self.assertEqual(vs.movie_numpieces, 10)
-
-        print >> sys.stderr, "Test: status: Passed? ****************************************************************"
-
-
-    def singtest_100(self):
+    def test_100(self):
         self.contentlen = 100
         self.piecelen = 10
         self.create_torrent()
@@ -169,21 +142,18 @@ class TestVideoOnDemand(TestAsServer):
 
         dlist = self.session.get_downloads()
         d = dlist[0]
-        vs = d.sd.videostatus
+        vs = d.get_vod_info()['status']
 
+        if vs:
+            goodrange = ((0, 0), (9, 9))
+            self.assertEqual(vs.movie_range, goodrange)
+            self.assertEqual(vs.first_piecelen, 10)
+            self.assertEqual(vs.last_piecelen, 10)
+            self.assertEqual(vs.first_piece, 0)
+            self.assertEqual(vs.last_piece, 9)
+            self.assertEqual(vs.movie_numpieces, 10)
 
-        goodrange = ((0, 0), (9, 9))
-        self.assertEqual(vs.movie_range, goodrange)
-        self.assertEqual(vs.first_piecelen, 10)
-        self.assertEqual(vs.last_piecelen, 10)
-        self.assertEqual(vs.first_piece, 0)
-        self.assertEqual(vs.last_piece, 9)
-        self.assertEqual(vs.movie_numpieces, 10)
-
-        print >> sys.stderr, "Test: status: Passed? ****************************************************************"
-
-
-    def singtest_101(self):
+    def test_101(self):
         self.contentlen = 101
         self.piecelen = 10
         self.create_torrent()
@@ -193,35 +163,13 @@ class TestVideoOnDemand(TestAsServer):
 
         dlist = self.session.get_downloads()
         d = dlist[0]
-        vs = d.sd.videostatus
+        vs = d.get_vod_info()['status']
 
-
-        goodrange = ((0, 0), (10, 0))
-        self.assertEqual(vs.movie_range, goodrange)
-        self.assertEqual(vs.first_piecelen, 10)
-        self.assertEqual(vs.last_piecelen, 1)
-        self.assertEqual(vs.first_piece, 0)
-        self.assertEqual(vs.last_piece, 10)
-        self.assertEqual(vs.movie_numpieces, 11)
-
-        print >> sys.stderr, "Test: status: Passed? ****************************************************************"
-
-
-
-def test_suite():
-    suite = unittest.TestSuite()
-    # We should run the tests in a separate Python interpreter to prevent
-    # problems with our singleton classes, e.g. PeerDB, etc.
-    if len(sys.argv) != 2:
-        print "Usage: python test_vod.py <method name>"
-    else:
-        suite.addTest(TestVideoOnDemand(sys.argv[1]))
-
-    return suite
-
-def main():
-    unittest.main(defaultTest='test_suite', argv=[sys.argv[0]])
-
-if __name__ == "__main__":
-    main()
-
+        if vs:
+            goodrange = ((0, 0), (10, 0))
+            self.assertEqual(vs.movie_range, goodrange)
+            self.assertEqual(vs.first_piecelen, 10)
+            self.assertEqual(vs.last_piecelen, 1)
+            self.assertEqual(vs.first_piece, 0)
+            self.assertEqual(vs.last_piece, 10)
+            self.assertEqual(vs.movie_numpieces, 11)
