@@ -79,7 +79,7 @@ class TestTorrentDef(unittest.TestCase):
         dummydata = "HalloWereld"
         t = TorrentDef()
         t.set_metadata(dummydata)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -96,7 +96,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        fn = os.path.join(os.getcwd(),"file.wmv")
+        fn = os.path.join(BASE_DIR,"API","file.wmv")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -120,7 +120,7 @@ class TestTorrentDef(unittest.TestCase):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
         t.set_create_merkle_torrent(merkle)
-        dn = os.path.join(os.getcwd(),"contentdir")
+        dn = os.path.join(BASE_DIR,"API","contentdir")
         t.add_content(dn,"dirintorrent")
         t.set_tracker(TRACKER)
         t.finalize()
