@@ -11,8 +11,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEO
 from bak_tribler_sdb import *
 from Tribler.Core.CacheDB import sqlitecachedb
 
-CREATE_SQL_FILE = os.path.join('Tribler', "schema_sdb_v" + str(CURRENT_MAIN_DB_VERSION) + ".sql")
-
 import Tribler.Core.CacheDB.sqlitecachedb
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -45,9 +43,9 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
     def setUp(self):
         modify_upgrade()
 
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
-        self.sqlitedb.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.waitForUpdateComplete()
 
         self.db = BasicDBHandler(self.sqlitedb, 'Peer')
@@ -136,9 +134,9 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
     def setUp(self):
         modify_upgrade()
 
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
-        db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        db.initDB(dbpath)
         db.waitForUpdateComplete()
 
         self.p1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
@@ -392,9 +390,9 @@ class TestTorrentDBHandler(unittest.TestCase):
     def setUp(self):
         modify_upgrade()
 
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
-        db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        db.initDB(dbpath)
         db.waitForUpdateComplete()
 
         self.tdb = TorrentDBHandler.getInstance()
@@ -585,9 +583,9 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
     def setUp(self):
         modify_upgrade()
 
-        init_bak_tribler_sdb()
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
-        db.initDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
+        db.initDB(dbpath)
         db.waitForUpdateComplete()
 
         self.mdb = MyPreferenceDBHandler.getInstance()
