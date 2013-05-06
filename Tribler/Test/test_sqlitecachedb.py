@@ -16,8 +16,6 @@ from bak_tribler_sdb import *
 CREATE_SQL_FILE = os.path.join('..', "schema_sdb_v" + str(CURRENT_MAIN_DB_VERSION) + ".sql")
 
 import Tribler.Core.CacheDB.sqlitecachedb
-print >> sys.stderr, "TEST: ENABLE DBUPGRADE HACK"
-Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
 
 def init():
     init_bak_tribler_sdb()

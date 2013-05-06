@@ -171,7 +171,7 @@ class TriblerLaunchMany(Thread):
                 self.peer_db.registerConnectionUpdater(self.session)
                 self.torrent_db = TorrentDBHandler.getInstance()
                 torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
-                self.torrent_db.register(Category.getInstance(), torrent_collecting_dir)
+                self.torrent_db.register(torrent_collecting_dir)
                 self.mypref_db = MyPreferenceDBHandler.getInstance()
                 self.votecast_db = VoteCastDBHandler.getInstance()
                 self.votecast_db.registerSession(self.session)

@@ -13,8 +13,6 @@ from bak_tribler_sdb import *
 CREATE_SQL_FILE = os.path.join('Tribler', "schema_sdb_v" + str(CURRENT_MAIN_DB_VERSION) + ".sql")
 
 import Tribler.Core.CacheDB.sqlitecachedb
-print >> sys.stderr, "TEST: ENABLE DBUPGRADE HACK"
-Tribler.Core.CacheDB.sqlitecachedb.TEST_SQLITECACHEDB_UPGRADE = True
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
@@ -46,8 +44,8 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         SQLiteCacheDB.delInstance()
 
     def test_size(self):
-        size = self.db.size()
-        assert size == 3995, size
+        size = self.db.size()  # there are 3995 peers in the table, however the upgrade scripts remove 8 superpeers
+        assert size == 3987, size
 
     def test_getOne(self):
         ip = self.db.getOne('ip', peer_id=1)
@@ -81,14 +79,14 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         # 03/02/10 Boudewijn: In contrast to the content of the
         # database, the similarity value is not 12.537961593122299 but
         # 0 because it is reset as the database is upgraded.
-        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Peer 1', u'1.1.1.1', 1, None, 2, 0, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0)
+        results = (1, u'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr', u'Peer 1', u'1.1.1.1', 1, None, 2, 0, 0, 0, 1194966306, 1193379769, 1193379432, 1, 1, 0, 0, 0, 0, 0, 0)
 
         for i in range(len(values)):
             assert values[i] == results[i], (i, values[i], results[i])
 
     def test_getAll(self):
         ips = self.db.getAll('ip')
-        assert len(ips) == 3995, len(ips)
+        assert len(ips) == 3987, len(ips)
 
         ips = self.db.getAll('distinct ip')
         assert len(ips) == 256, len(ips)
@@ -97,7 +95,7 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
         assert len(ips) == 16, len(ips)
 
         ids = self.db.getAll('peer_id', 'thumbnail is NULL')
-        assert len(ids) == 3995, len(ids)
+        assert len(ids) == 3987, len(ids)
 
         ips = self.db.getAll('ip', "ip like '88.%'", port=88, conj='or')
         assert len(ips) == 16, len(ips)
@@ -125,8 +123,9 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         db = SQLiteCacheDB.getInstance()
         db.openDB(TRIBLER_DB_PATH, busytimeout=BUSYTIMEOUT)
 
-        self.sp1 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x00\\\xdfXv\xffX\xf2\xfe\x96\xe1_]\xf5\x1b\xb4\x91\x91\xa5I\xf0nl\x81\xd2A\xfb\xb7u)\x01T\xa9*)r\x9b\x81s\xb7j\xd2\xecrSg$;\xc8"7s\xecSF\xd3\x0bgK\x1c'
-        self.sp2 = '0R0\x10\x06\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04\x01\xdb\x80+O\xd9N7`\xfc\xd3\xdd\xf0 \xfdC^\xc9\xd7@\x97\xaa\x91r\x1c\xdeL\xf2n\x9f\x00U\xc1A\xf9Ae?\xd8t}_c\x08\xb3G\xf8g@N! \xa0\x90M\xfb\xca\xcfZ@'
+
+        self.p1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
+        self.p2 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAABo69alKy95H7RHzvDCsolAurKyrVvtDdT9/DzNAGvky6YejcK4GWQXBkIoQGQgxVEgIn8dwaR9B+3U')
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         hp = db.hasPeer(fake_permid_x)
         assert not hp
@@ -140,14 +139,14 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         PeerDBHandler.delInstance()
 
     def test_getList(self):
-        sp1 = self.pdb.getPeer(self.sp1)
-        sp2 = self.pdb.getPeer(self.sp2)
-        assert isinstance(sp1, dict)
-        assert isinstance(sp2, dict)
-        print >> sys.stderr, "singtest_GETLIST SP1", `sp1`
-        print >> sys.stderr, "singtest_GETLIST SP1", `sp2`
-        assert sp1['port'] == 628
-        assert sp2['port'] == 3287
+        p1 = self.pdb.getPeer(self.p1)
+        p2 = self.pdb.getPeer(self.p2)
+        assert isinstance(p1, dict)
+        assert isinstance(p2, dict)
+        print >> sys.stderr, "singtest_GETLIST SP1", `p1`
+        print >> sys.stderr, "singtest_GETLIST SP1", `p2`
+        assert p1['port'] == 1
+        assert p2['port'] == 2
 
     def test_getPeerSim(self):
         permid_str = 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACPJqLjmKeMNRwkCNKkPH51gjQ5e7u4s2vWv9I/AALXtpf+bFPtY8cyFv6OCzisYDo+brgqOxAtuNZwP'
@@ -165,7 +164,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
 
     def test_getPeerList(self):
         peerlist = self.pdb.getPeerList()
-        assert len(peerlist) == 3995
+        assert len(peerlist) == 3987
         peerlist.sort()
         assert bin2str(peerlist[345]) == 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACxVRvG/Gr19EAPJru2Z5gjctEzv973/PJCQIua2ATMP6euq+Kf4gYpdKbsB/PWqJnfY/wSKPHHfIByV'
 
@@ -247,8 +246,8 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert self.pdb.size() == oldsize
 
     def test_aa_hasPeer(self):
-        assert self.pdb.hasPeer(self.sp1)
-        assert self.pdb.hasPeer(self.sp2)
+        assert self.pdb.hasPeer(self.p1)
+        assert self.pdb.hasPeer(self.p2)
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
         assert not self.pdb.hasPeer(fake_permid_x)
 
@@ -260,8 +259,8 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert len(find_list) == 0
 
         self.pdb = PeerDBHandler.getInstance()
-        find_list = self.pdb.findPeers('permid', self.sp1)
-        assert len(find_list) == 1 and find_list[0]['permid'] == self.sp1
+        find_list = self.pdb.findPeers('permid', self.p1)
+        assert len(find_list) == 1 and find_list[0]['permid'] == self.p1
 
     def test_updatePeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
@@ -370,15 +369,6 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert not self.pdb.hasPeer(fake_permid_x)
         assert self.pdb.size() == oldsize
 
-    def test_loadPeers(self):
-        peer_size = self.pdb.size()
-        res = self.pdb.getGUIPeers()
-        assert len(res) == 1477, len(res)
-        data = res[0]
-        p = self.pdb.getPeer(data['permid'])
-        assert p['name'] == data['name']
-        assert 70 < len(data['permid']) < 90  # must be binary
-
 class TestTorrentDBHandler(unittest.TestCase):
 
     def setUp(self):
@@ -399,7 +389,7 @@ class TestTorrentDBHandler(unittest.TestCase):
         infohash = str2bin(infohash_str)
         assert self.tdb.hasTorrent(infohash) == True
         assert self.tdb.hasMetaData(infohash) == True
-        fake_infoahsh = 'fake_infohash_1' + '0R0\x10\x00\x07*\x86H\xce=\x02'
+        fake_infoahsh = 'fake_infohash_100000'
         assert self.tdb.hasTorrent(fake_infoahsh) == False
         assert self.tdb.hasMetaData(fake_infoahsh) == False
 
@@ -408,9 +398,10 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert num == 4483
 
     def test_loadTorrents(self):
-        torrent_size = self.tdb._db.size('CollectedTorrent')
-        res = self.tdb.getTorrents()
-        assert len(res) == torrent_size
+        torrent_size = self.tdb.getNumberTorrents()
+        res = self.tdb.getTorrents()  # only returns good torrents
+
+        assert len(res) == torrent_size, (len(res), torrent_size)
         data = res[0]
         # print data
         assert data['category'][0] in self.tdb.category_table.keys(), data['category']
@@ -471,8 +462,10 @@ class TestTorrentDBHandler(unittest.TestCase):
         m_size = self.tdb.getOne('length', torrent_id=multiple_torrent_id)
         assert m_size == 5358560, m_size
 
+        # TODO: action is flagged as XXX causing this torrent to be XXX instead of other
         cat = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
         assert cat == 8, cat  # other
+
         sid = self.tdb._db.getOne('TorrentSource', 'source_id', name=src)
         assert sid > 1
         m_sid = self.tdb.getOne('source_id', torrent_id=multiple_torrent_id)
@@ -581,7 +574,7 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
 
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 12
+        assert len(pl) == 24
 
     def test_getCreationTime(self):
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
@@ -603,14 +596,9 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         assert bin2str(pl[1]) == infohash_str_1279
 
     def test_hasMyPreference(self):
-        infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        infohash_str_1279 = 'R+grUhp884MnFkt6NuLnnauZFsc='
-        assert self.mdb.hasMyPreference(str2bin(infohash_str_126))
-        assert self.mdb.hasMyPreference(str2bin(infohash_str_1279))
-        # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
-        # 02/02/10 Boudewijn: infohashes must be 20 bytes long
-        fake_infoahsh = 'fake_infohash_1' + '0R0\x10\x00'
-        assert not self.mdb.hasMyPreference(fake_infoahsh)
+        assert self.mdb.hasMyPreference(126)
+        assert self.mdb.hasMyPreference(1279)
+        assert not self.mdb.hasMyPreference(1)
 
     def test_addMyPreference_deletePreference(self):
         p = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
@@ -619,40 +607,41 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         destpath = p[1]
         progress = p[2]
         creation_time = p[3]
-        self.mdb.deletePreference(infohash)
+        self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 11
+        assert len(pl) == 22
         assert infohash not in pl
 
         data = {'destination_path':destpath}
-        self.mdb.addMyPreference(infohash, data)
-        p2 = self.mypref_db.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
+        self.mdb.addMyPreference(torrent_id, data)
+        p2 = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         assert p2[0] == p[0] and p2[1] == p[1] and p2[2] == 0 and time() - p2[3] < 10 , p2
 
-        self.mdb.deletePreference(infohash)
-        pl = self.mypref_db.getMyPrefListInfohash()
-        assert len(pl) == 11
+        self.mdb.deletePreference(torrent_id)
+        pl = self.mdb.getMyPrefListInfohash()
+        assert len(pl) == 22
         assert infohash not in pl
 
         data = {'destination_path':destpath, 'progress':progress, 'creation_time':creation_time}
-        self.mdb.addMyPreference(infohash, data)
+        self.mdb.addMyPreference(torrent_id, data)
         p3 = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         assert p3 == p, p3
 
     def test_updateProgress(self):
         infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
         infohash = str2bin(infohash_str_126)
-        assert self.mdb.hasMyPreference(infohash)
         torrent_id = self.mdb._db.getTorrentID(infohash)
-        self.mdb.updateProgress(infohash, 3.14)
+        assert torrent_id == 126
+        assert self.mdb.hasMyPreference(torrent_id)
+        self.mdb.updateProgress(torrent_id, 3.14)
         p = self.mdb.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14
 
     def test_getMyPrefListInfohash(self):
         preflist = self.mdb.getMyPrefListInfohash()
         for p in preflist:
-            assert len(p) == 20
-        assert len(preflist) == 12
+            assert not p or len(p) == 20, len(p)
+        assert len(preflist) == 24
 
     def test_getMyPrefStats(self):
         res = self.mdb.getMyPrefStats()

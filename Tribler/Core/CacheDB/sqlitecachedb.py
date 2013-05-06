@@ -52,7 +52,6 @@ except ImportError:
 # written to the DB in the schema_sdb_v*.sql file!!!
 CURRENT_MAIN_DB_VERSION = 18
 
-TEST_SQLITECACHEDB_UPGRADE = False
 CREATE_SQL_FILE = None
 CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT_MAIN_DB_VERSION) + '.sql')
 DB_FILE_NAME = 'tribler.sdb'
@@ -261,7 +260,7 @@ class SQLiteCacheDBBase:
         cur = self.getCursor(create=False)
         if cur:
             self._close_cur(thread_name, cur)
-                
+
         if clean:  # used for test suite
             # Arno, 2012-08-02: As there is just Dispery thread here, removing
             # safe_dict() here
@@ -271,16 +270,16 @@ class SQLiteCacheDBBase:
             self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})
             self.cursor_table = safe_dict()
             self.cache_transaction_table = safe_dict()
-    
+
     def close_all(self):
         for thread_name, cur in self.cursor_table.items():
             self._close_cur(thread_name, cur)
-        
+
     def _close_cur(self, thread_name, cur):
         con = cur.getconnection()
         cur.close()
         con.close()
-        
+
         del self.cursor_table[thread_name]
         # Arno, 2010-01-25: Remove entry in cache_transaction_table for this thread
         try:
@@ -1603,19 +1602,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
         # now the start the process of parsing the torrents to insert into
         # InvertedIndex table.
-        if TEST_SQLITECACHEDB_UPGRADE:
-            state_dir = "."
-            torrent_dir = "."
-            my_permid = None
-        else:
-            from Tribler.Core.Session import Session
-            session = Session.get_instance()
-            state_dir = session.get_state_dir()
-            torrent_dir = session.get_torrent_collecting_dir()
 
-            my_permid = session.get_permid()
-            if my_permid:
-                my_permid = bin2str(my_permid)
+        from Tribler.Core.Session import Session
+        session = Session.get_instance()
+        state_dir = session.get_state_dir()
+        torrent_dir = session.get_torrent_collecting_dir()
+        my_permid = session.get_permid()
+        if my_permid:
+            my_permid = bin2str(my_permid)
 
         tmpfilename = os.path.join(state_dir, "upgradingdb.txt")
         if fromver < 4 or os.path.exists(tmpfilename):
@@ -2612,7 +2606,7 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     @classmethod
     def delInstance(cls, *args, **kw):
         cls.__single = None
-        
+
     @classmethod
     def hasInstance(cls, *args, **kw):
         return cls.__single != None

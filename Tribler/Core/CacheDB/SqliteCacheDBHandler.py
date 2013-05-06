@@ -393,69 +393,6 @@ class PeerDBHandler(BasicDBHandler):
             res = 0
         return res
 
-    def getGUIPeers(self, category_name='all', range=None, sort=None, reverse=False, get_online=False, get_ranks=True):
-        #
-        # ARNO: WHY DIFF WITH NORMAL getPeers??????
-        # load peers for GUI
-        # print >> sys.stderr, 'getGUIPeers(%s, %s, %s, %s)' % (category_name, range, sort, reverse)
-        """
-        db keys: peer_id, permid, name, ip, port, thumbnail, oversion,
-                 similarity, friend, superpeer, last_seen, last_connected,
-                 last_buddycast, connected_times, buddycast_times, num_peers,
-                 num_torrents, num_prefs, num_queries, is_local, services
-
-        @in: get_online: boolean: if true, give peers a key 'online' if there is a connection now
-        """
-        value_name = PeerDBHandler.gui_value_name
-
-        where = '(last_connected>0 or friend=1 or friend=2 or friend=3) '
-        if category_name in ('friend', 'friends'):
-            # Show mutual, I invited and he invited
-            where += 'and (friend=1 or friend=2 or friend=3) '
-        if range:
-            offset = range[0]
-            limit = range[1] - range[0]
-        else:
-            limit = offset = None
-        if sort:
-            # Arno, 2008-10-6: buggy: not reverse???
-            desc = (reverse) and 'desc' or ''
-            if sort in ('name'):
-                order_by = ' lower(%s) %s' % (sort, desc)
-            else:
-                order_by = ' %s %s' % (sort, desc)
-        else:
-            order_by = None
-
-        # Must come before query
-        if get_ranks:
-            ranks = self.getRanks()
-        # Arno, 2008-10-23: Someone disabled ranking of people, why?
-
-        res_list = self.getAll(value_name, where, offset=offset, limit=limit, order_by=order_by)
-
-        # print >>sys.stderr,"getGUIPeers: where",where,"offset",offset,"limit",limit,"order",order_by
-        # print >>sys.stderr,"getGUIPeers: returned len",len(res_list)
-
-        peer_list = []
-        for item in res_list:
-            peer = dict(zip(value_name, item))
-            peer['name'] = dunno2unicode(peer['name'])
-            peer['simRank'] = ranksfind(ranks, peer['permid'])
-            peer['permid'] = str2bin(peer['permid'])
-            peer_list.append(peer)
-
-        if get_online:
-            # Arno, 2010-01-28: Disabled this. Maybe something wrong with setOnline
-            # observer.
-            # self.checkOnline(peer_list)
-            raise ValueError("getGUIPeers get_online parameter currently disabled")
-
-
-        # peer_list consumes about 1.5M for 1400 peers, and this function costs about 0.015 second
-
-        return  peer_list
-
     def getRanks(self):
         value_name = 'permid'
         order_by = 'similarity desc'
@@ -557,11 +494,11 @@ class TorrentDBHandler(BasicDBHandler):
                       'relevance', 'infohash', 'tracker', 'last_check']
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
+        self.category = Category.getInstance()
 
-        self.category = None
+        self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
 
-    def register(self, category, torrent_dir):
-        self.category = category
+    def register(self, torrent_dir):
         self.torrent_dir = torrent_dir
 
         self.mypref_db = MyPreferenceDBHandler.getInstance()
@@ -743,7 +680,7 @@ class TorrentDBHandler(BasicDBHandler):
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
-                "category_id":self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode()) if self.category else []),
+                "category_id":self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
                 "status_id":self._getStatusID(extra_info.get("status", "unknown")),
                 "num_seeders":extra_info.get("seeder", -1),
                 "num_leechers":extra_info.get("leecher", -1),
@@ -1362,7 +1299,7 @@ class TorrentDBHandler(BasicDBHandler):
         # Must come before query
         ranks = self.getRanks()
         res_list = self._db.fetchall(sql)
-        mypref_stats = self.mypref_db.getMyPrefStats()
+        mypref_stats = self.mypref_db.getMyPrefStats() if self.mypref_db else None
 
         torrent_list = self.valuelist2torrentlist(value_name, res_list, ranks, mypref_stats)
         del res_list
@@ -1468,7 +1405,7 @@ class TorrentDBHandler(BasicDBHandler):
     def freeSpace(self, torrents2del):
 #        if torrents2del > 100:  # only delete so many torrents each time
 #            torrents2del = 100
-        if self.channelcast_db._channel_id:
+        if self.channelcast_db and self.channelcast_db._channel_id:
             sql = """
                 select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
@@ -4089,7 +4026,6 @@ def doPeerSearchNames(self, dbname, kws):
         if (i + 1) != len(kws):
             where += ' and'
 
-    # See getGUIPeers()
     value_name = PeerDBHandler.gui_value_name
 
     # print >>sys.stderr,"peer_db: searchNames: sql",where
