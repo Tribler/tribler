@@ -177,8 +177,6 @@ class BarterCommunity(Community):
         # _DOWNLOAD_STATES contains all peers that are currently downloading.  when we determine
         # that a peer is missing, we will update its bandwidth statistics
         self._download_states = dict()
-        self._swift_raw_bytes_up = 0
-        self._swift_raw_bytes_down = 0
 
         # _SLOPE contains the promising members as Member:RecordCandidate
         self._slope_length = 10
@@ -389,12 +387,6 @@ class BarterCommunity(Community):
                       for state
                       in states
                       if state.get_download().get_def().get_def_type() == "swift" and state.get_peerlist())
-
-        # get global up and download for swift
-        for state in active.itervalues():
-            stats = state.stats["stats"]
-            self._swift_raw_bytes_up = stats.rawUpTotal
-            self._swift_raw_bytes_down = stats.rawDownTotal
 
         # OLD is used to determine stopped downloads and peers that left.  NEW will become the next OLD
         old = self._download_states
