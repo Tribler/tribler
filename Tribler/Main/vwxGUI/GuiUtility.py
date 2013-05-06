@@ -47,7 +47,7 @@ class GUIUtility:
 
         # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
-
+        
         # current GUI page
         self.guiPage = 'home'
         # previous pages
@@ -242,7 +242,9 @@ class GUIUtility:
             self.guiPage = page
             self.frame.Layout()
             self.frame.Thaw()
-
+            
+            if page == 'webbrowser':
+                self.frame.webbrowser.Show()
         #Set focus to page
         if page == 'search_results':
             self.frame.searchlist.Focus()

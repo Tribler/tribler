@@ -2218,7 +2218,7 @@ class ActivitiesList(List):
         
     def __SetData(self):
         self.list.SetData([(1,['Home'],None,ActivityListItem), (2,['Results'],None,ActivityListItem), (3,['Channels'],None,ActivityListItem), \
-                           (4,['Downloads'],None,ActivityListItem), (5,['Videoplayer'],None,ActivityListItem)])
+                           (4,['Downloads'],None,ActivityListItem), (5,['Videoplayer'],None,ActivityListItem), (6,['Webbrowser'],None,ActivityListItem)])
         self.ResizeListItems()
         self.DisableItem(2)
         if not self.guiutility.frame.videoparentpanel:

@@ -84,7 +84,7 @@ class ListItem(wx.Panel):
                         prefix = self.columns[i]['name'] + ": " if addColumnname else ''
                         str_data = prefix + str_data
                         
-                        control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END, size=size)
+                        control = StaticText(self, style=self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE, size=size)
         
                         fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                         fontSize = self.columns[i].get('fontSize', 0)
@@ -98,7 +98,7 @@ class ListItem(wx.Panel):
                     method_control = self.columns[i]['method'](self, self) if type == 'method' else None
                     if method_control or self.columns[i].get('showEmpty', True):
                         if addColumnname:
-                            control = StaticText(self, -1, self.columns[i]['name']+": ", style = self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+                            control = StaticText(self, -1, self.columns[i]['name']+": ", style = self.columns[i].get('style',0)|wx.ST_NO_AUTORESIZE)
                             self._add_control(control, -1, 0, 0)
                             remaining_width -= control.GetSize()[0]
                     control = method_control or control

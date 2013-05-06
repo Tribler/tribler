@@ -31,6 +31,8 @@ from Tribler.Main.vwxGUI.list import SearchList, ChannelList,\
     LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist,\
     ManageChannel
+    
+from Tribler.Main.vwxGUI.webbrowser import WebBrowser
 
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
@@ -70,6 +72,7 @@ from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
+
 
 from Tribler.Category.Category import Category
 
@@ -218,6 +221,8 @@ class MainFrame(wx.Frame):
             self.selectedchannellist.Show(False)
             self.playlist = Playlist(self.splitter_top_window)
             self.playlist.Show(False)
+            
+            self.webbrowser = WebBrowser(self)
         else:
             self.actlist = None
             self.top_bg = None
@@ -232,6 +237,8 @@ class MainFrame(wx.Frame):
             self.selectedchannellist.Show(True)
             self.playlist = Playlist(self)
             self.playlist.Show(False)
+            
+            self.webbrowser = None
 
         self.stats = Stats(self)
         self.stats.Show(False)
