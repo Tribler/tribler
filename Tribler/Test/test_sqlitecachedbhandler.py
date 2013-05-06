@@ -27,22 +27,9 @@ M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')
 BUSYTIMEOUT = 5000
 SQLiteCacheDB.DEBUG = False
 
-prev_values = [sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE]
-def modify_upgrade():
-    sqlitecachedb.INITIAL_UPGRADE_PAUSE = 3
-    sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE = 1
-    sqlitecachedb.UPGRADE_BATCH_SIZE = sys.maxint
-    sqlitecachedb.TEST_OVERRIDE = True
-
-def restore_upgrade():
-    sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE = prev_values
-    sqlitecachedb.TEST_OVERRIDE = False
-
 class TestSqliteBasicDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
         self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
@@ -53,8 +40,6 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
     def tearDown(self):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
-
-        restore_upgrade()
 
     def test_size(self):
         size = self.db.size()  # there are 3995 peers in the table, however the upgrade scripts remove 8 superpeers
@@ -132,8 +117,6 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
 class TestSqlitePeerDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
         db.initDB(dbpath)
@@ -152,7 +135,6 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         SQLiteCacheDB.delInstance()
 
         PeerDBHandler.delInstance()
-        restore_upgrade()
 
     def test_getList(self):
         p1 = self.pdb.getPeer(self.p1)
@@ -388,8 +370,6 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
 class TestTorrentDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
         db.initDB(dbpath)
@@ -402,8 +382,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         SQLiteCacheDB.delInstance()
 
         TorrentDBHandler.delInstance()
-
-        restore_upgrade()
 
     def test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
@@ -581,8 +559,6 @@ class TestTorrentDBHandler(unittest.TestCase):
 class TestMyPreferenceDBHandler(unittest.TestCase):
 
     def setUp(self):
-        modify_upgrade()
-
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
         db = SQLiteCacheDB.getInstance()
         db.initDB(dbpath)
@@ -595,8 +571,6 @@ class TestMyPreferenceDBHandler(unittest.TestCase):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
         MyPreferenceDBHandler.delInstance()
-
-        restore_upgrade()
 
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
