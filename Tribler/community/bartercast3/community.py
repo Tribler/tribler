@@ -356,10 +356,10 @@ class BarterCommunity(Community):
                          identifier)
             self._dispersy.store_update_forward([request], False, False, True)
 
-        else:
-            logger.debug("not yet allowed to obtain member from swift address %s:%d",
-                         swift_address[0],
-                         swift_address[1])
+        # else:
+        #     logger.debug("not yet allowed to obtain member from swift address %s:%d",
+        #                  swift_address[0],
+        #                  swift_address[1])
 
     def i2ithread_channel_close(self, *args):
         self._dispersy.callback.register(self._channel_close, args)
@@ -373,7 +373,7 @@ class BarterCommunity(Community):
         assert isinstance(cooked_bytes_down, (int, long)), type(cooked_bytes_down)
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
         if cooked_bytes_up or cooked_bytes_down:
-            logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
+            # logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
             self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=False)
 
     def download_state_callback(self, states, delayed):
@@ -536,7 +536,7 @@ class BarterCommunity(Community):
 
         Return True or False to either accept or decline the message.
         """
-        logger.debug("%s", new_message)
+        logger.debug("new message: %s", new_message)
 
         # TODO: we should ensure that new_message is correct (i.e. all checks made above)
 
