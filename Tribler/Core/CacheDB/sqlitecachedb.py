@@ -162,7 +162,9 @@ class SQLiteCacheDBBase:
 
     def __init__(self, db_exception_handler=None):
         self.exception_handler = db_exception_handler
-        self.cursor_table = safe_dict()  # {thread_name:cur}
+
+        self.cursor_lock = RLock()
+        self.cursor_table = {}  # {thread_name:cur}
         self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})  # busytimeout is in milliseconds
 
         # Arno, 2012-08-02: As there is just Dispersy thread here, removing
@@ -180,44 +182,43 @@ class SQLiteCacheDBBase:
         self.database_update = None
 
     def __del__(self):
-        self.close()
+        self.close_all()
 
-    def close(self, clean=False):
+    def close(self):
         # only close the connection object in this thread, don't close other thread's connection object
         thread_name = threading.currentThread().getName()
         cur = self.getCursor(create=False)
         if cur:
             self._close_cur(thread_name, cur)
 
-        if clean:  # used for test suite
-            # Arno, 2012-08-02: As there is just Dispery thread here, removing
-            # safe_dict() here
-            self.permid_id = {}  # safe_dict()
-            self.infohash_id = {}  # safe_dict()
-            self.exception_handler = None
-            self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})
-            self.cursor_table = safe_dict()
-
     def close_all(self):
-        for thread_name, cur in self.cursor_table.items():
-            self._close_cur(thread_name, cur)
+        with self.cursor_lock:
+            for thread_name, cur in self.cursor_table.items():
+                self._close_cur(thread_name, cur)
+
+            self.cursor_table = None
 
     def _close_cur(self, thread_name, cur):
         con = cur.getconnection()
         cur.close()
         con.close()
 
-        del self.cursor_table[thread_name]
+        with self.cursor_lock:
+            assert self.cursor_table
+            del self.cursor_table[thread_name]
 
     # --------- static functions --------
     def getCursor(self, create=True):
         thread_name = threading.currentThread().getName()
-        curs = self.cursor_table
-        cur = curs.get(thread_name, None)  # return [cur, cur, lib] or None
-        # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
-        if cur is None and create and self.class_variables['db_path']:
-            self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])  # create a new db obj for this thread
-            cur = curs.get(thread_name)
+
+        with self.cursor_lock:
+            assert self.cursor_table != None
+
+            cur = self.cursor_table.get(thread_name, None)  # return [cur, cur, lib] or None
+            # print >> sys.stderr, '-------------- getCursor::', len(curs), time(), curs.keys()
+            if cur is None and create and self.class_variables['db_path']:
+                self.openDB(self.class_variables['db_path'], self.class_variables['busytimeout'])  # create a new db obj for this thread
+            cur = self.cursor_table.get(thread_name)
 
         return cur
 
@@ -232,22 +233,26 @@ class SQLiteCacheDBBase:
         # already opened a db in this thread, reuse it
         thread_name = threading.currentThread().getName()
         # print >>sys.stderr,"sqlcachedb: openDB",dbfile_path,thread_name
-        if thread_name in self.cursor_table:
-            # assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
-            return self.cursor_table[thread_name]
+        with self.cursor_lock:
+            assert self.cursor_table != None
 
-        assert dbfile_path, "You must specify the path of database file"
+            if thread_name in self.cursor_table:
+                # assert dbfile_path == None or self.class_variables['db_path'] == dbfile_path
+                return self.cursor_table[thread_name]
 
-        if dbfile_path.lower() != ':memory:':
-            db_dir, db_filename = os.path.split(dbfile_path)
-            if db_dir and not os.path.isdir(db_dir):
-                os.makedirs(db_dir)
+            assert dbfile_path, "You must specify the path of database file"
 
-        con = apsw.Connection(dbfile_path)
-        con.setbusytimeout(busytimeout)
+            if dbfile_path.lower() != ':memory:':
+                db_dir, db_filename = os.path.split(dbfile_path)
+                if db_dir and not os.path.isdir(db_dir):
+                    os.makedirs(db_dir)
 
-        cur = con.cursor()
-        self.cursor_table[thread_name] = cur
+            con = apsw.Connection(dbfile_path)
+            con.setbusytimeout(busytimeout)
+
+            cur = con.cursor()
+            self.cursor_table[thread_name] = cur
+
 
         if not self.applied_pragma:
             self.applied_pragma = True
