@@ -8,6 +8,7 @@ import sys
 import time
 import socket
 import tempfile
+from unittest import skip
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection
@@ -45,7 +46,7 @@ class TestSeeding(TestAsServer):
     def setUpPostSession(self):
         pass
 
-
+    @skip("We need to migrate this to swift")
     def test_live_torrent(self):
         """
             I want to start a Tribler client once and then connect to

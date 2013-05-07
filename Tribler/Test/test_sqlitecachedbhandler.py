@@ -1,22 +1,18 @@
 import os
 import sys
 import unittest
-from traceback import print_exc
+
 from time import time
 from binascii import unhexlify
-from shutil import copy as copyFile, move
+from shutil import copy as copyFile
 
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DEFAULT_BUSY_TIMEOUT, CURRENT_MAIN_DB_VERSION
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from bak_tribler_sdb import *
-from Tribler.Core.CacheDB import sqlitecachedb
-
-import Tribler.Core.CacheDB.sqlitecachedb
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler
-from Tribler.Category.Category import Category
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
@@ -495,7 +491,6 @@ class TestTorrentDBHandler(unittest.TestCase):
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
-        kw = {}
         self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=['Videoclips'],
                          status='good', progress=23.5, seeder=123, leecher=321,
                          last_check_time=1234567, ignore_number=1, retry_number=2,
@@ -550,6 +545,7 @@ class TestTorrentDBHandler(unittest.TestCase):
         res = self.tdb.getNumberCollectedTorrents()
         assert res == 4848, res
 
+    @unittest.skip("TODO, the database thingie shouldn't be deleting files from the FS.")
     def test_freeSpace(self):
         old_res = self.tdb.getNumberCollectedTorrents()
         self.tdb.freeSpace(20)
