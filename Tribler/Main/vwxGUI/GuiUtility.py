@@ -243,9 +243,7 @@ class GUIUtility:
                 self.frame.webbrowser.Show(False)
 
             self.guiPage = page
-            self.frame.Layout()
             self.frame.Thaw()
-            
             
         #Set focus to page
         if page == 'search_results':
@@ -265,6 +263,7 @@ class GUIUtility:
             print 'Selected webbrowser'
             self.frame.webbrowser.Show()
         
+        #Redraw the frame.
         self.frame.Layout()
 
     def GetSelectedPage(self):

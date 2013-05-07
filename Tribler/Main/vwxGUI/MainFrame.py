@@ -222,6 +222,7 @@ class MainFrame(wx.Frame):
             self.playlist = Playlist(self.splitter_top_window)
             self.playlist.Show(False)
             
+            #Create the webbrowser panel.
             self.webbrowser = WebBrowser(self)
             self.webbrowser.Show(False)
         else:
