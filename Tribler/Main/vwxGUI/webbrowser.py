@@ -23,7 +23,9 @@ class WebBrowser(XRCPanel):
         self.Bind(wx.EVT_BUTTON, self.goForward, forwardButton)
         self.Bind(wx.EVT_BUTTON, self.loadURLFromAdressBar, goButton)
         #Create the adressbar.
-        self.adressBar = wx.TextCtrl(self,1)
+        self.adressBar = wx.TextCtrl(self,1, style = wx.TE_PROCESS_ENTER)
+        #Register the enterkey.
+        self.Bind(wx.EVT_TEXT_ENTER, self.loadURLFromAdressBar, self.adressBar)
         #Add all the components to the toolbar.
         toolBar.Add(backwardButton, 0)
         toolBar.Add(forwardButton, 0)
