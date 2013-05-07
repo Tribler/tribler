@@ -8,7 +8,6 @@ import sys
 import time
 import socket
 import tempfile
-from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection

@@ -8,15 +8,11 @@ import sys
 import copy
 import binascii
 from traceback import print_exc
-from threading import RLock
 
-from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.Base import *
 from Tribler.Core.SessionConfig import *
-from Tribler.Core.DownloadConfig import get_default_dest_dir
-from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 from Tribler.Core.APIImplementation.SessionRuntimeConfig import SessionRuntimeConfig
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
