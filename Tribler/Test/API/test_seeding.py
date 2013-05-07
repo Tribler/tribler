@@ -59,6 +59,9 @@ class TestSeeding(TestAsServer):
         self.tdef.set_create_merkle_torrent(merkle)
         self.tdef.finalize()
 
+        self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        self.tdef.save(self.torrentfn)
+        
         print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
 
         self.dscfg = DownloadStartupConfig()

@@ -56,6 +56,8 @@ class Session(SessionRuntimeConfig):
         at a time in a process. The ignore_singleton flag is used for testing.
         """
 
+        print >> sys.stderr, "created session"
+
         if not ignore_singleton:
             if Session.__single:
                 raise RuntimeError, "Session is singleton"
