@@ -1,19 +1,18 @@
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Core.CacheDB.sqlitecachedb import init as init_db
+from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, SQLiteCacheDB
 import unittest
 import os
 from time import sleep
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Test.test_as_server import BASE_DIR
+from Tribler.Test.test_as_server import BASE_DIR, AbstractServer
 
-class TestTorrentChecking(unittest.TestCase):
+class TestTorrentChecking(AbstractServer):
     def setUp(self):
-        config = {}
-        config['state_dir'] = "."
-        config['install_dir'] = '.'
-        config['peer_icon_path'] = '.'
-        config['torrent_collecting_dir'] = '.'
+        self.setUpCleanup()
 
+        config = {}
+        config['state_dir'] = self.getStateDir()
+        config['install_dir'] = '.'
         init_db(config)
 
         self.torrentChecking = TorrentChecking()
@@ -31,3 +30,9 @@ class TestTorrentChecking(unittest.TestCase):
     def tearDown(self):
         self.torrentChecking.shutdown()
         TorrentChecking.delInstance()
+
+        if SQLiteCacheDB.hasInstance():
+            SQLiteCacheDB.getInstance().close_all()
+            SQLiteCacheDB.delInstance()
+
+        self.tearDownCleanup()
