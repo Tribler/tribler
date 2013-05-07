@@ -743,7 +743,8 @@ class BarterCommunity(Community):
 
     def on_member_request(self, messages):
         meta = self._meta_messages[u"member-response"]
-        responses = [meta.impl(distribution=(self._global_time,),
+        responses = [meta.impl(authentication=(self._my_member,),
+                               distribution=(self._global_time,),
                                destination=(request.candidate,),
                                payload=(request.payload.identifier,))
                      for request
