@@ -193,8 +193,6 @@ class SQLiteCacheDBBase:
 
     def close_all(self):
         with self.cursor_lock:
-            print >> sys.stderr, "close_all"
-
             if self.cursor_table:
                 for thread_name, cur in self.cursor_table.items():
                     self._close_cur(thread_name, cur)
