@@ -30,7 +30,7 @@ SQLiteCacheDB.DEBUG = False
 class TestSqliteBasicDBHandler(unittest.TestCase):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
         self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.waitForUpdateComplete()
@@ -117,7 +117,7 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
 class TestSqlitePeerDBHandler(unittest.TestCase):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
         db = SQLiteCacheDB.getInstance()
         db.initDB(dbpath)
         db.waitForUpdateComplete()
@@ -370,7 +370,7 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
 class TestTorrentDBHandler(unittest.TestCase):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
         db = SQLiteCacheDB.getInstance()
         db.initDB(dbpath)
         db.waitForUpdateComplete()
@@ -394,7 +394,7 @@ class TestTorrentDBHandler(unittest.TestCase):
 
     def test_count(self):
         num = self.tdb.getNumberTorrents()
-        assert num == 4483
+        assert num == 4483, num
 
     def test_loadTorrents(self):
         torrent_size = self.tdb.getNumberTorrents()
@@ -559,7 +559,7 @@ class TestTorrentDBHandler(unittest.TestCase):
 class TestMyPreferenceDBHandler(unittest.TestCase):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite = True)
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
         db = SQLiteCacheDB.getInstance()
         db.initDB(dbpath)
         db.waitForUpdateComplete()

@@ -4,13 +4,30 @@ import unittest
 import os
 from time import time
 
-from Tribler.Test.test_gui_as_server import TestGuiAsServer
+from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 import binascii
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 DEBUG = True
 class TestLibtorrentDownload(TestGuiAsServer):
+
+    def test_downloadfromfile(self):
+        infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
+
+        def do_assert():
+            self.assert_(self.frame.librarylist.list.items.has_key(infohash), 'no download in librarylist')
+            self.assert_(self.frame.librarylist.list.items.has_key(infohash) and self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, 'no download progress')
+
+            self.screenshot('After starting a libtorrent download from url')
+            self.quit()
+
+        def do_downloadfromurl():
+            self.guiUtility.showLibrary()
+            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
+            self.Call(30, do_assert)
+
+        self.startTest(do_downloadfromurl)
 
     def test_downloadfromurl(self):
         infohash = binascii.unhexlify('24ad1d85206db5f85491a690e6723e27f4551e01')
@@ -24,8 +41,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
-            destdir = DefaultDownloadStartupConfig.getInstance().get_dest_dir()
-            self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', destdir)
+            self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', self.getDestDir())
             self.Call(30, do_assert)
 
         self.startTest(do_downloadfromurl)
@@ -42,8 +58,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_downloadfrommagnet():
             self.guiUtility.showLibrary()
-            destdir = DefaultDownloadStartupConfig.getInstance().get_dest_dir()
-            self.frame.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', destdir)
+            self.frame.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', self.getDestDir())
             self.Call(120, do_assert)
 
         self.startTest(do_downloadfrommagnet)
