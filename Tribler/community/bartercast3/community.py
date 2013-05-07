@@ -463,7 +463,8 @@ class BarterCommunity(Community):
                            distribution=(self.claim_global_time(),),
                            payload=(book.cycle, book.effort, upload_first_to_second, upload_second_to_first,
                                     # the following parameters are used for debugging only
-                                    time(), time(), book.download, book.upload, 0, 0),
+                                    time(), book.download, book.upload, self._total_up, self._total_down, self._associated_up, self._associated_down,
+                                    time(), 0, 0, 0, 0, 0, 0),
                            sign=False)
         return self.create_dispersy_signature_request(record, self.on_signature_response)
 
@@ -514,21 +515,26 @@ class BarterCommunity(Community):
         # initiative and create duplicate records this cycle
         self.remove_from_slope(first_member)
 
-        # the following parameters are used for debugging only
-        first_timestamp = message.payload.first_timestamp
-        second_timestamp = time()
-        first_upload = message.payload.first_upload
-        first_download = message.payload.first_download
-        second_upload = book.download
-        second_download = book.upload
-
         # return the modified barter-record we propose
         meta = self.get_meta_message(u"barter-record")
         return meta.impl(authentication=([first_member, second_member],),
                          distribution=(message.distribution.global_time,),
                          payload=(cycle, effort, upload_first_to_second, upload_second_to_first,
                                   # the following parameters are used for debugging only
-                                  first_timestamp, second_timestamp, first_upload, first_download, second_upload, second_download))
+                                  message.payload.first_timestamp,
+                                  message.payload.first_upload,
+                                  message.payload.first_download,
+                                  message.payload.first_total_up,
+                                  message.payload.first_total_down,
+                                  message.payload.first_associated_up,
+                                  message.payload.first_associated_down,
+                                  time(),
+                                  book.upload,
+                                  book.download,
+                                  self._total_up,
+                                  self._total_down,
+                                  self._associated_up,
+                                  self._associated_down))
 
     def on_signature_response(self, cache, new_message, changed):
         """
@@ -710,12 +716,22 @@ class BarterCommunity(Community):
                         buffer(message.payload.effort.bytes),
                         message.payload.upload_first_to_second,
                         message.payload.upload_second_to_first,
+                        # the following debug values are all according to first_member
                         int(message.payload.first_timestamp),
-                        int(message.payload.second_timestamp),
                         message.payload.first_upload,
                         message.payload.first_download,
+                        message.payload.first_total_up,
+                        message.payload.first_total_down,
+                        message.payload.first_associated_up,
+                        message.payload.first_associated_down,
+                        # the following debug values are all according to second_member
+                        int(message.payload.second_timestamp),
                         message.payload.second_upload,
-                        message.payload.second_download)
+                        message.payload.second_download,
+                        message.payload.second_total_up,
+                        message.payload.second_total_down,
+                        message.payload.second_associated_up,
+                        message.payload.second_associated_down)
 
             else:
                 return (message.packet_id,
@@ -726,15 +742,25 @@ class BarterCommunity(Community):
                         buffer(message.payload.effort.bytes),
                         message.payload.upload_second_to_first,
                         message.payload.upload_first_to_second,
+                        # the following debug values are all according to second_member
                         int(message.payload.second_timestamp),
-                        int(message.payload.first_timestamp),
                         message.payload.second_upload,
                         message.payload.second_download,
+                        message.payload.second_total_up,
+                        message.payload.second_total_down,
+                        message.payload.second_associated_up,
+                        message.payload.second_associated_down,
+                        # the following debug values are all according to first_member
+                        int(message.payload.first_timestamp),
                         message.payload.first_upload,
-                        message.payload.first_download)
+                        message.payload.first_download,
+                        message.payload.first_total_up,
+                        message.payload.first_total_down,
+                        message.payload.first_associated_up,
+                        message.payload.first_associated_down)
 
         logger.debug("storing %d barter records", len(messages))
-        self._database.executemany(u"INSERT OR REPLACE INTO record (sync, first_member, second_member, global_time, cycle, effort, upload_first_to_second, upload_second_to_first, first_timestamp, second_timestamp, first_upload, first_download, second_upload, second_download) VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?)",
+        self._database.executemany(u"INSERT OR REPLACE INTO record VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                    (ordering(message) for message in messages))
 
     def check_member_request(self, messages):

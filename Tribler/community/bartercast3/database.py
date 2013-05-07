@@ -16,12 +16,25 @@ CREATE TABLE record(
  effort BLOB,                           -- raw bytes where each bit represents a cycle, LSB corresponds with the cycle when this record was made
  upload_first_to_second INTEGER,        -- in cooked bytes
  upload_second_to_first INTEGER,        -- in cooked bytes
- first_timestamp INTEGER,               -- DEBUG timestamp when this record was made (according to first)
+
+ -- the following debug values are all according to first_member
+ first_timestamp INTEGER,               -- DEBUG timestamp when this record was made
+ first_upload INTEGER,                  -- DEBUG bytes uploaded from first to second
+ first_download INTEGER,                -- DEBUG bytes uploaded from second to first
+ first_total_up INTEGER,                -- DEBUG bytes uploaded from first to others (any transfer)
+ first_total_down INTEGER,              -- DEBUG bytes uploaded from others to first (any transfer)
+ first_associated_up INTEGER,           -- DEBUG bytes uploaded from first to others (only transfers resulting in records)
+ first_associated_down INTEGER,         -- DEBUG bytes uploaded from others to first (only transfers resulting in records)
+
+ -- the following debug values are all according to second_member
  second_timestamp INTEGER,              -- DEBUG timestamp when this record was made (according to second)
- first_upload INTEGER,                  -- DEBUG bytes uploaded from first to second (according to first)
- first_download INTEGER,                -- DEBUG bytes uploaded from second to first (according to first)
- second_upload INTEGER,                 -- DEBUG bytes uploaded from second to first (according to second)
- second_download INTEGER,               -- DEBUG bytes uploaded from first to second (according to second)
+ second_upload INTEGER,                 -- DEBUG bytes uploaded from second to first
+ second_download INTEGER,               -- DEBUG bytes uploaded from first to second
+ second_total_up INTEGER,               -- DEBUG bytes uploaded from second to others (any transfer)
+ second_total_down INTEGER,             -- DEBUG bytes uploaded from others to second (any transfer)
+ second_associated_up INTEGER,          -- DEBUG bytes uploaded from second to others (only transfers resulting in records)
+ second_associated_down INTEGER,        -- DEBUG bytes uploaded from others to second (only transfers resulting in records)
+
  PRIMARY KEY (sync),
  UNIQUE (first_member, second_member));
 

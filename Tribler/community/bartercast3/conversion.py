@@ -26,13 +26,21 @@ class BarterConversion(BinaryConversion):
                      len(bytes_)),
                 bytes_,
                 # the following parameters are used for debugging only
-                pack(">LLQQQQ",
+                pack(">LQQQQQQLQQQQQQ",
                      long(payload.first_timestamp),
-                     long(payload.second_timestamp),
                      long(payload.first_upload),
                      long(payload.first_download),
+                     long(payload.first_total_up),
+                     long(payload.first_total_down),
+                     long(payload.first_associated_up),
+                     long(payload.first_associated_down),
+                     long(payload.second_timestamp),
                      long(payload.second_upload),
-                     long(payload.second_download)))
+                     long(payload.second_download),
+                     long(payload.second_total_up),
+                     long(payload.second_total_down),
+                     long(payload.second_associated_up),
+                     long(payload.second_associated_down)))
 
     def _decode_barter_record(self, placeholder, offset, data):
         if len(data) < offset + 21:
@@ -47,17 +55,43 @@ class BarterConversion(BinaryConversion):
         offset += length
 
         # the following parameters are used for debugging only
-        if len(data) < offset + 40:
+        if len(data) < offset + 104:
             raise DropPacket("Insufficient packet size (_decode_barter_record)")
-        first_timestamp, second_timestamp, first_upload, first_download, second_upload, second_download = unpack_from(">LLQQQQ", data, offset)
-        offset += 40
+        (first_timestamp,
+         first_upload,
+         first_download,
+         first_total_up,
+         first_total_down,
+         first_associated_up,
+         first_associated_down,
+         second_timestamp,
+         second_upload,
+         second_download,
+         second_total_up,
+         second_total_down,
+         second_associated_up,
+         second_associated_down) = unpack_from(">LQQQQQQLQQQQQQ", data, offset)
+        offset += 104
 
-        first_timestamp = float(first_timestamp)
-        second_timestamp = float(second_timestamp)
-
-        return offset, placeholder.meta.payload.implement(cycle, effort, upload_first_to_second, upload_second_to_first,
+        return offset, placeholder.meta.payload.implement(cycle,
+                                                          effort,
+                                                          upload_first_to_second,
+                                                          upload_second_to_first,
                                                           # the following parameters are used for debugging only
-                                                          float(first_timestamp), float(second_timestamp), first_upload, first_download, second_upload, second_download)
+                                                          float(first_timestamp),
+                                                          first_upload,
+                                                          first_download,
+                                                          first_total_up,
+                                                          first_total_down,
+                                                          first_associated_up,
+                                                          first_associated_down,
+                                                          float(second_timestamp),
+                                                          second_upload,
+                                                          second_download,
+                                                          second_total_up,
+                                                          second_total_down,
+                                                          second_associated_up,
+                                                          second_associated_down)
 
     def _encode_ping_pong(self, message):
         payload = message.payload
