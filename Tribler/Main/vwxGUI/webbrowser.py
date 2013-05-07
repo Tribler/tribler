@@ -10,12 +10,12 @@ class WebBrowser(XRCPanel):
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
         
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+        
         self.webview = wx.html2.WebView.New(self)
         
         self.webview.LoadURL("http://www.google.com") 
         
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        sizer.Add(self.webview, 1, wx.EXPAND)
-        self.SetSizer(sizer)
- 
+        vSizer.Add(self.webview, 1, wx.EXPAND) 
+        self.SetSizer(vSizer)
+        self.Layout()

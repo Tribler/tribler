@@ -223,6 +223,7 @@ class MainFrame(wx.Frame):
             self.playlist.Show(False)
             
             self.webbrowser = WebBrowser(self)
+            self.webbrowser.Show(False)
         else:
             self.actlist = None
             self.top_bg = None

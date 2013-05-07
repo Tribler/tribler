@@ -238,6 +238,9 @@ class GUIUtility:
                     self.frame.videoparentpanel.Show(True)
                 elif self.guiPage == 'videoplayer':
                     self.frame.videoparentpanel.Show(False)
+                    
+            if self.guiPage == 'webbrowser':
+                self.frame.webbrowser.Show(False)
 
             self.guiPage = page
             self.frame.Layout()
@@ -261,6 +264,8 @@ class GUIUtility:
         elif page == 'webbrowser':
             print 'Selected webbrowser'
             self.frame.webbrowser.Show()
+        
+        self.frame.Layout()
 
     def GetSelectedPage(self):
         if self.guiPage == 'home':
