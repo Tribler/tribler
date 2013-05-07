@@ -8,7 +8,6 @@ import sys
 import time
 import socket
 import tempfile
-from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.btconn import BTConnection
@@ -199,9 +198,3 @@ def test_suite():
         suite.addTest(TestSeeding(sys.argv[1]))
 
     return suite
-
-def main():
-    unittest.main(defaultTest='test_suite',argv=[sys.argv[0]])
-
-if __name__ == "__main__":
-    main()
