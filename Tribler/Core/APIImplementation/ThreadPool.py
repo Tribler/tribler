@@ -9,9 +9,10 @@ from Queue import Queue
 try:
     prctlimported = True
     import prctl
-except ImportError,e:
+except ImportError, e:
     prctlimported = False
 
+DEBUG = False
 class ThreadPool:
 
     """Flexible thread pool class.  Creates a pool of threads, then
@@ -96,8 +97,8 @@ class ThreadPool:
 
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
-
-        print >> sys.stderr, len(self.__tasks)
+        if DEBUG:
+            print >> sys.stderr, len(self.__tasks)
 
         self.__taskCond.acquire()
         try:
@@ -110,7 +111,7 @@ class ThreadPool:
         finally:
             self.__taskCond.release()
 
-    def joinAll(self, waitForTasks = True, waitForThreads = True):
+    def joinAll(self, waitForTasks=True, waitForThreads=True):
 
         """ Clear the task queue and terminate all pooled threads,
         optionally allowing the tasks and threads to finish."""
@@ -165,7 +166,7 @@ class ThreadNoPool:
             self.queue.task_done()
         return self.queue.get()
 
-    def joinAll(self, waitForTasks = False, waitForThreads = True):
+    def joinAll(self, waitForTasks=False, waitForThreads=True):
         self.__isJoiningStopQueuing = True
         self.queue.put((None, (), None))
 
@@ -181,7 +182,7 @@ class ThreadPoolThread(threading.Thread):
         """ Initialize the thread and remember the pool. """
 
         threading.Thread.__init__(self)
-        self.setName('SessionPool'+self.getName())
+        self.setName('SessionPool' + self.getName())
         self.setDaemon(True)
         self.__pool = pool
         self.__isDying = False
@@ -192,7 +193,7 @@ class ThreadPoolThread(threading.Thread):
         it, calling the callback if any.  """
 
         if prctlimported:
-            prctl.set_name("Tribler"+threading.currentThread().getName())
+            prctl.set_name("Tribler" + threading.currentThread().getName())
 
         # Arno, 2010-04-07: Dying only used when shrinking pool now.
         while self.__isDying == False:

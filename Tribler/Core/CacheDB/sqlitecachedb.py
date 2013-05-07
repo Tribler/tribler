@@ -193,10 +193,13 @@ class SQLiteCacheDBBase:
 
     def close_all(self):
         with self.cursor_lock:
-            for thread_name, cur in self.cursor_table.items():
-                self._close_cur(thread_name, cur)
+            print >> sys.stderr, "close_all"
 
-            self.cursor_table = None
+            if self.cursor_table:
+                for thread_name, cur in self.cursor_table.items():
+                    self._close_cur(thread_name, cur)
+
+                self.cursor_table = None
 
     def _close_cur(self, thread_name, cur):
         con = cur.getconnection()
@@ -910,7 +913,6 @@ class SQLiteCacheDBBase:
         res1 = self.getAll('Category', '*')
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
         return (res1, res2)
-
 
 class SQLiteCacheDBV5(SQLiteCacheDBBase):
     def updateDB(self, fromver, tover):
@@ -2280,32 +2282,11 @@ def forceAndReturnDBThread(func):
     return invoke_func
 
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
-    __single = None
     DEBUG = False
     if __debug__:
         __counter = 0
 
-    @classmethod
-    def getInstance(cls, *args, **kw):
-        # Singleton pattern with double-checking to ensure that it can only create one object
-        if cls.__single is None:
-            cls.lock.acquire()
-            try:
-                if cls.__single is None:
-                    cls.__single = cls(*args, **kw)
-                    # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
-            finally:
-                cls.lock.release()
-        return cls.__single
-
-    @classmethod
-    def delInstance(cls, *args, **kw):
-        cls.__single = None
-
     def __init__(self, *args, **kargs):
-        # always use getInstance() to create this object
-        if self.__single != None:
-            raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteCacheDBBase.__init__(self, *args, **kargs)
 
         if __debug__:
@@ -2501,9 +2482,6 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
 
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object
-
-        # ARNOCOMMENT: why isn't the lock used on this read?!
-
         if self.__single != None:
             raise RuntimeError, "SQLiteCacheDB is singleton"
         SQLiteNoCacheDB.__init__(self, *args, **kargs)
@@ -2516,6 +2494,5 @@ if __name__ == '__main__':
     config = {}
     config['state_dir'] = configure_dir
     config['install_dir'] = u'.'
-    config['peer_icon_path'] = u'.'
     sqlite_test = init(config)
     sqlite_test.test()
