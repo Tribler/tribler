@@ -45,13 +45,13 @@ class AbstractServer(unittest.TestCase):
         self.setUpCleanup()
 
     def getStateDir(self, nr=0):
-        dir = STATE_DIR + (str(nr + 1) if nr else '')
+        dir = STATE_DIR + (str(nr) if nr else '')
         if not os.path.exists(dir):
             os.mkdir(dir)
         return dir
 
     def getDestDir(self, nr=0):
-        dir = DEST_DIR + (str(nr + 1) if nr else '')
+        dir = DEST_DIR + (str(nr) if nr else '')
         if not os.path.exists(dir):
             os.mkdir(dir)
         return dir
