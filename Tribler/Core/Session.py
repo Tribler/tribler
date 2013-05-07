@@ -110,6 +110,10 @@ class Session(SessionRuntimeConfig):
         if not os.path.exists(collected_torrent_dir):
             os.makedirs(collected_torrent_dir)
 
+        swiftreseed_dir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
+        if not os.path.exists(swiftreseed_dir):
+            os.makedirs(swiftreseed_dir)
+
         if not self.sessconfig['peer_icon_path']:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
 
