@@ -130,7 +130,7 @@ class TestSeeding(TestAsServer):
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
-            destfn = os.path.join(self.getStateDir(2), "file.wmv")
+            destfn = os.path.join(self.getDestDir(2), "file.wmv")
             f = open(destfn, "rb")
             realdata = f.read()
             f.close()
