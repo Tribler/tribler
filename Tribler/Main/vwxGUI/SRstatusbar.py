@@ -174,7 +174,6 @@ class SRstatusbar(wx.StatusBar):
         self.Reposition()
     
     def Reposition(self):
-        self.Freeze()
         
         rect = self.GetFieldRect(0)
         self.ff_checkbox.SetPosition((rect.x+2, rect.y+2))
@@ -207,4 +206,3 @@ class SRstatusbar(wx.StatusBar):
         self.firewallStatus.SetPosition((rect.x+xAdd, rect.y+yAdd))
         
         self.sizeChanged = False
-        self.Thaw()

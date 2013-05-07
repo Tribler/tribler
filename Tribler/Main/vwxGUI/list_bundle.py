@@ -122,7 +122,6 @@ class BundleListItem(ListItem):
         panel = self.expanded_panel
         
         if panel and panel.IsShown() != show:
-            self.Freeze()
             
             if DEBUG:
                 print >> sys.stderr, "BundleListItem: ShowExpandedPanel", show, self.expanded_panel_shown
@@ -136,19 +135,16 @@ class BundleListItem(ListItem):
             self.parent_list.OnChange()
             self.Layout()
 
-            self.Thaw()
             
             if show:
                 panel.Layout()
     
     def BackgroundColor(self, color):
         if self.GetBackgroundColour() != color:
-            self.Freeze()
             
             ListItem.BackgroundColor(self, color)
             self.bundlepanel.SetBackgroundColour(color)
             
-            self.Thaw()
         
     def OnChange(self, scrollToTop = False):
         self.Layout()
@@ -282,7 +278,6 @@ class BundlePanel(wx.BoxSizer):
         if self.nrhits > N:
             items_to_add -= 1
 
-        self.parent.Freeze()
         children = self.grid.GetChildren()
         didChange = len(children) < min(N, self.nrhits)
         if not didChange:
@@ -343,7 +338,6 @@ class BundlePanel(wx.BoxSizer):
             if rowsChanged and not noChange:
                 self.parent_listitem.OnChange()
                     
-        self.parent.Thaw()
         
         return didChange
         
@@ -483,7 +477,6 @@ class BundlePanel(wx.BoxSizer):
         self.guiutility.frame.guiserver.add_task(db_callback)
     
     def ExpandAndHideParent(self):
-        self.parent.Freeze()
         
         if not self.parent_listitem.expanded:
             # Make sure the listitem is marked as expanded
@@ -491,7 +484,6 @@ class BundlePanel(wx.BoxSizer):
         
         # but hide the panel
         self.parent_listitem.ShowExpandedPanel(False)
-        self.parent.Thaw()
     
     #Called from GUI to get expanded torrentdetails panel
     def GetExpandedPanel(self):
@@ -501,14 +493,12 @@ class BundlePanel(wx.BoxSizer):
                 return item.GetExpandedPanel()
             
     def SetBackgroundColour(self, colour):
-        self.parent.Freeze()
         if getattr(self, 'grid', False):
             for sizeritem in self.grid.GetChildren():
                 child = sizeritem.GetWindow() or sizeritem.GetSizer()
                 if child and getattr(child, 'SetBackgroundColour', False): 
                     child.SetBackgroundColour(colour)
                         
-        self.parent.Thaw()
     
 class BundleListView(GenericSearchList):
     

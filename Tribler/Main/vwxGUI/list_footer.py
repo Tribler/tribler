@@ -92,10 +92,8 @@ class TitleFooter(ListFooter):
         self.scrollBar.sizer = hSizer
         
     def SetTitle(self, title):
-        self.Freeze()
         self.title.SetLabel(title)
         self.Layout()
-        self.Thaw()
         
 class TotalFooter(TitleFooter):
     def __init__(self, parent, columns, radius = LIST_RADIUS):
@@ -216,7 +214,6 @@ class ChannelFooter(ListFooter):
         self.manage.Bind(wx.EVT_BUTTON, manage)
     
     def SetStates(self, vote, channelstate, iamModerator):
-        self.Freeze()
         self.hSizer.Clear()
         
         explicit_vote = vote != 0
@@ -329,12 +326,10 @@ class ChannelFooter(ListFooter):
                 
         self.hSizer.Layout()
         self.Layout()
-        self.Thaw()
         
     def Reset(self):
         ListFooter.Reset(self)
         
-        self.Freeze()
         self.hSizer.Clear()
         
         self.subtitle.Show(False)
@@ -343,7 +338,6 @@ class ChannelFooter(ListFooter):
         self.manage.Show(False)
         self.message.SetLabel('')
         
-        self.Thaw()
     
     def GetStates(self):
         return (self.spam.GetLabel() == 'This is not Spam', self.favorite.GetLabel() == 'Remove Favorite')
