@@ -4,13 +4,10 @@
 # TODO: we download from Tribler
 #
 
-import unittest
 import os
 import sys
 import time
-from sha import sha
-from traceback import print_exc
-from tempfile import mkstemp, mkdtemp
+from tempfile import mkstemp
 from M2Crypto import Rand
 
 from Tribler.Test.test_as_server import TestAsServer
@@ -18,11 +15,7 @@ from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
-import Tribler
 # Tribler.Core.Video.PiecePickerStreaming.TEST_VOD_OVERRIDE = True
-
-from Tribler.Core.Utilities.utilities import isValidIP
-
 
 DEBUG = True
 

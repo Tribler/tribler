@@ -16,7 +16,6 @@ from Tribler.Core.MessageID import EXTEND
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
 import threading
-from traceback import print_exc
 
 LISTEN_PORT = 12345
 DEBUG = True

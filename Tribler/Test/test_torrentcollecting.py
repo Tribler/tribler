@@ -1,5 +1,4 @@
 import os
-import sys
 import unittest
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, str2bin, CURRENT_MAIN_DB_VERSION

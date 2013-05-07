@@ -1,9 +1,8 @@
 # see LICENSE.txt for license information
 
 import unittest
-import wx
 import os
-from time import sleep, time
+from time import time
 
 from Tribler.Test.test_gui_as_server import TestGuiAsServer
 from Tribler.Main.globals import DefaultDownloadStartupConfig

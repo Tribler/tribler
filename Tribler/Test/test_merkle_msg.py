@@ -24,16 +24,14 @@ from Tribler.Core.Utilities.bitfield import Bitfield
 from Tribler.Core.MessageID import *
 from Tribler.Core.Merkle.merkle import MerkleTree
 
-from Tribler.Core.Utilities.utilities import isValidIP
-
 DEBUG = True
 
 class TestMerkleMessage(TestAsServer):
-    """ 
+    """
     Testing Merkle hashpiece messages for both:
     * Merkle BEP style
     * old Tribler <= 4.5.2 that did not use the Extention protocol (BEP 10).
-     
+
     See BitTornado/BT1/Connecter.py
     """
 
@@ -624,4 +622,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

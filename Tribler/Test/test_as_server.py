@@ -12,9 +12,7 @@ import time
 import gc
 from traceback import print_exc
 
-from M2Crypto import EC
 from threading import enumerate as enumerate_threads
-
 
 from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *

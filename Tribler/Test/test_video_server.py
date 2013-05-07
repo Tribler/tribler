@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import socket
-from traceback import print_exc, print_stack
+from traceback import print_exc
 
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Test.test_as_server import BASE_DIR
@@ -53,10 +53,10 @@ class TestVideoHTTPServer(unittest.TestCase):
     def test_ranges(self):
         # Run single test, VideoHTTPServer is singleton at the moment and
         # doesn't like recreate.
-        self.range_test(115, 214, self.sourcesize)
-        self.range_test(self.sourcesize - 100, None, self.sourcesize)
-        self.range_test(None, 100, self.sourcesize)
-        self.range_test(115, 214, self.sourcesize, setset=True)
+        self.range_check(115, 214, self.sourcesize)
+        self.range_check(self.sourcesize - 100, None, self.sourcesize)
+        self.range_check(None, 100, self.sourcesize)
+        self.range_check(115, 214, self.sourcesize, setset=True)
 
     #
     # Internal
@@ -83,7 +83,7 @@ class TestVideoHTTPServer(unittest.TestCase):
 
         return head
 
-    def range_test(self, firstbyte, lastbyte, sourcesize, setset=False):
+    def range_check(self, firstbyte, lastbyte, sourcesize, setset=False):
         print >> sys.stderr, "test: range_test:", firstbyte, lastbyte, sourcesize, "setset", setset
         self.register_file_stream()
 

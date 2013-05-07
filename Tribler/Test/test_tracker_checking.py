@@ -1,12 +1,10 @@
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-from Tribler.Core.CacheDB.sqlitecachedb import init as init_db, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import init as init_db
 import unittest
-import sys
 import os
 from time import sleep
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.test_as_server import BASE_DIR
-from Tribler.Core.CacheDB import sqlitecachedb
 
 class TestTorrentChecking(unittest.TestCase):
     def setUp(self):
