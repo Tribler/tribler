@@ -2,7 +2,7 @@
 
 from Tribler.SiteRipper.Webpage import Webpage
 
-import BeautifulSoup
+from bs4 import BeautifulSoup
 import urllib2
 
 class WebpageInjector:
