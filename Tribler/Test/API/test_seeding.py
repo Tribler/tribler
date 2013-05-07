@@ -34,13 +34,12 @@ class TestSeeding(TestAsServer):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
 
-        self.config_path2 = tempfile.mkdtemp()
         self.config2 = self.config.copy()  # not really necess
-        self.config2.set_state_dir(self.config_path2)
+        self.config2.set_state_dir(self.getStateDir(2))
         self.config2.set_listen_port(4810)
 
         self.dscfg2 = DownloadStartupConfig()
-        self.dscfg2.set_dest_dir(self.config_path2)
+        self.dscfg2.set_dest_dir(self.getDestDir(2))
 
     def setUpPostSession(self):
         pass
@@ -60,15 +59,10 @@ class TestSeeding(TestAsServer):
         self.tdef.set_create_merkle_torrent(merkle)
         self.tdef.finalize()
 
-        self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
-        self.tdef.save(self.torrentfn)
-
-        self.tdef = TorrentDef.load(self.torrentfn)
-
         print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
 
         self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))
+        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))  # basedir of the file we are seeding
         d = self.session.start_download(self.tdef, self.dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
