@@ -168,13 +168,11 @@ class SaveAs(wx.Dialog):
         self.SetSize((600,450))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren())-2).GetSizer()
-        self.Freeze()
         hsizer.Clear(deleteWindows = True)
         vSizer.Remove(hsizer)
         self.AddFileList(tdef, None, vSizer, len(vSizer.GetChildren())-1)
         self.Layout()
         self.Refresh()
-        self.Thaw()
 
     def GetCollected(self):
         return self.collected

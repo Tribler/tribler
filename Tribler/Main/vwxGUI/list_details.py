@@ -243,7 +243,6 @@ class TorrentDetails(AbstractDetails):
                         self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
                         self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
             
-                self.Freeze()
                 self.messagePanel.Show(False)
                 self.messageIcon.Show(False)
                 if self.messageGauge: self.messageGauge.Show(False) 
@@ -259,7 +258,6 @@ class TorrentDetails(AbstractDetails):
             
                 self._Refresh(ds)
                         
-                self.Thaw()
     
                 self.isReady = True
                 self.Layout()
@@ -532,7 +530,6 @@ class TorrentDetails(AbstractDetails):
             
     @warnWxThread
     def _addOverview(self, panel, sizer):
-        self.Freeze()
 
         status_label = self.status.label.GetLabel() if getattr(self, 'status', None) else ""
         sizer.Clear(deleteWindows = True)
@@ -652,7 +649,6 @@ class TorrentDetails(AbstractDetails):
         self.UpdateHealth()
         panel.OnChange()
         
-        self.Thaw()
         
     def GetThumbnailPanel(self, parent, bitmaps):
         res = limit_resolution(bitmaps[0].GetSize(), (175, 175)) if bitmaps else None
@@ -1160,7 +1156,6 @@ class LibraryDetails(TorrentDetails):
                 if DEBUG:
                     print >> sys.stderr, "TorrentDetails: timeout on loading", self.torrent.name
             
-                self.Freeze()
                 
                 self.messagePanel.SetLabel("Failed loading torrent. Please click retry or wait to allow other peers to respond.\nAlternatively you could remove this torrent from your Downloads.")
                 if self.messageGauge:
@@ -1176,7 +1171,6 @@ class LibraryDetails(TorrentDetails):
 
                 self.guiutility.frame.top_bg.SetButtonHandler(self.guiutility.frame.top_bg.delete_btn, self.guiutility.frame.top_bg.OnDelete, 'Delete this torrent.')
                         
-                self.Thaw()
         except wx.PyDeadObjectError:
             pass
     
@@ -1276,7 +1270,6 @@ class LibraryDetails(TorrentDetails):
                 self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
             
             #register callback for peerlist update
-            self.peerList.Freeze()
             
             ds = self.torrent.ds
             index = 0
@@ -1391,7 +1384,6 @@ class LibraryDetails(TorrentDetails):
             self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
             self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
             self.peerList._doResize()
-            self.peerList.Thaw()
 
 class ChannelDetails(AbstractDetails):
 
@@ -1441,7 +1433,6 @@ class ChannelDetails(AbstractDetails):
                 self.state = -1
                 self.channel = channel
                 
-                self.Freeze()
                 self.messagePanel.Show(False)
                 self.messageIcon.Show(False)
                 if self.messageGauge: self.messageGauge.Show(False)
@@ -1457,7 +1448,6 @@ class ChannelDetails(AbstractDetails):
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
-                self.Thaw()
                 self.isReady = True
                 self.Layout()
             
@@ -1543,7 +1533,6 @@ class PlaylistDetails(AbstractDetails):
                 self.state = -1
                 self.playlist = playlist
                 
-                self.Freeze()
                 self.messagePanel.Show(False)
                 self.messageIcon.Show(False)
                 if self.messageGauge: self.messageGauge.Show(False)
@@ -1559,7 +1548,6 @@ class PlaylistDetails(AbstractDetails):
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
-                self.Thaw()
                 self.isReady = True
                 self.Layout()
             
@@ -1593,11 +1581,9 @@ class PlaylistDetails(AbstractDetails):
                         if os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0:
                             bmps.append(wx.Bitmap(os.path.join(thumb_dir, os.listdir(thumb_dir)[1]), wx.BITMAP_TYPE_ANY))
                         if len(bmps) > 3: break
-                    self.Freeze()
                     tp = self.GetThumbnailPanel(panel, bmps)
                     tSizer.Insert(1, tp, 0, wx.ALIGN_RIGHT|wx.ALIGN_TOP|wx.EXPAND)
                     self.overviewSizer.Layout()
-                    self.Thaw()
 
                 startWorker(do_gui, do_db, retryOnBusy=True,priority=GUI_PRI_DISPERSY)
 

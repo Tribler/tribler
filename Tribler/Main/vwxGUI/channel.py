@@ -345,13 +345,11 @@ class SelectedChannelList(GenericSearchList):
     def SetChannel(self, channel):
         self.channel = channel
         
-        self.Freeze()
         self.SetIds(channel)
         
         if channel:
             self.SetTitle(channel)
             
-        self.Thaw()
     
     def SetIds(self, channel):
         if channel:

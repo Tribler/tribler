@@ -127,7 +127,6 @@ class GUIUtility:
             if len(self.oldpage) > 3:
                 self.oldpage.pop(0)
 
-            self.frame.Freeze()
 
             if page not in ['search_results', 'my_files', 'selectedchannel', 'playlist', 'channels']:
                 self.frame.splitter.Show(False)
@@ -243,7 +242,6 @@ class GUIUtility:
                 self.frame.webbrowser.Show(False)
 
             self.guiPage = page
-            self.frame.Thaw()
             
         #Set focus to page
         if page == 'search_results':
@@ -419,7 +417,6 @@ class GUIUtility:
                 if DEBUG:
                     print >>sys.stderr,"GUIUtil: searchFiles:", keywords, time()
 
-                self.frame.searchlist.Freeze()
 
                 self.torrentsearch_manager.setSearchKeywords(keywords)
                 self.channelsearch_manager.setSearchKeywords(keywords)
@@ -431,7 +428,6 @@ class GUIUtility:
                 self.ShowPage('search_results', keywords)
 
                 #We now have to call thaw, otherwise loading message will not be shown.
-                self.frame.searchlist.Thaw()
 
                 #Peform local search
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())

@@ -165,7 +165,6 @@ class MainFrame(wx.Frame):
                 font.SetPointSize(9)
                 self.SetFont(font)
 
-        self.Freeze()
         self.SetDoubleBuffered(True)
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
@@ -357,7 +356,6 @@ class MainFrame(wx.Frame):
 
         # Init video player
         sys.stdout.write('GUI Complete.\n')
-        self.Thaw()
         self.ready = True
 
         # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
