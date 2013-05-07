@@ -62,7 +62,7 @@ except ImportError, e:
 # would prefer 2.8.
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select('2.9')
 except:
     pass
 
