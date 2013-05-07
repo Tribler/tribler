@@ -52,20 +52,15 @@ except ImportError:
 # written to the DB in the schema_sdb_v*.sql file!!!
 CURRENT_MAIN_DB_VERSION = 18
 
+config_dir = None
 CREATE_SQL_FILE = None
+
 CREATE_SQL_FILE_POSTFIX = os.path.join(LIBRARYNAME, 'schema_sdb_v' + str(CURRENT_MAIN_DB_VERSION) + '.sql')
 DB_FILE_NAME = 'tribler.sdb'
 DB_DIR_NAME = 'sqlite'  # db file path = DB_DIR_NAME/DB_FILE_NAME
 DEFAULT_BUSY_TIMEOUT = 10000
-MAX_SQL_BATCHED_TO_TRANSACTION = 1000  # don't change it unless carefully tested. A transaction with 1000 batched updates took 1.5 seconds
 NULL = None
-icon_dir = None
 SHOW_ALL_EXECUTE = False
-costs = []
-cost_reads = []
-torrent_dir = None
-config_dir = None
-install_dir = None
 TEST_OVERRIDE = False
 
 INITIAL_UPGRADE_PAUSE = 10
@@ -88,7 +83,6 @@ if __DEBUG_QUERIES__:
     while exists(DB_DEBUG_FILE):
         DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
 
-
 class Warning(Exception):
     pass
 
@@ -105,36 +99,16 @@ class LimitedOrderedDict(OrderedDict):
 def init(config, db_exception_handler=None):
     """ create sqlite database """
     global CREATE_SQL_FILE
-    global icon_dir
-    global torrent_dir
     global config_dir
-    global install_dir
-    torrent_dir = os.path.abspath(config['torrent_collecting_dir'])
     config_dir = config['state_dir']
-    install_dir = config['install_dir']
-    CREATE_SQL_FILE = os.path.join(install_dir, CREATE_SQL_FILE_POSTFIX)
-    sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)
+    CREATE_SQL_FILE = os.path.join(config['install_dir'], CREATE_SQL_FILE_POSTFIX)
 
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     print >> sys.stderr, "cachedb: init: SQL FILE", sqlite_db_path
 
-    icon_dir = os.path.abspath(config['peer_icon_path'])
-
+    sqlitedb = SQLiteCacheDB.getInstance(db_exception_handler)
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE)  # the first place to create db in Tribler
     return sqlitedb
-
-def done():
-    # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler it uses
-    # in its own shutdown procedure. There is no global close of all per-thread
-    # cursors/connections.
-    #
-    SQLiteCacheDB.getInstance().close()
-
-def make_filename(config_dir, filename):
-    if config_dir is None:
-        return filename
-    else:
-        return os.path.join(config_dir, filename)
 
 def bin2str(bin):
     # Full BASE64-encoded
@@ -142,56 +116,6 @@ def bin2str(bin):
 
 def str2bin(str):
     return decodestring(str)
-
-def print_exc_plus():
-    """
-    Print the usual traceback information, followed by a listing of all the
-    local variables in each frame.
-    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52215
-    http://initd.org/pub/software/pysqlite/apsw/3.3.13-r1/apsw.html#augmentedstacktraces
-    """
-
-    tb = sys.exc_info()[2]
-    stack = []
-
-    while tb:
-        stack.append(tb.tb_frame)
-        tb = tb.tb_next
-
-    print_exc()
-    print >> sys.stderr, "Locals by frame, innermost last"
-
-    for frame in stack:
-        print >> sys.stderr
-        print >> sys.stderr, "Frame %s in %s at line %s" % (frame.f_code.co_name,
-                                             frame.f_code.co_filename,
-                                             frame.f_lineno)
-        for key, value in frame.f_locals.items():
-            print >> sys.stderr, "\t%20s = " % key,
-            # We have to be careful not to cause a new error in our error
-            # printer! Calling str() on an unknown object could cause an
-            # error we don't want.
-            try:
-                print >> sys.stderr, value
-            except:
-                print >> sys.stderr, "<ERROR WHILE PRINTING VALUE>"
-
-def debugTime(func):
-    def invoke_func(*args, **kwargs):
-        if DEBUG_TIME:
-            t1 = time()
-
-        result = func(*args, **kwargs)
-
-        if DEBUG_TIME:
-            diff = time() - t1
-            if diff > 0.5:
-                print >> sys.stderr, "TOOK", diff, args
-
-        return result
-
-    invoke_func.__name__ = func.__name__
-    return invoke_func
 
 class safe_dict(dict):
     def __init__(self, *args, **kw):
@@ -239,14 +163,13 @@ class SQLiteCacheDBBase:
     def __init__(self, db_exception_handler=None):
         self.exception_handler = db_exception_handler
         self.cursor_table = safe_dict()  # {thread_name:cur}
-        self.cache_transaction_table = safe_dict()  # {thread_name:[sql]
         self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})  # busytimeout is in milliseconds
 
         # Arno, 2012-08-02: As there is just Dispersy thread here, removing
         # safe_dict() here
         # 24/09/12 Boudewijn: changed into LimitedOrderedDict to limit memory consumption
-        self.permid_id = LimitedOrderedDict(1024 * 5)  # {}  # safe_dict()
-        self.infohash_id = LimitedOrderedDict(1024 * 5)  # {} # safe_dict()
+        self.permid_id = LimitedOrderedDict(1024 * 5)
+        self.infohash_id = LimitedOrderedDict(1024 * 5)
         self.show_execute = False
 
         # TODO: All global variables must be protected to be thread safe?
@@ -274,7 +197,6 @@ class SQLiteCacheDBBase:
             self.exception_handler = None
             self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})
             self.cursor_table = safe_dict()
-            self.cache_transaction_table = safe_dict()
 
     def close_all(self):
         for thread_name, cur in self.cursor_table.items():
@@ -286,12 +208,6 @@ class SQLiteCacheDBBase:
         con.close()
 
         del self.cursor_table[thread_name]
-        # Arno, 2010-01-25: Remove entry in cache_transaction_table for this thread
-        try:
-            if thread_name in self.cache_transaction_table.keys():
-                del self.cache_transaction_table[thread_name]
-        except:
-            print_exc()
 
     # --------- static functions --------
     def getCursor(self, create=True):
@@ -533,7 +449,7 @@ class SQLiteCacheDBBase:
     # --------- generic functions -------------
 
     def commit(self):
-        self.transaction()
+        pass
 
     def _execute(self, sql, args=None):
         cur = self.getCursor()
@@ -542,23 +458,6 @@ class SQLiteCacheDBBase:
             thread_name = threading.currentThread().getName()
             print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
 
-        # we should not perform database actions on the GUI (MainThread) thread because that might
-        # block the GUI
-        if DEBUG_THREAD:
-            if threading.currentThread().getName() == "MainThread":
-                for sql_line in sql.split(";"):
-                    try:
-                        # key, rest = sql_line.strip().split(" ", 1)
-                        key = sql_line[:50]
-                        print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
-                        # print_stack()
-                    except:
-                        # key = sql.strip()
-                        key = sql_line
-                        if key:
-                            print >> sys.stderr, "sqlitecachedb.py: should not perform sql", key, "on GUI thread"
-                            # print_stack()
-
         try:
             if args is None:
                 return cur.execute(sql)
@@ -566,136 +465,52 @@ class SQLiteCacheDBBase:
                 return cur.execute(sql, args)
 
         except Exception, msg:
-            if True:
-                if str(msg).startswith("BusyError"):
-                    print >> sys.stderr, "cachedb: busylock error"
+            if str(msg).startswith("BusyError"):
+                print >> sys.stderr, "cachedb: busylock error"
 
-                else:
-                    print_exc()
-                    print_stack()
-                    print >> sys.stderr, "cachedb: execute error:", Exception, msg
-                    thread_name = threading.currentThread().getName()
-                    print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+            else:
+                print_exc()
+                print_stack()
+                print >> sys.stderr, "cachedb: execute error:", Exception, msg
+                thread_name = threading.currentThread().getName()
+                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
 
-                # return None
-                # ARNODB: this is incorrect, it should reraise the exception
-                # such that _transaction can rollback or recommit.
-                # This bug already reported by Johan
             raise msg
 
-#    @debugTime
+    def _executemany(self, sql, args=None):
+        cur = self.getCursor()
+
+        if SHOW_ALL_EXECUTE or self.show_execute:
+            thread_name = threading.currentThread().getName()
+            print >> sys.stderr, '===', thread_name, '===\n', sql, '\n-----\n', args, '\n======\n'
+
+        try:
+            if args is None:
+                return cur.executemany(sql)
+            else:
+                return cur.executemany(sql, args)
+
+        except Exception, msg:
+            if str(msg).startswith("BusyError"):
+                print >> sys.stderr, "cachedb: busylock error"
+            else:
+                print_exc()
+                print_stack()
+                print >> sys.stderr, "cachedb: execute error:", Exception, msg
+                thread_name = threading.currentThread().getName()
+                print >> sys.stderr, '===', thread_name, '===\nSQL Type:', type(sql), '\n-----\n', sql, '\n-----\n', args, '\n======\n'
+
+            raise msg
+
     def execute_read(self, sql, args=None):
-        # this is only called for reading. If you want to write the db, always use execute_write or executemany
         return self._execute(sql, args)
 
     def execute_write(self, sql, args=None, commit=True):
-        self.cache_transaction(sql, args)
-        if commit:
-            self.commit()
+        self._execute(sql, args)
 
     def executemany(self, sql, args, commit=True):
+        self.__executemany(sql, args)
 
-        thread_name = threading.currentThread().getName()
-        if thread_name not in self.cache_transaction_table:
-            self.cache_transaction_table[thread_name] = []
-        all = [(sql, arg) for arg in args]
-        self.cache_transaction_table[thread_name].extend(all)
-
-        if commit:
-            self.commit()
-
-    def cache_transaction(self, sql, args=None):
-        thread_name = threading.currentThread().getName()
-        if thread_name not in self.cache_transaction_table:
-            self.cache_transaction_table[thread_name] = []
-        self.cache_transaction_table[thread_name].append((sql, args))
-
-    def transaction(self, sql=None, args=None):
-        if sql:
-            self.cache_transaction(sql, args)
-
-        thread_name = threading.currentThread().getName()
-
-        n = 0
-        sql_full = ''
-        arg_list = []
-        sql_queue = self.cache_transaction_table.get(thread_name, None)
-        if sql_queue:
-            while True:
-                try:
-                    _sql, _args = sql_queue.pop(0)
-                except IndexError:
-                    break
-
-                _sql = _sql.strip()
-                if not _sql:
-                    continue
-                if not _sql.endswith(';'):
-                    _sql += ';'
-                sql_full += _sql + '\n'
-                if _args != None:
-                    arg_list += list(_args)
-                n += 1
-
-                # if too many sql in cache, split them into batches to prevent processing and locking DB for a long time
-                # TODO: optimize the value of MAX_SQL_BATCHED_TO_TRANSACTION
-                if n % MAX_SQL_BATCHED_TO_TRANSACTION == 0:
-                    self._transaction(sql_full, arg_list)
-                    sql_full = ''
-                    arg_list = []
-
-            self._transaction(sql_full, arg_list)
-
-    def _transaction(self, sql, args=None):
-        if sql:
-            sql = 'BEGIN TRANSACTION; \n' + sql + 'COMMIT TRANSACTION;'
-            try:
-                self._execute(sql, args)
-            except Exception, e:
-                self.commit_retry_if_busy_or_rollback(e, 0, sql=sql)
-
-    def commit_retry_if_busy_or_rollback(self, e, tries, sql=None):
-        """
-        Arno:
-        SQL_BUSY errors happen at the beginning of the experiment,
-        very quickly after startup (e.g. 0.001 s), so the busy timeout
-        is not honoured for some reason. After the initial errors,
-        they no longer occur.
-        """
-        print >> sys.stderr, "sqlcachedb: commit_retry: after", str(e), repr(sql)
-
-        if str(e).startswith("BusyError"):
-            try:
-                self._execute("COMMIT")
-            except Exception, e2:
-                if tries < 5:  # self.max_commit_retries
-                    # Spec is unclear whether next commit will also has
-                    # 'busytimeout' seconds to try to get a write lock.
-                    sleep(pow(2.0, tries + 2) / 100.0)
-                    self.commit_retry_if_busy_or_rollback(e2, tries + 1)
-                else:
-                    self.rollback(tries)
-                    raise Exception, e2
-        else:
-            self.rollback(tries)
-            m = "cachedb: TRANSACTION ERROR " + threading.currentThread().getName() + ' ' + str(e)
-            raise Exception, m
-
-
-    def rollback(self, tries):
-        print_exc()
-        try:
-            self._execute("ROLLBACK")
-        except Exception, e:
-            # May be harmless, see above. Unfortunately they don't specify
-            # what the error is when an attempt is made to roll back
-            # an automatically rolled back transaction.
-            m = "cachedb: ROLLBACK ERROR " + threading.currentThread().getName() + ' ' + str(e)
-            # print >> sys.stderr, 'SQLite Database', m
-            raise Exception, m
-
-
-    # -------- Write Operations --------
     def insert_or_replace(self, table_name, commit=True, **argv):
         if len(argv) == 1:
             sql = 'INSERT OR REPLACE INTO %s (%s) VALUES (?);' % (table_name, argv.keys()[0])
@@ -2553,28 +2368,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
         return self._executemany(sql, args)
 
-    def cache_transaction(self, sql, args=None):
-        if not onDBThread():
-            SQLiteCacheDBV5.cache_transaction(self, sql, args)
-        elif DEPRECATION_DEBUG:
-            raise DeprecationWarning('Please do not use cache_transaction')
-
-    def transaction(self, sql=None, args=None):
-        if not onDBThread():
-            SQLiteCacheDBV5.transaction(self, sql, args)
-        elif DEPRECATION_DEBUG:
-            raise DeprecationWarning('Please do not use transaction')
-
-    def _transaction(self, sql, args=None):
-        if not onDBThread():
-            SQLiteCacheDBV5._transaction(self, sql, args)
-        elif DEPRECATION_DEBUG:
-            raise DeprecationWarning('Please do not use _transaction')
-
     def commit(self):
-        if not onDBThread():
-            SQLiteCacheDBV5.commit(self)
-        elif DEPRECATION_DEBUG:
+        if DEPRECATION_DEBUG:
             raise DeprecationWarning('Please do not use commit')
 
     def clean_db(self, vacuum=False, exiting=False):

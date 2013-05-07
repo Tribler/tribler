@@ -321,8 +321,6 @@ class PeerDBHandler(BasicDBHandler):
 
     def deletePeer(self, permid=None, peer_id=None, force=False, commit=True):
         # don't delete friend of superpeers, except that force is True
-        # to do: add transaction
-        # self._db._begin()    # begin a transaction
         if peer_id is None:
             peer_id = self._db.getPeerID(permid)
         if peer_id is None:
