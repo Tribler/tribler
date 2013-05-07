@@ -59,6 +59,7 @@ class ThreadPool:
             newThread = ThreadPoolThread(self)
             self.__threads.append(newThread)
             newThread.start()
+
         # If we need to shrink the pool, do so
         while newNumThreads < len(self.__threads):
             self.__threads[0].goAway()
@@ -130,12 +131,17 @@ class ThreadPool:
         # Tell all the threads to quit
         self.__resizeLock.acquire()
         try:
+            currentThreads = self.__threads[:]
             self.__setThreadCountNolock(0)
-            self.__isJoining = True
+
+            # notify all waiting threads that we are quitting
+            self.__taskCond.acquire()
+            self.__taskCond.notifyAll()
+            self.__taskCond.release()
 
             # Wait until all threads have exited
             if waitForThreads:
-                for t in self.__threads:
+                for t in currentThreads:
                     t.join()
                     del t
 
