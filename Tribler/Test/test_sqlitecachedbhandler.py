@@ -22,6 +22,7 @@ M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')
 
 BUSYTIMEOUT = 5000
 SQLiteCacheDB.DEBUG = False
+DEBUG = False
 
 class TestSqliteBasicDBHandler(unittest.TestCase):
 
@@ -137,8 +138,9 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         p2 = self.pdb.getPeer(self.p2)
         assert isinstance(p1, dict)
         assert isinstance(p2, dict)
-        print >> sys.stderr, "singtest_GETLIST P1", `p1`
-        print >> sys.stderr, "singtest_GETLIST P2", `p2`
+        if DEBUG:
+            print >> sys.stderr, "singtest_GETLIST P1", `p1`
+            print >> sys.stderr, "singtest_GETLIST P2", `p2`
         assert p1['port'] == 1
         assert p2['port'] == 2
 

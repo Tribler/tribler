@@ -151,8 +151,7 @@ class TriblerLaunchMany(Thread):
 
             if config['megacache']:
                 import Tribler.Core.CacheDB.cachedb as cachedb
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler
-                from Tribler.Core.CacheDB.SqliteSeedingStatsCacheDB import SeedingStatsDBHandler, SeedingStatsSettingsDBHandler
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler
                 from Tribler.Category.Category import Category
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
 
@@ -177,6 +176,9 @@ class TriblerLaunchMany(Thread):
                 self.votecast_db.registerSession(self.session)
                 self.channelcast_db = ChannelCastDBHandler.getInstance()
                 self.channelcast_db.registerSession(self.session)
+                self.nb_db = NetworkBuzzDBHandler.getInstance()
+                self.ue_db = UserEventLogDBHandler.getInstance()
+
 
             else:
                 config['torrent_checking'] = 0
@@ -690,6 +692,8 @@ class TriblerLaunchMany(Thread):
             self.mypref_db.delInstance()
             self.votecast_db.delInstance()
             self.channelcast_db.delInstance()
+            self.nb_db.delInstance()
+            self.ue_db.delInstance()
 
             from Tribler.Core.CacheDB.sqlitecachedb import unregister
             unregister()
