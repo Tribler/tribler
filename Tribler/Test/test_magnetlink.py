@@ -11,7 +11,7 @@ from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Utilities.bencode import bencode, bdecode
+from Tribler.Core.Utilities.bencode import bencode, bdecode, sloppy_bdecode
 from Tribler.Core.MessageID import EXTEND
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
@@ -54,24 +54,24 @@ class MagnetHelpers:
         return val
 
     def read_extend_handshake(self, conn):
-        responce = conn.recv()
-        self.assert_(len(responce) > 0)
-        # print >>sys.stderr,"test: Got reply", getMessageName(responce[0])
-        self.assert_(responce[0] == EXTEND)
-        return self.metadata_id_from_extend_handshake(responce[1:])
+        response = conn.recv()
+        self.assert_(len(response) > 0)
+        # print >>sys.stderr,"test: Got reply", getMessageName(response[0])
+        self.assert_(response[0] == EXTEND)
+        return self.metadata_id_from_extend_handshake(response[1:])
 
     def read_extend_metadata_request(self, conn):
         while True:
-            responce = conn.recv()
-            assert len(responce) > 0
-            # print >>sys.stderr,"test: Got data", getMessageName(responce[0])
-            if responce[0] == EXTEND:
+            response = conn.recv()
+            assert len(response) > 0
+            # print >>sys.stderr,"test: Got data", getMessageName(response[0])
+            if response[0] == EXTEND:
                 break
 
-        assert responce[0] == EXTEND
-        assert ord(responce[1]) == 42
+        assert response[0] == EXTEND
+        assert ord(response[1]) == 42
 
-        payload = bdecode(responce[2:])
+        payload = bdecode(response[2:])
         assert "msg_type" in payload
         assert payload["msg_type"] == 0
         assert "piece" in payload
@@ -83,36 +83,46 @@ class MagnetHelpers:
         while True:
             response = conn.recv()
             assert len(response) > 0
-            # print >>sys.stderr,"test: Got data", getMessageName(responce[0])
+            # print >>sys.stderr,"test: Got data", getMessageName(response[0])
             if response[0] == EXTEND:
                 break
 
         assert response[0] == EXTEND
         assert ord(response[1]) == 42
 
-        try:
-            payload = bdecode(response[2:])
-            assert payload["msg_type"] == 1
-            assert payload["piece"] == piece
+        payload, length = sloppy_bdecode(response[2:])
+        assert payload["msg_type"] == 1
+        assert payload["piece"] == piece
+        if "data" in payload:
             assert payload["data"] == self.metadata_list[piece]
-        except:
-            print_exc()
-            print >> sys.stderr, response[2:]
+        else:
+            assert response[2 + length:] == self.metadata_list[piece]
 
     def read_extend_metadata_reject(self, conn, piece):
         while True:
-            responce = conn.recv()
-            assert len(responce) > 0
-            # print >>sys.stderr,"test: Got reject", getMessageName(responce[0])
-            if responce[0] == EXTEND:
+            response = conn.recv()
+            assert len(response) > 0
+            # print >>sys.stderr,"test: Got reject", getMessageName(response[0])
+            if response[0] == EXTEND:
                 break
 
-        assert responce[0] == EXTEND
-        assert ord(responce[1]) == 42
+        assert response[0] == EXTEND
+        assert ord(response[1]) == 42
 
-        payload = bdecode(responce[2:])
-        assert payload["msg_type"] == 2
-        assert payload["piece"] == piece
+        payload, length = sloppy_bdecode(response[2:])
+        assert payload["msg_type"] in (1, 2), [payload, response[2:2 + length]]
+        assert payload["piece"] == piece, [payload, response[2:2 + length]]
+
+        # some clients return msg_type 1, unfortunately this is not a reject but a proper response.
+        # instead libtorrent warns: max outstanding piece requests reached
+        if payload["msg_type"] == 1:
+            assert response[2 + length:] == self.metadata_list[piece]
+
+        # some clients return msg_type 2, we must make sure no "data" is given (i.e. the request was
+        # rejected)
+        if payload["msg_type"] == 2:
+            assert payload["piece"] == piece, [payload, response[2:2 + length]]
+            assert not "data" in payload, [payload, response[2:2 + length]]
 
     def read_extend_metadata_close(self, conn):
         """
@@ -121,10 +131,10 @@ class MagnetHelpers:
         """
         conn.s.settimeout(10.0)
         while True:
-            responce = conn.recv()
-            if len(responce) == 0:
+            response = conn.recv()
+            if len(response) == 0:
                 break
-            assert not (responce[0] == EXTEND and responce[1] == 42)
+            assert not (response[0] == EXTEND and response[1] == 42)
 
 class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
     """
