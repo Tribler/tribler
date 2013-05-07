@@ -6,7 +6,7 @@ import unittest
 import sys
 import time
 from traceback import print_exc
-from threading import RLock
+from threading import RLock, enumerate as enumerate_threads
 
 from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
 
@@ -27,9 +27,16 @@ class TestThreadPool(unittest.TestCase):
 
     def tearDown(self):
         """ unittest test tear down code """
+        self.tp.joinAll()
+
         time.sleep(2)
         self.got.sort()
         self.assertEquals(self.exp, self.got)
+
+        ts = enumerate_threads()
+        print >> sys.stderr, "test_threadpool: Number of threads still running", len(ts)
+        for t in ts:
+            print >> sys.stderr, "test_threadpool: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
 
     def test_queueTask1(self):
         if DEBUG:
