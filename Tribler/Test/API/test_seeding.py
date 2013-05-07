@@ -61,7 +61,7 @@ class TestSeeding(TestAsServer):
 
         self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         self.tdef.save(self.torrentfn)
-        
+
         print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
 
         self.dscfg = DownloadStartupConfig()
@@ -130,7 +130,7 @@ class TestSeeding(TestAsServer):
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
-            destfn = os.path.join(self.config_path2, "file.wmv")
+            destfn = os.path.join(self.getStateDir(2), "file.wmv")
             f = open(destfn, "rb")
             realdata = f.read()
             f.close()
