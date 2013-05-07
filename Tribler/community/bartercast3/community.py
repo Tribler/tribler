@@ -317,9 +317,12 @@ class BarterCommunity(Community):
                 book.cycle = max(book.cycle, int(timestamp / CYCLE_SIZE))
                 book.upload += bytes_up
                 book.download += bytes_down
+                logger.debug("update book for %s +%d -%d", member.mid.encode("HEX"), book.upload, book.download)
 
-                self._associated_up += bytes_up
-                self._associated_down += bytes_down
+                # associated_{up,down} is from our viewpoint while bytes_{up,down} is from the other
+                # peers' viewpoint
+                self._associated_up += bytes_down
+                self._associated_down += bytes_up
                 return True
             return False
 
@@ -330,15 +333,18 @@ class BarterCommunity(Community):
                          swift_address[0],
                          swift_address[1],
                          identifier)
-            self._address_association[swift_address] = member
+            association = self._address_association.setdefault(swift_address, Association())
+            association.member = member
             if len(self._address_association) > self._address_association_length:
                 self._address_association.popitem(False)
             return _update(response.authentication.member)
 
-        self._total_up += bytes_up
-        self._total_down += bytes_down
+        # total_{up,down} is from our viewpoint while bytes_{up,down} is from the other peers'
+        # viewpoint
+        self._total_up += bytes_down
+        self._total_down += bytes_up
 
-        association = self._address_association.get(swift_address, Association())
+        association = self._address_association.setdefault(swift_address, Association())
         if association.member:
             _update(association.member)
 
@@ -373,8 +379,8 @@ class BarterCommunity(Community):
         assert isinstance(cooked_bytes_down, (int, long)), type(cooked_bytes_down)
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
         if cooked_bytes_up or cooked_bytes_down:
-            # logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
-            self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=False)
+            logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
+            self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=True)
 
     def download_state_callback(self, states, delayed):
         assert self._dispersy.callback.is_current_thread, "Must be called on the dispersy.callback thread"
@@ -420,7 +426,7 @@ class BarterCommunity(Community):
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
                 if not isinstance(message.candidate, BootstrapCandidate):
-                    logger.debug("received introduction-request message from %s", message.candidate)
+                    # logger.debug("received introduction-request message from %s", message.candidate)
 
                     book = self.get_book(message.authentication.member)
                     if book.cycle < cycle:
@@ -436,7 +442,7 @@ class BarterCommunity(Community):
             cycle = int(time() / CYCLE_SIZE)
             for message in messages:
                 if not isinstance(message.candidate, BootstrapCandidate):
-                    logger.debug("received introduction-request message from %s", message.candidate)
+                    # logger.debug("received introduction-response message from %s", message.candidate)
 
                     book = self.get_book(message.authentication.member)
                     if book.cycle < cycle:
@@ -627,7 +633,7 @@ class BarterCommunity(Community):
     def try_adding_to_slope(self, candidate, member):
         if not member in self._slope:
             book = self.get_book(member)
-            logger.debug("attempt to add %s with score %f", member, book.score)
+            # logger.debug("attempt to add %s with score %f", member, book.score)
             if (book.score > 0 and
                 (len(self._slope) < self._slope_length or
                  min(self.get_book(mbr).score for mbr in self._slope.iterkeys()) < book.score)):
@@ -760,7 +766,7 @@ class BarterCommunity(Community):
                         message.payload.first_associated_down)
 
         logger.debug("storing %d barter records", len(messages))
-        self._database.executemany(u"INSERT OR REPLACE INTO record VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        self._database.executemany(u"INSERT OR REPLACE INTO record VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                    (ordering(message) for message in messages))
 
     def check_member_request(self, messages):
@@ -785,4 +791,4 @@ class BarterCommunity(Community):
         for message in messages:
             cache = self._dispersy.request_cache.pop(message.payload.identifier, MemberRequestCache)
             if cache:
-                cache.func(message, cache)
+                cache.func(message)
