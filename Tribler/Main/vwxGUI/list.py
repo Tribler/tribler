@@ -1104,7 +1104,8 @@ class GenericSearchList(SizeList):
     @warnWxThread
     def CreateFrom(self, parent, item):
         channel = getattr(item.original_data, 'channel', None)
-        if channel:
+        from Tribler.Main.vwxGUI.channel import SelectedChannelList
+        if channel and not isinstance(item.parent_list.parent_list, SelectedChannelList):
             control = wx.Panel(item)
             control.SetBackgroundColour(item.GetBackgroundColour())
             sizer = wx.BoxSizer(wx.HORIZONTAL)
