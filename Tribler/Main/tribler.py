@@ -871,6 +871,7 @@ class ABCApp():
             self.webUI.stop()
         if self.guiserver:
             self.guiserver.shutdown(True)
+            self.guiserver.delInstance()
         if self.videoplayer:
             self.videoplayer.shutdown()
 
