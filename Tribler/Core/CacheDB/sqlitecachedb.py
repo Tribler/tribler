@@ -717,6 +717,7 @@ class SQLiteCacheDBBase:
             return self.fetchall(sql, arg) or []
         except Exception, msg:
             print >> sys.stderr, "sqldb: Wrong getAll sql statement:", sql
+            print_exc()
             raise Exception, msg
 
     # ----- Tribler DB operations ----
