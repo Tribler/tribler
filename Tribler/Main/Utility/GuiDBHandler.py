@@ -35,13 +35,7 @@ class GUIDBProducer():
         if GUIDBProducer.__single:
             raise RuntimeError, "GuiDBProducer is singleton"
 
-        #Lets get the reference to the shared database_thread
-        from Tribler.Core.Session import Session
-        if Session.has_instance():
-            self.database_thread = Session.get_instance().lm.database_thread
-        else:
-            raise RuntimeError('Session not initialized')
-
+        self.getDatabaseThread()
         self.guitaskqueue = GUITaskQueue.getInstance()
 
         #Lets get a reference to utility
@@ -67,6 +61,14 @@ class GUIDBProducer():
     @classmethod
     def delInstance(cls, *args, **kw):
         GUIDBProducer.__single = None
+        
+    def getDatabaseThread(self):
+        #Lets get the reference to the shared database_thread
+        from Tribler.Core.Session import Session
+        if Session.has_instance():
+            self.database_thread = Session.get_instance().lm.database_thread
+        else:
+            raise RuntimeError('Session not initialized')
 
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
@@ -83,7 +85,7 @@ class GUIDBProducer():
             if DEBUG:
                 print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)"%name
             return
-
+        
         assert uId is None or isinstance(uId, unicode), type(uId)
         assert name is None or isinstance(name, unicode), type(name)
 
@@ -166,6 +168,9 @@ class GUIDBProducer():
 
         if not self.onSameThread(workerType) or delay:
             if workerType == "dbThread":
+                if not self.database_thread.is_running:
+                    self.getDatabaseThread()
+                
                 if isgeneratorfunction(workerFn):
                     self.database_thread.register(workerFn, delay=delay, priority=priority, id_=callbackId)
                 else:

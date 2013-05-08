@@ -503,6 +503,7 @@ class TorrentDBHandler(BasicDBHandler):
         self.votecast_db = VoteCastDBHandler.getInstance()
         self.channelcast_db = ChannelCastDBHandler.getInstance()
         self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+        self._nb = NetworkBuzzDBHandler.getInstance()
 
     def getTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -756,8 +757,7 @@ class TorrentDBHandler(BasicDBHandler):
             print_exc()
 
         # vliegendhart: extract terms and bi-term phrase from Torrent and store it
-        nb = NetworkBuzzDBHandler.getInstance()
-        nb.addTorrent(torrent_id, swarmname, collected=collected, commit=False)
+        self._nb.addTorrent(torrent_id, swarmname, collected=collected, commit=False)
 
     def getInfohashFromTorrentName(self, name):  # #
         sql = "select infohash from Torrent where name='" + str2bin(name) + "'"
@@ -1044,8 +1044,7 @@ class TorrentDBHandler(BasicDBHandler):
             else:
                 self._db.delete(self.table_name, commit=commit, torrent_id=torrent_id)
                 # vliegendhart: synch bi-term phrase table
-                nb = NetworkBuzzDBHandler.getInstance()
-                nb.deleteTorrent(torrent_id, commit)
+                self._nb.deleteTorrent(torrent_id, commit)
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
             self._db.delete('TorrentTracker', commit=commit, torrent_id=torrent_id)
