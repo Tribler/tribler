@@ -24,6 +24,7 @@ import re
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
 DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
+FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
 
 from Tribler.Core import defaults
 defaults.sessdefaults["state_dir"] = STATE_DIR

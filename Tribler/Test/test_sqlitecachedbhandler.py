@@ -15,30 +15,36 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler,\
     VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Test.test_as_server import AbstractServer
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
-S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
-
 M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')
-M_TORRENT_PATH = os.path.join(FILES_DIR, 'multiple.torrent')
 
 BUSYTIMEOUT = 5000
 SQLiteCacheDB.DEBUG = False
 DEBUG = False
 
-class TestSqliteBasicDBHandler(unittest.TestCase):
-
+class AbstractDB(AbstractServer):
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
+        self.setUpCleanup()
+        
+        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
         self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.waitForUpdateComplete()
-
-        self.db = BasicDBHandler(self.sqlitedb, 'Peer')
-
+        
     def tearDown(self):
-        SQLiteCacheDB.getInstance().close_all()
-        SQLiteCacheDB.delInstance()
+        if SQLiteCacheDB.hasInstance():
+            SQLiteCacheDB.getInstance().close_all()
+            SQLiteCacheDB.delInstance()
+        
+        self.tearDownCleanup()
+
+class TestSqliteBasicDBHandler(AbstractDB):
+
+    def setUp(self):
+        AbstractDB.setUp(self)
+        self.db = BasicDBHandler(self.sqlitedb, 'Peer')
 
     def test_size(self):
         size = self.db.size()  # there are 3995 peers in the table, however the upgrade scripts remove 8 superpeers
@@ -113,27 +119,22 @@ class TestSqliteBasicDBHandler(unittest.TestCase):
                 assert nip == 2842, nip
                 break
 
-class TestSqlitePeerDBHandler(unittest.TestCase):
+class TestSqlitePeerDBHandler(AbstractDB):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
-        db = SQLiteCacheDB.getInstance()
-        db.initDB(dbpath)
-        db.waitForUpdateComplete()
+        AbstractDB.setUp(self)
 
         self.p1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
         self.p2 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAABo69alKy95H7RHzvDCsolAurKyrVvtDdT9/DzNAGvky6YejcK4GWQXBkIoQGQgxVEgIn8dwaR9B+3U')
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        hp = db.hasPeer(fake_permid_x)
+        hp = self.sqlitedb.hasPeer(fake_permid_x)
         assert not hp
 
         self.pdb = PeerDBHandler.getInstance()
 
     def tearDown(self):
-        SQLiteCacheDB.getInstance().close_all()
-        SQLiteCacheDB.delInstance()
-
         PeerDBHandler.delInstance()
+        AbstractDB.tearDown(self)
 
     def test_getList(self):
         p1 = self.pdb.getPeer(self.p1)
@@ -367,13 +368,10 @@ class TestSqlitePeerDBHandler(unittest.TestCase):
         assert not self.pdb.hasPeer(fake_permid_x)
         assert self.pdb.size() == oldsize
 
-class TestTorrentDBHandler(unittest.TestCase):
+class TestTorrentDBHandler(AbstractDB):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
-        db = SQLiteCacheDB.getInstance()
-        db.initDB(dbpath)
-        db.waitForUpdateComplete()
+        AbstractDB.setUp(self)
 
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR
@@ -381,12 +379,11 @@ class TestTorrentDBHandler(unittest.TestCase):
         self.tdb._nb = NetworkBuzzDBHandler.getInstance()
 
     def tearDown(self):
-        SQLiteCacheDB.getInstance().close_all()
-        SQLiteCacheDB.delInstance()
-        
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         NetworkBuzzDBHandler.delInstance()
+        
+        AbstractDB.tearDown(self)
 
     def test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
@@ -419,9 +416,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         self.deleteTorrent()
 
     def addTorrent(self):
-        copyFile(S_TORRENT_PATH_BACKUP, S_TORRENT_PATH)
-        copyFile(M_TORRENT_PATH_BACKUP, M_TORRENT_PATH)
-
         old_size = self.tdb.size()
         old_src_size = self.tdb._db.size('TorrentSource')
         old_tracker_size = self.tdb._db.size('TorrentTracker')
@@ -431,9 +425,12 @@ class TestTorrentDBHandler(unittest.TestCase):
 
         sid = self.tdb._db.getTorrentID(s_infohash)
         mid = self.tdb._db.getTorrentID(m_infohash)
-
-        single_torrent_file_path = os.path.join(FILES_DIR, 'single.torrent')
-        multiple_torrent_file_path = os.path.join(FILES_DIR, 'multiple.torrent')
+        
+        single_torrent_file_path = os.path.join(self.getStateDir(), 'single.torrent')
+        multiple_torrent_file_path = os.path.join(self.getStateDir(), 'multiple.torrent')
+        
+        copyFile(S_TORRENT_PATH_BACKUP, single_torrent_file_path)
+        copyFile(M_TORRENT_PATH_BACKUP, multiple_torrent_file_path)
 
         single_tdef = TorrentDef.load(single_torrent_file_path)
         assert s_infohash == single_tdef.get_infohash()
@@ -534,7 +531,7 @@ class TestTorrentDBHandler(unittest.TestCase):
 
         assert not self.tdb.hasTorrent(s_infohash)
         assert not self.tdb.hasTorrent(m_infohash)
-        assert not os.path.isfile(S_TORRENT_PATH)
+        assert not os.path.isfile(os.path.join(self.getStateDir(), 'single.torrent'))
         m_trackers = self.tdb.getTracker(m_infohash, 0)
         assert len(m_trackers) == 0
 
@@ -558,21 +555,18 @@ class TestTorrentDBHandler(unittest.TestCase):
         res = self.tdb.getNumberCollectedTorrents()
         assert old_res - res == 20
 
-class TestMyPreferenceDBHandler(unittest.TestCase):
+class TestMyPreferenceDBHandler(AbstractDB):
 
     def setUp(self):
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', overwrite=True)
-        db = SQLiteCacheDB.getInstance()
-        db.initDB(dbpath)
-        db.waitForUpdateComplete()
-
+        AbstractDB.setUp(self)
+        
         self.mdb = MyPreferenceDBHandler.getInstance()
         self.mdb.loadData()
 
     def tearDown(self):
-        SQLiteCacheDB.getInstance().close_all()
-        SQLiteCacheDB.delInstance()
         MyPreferenceDBHandler.delInstance()
+        
+        AbstractDB.tearDown(self)
 
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
