@@ -55,5 +55,8 @@ def close():
     logger = logging.getLogger('dht')
     for i in list(logger.handlers):
         logger.removeHandler(i)
-        i.flush()
-        i.close()
+        try:
+            i.flush()
+            i.close()
+        except:
+            pass
