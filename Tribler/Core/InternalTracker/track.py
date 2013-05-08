@@ -253,7 +253,7 @@ class Tracker:
             try:
                 self.logfile = config['tracker_logfile']
                 self.log = open(self.logfile,'a')
-                sys.stdout = self.log
+                #sys.stdout = self.log
                 print "# Log Started: ", isotime()
             except:
                 print "**warning** could not redirect stdout to log file: ", sys.exc_info()[0]
@@ -263,7 +263,7 @@ class Tracker:
                 try:
                     self.log.close()
                     self.log = open(self.logfile,'a')
-                    sys.stdout = self.log
+                    #sys.stdout = self.log
                     print "# Log reopened: ", isotime()
                 except:
                     print "**warning** could not reopen logfile"

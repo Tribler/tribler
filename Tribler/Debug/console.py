@@ -39,5 +39,5 @@ class SafeLinePrintStream:
         self._parts = []
         self._stream.flush()
 
-sys.stderr = SafePrintStream(sys.stderr)
-sys.stdout = sys.stderr
+#sys.stderr = SafePrintStream(sys.stderr)
+#sys.stdout = sys.stderr
