@@ -3,9 +3,11 @@ import wx.html2
 
 from Tribler.Main.vwxGUI.list import XRCPanel
 
+from Tribler.SiteRipper.SiteRipper import seedImages
+
+
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
-    
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -18,12 +20,12 @@ class WebBrowser(XRCPanel):
         backwardButton = wx.Button(self, label="Backward")
         forwardButton = wx.Button(self, label="Forward")    
         goButton = wx.Button(self, label="Go")
-        seedButton = wx.Button(self, label="Seed")
+        self.seedButton = wx.Button(self, label="Seed")
         #Register the actions
         self.Bind(wx.EVT_BUTTON, self.goBackward, backwardButton)
         self.Bind(wx.EVT_BUTTON, self.goForward, forwardButton)
         self.Bind(wx.EVT_BUTTON, self.loadURLFromAdressBar, goButton)
-        self.Bind(wx.EVT_BUTTON, self.seed, seedButton)
+        self.Bind(wx.EVT_BUTTON, self.seed, self.seedButton)
         #Create the adressbar.
         self.adressBar = wx.TextCtrl(self,1, style = wx.TE_PROCESS_ENTER)
         #Register the enterkey.
@@ -33,7 +35,7 @@ class WebBrowser(XRCPanel):
         toolBar.Add(forwardButton, 0)
         toolBar.Add(self.adressBar, 1, wx.EXPAND)
         toolBar.Add(goButton, 0)
-        toolBar.Add(seedButton,0)
+        toolBar.Add(self.seedButton,0)
         #Add the toolbar to the panel.
         vSizer.Add(toolBar, 0, wx.EXPAND)
         
@@ -41,7 +43,7 @@ class WebBrowser(XRCPanel):
         self.webview = wx.html2.WebView.New(self)
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
-        self.webview.LoadURL("http://www.google.com") 
+        self.webview.LoadURL("http://khmerkromrecipes.com/pages/herbvegg.html") 
         
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
@@ -67,8 +69,20 @@ class WebBrowser(XRCPanel):
         self.webview.LoadURL(url)
         
     def onLoadURL(self, event):
-        '''Update the adressbar'''
+        '''Update the GUI'''
+        #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
+        #Update the seedbutton
+        self.seedButton.SetLabel("Seed")
+        self.seedButton.Enable()
         
     def seed(self, evnet):
-        '''Start seeding the object on the website'''
+        '''Start seeding the images on the website'''
+        self.seedButton.SetLabel("Seeding")
+        #disable seed button
+        self.seedButton.Disable()
+        #Start seeding images.
+        seedImages(self.webview.GetCurrentURL())
+        self.seedButton.SetLabel("Seeded")
+        
+        
