@@ -1601,7 +1601,7 @@ class ChannelManager:
 
     @forcePrioDispersyThread
     def createChannel(self, name, description):
-        community = ChannelCommunity.create_community(self.session.dispersy_member)
+        community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member)
         community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
 

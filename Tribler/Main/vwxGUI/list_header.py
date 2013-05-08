@@ -882,6 +882,13 @@ class TorrentFilter(BaseFilter):
                 self.filter_sizer.Layout()
                 
 class SelectedChannelFilter(TorrentFilter):
+    def __init__(self, *args, **kwargs):
+        TorrentFilter.__init__(self, *args, **kwargs)
+        self.columns = self.columns[:]
+        for column in self.columns:
+            if column['name'] == 'From':
+                self.columns.remove(column)
+                break
         
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
