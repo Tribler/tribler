@@ -43,7 +43,7 @@ class WebBrowser(XRCPanel):
         self.webview = wx.html2.WebView.New(self)
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
-        self.webview.LoadURL("http://khmerkromrecipes.com/pages/herbvegg.html") 
+        self.webview.LoadURL("http://www.google.com/") 
         
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
