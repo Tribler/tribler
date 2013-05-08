@@ -870,7 +870,7 @@ class ABCApp():
         if self.webUI:
             self.webUI.stop()
         if self.guiserver:
-            self.guiserver.shutdown()
+            self.guiserver.shutdown(True)
         if self.videoplayer:
             self.videoplayer.shutdown()
 
@@ -911,7 +911,6 @@ class ABCApp():
 
         Session.del_instance()
         GUIUtility.delInstance()
-        GUITaskQueue.delInstance()
         GUIDBProducer.delInstance()
         
         if SQLiteCacheDB.hasInstance():
