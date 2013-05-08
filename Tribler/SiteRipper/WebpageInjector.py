@@ -1,8 +1,12 @@
 #!/usr/bin/python2.7
 
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Session import Session
 from Tribler.SiteRipper.Webpage import Webpage
 
 from bs4 import BeautifulSoup
+import urlparse
 import urllib2
 
 class WebpageInjector:
@@ -44,6 +48,24 @@ class WebpageInjector:
                 link['href'] = self.__resolveURL(link['href'])
             if (link.has_key('src')):
                 link['src'] = self.__resolveURL(link['src'])
+
+    @staticmethod
+    def magnetImageFilter(tag):
+        return tag.name == u'img' and tag['src'].startswith('magnet:?')
+
+    def downloadEmbeddedMagnet(self, url):
+        def start_download(torrent):
+            session  = Session.get_instance()
+            download = DownloadStartupConfig()
+            session.start_download(torrent)
+            print("Started download: " + url)
+        return TorrentDef.retrieve_from_magnet(url, start_download)
+
+
+    def processMagnetLinks(self):
+        images = self.findTags(WebpageInjector.magnetImageFilter)
+        for image in images:
+            self.downloadEmbeddedMagnet(image['src'])
     
     def createTag(self, type):
         """Create a new tag to insert into a webpage
