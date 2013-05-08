@@ -678,6 +678,7 @@ class TriblerLaunchMany(Thread):
             self.rtorrent_handler.shutdown()
         if self.torrent_checking:
             self.torrent_checking.shutdown()
+            self.torrent_checking.delInstance()
 
         if self.dispersy:
             print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
@@ -822,11 +823,7 @@ class TriblerLaunchMany(Thread):
         self.update_torrent_checking_period()
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         try:
-            from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
-
-            t = TorrentChecking.getInstance(self.torrent_checking_period, self.session.sessconfig['torrent_collecting_dir'])
-            t.setInterval(self.torrent_checking_period)
-
+            self.torrent_checking.setInterval(self.torrent_checking_period)
         except Exception, e:
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)
