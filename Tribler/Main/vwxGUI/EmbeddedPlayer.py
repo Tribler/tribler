@@ -20,12 +20,11 @@ from textwrap import wrap
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.VideoFrame import DelayTimer
-from Tribler.Video.Progress import ProgressBar, ProgressSlider, VolumeSlider
-from Tribler.Video.Buttons import PlayerSwitchButton, PlayerButton
-from Tribler.Main.vwxGUI.widgets import tribler_topButton, SwitchButton, VideoProgress
+from Tribler.Video.Buttons import PlayerButton
+from Tribler.Video.Progress import ProgressSlider
+from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton
 
-from list_footer import ListFooter
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
 
 DEBUG = False
 
@@ -89,39 +88,49 @@ class EmbeddedPlayerPanel(wx.Panel):
                 mainbox.Add(self.player_img, 0, wx.ALIGN_CENTER|wx.TOP, 5)
             mainbox.Add(self.vlcwin, 1, wx.EXPAND, 0)
 
+            self.ctrlpanel = FancyPanel(self, border = wx.TOP)
+            self.ctrlpanel.SetMinSize((-1, 30))
+            self.ctrlpanel.SetBorderColour(SEPARATOR_GREY)
+            self.ctrlpanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
+
             self.ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)
-            self.slider = ProgressSlider(self, self.utility)
+
+            self.slider = ProgressSlider(self.ctrlpanel, self.utility)
             self.slider.SetRange(0,1)
             self.slider.SetValue(0)
 
-            self.mute = SwitchButton(self, name = 'mt')
+            self.bmp_muted = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mtEnabled.png"))
+            self.bmp_unmuted = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","mt.png"))
+            self.mute = ActionButton(self.ctrlpanel, -1, self.bmp_unmuted)
             self.mute.Bind(wx.EVT_LEFT_UP, self.MuteClicked)
 
-            self.ppbtn = PlayerSwitchButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'pause', 'play')
+            self.bmp_pause = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","pause.png"))
+            self.bmp_play = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","play.png"))
+            self.ppbtn = ActionButton(self.ctrlpanel, -1, self.bmp_pause)
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
-            self.ppbtn.setSelected(2)
+            self.ppbtn.Enable(False)
 
-            self.sbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'stop')
+            self.sbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","stop.png")))
             self.sbtn.Bind(wx.EVT_LEFT_UP, self.OnStop)
-            self.sbtn.setSelected(2)
+            self.sbtn.Enable(False)
 
             volumebox = wx.BoxSizer(wx.HORIZONTAL)
-            self.vol1 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol1')
+            self.vol1 = PlayerButton(self.ctrlpanel,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol1')
             self.vol1.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol2 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol2')
+            self.vol2 = PlayerButton(self.ctrlpanel,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol2')
             self.vol2.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol3 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol3')
+            self.vol3 = PlayerButton(self.ctrlpanel,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol3')
             self.vol3.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol4 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol4')
+            self.vol4 = PlayerButton(self.ctrlpanel,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol4')
             self.vol4.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol5 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol5')
+            self.vol5 = PlayerButton(self.ctrlpanel,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol5')
             self.vol5.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
-            self.vol6 = PlayerButton(self,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol6')
+            self.vol6 = PlayerButton(self.ctrlpanel,os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'vol6')
             self.vol6.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
 
             volumebox.Add(self.vol1, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -132,19 +141,21 @@ class EmbeddedPlayerPanel(wx.Panel):
             volumebox.Add(self.vol6, 0, wx.ALIGN_CENTER_VERTICAL)
             self.updateVol(self.volume)
 
-            self.fsbtn = PlayerButton(self, os.path.join(self.utility.getPath(), LIBRARYNAME,'Video', 'Images'), 'fullScreen')
+            self.fsbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Video","Images","fullScreen.png")))
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
-            self.fsbtn.setSelected(2)
+            self.fsbtn.Enable(False)
 
-            self.ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL)
-            self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            self.ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+            self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
             self.ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
 
-            self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
+            self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL)
             self.ctrlsizer.Add(volumebox, 0, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND)
-            self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL)
+            self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
+            
+            self.ctrlpanel.SetSizer(self.ctrlsizer)
 
-            mainbox.Add(self.ctrlsizer, 0, wx.ALIGN_BOTTOM|wx.EXPAND|wx.LEFT|wx.RIGHT, 3)
+            mainbox.Add(self.ctrlpanel, 0, wx.ALIGN_BOTTOM|wx.EXPAND)
             if border:
                 self.vlcwin.Show(False)
                 self.ctrlsizer.ShowItems(False)
@@ -170,8 +181,8 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def mouseAction(self,event):
         if event.LeftDown():
-            if self.mute.isToggled(): # unmute
-                self.mute.setToggled(False)
+            if self.mute.GetBitmapLabel() == self.bmp_muted: # unmute
+                self.mute.SetBitmapLabel(self.bmp_unmuted, recreate = True)
             if event.GetEventObject().GetImageName() == 'vol1':
                 self.volume = 0.16
             if event.GetEventObject().GetImageName() == 'vol2':
@@ -205,14 +216,14 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.updateVol(self.volume)
 
     def MuteClicked(self, event):
-        if self.mute.isToggled():
+        if self.mute.GetBitmapLabel() == self.bmp_muted:
             self.volume = self.oldvolume
         else:
             self.volume = 0
 
         self.updateVol(self.volume)
         self.SetVolume(self.volume)
-        self.mute.setToggled(not self.mute.isToggled())
+        self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate = True)
 
     def updateVol(self,volume): # updates the volume bars in the gui
         self.vol1.setSelected(volume >= 0.16)
@@ -278,7 +289,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.GetState() != MEDIASTATE_PLAYING:
                 self.vlcwin.stop_animation()
 
-                self.ppbtn.setToggled(False)
+                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate = True)
                 self.vlcwrap.start()
             elif DEBUG:
                 print >>sys.stderr,"embedplay: Play pressed, already playing"
@@ -293,7 +304,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             if self.GetState() == MEDIASTATE_PLAYING:
-                self.ppbtn.setToggled(True)
+                self.ppbtn.SetBitmapLabel(self.bmp_play, recreate = True)
                 self.vlcwrap.pause()
             elif DEBUG:
                 print >>sys.stderr,"embedplay: Pause pressed, not playing"
@@ -308,7 +319,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
                 self.vlcwin.stop_animation()
-                self.ppbtn.setToggled(False)
+                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate = True)
                 self.vlcwrap.resume()
 
     def PlayPause(self, evt=None):
@@ -321,7 +332,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.vlcwrap.resume()
-            self.ppbtn.setToggled(not self.ppbtn.isToggled())
+            self.ppbtn.SetBitmapLabel(self.bmp_play if self.ppbtn.GetBitmapLabel() == self.bmp_pause else self.bmp_pause, recreate = True)
 
     def Seek(self, evt=None):
         self.__check_thread()
@@ -362,27 +373,27 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def enablePlay(self):
         self.play_enabled = True
-        self.ppbtn.setSelected(False)
+        self.ppbtn.Enable(True)
 
     def disablePlay(self):
         self.play_enabled = False
-        self.ppbtn.setSelected(2)
+        self.ppbtn.Enable(False)
 
     def enableStop(self):
         self.stop_enabled = True
-        self.sbtn.setSelected(False)
+        self.sbtn.Enable(True)
 
     def disableStop(self):
         self.stop_enabled = False
-        self.sbtn.setSelected(2)
+        self.sbtn.Enable(False)
 
     def enableFullScreen(self):
         self.fullscreen_enabled = True
-        self.fsbtn.setSelected(False)
+        self.fsbtn.Enable(True)
 
     def disableFullScreen(self):
         self.fullscreen_enabled = False
-        self.fsbtn.setSelected(2)
+        self.fsbtn.Enable(False)
 
     def FullScreen(self, evt=None):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
@@ -568,11 +579,11 @@ class EmbeddedPlayerPanel(wx.Panel):
     def DisableInput(self):
         # return # Not currently used
 
-        self.ppbtn.Disable()
+        self.ppbtn.Enable(False)
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         if self.vlcwrap:
             self.slider.Disable()
-        self.fsbtn.Disable()
+        self.fsbtn.Enable(False)
 
     def UpdateSlider(self, evt):
         self.__check_thread()
@@ -601,7 +612,6 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def StopSliderUpdate(self, evt):
         self.update = False
-
 
     def TellLVCWrapWindow4Playback(self):
         if self.vlcwrap is not None:

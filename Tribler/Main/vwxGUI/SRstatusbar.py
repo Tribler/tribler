@@ -3,10 +3,11 @@ import wx
 import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.widgets import settingsButton, NativeIcon, TransparentText as StaticText, HorizontalGauge
+from Tribler.Main.vwxGUI.widgets import NativeIcon, TransparentText as StaticText, HorizontalGauge, ActionButton
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
+from Tribler import LIBRARYNAME
 
 DEBUG = False
 
@@ -48,9 +49,16 @@ class SRstatusbar(wx.StatusBar):
         
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1]) 
-        self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
+
+        self.bmp_firewall_state1 = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","firewallStatus14_state1.png"))
+        self.bmp_firewall_state2 = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","firewallStatus14_state2.png"))
+        self.bmp_firewall_state3 = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","firewallStatus14_state3.png"))
+        self.firewallStatus = ActionButton(self, -1, self.bmp_firewall_state2)
+        self.firewallStatus.SetSize((14,14))
         self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
         self.firewallStatus.SetToolTipString('Port status unknown')
+        self.firewallStatus.Enable(False)
+        self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_state2)
 
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -137,12 +145,13 @@ class SRstatusbar(wx.StatusBar):
             
     def onReachable(self,event=None):
         if not self.guiutility.firewall_restart:
-            self.firewallStatus.setSelected(2)
+            self.firewallStatus.SetBitmapLabel(self.bmp_firewall_state3)
+            self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_state3)
             self.firewallStatus.SetToolTipString('Port is working')
     
     def IsReachable(self):
         if not self.guiutility.firewall_restart:
-            return self.firewallStatus.getSelected() == 2
+            return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_state3
         return False
     
     def onActivity(self, msg):

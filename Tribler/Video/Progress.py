@@ -373,19 +373,16 @@ class ProgressSlider(wx.Panel):
         return longformat
 
     def OnPaint(self, evt):
-        width, height = self.GetClientSizeTuple()
-        buffer = wx.EmptyBitmap(width, height)
-        #dc = wx.PaintDC(self)
-        dc = wx.BufferedPaintDC(self, buffer)
-        dc.BeginDrawing()
+        # Draw the background
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
+        if getattr(self.GetParent(), 'bitmap', None):
+            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            sub = self.GetParent().bitmap.GetSubBitmap(rect)
+            dc.DrawBitmap(sub, 0, 0)
 
-        # Draw background
-        bgSize = self.bgImage.GetSize()
-        for i in xrange(width/bgSize[0]+1):
-            dc.DrawBitmap(self.bgImage, i*bgSize[0],0)
-
-
+        width, height = self.GetClientSizeTuple()
         # Time strings
         if self.videoLength is not None:
             durationString = self.formatTime(self.videoLength)
