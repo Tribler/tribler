@@ -31,6 +31,9 @@ class TestVideoHTTPServer(unittest.TestCase):
 
         self.sourcefn = os.path.join(BASE_DIR, "API", "file.wmv")  # 82KB or 82948 bytes
         self.sourcesize = os.path.getsize(self.sourcefn)
+        
+        #wait 5s to allow server to start
+        time.sleep(5)
 
     def tearDown(self):
         """ unittest test tear down code """
