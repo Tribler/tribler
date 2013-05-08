@@ -1436,9 +1436,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         # regardless of later, potentially failing updates
         self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)
         self.commit()
-
-        # now the start the process of parsing the torrents to insert into
-        # InvertedIndex table.
+        
+        tqueue = None
+        def kill_threadqueue_if_empty():
+            if tqueue.get_nr_tasks() == 0:
+                tqueue.shutdown(True)
+            else:
+                tqueue.add_task(kill_threadqueue_if_empty, SUCCESIVE_UPGRADE_PAUSE, "kill_if_empty")
+            
 
         from Tribler.Core.Session import Session
         session = Session.get_instance()
@@ -1447,8 +1452,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         my_permid = session.get_permid()
         if my_permid:
             my_permid = bin2str(my_permid)
-
-        tqueue = None
 
         tmpfilename = os.path.join(state_dir, "upgradingdb.txt")
         if fromver < 4 or os.path.exists(tmpfilename):
@@ -1531,6 +1534,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             if not tqueue:
                 tqueue = TimedTaskQueue("UpgradeDB")
+                tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, "kill_if_empty")
             tqueue.add_task(upgradeTorrents, INITIAL_UPGRADE_PAUSE)
 
         if fromver < 7:
@@ -1931,6 +1935,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             if not tqueue:
                 tqueue = TimedTaskQueue("UpgradeDB")
+                tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, "kill_if_empty")
             tqueue.add_task(upgradeTorrents2, INITIAL_UPGRADE_PAUSE)
 
         if fromver < 10:
@@ -2066,6 +2071,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             # start the upgradation after 10 seconds
             if not tqueue:
                 tqueue = TimedTaskQueue("UpgradeDB")
+                tqueue.add_task(kill_threadqueue_if_empty, INITIAL_UPGRADE_PAUSE + 1, "kill_if_empty")
             tqueue.add_task(upgradeTorrents3, INITIAL_UPGRADE_PAUSE)
 
         # Arno, 2012-07-30: Speed up

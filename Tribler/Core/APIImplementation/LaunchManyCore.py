@@ -676,6 +676,7 @@ class TriblerLaunchMany(Thread):
         self.shutdownstarttime = timemod.time()
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
+            self.rtorrent_handler.delInstance()
         if self.torrent_checking:
             self.torrent_checking.shutdown()
             self.torrent_checking.delInstance()
