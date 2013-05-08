@@ -14,7 +14,8 @@
 
 import logging.config
 from Tribler.Core.Tag.Extraction import TermExtraction
-logging.config.fileConfig("logger.conf")
+logging.config.fileConfig("logger.conf", disable_existing_loggers = False)
+logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
