@@ -24,7 +24,7 @@ class TestSqliteCacheDB(unittest.TestCase):
 
         if Session.has_instance():  # Upgrading will create a session instance
             Session.del_instance()
-
+        
         sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE, sqlitecachedb.TEST_OVERRIDE = self.original_values
 
     def test_perform_upgrade(self):

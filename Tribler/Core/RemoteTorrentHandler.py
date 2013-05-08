@@ -57,6 +57,10 @@ class RemoteTorrentHandler:
             RemoteTorrentHandler(*args, **kw)
         return RemoteTorrentHandler.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        RemoteTorrentHandler.__single  = None
+    delInstance = staticmethod(delInstance)
 
     def register(self, dispersy, session, max_num_torrents):
         self.session = session
@@ -81,7 +85,7 @@ class RemoteTorrentHandler:
         return self.registered
 
     def shutdown(self):
-        self.tqueue.shutdown()
+        self.tqueue.shutdown(True)
 
     def __check_overflow(self):
         while True:
