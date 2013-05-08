@@ -912,7 +912,6 @@ class ABCApp():
         GUIUtility.delInstance()
         GUITaskQueue.delInstance()
         GUIDBProducer.delInstance()
-        TorrentChecking.delInstance()
         
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
