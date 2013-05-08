@@ -3,12 +3,11 @@ import sys
 
 from traceback import print_exc
 from shutil import copy as copyFile, move
+from Tribler.Test.test_as_server import FILES_DIR
 
-FILES_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data'))
-
-def init_bak_tribler_sdb(backup = 'bak_tribler.sdb', destination = 'tribler.sdb', overwrite = False):
+def init_bak_tribler_sdb(backup = 'bak_tribler.sdb', destination = 'tribler.sdb', destination_path = FILES_DIR, overwrite = False):
     backup_path = os.path.join(FILES_DIR, backup)
-    destination_path = os.path.join(FILES_DIR, destination)
+    destination_path = os.path.join(destination_path, destination)
     
     if not os.path.isfile(backup_path) or overwrite:
         got = extract_db_files(FILES_DIR, backup_path + ".tar.gz", overwrite)
