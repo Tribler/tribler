@@ -17,11 +17,13 @@ class WebBrowser(XRCPanel):
         #Create the toolbar buttons.
         backwardButton = wx.Button(self, label="Backward")
         forwardButton = wx.Button(self, label="Forward")    
-        goButton = wx.Button(self, label="Go!")
+        goButton = wx.Button(self, label="Go")
+        seedButton = wx.Button(self, label="Seed")
         #Register the actions
         self.Bind(wx.EVT_BUTTON, self.goBackward, backwardButton)
         self.Bind(wx.EVT_BUTTON, self.goForward, forwardButton)
         self.Bind(wx.EVT_BUTTON, self.loadURLFromAdressBar, goButton)
+        self.Bind(wx.EVT_BUTTON, self.seed, seedButton)
         #Create the adressbar.
         self.adressBar = wx.TextCtrl(self,1, style = wx.TE_PROCESS_ENTER)
         #Register the enterkey.
@@ -31,6 +33,7 @@ class WebBrowser(XRCPanel):
         toolBar.Add(forwardButton, 0)
         toolBar.Add(self.adressBar, 1, wx.EXPAND)
         toolBar.Add(goButton, 0)
+        toolBar.Add(seedButton,0)
         #Add the toolbar to the panel.
         vSizer.Add(toolBar, 0, wx.EXPAND)
         
@@ -60,11 +63,12 @@ class WebBrowser(XRCPanel):
     def loadURLFromAdressBar(self, event):
         '''Load an URL from the adressbar'''
         url = self.adressBar.GetValue()
-        if not url.startswith("http://"):
-            url = "http://%s" %url
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
         
     def onLoadURL(self, event):
         '''Update the adressbar'''
         self.adressBar.SetValue(self.webview.GetCurrentURL())
+        
+    def seed(self, evnet):
+        '''Start seeding the object on the website'''
