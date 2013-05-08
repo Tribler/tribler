@@ -11,6 +11,7 @@ from traceback import print_exc
 
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Test.test_as_server import BASE_DIR
+import random
 
 DEBUG = False
 
@@ -23,7 +24,7 @@ class TestVideoHTTPServer(unittest.TestCase):
 
     def setUp(self):
         """ unittest test setup code """
-        self.port = 6789
+        self.port = random.randint(10000, 60000)
         self.serv = VideoHTTPServer.getInstance(self.port)
         self.serv.background_serve()
         self.serv.register(self.videoservthread_error_callback, self.videoservthread_set_status_callback)
@@ -35,27 +36,33 @@ class TestVideoHTTPServer(unittest.TestCase):
         """ unittest test tear down code """
         self.serv.shutdown()
         VideoHTTPServer.delInstance()
-        print >> sys.stderr, "test: Tear down, sleeping 10 s"
-        time.sleep(10)
+
+        time.sleep(2)
 
     def videoservthread_error_callback(self, e, url):
         """ Called by HTTP serving thread """
-        print >> sys.stderr, "test: ERROR", e, url
+        if DEBUG:
+            print >> sys.stderr, "test: ERROR", e, url
         self.assert_(False)
 
     def videoservthread_set_status_callback(self, status):
         """ Called by HTTP serving thread """
-        print >> sys.stderr, "test: STATUS", status
+        if DEBUG:
+            print >> sys.stderr, "test: STATUS", status
 
     #
     # Tests
     #
-    def test_ranges(self):
-        # Run single test, VideoHTTPServer is singleton at the moment and
-        # doesn't like recreate.
+    def test_specific_range(self):
         self.range_check(115, 214, self.sourcesize)
+
+    def test_last_100(self):        
         self.range_check(self.sourcesize - 100, None, self.sourcesize)
+    
+    def test_first_100(self):
         self.range_check(None, 100, self.sourcesize)
+    
+    def test_combined(self):
         self.range_check(115, 214, self.sourcesize, setset=True)
 
     #
@@ -84,7 +91,8 @@ class TestVideoHTTPServer(unittest.TestCase):
         return head
 
     def range_check(self, firstbyte, lastbyte, sourcesize, setset=False):
-        print >> sys.stderr, "test: range_test:", firstbyte, lastbyte, sourcesize, "setset", setset
+        if DEBUG:
+            print >> sys.stderr, "test: range_test:", firstbyte, lastbyte, sourcesize, "setset", setset
         self.register_file_stream()
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -118,18 +126,20 @@ class TestVideoHTTPServer(unittest.TestCase):
         # the amount of bytes actually requested. (Content-length)
         expsize = explastbyte - expfirstbyte + 1
 
-        print >> sys.stderr, "test: Expecting first", expfirstbyte, "last", explastbyte, "size", sourcesize
+        if DEBUG:
+            print >> sys.stderr, "test: Expecting first", expfirstbyte, "last", explastbyte, "size", sourcesize
         s.send(head)
 
         # Parse header
         s.settimeout(10.0)
         while True:
             line = self.readline(s)
-
-            print >> sys.stderr, "test: Got line", `line`
+            if DEBUG:
+                print >> sys.stderr, "test: Got line", `line`
 
             if len(line) == 0:
-                print >> sys.stderr, "test: server closed conn"
+                if DEBUG:
+                    print >> sys.stderr, "test: server closed conn"
                 self.assert_(False)
                 return
 
@@ -159,7 +169,8 @@ class TestVideoHTTPServer(unittest.TestCase):
 
         data = s.recv(expsize)
         if len(data) == 0:
-            print >> sys.stderr, "test: server closed conn2"
+            if DEBUG:
+                print >> sys.stderr, "test: server closed conn2"
             self.assert_(False)
             return
         else:
@@ -179,8 +190,9 @@ class TestVideoHTTPServer(unittest.TestCase):
                 self.assert_(len(data) == 0)
 
             except socket.timeout:
-                print >> sys.stderr, "test: Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP"
-                print_exc()
+                if DEBUG:
+                    print >> sys.stderr, "test: Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP"
+                    print_exc()
 
     def readline(self, s):
         line = ''
