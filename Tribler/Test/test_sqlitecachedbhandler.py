@@ -12,7 +12,9 @@ from bak_tribler_sdb import *
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler, PeerDBHandler,\
+    VoteCastDBHandler, ChannelCastDBHandler
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 S_TORRENT_PATH = os.path.join(FILES_DIR, 'single.torrent')
@@ -374,12 +376,15 @@ class TestTorrentDBHandler(unittest.TestCase):
         db.waitForUpdateComplete()
 
         self.tdb = TorrentDBHandler.getInstance()
+        self.tdb.torrent_dir = FILES_DIR
+        self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
 
     def tearDown(self):
         SQLiteCacheDB.getInstance().close_all()
         SQLiteCacheDB.delInstance()
-
+        
         TorrentDBHandler.delInstance()
+        MyPreferenceDBHandler.delInstance()
 
     def test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
@@ -487,8 +492,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
         assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
         assert m_torrent['last_check_time'] == 0
-        assert len(s_torrent) == 16
-        assert len(m_torrent) == 16
 
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
@@ -521,7 +524,6 @@ class TestTorrentDBHandler(unittest.TestCase):
         assert retry_number == 2
 
     def deleteTorrent(self):
-        self.tdb.torrent_dir = FILES_DIR
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
 

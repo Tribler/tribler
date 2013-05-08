@@ -1020,8 +1020,9 @@ class TorrentDBHandler(BasicDBHandler):
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
         if not self.hasTorrent(infohash):
             return False
-
-        if self.mypref_db.hasMyPreference(infohash):  # don't remove torrents in my pref
+        
+        torrent_id = self._db.getTorrentID(infohash)
+        if self.mypref_db.hasMyPreference(torrent_id):  # don't remove torrents in my pref
             return False
 
         if delete_file:
