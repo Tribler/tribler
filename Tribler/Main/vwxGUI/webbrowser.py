@@ -51,8 +51,9 @@ class WebBrowser(XRCPanel):
         self.SetSizer(vSizer)
         self.Layout()
         
-        '''Register the onLoadAction'''
-        self.Bind(wx.html2.EVT_WEB_VIEW_LOADED , self.onLoadURL, self.webview)
+        '''Register the action on the event that a URL is being loaded and when finished loading'''
+        self.Bind(wx.html2.EVT_WEB_VIEW_LOADED, self.onURLLoaded, self.webview)
+        self.Bind(wx.html2.EVT_WEB_VIEW_NAVIGATED, self.onURLLoading, self.webview)
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
@@ -67,11 +68,14 @@ class WebBrowser(XRCPanel):
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
-        
-    def onLoadURL(self, event):
-        '''Update the GUI'''
+    
+    def onURLLoading(self, event):
+        '''Actions to be taken when an URL start to be loaded.'''
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
+    
+    def onURLLoaded(self, event):
+        '''Actions to be taken when an URL is loaded.'''        
         #Update the seedbutton
         self.seedButton.SetLabel("Seed")
         self.seedButton.Enable()
