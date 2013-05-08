@@ -745,10 +745,10 @@ class TorrentMaker(wx.Frame):
         try:
             CompleteDir(self, filename, params)
         except:
-            oldstdout = sys.stdout
-            sys.stdout = sys.stderr
+            #oldstdout = sys.stdout
+            #sys.stdout = sys.stderr
             print_exc()
-            sys.stdout = oldstdout
+            #sys.stdout = oldstdout
 
 
 ################################################################

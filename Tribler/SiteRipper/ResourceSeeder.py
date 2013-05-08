@@ -22,18 +22,19 @@ class ResourceSeeder:
     def seedFile(self, filename):
         """Start seeding an arbitrary file
         """
-        s = Session.get_instance()
-        tdef = TorrentDef()
-        tdef.add_content(filename)
-        tdef.set_tracker(s.get_internal_tracker_url())
-        tdef.finalize()
-        filepdesc = urllib2.urlparse.urlparse(filename).geturl()
-        folder = filepdesc[:filepdesc.rfind('/')+1]
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(folder)
-        s.start_download(tdef,dscfg)
+        print("seedFile")
+        session = Session.get_instance()
+        torrent = TorrentDef()
+        torrent.add_content(filename)
+        torrent.set_tracker(session.get_internal_tracker_url())
+        torrent.finalize()
+
+        folder   = os.path.dirname(filename);
+        download = DownloadStartupConfig()
+        download.set_dest_dir(folder)
+        session.start_download(torrent, download)
         
-    def findAndSeed(self, filter, filename = None, index = 0):
+    def findAndSeed(self, filter, attribute, filename = None, index = 0):
         """Use a BeautifulSoup filter to find a resource
             on our URL and start seeding it
             Optionally supply a filename for the downloaded
@@ -42,12 +43,12 @@ class ResourceSeeder:
             for the filter results (will seed the first
             result by default)
         """
+        print("findAndSeed")
         resources = self.__injector.findTags(filter)
-        #Check if resources exists.
-        if len(resources) > 0:
+
+        if len(resources) > index:
             resource = resources[index]
             if filename is None:
-                filename = resource['src'].split('/')[-1]
-                file = os.path.abspath(self.__injector.saveTagSource(resource, filename))
-                self.seedFile(file)
-            
+                filename = resource[attribute].split('/')[-1]
+            file = os.path.abspath(self.__injector.saveTagAttribute(resource, attribute, filename))
+            self.seedFile(file)

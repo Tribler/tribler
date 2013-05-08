@@ -1,8 +1,12 @@
 #!/usr/bin/python2.7
 
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Session import Session
 from Tribler.SiteRipper.Webpage import Webpage
 
 from bs4 import BeautifulSoup
+import urlparse
 import urllib2
 
 class WebpageInjector:
@@ -44,6 +48,24 @@ class WebpageInjector:
                 link['href'] = self.__resolveURL(link['href'])
             if (link.has_key('src')):
                 link['src'] = self.__resolveURL(link['src'])
+
+    @staticmethod
+    def magnetImageFilter(tag):
+        return tag.name == u'img' and tag['src'].startswith('magnet:?')
+
+    def downloadEmbeddedMagnet(self, url):
+        def start_download(torrent):
+            session  = Session.get_instance()
+            download = DownloadStartupConfig()
+            session.start_download(torrent)
+            print("Started download: " + url)
+        return TorrentDef.retrieve_from_magnet(url, start_download)
+
+
+    def processMagnetLinks(self):
+        images = self.findTags(WebpageInjector.magnetImageFilter)
+        for image in images:
+            self.downloadEmbeddedMagnet(image['src'])
     
     def createTag(self, type):
         """Create a new tag to insert into a webpage
@@ -57,11 +79,8 @@ class WebpageInjector:
         """Find tags using a Beatiful Soup filter
             Returns a list of found tags
         """
-        out = []
-        for tag in self.__soup.find_all(filter):
-            out.append(tag)
-        return out
-    
+        return self.__soup.find_all(filter)
+
     def replaceTag(self, tag, replacement):
         """Overwrite a tag on the webpage
             This member takes care of cleaning up the old tag
@@ -81,23 +100,23 @@ class WebpageInjector:
         self.__soup = BeautifulSoup(self.__localcopy.getContent())
         
     def __downloadResource(self, url, filename):
-        filecontents = urllib2.urlopen(url)
         ext = self.__ripext(url)
-        vile = open(filename+ext,'wb')
-        vile.write(filecontents.read())
-        filecontents.close()
-        vile.close()
+        source = urllib2.urlopen(url)
+        dest = open(filename + ext,'wb')
+        dest.write(source.read())
+        source.close()
+        dest.close()
         return filename+ext
         
     def __resolveURL(self, url):
         return urllib2.urlparse.urljoin(self.__url, url, True)
         
-    def saveTagSource(self, tag, filename):
+    def saveTagAttribute(self, tag, attribute, filename):
         """Saves the file, pointed to by the src field of a tag,
             to disk
             Returns the filename
         """
-        url = tag['src']
+        url = tag[attribute]
         return self.__downloadResource(self.__resolveURL(url), filename)
         
     def saveWebpageFile(self, filename):
