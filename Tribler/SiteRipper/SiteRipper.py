@@ -15,4 +15,4 @@ def filterFindSeedableImage(tag):
 def seedImages(page):
     print "Starting to seed images on:%s" %page
     rs = ResourceSeeder(page)
-    image = rs.findAndSeed(filterFindSeedableImage)
+    image = rs.findAndSeed(filterFindSeedableImage, 'src')
