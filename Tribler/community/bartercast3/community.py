@@ -146,12 +146,7 @@ class BarterCommunity(Community):
 
         # _SWIFT is a SwiftProcess instance (allowing us to schedule CLOSE_EVENT callbacks)
         self._swift = swift_process
-        # subscribe to events.  22/03/13 Boudewijn: Dispersy is not allowed to call swift because it
-        # may cause database locks if people incorrectly keep the session locked.
-        temp_thread = Callback("Temporary-BarterCommunity")
-        temp_thread.register(self._swift.set_subscribe_channel_close, ("ALL", True, self.i2ithread_channel_close))
-        temp_thread.register(temp_thread.stop)
-        temp_thread.start()
+        self._swift.set_subscribe_channel_close("ALL", True, self.i2ithread_channel_close)
 
         # _DATABASE stores all direct observations and indirect hearsay
         self._database = BarterDatabase(self._dispersy)
@@ -245,12 +240,7 @@ class BarterCommunity(Community):
         logger.debug("unloading the Barter community")
         super(BarterCommunity, self).unload_community()
 
-        # unsubscribe from events.  22/03/13 Boudewijn: Dispersy is not allowed to call swift
-        # because it may cause database locks if people incorrectly keep the session locked.
-        temp_thread = Callback("Temporary-BarterCommunity")
-        temp_thread.register(self._swift.set_subscribe_channel_close, ("ALL", False, self.i2ithread_channel_close))
-        temp_thread.register(temp_thread.stop)
-        temp_thread.start()
+        self._swift.set_subscribe_channel_close("ALL", False, self.i2ithread_channel_close)
 
         # cancel outstanding pings
         for record_candidate in self._slope.itervalues():
