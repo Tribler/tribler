@@ -193,7 +193,6 @@ class SQLiteCacheDBBase:
 
     def close_all(self):
         with self.cursor_lock:
-            print >> sys.stderr, "close_all"
             if self.cursor_table:
                 for thread_name, cur in self.cursor_table.items():
                     self._close_cur(thread_name, cur)
@@ -2469,7 +2468,6 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     def getInstance(cls, *args, **kw):
         # Singleton pattern with double-checking to ensure that it can only create one object
         if cls.__single is None:
-            print >> sys.stderr, "new getInstance"
             cls.lock.acquire()
             try:
                 if cls.__single is None:
@@ -2477,13 +2475,10 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
                     # print >>sys.stderr,"SqliteCacheDB: getInstance: created is",cls,cls.__single
             finally:
                 cls.lock.release()
-        else:
-            print >> sys.stderr, "old getInstance"
         return cls.__single
 
     @classmethod
     def delInstance(cls, *args, **kw):
-        print >> sys.stderr, "delInstance"
         cls.__single = None
 
     @classmethod

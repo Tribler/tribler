@@ -10,7 +10,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from threading import Event
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.vwxGUI import forceWxThread
 from traceback import print_exc
 from Tribler.community.channel.community import ChannelCommunity
