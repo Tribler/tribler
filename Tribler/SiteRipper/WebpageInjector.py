@@ -79,11 +79,8 @@ class WebpageInjector:
         """Find tags using a Beatiful Soup filter
             Returns a list of found tags
         """
-        out = []
-        for tag in self.__soup.find_all(filter):
-            out.append(tag)
-        return out
-    
+        return self.__soup.find_all(filter)
+
     def replaceTag(self, tag, replacement):
         """Overwrite a tag on the webpage
             This member takes care of cleaning up the old tag
@@ -103,23 +100,23 @@ class WebpageInjector:
         self.__soup = BeautifulSoup(self.__localcopy.getContent())
         
     def __downloadResource(self, url, filename):
-        filecontents = urllib2.urlopen(url)
         ext = self.__ripext(url)
-        vile = open(filename+ext,'wb')
-        vile.write(filecontents.read())
-        filecontents.close()
-        vile.close()
+        source = urllib2.urlopen(url)
+        dest = open(filename + ext,'wb')
+        dest.write(source.read())
+        source.close()
+        dest.close()
         return filename+ext
         
     def __resolveURL(self, url):
         return urllib2.urlparse.urljoin(self.__url, url, True)
         
-    def saveTagSource(self, tag, filename):
+    def saveTagAttribute(self, tag, attribute, filename):
         """Saves the file, pointed to by the src field of a tag,
             to disk
             Returns the filename
         """
-        url = tag['src']
+        url = tag[attribute]
         return self.__downloadResource(self.__resolveURL(url), filename)
         
     def saveWebpageFile(self, filename):
