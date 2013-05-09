@@ -13,7 +13,6 @@
 #########################################################################
 
 import logging.config
-from Tribler.Core.Tag.Extraction import TermExtraction
 logging.config.fileConfig("logger.conf")#, disable_existing_loggers = False)
 logger = logging.getLogger(__name__)
 
@@ -142,8 +141,8 @@ class ABCApp():
     def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
-        self.installdir = installdir
-
+        self.installdir = self.configure_install_dir(installdir)
+        
         self.state_dir = None
         self.error = None
         self.last_update = 0
@@ -174,23 +173,60 @@ class ABCApp():
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()
-
-            self.utility = Utility(self.installdir, Session.get_default_state_dir())
-            self.utility.app = self
-            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
-
-            sys.stderr.write('Client Starting Up.\n')
-            sys.stderr.write('Tribler Version: ' + self.utility.lang.get('version') + ' Build: ' + self.utility.lang.get('build') + '\n')
+            
+            print >> sys.stderr, 'Client Starting Up.'
+            print >> sys.stderr, "Tribler is using", self.installdir, "as working directory"
 
             self.splash.tick('Starting API')
-            self.startAPI(self.splash.tick)
+            s = self.startAPI(self.splash.tick)
+            
+            self.dispersy = s.lm.dispersy
+            
+            self.utility = Utility(self.installdir, s.get_state_dir())
+            self.utility.app = self
+            self.utility.session = s
+            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
+
+            print >> sys.stderr, 'Tribler Version:',self.utility.lang.get('version'),' Build:',self.utility.lang.get('build')
+
+            self.splash.tick('Loading userdownloadchoice')
+            from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+            UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
+            
+            # Create global rate limiter
+            self.splash.tick('Setting up ratelimiters')
+            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
+
+            # Counter to suppress some event from occurring
+            self.ratestatecallbackcount = 0
+
+            # So we know if we asked for peer details last cycle
+            self.lastwantpeers = False
+
+            # boudewijn 01/04/2010: hack to fix the seedupload speed that
+            # was never used and defaulted to 0 (unlimited upload)
+            maxup = self.utility.config.Read('maxuploadrate', "int")
+            if maxup == -1:  # no upload
+                self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
+                self.ratelimiter.set_global_max_seedupload_speed(0.00001)
+            else:
+                self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
+                self.ratelimiter.set_global_max_seedupload_speed(maxup)
+
+            maxdown = self.utility.config.Read('maxdownloadrate', "int")
+            self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
+    
+            self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
+    
+            # Only allow updates to come in after we defined ratelimiter
+            self.prevActiveDownloads = []
+            s.set_download_states_callback(self.sesscb_states_callback)
+    
+            # Schedule task for checkpointing Session, to avoid hash checks after
+            # crashes.
+            self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
 
             self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Images', 'tribler.ico'))
-
-            cat = Category.getInstance(self.utility.getPath())
-            cat.init_from_main(self.utility)
-
-            TermExtraction.getInstance(self.utility.getPath())
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
@@ -289,7 +325,7 @@ class ABCApp():
         except Exception, e:
             self.onError(e)
             return False
-
+        
     def PostInit2(self):
         self.frame.Raise()
         self.startWithRightView()
@@ -355,34 +391,7 @@ class ABCApp():
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
         if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
             self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
-
-        # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
-        # only seen on windows
-
-        # apply trick to obtain the executable location
-        # see http://www.py2exe.org/index.cgi/WhereAmI
-        # Niels, 2012-01-31: py2exe should only apply to windows
-        if sys.platform == 'win32':
-            def we_are_frozen():
-                """Returns whether we are frozen via py2exe.
-                This will affect how we find out where we are located."""
-                return hasattr(sys, "frozen")
-
-            def module_path():
-                """ This will get us the program's directory,
-                even if we are frozen using py2exe"""
-                if we_are_frozen():
-                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding()))
-
-                filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))
-                return os.path.abspath(os.path.join(filedir, '..', '..'))
-
-            self.sconfig.set_install_dir(module_path())
-        else:
-            self.sconfig.set_install_dir(self.installdir)
-
-        print >> sys.stderr, "Tribler is using", self.sconfig.get_install_dir(), "as working directory"
-
+        
         # Arno, 2012-05-21: Swift part II
         swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
         if sys.platform == "darwin":
@@ -413,49 +422,38 @@ class ABCApp():
         if not self.sconfig.get_torrent_collecting_dir():
             torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
+            
+        self.sconfig.set_install_dir(self.installdir)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         s.start()
-        self.utility.session = s
-        self.dispersy = s.lm.dispersy
+        return s
+    
+    def configure_install_dir(self, installdir):
+        # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
+        # only seen on windows
 
-        progress('Loading userdownloadchoice')
-        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-        UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
+        # apply trick to obtain the executable location
+        # see http://www.py2exe.org/index.cgi/WhereAmI
+        # Niels, 2012-01-31: py2exe should only apply to windows
+        if sys.platform == 'win32':
+            def we_are_frozen():
+                """Returns whether we are frozen via py2exe.
+                This will affect how we find out where we are located."""
+                return hasattr(sys, "frozen")
 
-        # Create global rate limiter
-        progress('Setting up ratelimiters')
-        self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
+            def module_path():
+                """ This will get us the program's directory,
+                even if we are frozen using py2exe"""
+                if we_are_frozen():
+                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding()))
 
-        # Counter to suppress some event from occurring
-        self.ratestatecallbackcount = 0
+                filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))
+                return os.path.abspath(os.path.join(filedir, '..', '..'))
 
-        # So we know if we asked for peer details last cycle
-        self.lastwantpeers = False
-
-        # boudewijn 01/04/2010: hack to fix the seedupload speed that
-        # was never used and defaulted to 0 (unlimited upload)
-        maxup = self.utility.config.Read('maxuploadrate', "int")
-        if maxup == -1:  # no upload
-            self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
-            self.ratelimiter.set_global_max_seedupload_speed(0.00001)
-        else:
-            self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
-            self.ratelimiter.set_global_max_seedupload_speed(maxup)
-
-        maxdown = self.utility.config.Read('maxdownloadrate', "int")
-        self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
-
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
-
-        # Only allow updates to come in after we defined ratelimiter
-        self.prevActiveDownloads = []
-        s.set_download_states_callback(self.sesscb_states_callback)
-
-        # Schedule task for checkpointing Session, to avoid hash checks after
-        # crashes.
-        self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
+            return module_path()
+        return installdir
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):

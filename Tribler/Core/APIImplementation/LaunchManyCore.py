@@ -153,6 +153,7 @@ class TriblerLaunchMany(Thread):
                 import Tribler.Core.CacheDB.cachedb as cachedb
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler, NetworkBuzzDBHandler, UserEventLogDBHandler
                 from Tribler.Category.Category import Category
+                from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
 
                 # init cache db
@@ -164,6 +165,11 @@ class TriblerLaunchMany(Thread):
 
                 nocachedb = cachedb.init(config, self.rawserver_fatalerrorfunc)
                 try_register(nocachedb, self.database_thread)
+                
+                self.cat = Category.getInstance(config['install_dir'])
+                self.cat.init_from_main(None)
+
+                self.term = TermExtraction.getInstance(config['install_dir'])
 
                 self.peer_db = PeerDBHandler.getInstance()
                 # Register observer to update connection opened/closed to peer_db_handler
@@ -226,14 +232,6 @@ class TriblerLaunchMany(Thread):
 
     def init(self):
         config = self.session.sessconfig  # Should be safe at startup
-
-        if config['megacache']:
-            # Arno: THINK! whoever added this should at least have made the
-            # config files configurable via SessionConfigInterface.
-
-            # Some author: First Category instantiation requires install_dir, so do it now
-            from Tribler.Category.Category import Category
-            Category.getInstance(config['install_dir'])
 
         # Internal tracker
         if config['internaltracker']:
@@ -696,6 +694,9 @@ class TriblerLaunchMany(Thread):
             self.channelcast_db.delInstance()
             self.nb_db.delInstance()
             self.ue_db.delInstance()
+            self.cat.delInstance()
+            self.term.delInstance()
+            
 
             from Tribler.Core.CacheDB.sqlitecachedb import unregister
             unregister()

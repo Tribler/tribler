@@ -105,6 +105,7 @@ class TestAsServer(AbstractServer):
         self.config.set_dispersy(False)
         self.config.set_swift_proc(False)
         self.config.set_mainline_dht(False)
+        self.config.set_torrent_collecting(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
