@@ -48,6 +48,10 @@ class Category:
             Category(*args, **kw)
         return Category.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        Category.__single = None
+    delInstance = staticmethod(delInstance)
 
     def init_from_main(self, utility):
         self.utility = utility

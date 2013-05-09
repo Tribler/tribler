@@ -135,18 +135,13 @@ class MagnetHelpers:
                 break
             assert not (response[0] == EXTEND and response[1] == 42)
 
-class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
+class TestMagnet(TestAsServer):
     """
     A MiniBitTorrent instance is used to connect to BitTorrent clients
     and download the info part from the metadata.
     """
-    def setUp(self):
-        """ override TestAsServer """
-        # listener for incoming connections from MiniBitTorrent
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind(("localhost", LISTEN_PORT))
-        self.server.listen(1)
+    def setUp(self, setupSeeder = True):
+        TestAsServer.setUp(self)
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
@@ -155,11 +150,37 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
         self.tdef.finalize()
+        
+        self.setupSeeder = setupSeeder
+        if self.setupSeeder:
+            self.setup_seeder()
+            
+    def tearDown(self):
+        if self.setupSeeder:
+            self.teardown_seeder()
+            
+        TestAsServer.tearDown(self)
+        
+    def setup_seeder(self):
+        self.seeder_setup_complete = threading.Event()
 
-        MagnetHelpers.__init__(self, self.tdef)
+        self.dscfg = DownloadStartupConfig()
+        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))
+        self.download = self.session.start_download(self.tdef, self.dscfg)
+        self.download.set_state_callback(self.seeder_state_callback)
 
-        # startup the client
-        TestAsServer.setUp(self)
+        assert self.seeder_setup_complete.wait(30)
+        
+    def teardown_seeder(self):
+        self.session.remove_download(self.download)
+        
+    def seeder_state_callback(self, ds):
+        if ds.get_status() == DLSTATUS_SEEDING:
+            self.seeder_setup_complete.set()
+
+        d = ds.get_download()
+        print >> sys.stderr, "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
+        return (1.0, False)
 
     def create_good_url(self, infohash=None, title=None, tracker=None):
         url = "magnet:?xt=urn:btih:"
@@ -178,21 +199,51 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
 
     def test_good_transfer(self):
         def torrentdef_retrieved(tdef):
-            tags["retrieved"] = True
+            tags["metainfo"] = tdef.get_metainfo()
+            tags["retrieved"].set()
+
+        tags = {"retrieved":threading.Event()}
+        assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved)
+
+        # supply fake addresses (regular dht obviously wont work here)
+        for magnetlink in MagnetHandler.get_instance().get_magnets():
+            magnetlink._swarm.add_potential_peers([("localhost", self.hisport)])
+
+        assert tags["retrieved"].wait(60)
+        assert tags["metainfo"]["info"] == self.tdef.get_metainfo()["info"]
+
+class TestMagnetFakePeer(TestMagnet, MagnetHelpers):
+    """
+    A MiniBitTorrent instance is used to connect to BitTorrent clients
+    and download the info part from the metadata.
+    """
+    def setUp(self):
+        """ override TestAsServer """
+        # listener for incoming connections from MiniBitTorrent
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.bind(("", LISTEN_PORT))
+        self.server.listen(5)
+
+        TestMagnet.setUp(self, False)
+        MagnetHelpers.__init__(self, self.tdef)
+
+    def test_good_transfer(self):
+        def torrentdef_retrieved(tdef):
+            tags["retrieved"].set()
             tags["metainfo"] = tdef.get_metainfo()
 
-        tags = {"retrieved":False}
+        tags = {"retrieved":threading.Event()}
 
         assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved)
 
         def do_supply():
             # supply fake addresses (regular dht obviously wont work here)
             for magnetlink in MagnetHandler.get_instance().get_magnets():
-                magnetlink._swarm.add_potential_peers([("localhost", LISTEN_PORT)])
+                magnetlink._swarm.add_potential_peers([("127.0.0.1", LISTEN_PORT)])
         self.session.lm.rawserver.add_task(do_supply, delay = 5.0)
 
         # accept incoming connection
-        self.server.settimeout(10.0)
+        # self.server.settimeout(10.0)
         sock, address = self.server.accept()
         assert sock, "No incoming connection"
 
@@ -211,59 +262,20 @@ class TestMagnetMiniBitTorrent(TestAsServer, MagnetHelpers):
         # no more metadata request may be send and the connection must
         # be closed
         self.read_extend_metadata_close(conn)
-
-        time.sleep(5)
-        assert tags["retrieved"]
+        
+        assert tags["retrieved"].wait(5)
         assert tags["metainfo"]["info"] == self.tdef.get_metainfo()["info"]
 
-class TestMetadata(TestAsServer, MagnetHelpers):
+
+class TestMetadataFakePeer(TestMagnet, MagnetHelpers):
     """
     Once we are downloading a torrent, our client should respond to
     the ut_metadata extention message.  This allows other clients to
     obtain the info part of the metadata from us.
     """
     def setUp(self):
-        """ override TestAsServer """
-        TestAsServer.setUp(self)
-
-        # the metadata that we want to transfer
-        self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join(BASE_DIR, "API", "file.wmv"))
-        self.tdef.set_tracker("http://fake.net/announce")
-        # we use a small piece length to obtain multiple pieces
-        self.tdef.set_piece_length(1)
-        self.tdef.finalize()
-
+        TestMagnet.setUp(self)
         MagnetHelpers.__init__(self, self.tdef)
-
-        self.setup_seeder()
-
-    def tearDown(self):
-        self.teardown_seeder()
-        TestAsServer.tearDown(self)
-
-    def setup_seeder(self):
-        self.seeder_setup_complete = threading.Event()
-
-        self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))
-        self.download = self.session.start_download(self.tdef, self.dscfg)
-        self.download.set_state_callback(self.seeder_state_callback)
-
-        assert self.seeder_setup_complete.wait(30)
-        print >> sys.stderr, "test: setup_seeder() complete"
-
-    def teardown_seeder(self):
-        self.session.remove_download(self.download)
-        print >> sys.stderr, "test: teardown_seeder() complete"
-
-    def seeder_state_callback(self, ds):
-        if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeder_setup_complete.set()
-
-        d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
-        return (1.0, False)
 
     def test_good_request(self):
         conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())

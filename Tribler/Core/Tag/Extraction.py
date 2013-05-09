@@ -26,6 +26,14 @@ class TermExtraction:
                 TermExtraction.lock.release()
         return TermExtraction.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        # Singleton pattern with double-checking
+        if TermExtraction.__single:
+            TermExtraction.lock.acquire()
+            TermExtraction.__single = None
+            TermExtraction.lock.release()
+    delInstance = staticmethod(delInstance)
 
     def __init__(self, install_dir='.'):
         if TermExtraction.__single is not None:
