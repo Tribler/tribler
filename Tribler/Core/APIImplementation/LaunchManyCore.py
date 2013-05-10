@@ -23,8 +23,6 @@ except ImportError, e:
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.ServerPortHandler import MultiHandler
-from Tribler.Core.InternalTracker.track import Tracker
-from Tribler.Core.InternalTracker.HTTPHandler import HTTPHandler, DummyHTTPHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -233,11 +231,13 @@ class TriblerLaunchMany(Thread):
 
         # Internal tracker
         if config['internaltracker']:
+            from Tribler.Core.InternalTracker.track import Tracker
+            from Tribler.Core.InternalTracker.HTTPHandler import HTTPHandler
+            
             self.internaltracker = Tracker(config, self.rawserver)
-            self.httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
-        else:
-            self.httphandler = DummyHTTPHandler()
-        self.multihandler.set_httphandler(self.httphandler)
+            httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
+            self.multihandler.set_httphandler(httphandler)
+        
 
         if config['mainline_dht']:
             # Start up KTH mainline DHT
