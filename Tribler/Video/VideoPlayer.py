@@ -101,6 +101,7 @@ class VideoPlayer:
     def shutdown(self):
         if self.videohttpserv:
             self.videohttpserv.shutdown()
+            self.videohttpserv.server_close()
 
     def set_other_downloads(self, other_downloads):
         """A boolean indicating whether there are other downloads running at this time"""
