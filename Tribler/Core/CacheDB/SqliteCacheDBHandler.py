@@ -10,7 +10,6 @@ from copy import deepcopy, copy
 from traceback import print_exc, print_stack
 from time import time
 from binascii import hexlify
-from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.TorrentDef import TorrentDef
 import sys
 import os
