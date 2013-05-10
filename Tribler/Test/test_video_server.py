@@ -99,7 +99,15 @@ class TestVideoHTTPServer(unittest.TestCase):
         self.register_file_stream()
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('127.0.0.1', self.port))
+        for i in range(5): #attempt to connect 5 times, sleep for 5 seconds in between tries
+            try:
+                s.connect(('127.0.0.1', self.port))
+                break
+            except:
+                if i < 4:
+                    time.sleep(5)
+                else:
+                    raise
 
         head = self.get_std_header()
 
