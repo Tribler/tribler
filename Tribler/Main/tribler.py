@@ -884,6 +884,7 @@ class ABCApp():
             self.guiserver.delInstance()
         if self.videoplayer:
             self.videoplayer.shutdown()
+            self.videoplayer.delInstance()
 
         delete_status_holders()
 
