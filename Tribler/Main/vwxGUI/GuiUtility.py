@@ -568,6 +568,12 @@ class GUIUtility:
 
         if setCheck:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
+            
+        if newState:
+            self.utility.config.Write('family_filter', '1')
+        else:
+            self.utility.config.Write('family_filter', '0')
+        self.utility.config.Flush()
 
     def getFamilyFilter(self):
         catobj = Category.getInstance()

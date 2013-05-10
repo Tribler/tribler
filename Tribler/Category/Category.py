@@ -20,14 +20,12 @@ class Category:
     __single = None
     __size_change = 1024 * 1024
 
-    def __init__(self, install_dir='.'):
+    def __init__(self, install_dir='.', ffEnabled=False):
 
         if Category.__single:
             raise RuntimeError, "Category is singleton"
         filename = os.path.join(install_dir, LIBRARYNAME, 'Category', category_file)
         Category.__single = self
-        self.utility = None
-        # self.torrent_db = TorrentDBHandler.getInstance() # Arno, 2009-01-30: apparently unused
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(rankcmp)
@@ -40,7 +38,9 @@ class Category:
 
         if DEBUG:
             print >> sys.stderr, "category: Categories defined by user", self.getCategoryNames()
-
+            
+        self.ffEnabled = ffEnabled
+        self.set_family_filter(None)
 
     # return Category instance
     def getInstance(*args, **kw):
@@ -52,10 +52,6 @@ class Category:
     def delInstance(*args, **kw):
         Category.__single = None
     delInstance = staticmethod(delInstance)
-
-    def init_from_main(self, utility):
-        self.utility = utility
-        self.set_family_filter(None)  # init family filter to saved state
 
     def getCategoryKeys(self):
         if self.category_info is None:
@@ -219,20 +215,11 @@ class Category:
     def _getWords(self, string):
         return self.WORDS_REGEXP.findall(string)
 
-
     def family_filter_enabled(self):
         """
         Return is xxx filtering is enabled in this client
         """
-        if self.utility is None:
-            return False
-        state = self.utility.config.Read('family_filter')
-        if state in ('1', '0'):
-            return state == '1'
-        else:
-            self.utility.config.Write('family_filter', '1')
-            self.utility.config.Flush()
-            return True
+        return self.ffEnabled
 
     def set_family_filter(self, b=None):
         assert b in (True, False, None)
@@ -240,14 +227,9 @@ class Category:
         if b != old or b is None:  # update category data if initial call, or if state changes
             if b is None:
                 b = old
-            if self.utility is None:
-                return
-            # print >> sys.stderr , b
-            if b:
-                self.utility.config.Write('family_filter', '1')
-            else:
-                self.utility.config.Write('family_filter', '0')
-            self.utility.config.Flush()
+                
+            self.ffEnabled = b
+            
             # change category data
             for category in self.category_info:
                 if category['name'] == 'xxx':
@@ -257,7 +239,6 @@ class Category:
                     elif category['rank'] == -1:
                         category['rank'] = category['old-rank']
                     break
-
 
     def get_family_filter_sql(self, _getCategoryID, table_name=''):
         if self.family_filter_enabled():

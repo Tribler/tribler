@@ -167,8 +167,6 @@ class TriblerLaunchMany(Thread):
                 try_register(nocachedb, self.database_thread)
                 
                 self.cat = Category.getInstance(config['install_dir'])
-                self.cat.init_from_main(None)
-
                 self.term = TermExtraction.getInstance(config['install_dir'])
 
                 self.peer_db = PeerDBHandler.getInstance()
