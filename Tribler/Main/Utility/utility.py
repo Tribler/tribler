@@ -17,7 +17,6 @@ from Tribler.Core.defaults import dldefaults as BTDefaults
 from Tribler.Core.defaults import DEFAULTPORT
 from Tribler.Core.defaults import trackerdefaults as TrackerDefaults
 from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults
-from Tribler.Core.Utilities.parseargs import parseargs
 from Tribler.Core.__init__ import version_id
 
 if sys.platform == 'win32':
@@ -538,65 +537,6 @@ class Utility:
         button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
-
-    def getBTParams(self, skipcheck=False):
-        # Construct BT params
-        ###########################
-        btparams = []
-
-        btparams.append("--display_interval")
-        btparams.append(self.config.Read('display_interval'))
-
-        # Use single port only
-        btparams.append("--minport")
-        btparams.append(self.config.Read('minport'))
-        btparams.append("--maxport")
-        btparams.append(self.config.Read('minport'))
-
-#        btparams.append("--random_port")
-#        btparams.append(self.config.Read('randomport'))
-
-        # if self.config.Read('ipv6') == "1":
-        #    btparams.append("--ipv6_enable")
-        #    btparams.append(self.config.Read('ipv6'))
-        #    btparams.append("--ipv6_binds_v4")
-        #    btparams.append(self.config.Read('ipv6_binds_v4'))
-
-        # Fast resume
-        btparams.append("--selector_enabled")
-        btparams.append(self.config.Read('fastresume'))
-
-        btparams.append("--auto_kick")
-        btparams.append(self.config.Read('kickban'))
-        btparams.append("--security")
-        btparams.append(self.config.Read('notsameip'))
-
-        btparams.append("--max_upload_rate")
-        btparams.append("0")
-
-        paramlist = [ "ip",
-                      "bind",
-                      "alloc_rate",
-                      "alloc_type",
-                      "double_check",
-                      "triple_check",
-                      "lock_while_reading",
-                      "lock_files",
-                      "min_peers",
-                      "max_files_open",
-                      "max_connections",
-                      "auto_flush",
-                      "ut_pex_max_addrs_from_peer"]
-
-        for param in paramlist:
-            value = self.config.Read(param)
-            if value != "":
-                btparams.append("--" + param)
-                btparams.append(value)
-
-        config, args = parseargs(btparams, BTDefaults)
-
-        return config
 
     def getTrackerParams(self):
         tconfig = {}
