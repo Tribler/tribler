@@ -193,6 +193,18 @@ class ABCApp():
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
             
+            self.splash.tick('Initializing Family Filter')
+            cat = Category.getInstance()
+            
+            state = self.utility.config.Read('family_filter')
+            if state in ('1', '0'):
+                cat.set_family_filter(state == '1')
+            else:
+                self.utility.config.Write('family_filter', '1')
+                self.utility.config.Flush()
+                
+                cat.set_family_filter(True)
+            
             # Create global rate limiter
             self.splash.tick('Setting up ratelimiters')
             self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
