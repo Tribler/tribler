@@ -58,6 +58,12 @@ class VideoPlayer:
             VideoPlayer(*args, **kw)
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
+    
+    def delInstance(*args, **kw):
+        if VideoPlayer.__single and VideoPlayer.__single.videohttpserv:
+            VideoPlayer.__single.videohttpserv.delInstance()
+            VideoPlayer.__single = None
+    delInstance = staticmethod(delInstance)
 
     def hasInstance():
         return VideoPlayer.__single and VideoPlayer.__single.vlcwrap and VideoPlayer.__single.vlcwrap.initialized
