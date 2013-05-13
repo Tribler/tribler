@@ -10,7 +10,7 @@ import sys
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
    
-    __onLoadListeners = []  # Listener functions for webpage URL changes
+    __seedingListeners = [] # Listener functions for seeding requests
     instances = []          # All webbrowser instances exposed
    
     def __init__(self, parent=None):
@@ -87,27 +87,28 @@ class WebBrowser(XRCPanel):
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
     
-    def addOnLoadListener(self, listener):
-        '''Add handler function to be called when a webpage is loaded'''
-        self.__onLoadListeners.append(listener)
+    def addSeedingListener(self, listener):
+        '''Add handler function to be called when a webpage is requested to be seeded'''
+        self.__seedingListeners.append(listener)
         
-    def removeOnLoadListener(self, listener):
+    def removeSeedingListener(self, listener):
         '''Remove handler function which would be called when a webpage is loaded'''
-        self.__onLoadListeners.remove(listener)
+        self.__seedingListeners.remove(listener)
         
-    def __notifyOnLoadListeners(self):
+    def __notifySeedingListeners(self):
         '''Calls all registered OnLoad functions'''
-        for listener in self.__onLoadListeners:
+        for listener in self.__seedingListeners:
             value = listener(self)
             if value:
-                self.removeOnLoadListener(listener)
+                self.removeSeedingListener(listener)
     
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''        
+        #Show the actual page address in the address bar
+        self.adressBar.SetValue(self.webview.GetCurrentURL())
         #Update the seedbutton
         self.seedButton.SetLabel("Seed")
         self.seedButton.Enable()
-        self.__notifyOnLoadListeners()
         
     def seed(self, event):
         '''Start seeding the images on the website'''
@@ -115,7 +116,7 @@ class WebBrowser(XRCPanel):
         #disable seed button
         self.seedButton.Disable()
         #Start seeding images.
-        seedImages(self.webview.GetCurrentURL())
+        self.__notifySeedingListeners()
         self.seedButton.SetLabel("Seeded")
         
         
