@@ -1205,10 +1205,7 @@ class ChannelManager:
             self.remote_th = RemoteTorrentHandler.getInstance()
 
             self.dispersy = session.lm.dispersy
-            if self.dispersy:
-                self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
-
-            else:
+            if not self.dispersy:
                 def dispersy_started(subject, changeType, objectID):
                     assert session.lm.dispersy
                     self.dispersy = session.lm.dispersy

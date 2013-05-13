@@ -181,6 +181,15 @@ class TriblerLaunchMany(Thread):
                 self.nb_db = NetworkBuzzDBHandler.getInstance()
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
+                if self.dispersy:
+                    self.dispersy.database.attach_commit_callback(self.channelcast_db.commitNow)
+
+                else:
+                    def periodic_database_commit():
+                        while True:
+                            yield 60.0
+                            self.channelcast_db.commitNow()
+                    self.database_thread.register(periodic_database_commit)
 
             else:
                 config['torrent_checking'] = 0
