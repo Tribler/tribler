@@ -4,6 +4,7 @@ from Tribler.SiteRipper.WebpageInjector import WebpageInjector
 from Tribler.SiteRipper.ResourceSeeder import ResourceSeeder
 from Tribler.Main.tribler import run as Tribler_run
 from Tribler.Main.tribler import ABCApp
+from Tribler.Main.vwxGUI.webbrowser import WebBrowser
 
 import thread
 import time
@@ -71,7 +72,24 @@ def testPhase1():
     thread.start_new_thread( phase1, () )
     Tribler_run()
 
-testPhase1()
+def webpageLoaded(webbrowser):
+    injector = WebpageInjector(webbrowser.getCurrentURL(), webbrowser.getCurrentPageSource())
+    injector.saveWebpageFile('out.html')
+
+def testLoadListenera():
+    waitForTriblerStart()
+    webbrowserinstance = None
+    while not WebBrowser.instances[0]:
+        time.sleep(0.3)
+    webbrowserinstance = WebBrowser.instances[0]
+    webbrowserinstance.addSeedingListener(webpageLoaded)
+
+def testLoadListener():
+    thread.start_new_thread( testLoadListenera, () )
+    Tribler_run()
+
+testLoadListener()
+#testPhase1()
 #testResourceSeed()
 #testDownloadAndInject()
 #testDownloadResource()
