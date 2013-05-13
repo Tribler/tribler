@@ -22,7 +22,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     Use these to change the session config at runtime.
     """
-    def set_state_dir(self,statedir):
+    def set_state_dir(self, statedir):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_state_dir(self):
@@ -32,7 +32,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_install_dir(self,statedir):
+    def set_install_dir(self, statedir):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_install_dir(self):
@@ -42,7 +42,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_permid_keypair_filename(self,keypair):
+    def set_permid_keypair_filename(self, keypair):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_permid_keypair_filename(self):
@@ -52,7 +52,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_listen_port(self,port):
+    def set_listen_port(self, port):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_listen_port(self):
@@ -71,7 +71,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_ip(self,value):
+    def set_tracker_ip(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_ip(self):
@@ -81,7 +81,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_bind_to_addresses(self,value):
+    def set_bind_to_addresses(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_bind_to_addresses(self):
@@ -91,17 +91,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_upnp_mode(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_upnp_mode(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_upnp_mode(self)
-        finally:
-            self.sesslock.release()
-
-    def set_autoclose_timeout(self,value):
+    def set_autoclose_timeout(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_autoclose_timeout(self):
@@ -111,7 +101,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_autoclose_check_interval(self,value):
+    def set_autoclose_check_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_autoclose_check_interval(self):
@@ -121,7 +111,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_megacache(self,value):
+    def set_megacache(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_megacache(self):
@@ -131,7 +121,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_overlay(self,value):
+    def set_overlay(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_overlay(self):
@@ -141,7 +131,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_buddycast(self,value):
+    def set_buddycast(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_buddycast(self):
@@ -151,19 +141,19 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_start_recommender(self,value):
+    def set_start_recommender(self, value):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-            SessionConfigInterface.set_start_recommender(self,value)
+            SessionConfigInterface.set_start_recommender(self, value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_start_recommender(value)
-            olbridge.add_task(task,0)
+            olbridge.add_task(task, 0)
         finally:
             self.sesslock.release()
 
-    def olthread_set_start_recommender(self,value):
+    def olthread_set_start_recommender(self, value):
         from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
         bcfac = BuddyCastFactory.getInstance()
         if value:
@@ -180,7 +170,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
     # ProxyService_
     #
-    def set_proxyservice_status(self,value):
+    def set_proxyservice_status(self, value):
         """ Set the status of the proxyservice (on or off).
 
         ProxyService off means the current node could not be used as a proxy. ProxyService on means other nodes will be able to use it as a proxy.
@@ -203,7 +193,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_proxyservice_dir(self,value):
+    def set_proxyservice_dir(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_proxyservice_dir(self):
@@ -217,7 +207,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
 
 
 
-    def set_torrent_collecting(self,value):
+    def set_torrent_collecting(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_torrent_collecting(self):
@@ -228,7 +218,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
 
-    def set_torrent_collecting_dir(self,value):
+    def set_torrent_collecting_dir(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_torrent_collecting_dir(self):
@@ -238,17 +228,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_superpeer(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_superpeer(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_superpeer(self)
-        finally:
-            self.sesslock.release()
-
-    def set_overlay_log(self,value):
+    def set_overlay_log(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_overlay_log(self):
@@ -258,7 +238,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_buddycast_interval(self,value):
+    def set_buddycast_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_buddycast_interval(self):
@@ -268,19 +248,19 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_torrent_collecting_max_torrents(self,value):
+    def set_torrent_collecting_max_torrents(self, value):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-            SessionConfigInterface.set_torrent_collecting_max_torrents(self,value)
+            SessionConfigInterface.set_torrent_collecting_max_torrents(self, value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_torrent_collecting_max_torrents(value)
-            olbridge.add_task(task,0)
+            olbridge.add_task(task, 0)
         finally:
             self.sesslock.release()
 
-    def olthread_set_torrent_collecting_max_torrents(self,value):
+    def olthread_set_torrent_collecting_max_torrents(self, value):
         from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
         mh = MetadataHandler.getInstance()
         mh.set_overflow(value)
@@ -294,7 +274,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_buddycast_max_peers(self,value):
+    def set_buddycast_max_peers(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_buddycast_max_peers(self):
@@ -304,19 +284,19 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_torrent_collecting_rate(self,value):
+    def set_torrent_collecting_rate(self, value):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-            SessionConfigInterface.set_torrent_collecting_rate(self,value)
+            SessionConfigInterface.set_torrent_collecting_rate(self, value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_torrent_collecting_rate(value)
-            olbridge.add_task(task,0)
+            olbridge.add_task(task, 0)
         finally:
             self.sesslock.release()
 
-    def olthread_set_torrent_collecting_rate(self,value):
+    def olthread_set_torrent_collecting_rate(self, value):
         from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
         mh = MetadataHandler.getInstance()
         mh.set_rate(value)
@@ -328,7 +308,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_torrent_checking(self,value):
+    def set_torrent_checking(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_torrent_checking(self):
@@ -338,7 +318,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_torrent_checking_period(self,value):
+    def set_torrent_checking_period(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_torrent_checking_period(self):
@@ -348,7 +328,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_dialback(self,value):
+    def set_dialback(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_dialback(self):
@@ -358,39 +338,19 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_social_networking(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_social_networking(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_social_networking(self)
-        finally:
-            self.sesslock.release()
-
-    def set_remote_query(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_remote_query(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_remote_query(self)
-        finally:
-            self.sesslock.release()
-
-    def set_stop_collecting_threshold(self,value):
+    def set_stop_collecting_threshold(self, value):
         self.sesslock.acquire()
         try:
             from Tribler.Core.Overlay.OverlayThreadingBridge import OverlayThreadingBridge
 
-            SessionConfigInterface.set_stop_collecting_threshold(self,value)
+            SessionConfigInterface.set_stop_collecting_threshold(self, value)
             olbridge = OverlayThreadingBridge.getInstance()
             task = lambda:self.olthread_set_stop_collecting_threshold(value)
-            olbridge.add_task(task,0)
+            olbridge.add_task(task, 0)
         finally:
             self.sesslock.release()
 
-    def olthread_set_stop_collecting_threshold(self,value):
+    def olthread_set_stop_collecting_threshold(self, value):
         from Tribler.Core.Overlay.MetadataHandler import MetadataHandler
         mh = MetadataHandler.getInstance()
         mh.set_min_free_space(value)
@@ -403,7 +363,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_internal_tracker(self,value):
+    def set_internal_tracker(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_internal_tracker(self):
@@ -413,13 +373,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_internal_tracker_url(self,value):
+    def set_internal_tracker_url(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
-    #def get_internal_tracker_url(self):
+    # def get_internal_tracker_url(self):
         """ Implemented in Session.py """
 
-    def set_mainline_dht(self,value):
+    def set_mainline_dht(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_mainline_dht(self):
@@ -429,7 +389,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_nickname(self,value):
+    def set_nickname(self, value):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.set_nickname(self, value)
@@ -443,7 +403,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_mugshot(self,value, mime='image/jpeg'):
+    def set_mugshot(self, value, mime='image/jpeg'):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.set_mugshot(self, value, mime)
@@ -458,7 +418,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
 
-    def set_tracker_dfile(self,value):
+    def set_tracker_dfile(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_dfile(self):
@@ -468,7 +428,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_dfile_format(self,value):
+    def set_tracker_dfile_format(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_dfile_format(self):
@@ -478,7 +438,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_socket_timeout(self,value):
+    def set_tracker_socket_timeout(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_socket_timeout(self):
@@ -488,7 +448,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_save_dfile_interval(self,value):
+    def set_tracker_save_dfile_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_save_dfile_interval(self):
@@ -498,7 +458,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_timeout_downloaders_interval(self,value):
+    def set_tracker_timeout_downloaders_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_timeout_downloaders_interval(self):
@@ -508,7 +468,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_reannounce_interval(self,value):
+    def set_tracker_reannounce_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_reannounce_interval(self):
@@ -518,7 +478,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_response_size(self,value):
+    def set_tracker_response_size(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_response_size(self):
@@ -528,7 +488,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_timeout_check_interval(self,value):
+    def set_tracker_timeout_check_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_timeout_check_interval(self):
@@ -538,7 +498,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_nat_check(self,value):
+    def set_tracker_nat_check(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_nat_check(self):
@@ -548,7 +508,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_log_nat_checks(self,value):
+    def set_tracker_log_nat_checks(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_log_nat_checks(self):
@@ -558,7 +518,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_min_time_between_log_flushes(self,value):
+    def set_tracker_min_time_between_log_flushes(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_min_time_between_log_flushes(self):
@@ -568,7 +528,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_min_time_between_cache_refreshes(self,value):
+    def set_tracker_min_time_between_cache_refreshes(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_min_time_between_cache_refreshes(self):
@@ -578,7 +538,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_allowed_dir(self,value):
+    def set_tracker_allowed_dir(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_allowed_dir(self):
@@ -588,7 +548,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_allowed_list(self,value):
+    def set_tracker_allowed_list(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_allowed_list(self):
@@ -598,7 +558,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_allowed_controls(self,value):
+    def set_tracker_allowed_controls(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_allowed_controls(self):
@@ -608,7 +568,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_multitracker_enabled(self,value):
+    def set_tracker_multitracker_enabled(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_multitracker_enabled(self):
@@ -618,7 +578,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_multitracker_allowed(self,value):
+    def set_tracker_multitracker_allowed(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_multitracker_allowed(self):
@@ -628,7 +588,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_multitracker_reannounce_interval(self,value):
+    def set_tracker_multitracker_reannounce_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_multitracker_reannounce_interval(self):
@@ -638,7 +598,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_multitracker_maxpeers(self,value):
+    def set_tracker_multitracker_maxpeers(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_multitracker_maxpeers(self):
@@ -648,7 +608,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_aggregate_forward(self,value):
+    def set_tracker_aggregate_forward(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_aggregate_forward(self):
@@ -658,7 +618,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_aggregator(self,value):
+    def set_tracker_aggregator(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_aggregator(self):
@@ -668,7 +628,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_hupmonitor(self,value):
+    def set_tracker_hupmonitor(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_hupmonitor(self):
@@ -678,7 +638,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_multitracker_http_timeout(self,value):
+    def set_tracker_multitracker_http_timeout(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_multitracker_http_timeout(self):
@@ -688,7 +648,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_parse_dir_interval(self,value):
+    def set_tracker_parse_dir_interval(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_parse_dir_interval(self):
@@ -698,7 +658,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_show_infopage(self,value):
+    def set_tracker_show_infopage(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_show_infopage(self):
@@ -708,7 +668,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_infopage_redirect(self,value):
+    def set_tracker_infopage_redirect(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_infopage_redirect(self):
@@ -718,7 +678,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_show_names(self,value):
+    def set_tracker_show_names(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_show_names(self):
@@ -728,7 +688,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_favicon(self,value):
+    def set_tracker_favicon(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_favicon(self):
@@ -738,7 +698,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_allowed_ips(self,value):
+    def set_tracker_allowed_ips(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_allowed_ips(self):
@@ -748,7 +708,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_banned_ips(self,value):
+    def set_tracker_banned_ips(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_banned_ips(self):
@@ -758,7 +718,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_only_local_override_ip(self,value):
+    def set_tracker_only_local_override_ip(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_only_local_override_ip(self):
@@ -768,7 +728,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_logfile(self,value):
+    def set_tracker_logfile(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_logfile(self):
@@ -778,7 +738,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_allow_get(self,value):
+    def set_tracker_allow_get(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_allow_get(self):
@@ -788,7 +748,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_keep_dead(self,value):
+    def set_tracker_keep_dead(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_keep_dead(self):
@@ -798,7 +758,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_tracker_scrape_allowed(self,value):
+    def set_tracker_scrape_allowed(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_tracker_scrape_allowed(self):
@@ -808,7 +768,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_overlay_max_message_length(self,value):
+    def set_overlay_max_message_length(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_overlay_max_message_length(self):
@@ -818,27 +778,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_bartercast(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_bartercast(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_bartercast(self)
-        finally:
-            self.sesslock.release()
-
-    def set_superpeer_file(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_superpeer_file(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_superpeer_file(self)
-        finally:
-            self.sesslock.release()
-
-    def set_buddycast_collecting_solution(self,value):
+    def set_buddycast_collecting_solution(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_buddycast_collecting_solution(self):
@@ -848,7 +788,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def set_peer_icon_path(self,value):
+    def set_peer_icon_path(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_peer_icon_path(self):
@@ -861,63 +801,13 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     # NAT Puncturing servers information setting/retrieval
     #
-    def set_nat_detect(self,value):
-        raise OperationNotPossibleAtRuntimeException()
-
     def set_puncturing_private_port(self, puncturing_private_port):
         raise OperationNotPossibleAtRuntimeException()
-
-    def set_stun_servers(self, stun_servers):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def set_pingback_servers(self, pingback_servers):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_nat_detect(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_nat_detect(self)
-        finally:
-            self.sesslock.release()
-
-    def get_puncturing_internal_port(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_puncturing_internal_port(self)
-        finally:
-            self.sesslock.release()
-
-    def get_stun_servers(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_stun_servers(self)
-        finally:
-            self.sesslock.release()
-
-    def get_pingback_servers(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_pingback_servers(self)
-        finally:
-            self.sesslock.release()
-
-    #
-    # Crawler
-    #
-    def set_crawler(self, value):
-        raise OperationNotPossibleAtRuntimeException()
-
-    def get_crawler(self):
-        self.sesslock.acquire()
-        try:
-            return SessionConfigInterface.get_crawler(self)
-        finally:
-            self.sesslock.release()
 
     #
     # Local Peer Discovery using IP Multicast
     #
-    def set_multicast_local_peer_discovery(self,value):
+    def set_multicast_local_peer_discovery(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_multicast_local_peer_discovery(self):
@@ -930,7 +820,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
     #
     # SWIFTPROC
     #
-    def set_swift_proc(self,value):
+    def set_swift_proc(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_swift_proc(self):
@@ -941,7 +831,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
 
-    def set_swift_path(self,value):
+    def set_swift_path(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_swift_path(self):
@@ -952,7 +842,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
 
-    def set_swift_cmd_listen_port(self,port):
+    def set_swift_cmd_listen_port(self, port):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_swift_cmd_listen_port(self):
@@ -963,7 +853,7 @@ class SessionRuntimeConfig(SessionConfigInterface):
             self.sesslock.release()
 
 
-    def set_swift_downloads_per_process(self,value):
+    def set_swift_downloads_per_process(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
     def get_swift_downloads_per_process(self):

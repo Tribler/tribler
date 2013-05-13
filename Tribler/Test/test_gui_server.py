@@ -6,14 +6,14 @@
 import unittest
 from time import sleep
 
-from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 class TestGUITaskQueue(unittest.TestCase):
 
     def setUp(self):
         self.ntasks = 0
         self.completed = []
-        self.guiserver = TimedTaskQueue()
+        self.guiserver = GUITaskQueue()
 
     def tearDown(self):
         sleep(2)
@@ -21,6 +21,9 @@ class TestGUITaskQueue(unittest.TestCase):
         if self.completed != range(self.ntasks):
             print "test failed",self.completed
             self.assert_(False)
+            
+        self.guiserver.shutdown()
+        GUITaskQueue.delInstance()
 
     def test_simple(self):
         self.ntasks = 1
@@ -55,13 +58,3 @@ class TestGUITaskQueue(unittest.TestCase):
     def task(self,num):
         print "Running task",num
         self.completed.append(num)
-
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(TestGUITaskQueue))
-
-    return suite
-
-if __name__ == '__main__':
-    unittest.main(defaultTest='test_suite')

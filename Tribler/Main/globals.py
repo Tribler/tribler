@@ -57,5 +57,5 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     load = staticmethod(load)
 
 
-def get_default_dscfg_filename(session):
-    return os.path.join(session.get_state_dir(),STATEDIR_DLCONFIG)
+def get_default_dscfg_filename(state_dir):
+    return os.path.join(state_dir,STATEDIR_DLCONFIG)

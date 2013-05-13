@@ -57,5 +57,4 @@ def deinit():
             dht.stop()
         except:
             pass
-
         dht = None

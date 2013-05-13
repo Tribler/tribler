@@ -350,25 +350,6 @@ class MainFrame(wx.Frame):
         self.Thaw()
         self.ready = True
 
-        # Just for debugging: add test permids and display top 5 peers from which the most is downloaded in bartercastdb
-#        bartercastdb = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-#        mypermid = bartercastdb.my_permid
-#
-#        if DEBUG:
-#
-#            top = bartercastdb.getTopNPeers(5)['top']
-#
-#            print 'My Permid: ', show_permid(mypermid)
-#
-#            print 'Top 5 BarterCast peers:'
-#            print '======================='
-#
-#            i = 1
-#            for (permid, up, down) in top:
-#                print '%2d: %15s  -  %10d up  %10d down' % (i, bartercastdb.getName(permid), up, down)
-#                i += 1
-
-
         def post():
             self.checkVersion()
             self.startCMDLineTorrent()
@@ -533,6 +514,9 @@ class MainFrame(wx.Frame):
 
                         else:
                             dscfg.set_selected_files(selectedFiles)
+
+                    if sdef and not tdef:
+                        dscfg.set_swift_meta_dir(os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
                     print >> sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
@@ -1205,14 +1189,21 @@ class MainFrame(wx.Frame):
     def set_wxapp(self, wxapp):
         self.wxapp = wxapp
 
+    @forceWxThread
     def quit(self, force=True):
         print >> sys.stderr, "mainframe: in quit"
         if self.wxapp is not None:
+            print >> sys.stderr, "mainframe: using self.wxapp"
             app = self.wxapp
         else:
+            print >> sys.stderr, "mainframe: got app from wx"
             app = wx.GetApp()
 
         if app:
-            wx.CallLater(1000, app.ExitMainLoop)
+            def do_exit():
+                app.ExitMainLoop()
+                wx.WakeUpMainThread()
+
+            wx.CallLater(1000, do_exit)  # cannot be called immediately, window will still be visible
             if force:
                 wx.CallLater(2500, app.Exit)
