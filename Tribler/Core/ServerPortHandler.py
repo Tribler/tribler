@@ -171,7 +171,7 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 self.close()
                 return
             if x == True:       # ready to process
-                if self.protocol == 'HTTP':
+                if self.protocol == 'HTTP' and self.multihandler.httphandler:
                     if DEBUG:
                         print >> sys.stderr,"NewSocketHandler: Reporting HTTP connection"
                     self.multihandler.httphandler.external_connection_made(self.connection)

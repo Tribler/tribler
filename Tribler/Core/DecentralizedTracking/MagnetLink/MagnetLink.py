@@ -135,7 +135,8 @@ class MagnetLink:
             # method.  note that this object does not yet contain a
             # stop method...
             dht = mainlineDHT.dht
-            dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
+            if dht:
+                dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
 
             try:
                 if self._trackers and any(tracker.startswith("http") for tracker in self._trackers):

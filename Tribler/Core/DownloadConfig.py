@@ -55,8 +55,8 @@ class DownloadConfigInterface:
         # Define the built-in default here
         self.dlconfig.update(dldefaults)
 
-        self.dlconfig['saveas'] = get_default_dest_dir()
-
+        if not self.get_dest_dir():
+            self.set_dest_dir(get_default_dest_dir())
 
     def updateToCurrentVersion(self):
         """ Will update this DownloadConfig to the latest version

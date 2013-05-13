@@ -55,8 +55,8 @@ import tempfile
 import urllib
 from cStringIO import StringIO
 from base64 import b64encode, encodestring, decodestring
-from traceback import print_exc,print_stack
-from threading import Thread,currentThread,Lock
+from traceback import print_exc, print_stack
+from threading import Thread, currentThread, Lock
 
 if sys.platform == "win32":
     try:
@@ -76,7 +76,7 @@ from Tribler.Core.API import *
 from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
-from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler,InstanceConnection, Instance2InstanceClient
+from Tribler.Utilities.Instance2Instance import InstanceConnectionHandler, InstanceConnection, Instance2InstanceClient
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 from Tribler.Player.BaseApp import BaseApp
 from Tribler.Player.swarmplayer import get_status_msgs
@@ -86,8 +86,8 @@ from Tribler.Plugin.AtomFeedParser import *
 
 from Tribler.Video.defs import *
 from Tribler.Video.utils import videoextdefaults
-from Tribler.Video.VideoServer import VideoHTTPServer,MultiHTTPServer
-from Tribler.Video.Ogg import is_ogg,OggMagicLiveStream
+from Tribler.Video.VideoServer import VideoHTTPServer, MultiHTTPServer
+from Tribler.Video.Ogg import is_ogg, OggMagicLiveStream
 
 from Tribler.Core.Statistics.Status import Status, LivingLabReporter
 from Tribler.WebUI.WebUI import WebIFPathMapper
@@ -98,7 +98,7 @@ PHONEHOME = True
 ALLOW_MULTIPLE = False
 
 KILLONIDLE = False
-IDLE_BEFORE_SELFKILL = 60.0 # Number of seconds
+IDLE_BEFORE_SELFKILL = 60.0  # Number of seconds
 
 
 class BackgroundApp(BaseApp):
@@ -107,7 +107,7 @@ class BackgroundApp(BaseApp):
 
         # Almost generic HTTP server
         self.videoHTTPServer = VideoHTTPServer(httpport)
-        self.videoHTTPServer.register(self.videoservthread_error_callback,self.videoservthread_set_status_callback)
+        self.videoHTTPServer.register(self.videoservthread_error_callback, self.videoservthread_set_status_callback)
 
         BaseApp.__init__(self, redirectstderrout, appname, appversion, params, single_instance_checker, installdir, i2iport, sport)
         self.httpport = httpport
@@ -122,8 +122,8 @@ class BackgroundApp(BaseApp):
         # For saving .torrents received in hits to P2P searches using
         # SIMPLE+METADATA queries
         self.tqueue = TimedTaskQueue(nameprefix="BGTaskQueue")
-        self.searchmapper = SearchPathMapper(self.s,self.id2hits,self.tqueue)
-        self.hits2anypathmapper = Hits2AnyPathMapper(self.s,self.id2hits)
+        self.searchmapper = SearchPathMapper(self.s, self.id2hits, self.tqueue)
+        self.hits2anypathmapper = Hits2AnyPathMapper(self.s, self.id2hits)
 
         self.videoHTTPServer.add_path_mapper(self.searchmapper)
         self.videoHTTPServer.add_path_mapper(self.hits2anypathmapper)
@@ -149,16 +149,16 @@ class BackgroundApp(BaseApp):
         self.dusers = {}
         self.approxplayerstate = MEDIASTATE_STOPPED
 
-        self.counter = 0 # counter for the stats reported periodically
-        self.interval = 120 # report interval
+        self.counter = 0  # counter for the stats reported periodically
+        self.interval = 120  # report interval
         self.iseedeadpeople = False
 
         if sys.platform == "win32":
             # If the BG Process is started by the plug-in notify it with an event
             try:
-                startupEvent = win32event.CreateEvent( None, 0, 0, 'startupEvent' )
-                win32event.SetEvent( startupEvent )
-                win32api.CloseHandle( startupEvent ) # TODO : is it possible to avoid importing win32api just to close an handler?
+                startupEvent = win32event.CreateEvent(None, 0, 0, 'startupEvent')
+                win32event.SetEvent(startupEvent)
+                win32api.CloseHandle(startupEvent)  # TODO : is it possible to avoid importing win32api just to close an handler?
             except:
                 pass
 
@@ -174,57 +174,46 @@ class BackgroundApp(BaseApp):
             # capable of replying to the request. Hence, we disable self-destruct
             # for now.
             if KILLONIDLE:
-                print >>sys.stderr,"bg: Kill-on-idle test enabled"
-                self.i2is.add_task(self.i2i_kill_on_browser_gone,IDLE_BEFORE_SELFKILL/2)
+                print >> sys.stderr, "bg: Kill-on-idle test enabled"
+                self.i2is.add_task(self.i2i_kill_on_browser_gone, IDLE_BEFORE_SELFKILL / 2)
             else:
-                print >>sys.stderr,"bg: Kill-on-idle test disabled"
+                print >> sys.stderr, "bg: Kill-on-idle test disabled"
 
-            print >>sys.stderr,"bg: Awaiting commands"
+            print >> sys.stderr, "bg: Awaiting commands"
             return True
 
-        except Exception,e:
+        except Exception, e:
             print_exc()
             self.show_error(str(e))
             self.OnExit()
             return False
 
 
-    # Arno: SEARCH: disable overlay for now
-    # Also need to ensure that *stats*db SQL scripts are copied along during
-    # build and crap.
-    """
-    def configure_session(self):
-        # Leave buddycast, etc. enabled for SEARCH
-        self.sconfig.set_social_networking(False)
-        self.sconfig.set_bartercast(False)
-        self.sconfig.set_crawler(False) # Arno: Cleanup million stats dbs first
-    """
-
     #
     # InstanceConnectionHandler interface. Called by Instance2InstanceThread
     #
-    def external_connection_made(self,s):
-        ic = BGInstanceConnection(s,self,self.i2ithread_readlinecallback,self.videoHTTPServer)
+    def external_connection_made(self, s):
+        ic = BGInstanceConnection(s, self, self.i2ithread_readlinecallback, self.videoHTTPServer)
         self.singsock2ic[s] = ic
         if DEBUG:
-            print >>sys.stderr,"bg: Plugin connection_made",len(self.singsock2ic),"++++++++++++++++++++++++++++++++++++++++++++++++"
+            print >> sys.stderr, "bg: Plugin connection_made", len(self.singsock2ic), "++++++++++++++++++++++++++++++++++++++++++++++++"
 
         # Arno: Concurrency problems getting SEARCHURL message to work,
         # JavaScript can't always read it. TODO
-        ##ic.searchurl(self.searchurl)
+        # #ic.searchurl(self.searchurl)
 
-    def connection_lost(self,s):
+    def connection_lost(self, s):
         if DEBUG:
-            print >>sys.stderr,"bg: Plugin: connection_lost ------------------------------------------------"
+            print >> sys.stderr, "bg: Plugin: connection_lost ------------------------------------------------"
 
         ic = self.singsock2ic[s]
-        InstanceConnectionHandler.connection_lost(self,s)
-        wx.CallAfter(self.gui_connection_lost,ic)
+        InstanceConnectionHandler.connection_lost(self, s)
+        wx.CallAfter(self.gui_connection_lost, ic)
 
-    def gui_connection_lost(self,ic,switchp2ptarget=False):
+    def gui_connection_lost(self, ic, switchp2ptarget=False):
         # Find which download ic was interested in
         d2remove = None
-        for d,duser in self.dusers.iteritems():
+        for d, duser in self.dusers.iteritems():
             if duser['uic'] == ic:
                 duser['uic'] = None
                 d2remove = d
@@ -235,9 +224,9 @@ class BackgroundApp(BaseApp):
         # Yes: controlled stop via ic.shutdown()
         try:
             if switchp2ptarget:
-                ic.cleanup_playback() # idempotent
+                ic.cleanup_playback()  # idempotent
             else:
-                ic.shutdown() # idempotent
+                ic.shutdown()  # idempotent
         except:
             print_exc()
 
@@ -253,39 +242,39 @@ class BackgroundApp(BaseApp):
             #
             d_delayed_remove_if_lambda = lambda:self.i2ithread_delayed_remove_if_not_complete(d2remove)
             # h4x0r, abuse Istance2Instance server task queue for the delay
-            self.i2is.add_task(d_delayed_remove_if_lambda,10.0)
+            self.i2is.add_task(d_delayed_remove_if_lambda, 10.0)
 
-    def i2ithread_delayed_remove_if_not_complete(self,d2remove):
+    def i2ithread_delayed_remove_if_not_complete(self, d2remove):
         if DEBUG:
-            print >>sys.stderr,"bg: i2ithread_delayed_remove_if_not_complete"
+            print >> sys.stderr, "bg: i2ithread_delayed_remove_if_not_complete"
         d2remove.set_state_callback(self.sesscb_remove_playing_callback)
 
-    def remove_playing_download(self,d2remove):
+    def remove_playing_download(self, d2remove):
         """ Called when sesscb_remove_playing_callback has determined that
         we should remove this Download, because it would take too much
         bandwidth to download it. However, we must check in another user has not
         become interested.
         """
         if DEBUG:
-            print >>sys.stderr,"bg: remove_playing_download @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+            print >> sys.stderr, "bg: remove_playing_download @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
         if d2remove in self.dusers:
             duser = self.dusers[d2remove]
             if duser['uic'] is None:
                 # No interest
                 if DEBUG:
-                    print >>sys.stderr,"bg: remove_playing_download: Yes, no interest"
-                BaseApp.remove_playing_download(self,d2remove)
+                    print >> sys.stderr, "bg: remove_playing_download: Yes, no interest"
+                BaseApp.remove_playing_download(self, d2remove)
                 if 'streaminfo' in duser:
                     stream = duser['streaminfo']['stream']
-                    stream.close() # Close original stream.
+                    stream.close()  # Close original stream.
                 del self.dusers[d2remove]
             elif DEBUG:
-                print >>sys.stderr,"bg: remove_playing_download: No, someone interested",`duser['uic']`
+                print >> sys.stderr, "bg: remove_playing_download: No, someone interested", `duser['uic']`
 
 
-    def i2ithread_readlinecallback(self,ic,cmd):
+    def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
-        wx.CallAfter(self.gui_readlinecallback,ic,cmd)
+        wx.CallAfter(self.gui_readlinecallback, ic, cmd)
 
     def split_params(self, url):
         """
@@ -295,55 +284,55 @@ class BackgroundApp(BaseApp):
         params = {}
         idx = url.find("?")
         if idx > -1:
-            _params = url[idx+1:].split("&")
+            _params = url[idx + 1:].split("&")
             url = url[:idx]
             for param in _params:
                 if param.find("=") == -1:
-                    continue # Not a parameter
+                    continue  # Not a parameter
                 (name, value) = param.split("=", 1)
                 params[name] = value
         return (url, params)
 
-    def gui_readlinecallback(self,ic,cmd):
+    def gui_readlinecallback(self, ic, cmd):
         """ Receive command from Plugin """
 
         if DEBUG:
-            print >>sys.stderr,"bg: Got command:",cmd
+            print >> sys.stderr, "bg: Got command:", cmd
         try:
             # START command
-            if cmd.startswith( 'START' ):
-                torrenturl = cmd.partition( ' ' )[2]
+            if cmd.startswith('START'):
+                torrenturl = cmd.partition(' ')[2]
                 if torrenturl is None:
                     raise ValueError('bg: Unformatted START command')
                 else:
                     # SWITCHP2PTARGET: See if already downloading/playing something
                     items = self.dusers.items()
-                    for d,duser in items:
+                    for d, duser in items:
                         if duser['uic'] == ic:
                             # Stop current
-                            self.gui_connection_lost(ic,switchp2ptarget=True)
+                            self.gui_connection_lost(ic, switchp2ptarget=True)
 
                     poa = None
                     url = torrenturl
-                    self.get_torrent_start_download(ic,url,poa=poa)
+                    self.get_torrent_start_download(ic, url, poa=poa)
 
             # SHUTDOWN command
             elif cmd.startswith('SHUTDOWN'):
-                print >>sys.stderr,"bg: Got SHUTDOWN, sending SHUTDOWN"
+                print >> sys.stderr, "bg: Got SHUTDOWN, sending SHUTDOWN"
                 ic.shutdown()
             elif cmd.startswith('SUPPORTS'):
                 # Arno, 2010-06-15: only used by SwarmTransport at the moment
                 # to convey it cannot pause.
                 ic.set_supported_vod_events([VODEVENT_START])
             else:
-                raise ValueError('bg: Unknown command: '+cmd)
-        except Exception,e:
+                raise ValueError('bg: Unknown command: ' + cmd)
+        except Exception, e:
             print_exc()
             # Arno, 2010-05-27: Don't kill Control connection, for set_p2ptarget
             ic.error(str(e))
             ic.cleanup_playback()
 
-    def get_torrent_start_download(self,ic,url,poa=None):
+    def get_torrent_start_download(self, ic, url, poa=None):
         """ Retrieve torrent file from url and start it in VOD mode, if not already """
 
         if url.endswith(".html"):
@@ -351,10 +340,10 @@ class BackgroundApp(BaseApp):
             # Just to keep exception trace away.
             return
 
-        tdef  = TorrentDef.load_from_url(url)
+        tdef = TorrentDef.load_from_url(url)
 
         # tdef.input['announce'] = "http://dead.globe.cs.vu.nl:6969/announce"
-        #tdef.metainfo['announce'] = "http://dead.globe.cs.vu.nl:6969/announce"
+        # tdef.metainfo['announce'] = "http://dead.globe.cs.vu.nl:6969/announce"
 
         # Select which video to play (if multiple)
         if tdef.get_live():
@@ -369,7 +358,7 @@ class BackgroundApp(BaseApp):
             raise ValueError("bg: get_torrent_start_download: Too many files found! Giving up")
 
         if DEBUG:
-            print >>sys.stderr,"bg: get_torrent_start_download: Found video file",dlfile
+            print >> sys.stderr, "bg: get_torrent_start_download: Found video file", dlfile
 
         # Closed swarms?
         if not poa:
@@ -395,11 +384,11 @@ class BackgroundApp(BaseApp):
 
             if DEBUG:
                 if oldd is None:
-                    print >>sys.stderr,"bg: get_torrent_start_download: Starting new Download"
+                    print >> sys.stderr, "bg: get_torrent_start_download: Starting new Download"
                 else:
-                    print >>sys.stderr,"bg: get_torrent_start_download: Restarting old Download in VOD mode"
+                    print >> sys.stderr, "bg: get_torrent_start_download: Restarting old Download in VOD mode"
 
-            d = self.start_download(tdef,dlfile,poa,ic.get_supported_vod_events())
+            d = self.start_download(tdef, dlfile, poa, ic.get_supported_vod_events())
             duser = {'uic':ic}
             self.dusers[d] = duser
         else:
@@ -412,7 +401,7 @@ class BackgroundApp(BaseApp):
             olduic = duser['uic']
             if olduic is not None:
                 # Cleanup like a shutdown, but send STOP
-                print >>sys.stderr,"bg: get_torrent_start_download: Telling old player to stop"
+                print >> sys.stderr, "bg: get_torrent_start_download: Telling old player to stop"
                 olduic.cleanup_playback()
                 olduic.stop()
             duser['uic'] = ic
@@ -435,11 +424,11 @@ class BackgroundApp(BaseApp):
     #
     # DownloadStates
     #
-    def gui_states_callback(self,dslist,haspeerlist):
+    def gui_states_callback(self, dslist, haspeerlist):
         """ Override BaseApp """
-        #print >>sys.stderr,"bg: gui_states_callback",currentThread().getName()
+        # print >>sys.stderr,"bg: gui_states_callback",currentThread().getName()
 
-        (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
+        (playing_dslist, totalhelping, totalspeed) = BaseApp.gui_states_callback(self, dslist, haspeerlist)
         try:
             self.report_periodic_vod_stats(playing_dslist)
         except:
@@ -451,23 +440,23 @@ class BackgroundApp(BaseApp):
             uic = duser['uic']
             if uic is not None:
                 # Generate info string for all
-                [topmsg,msg,duser['said_start_playback'],duser['decodeprogress']] = get_status_msgs(ds,self.approxplayerstate,self.appname,duser['said_start_playback'],duser['decodeprogress'],totalhelping,totalspeed)
+                [topmsg, msg, duser['said_start_playback'], duser['decodeprogress']] = get_status_msgs(ds, self.approxplayerstate, self.appname, duser['said_start_playback'], duser['decodeprogress'], totalhelping, totalspeed)
                 info = msg
-                #if DEBUG:
+                # if DEBUG:
                 #    print >>sys.stderr, 'bg: 4INFO: Sending',info
                 uic.info(info)
 
-    def sesscb_vod_event_callback( self, d, event, params ):
+    def sesscb_vod_event_callback(self, d, event, params):
         """ Registered by BaseApp. Called by SessionCallbackThread """
-        wx.CallAfter(self.gui_vod_event_callback,d,event,params)
+        wx.CallAfter(self.gui_vod_event_callback, d, event, params)
 
-    def gui_vod_event_callback( self, d, event, params ):
+    def gui_vod_event_callback(self, d, event, params):
         if DEBUG:
-            print >>sys.stderr,"bg: gui_vod_event_callback: Event: ", event
-            print >>sys.stderr,"bg: gui_vod_event_callback: Params: ", params
+            print >> sys.stderr, "bg: gui_vod_event_callback: Event: ", event
+            print >> sys.stderr, "bg: gui_vod_event_callback: Params: ", params
         if event == VODEVENT_START:
             if params['filename']:
-                stream = open( params['filename'], "rb" )
+                stream = open(params['filename'], "rb")
             else:
                 stream = params['stream']
 
@@ -492,7 +481,7 @@ class BackgroundApp(BaseApp):
                         # two things:
                         # 1. Write Ogg headers (stored in .tstream)
                         # 2. Find first Ogg page in stream.
-                        stream = OggMagicLiveStream(d.get_def(),stream)
+                        stream = OggMagicLiveStream(d.get_def(), stream)
 
             if not d.get_def().get_live() and not params['filename']:
                 # Arno, < 2010-08-10: Firefox reads aggressively, we just
@@ -500,11 +489,11 @@ class BackgroundApp(BaseApp):
                 # have to fallback to HTTP servers.
                 #
                 # 2010-08-10: not when file complete on disk ;-)
-                stream = AtBitrateStream( stream, params['bitrate'] )
+                stream = AtBitrateStream(stream, params['bitrate'])
 
 
             blocksize = d.get_def().get_piece_length()
-            #Ric: add svc on streaminfo, added bitrate
+            # Ric: add svc on streaminfo, added bitrate
             streaminfo = { 'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'], 'blocksize':blocksize, 'svc': d.get_mode() == DLMODE_SVC, 'bitrate': params['bitrate'] }
 
             duser = self.dusers[d]
@@ -538,66 +527,66 @@ class BackgroundApp(BaseApp):
     #
     # VideoServer status/error reporting
     #
-    def videoservthread_error_callback(self,e,url):
+    def videoservthread_error_callback(self, e, url):
         """ Called by HTTP serving thread """
-        wx.CallAfter(self.videoserver_error_guicallback,e,url)
+        wx.CallAfter(self.videoserver_error_guicallback, e, url)
 
-    def videoserver_error_guicallback(self,e,url):
-        print >>sys.stderr,"bg: Video server reported error",str(e)
+    def videoserver_error_guicallback(self, e, url):
+        print >> sys.stderr, "bg: Video server reported error", str(e)
         #    self.show_error(str(e))
         pass
         # ARNOTODO: schedule current Download for removal?
 
-    def videoservthread_set_status_callback(self,status):
+    def videoservthread_set_status_callback(self, status):
         """ Called by HTTP serving thread """
-        wx.CallAfter(self.videoserver_set_status_guicallback,status)
+        wx.CallAfter(self.videoserver_set_status_guicallback, status)
 
-    def videoserver_set_status_guicallback(self,status):
-        #print >>sys.stderr,"bg: Video server sets status callback",status
+    def videoserver_set_status_guicallback(self, status):
+        # print >>sys.stderr,"bg: Video server sets status callback",status
         # ARNOTODO: Report status to plugin
         pass
 
     #
     # reports vod stats collected periodically
     #
-    def report_periodic_vod_stats(self,playing_dslist):
-        #print >>sys.stderr, "VOD Stats"
+    def report_periodic_vod_stats(self, playing_dslist):
+        # print >>sys.stderr, "VOD Stats"
         self.counter += 1
-        if self.counter%self.interval == 0:
+        if self.counter % self.interval == 0:
             event_reporter = Status.get_status_holder("LivingLab")
             if event_reporter is not None:
                 for ds in playing_dslist:
                     dw = ds.get_download()
                     b64_infohash = b64encode(dw.get_def().get_infohash())
                     vod_stats = ds.get_vod_stats()
-                    #if vod_stats_has_key("prebuf"): event_reporter.add_event(b64_infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
-                    if vod_stats.has_key("stall"): event_reporter.create_and_add_event("stall", [b64_infohash, vod_stats['stall']]) # time the player stalled
-                    if vod_stats.has_key("late"): event_reporter.create_and_add_event("late", [b64_infohash, vod_stats['late']]) # number of pieces arrived after they were due
-                    if vod_stats.has_key("dropped"): event_reporter.create_and_add_event("dropped", [b64_infohash, vod_stats['dropped']]) # number of pieces lost
-                    if vod_stats.has_key("pos"): event_reporter.create_and_add_event("pos", [b64_infohash, vod_stats['pos']]) # playback position
+                    # if vod_stats_has_key("prebuf"): event_reporter.add_event(b64_infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
+                    if vod_stats.has_key("stall"): event_reporter.create_and_add_event("stall", [b64_infohash, vod_stats['stall']])  # time the player stalled
+                    if vod_stats.has_key("late"): event_reporter.create_and_add_event("late", [b64_infohash, vod_stats['late']])  # number of pieces arrived after they were due
+                    if vod_stats.has_key("dropped"): event_reporter.create_and_add_event("dropped", [b64_infohash, vod_stats['dropped']])  # number of pieces lost
+                    if vod_stats.has_key("pos"): event_reporter.create_and_add_event("pos", [b64_infohash, vod_stats['pos']])  # playback position
 
-    def gui_webui_remove_download(self,d2remove):
+    def gui_webui_remove_download(self, d2remove):
         """ Called when user has decided to remove a specific DL via webUI """
         if DEBUG:
-            print >>sys.stderr,"bg: gui_webui_remove_download"
-        self.gui_webui_halt_download(d2remove,stop=False)
+            print >> sys.stderr, "bg: gui_webui_remove_download"
+        self.gui_webui_halt_download(d2remove, stop=False)
 
 
-    def gui_webui_stop_download(self,d2stop):
+    def gui_webui_stop_download(self, d2stop):
         """ Called when user has decided to stop a specific DL via webUI """
         if DEBUG:
-            print >>sys.stderr,"bg: gui_webui_stop_download"
-        self.gui_webui_halt_download(d2stop,stop=True)
+            print >> sys.stderr, "bg: gui_webui_stop_download"
+        self.gui_webui_halt_download(d2stop, stop=True)
 
 
-    def gui_webui_restart_download(self,d2restart):
+    def gui_webui_restart_download(self, d2restart):
         """ Called when user has decided to restart a specific DL via webUI for sharing """
         duser = {'uic':None}
         self.dusers[d2restart] = duser
         d2restart.restart()
 
 
-    def gui_webui_halt_download(self,d2halt,stop=False):
+    def gui_webui_halt_download(self, d2halt, stop=False):
         """ Called when user has decided to stop or remove a specific DL via webUI.
         For stop the Download is not removed. """
         if d2halt in self.dusers:
@@ -605,42 +594,42 @@ class BackgroundApp(BaseApp):
                 duser = self.dusers[d2halt]
                 olduic = duser['uic']
                 if olduic is not None:
-                    print >>sys.stderr,"bg: gui_webui_halt_download: Oops, someone interested, removing anyway"
+                    print >> sys.stderr, "bg: gui_webui_halt_download: Oops, someone interested, removing anyway"
                     olduic.shutdown()
                 if 'streaminfo' in duser:
                     # Download was already playing, clean up.
                     stream = duser['streaminfo']['stream']
-                    stream.close() # Close original stream.
+                    stream.close()  # Close original stream.
             finally:
                 del self.dusers[d2halt]
         if stop:
-            BaseApp.stop_playing_download(self,d2halt)
+            BaseApp.stop_playing_download(self, d2halt)
         else:
-            BaseApp.remove_playing_download(self,d2halt)
+            BaseApp.remove_playing_download(self, d2halt)
 
 
-    def gui_webui_remove_all_downloads(self,ds2remove):
+    def gui_webui_remove_all_downloads(self, ds2remove):
         """ Called when user has decided to remove all DLs via webUI """
         if DEBUG:
-            print >>sys.stderr,"bg: gui_webui_remove_all_downloads"
+            print >> sys.stderr, "bg: gui_webui_remove_all_downloads"
 
         for d2remove in ds2remove:
-            self.gui_webui_halt_download(d2remove,stop=False)
+            self.gui_webui_halt_download(d2remove, stop=False)
 
 
-    def gui_webui_stop_all_downloads(self,ds2stop):
+    def gui_webui_stop_all_downloads(self, ds2stop):
         """ Called when user has decided to stop all DLs via webUI """
         if DEBUG:
-            print >>sys.stderr,"bg: gui_webui_stop_all_downloads"
+            print >> sys.stderr, "bg: gui_webui_stop_all_downloads"
 
         for d2stop in ds2stop:
-            self.gui_webui_halt_download(d2stop,stop=True)
+            self.gui_webui_halt_download(d2stop, stop=True)
 
 
-    def gui_webui_restart_all_downloads(self,ds2restart):
+    def gui_webui_restart_all_downloads(self, ds2restart):
         """ Called when user has decided to restart all DLs via webUI """
         if DEBUG:
-            print >>sys.stderr,"bg: gui_webui_restart_all_downloads"
+            print >> sys.stderr, "bg: gui_webui_restart_all_downloads"
 
         for d2restart in ds2restart:
             self.gui_webui_restart_download(d2restart)
@@ -650,26 +639,26 @@ class BackgroundApp(BaseApp):
         try:
             lastt = self.webIFmapper.lastreqtime
 
-            print >>sys.stderr,"bg: Test for self destruct: idle",time.time()-lastt,currentThread().getName()
+            print >> sys.stderr, "bg: Test for self destruct: idle", time.time() - lastt, currentThread().getName()
 
             if time.time() - IDLE_BEFORE_SELFKILL > lastt:
                 if self.iseedeadpeople:
-                    print >>sys.stderr,"bg: SHOULD HAVE self destructed, hardcore stylie"
+                    print >> sys.stderr, "bg: SHOULD HAVE self destructed, hardcore stylie"
                     resched = False
-                    #os._exit(0)
+                    # os._exit(0)
                 else:
-                    print >>sys.stderr,"bg: SHOULD HAVE self destructed"
+                    print >> sys.stderr, "bg: SHOULD HAVE self destructed"
                     self.iseedeadpeople = True
                     # No sign of life from statusbar, self destruct
-                    #wx.CallAfter(self.ExitMainLoop)
+                    # wx.CallAfter(self.ExitMainLoop)
         finally:
             if resched:
-                self.i2is.add_task(self.i2i_kill_on_browser_gone,IDLE_BEFORE_SELFKILL/2)
+                self.i2is.add_task(self.i2i_kill_on_browser_gone, IDLE_BEFORE_SELFKILL / 2)
 
 
 class BGInstanceConnection(InstanceConnection):
 
-    def __init__(self,singsock,connhandler,readlinecallback,videoHTTPServer):
+    def __init__(self, singsock, connhandler, readlinecallback, videoHTTPServer):
         InstanceConnection.__init__(self, singsock, connhandler, readlinecallback)
 
         self.bgapp = connhandler
@@ -677,10 +666,10 @@ class BGInstanceConnection(InstanceConnection):
         self.urlpath = None
         self.cstreaminfo = {}
         self.shutteddown = False
-        self.supportedvodevents = [VODEVENT_START,VODEVENT_PAUSE,VODEVENT_RESUME]
+        self.supportedvodevents = [VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME]
 
 
-    def set_streaminfo(self,streaminfo):
+    def set_streaminfo(self, streaminfo):
         """ Copy streaminfo contents and replace stream with a ControlledStream """
         """
         For each IC we create separate stream object and a unique path in the
@@ -700,24 +689,24 @@ class BGInstanceConnection(InstanceConnection):
         """
         self.cstreaminfo.update(streaminfo)
         stream = streaminfo['stream']
-        cstream = ControlledStream( stream )
+        cstream = ControlledStream(stream)
         self.cstreaminfo['stream'] = cstream
 
-    def start_playback(self,infohash):
+    def start_playback(self, infohash):
         """ Register cstream with HTTP server and tell IC to start reading """
 
-        self.urlpath = URLPATH_CONTENT_PREFIX+'/'+infohash2urlpath(infohash)+'/'+str(random.random())
+        self.urlpath = URLPATH_CONTENT_PREFIX + '/' + infohash2urlpath(infohash) + '/' + str(random.random())
 
-        self.videoHTTPServer.set_inputstream(self.cstreaminfo,self.urlpath)
+        self.videoHTTPServer.set_inputstream(self.cstreaminfo, self.urlpath)
 
         if DEBUG:
-            print >> sys.stderr, "bg: Telling plugin to start playback of",self.urlpath
+            print >> sys.stderr, "bg: Telling plugin to start playback of", self.urlpath
 
-        self.write( 'PLAY '+self.get_video_url()+'\r\n' )
+        self.write('PLAY ' + self.get_video_url() + '\r\n')
 
     def cleanup_playback(self):
         if DEBUG:
-            print >>sys.stderr,'bg: ic: cleanup'
+            print >> sys.stderr, 'bg: ic: cleanup'
         # Cause HTTP server thread to receive EOF on inputstream
         if len(self.cstreaminfo) != 0:
             self.cstreaminfo['stream'].close()
@@ -725,41 +714,41 @@ class BGInstanceConnection(InstanceConnection):
                 # TODO: get rid of del_inputstream lock
                 # Arno, 2009-12-11: Take this out of critical path on MainThread
                 http_del_inputstream_lambda = lambda:self.videoHTTPServer.del_inputstream(self.urlpath)
-                self.bgapp.tqueue.add_task(http_del_inputstream_lambda,0)
+                self.bgapp.tqueue.add_task(http_del_inputstream_lambda, 0)
             except:
                 print_exc()
 
 
     def get_video_url(self):
-        return 'http://127.0.0.1:'+str(self.videoHTTPServer.get_port())+self.urlpath
+        return 'http://127.0.0.1:' + str(self.videoHTTPServer.get_port()) + self.urlpath
 
     def pause(self):
-        self.write( 'PAUSE\r\n' )
+        self.write('PAUSE\r\n')
 
     def resume(self):
-        self.write( 'RESUME\r\n' )
+        self.write('RESUME\r\n')
 
-    def info(self,infostr):
-        self.write( 'INFO '+infostr+'\r\n' )
+    def info(self, infostr):
+        self.write('INFO ' + infostr + '\r\n')
 
     # Arno, 2010-05-28: Convey the BGprocess won't be able to serve the content
-    def error(self,infostr):
-        self.write( 'ERROR '+infostr+'\r\n' )
+    def error(self, infostr):
+        self.write('ERROR ' + infostr + '\r\n')
 
     # Arno, 2010-05-27: Stop playback
     def stop(self):
         # Stop playback
-        self.write( 'STOP\r\n' )
+        self.write('STOP\r\n')
 
     def shutdown(self):
         # SHUTDOWN Service
         if DEBUG:
-            print >>sys.stderr,'bg: ic: shutdown'
+            print >> sys.stderr, 'bg: ic: shutdown'
         if not self.shutteddown:
             self.shutteddown = True
             self.cleanup_playback()
 
-            self.write( 'SHUTDOWN\r\n' )
+            self.write('SHUTDOWN\r\n')
             # Will cause BaseApp.connection_lost() to be called, where we'll
             # handle what to do about the Download that was started for this
             # IC.
@@ -771,7 +760,7 @@ class BGInstanceConnection(InstanceConnection):
     def get_supported_vod_events(self):
         return self.supportedvodevents
 
-    def set_supported_vod_events(self,eventlist):
+    def set_supported_vod_events(self, eventlist):
         self.supportedvodevents = eventlist
 
 
@@ -780,18 +769,18 @@ class ControlledStream:
     the underlying inputstream. See BGInstanceConnection.set_streaminfo() for
     an explanation on how this is used.
     """
-    def __init__(self,stream):
+    def __init__(self, stream):
         self.stream = stream
-        self.done = False # Event()
+        self.done = False  # Event()
 
-    def read(self,nbytes=None):
+    def read(self, nbytes=None):
         if not self.done:
             return self.stream.read(nbytes)
         else:
-            return '' # EOF
+            return ''  # EOF
 
-    def seek(self,pos,whence=os.SEEK_SET):
-        self.stream.seek(pos,whence)
+    def seek(self, pos, whence=os.SEEK_SET):
+        self.stream.seek(pos, whence)
 
     def close(self):
         self.done = True
@@ -811,16 +800,16 @@ class AtBitrateStream:
     SAFE_MARGIN_TIME = 10.0  # same as VideoOnDemand.py
 
     # Increment the bitrate by percentage (give more bandwidth to the player).
-    BITRATE_SPEED_INCREMENT = 1.05 # +5%
+    BITRATE_SPEED_INCREMENT = 1.05  # +5%
 
     # Streaming status
     STREAM_STATE_TRANSITION = 0
-    STREAM_STATE_PREBUFFER  = 1
-    STREAM_STATE_PLAYING    = 2
+    STREAM_STATE_PREBUFFER = 1
+    STREAM_STATE_PLAYING = 2
 
-    def __init__( self, stream, bitrate ):
+    def __init__(self, stream, bitrate):
         self.stream = stream
-        self.done = False # Event()
+        self.done = False  # Event()
         self.bitrate = bitrate
         self.safe_bytes = self.SAFE_MARGIN_TIME * bitrate
         self.stream_state = self.STREAM_STATE_TRANSITION
@@ -828,7 +817,7 @@ class AtBitrateStream:
         self.playback = 0.0
         self.given_bytes_till = 0
 
-    def has_to_sleep( self, nbytes ):
+    def has_to_sleep(self, nbytes):
         curr_time = time.time()
         if self.stream_state is self.STREAM_STATE_TRANSITION:
             self.last_time = curr_time
@@ -846,28 +835,28 @@ class AtBitrateStream:
             self.given_bytes_till += nbytes
             return 0.0
         else:
-            delta_time = ( self.given_bytes_till / float( self.bitrate ) ) - ( self.playback + self.SAFE_MARGIN_TIME )
+            delta_time = (self.given_bytes_till / float(self.bitrate)) - (self.playback + self.SAFE_MARGIN_TIME)
             if delta_time <= 0.0:
                 self.stream_state = self.STREAM_STATE_PREBUFFER
             self.given_bytes_till += nbytes
-            return max( 0.0, delta_time )
+            return max(0.0, delta_time)
 
-    def read(self,nbytes=None):
+    def read(self, nbytes=None):
         if not self.done:
-            to_give = self.stream.read( nbytes )
-            sleep_time = self.has_to_sleep( nbytes )
-            #print >>sys.stderr,"DIEGO DEBUG : SLEEP_time", sleep_time
+            to_give = self.stream.read(nbytes)
+            sleep_time = self.has_to_sleep(nbytes)
+            # print >>sys.stderr,"DIEGO DEBUG : SLEEP_time", sleep_time
             if sleep_time > 0.0:
-                time.sleep( sleep_time )
+                time.sleep(sleep_time)
             return to_give
         else:
-            return '' # EOF
+            return ''  # EOF
 
-    def seek(self,pos,whence=os.SEEK_SET):
-        self.stream.seek(pos,whence)
+    def seek(self, pos, whence=os.SEEK_SET):
+        self.stream.seek(pos, whence)
         self.stream_state = self.STREAM_STATE_TRANSITION
         self.given_bytes_till = pos
-        self.playback = pos / float( self.bitrate )
+        self.playback = pos / float(self.bitrate)
 
     def close(self):
         self.done = True
@@ -879,7 +868,7 @@ class AtBitrateStream:
 # Main Program Start Here
 #
 ##############################################################
-def run_bgapp(appname,appversion,i2iport,sessport,httpport, params = None,killonidle=False):
+def run_bgapp(appname, appversion, i2iport, sessport, httpport, params=None, killonidle=False):
     """ Set sys.argv[1] to "--nopause" to inform the Core that the player
     doesn't support VODEVENT_PAUSE, e.g. the SwarmTransport.
     """
@@ -906,10 +895,10 @@ def run_bgapp(appname,appversion,i2iport,sessport,httpport, params = None,killon
     # the program will just say "15:29:02: Deleted stale lock file '/home/arno/SwarmPlugin-arno'"
     # and exit after a restart of the instance :-(
     #
-    print >>sys.stderr,"bg: Test if already running"
-    single_instance_checker = wx.SingleInstanceChecker(appname+"-"+ wx.GetUserId())
+    print >> sys.stderr, "bg: Test if already running"
+    single_instance_checker = wx.SingleInstanceChecker(appname + "-" + wx.GetUserId())
     if single_instance_checker.IsAnotherRunning():
-        print >>sys.stderr,"bg: Already running, exit"
+        print >> sys.stderr, "bg: Already running, exit"
         os._exit(0)
 
     arg0 = sys.argv[0].lower()
@@ -925,8 +914,8 @@ def run_bgapp(appname,appversion,i2iport,sessport,httpport, params = None,killon
     # Enable P2P-Next ULANC logging.
     if PHONEHOME:
         status = Status.get_status_holder("LivingLab")
-        id = encodestring(s.get_permid()).replace("\n","")
-        reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
+        id = encodestring(s.get_permid()).replace("\n", "")
+        reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id)  # Report every 5 minutes
         status.add_reporter(reporter)
 
     app.MainLoop()
@@ -934,7 +923,7 @@ def run_bgapp(appname,appversion,i2iport,sessport,httpport, params = None,killon
     if PHONEHOME:
         reporter.stop()
 
-    print >>sys.stderr,"Sleeping seconds to let other threads finish"
+    print >> sys.stderr, "Sleeping seconds to let other threads finish"
     time.sleep(2)
 
     if not ALLOW_MULTIPLE:
