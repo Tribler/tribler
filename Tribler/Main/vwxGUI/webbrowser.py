@@ -82,6 +82,10 @@ class WebBrowser(XRCPanel):
         '''Return the current URL from the addressbar'''
         return self.adressBar.GetValue()
     
+    def getCurrentPageSource(self):
+        '''Returns the webpage source as reported by WebView'''
+        return self.webview.GetPageSource()
+    
     def onURLLoading(self, event):
         '''Actions to be taken when an URL start to be loaded.'''
         #Update the adressbar
