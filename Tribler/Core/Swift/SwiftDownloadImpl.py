@@ -39,6 +39,7 @@ from Tribler.Core.DownloadState import *
 from Tribler.Core.Swift.SwiftDownloadRuntimeConfig import SwiftDownloadRuntimeConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 import shutil
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 # ARNOSMPTODO: MODIFY WITH cmdgw.cpp::CMDGW_PREBUFFER_BYTES_AS_LAYER
 # Send PLAY after receiving 2^layer * 1024 bytes
@@ -100,8 +101,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None, lm_network_vod_event_callback=None):
         """
         Create a Download object. Used internally by Session.
-        @param dcfg DownloadStartupConfig or None (in which case 
-        a new DownloadConfig() is created and the result 
+        @param dcfg DownloadStartupConfig or None (in which case
+        a new DownloadConfig() is created and the result
         becomes the runtime config of this Download.
         """
         # Called by any thread, assume sessionlock is held
@@ -157,7 +158,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         if not self.dlconfig.has_key('swiftmetadir') and not os.path.isdir(self.get_dest_dir()):
             # We must be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
-            metadir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
             self.set_swift_meta_dir(metadir)
             if not os.path.exists(metadir):
                 os.makedirs(metadir)
@@ -278,8 +280,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
 
     def get_dynasize(self):
-        """ Returns the size of the swift content. Note this may vary 
-        (generally ~1KiB because of dynamic size determination by the 
+        """ Returns the size of the swift content. Note this may vary
+        (generally ~1KiB because of dynamic size determination by the
         swift protocol
         @return long
         """
@@ -301,7 +303,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dllock.release()
 
     def get_current_speed(self, dir):
-        """ Return last reported speed in KB/s 
+        """ Return last reported speed in KB/s
         @return float
         """
         self.dllock.acquire()
@@ -311,7 +313,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.dllock.release()
 
     def get_moreinfo_stats(self, dir):
-        """ Return last reported more info dict 
+        """ Return last reported more info dict
         @return dict
         """
         self.dllock.acquire()
@@ -651,7 +653,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     # External addresses
     #
     def add_peer(self, addr):
-        """ Add a peer address from 3rd source (not tracker, not DHT) to this 
+        """ Add a peer address from 3rd source (not tracker, not DHT) to this
         Download.
         @param (hostname_ip,port) tuple
         """
@@ -712,4 +714,3 @@ class SwiftStatisticsResponse:
         except KeyError:
             self.rawUpTotal = 0
             self.rawDownTotal = 0
-

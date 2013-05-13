@@ -1053,6 +1053,12 @@ class MainFrame(wx.Frame):
             except:
                 print_exc()
 
+        try:
+            print >> sys.stderr, "mainframe: Calling Destroy"
+            self.Destroy()
+        except:
+            print_exc()
+
         print >> sys.stderr, "mainframe: Calling quit"
         self.quit(event != None or force)
         self.Destroy()

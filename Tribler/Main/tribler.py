@@ -142,7 +142,7 @@ class ABCApp():
         self.params = params
         self.single_instance_checker = single_instance_checker
         self.installdir = self.configure_install_dir(installdir)
-        
+
         self.state_dir = None
         self.error = None
         self.last_update = 0
@@ -173,15 +173,15 @@ class ABCApp():
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()
-            
+
             print >> sys.stderr, 'Client Starting Up.'
             print >> sys.stderr, "Tribler is using", self.installdir, "as working directory"
 
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
-            
+
             self.dispersy = s.lm.dispersy
-            
+
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
@@ -192,19 +192,19 @@ class ABCApp():
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
-            
+
             self.splash.tick('Initializing Family Filter')
             cat = Category.getInstance()
-            
+
             state = self.utility.config.Read('family_filter')
             if state in ('1', '0'):
                 cat.set_family_filter(state == '1')
             else:
                 self.utility.config.Write('family_filter', '1')
                 self.utility.config.Flush()
-                
+
                 cat.set_family_filter(True)
-            
+
             # Create global rate limiter
             self.splash.tick('Setting up ratelimiters')
             self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
@@ -227,13 +227,13 @@ class ABCApp():
 
             maxdown = self.utility.config.Read('maxdownloadrate', "int")
             self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
-    
+
             self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
-    
+
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []
             s.set_download_states_callback(self.sesscb_states_callback)
-    
+
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
@@ -337,7 +337,7 @@ class ABCApp():
         except Exception, e:
             self.onError(e)
             return False
-        
+
     def PostInit2(self):
         self.frame.Raise()
         self.startWithRightView()
@@ -392,7 +392,7 @@ class ABCApp():
         except:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
-        
+
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
 
@@ -403,7 +403,7 @@ class ABCApp():
             self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
         if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
             self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
-        
+
         # Arno, 2012-05-21: Swift part II
         swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
         if sys.platform == "darwin":
@@ -411,8 +411,8 @@ class ABCApp():
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
         self.sconfig.set_swift_path(swiftbinpath)
         print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
-        
-        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())    
+
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         progress('Loading downloadconfig')
         if DEBUG:
             print >> sys.stderr, "main: Download config", dlcfgfilename
@@ -420,28 +420,28 @@ class ABCApp():
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            
+
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
 
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
             os.makedirs(defaultDLConfig.get_dest_dir())
-            
+
         # 15/05/12 niels: fixing swift port
         defaultDLConfig.set_swift_listen_port(7758)
-        
+
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
             torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
-            
+
         self.sconfig.set_install_dir(self.installdir)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         s.start()
         return s
-    
+
     def configure_install_dir(self, installdir):
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
@@ -924,7 +924,7 @@ class ABCApp():
         Session.del_instance()
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
-        
+
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
@@ -1038,7 +1038,8 @@ class ABCApp():
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 
             # 3. Save swift files to metadata dir
-            metadir = os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
             if not os.path.exists(metadir):
                 os.makedirs(metadir)
 

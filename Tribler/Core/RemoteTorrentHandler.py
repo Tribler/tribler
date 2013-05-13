@@ -57,7 +57,7 @@ class RemoteTorrentHandler:
             RemoteTorrentHandler(*args, **kw)
         return RemoteTorrentHandler.__single
     getInstance = staticmethod(getInstance)
-    
+
     def delInstance(*args, **kw):
         RemoteTorrentHandler.__single  = None
     delInstance = staticmethod(delInstance)
