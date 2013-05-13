@@ -258,7 +258,6 @@ class GUIUtility:
         elif page =='my_files':
             self.frame.librarylist.Focus()
         elif page == 'webbrowser':
-            print 'Selected webbrowser'
             self.frame.webbrowser.Show()
         
         #Redraw the frame.
