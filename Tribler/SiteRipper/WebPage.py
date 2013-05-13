@@ -2,34 +2,35 @@
 
 import urllib
 
-class Webpage:
+class WebPage:
     """Webpage:
-        Allows you to download a webpage from a URL and then
+        Allows you to download a web page from a URL and then
         modify its contents.
     """
     
     __url = ""          # URL we represent
-    __content = ""      # Raw webpage content
+    __content = ""      # Raw web page content
     
-    def __init__(self, url="http://www.google.com/"):
+    def __init__(self, url='', content=''):
         self.__url = url
+        self.__content = content
         
     def download(self):
-        """Downloads the webpage pointed to by our url to memory
+        """Downloads the web page pointed to by our url to memory
         """
-        webpage = None
+        webPage = None
 
-        webpage = urllib.urlopen(self.__url)
-        self.__content = webpage.read()
-        webpage.close()
+        webPage = urllib.urlopen(self.__url)
+        self.__content = webPage.read()
+        webPage.close()
         
     def getContent(self):
-        """Returns the webpage content as it exists in memory
+        """Returns the web page content as it exists in memory
         """
         return self.__content
     
     def writeContent(self, content):
-        """Writes new webpage content to our memory
+        """Writes new web page content to our memory
         """
         self.__content = content
 
@@ -45,7 +46,7 @@ class Webpage:
         self.__url = url
         
     def saveToFile(self, filename):
-        """Saves the webpage in memory to disk
+        """Saves the web page in memory to disk
         """
         file = open(filename,'wb')
         file.write(self.__content)

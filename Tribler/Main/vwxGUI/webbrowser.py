@@ -3,15 +3,12 @@ import wx.html2
 
 from Tribler.Main.vwxGUI.list import XRCPanel
 
-from Tribler.SiteRipper.SiteRipper import seedImages
+from Tribler.SiteRipper.SiteRipper import seedWebPage
 
 import sys
 
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
-   
-    __seedingListeners = [] # Listener functions for seeding requests
-    instances = []          # All webbrowser instances exposed
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -59,8 +56,6 @@ class WebBrowser(XRCPanel):
         self.Bind(wx.html2.EVT_WEB_VIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEB_VIEW_NAVIGATED, self.onURLLoading, self.webview)
         
-        WebBrowser.instances.append(self)
-        
     def __del__(self):
         WebBrowser.instances.remove(self)
         
@@ -77,34 +72,11 @@ class WebBrowser(XRCPanel):
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
-        
-    def getCurrentURL(self):
-        '''Return the current URL from the addressbar'''
-        return self.adressBar.GetValue()
-    
-    def getCurrentPageSource(self):
-        '''Returns the webpage source as reported by WebView'''
-        return self.webview.GetPageSource()
-    
+
     def onURLLoading(self, event):
         '''Actions to be taken when an URL start to be loaded.'''
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
-    
-    def addSeedingListener(self, listener):
-        '''Add handler function to be called when a webpage is requested to be seeded'''
-        self.__seedingListeners.append(listener)
-        
-    def removeSeedingListener(self, listener):
-        '''Remove handler function which would be called when a webpage is loaded'''
-        self.__seedingListeners.remove(listener)
-        
-    def __notifySeedingListeners(self):
-        '''Calls all registered OnLoad functions'''
-        for listener in self.__seedingListeners:
-            value = listener(self)
-            if value:
-                self.removeSeedingListener(listener)
     
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''        
@@ -120,7 +92,8 @@ class WebBrowser(XRCPanel):
         #disable seed button
         self.seedButton.Disable()
         #Start seeding images.
-        self.__notifySeedingListeners()
+        seedWebPage(self.webview.GetCurrentURL(), self.webview.GetPageSource())
+
         self.seedButton.SetLabel("Seeded")
         
         

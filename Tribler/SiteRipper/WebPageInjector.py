@@ -3,29 +3,29 @@
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.SiteRipper.Webpage import Webpage
+from Tribler.SiteRipper.WebPage import WebPage
 
 from bs4 import BeautifulSoup
 import urlparse
 import urllib2
 
-class WebpageInjector:
-    """WebpageInjector:
-        Uses a LocalWebpage to retrieve a website and
+class WebPageInjector:
+    """WebPageInjector:
+        Uses a LocalWebPage to retrieve a website and
         then allows you to modify its contents
         
-        Both resources and the webpage itsself can be
+        Both resources and the web page itsself can be
         saved to disk
     """
     
-    __localcopy = None  # Copy of a webpage in a Webpage object
+    __localcopy = None  # Copy of a web page in a WebPage object
     __soup = None       # Our HTML DOM-tree walker
     __ext = None        # The original extension of our page
     __url = None        # Our requested link
     
     def __init__(self, url, content = None):
         self.__url = url
-        self.__localcopy = Webpage(url)
+        self.__localcopy = WebPage(url)
         if content == None:
             self.__localcopy.download()
         else:
@@ -66,12 +66,12 @@ class WebpageInjector:
 
 
     def processMagnetLinks(self):
-        images = self.findTags(WebpageInjector.magnetImageFilter)
+        images = self.findTags(WebPageInjector.magnetImageFilter)
         for image in images:
             self.downloadEmbeddedMagnet(image['src'])
     
     def createTag(self, type):
-        """Create a new tag to insert into a webpage
+        """Create a new tag to insert into a web page
             Ex. createTag("img"); createTag("body"); etc..
             Returns the new tag
         """
@@ -85,7 +85,7 @@ class WebpageInjector:
         return self.__soup.find_all(filter)
 
     def replaceTag(self, tag, replacement):
-        """Overwrite a tag on the webpage
+        """Overwrite a tag on the web page
             This member takes care of cleaning up the old tag
         """
         old = tag.replace_with(replacement)
@@ -122,8 +122,8 @@ class WebpageInjector:
         url = tag[attribute]
         return self.__downloadResource(self.__resolveURL(url), filename)
         
-    def saveWebpageFile(self, filename):
-        """Save your webpage alterations to a file.
+    def saveWebPageFile(self, filename):
+        """Save your web page alterations to a file.
             Note that this member does not commit any tag changes.
             Do not provide a filename extension (this will be provided)
         """
