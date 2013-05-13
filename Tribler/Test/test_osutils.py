@@ -59,16 +59,3 @@ class Test_OsUtils(unittest.TestCase):
         for name in name_table:
             fixedname = fix_filebasename(name)
             assert fixedname == name_table[name], (fixedname,name_table[name])
-
-def test_suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(Test_OsUtils))
-
-    return suite
-
-def main():
-    unittest.main(defaultTest='test_suite')
-
-
-if __name__ == '__main__':
-    main()

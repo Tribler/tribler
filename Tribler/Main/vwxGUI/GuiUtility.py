@@ -53,9 +53,6 @@ class GUIUtility:
         # previous pages
         self.oldpage = []
 
-        # port number
-        self.port_number = None
-
         # firewall
         self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
 
@@ -556,12 +553,6 @@ class GUIUtility:
             return self.frame.GUIupdate
         return True
 
-    #TODO: should be somewhere else
-    def set_port_number(self, port_number):
-        self.port_number = port_number
-    def get_port_number(self):
-        return self.port_number
-
     def addList(self, l):
         if l not in self.lists:
             self.lists.append(l)
@@ -577,6 +568,12 @@ class GUIUtility:
 
         if setCheck:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
+            
+        if newState:
+            self.utility.config.Write('family_filter', '1')
+        else:
+            self.utility.config.Write('family_filter', '0')
+        self.utility.config.Flush()
 
     def getFamilyFilter(self):
         catobj = Category.getInstance()

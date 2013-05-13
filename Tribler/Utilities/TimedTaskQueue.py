@@ -37,8 +37,8 @@ class TimedTaskQueue:
         if __debug__:
             self.callstack = {} # callstack by self.count
 
-    def shutdown(self):
-        self.add_task("stop")
+    def shutdown(self, immediately = False):
+        self.add_task("stop", -time() if immediately else 0)
         self.add_task = lambda task, t=0, id=None: None
 
     def add_task(self,task,t=0,id=None):
@@ -74,6 +74,9 @@ class TimedTaskQueue:
 
     def does_task_exist(self, id):
         return any(item[3]==id for item in self.queue)
+    
+    def get_nr_tasks(self):
+        return len(self.queue)
 
     def run(self):
         """ Run by server thread """

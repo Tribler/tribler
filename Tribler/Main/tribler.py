@@ -13,7 +13,8 @@
 #########################################################################
 
 import logging.config
-logging.config.fileConfig("logger.conf")
+logging.config.fileConfig("logger.conf")#, disable_existing_loggers = False)
+logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
@@ -25,7 +26,6 @@ logging.config.fileConfig("logger.conf")
 # This must be done in the first python file that is started.
 #
 import urllib
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 import shutil
@@ -141,7 +141,7 @@ class ABCApp():
     def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
-        self.installdir = installdir
+        self.installdir = self.configure_install_dir(installdir)
 
         self.state_dir = None
         self.error = None
@@ -174,20 +174,71 @@ class ABCApp():
             self.splash.setTicks(10)
             self.splash.Show()
 
-            self.utility = Utility(self.installdir, Session.get_default_state_dir())
-            self.utility.app = self
-            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
-
-            sys.stderr.write('Client Starting Up.\n')
-            sys.stderr.write('Tribler Version: ' + self.utility.lang.get('version') + ' Build: ' + self.utility.lang.get('build') + '\n')
+            print >> sys.stderr, 'Client Starting Up.'
+            print >> sys.stderr, "Tribler is using", self.installdir, "as working directory"
 
             self.splash.tick('Starting API')
-            self.startAPI(self.splash.tick)
+            s = self.startAPI(self.splash.tick)
+
+            self.dispersy = s.lm.dispersy
+
+            self.utility = Utility(self.installdir, s.get_state_dir())
+            self.utility.app = self
+            self.utility.session = s
+            self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
+
+            print >> sys.stderr, 'Tribler Version:',self.utility.lang.get('version'),' Build:',self.utility.lang.get('build')
+
+            self.splash.tick('Loading userdownloadchoice')
+            from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+            UserDownloadChoice.get_singleton().set_session_dir(s.get_state_dir())
+
+            self.splash.tick('Initializing Family Filter')
+            cat = Category.getInstance()
+
+            state = self.utility.config.Read('family_filter')
+            if state in ('1', '0'):
+                cat.set_family_filter(state == '1')
+            else:
+                self.utility.config.Write('family_filter', '1')
+                self.utility.config.Flush()
+
+                cat.set_family_filter(True)
+
+            # Create global rate limiter
+            self.splash.tick('Setting up ratelimiters')
+            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
+
+            # Counter to suppress some event from occurring
+            self.ratestatecallbackcount = 0
+
+            # So we know if we asked for peer details last cycle
+            self.lastwantpeers = False
+
+            # boudewijn 01/04/2010: hack to fix the seedupload speed that
+            # was never used and defaulted to 0 (unlimited upload)
+            maxup = self.utility.config.Read('maxuploadrate', "int")
+            if maxup == -1:  # no upload
+                self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
+                self.ratelimiter.set_global_max_seedupload_speed(0.00001)
+            else:
+                self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
+                self.ratelimiter.set_global_max_seedupload_speed(maxup)
+
+            maxdown = self.utility.config.Read('maxdownloadrate', "int")
+            self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
+
+            self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
+
+            # Only allow updates to come in after we defined ratelimiter
+            self.prevActiveDownloads = []
+            s.set_download_states_callback(self.sesscb_states_callback)
+
+            # Schedule task for checkpointing Session, to avoid hash checks after
+            # crashes.
+            self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
 
             self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Images', 'tribler.ico'))
-
-            cat = Category.getInstance(self.utility.getPath())
-            cat.init_from_main(self.utility)
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
@@ -327,71 +378,71 @@ class ABCApp():
 
     def startAPI(self, progress):
         # Start Tribler Session
-        state_dir = Session.get_default_state_dir()
+        defaultConfig = SessionStartupConfig()
+        state_dir = defaultConfig.get_state_dir()
+        if not state_dir:
+            state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
 
+        progress('Loading sessionconfig')
         if DEBUG:
             print >> sys.stderr, "main: Session config", cfgfilename
-
-        create_new = False
-        if os.path.exists(cfgfilename):
-            try:
-                self.sconfig = SessionStartupConfig.load(cfgfilename)
-            except:
-                print_exc()
-                create_new = True
-        else:
-            create_new = True
-
-        if create_new:
+        try:
+            self.sconfig = SessionStartupConfig.load(cfgfilename)
+        except:
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
-
-            # Set default Session params here
-            destdir = get_default_dest_dir()
-            torrcolldir = os.path.join(destdir, STATEDIR_TORRENTCOLL_DIR)
-            self.sconfig.set_torrent_collecting_dir(torrcolldir)
-
-            self.sconfig.set_nat_detect(True)
-
-            # Arno, 2012-05-04: swift
-            self.sconfig.set_swift_tunnel_listen_port(7758)
-            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
-
-            # rename old collected torrent directory
-            try:
-                if not os.path.exists(destdir):
-                    os.makedirs(destdir)
-                old_collected_torrent_dir = os.path.join(state_dir, 'torrent2')
-                if not os.path.exists(torrcolldir) and os.path.isdir(old_collected_torrent_dir):
-                    os.rename(old_collected_torrent_dir, torrcolldir)
-                    print >> sys.stderr, "main: Moved dir with old collected torrents to", torrcolldir
-
-                # Arno, 2008-10-23: Also copy torrents the user got himself
-                old_own_torrent_dir = os.path.join(state_dir, 'torrent')
-                for name in os.listdir(old_own_torrent_dir):
-                    oldpath = os.path.join(old_own_torrent_dir, name)
-                    newpath = os.path.join(torrcolldir, name)
-                    if not os.path.exists(newpath):
-                        print >> sys.stderr, "main: Copying own torrent", oldpath, newpath
-                        os.rename(oldpath, newpath)
-
-                # Internal tracker
-            except:
-                print_exc()
-
-        # 22/08/08 boudewijn: convert abc.conf to SessionConfig
-        self.utility.convert__presession_4_1__4_2(self.sconfig)
 
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
 
         # Arno, 2012-05-04: swift
-        self.sconfig.set_swift_tunnel_listen_port(7758)
-        self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-        self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
+        if not self.sconfig.get_swift_tunnel_listen_port():
+            self.sconfig.set_swift_tunnel_listen_port(7758)
+        if not self.sconfig.get_swift_tunnel_httpgw_listen_port():
+            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
+        if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
+            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
 
+        # Arno, 2012-05-21: Swift part II
+        swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
+        if sys.platform == "darwin":
+            if not os.path.exists(swiftbinpath):
+                swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
+        self.sconfig.set_swift_path(swiftbinpath)
+        print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
+
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
+        progress('Loading downloadconfig')
+        if DEBUG:
+            print >> sys.stderr, "main: Download config", dlcfgfilename
+        try:
+            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
+        except:
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+
+        if not defaultDLConfig.get_dest_dir():
+            defaultDLConfig.set_dest_dir(get_default_dest_dir())
+
+        if not os.path.isdir(defaultDLConfig.get_dest_dir()):
+            os.makedirs(defaultDLConfig.get_dest_dir())
+
+        # 15/05/12 niels: fixing swift port
+        defaultDLConfig.set_swift_listen_port(7758)
+
+        # Setting torrent collection dir based on default download dir
+        if not self.sconfig.get_torrent_collecting_dir():
+            torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
+            self.sconfig.set_torrent_collecting_dir(torrcolldir)
+
+        self.sconfig.set_install_dir(self.installdir)
+
+        progress('Creating session/Checking database (may take a minute)')
+        s = Session(self.sconfig)
+        s.start()
+        return s
+
+    def configure_install_dir(self, installdir):
         # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
         # only seen on windows
 
@@ -413,113 +464,8 @@ class ABCApp():
                 filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))
                 return os.path.abspath(os.path.join(filedir, '..', '..'))
 
-            self.sconfig.set_install_dir(module_path())
-
-        else:
-            self.sconfig.set_install_dir(self.installdir)
-
-        print >> sys.stderr, "Tribler is using", self.sconfig.get_install_dir(), "as working directory"
-
-        # Arno, 2012-05-21: Swift part II
-        swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
-        if sys.platform == "darwin":
-            if not os.path.exists(swiftbinpath):
-                swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
-        self.sconfig.set_swift_path(swiftbinpath)
-        print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
-
-        progress('Creating session/Checking database (may take a minute)')
-        s = Session(self.sconfig)
-        self.utility.session = s
-        self.dispersy = s.lm.dispersy
-
-        progress('Loading userdownloadchoice')
-        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-        UserDownloadChoice.get_singleton().set_session_dir(self.utility.session.get_state_dir())
-
-        # set port number in GuiUtility
-        if DEBUG:
-            print >> sys.stderr, 'LISTEN PORT :' , s.get_listen_port()
-        port = s.get_listen_port()
-        self.guiUtility.set_port_number(port)
-
-        progress('Loading downloadconfig')
-        # Load the default DownloadStartupConfig
-        dlcfgfilename = get_default_dscfg_filename(s)
-        try:
-            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
-        except:
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            # print_exc()
-            defaultdestdir = os.path.join(get_default_dest_dir())
-            defaultDLConfig.set_dest_dir(defaultdestdir)
-
-        defaultDLConfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
-
-        # 29/08/08 boudewijn: convert abc.conf to DefaultDownloadStartupConfig
-        self.utility.convert__postsession_4_1__4_2(s, defaultDLConfig)
-
-        # 15/05/12 niels: fixing swift port + disabling overlay
-        defaultDLConfig.set_swift_listen_port(7758)
-        defaultDLConfig.dlconfig['overlay'] = False
-
-        s.set_proxy_default_dlcfg(defaultDLConfig)
-
-        # Create global rate limiter
-        progress('Setting up ratelimiters')
-        self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
-
-        # Counter to suppress some event from occurring
-        self.ratestatecallbackcount = 0
-
-        # So we know if we asked for peer details last cycle
-        self.lastwantpeers = []
-
-        # boudewijn 01/04/2010: hack to fix the seedupload speed that
-        # was never used and defaulted to 0 (unlimited upload)
-        maxup = self.utility.config.Read('maxuploadrate', "int")
-        if maxup == -1:  # no upload
-            self.ratelimiter.set_global_max_speed(UPLOAD, 0.00001)
-            self.ratelimiter.set_global_max_seedupload_speed(0.00001)
-        else:
-            self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
-            self.ratelimiter.set_global_max_seedupload_speed(maxup)
-
-
-        maxdown = self.utility.config.Read('maxdownloadrate', "int")
-        self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
-
-#        maxupseed = self.utility.config.Read('maxseeduploadrate', "int")
-#        self.ratelimiter.set_global_max_seedupload_speed(maxupseed)
-        self.utility.ratelimiter = self.ratelimiter
-
-        ltmgr = LibtorrentMgr.getInstance(s, self.utility)
-        ltmgr.set_upload_rate_limit(maxup * 1024)
-        ltmgr.set_download_rate_limit(maxdown * 1024)
-
-# SelectiveSeeding _
-        self.seedingmanager = GlobalSeedingManager(self.utility.config.Read)
-        # self.seedingcount = 0
-# _SelectiveSeeding
-
-        # seeding stats crawling
-        self.seeding_snapshot_count = 0
-        seedstatsdb = s.open_dbhandler(NTFY_SEEDINGSTATSSETTINGS)
-        if seedstatsdb is None:
-            self.seedingstats_enabled = 0
-        else:
-            self.seedingstats_settings = seedstatsdb.loadCrawlingSettings()
-            self.seedingstats_enabled = self.seedingstats_settings[0][2]
-            self.seedingstats_interval = self.seedingstats_settings[0][1]
-
-
-        # Only allow updates to come in after we defined ratelimiter
-        self.prevActiveDownloads = []
-        s.set_download_states_callback(self.sesscb_states_callback)
-
-        # Schedule task for checkpointing Session, to avoid hash checks after
-        # crashes.
-        self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
+            return module_path()
+        return installdir
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
@@ -697,16 +643,7 @@ class ABCApp():
             if doCheckpoint:
                 self.utility.session.checkpoint()
 
-            # SelectiveSeeding_
-            # Apply seeding policy every 60 seconds, for performance
-            # Boudewijn 12/01/10: apply seeding policies immediately
-            # applyseedingpolicy = False
-            # if self.seedingcount % 60 == 0:
-            #     applyseedingpolicy = True
-            # self.seedingcount += 1
-            # if applyseedingpolicy:
             self.seedingmanager.apply_seeding_policy(no_collected_list)
-            # _SelectiveSeeding
 
             # The VideoPlayer instance manages both pausing and
             # restarting of torrents before and after VOD playback
@@ -732,21 +669,6 @@ class ABCApp():
                             print >> sys.stderr, "tribler: SW", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD)
                         else:
                             print >> sys.stderr, "tribler: BT", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD)
-
-            # Crawling Seeding Stats_
-            if self.seedingstats_enabled == 1:
-                snapshot_seeding_stats = False
-                if self.seeding_snapshot_count % self.seedingstats_interval == 0:
-                    snapshot_seeding_stats = True
-                self.seeding_snapshot_count += 1
-
-                if snapshot_seeding_stats:
-                    bc_db = self.utility.session.open_dbhandler(NTFY_BARTERCAST)
-                    reputation = bc_db.getMyReputation()
-
-                    seedingstats_db = self.utility.session.open_dbhandler(NTFY_SEEDINGSTATS)
-                    seedingstats_db.updateSeedingStats(self.utility.session.get_permid(), reputation, dslist, self.seedingstats_interval)
-            # _Crawling Seeding Stats
 
         except:
             print_exc()
@@ -958,9 +880,11 @@ class ABCApp():
         if self.webUI:
             self.webUI.stop()
         if self.guiserver:
-            self.guiserver.shutdown()
+            self.guiserver.shutdown(True)
+            self.guiserver.delInstance()
         if self.videoplayer:
             self.videoplayer.shutdown()
+            self.videoplayer.delInstance()
 
         delete_status_holders()
 
@@ -988,9 +912,6 @@ class ABCApp():
                 sleep(3)
             print >> sys.stderr, "main: ONEXIT Session is shutdown"
 
-            # Shutdown libtorrent session after checkpoints have been made
-            LibtorrentMgr.getInstance().shutdown()
-
             try:
                 print >> sys.stderr, "main: ONEXIT cleaning database"
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
@@ -1000,13 +921,13 @@ class ABCApp():
 
             print >> sys.stderr, "main: ONEXIT deleting instances"
 
-            Session.del_instance()
-            GUIUtility.delInstance()
-            GUITaskQueue.delInstance()
+        Session.del_instance()
+        GUIUtility.delInstance()
+        GUIDBProducer.delInstance()
+
+        if SQLiteCacheDB.hasInstance():
+            SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
-            GUIDBProducer.delInstance()
-            LibtorrentMgr.delInstance()
-            TorrentChecking.delInstance()
 
         if not ALLOW_MULTIPLE:
             del self.single_instance_checker
