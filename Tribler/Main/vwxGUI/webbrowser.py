@@ -5,9 +5,13 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 from Tribler.SiteRipper.SiteRipper import seedImages
 
+import sys
 
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
+   
+    __onLoadListeners = []  # Listener functions for webpage URL changes
+    instances = []          # All webbrowser instances exposed
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -55,6 +59,11 @@ class WebBrowser(XRCPanel):
         self.Bind(wx.html2.EVT_WEB_VIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEB_VIEW_NAVIGATED, self.onURLLoading, self.webview)
         
+        WebBrowser.instances.append(self)
+        
+    def __del__(self):
+        WebBrowser.instances.remove(self)
+        
     def goBackward(self, event):
         if self.webview.CanGoBack():
             self.webview.GoBack()
@@ -68,19 +77,39 @@ class WebBrowser(XRCPanel):
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
+        
+    def getCurrentURL(self):
+        '''Return the current URL from the addressbar'''
+        return self.adressBar.GetValue()
     
     def onURLLoading(self, event):
         '''Actions to be taken when an URL start to be loaded.'''
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
     
+    def addOnLoadListener(self, listener):
+        '''Add handler function to be called when a webpage is loaded'''
+        self.__onLoadListeners.append(listener)
+        
+    def removeOnLoadListener(self, listener):
+        '''Remove handler function which would be called when a webpage is loaded'''
+        self.__onLoadListeners.remove(listener)
+        
+    def __notifyOnLoadListeners(self):
+        '''Calls all registered OnLoad functions'''
+        for listener in self.__onLoadListeners:
+            value = listener(self)
+            if value:
+                self.removeOnLoadListener(listener)
+    
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''        
         #Update the seedbutton
         self.seedButton.SetLabel("Seed")
         self.seedButton.Enable()
+        self.__notifyOnLoadListeners()
         
-    def seed(self, evnet):
+    def seed(self, event):
         '''Start seeding the images on the website'''
         self.seedButton.SetLabel("Seeding")
         #disable seed button
