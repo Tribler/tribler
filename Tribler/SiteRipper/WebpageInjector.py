@@ -23,10 +23,13 @@ class WebpageInjector:
     __ext = None        # The original extension of our page
     __url = None        # Our requested link
     
-    def __init__(self, url):
+    def __init__(self, url, content = None):
         self.__url = url
         self.__localcopy = Webpage(url)
-        self.__localcopy.download()
+        if content == None:
+            self.__localcopy.download()
+        else:
+            self.__localcopy.writeContent(content)
         self.__soup = BeautifulSoup(self.__localcopy.getContent())
         self.__fixlinks()
         self.__ext = ".html" # If you want the 'real' extension, use __ripext
