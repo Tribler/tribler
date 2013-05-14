@@ -178,7 +178,7 @@ class TriblerLaunchMany(Thread):
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
                 if self.dispersy:
-                    self.dispersy.database.attach_commit_callback(self.channelcast_db.commitNow)
+                    self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
 
                 else:
                     def periodic_database_commit():
