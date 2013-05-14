@@ -84,7 +84,7 @@ class SwiftProcessMgr:
             if sp.get_listen_port() == self.tunnellistenport:
                 return
 
-            if len(sp.get_downloads()) == 0:
+            if False and len(sp.get_downloads()) == 0:
                 self.destroy_sp(sp)
         finally:
             self.sesslock.release()

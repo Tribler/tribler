@@ -57,6 +57,7 @@ class TriblerLaunchMany(Thread):
         self.initComplete = False
         self.registered = False
         self.dispersy = None
+        self.database_thread = None
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -141,13 +142,10 @@ class TriblerLaunchMany(Thread):
                 keypair = read_keypair(self.session.get_permid_keypair_filename())
                 self.session.dispersy_member = callback.call(self.dispersy.get_member, (ec_to_public_bin(keypair), ec_to_private_bin(keypair)))
 
+                self.database_thread = callback
             else:
-                # new database stuff will run on only one thread
-                callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
-                callback.start()
-
-            # we may want to remove DATABASE_THREAD member
-            self.database_thread = callback
+                # create a fake database_thread
+                pass
 
             if config['megacache']:
                 import Tribler.Core.CacheDB.cachedb as cachedb
@@ -181,6 +179,9 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db.registerSession(self.session)
                 self.nb_db = NetworkBuzzDBHandler.getInstance()
                 self.ue_db = UserEventLogDBHandler.getInstance()
+
+                if self.dispersy:
+                    self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
             else:
                 config['torrent_checking'] = 0
 
@@ -623,9 +624,6 @@ class TriblerLaunchMany(Thread):
         if self.dispersy:
             print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
             self.dispersy.stop(666.666)
-        else:
-            print >> sys.stderr, "lmc: Databasethread shutdown", "[%d]" % id(self.database_thread)
-            self.database_thread.stop(666.666)
 
         if self.session.get_megacache():
             self.peer_db.delInstance()
