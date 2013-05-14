@@ -12,7 +12,7 @@ import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
 from traceback import print_exc, print_stack
 import traceback
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+from Tribler.Core.ServerPortHandler import MultiHandler
 
 try:
     prctlimported = True
@@ -22,26 +22,16 @@ except ImportError, e:
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.simpledefs import *
 from Tribler.Core.exceptions import *
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.DecentralizedTracking import mainlineDHT
-from Tribler.Core.osutils import get_readable_torrent_name
-from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
-# SWIFTPROC
-from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
-from Tribler.Core.Swift.SwiftDownloadImpl import SwiftDownloadImpl
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
-from Tribler.dispersy.callback import Callback
-from Tribler.dispersy.dispersy import Dispersy
-from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
-from Tribler.dispersy.community import HardKilledCommunity
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Swift.SwiftDef import SwiftDef
+
+from Tribler.Core.osutils import get_readable_torrent_name
+
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -80,8 +70,6 @@ class TriblerLaunchMany(Thread):
 
             self.upnp_ports = []
 
-            self.internaltracker = None
-
             # Orig
             self.sessdoneflag = Event()
 
@@ -93,13 +81,15 @@ class TriblerLaunchMany(Thread):
                                        errorfunc=self.rawserver_nonfatalerrorfunc)
             self.rawserver.add_task(self.rawserver_keepalive, 1)
             self.listen_port = config['minport']
+            self.shutdownstarttime = None
 
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
-            self.shutdownstarttime = None
 
             # SWIFTPROC
             swift_exists = config['swiftproc'] and (os.path.exists(config['swiftpath']) or os.path.exists(config['swiftpath'] + '.exe'))
             if swift_exists:
+                from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
+
                 self.spm = SwiftProcessMgr(config['swiftpath'], config['swiftcmdlistenport'], config['swiftdlsperproc'], self.session.get_swift_tunnel_listen_port(), self.sesslock)
                 try:
                     self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.session.get_swift_tunnel_listen_port(), self.session.get_swift_tunnel_httpgw_listen_port(), self.session.get_swift_tunnel_cmdgw_listen_port())
@@ -114,8 +104,14 @@ class TriblerLaunchMany(Thread):
                 self.swift_process = None
 
             # Dispersy
+            from Tribler.dispersy.callback import Callback
+
             self.session.dispersy_member = None
             if config['dispersy']:
+                from Tribler.dispersy.dispersy import Dispersy
+                from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+                from Tribler.dispersy.community import HardKilledCommunity
+
                 # set communication endpoint
                 if config['dispersy-tunnel-over-swift'] and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
@@ -201,33 +197,24 @@ class TriblerLaunchMany(Thread):
 
             self.rtorrent_handler = None
             if config['torrent_collecting']:
+                from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
                 self.rtorrent_handler = RemoteTorrentHandler()
 
     def init(self):
         config = self.session.sessconfig  # Should be safe at startup
 
-        # Internal tracker
-        if config['internaltracker']:
-            from Tribler.Core.InternalTracker.track import Tracker
-            from Tribler.Core.InternalTracker.HTTPHandler import HTTPHandler
-
-            self.internaltracker = Tracker(config, self.rawserver)
-            httphandler = HTTPHandler(self.internaltracker.get, config['tracker_min_time_between_log_flushes'])
-            self.multihandler.set_httphandler(httphandler)
-
-
+        self.mainline_dht = None
         if config['mainline_dht']:
-            # Start up KTH mainline DHT
-            # TODO: Can I get the local IP number?
+            from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
-                mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'])
+                self.mainline_dht = mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'])
                 self.upnp_ports.append((config['mainline_dht_port'], 'UDP'))
-
             except:
                 print_exc()
 
         self.ltmgr = None
         if config['libtorrent']:
+            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
 
         # add task for tracker checking
@@ -238,7 +225,7 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
 
                 c = mainlineDHTChecker.getInstance()
-                c.register(mainlineDHT.dht)
+                c.register(self.mainline_dht)
 
             try:
                 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
@@ -248,9 +235,10 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc
 
+        self.magnet_handler = None
         if config["magnetlink"]:
-            # initialise the first instance
-            MagnetHandler.get_instance(self.rawserver)
+            from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
+            self.magnet_handler = MagnetHandler.get_instance(self.rawserver)
 
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
@@ -271,6 +259,7 @@ class TriblerLaunchMany(Thread):
             if infohash in self.downloads:
                 raise DuplicateDownloadException()
 
+            from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
             d = LibtorrentDownloadImpl(self.session, tdef)
 
             if pstate is None and not tdef.get_live():  # not already resuming
@@ -389,9 +378,6 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc()
         finally:
-            if self.internaltracker is not None:
-                self.internaltracker.save_state()
-
             self.stop_upnp()
             self.rawserver.shutdown()
 
@@ -401,15 +387,6 @@ class TriblerLaunchMany(Thread):
 
         Called by network thread """
         self.rawserver.add_task(self.rawserver_keepalive, 1)
-
-    #
-    # TODO: called by TorrentMaker when new torrent added to itracker dir
-    # Make it such that when Session.add_torrent() is called and the internal
-    # tracker is used that we write a metainfo to itracker dir and call this.
-    #
-    def tracker_rescan_dir(self):
-        if self.internaltracker is not None:
-            self.internaltracker.parse_allowed(source='Session')
 
     #
     # State retrieval
@@ -679,8 +656,13 @@ class TriblerLaunchMany(Thread):
         # SWIFTPROC
         if self.spm is not None:
             self.spm.early_shutdown()
-        mainlineDHT.deinit()
-        MagnetHandler.del_instance()
+
+        if self.mainline_dht:
+            from Tribler.Core.DecentralizedTracking import mainlineDHT
+            mainlineDHT.deinit()
+
+        if self.magnet_handler:
+            self.magnet_handler.del_instance()
 
     def network_shutdown(self):
         try:
@@ -711,7 +693,7 @@ class TriblerLaunchMany(Thread):
         # Shutdown libtorrent session after checkpoints have been made
         if self.ltmgr:
             self.ltmgr.shutdown()
-        LibtorrentMgr.delInstance()
+            self.ltmgr.delInstance()
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
@@ -820,6 +802,7 @@ class TriblerLaunchMany(Thread):
             if roothash in self.downloads:
                 raise DuplicateDownloadException()
 
+            from Tribler.Core.Swift.SwiftDownloadImpl import SwiftDownloadImpl
             d = SwiftDownloadImpl(self.session, sdef)
 
             # Store in list of Downloads, always.

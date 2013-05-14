@@ -98,8 +98,6 @@ class TestAsServer(AbstractServer):
         self.config.set_state_dir(self.getStateDir())
         self.config.set_listen_port(random.randint(10000, 60000))
         self.config.set_torrent_checking(False)
-        self.config.set_dialback(False)
-        self.config.set_internal_tracker(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(False)
         self.config.set_dispersy(False)

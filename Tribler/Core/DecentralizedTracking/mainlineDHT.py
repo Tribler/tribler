@@ -29,7 +29,7 @@ def init(addr, conf_path):
     global dht_imported
 
     if DEBUG:
-        print >>sys.stderr,'dht: DHT initialization', dht_imported
+        print >> sys.stderr, 'dht: DHT initialization', dht_imported
         log_level = logging.DEBUG
     else:
         log_level = logging.ERROR
@@ -44,7 +44,9 @@ def init(addr, conf_path):
                             log_level,
                             swift_port=SWIFT_PORT)
         if DEBUG:
-            print >>sys.stderr,'dht: DHT running'
+            print >> sys.stderr, 'dht: DHT running'
+
+    return dht
 
 def control():
     import pdb

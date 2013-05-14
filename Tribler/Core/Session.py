@@ -141,32 +141,13 @@ class Session(SessionRuntimeConfig):
         if not os.path.isdir(dlpstatedir):
             os.mkdir(dlpstatedir)
 
-        # 3. tracker
-        trackerdir = self.get_internal_tracker_dir()
-        if not os.path.exists(trackerdir):
-            os.mkdir(trackerdir)
-
-        if self.sessconfig['tracker_dfile'] is None:
-            self.sessconfig['tracker_dfile'] = os.path.join(trackerdir, 'tracker.db')
-
-        if self.sessconfig['tracker_allowed_dir'] is None:
-            self.sessconfig['tracker_allowed_dir'] = trackerdir
-
-        if self.sessconfig['tracker_logfile'] is None:
-            if sys.platform == "win32":
-                # Not "Nul:" but "nul" is /dev/null on Win32
-                sink = 'nul'
-            else:
-                sink = '/dev/null'
-            self.sessconfig['tracker_logfile'] = sink
-
-        # 5. peer_icon_path
+        # 3. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
             if not os.path.isdir(self.sessconfig['peer_icon_path']):
                 os.mkdir(self.sessconfig['peer_icon_path'])
 
-        # 6. Poor man's versioning of SessionConfig, add missing
+        # 4. Poor man's versioning of SessionConfig, add missing
         # default values. Really should use PERSISTENTSTATE_CURRENTVERSION
         # and do conversions.
         for key, defvalue in sessdefaults.iteritems():
@@ -389,87 +370,6 @@ class Session(SessionRuntimeConfig):
         try:
             sessconfig = copy.copy(self.sessconfig)
             return SessionStartupConfig(sessconfig=sessconfig)
-        finally:
-            self.sesslock.release()
-
-    #
-    # Internal tracker
-    #
-    def get_internal_tracker_url(self):
-        """ Returns the announce URL for the internal tracker.
-        @return URL """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            url = None
-            if 'tracker_url' in self.sessconfig:
-                url = self.sessconfig['tracker_url']  # user defined override, e.g. specific hostname
-            if url is None:
-                ip = self.lm.get_ext_ip()
-                port = self.get_listen_port()
-                url = 'http://' + ip + ':' + str(port) + '/announce/'
-            return url
-        finally:
-            self.sesslock.release()
-
-    def get_internal_tracker_dir(self):
-        """ Returns the directory containing the torrents tracked by the internal
-        tracker (and associated databases).
-        @return An absolute path. """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['state_dir'] is None:
-                return None
-            else:
-                return os.path.join(self.sessconfig['state_dir'], STATEDIR_ITRACKER_DIR)
-        finally:
-            self.sesslock.release()
-
-    def add_to_internal_tracker(self, tdef):
-        """ Add a torrent def to the list of torrents tracked by the internal
-        tracker. Use this method to use the Session as a standalone tracker.
-        @param tdef A finalized TorrentDef.
-        """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            infohash = tdef.get_infohash()
-            filename = self.get_internal_tracker_torrentfilename(infohash)
-            tdef.save(filename)
-
-            print >> sys.stderr, "Session: add_to_int_tracker: saving to", filename, "url-compat", tdef.get_url_compat()
-
-            # Bring to attention of Tracker thread
-            self.lm.tracker_rescan_dir()
-        finally:
-            self.sesslock.release()
-
-    def remove_from_internal_tracker(self, tdef):
-        """ Remove a torrent def from the list of torrents tracked by the
-        internal tracker. Use this method to use the Session as a standalone
-        tracker.
-        @param tdef A finalized TorrentDef.
-        """
-        infohash = tdef.get_infohash()
-        self.remove_from_internal_tracker_by_infohash(infohash)
-
-    def remove_from_internal_tracker_by_infohash(self, infohash):
-        """ Remove a torrent def from the list of torrents tracked by the
-        internal tracker. Use this method to use the Session as a standalone
-        tracker.
-        @param infohash Identifier of the torrent def to remove.
-        """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            filename = self.get_internal_tracker_torrentfilename(infohash)
-            if DEBUG:
-                print >> sys.stderr, "Session: removing itracker entry", filename
-            if os.access(filename, os.F_OK):
-                os.remove(filename)
-            # Bring to attention of Tracker thread
-            self.lm.tracker_rescan_dir()
         finally:
             self.sesslock.release()
 

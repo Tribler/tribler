@@ -71,12 +71,9 @@ class RemoteTorrentHandler:
         self.scheduletask = self.tqueue.add_task
 
         self.torrent_db = None
-        try:
+        if self.session.get_megacache():
             self.torrent_db = session.open_dbhandler('torrents')
             startWorker(None, self.__check_overflow)
-
-        except OperationNotEnabledByConfigurationException:
-            pass
 
         if session.get_mainline_dht():
             self.drequesters[0] = MagnetRequester(self, 0)
@@ -89,6 +86,9 @@ class RemoteTorrentHandler:
 
     def shutdown(self):
         self.tqueue.shutdown(True)
+
+    def set_max_num_torrents(self, max_num_torrents):
+        self.max_num_torrents = max_num_torrents
 
     def __check_overflow(self):
         while True:

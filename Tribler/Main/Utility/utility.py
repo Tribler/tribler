@@ -15,7 +15,6 @@ from Tribler.Lang.lang import Lang
 from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.defaults import dldefaults as BTDefaults
 from Tribler.Core.defaults import DEFAULTPORT
-from Tribler.Core.defaults import trackerdefaults as TrackerDefaults
 from Tribler.Core.defaults import tdefdefaults as TorrentDefDefaults
 from Tribler.Core.__init__ import version_id
 
@@ -537,24 +536,6 @@ class Utility:
         button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
-
-    def getTrackerParams(self):
-        tconfig = {}
-        for k, v, expl in TrackerDefaults:
-            tconfig[k] = v
-
-        tconfig['port'] = DEFAULTPORT
-        dir = os.path.join(self.getConfigPath(), 'itracker')
-        dfile = os.path.join(dir, 'tracker.db')
-        tconfig['dfile'] = dfile
-        tconfig['allowed_dir'] = dir
-        tconfig['favicon'] = os.path.join(self.getPath(), 'tribler.ico')
-        # tconfig['save_dfile_interval'] = 20
-        tconfig['dfile_format'] = 'pickle'  # We use unicode filenames, so bencode won't work
-
-        return tconfig
-
-
 
     # Check if str is a valid Windows file name (or unit name if unit is true)
     # If the filename isn't valid: returns a fixed name
