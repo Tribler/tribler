@@ -451,8 +451,6 @@ class Session(SessionRuntimeConfig):
         """ Closes the given database connection """
         dbhandler.close()
 
-
-
     #
     # Persistence and shutdown
     #
@@ -528,7 +526,7 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        if not self.get_torrent_collecting():
+        if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
         self.lm.rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
@@ -546,7 +544,7 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        if not self.get_torrent_collecting():
+        if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
         self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
@@ -564,7 +562,7 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        if not self.get_torrent_collecting():
+        if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
         self.lm.rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
@@ -620,13 +618,3 @@ class Session(SessionRuntimeConfig):
         """
         return os.path.join(state_dir, STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
-
-
-    def get_internal_tracker_torrentfilename(self, infohash):
-        """ Return the absolute pathname of the torrent file used by the
-        internal tracker.
-        @return A filename
-        """
-        trackerdir = self.get_internal_tracker_dir()
-        basename = binascii.hexlify(infohash) + '.torrent'  # ignore .tribe stuff, not vital
-        return os.path.join(trackerdir, basename)
