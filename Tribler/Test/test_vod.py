@@ -33,6 +33,10 @@ class TestVideoOnDemand(TestAsServer):
         TestAsServer.setUp(self)
         self.vodstarted = False
 
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+        self.config.set_libtorrent(True)
+
     def create_torrent(self):
         [srchandle, self.sourcefn] = mkstemp()
         self.content = Rand.rand_bytes(self.contentlen)

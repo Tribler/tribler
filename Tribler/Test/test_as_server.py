@@ -137,9 +137,7 @@ class TestAsServer(AbstractServer):
         session.shutdown()
         while not session.has_shutdown():
             diff = time.time() - session_shutdown_start
-            if diff > waittime:
-                print >> sys.stderr, "test_as_server: NOT Waiting for Session to shutdown, took too long"
-                break
+            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
 
             print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
             time.sleep(1)

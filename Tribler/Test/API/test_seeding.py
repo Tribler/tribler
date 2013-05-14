@@ -33,6 +33,7 @@ class TestSeeding(TestAsServer):
     def setUpPreSession(self):
         """ override TestAsServer """
         TestAsServer.setUpPreSession(self)
+        self.config.set_libtorrent(True)
 
         self.config2 = self.config.copy()  # not really necess
         self.config2.set_state_dir(self.getStateDir(2))
