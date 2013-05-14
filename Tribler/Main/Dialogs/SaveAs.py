@@ -70,7 +70,8 @@ class SaveAs(wx.Dialog):
         elif isinstance(tdef, TorrentDefNoMetainfo):
             text = wx.StaticText(self, -1, "Attempting to retrieve .torrent...")
             _set_font(text, size_increment = 1)
-            ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif'))
+            ag = wx.adv.AnimationCtrl(self, -1)
+            ag.LoadFile(os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif'))
             ag.Play()
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.AddStretchSpacer()
@@ -168,7 +169,7 @@ class SaveAs(wx.Dialog):
         self.SetSize((600,450))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren())-2).GetSizer()
-        hsizer.Clear(deleteWindows = True)
+        hsizer.Clear(True)
         vSizer.Remove(hsizer)
         self.AddFileList(tdef, None, vSizer, len(vSizer.GetChildren())-1)
         self.Layout()

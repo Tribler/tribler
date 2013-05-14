@@ -125,7 +125,7 @@ class GUIDBProducer():
                 t2 = time()
                 result = workerFn(*args, **kwargs)
 
-            except (AbortedException, wx.PyDeadObjectError):
+            except (AbortedException, RuntimeError):
                 return
 
             except Exception, exc:

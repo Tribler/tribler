@@ -464,7 +464,7 @@ class MainFrame(wx.Frame):
                 if not correctedFilename and tdef and tdef.is_multifile_torrent():
                     defaultname = tdef.get_name_as_unicode()
 
-                if wx.Thread_IsMain():
+                if wx.IsMainThread():
                     dlg = SaveAs(self, tdef, dscfg.get_dest_dir(), defaultname, os.path.join(self.utility.session.get_state_dir(), 'recent_download_history'), selectedFiles)
                     dlg.CenterOnParent()
 
@@ -571,7 +571,7 @@ class MainFrame(wx.Frame):
                         d.restart()
                         break
 
-            if wx.Thread_IsMain():
+            if wx.IsMainThread():
                 # show nice warning dialog
                 dlg = wx.MessageDialog(None,
                                        self.utility.lang.get('duplicate_download_msg'),
@@ -994,7 +994,7 @@ class MainFrame(wx.Frame):
         return size, position, sashpos
 
     def saveWindowSettings(self):
-        width, height = self.GetSizeTuple()
+        width, height = self.GetSize()
         x, y = self.GetPositionTuple()
         self.utility.config.Write("window_width", width)
         self.utility.config.Write("window_height", height)
@@ -1153,7 +1153,7 @@ class MainFrame(wx.Frame):
                     print >>sys.stderr,"MainFrame: setActivity: Cannot display: t",type,"m",msg,"a2",arg2
                 return
 
-            if not wx.Thread_IsMain():
+            if not wx.IsMainThread():
                 if DEBUG:
                     print  >> sys.stderr,"main: setActivity thread",currentThread().getName(),"is NOT MAIN THREAD"
                     print_stack()
@@ -1205,7 +1205,7 @@ class MainFrame(wx.Frame):
                 print  >> sys.stderr,"main: Activity",`text`
             self.SRstatusbar.onActivity(text)
             self.stats.onActivity(text)
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
 
     def set_player_status(self,s):
@@ -1226,4 +1226,4 @@ class MainFrame(wx.Frame):
         if app:
             wx.CallLater(1000, app.ExitMainLoop)
             if force:
-                wx.CallLater(2500, app.Exit)
+                wx.CallLater(2500, wx.Exit)

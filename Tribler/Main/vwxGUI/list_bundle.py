@@ -212,7 +212,7 @@ class BundlePanel(wx.BoxSizer):
         self.SetHits(hits, noChange = True)
         self.UpdateHeader(general_description, description)
         
-        self.AddSpacer((self.indent, -1))
+        self.Add(self.indent, -1, 0)
         self.Add(self.vsizer, 1, wx.EXPAND|wx.BOTTOM, 7)
     
     def AddHeader(self):
@@ -313,7 +313,7 @@ class BundlePanel(wx.BoxSizer):
             rowsChanged = curRows != newRows            
             
             self.grid.ShowItems(False)
-            self.grid.Clear(deleteWindows = True)
+            self.grid.Clear(True)
             for i in range(items_to_add):
                 hit = hits[i] 
     

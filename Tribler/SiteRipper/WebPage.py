@@ -1,7 +1,6 @@
 #!/usr/bin/python2.7
 
 import urllib
-from wx.tools.Editra.src.ebmlib.fileutil import GetFileName
 from xdg.Menu import __getFileName
 
 class WebPage:

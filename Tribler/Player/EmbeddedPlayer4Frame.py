@@ -347,9 +347,11 @@ class VLCLogoWindow(wx.Panel):
             self.vsizer.Add((0,70),0,0,0)
         if animate:
             if sys.platform == 'darwin':
-                self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, logopath)
+                self.agVideo = wx.adv.AnimationCtrl(self, 1)
+                self.agVideo.LoadFile(logopath)
             else:
-                self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, logopath, pos = (110,70))
+                self.agVideo = wx.adv.AnimationCtrl(self, 1, wx.adv.NullAnimation, pos = (110,70))
+                self.agVideo.LoadFile(logopath)
             self.agVideo.Hide()
             if sys.platform == 'darwin':
                 self.vsizer.Add(self.agVideo,0,wx.ALIGN_CENTRE_HORIZONTAL,0)

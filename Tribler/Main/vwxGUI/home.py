@@ -76,7 +76,7 @@ class Home(XRCPanel):
         scalingSizer.Add(searchButton, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
 
         textSizer.Add(scalingSizer, 0, wx.ALIGN_CENTER_VERTICAL)
-        textSizer.AddSpacer((1,1))
+        textSizer.Add(1,1,0)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, "Take me to "))
@@ -399,7 +399,7 @@ class NetworkPanel(HomePanel):
         try:
             if self.IsShownOnScreen():
                 self.UpdateStats()
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
 
     def UpdateStats(self):
@@ -711,7 +711,7 @@ class NewTorrentPanel(HomePanel):
         try:
             if self.IsShownOnScreen():
                 self.UpdateStats(infohash)
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
 
     def UpdateStats(self, infohash):
@@ -804,7 +804,7 @@ class BuzzPanel(wx.Panel):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(DetailHeader(self, "Click below to explore what's hot"), 0, wx.EXPAND)
-        vSizer.AddSpacer((-1,10))
+        vSizer.Add(-1,10,0)
 
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour(DEFAULT_BACKGROUND)

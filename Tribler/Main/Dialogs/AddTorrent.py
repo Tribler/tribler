@@ -25,7 +25,7 @@ class AddTorrent(wx.Dialog):
 
         firstLine = wx.StaticText(self, -1, 'Please use one of the provided methods to import an external .torrent')
         vSizer.Add(firstLine, 0, wx.EXPAND|wx.BOTTOM, 3)
-        vSizer.AddSpacer((-1, 25))
+        vSizer.Add(-1, 25,0)
 
         header = wx.StaticText(self, -1, 'Browse for local .torrent file or files')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)

@@ -54,8 +54,9 @@ class WebBrowser(XRCPanel):
         self.Layout()
         
         '''Register the action on the event that a URL is being loaded and when finished loading'''
-        self.Bind(wx.html2.EVT_WEB_VIEW_LOADED, self.onURLLoaded, self.webview)
-        self.Bind(wx.html2.EVT_WEB_VIEW_NAVIGATED, self.onURLLoading, self.webview)
+        
+        self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
+        self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
         
     def __del__(self):
         WebBrowser.instances.remove(self)

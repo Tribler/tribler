@@ -43,7 +43,7 @@ class DoubleLineListItem(ListItem):
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         if leftSpacer > 0:
-            self.hSizer.AddSpacer((leftSpacer, -1))
+            self.hSizer.Add(leftSpacer, -1,0)
             
         self.icons = self.GetIcons()
         if self.icons:
@@ -61,10 +61,10 @@ class DoubleLineListItem(ListItem):
                     else:
                         iconSizer.Add(bmp, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
                     self.icons[index] = bmp
-            iconSizer.AddSpacer((33, -1))
+            iconSizer.Add(33, -1,0)
             self.hSizer.Add(iconSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         else:
-            self.hSizer.AddSpacer((33, -1))
+            self.hSizer.Add(33, -1,0)
             
         self.titleSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.descrSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -291,7 +291,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         self.dlbutton = None
 
     def AddButtons(self):
-        self.buttonSizer.Clear(deleteWindows = True)
+        self.buttonSizer.Clear(True)
         
         do_add = False
         for column in self.columns:
@@ -416,7 +416,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         self.titleSizer.Insert(1, (5, -1), 0, 0)
         
     def AddButtons(self):
-        self.buttonSizer.Clear(deleteWindows = True)
+        self.buttonSizer.Clear(True)
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list_header.BaseFilter):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
@@ -441,7 +441,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
-        self.titleSizer.AddSpacer((-1,height))
+        self.titleSizer.Add(-1,height,0)
         
 class ChannelListItemAssociatedTorrents(ChannelListItem):
     def __init__(self, *args, **kwargs):
@@ -506,7 +506,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
         self.titleSizer.Insert(1, (5, -1), 0, 0)
         
     def AddButtons(self):
-        self.buttonSizer.Clear(deleteWindows = True)
+        self.buttonSizer.Clear(True)
         self.AddButton("Visit playlist", lambda evt: self.guiutility.showPlaylist(self.original_data))
             
     def OnChange(self):
@@ -521,7 +521,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
         
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
-        self.titleSizer.AddSpacer((-1,height))
+        self.titleSizer.Add(-1,height,0)
         
 class PlaylistItemNoButton(PlaylistItem):
     def AddButtons(self):
@@ -725,7 +725,7 @@ class AvantarItem(ListItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         titleRow = wx.BoxSizer(wx.HORIZONTAL)
         if leftSpacer > 0:
-            titleRow.AddSpacer((leftSpacer, -1))
+            titleRow.Add(leftSpacer, -1,0)
         
         if self.avantar:
             titleRow.Add(wx.StaticBitmap(self, bitmap = self.avantar), 0, wx.RIGHT, 7)
@@ -769,7 +769,7 @@ class AvantarItem(ListItem):
         titleRow.Add(vSizer, 1)
         
         if rightSpacer > 0:
-            titleRow.AddSpacer((rightSpacer, -1))
+            titleRow.Add(rightSpacer, -1,0)
         self.vSizer.Add(titleRow, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
         self.AddEvents(self)
         

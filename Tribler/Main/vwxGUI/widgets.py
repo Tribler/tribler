@@ -4,6 +4,7 @@ import wx, os, sys, math
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
 from wx.lib.scrolledpanel import ScrolledPanel
 from wx.lib.buttons import GenBitmapButton
+from wx.lib.agw.ultimatelistctrl import UltimateListCtrl
 
 from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -1107,7 +1108,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         #delete, if need, all the previous data
         if self.dropdownlistbox.GetColumnCount() != 0:
-            self.dropdownlistbox.DeleteAllColumns()
+            #self.dropdownlistbox.DeleteAllColumns()
             self.dropdownlistbox.DeleteAllItems()
 
         self.dropdownlistbox.InsertColumn(0, "Select")
@@ -1213,8 +1214,9 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         if show and not self.dropdown.IsShown():
             size = self.dropdown.GetSize()
-            width, height = self.GetSizeTuple()
-            x, y = self.ClientToScreenXY (0, height)
+            width, height = self.GetSize()
+            x, ty, tw, th = self.GetScreenRect()
+            y = ty + th
             if size.GetWidth() <> width :
                 size.SetWidth(width)
                 self.dropdown.SetSize(size)
@@ -1624,7 +1626,7 @@ class FancyPanel(wx.Panel):
         self.focus = None
         self.colour1 = self.colour2 = None
         self.border_colour = self.border_highlight = None
-        self.bitmap = wx.EmptyBitmap(*self.GetClientSizeTuple())
+        self.bitmap = wx.EmptyBitmap(*self.GetClientSize())
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
@@ -2004,7 +2006,7 @@ class SimpleNotebook(wx.Panel):
         self.pshown = num_page
         self.Layout()
 
-        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
+        event = wx.BookCtrlEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
         event.SetEventObject(self)
         wx.PostEvent(self.GetEventHandler(), event)
 

@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+from wx.core import Rect
 import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -12,12 +13,12 @@ DEBUG = False
 
 class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
-        wx.StatusBar.__init__(self, parent, style = wx.ST_SIZEGRIP)
+        wx.StatusBar.__init__(self, parent, style = wx.STB_DEFAULT_STYLE)
 
         # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
         # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.       
         self.SetFieldsCount(6)
-        self.SetStatusStyles([wx.SB_FLAT]*6)
+        self.SetStatusStyles(6, wx.SB_FLAT)
         self.SetStatusWidths([-1, 250, 19, 19, 19, 19])
         
         self.guiutility = GUIUtility.getInstance()
@@ -175,11 +176,12 @@ class SRstatusbar(wx.StatusBar):
     
     def Reposition(self):
         
-        rect = self.GetFieldRect(0)
+        rect = Rect()
+        self.GetFieldRect(0, rect)
         self.ff_checkbox.SetPosition((rect.x+2, rect.y+2))
         self.ff_checkbox.SetSize((-1, rect.height-4))
         
-        rect = self.GetFieldRect(1)
+        self.GetFieldRect(1, rect)
         x = rect.x+rect.width-15
         for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
             spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
@@ -187,19 +189,19 @@ class SRstatusbar(wx.StatusBar):
             yAdd = (rect.height - control.GetSize()[1])/2
             control.SetPosition((x, rect.y+yAdd))
         
-        rect = self.GetFieldRect(2)
+        self.GetFieldRect(2, rect)
         size = self.connection.GetSize()
         yAdd = (rect.height - size[1])/2
         xAdd = (rect.width - size[0])/2
         self.connection.SetPosition((rect.x+xAdd, rect.y+yAdd))
 
-        rect = self.GetFieldRect(3)        
+        self.GetFieldRect(3, rect)        
         size = self.activity.GetSize()
         yAdd = (rect.height - size[1])/2
         xAdd = (rect.width - size[0])/2
         self.activity.SetPosition((rect.x+xAdd, rect.y+yAdd))
         
-        rect = self.GetFieldRect(4)
+        self.GetFieldRect(4, rect)
         size = self.firewallStatus.GetSize()
         yAdd = (rect.height - size[1])/2
         xAdd = (rect.width - size[0])/2

@@ -18,10 +18,10 @@ except:
 # Task Bar Icon
 #
 ##############################################################
-class ABCTaskBarIcon(wx.TaskBarIcon):
+class ABCTaskBarIcon(wx.adv.TaskBarIcon):
 
     def __init__(self, parent):
-        wx.TaskBarIcon.__init__(self)
+        wx.adv.TaskBarIcon.__init__(self)
 
         self.parent = parent
         self.utility = parent.utility
@@ -29,7 +29,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         self.TBMENU_RESTORE = wx.NewId()
 
         # setup a taskbar icon, and catch some events from it
-        self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, parent.onTaskBarActivate)
+        self.Bind(wx.EVT_LEFT_DCLICK, parent.onTaskBarActivate)
         self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id = self.TBMENU_RESTORE)
 
         self.updateIcon(False)
@@ -114,7 +114,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
     def SetIcon(self, icon, tooltip = ""):
         self.icon = icon
         self.tooltip = tooltip
-        wx.TaskBarIcon.SetIcon(self, icon, tooltip)
+        wx.adv.TaskBarIcon.SetIcon(self, icon, tooltip)
 
     def OnStopAll(self,event=None):
         dlist = self.utility.session.get_downloads()

@@ -88,12 +88,12 @@ class ListHeader(wx.Panel):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         
         if self.radius+spacers[0] > 0:
-            hSizer.AddSpacer((self.radius + spacers[0],10))
+            hSizer.Add(self.radius + spacers[0],10,0)
             
         self.AddColumns(hSizer, self, columns)
         
         if self.radius+spacers[1] > 0:
-            hSizer.AddSpacer((self.radius+spacers[1],10))
+            hSizer.Add(self.radius+spacers[1],10,0)
         
         self.SetSizer(hSizer)
     
@@ -145,7 +145,7 @@ class ListHeader(wx.Panel):
                         
                         remainingWidth = columns[i]['width'] - label.GetBestSize()[0] - down.GetWidth() - 3
                         if remainingWidth > 0:
-                            sizer.AddSpacer((remainingWidth, 1))
+                            sizer.Add(remainingWidth, 1,0)
                         else:
                             print >> sys.stderr, "LIST_HEADER: specified width is too small", columns[i]['name'], columns[i]['width'], remainingWidth
                             label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
@@ -155,7 +155,7 @@ class ListHeader(wx.Panel):
                     spacer = sizer.Add((columns[i]['width'], -1), 0, wx.LEFT, 3)
                     self.columnHeaders.append(spacer)
 
-        self.scrollBar = sizer.AddSpacer((0,0))
+        self.scrollBar = sizer.Add(0,0,0)
         self.scrollBar.sizer = sizer
     
     @warnWxThread
@@ -274,7 +274,7 @@ class TitleHeader(ListHeader):
     def AddComponents(self, columns, spacers):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        vSizer.AddSpacer((-1, 3))
+        vSizer.Add(-1, 3,0)
 
         self.title = StaticText(self)
         _set_font(self.title, self.font_increment, self.fontweight)
@@ -310,7 +310,7 @@ class TitleHeader(ListHeader):
         if belowPanel:
             vSizer.Add(belowPanel, 1, wx.EXPAND|wx.TOP, 3)
             
-        vSizer.AddSpacer((-1, 3))
+        vSizer.Add(-1, 3,0)
 
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -632,22 +632,22 @@ class TorrentFilter(BaseFilter):
             self.search.SetMinSize((175,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddSpacer((self.spacers[0], -1))
+        hSizer.Add(self.spacers[0], -1,0)
         hSizer.Add(self.sortby_icon, 0, wx.CENTER|wx.RIGHT, 3)
         hSizer.Add(self.sortby, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.Add(45, -1,0)
         if self.show_bundle:
             hSizer.Add(self.bundleby_icon, 0, wx.CENTER|wx.RIGHT, 3)
             hSizer.Add(self.bundleby, 0, wx.CENTER)
-            hSizer.AddSpacer((45, -1))
+            hSizer.Add(45, -1,0)
         hSizer.Add(self.filetype_icon, 0, wx.CENTER|wx.RIGHT, 3)
         hSizer.Add(self.filetype, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.Add(45, -1,0)
         hSizer.Add(self.filesize_str, 0, wx.CENTER | wx.RIGHT, 10)
         hSizer.Add(self.filesize, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
         hSizer.Add(self.search, 0, wx.CENTER)
-        hSizer.AddSpacer((self.spacers[1], -1))
+        hSizer.Add(self.spacers[1], -1,0)
         self.filter_sizer = hSizer
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -925,15 +925,15 @@ class ChannelFilter(BaseFilter):
             self.search.SetMinSize((175,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddSpacer((self.spacers[0], -1))
+        hSizer.Add(self.spacers[0], -1,0)
         hSizer.Add(self.sortby_icon, 0, wx.CENTER|wx.RIGHT, 3)
         hSizer.Add(self.sortby, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.Add(45, -1,0)
         hSizer.Add(self.channeltype_icon, 0, wx.CENTER|wx.RIGHT, 3)
         hSizer.Add(self.channeltype, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
         hSizer.Add(self.search, 0, wx.CENTER)
-        hSizer.AddSpacer((self.spacers[1], -1))
+        hSizer.Add(self.spacers[1], -1,0)
         self.filter_sizer = hSizer
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1030,7 +1030,7 @@ class ChannelFilter(BaseFilter):
                 btn.SetLabel(btn_label)
                 btn.Bind(wx.EVT_BUTTON, btn_handler)
             else:
-                self.filter_sizer.Remove(btn)
+                #self.filter_sizer.Remove(btn)
                 btn.Destroy()
                 self.filter_sizer.Layout()
 
@@ -1073,18 +1073,18 @@ class DownloadFilter(BaseFilter):
             self.search.SetMinSize((175,-1))
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.AddSpacer((self.spacers[0], -1))
+        hSizer.Add(self.spacers[0], -1,0)
         hSizer.Add(self.sortby_icon, 0, wx.CENTER|wx.RIGHT, 3)
         hSizer.Add(self.sortby, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.Add(45, -1,0)
         hSizer.Add(self.state_icon, 0, wx.CENTER|wx.RIGHT, 3)
         hSizer.Add(self.state, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.Add(45, -1,0)
         hSizer.Add(self.filesize_str, 0, wx.CENTER|wx.RIGHT, 10)
         hSizer.Add(self.filesize, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
         hSizer.Add(self.search, 0, wx.CENTER)
-        hSizer.AddSpacer((self.spacers[1], -1))
+        hSizer.Add(self.spacers[1], -1,0)
         self.filter_sizer = hSizer
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1315,7 +1315,7 @@ class ChannelHeader(ListItemHeader):
         
         open2edit = channelstate == ChannelCommunity.CHANNEL_CLOSED and iamModerator
         allow2edit = channel.my_vote == 2 and channelstate == ChannelCommunity.CHANNEL_OPEN
-        item.buttonSizer.Clear(deleteWindows = True)
+        item.buttonSizer.Clear(True)
         
         if channel.my_vote == 0 and not iamModerator:
             item.AddButton("Mark as Spam", self.parent_list.OnSpam, 4)
@@ -1363,7 +1363,7 @@ class PlaylistHeader(ListItemHeader):
             new_item.titleSizer.Insert(1, (5,-1))
             new_item.titleSizer.Insert(2, wx.StaticBitmap(new_item, -1, self.icon_right), 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)
             new_item.titleSizer.Insert(3, (5,-1))
-            new_item.buttonSizer.Clear(deleteWindows = True)
+            new_item.buttonSizer.Clear(True)
             
             new_item.list_deselected = FILTER_GREY
             new_item.ShowSelected()

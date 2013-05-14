@@ -214,7 +214,7 @@ class TorrentDetails(AbstractDetails):
                 self.messagePanel.SetLabel("Loading details, please wait.")
             
             self.Layout()
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
 
     @forceWxThread
@@ -253,7 +253,7 @@ class TorrentDetails(AbstractDetails):
                 
                 self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
                 
-                self.vSizer.Clear(deleteWindows = True)
+                self.vSizer.Clear(True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
             
                 self._Refresh(ds)
@@ -263,7 +263,7 @@ class TorrentDetails(AbstractDetails):
                 self.Layout()
             
                 
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
     
     @forceWxThread
@@ -284,7 +284,7 @@ class TorrentDetails(AbstractDetails):
                     self.vSizer.Insert(5, self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
                 
                 self.Layout()
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
     
     @warnWxThread
@@ -469,7 +469,7 @@ class TorrentDetails(AbstractDetails):
             
             subtitlePanel, vSizer = self._create_tab(self.notebook, "Subtitles", border = 10)
             subtitlePanel.SetBackgroundColour(wx.WHITE)
-            vSizer.AddSpacer((-1, 3))
+            vSizer.Add(-1, 3, 0)
             
             if not finished:
                 title = 'After you finished downloading this torrent you can select a subtitle'
@@ -532,7 +532,7 @@ class TorrentDetails(AbstractDetails):
     def _addOverview(self, panel, sizer):
 
         status_label = self.status.label.GetLabel() if getattr(self, 'status', None) else ""
-        sizer.Clear(deleteWindows = True)
+        sizer.Clear(True)
         
         categories = self.torrent.categories
         if isinstance(categories, list):
@@ -930,7 +930,7 @@ class TorrentDetails(AbstractDetails):
                     self.ShowHealth(False)
             else:
                 self.ShowHealth(False, ', no trackers found')
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
 
     @forceWxThread
@@ -1171,7 +1171,7 @@ class LibraryDetails(TorrentDetails):
 
                 self.guiutility.frame.top_bg.SetButtonHandler(self.guiutility.frame.top_bg.delete_btn, self.guiutility.frame.top_bg.OnDelete, 'Delete this torrent.')
                         
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
     
     @warnWxThread
@@ -1201,7 +1201,7 @@ class LibraryDetails(TorrentDetails):
             self.availability.sizer = hSizer
             
             self._add_row(peersPanel, hSizer, 'Availability', self.availability, spacer = 3)
-            hSizer.AddSpacer((4,-1))
+            hSizer.Add(4,-1, 0)
             self._add_row(peersPanel, hSizer, 'Pieces', self.pieces, spacer = 3)
             
             vSizer.Add(wx.StaticLine(peersPanel, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
@@ -1444,23 +1444,23 @@ class ChannelDetails(AbstractDetails):
                 
                 self._addOverview(self.overview, self.overviewSizer)
 
-                self.vSizer.Clear(deleteWindows = True)
+                self.vSizer.Clear(True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
                 self.isReady = True
                 self.Layout()
             
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass            
                 
     @forceWxThread                
     def _addOverview(self, panel, sizer):
-        sizer.Clear(deleteWindows = True)
+        sizer.Clear(True)
         
         vSizer = wx.FlexGridSizer(0, 2, 3, 10)
         vSizer.AddGrowableCol(1)
-        vSizer.AddGrowableRow(6)
+        vSizer.AddGrowableRow(4)#6
             
         self._add_row(self.overview, vSizer, "Name", self.channel.name)
         if self.channel.description:
@@ -1544,19 +1544,19 @@ class PlaylistDetails(AbstractDetails):
                 
                 self._addOverview(self.overview, self.overviewSizer)
 
-                self.vSizer.Clear(deleteWindows = True)
+                self.vSizer.Clear(True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
                 self.isReady = True
                 self.Layout()
             
-        except wx.PyDeadObjectError:
+        except RuntimeError:
             pass
         
     @forceWxThread                
     def _addOverview(self, panel, sizer):
-        sizer.Clear(deleteWindows = True)
+        sizer.Clear(True)
         
         vSizer = wx.FlexGridSizer(0, 2, 3, 10)
         vSizer.AddGrowableCol(1)
@@ -1622,7 +1622,7 @@ class PlaylistDetails(AbstractDetails):
                 sbmp.SetBitmap(bmp)
                 fgSizer.Add(sbmp, 0, 0)
                 
-            hSizer.AddSpacer((5, -1))
+            hSizer.Add(5, -1, 0)
                 
             sbmp = StaticBitmaps(panel, -1)
             sbmp.SetBitmaps(bmps_large)
@@ -2207,7 +2207,12 @@ class ChannelsExpandedPanel(wx.Panel):
         self.Layout()
         
     def OnShow(self, event):
-        if self.IsShownOnScreen():
+        shown = False
+        try:
+            shown = self.IsShownOnScreen()
+        except:
+            pass
+        if shown:
             if self.channel_or_playlist:
                 if isinstance(self.channel_or_playlist, Channel):
                     self.guiutility.showChannel(self.channel_or_playlist)

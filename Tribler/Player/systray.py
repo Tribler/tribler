@@ -11,10 +11,10 @@ import wx
 from Tribler.Core.API import *
 from Tribler.Plugin.defs import *
 
-class PlayerTaskBarIcon(wx.TaskBarIcon):
+class PlayerTaskBarIcon(wx.adv.TaskBarIcon):
 
     def __init__(self,wxapp,iconfilename):
-        wx.TaskBarIcon.__init__(self)
+        wx.adv.TaskBarIcon.__init__(self)
         self.wxapp = wxapp
 
         self.icons = wx.IconBundle()

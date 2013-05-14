@@ -1,7 +1,7 @@
 # Written by Niels Zeilemaker
 import os
 import sys
-import wx.animate
+import wx.adv
 
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -86,8 +86,8 @@ class TopSearchPanel(FancyPanel):
         self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
 
         ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
-        self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
-        self.ag.UseBackgroundColour(True)
+        self.ag = wx.adv.AnimationCtrl(self, -1)
+        self.ag.LoadFile(ag_fname)
         self.ag.SetBackgroundColour(wx.Colour(244,244,244))
         self.ag.Hide()
 
@@ -135,7 +135,7 @@ class TopSearchPanel(FancyPanel):
         self.searchSizer.Add(searchBoxSizer, 1, wx.EXPAND)
         #finished searchSizer, add to mainSizer
         mainSizer.Add(self.searchSizer, 0, wx.EXPAND|wx.LEFT, 10)
-        mainSizer.AddSpacer((40,0))
+        mainSizer.Add(40,0,0)
 
         #add buttons
         buttonSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -144,7 +144,7 @@ class TopSearchPanel(FancyPanel):
         buttonSizer.Add(self.stop_btn, 0, wx.CENTER|wx.RIGHT, 5)
         buttonSizer.Add(self.delete_btn, 0, wx.CENTER|wx.RIGHT, 5)
         buttonSizer.Add(self.play_btn, 0, wx.CENTER|wx.RIGHT, 5)
-        buttonSizer.AddSpacer((35,0))
+        buttonSizer.Add(35,0,0)
         buttonSizer.AddStretchSpacer()
         buttonSizer.Add(self.add_btn, 0, wx.CENTER|wx.RIGHT, 5)
         buttonSizer.Add(self.settings_btn, 0, wx.CENTER|wx.RIGHT, 5)

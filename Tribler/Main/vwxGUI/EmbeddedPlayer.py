@@ -608,7 +608,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.show_loading()
 
     def __check_thread(self):
-        if __debug__ and not wx.Thread_IsMain():
+        if __debug__ and not wx.IsMainThread():
             print  >> sys.stderr,"EmbeddedPlayer: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
 
@@ -635,7 +635,8 @@ class VLCLogoWindow(wx.Panel):
 
         if animate:
             animation = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','video_grey.gif')
-            self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, animation)
+            self.agVideo = wx.adv.AnimationCtrl(self, 1)
+            self.agVideo.LoadFile(animation)
             self.agVideo.Hide()
 
             self.vsizer.Add(self.agVideo, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)

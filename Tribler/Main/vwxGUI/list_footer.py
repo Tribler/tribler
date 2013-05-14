@@ -19,14 +19,14 @@ class ListFooter(wx.Panel):
         
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         if radius+spacers[0] > 0:
-            hSizer.AddSpacer((radius+spacers[0], 10))
+            hSizer.Add(radius+spacers[0], 10, 0)
         
         midSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.GetMidPanel(midSizer)
         hSizer.Add(midSizer, 1, wx.EXPAND)
         
         if radius+spacers[1] > 0:
-            hSizer.AddSpacer((radius+spacers[1], 10))
+            hSizer.Add(radius+spacers[1], 10, 0)
         
         self.SetSizer(hSizer)
         
@@ -88,7 +88,7 @@ class TitleFooter(ListFooter):
         self.title = StaticText(self)
         hSizer.Add(self.title)
         
-        self.scrollBar = hSizer.AddSpacer((0,0))
+        self.scrollBar = hSizer.Add(0,0,0)
         self.scrollBar.sizer = hSizer
         
     def SetTitle(self, title):
@@ -119,7 +119,7 @@ class TotalFooter(TitleFooter):
             
             self.totals.append(label) 
         
-        self.scrollBar = hSizer.AddSpacer((3,0))
+        self.scrollBar = hSizer.Add(3,0,0)
         self.scrollBar.sizer = hSizer
     
     def SetTotal(self, column, total, tooltip=None):
@@ -414,7 +414,7 @@ class CommentFooter(ListFooter, AbstractDetails):
         self.commentbox.SetDescriptiveText('Type in your comment here')
         if self.horizontal:
             sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.AddSpacer((-1, 7))
+            sizer.Add(-1, 7,0)
             self.commentbox.SetMinSize((200, -1))
             sizer.Add(self.commentbox, 1, wx.EXPAND)
         else:
@@ -423,7 +423,7 @@ class CommentFooter(ListFooter, AbstractDetails):
             sizer.Add(self.commentbox, 1, wx.EXPAND|wx.TOP, 7)            
         
         if self.horizontal:
-            sizer.AddSpacer((-1, 7))
+            sizer.Add(-1, 7, 0)
         
         self.addnew = wx.Button(self, -1, 'Post')
         self.quickAdd = None

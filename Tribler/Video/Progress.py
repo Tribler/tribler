@@ -292,7 +292,7 @@ class ProgressSlider(wx.Panel):
 
     def onSlider(self, pos):
         x,y = pos
-        width, height = self.GetClientSizeTuple()
+        width, height = self.GetClientSize()
         return (x > self.margin and x<= self.margin+self.sliderWidth and \
                 abs(y - height/2) < self.rectHeight/2+4)
 
@@ -373,11 +373,11 @@ class ProgressSlider(wx.Panel):
         return longformat
 
     def OnPaint(self, evt):
-        width, height = self.GetClientSizeTuple()
+        width, height = self.GetClientSize()
         buffer = wx.EmptyBitmap(width, height)
         #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)
-        dc.BeginDrawing()
+        #dc.BeginDrawing()
         dc.Clear()
 
         # Draw background
@@ -431,7 +431,7 @@ class ProgressSlider(wx.Panel):
             # Draw times
             dc.DrawText(time, width-self.margin-timeWidth, height/2-dc.GetCharHeight()/2)
 
-        dc.EndDrawing()
+        #dc.EndDrawing()
 
     def EnableDragging(self):
         self.allowDragging = True
@@ -510,7 +510,7 @@ class VolumeSlider(wx.Panel):
 
     def onSlider(self, pos):
         x,y = pos
-        width, height = self.GetClientSizeTuple()
+        width, height = self.GetClientSize()
         return (x > self.margin and x<= self.margin+self.sliderWidth and \
                 abs(y - height/2) < self.rectHeight/2+4)
 
@@ -544,7 +544,7 @@ class VolumeSlider(wx.Panel):
         self.range = (a,b)
 
     def OnPaint(self, evt):
-        width, height = self.GetClientSizeTuple()
+        width, height = self.GetClientSize()
         buffer = wx.EmptyBitmap(width, height)
         #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)

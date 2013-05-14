@@ -21,7 +21,7 @@ from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from wx.lib.agw.flatnotebook import FlatNotebook, PageContainer
 import wx.lib.agw.flatnotebook as fnb
-from wx._controls import StaticLine
+from wx._core import StaticLine
 from shutil import copyfile
 from Tribler.Main.vwxGUI.list_details import PlaylistDetails
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
@@ -1122,7 +1122,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.overviewpage.SetBackgroundColour(LIST_DESELECTED)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.AddSpacer((-1, 10))
+        vSizer.Add(-1, 10,0)
         header =  ""
         self.overviewheader = self._add_header(self.overviewpage, vSizer, header, spacer = 10)
         
@@ -1179,7 +1179,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.settingspage.SetBackgroundColour(LIST_DESELECTED)
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.AddSpacer((-1, 10))
+        vSizer.Add(-1, 10, 0)
         header =  "Community Settings"
         self._add_header(self.settingspage, vSizer, header, spacer = 10)
         
@@ -1223,7 +1223,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         self.managepage = wx.Panel(self.notebook)
         self.managepage.SetBackgroundColour(LIST_DESELECTED)
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.AddSpacer((-1, 10))
+        vSizer.Add(-1, 10, 0)
         
         #rss intro
         header =  "Rss import"
@@ -1815,8 +1815,8 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         sizer.Add(vSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         
         sizer.Add(dlg.availableList, 1, wx.EXPAND)
-        sizer.AddSpacer((1,1))
-        sizer.AddSpacer((1,1))
+        sizer.Add(1,1,0)
+        sizer.Add(1,1,0)
         
         self.all = wx.RadioButton(dlg, -1, "Show all available torrents", style = wx.RB_GROUP )
         self.all.Bind(wx.EVT_RADIOBUTTON, self.OnRadio)
@@ -1830,7 +1830,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(sizer, 1, wx.TOP|wx.LEFT|wx.RIGHT|wx.EXPAND, 10)
-        vSizer.AddSpacer((1,3))
+        vSizer.Add(1,3,0)
         vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK|wx.CANCEL), 0, wx.EXPAND|wx.BOTTOM|wx.LEFT|wx.RIGHT, 10)
         
         dlg.SetSizer(vSizer)

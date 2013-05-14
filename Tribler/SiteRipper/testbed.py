@@ -11,6 +11,9 @@ import time
 import urllib2
 import os
 import gc
+import re
+import wx
+import wx.html2
 
 def imgfilter(tag):
     return tag.name == "img"
@@ -73,8 +76,12 @@ def testPhase1():
     Tribler_run()
 
 def webpageLoaded(webbrowser):
-    injector = WebpageInjector(webbrowser.getCurrentURL(), webbrowser.getCurrentPageSource())
-    injector.saveWebpageFile('out.html')
+    #injector = WebpageInjector(webbrowser.getCurrentURL(), webbrowser.getCurrentPageSource())
+    #injector.saveWebpageFile('out.html')
+    print "Hello :D"
+    s= webbrowser.webview
+    print str(s.EventHandler)
+    
 
 def testLoadListenera():
     waitForTriblerStart()
