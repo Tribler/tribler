@@ -46,11 +46,7 @@ class WebBrowser(XRCPanel):
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
         self.webview.LoadURL("http://www.google.com/") 
-        
-        webPage = WebPage()
-        webPage.createFromFile('google.nl_imghp?hl=nl&tab=wi.html')
-        self.loadHTMLSource(webPage.getContent(), webPage.getUrl())
-        
+              
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
         '''Add all components'''
