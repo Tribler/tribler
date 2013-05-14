@@ -120,6 +120,17 @@ class SessionConfigInterface:
         @return Port number. """
         return self.sessconfig['minport']
 
+    def set_libtorrent(self, value):
+        """ Enable or disable LibTorrent (default = True).
+        @param value Boolean.
+        """
+        self.sessconfig['libtorrent'] = value
+
+    def get_libtorrent(self):
+        """ Returns whether LibTorrent is enabled.
+        @return Boolean.
+        """
+        return self.sessconfig['libtorrent']
     #
     # Advanced network settings
     #

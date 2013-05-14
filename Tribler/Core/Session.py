@@ -524,6 +524,9 @@ class Session(SessionRuntimeConfig):
         NTFY_CHANNELCAST -> ChannelCastDBHandler
         </pre>
         """
+        if not self.get_megacache():
+            raise OperationNotEnabledByConfigurationException()
+
         # Called by any thread
         self.sesslock.acquire()
         try:
@@ -628,10 +631,10 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        if not self.get_torrent_collecting():
+            raise OperationNotEnabledByConfigurationException()
 
-        rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
 
     def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -646,10 +649,10 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        if not self.get_torrent_collecting():
+            raise OperationNotEnabledByConfigurationException()
 
-        rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
 
     def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -664,10 +667,17 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        if not self.get_torrent_collecting():
+            raise OperationNotEnabledByConfigurationException()
 
-        rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
+
+    def get_dispersy_instance(self):
+        if not self.get_dispersy():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.dispersy
+
 
     #
     # Internal persistence methods
