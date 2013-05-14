@@ -13,23 +13,8 @@ def seedWebPage(url, pageSource):
     #Create a WebpageInjector
     injector = WebPageInjector(url, pageSource)
     #Save the webpage to file
-    fileName = __getFileName(url)
-    injector.saveWebPageFile(fileName)
+    injector.saveWebPageFile()    
     #Seed file
-    file = os.path.abspath(''.join([fileName,'.html']))
+    file = os.path.abspath(injector.getFileName())
     seedFile(file)
-    
-def __getFileName(url):
-    '''Get the appropiate filename by using the given url
-    Args:
-        url (str): The url to be used  to creat the filename.'''
-    #Remove http://www.
-    result = url
-    if result.startswith("http://"):
-        result = result[7:]
-    if result.startswith('www.'):
-        result = result[4:]
-    #Replace all / with -
-    result = ['_' if x=='/' else x for x in result]
-    #Return
-    return ''.join(result)
+   

@@ -32,7 +32,7 @@ class WebPageInjector:
             self.__localcopy.writeContent(content)
         self.__soup = BeautifulSoup(self.__localcopy.getContent())
         self.__fixlinks()
-        self.__ext = ".html" # If you want the 'real' extension, use __ripext
+        self.__localcopy.ext = ".html" # If you want the 'real' extension, use __ripext
         self.commitTagChanges()
         
     def __ripext(self, url):
@@ -122,9 +122,11 @@ class WebPageInjector:
         url = tag[attribute]
         return self.__downloadResource(self.__resolveURL(url), filename)
         
-    def saveWebPageFile(self, filename):
+    def saveWebPageFile(self):
         """Save your web page alterations to a file.
             Note that this member does not commit any tag changes.
-            Do not provide a filename extension (this will be provided)
         """
-        self.__localcopy.saveToFile(filename + self.__ext)
+        self.__localcopy.saveToFile()
+    
+    def getFileName(self):
+        return self.__localcopy.getFileName()
