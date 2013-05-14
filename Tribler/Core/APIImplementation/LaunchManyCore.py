@@ -170,11 +170,10 @@ class TriblerLaunchMany(Thread):
                 self.term = TermExtraction.getInstance(config['install_dir'])
 
                 self.peer_db = PeerDBHandler.getInstance()
-                # Register observer to update connection opened/closed to peer_db_handler
                 self.peer_db.registerConnectionUpdater(self.session)
+
                 self.torrent_db = TorrentDBHandler.getInstance()
-                torrent_collecting_dir = os.path.abspath(config['torrent_collecting_dir'])
-                self.torrent_db.register(torrent_collecting_dir)
+                self.torrent_db.register(os.path.abspath(config['torrent_collecting_dir']))
                 self.mypref_db = MyPreferenceDBHandler.getInstance()
                 self.votecast_db = VoteCastDBHandler.getInstance()
                 self.votecast_db.registerSession(self.session)
@@ -182,18 +181,8 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db.registerSession(self.session)
                 self.nb_db = NetworkBuzzDBHandler.getInstance()
                 self.ue_db = UserEventLogDBHandler.getInstance()
-
-
             else:
                 config['torrent_checking'] = 0
-                self.peer_db = None
-                self.torrent_db = None
-                self.mypref_db = None
-                self.seedingstats_db = None
-                self.seedingstatssettings_db = None
-                self.votecast_db = None
-                self.channelcast_db = None
-                self.mm = None
 
             self.rtorrent_handler = None
             if config['torrent_collecting']:
@@ -275,7 +264,7 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
 
-        if d and not hidden and self.torrent_db != None and self.mypref_db != None:
+        if d and not hidden and self.session.get_megacache():
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
                 data = {'destination_path':d.get_dest_dir()}
@@ -329,7 +318,7 @@ class TriblerLaunchMany(Thread):
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")
 
-        if self.torrent_db != None and self.mypref_db != None:
+        if self.session.get_megacache():
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, hash), priority=1024)
 
     def get_downloads(self):
@@ -638,7 +627,7 @@ class TriblerLaunchMany(Thread):
             print >> sys.stderr, "lmc: Databasethread shutdown", "[%d]" % id(self.database_thread)
             self.database_thread.stop(666.666)
 
-        if self.session.sessconfig['megacache']:
+        if self.session.get_megacache():
             self.peer_db.delInstance()
             self.torrent_db.delInstance()
             self.mypref_db.delInstance()
@@ -648,7 +637,6 @@ class TriblerLaunchMany(Thread):
             self.ue_db.delInstance()
             self.cat.delInstance()
             self.term.delInstance()
-
 
             from Tribler.Core.CacheDB.sqlitecachedb import unregister
             unregister()
@@ -820,7 +808,7 @@ class TriblerLaunchMany(Thread):
             data = {'destination_path':dest_path}
             mypref_db.addMyPreference(torrent_id, data)
 
-        if d and not hidden and self.torrent_db != None and self.mypref_db != None:
+        if d and not hidden and self.session.get_megacache():
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash, sdef, d))
 
         return d
@@ -847,7 +835,7 @@ class TriblerLaunchMany(Thread):
             if torrent_id:
                 self.mypref_db.updateDestDir(torrent_id, "")
 
-        if not hidden and self.torrent_db != None and self.mypref_db != None:
+        if not hidden and self.session.get_megacache():
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash), priority=1024)
 
 def singledownload_size_cmp(x, y):

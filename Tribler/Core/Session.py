@@ -56,7 +56,9 @@ class Session(SessionRuntimeConfig):
         at a time in a process. The ignore_singleton flag is used for testing.
         """
 
-        print >> sys.stderr, "created session"
+        from traceback import print_stack
+        print >> sys.stderr, "Created session"
+        print_stack()
 
         if not ignore_singleton:
             if Session.__single:
