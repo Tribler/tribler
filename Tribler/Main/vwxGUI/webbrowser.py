@@ -73,8 +73,14 @@ class WebBrowser(XRCPanel):
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
+      
+    def loadTorrentFile(self, filename):
+        '''Load a webpage from a webpage Torrent created by the seed button'''
+        webPage = WebPage()
+        webPage.createFromFile(filename)
+        self.__loadHTMLSource(webPage.getContent(), webPage.getUrl())
     
-    def loadHTMLSource(self, source, url):
+    def __loadHTMLSource(self, source, url):
         '''Load a webpage from HTML Source.
         Args:
             source (string): The HTML source to be loaded.

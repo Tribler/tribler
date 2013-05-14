@@ -963,6 +963,12 @@ class LibraryManager:
                 self.torrentsearch_manager.getTorrent(torrent, callback)
         else:
             videoplayer.play(ds, selectedinfilename)
+        
+    def webBrowseTorrent(self, selectedinfilename):
+        '''Browse the torrent in the webbrowser'''
+        self.guiUtility.frame.webbrowser.loadTorrentFile(selectedinfilename)
+        self.guiUtility.ShowPage('webbrowser')
+        
 
     def startDownloadFromUrl(self, url, useDefault = False):
         if useDefault:
