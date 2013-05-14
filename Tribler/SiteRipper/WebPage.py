@@ -56,10 +56,12 @@ class WebPage:
         file.write(self.__content)
         file.close()
     
-    def createFromFile(filename):
+    def createFromFile(self, filename):
         '''Create a web page from disk'''
         file = open(filename, 'rb')
         self.__content = file.read()
+        self.__url = WebPage.getURLName(filename)
+        self.__ext = '.html'
         
     def getFileName(self):
         '''Get the appropiate filename by using the given url
@@ -76,14 +78,18 @@ class WebPage:
         #Return
         return ''.join(result) + self.ext
 
+    @staticmethod
     def getURLName(filename):
         '''Get the appropiate url by using the given filename
         Args:
             filename (str): The filename to be used  to create the url.'''
         result = filename
-        result = ['_' if x=='/' else x for x in result]
+        #Remove the extension
+        result = result[:(result.rindex('.'))]
+        #Replace all _ with /
+        result = ['/' if x=='_' else x for x in result]
         #Add http://www.
-        result = ''.join(['http://','www.',result])
+        result = 'http://' + 'www.'+''.join(result)
         #return
         return result
         

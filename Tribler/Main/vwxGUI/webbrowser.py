@@ -6,6 +6,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.SiteRipper.SiteRipper import seedWebPage
 
 import sys
+from Tribler.SiteRipper.WebPage import WebPage
 
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
@@ -46,6 +47,10 @@ class WebBrowser(XRCPanel):
         self.webview.ClearHistory()
         self.webview.LoadURL("http://www.google.com/") 
         
+        webPage = WebPage()
+        webPage.createFromFile('google.nl_imghp?hl=nl&tab=wi.html')
+        self.loadHTMLSource(webPage.getContent(), webPage.getUrl())
+        
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
         '''Add all components'''
@@ -72,6 +77,13 @@ class WebBrowser(XRCPanel):
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
+    
+    def loadHTMLSource(self, source, url):
+        '''Load a webpage from HTML Source.
+        Args:
+            source (string): The HTML source to be loaded.
+            url    (string): The URL that accompanies the HTML source.'''
+        self.webview.SetPage(source, url)
 
     def onURLLoading(self, event):
         '''Actions to be taken when an URL start to be loaded.'''
