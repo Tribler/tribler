@@ -5,6 +5,7 @@ from datetime import date
 from time import time
 from inspect import getargspec
 from Tribler.Video.utils import videoextdefaults
+from Tribler.SiteRipper.Utils import webPageExtDefaults
 from Tribler.Main.vwxGUI import VLC_SUPPORTED_SUBTITLES, PLAYLIST_REQ_COLUMNS,\
     CHANNEL_REQ_COLUMNS
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED,\
@@ -393,6 +394,18 @@ class CollectedTorrent(Helper):
             if ext in videoextdefaults:
                 videofiles.append(filename)
         return videofiles
+    
+    def webPageFiles(self):
+        '''Returns a list of all files that can be opened in the Webbrowser.'''
+        webPageFiles = []
+        for filename, _ in self.files:
+            _, ext = os.path.splitext(filename)
+            if ext.startswith('.'):
+                ext = ext[1:]
+            #Check if the extension is in the supported defaults.
+            if ext in webPageExtDefaults:
+                webPageFiles.append(filename)
+        return webPageFiles
 
     @cacheProperty
     def largestvideofile(self):
