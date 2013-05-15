@@ -1,10 +1,42 @@
 class ResourceSniffer:
+    '''ResourceSniffer
+    Class for constructing a local copy of a webpage.
+    '''
+
+    __listenforfiles = False
+
+    def AddFileToDictionary(self, uri):
+        '''Call the dictionary to add a mapping for a resource uri
+        '''
+        # TODO: Call for Dictionary to download file from uri
+        print "STUB"
 
     def GetFile(self, uri):
-    	print "Eavesdropped on uri: " + uri
+        '''Callback for when an uri is requested on a page
+            Note that we may not be sensitive to these requests
+            (This is to avoid javascript chucking images at us while
+            we are compressing a page and breaking us)
+        '''
+    	if self.__listenforfiles:
+            self.AddFileToDictionary(uri)
     	
     def StartLoading(self, url):
-    	print "Starting to produce dictionary for " + url
+        '''Callback for when a page starts to get loaded
+            (Resources meant to be sniffed are going to pour into
+            our GetFile() member)
+        '''
+        self.__listenforfiles = True
     	
     def Seed(self):
-    	print "I got a seeding request"
+        '''Callback for when a user requests a page to be seeded.
+            This will block any new resources from coming in (through
+            javascript for example).
+            This member is responsible for:
+            1. Finalizing the dictionary (download all resources)
+            2. Compressing the dictionary (tar)
+            3. Sharing dictionary (torrent)
+        '''
+        self.__listenforfiles = False
+        # TODO: Call for Dictionary to finalize itself (if needed)
+        # TODO: Compress and share Dictionary 
+        print "STUB"
