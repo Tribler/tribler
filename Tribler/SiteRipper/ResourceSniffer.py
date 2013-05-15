@@ -1,15 +1,20 @@
+from Tribler.SiteRipper.TarFolderManager import TarFolderManager
+
 class ResourceSniffer:
     '''ResourceSniffer
     Class for constructing a local copy of a webpage.
     '''
 
-    __listenforfiles = False
+    __listenforfiles = False    #Determines wether we are sensitive to incoming resources
+    __dictionary = None         #Our dictionary for url to file path mapping
+
+    def __init__(self):
+        self.__dictionary = None # TODO
 
     def AddFileToDictionary(self, uri):
         '''Call the dictionary to add a mapping for a resource uri
         '''
-        # TODO: Call for Dictionary to download file from uri
-        print "STUB"
+        #self.__dictionary.AddMapping(uri)
 
     def GetFile(self, uri):
         '''Callback for when an uri is requested on a page
@@ -26,6 +31,7 @@ class ResourceSniffer:
             our GetFile() member)
         '''
         self.__listenforfiles = True
+        #self.__dictionary.Initialize(url)
     	
     def Seed(self):
         '''Callback for when a user requests a page to be seeded.
@@ -36,7 +42,15 @@ class ResourceSniffer:
             2. Compressing the dictionary (tar)
             3. Sharing dictionary (torrent)
         '''
+        #Shut down listening for files
         self.__listenforfiles = False
-        # TODO: Call for Dictionary to finalize itself (if needed)
-        # TODO: Compress and share Dictionary 
+        #Gather all the files referenced on the page
+        self.__dictionary.DownloadFiles()
+        #Get local file details from the dictionary
+        folder = self.__dictionary.GetFolder()
+        archivename = self.__dictionary.GetFolderName()
+        #Compress files
+        foldermngr = TarFolderManager(archivename)
+        foldermngr.tarFromFolder(folder)
+        # TODO: share Compressed Directory 
         print "STUB"
