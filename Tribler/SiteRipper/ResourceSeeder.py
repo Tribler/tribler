@@ -11,7 +11,6 @@ import urllib2
 def seedFile(filename):
     """Start seeding an arbitrary file
     """
-    print("seedFile")
     session = Session.get_instance()
     torrent = TorrentDef()
     torrent.add_content(filename)

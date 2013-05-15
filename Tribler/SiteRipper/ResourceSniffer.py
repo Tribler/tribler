@@ -1,3 +1,5 @@
+import Tribler.SiteRipper.ResourceSeeder as ResourceSeeder
+
 from Tribler.SiteRipper.TarFolderManager import TarFolderManager
 
 class ResourceSniffer:
@@ -51,6 +53,7 @@ class ResourceSniffer:
         archivename = self.__dictionary.GetFolderName()
         #Compress files
         foldermngr = TarFolderManager(archivename)
-        foldermngr.tarFromFolder(folder)
-        # TODO: share Compressed Directory 
+        tarfile = foldermngr.tarFromFolder(folder)
+        #Share tarfile
+        ResourceSeeder.seedFile(tarfile)
         print "STUB"
