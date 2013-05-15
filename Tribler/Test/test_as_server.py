@@ -98,14 +98,13 @@ class TestAsServer(AbstractServer):
         self.config.set_state_dir(self.getStateDir())
         self.config.set_listen_port(random.randint(10000, 60000))
         self.config.set_torrent_checking(False)
-        self.config.set_dialback(False)
-        self.config.set_internal_tracker(False)
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(False)
         self.config.set_dispersy(False)
         self.config.set_swift_proc(False)
         self.config.set_mainline_dht(False)
         self.config.set_torrent_collecting(False)
+        self.config.set_libtorrent(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
@@ -136,9 +135,7 @@ class TestAsServer(AbstractServer):
         session.shutdown()
         while not session.has_shutdown():
             diff = time.time() - session_shutdown_start
-            if diff > waittime:
-                print >> sys.stderr, "test_as_server: NOT Waiting for Session to shutdown, took too long"
-                break
+            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
 
             print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
             time.sleep(1)
