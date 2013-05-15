@@ -71,6 +71,7 @@ class TriblerLaunchMany(Thread):
         self.initComplete = False
         self.registered = False
         self.dispersy = None
+        self.database_thread = None
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -138,13 +139,8 @@ class TriblerLaunchMany(Thread):
                 print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
-            else:
-                # new database stuff will run on only one thread
-                callback = Callback("Dispersy")  # WARNING NAME SIGNIFICANT
-                callback.start()
-
-            # we may want to remove DATABASE_THREAD member
-            self.database_thread = callback
+                # we may want to remove DATABASE_THREAD member
+                self.database_thread = callback
 
             if config['megacache']:
                 import Tribler.Core.CacheDB.cachedb as cachedb
@@ -180,6 +176,15 @@ class TriblerLaunchMany(Thread):
                 self.nb_db = NetworkBuzzDBHandler.getInstance()
                 self.ue_db = UserEventLogDBHandler.getInstance()
 
+                if self.dispersy:
+                    self.dispersy.database.attach_commit_callback(self.channelcast_db._db.commitNow)
+
+                else:
+                    def periodic_database_commit():
+                        while True:
+                            yield 60.0
+                            self.channelcast_db.commitNow()
+                    self.database_thread.register(periodic_database_commit)
 
             else:
                 config['torrent_checking'] = 0
