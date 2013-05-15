@@ -213,7 +213,7 @@ class ABCApp():
             self.ratestatecallbackcount = 0
 
             # So we know if we asked for peer details last cycle
-            self.lastwantpeers = False
+            self.lastwantpeers = []
 
             # boudewijn 01/04/2010: hack to fix the seedupload speed that
             # was never used and defaulted to 0 (unlimited upload)
