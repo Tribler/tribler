@@ -88,7 +88,7 @@ class SwiftProcess:
             args.append("180") # seconds
         #args.append("-B") # Enable debugging on swift
 
-        if True or DEBUG:
+        if DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
 
         if sys.platform == "win32":
@@ -105,6 +105,10 @@ class SwiftProcess:
 
         # callbacks for when swift detect a channel close
         self._channel_close_callbacks = defaultdict(list)
+
+        # Only warn once when TUNNELRECV messages are received without us having a Dispersy endpoint.  This occurs after
+        # Dispersy shutdown
+        self._warn_missing_endpoint = True
 
     #
     # Instance2Instance
@@ -145,7 +149,9 @@ class SwiftProcess:
             try:
                 self.roothash2dl["dispersy-endpoint"].i2ithread_data_came_in(session, (host, port), data)
             except KeyError:
-                print >> sys.stderr, "sp: Dispersy endpoint is not available"
+                if self._warn_missing_endpoint:
+                    self._warn_missing_endpoint = False
+                    print >> sys.stderr, "sp: Dispersy endpoint is not available"
 
         else:
             roothash = binascii.unhexlify(words[1])
