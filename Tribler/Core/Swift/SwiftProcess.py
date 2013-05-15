@@ -18,7 +18,7 @@ from Tribler.Utilities.FastI2I import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
 from Tribler.Core import NoDispersyRLock
 
-DEBUG = True
+DEBUG = False
 
 DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1

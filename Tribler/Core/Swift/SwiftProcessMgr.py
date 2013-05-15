@@ -84,6 +84,7 @@ class SwiftProcessMgr:
             if sp.get_listen_port() == self.tunnellistenport:
                 return
 
+            # Niels, 2013-05-15: Don't kill at all we want a swift process as a background process
             if False and len(sp.get_downloads()) == 0:
                 self.destroy_sp(sp)
         finally:

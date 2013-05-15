@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 
 #########################################################################
@@ -360,7 +359,7 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
         self.dispersy.attach_progress_handler(self.frame.progressHandler)
-        self.dispersy._callback.attach_exception_handler(self.frame.exceptionHandler)
+        self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
         startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
 
