@@ -7,9 +7,34 @@ from Tribler.SiteRipper.SiteRipper import seedWebPage
 
 import sys
 from Tribler.SiteRipper.WebPage import WebPage
+from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
+
+class SeedingResourceHandler(wx.html2.WebViewHandler):
+    '''SeedingResourceHandler:
+        Decorator for a normal WebViewFSHandler.
+        Forwards requested resources to ResourceSniffer to be downloaded.
+    '''
+    
+    __sniffer = None        #Resource Sniffer (for fetching local copies)
+    __httphandler = None    #Handler for http requests
+
+    def __init__(self, sniffer):
+        wx.html2.WebViewHandler.__init__(self, "http")
+        self.__httphandler = wx.html2.WebViewFSHandler("http")
+        self.__sniffer = sniffer
+        
+    def GetFile(self, uri):
+        '''Returns the wxFile descriptor for the WebView to retrieve the resource
+        '''
+        self.__sniffer.GetFile(uri)
+        return self.__httphandler.GetFile(uri)
+
 
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
+   
+    __sniffer = None    #Resource Sniffer (for fetching local copies)
+    __reshandler = None #Resource Handler 
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -43,6 +68,12 @@ class WebBrowser(XRCPanel):
         
         '''Create the webview'''
         self.webview = wx.html2.WebView.New(self)
+        
+        '''Register Resource Sniffer with webview'''
+        self.__sniffer = ResourceSniffer()
+        self.__reshandler = SeedingResourceHandler(self.__sniffer)
+        self.webview.RegisterHandler(self.__reshandler)
+        
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
         self.webview.LoadURL("http://www.google.com/") 
@@ -94,7 +125,9 @@ class WebBrowser(XRCPanel):
         self.adressBar.SetValue(self.webview.GetCurrentURL())
     
     def onURLLoaded(self, event):
-        '''Actions to be taken when an URL is loaded.'''        
+        '''Actions to be taken when an URL is loaded.''' 
+        #Notify our sniffer that the current page can be saved
+        self.__sniffer.FinishedLoading()       
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
         #Update the seedbutton
@@ -106,8 +139,8 @@ class WebBrowser(XRCPanel):
         self.seedButton.SetLabel("Seeding")
         #disable seed button
         self.seedButton.Disable()
-        #Start seeding images.
-        seedWebPage(self.webview.GetCurrentURL(), self.webview.GetPageSource())
+        #Start seeding webpage.
+        self.__sniffer.Seed()
 
         self.seedButton.SetLabel("Seeded")
         
