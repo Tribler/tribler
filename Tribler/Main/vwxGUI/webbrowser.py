@@ -121,13 +121,14 @@ class WebBrowser(XRCPanel):
 
     def onURLLoading(self, event):
         '''Actions to be taken when an URL start to be loaded.'''
+        url = self.webview.GetCurrentURL()
+        #Notify our sniffer that we are constructing a new dictionary
+        self.__sniffer.StartLoading(url)
         #Update the adressbar
-        self.adressBar.SetValue(self.webview.GetCurrentURL())
+        self.adressBar.SetValue(url)
     
     def onURLLoaded(self, event):
-        '''Actions to be taken when an URL is loaded.''' 
-        #Notify our sniffer that the current page can be saved
-        self.__sniffer.FinishedLoading()       
+        '''Actions to be taken when an URL is loaded.'''        
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
         #Update the seedbutton
