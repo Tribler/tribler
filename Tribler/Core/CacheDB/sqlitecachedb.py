@@ -1437,14 +1437,14 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         # regardless of later, potentially failing updates
         self.writeDBVersion(CURRENT_MAIN_DB_VERSION, commit=False)
         self.commit()
-        
+
         tqueue = None
         def kill_threadqueue_if_empty():
             if tqueue.get_nr_tasks() == 0:
                 tqueue.shutdown(True)
             else:
                 tqueue.add_task(kill_threadqueue_if_empty, SUCCESIVE_UPGRADE_PAUSE, "kill_if_empty")
-            
+
 
         from Tribler.Core.Session import Session
         session = Session.get_instance()
@@ -1744,6 +1744,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 if my_channel_name:
                     def dispersy_started(subject, changeType, objectID):
                         print >> sys.stderr, "Dispersy started"
+                        dispersy = session.lm.dispersy
+                        callback = dispersy.callback
 
                         community = None
                         def create_my_channel():
@@ -1838,11 +1840,9 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                                 dispersy.callback.register(insert_my_torrents, delay=float(SUCCESIVE_UPGRADE_PAUSE))
 
                         from Tribler.community.channel.community import ChannelCommunity
-                        from Tribler.dispersy.dispersy import Dispersy
                         from Tribler.Core.TorrentDef import TorrentDef
 
-                        global _callback
-                        _callback.register(create_my_channel, delay=float(INITIAL_UPGRADE_PAUSE))
+                        callback.register(create_my_channel, delay=float(INITIAL_UPGRADE_PAUSE))
                         session.remove_observer(dispersy_started)
 
                     session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])

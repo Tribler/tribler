@@ -1197,14 +1197,6 @@ class ChannelManager:
             self.remote_th = RemoteTorrentHandler.getInstance()
 
             self.dispersy = session.lm.dispersy
-            if not self.dispersy:
-                def dispersy_started(subject, changeType, objectID):
-                    assert session.lm.dispersy
-                    self.dispersy = session.lm.dispersy
-                    self.session.remove_observer(dispersy_started)
-
-                self.session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
-
         else:
             raise RuntimeError('ChannelManager already connected')
 
