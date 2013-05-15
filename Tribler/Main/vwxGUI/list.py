@@ -1836,7 +1836,10 @@ class LibraryList(SizeList):
         self.refreshitems_counter += 1
             
         for item in self.list.items.itervalues():
-            ds = item.original_data.ds
+            if hasattr(item, "original_data"):
+                ds = item.original_data.ds
+            else:
+                continue
             if newFilter or not self.__ds__eq__(ds, oldDS.get(id, None)):
                 if hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)

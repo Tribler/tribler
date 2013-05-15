@@ -1275,6 +1275,8 @@ class AbstractListBody():
             self.curWidth = width
             
             for item in self.items.itervalues():
+                if item == None:
+                    continue
                 if item.OnEventSize(width):
                     doOnChange = True
 
