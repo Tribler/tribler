@@ -573,6 +573,12 @@ class Session(SessionRuntimeConfig):
 
         return self.lm.dispersy
 
+    def get_swift_process(self):
+        if not self.get_swift_proc():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.swift_process
+
 
     #
     # Internal persistence methods

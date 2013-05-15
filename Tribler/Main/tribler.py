@@ -441,10 +441,10 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        dispersy = s.get_dispersy_instance()
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
+            from Tribler.community.bartercast3.community import BarterCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
 
@@ -456,14 +456,17 @@ class ABCApp():
                                            (s.dispersy_member,),
                                            {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
-            dispersy.define_auto_load(BarterCommunity,
-                                      (self.swift_process,),
-                                      load=True)
+            if swift_process:
+                dispersy.define_auto_load(BarterCommunity,
+                                          (swift_process,),
+                                          load=True)
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
+        swift_process = s.get_swift_proc() and s.get_swift_process()
+        dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
         return s
 
