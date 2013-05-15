@@ -48,7 +48,6 @@ sessdefaults['magnetlink'] = True
 sessdefaults['torrent_collecting'] = True
 sessdefaults['torrent_collecting_max_torrents'] = 50000
 sessdefaults['torrent_collecting_dir'] = None
-sessdefaults['torrent_collecting_rate'] = 5 * 10
 sessdefaults['torrent_checking'] = 1
 sessdefaults['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
 # sessdefaults['rquery'] = True
@@ -77,50 +76,6 @@ sessdefaults['swiftdlsperproc'] = 1000
 sessdefaults['swifttunnellistenport'] = None
 sessdefaults['swifttunnelcmdgwlistenport'] = None
 sessdefaults['swifttunnelhttpgwlistenport'] = None
-
-
-
-
-trackerdefaults = {}
-trackerdefaults['tracker_url'] = None
-trackerdefaults['tracker_dfile'] = None
-trackerdefaults['tracker_dfile_format'] = ITRACKDBFORMAT_PICKLE
-trackerdefaults['tracker_socket_timeout'] = 15
-trackerdefaults['tracker_save_dfile_interval'] = 300
-trackerdefaults['tracker_timeout_downloaders_interval'] = 2700
-trackerdefaults['tracker_reannounce_interval'] = 1800
-trackerdefaults['tracker_response_size'] = 50
-trackerdefaults['tracker_timeout_check_interval'] = 5
-trackerdefaults['tracker_nat_check'] = 3
-trackerdefaults['tracker_log_nat_checks'] = 0
-trackerdefaults['tracker_min_time_between_log_flushes'] = 3.0
-trackerdefaults['tracker_min_time_between_cache_refreshes'] = 600.0
-trackerdefaults['tracker_allowed_dir'] = None
-trackerdefaults['tracker_allowed_list'] = ''
-trackerdefaults['tracker_allowed_controls'] = 0
-trackerdefaults['tracker_multitracker_enabled'] = 0
-trackerdefaults['tracker_multitracker_allowed'] = ITRACKMULTI_ALLOW_AUTODETECT
-trackerdefaults['tracker_multitracker_reannounce_interval'] = 120
-trackerdefaults['tracker_multitracker_maxpeers'] = 20
-trackerdefaults['tracker_aggregate_forward'] = [None, None]
-trackerdefaults['tracker_aggregator'] = 0
-trackerdefaults['tracker_hupmonitor'] = 0
-trackerdefaults['tracker_multitracker_http_timeout'] = 60
-trackerdefaults['tracker_parse_dir_interval'] = 60
-trackerdefaults['tracker_show_infopage'] = 1
-trackerdefaults['tracker_infopage_redirect'] = None
-trackerdefaults['tracker_show_names'] = 1
-trackerdefaults['tracker_favicon'] = None
-trackerdefaults['tracker_allowed_ips'] = []
-trackerdefaults['tracker_banned_ips'] = []
-trackerdefaults['tracker_only_local_override_ip'] = ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK
-
-trackerdefaults['tracker_logfile'] = None
-trackerdefaults['tracker_allow_get'] = 1
-trackerdefaults['tracker_keep_dead'] = 0
-trackerdefaults['tracker_scrape_allowed'] = ITRACKSCRAPE_ALLOW_FULL
-
-sessdefaults.update(trackerdefaults)
 
 #
 # BT per download opts

@@ -342,14 +342,6 @@ class TorrentManager:
             self.channel_manager = channel_manager
 
             self.dispersy = session.lm.dispersy
-            if not self.dispersy:
-                def dispersy_started(subject, changeType, objectID):
-                    assert session.lm.dispersy
-                    self.dispersy = session.lm.dispersy
-                    self.session.remove_observer(dispersy_started)
-
-                self.session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
-
             self.xxx_category = self.torrent_db.category_table.get('xxx', 0)
         else:
             raise RuntimeError('TorrentManager already connected')
@@ -1205,14 +1197,6 @@ class ChannelManager:
             self.remote_th = RemoteTorrentHandler.getInstance()
 
             self.dispersy = session.lm.dispersy
-            if not self.dispersy:
-                def dispersy_started(subject, changeType, objectID):
-                    assert session.lm.dispersy
-                    self.dispersy = session.lm.dispersy
-                    self.session.remove_observer(dispersy_started)
-
-                self.session.add_observer(dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
-
         else:
             raise RuntimeError('ChannelManager already connected')
 

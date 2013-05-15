@@ -55,9 +55,6 @@ class Session(SessionRuntimeConfig):
         In the current implementation only a single session instance can exist
         at a time in a process. The ignore_singleton flag is used for testing.
         """
-
-        print >> sys.stderr, "created session"
-
         if not ignore_singleton:
             if Session.__single:
                 raise RuntimeError, "Session is singleton"
@@ -141,32 +138,13 @@ class Session(SessionRuntimeConfig):
         if not os.path.isdir(dlpstatedir):
             os.mkdir(dlpstatedir)
 
-        # 3. tracker
-        trackerdir = self.get_internal_tracker_dir()
-        if not os.path.exists(trackerdir):
-            os.mkdir(trackerdir)
-
-        if self.sessconfig['tracker_dfile'] is None:
-            self.sessconfig['tracker_dfile'] = os.path.join(trackerdir, 'tracker.db')
-
-        if self.sessconfig['tracker_allowed_dir'] is None:
-            self.sessconfig['tracker_allowed_dir'] = trackerdir
-
-        if self.sessconfig['tracker_logfile'] is None:
-            if sys.platform == "win32":
-                # Not "Nul:" but "nul" is /dev/null on Win32
-                sink = 'nul'
-            else:
-                sink = '/dev/null'
-            self.sessconfig['tracker_logfile'] = sink
-
-        # 5. peer_icon_path
+        # 3. peer_icon_path
         if self.sessconfig['peer_icon_path'] is None:
             self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
             if not os.path.isdir(self.sessconfig['peer_icon_path']):
                 os.mkdir(self.sessconfig['peer_icon_path'])
 
-        # 6. Poor man's versioning of SessionConfig, add missing
+        # 4. Poor man's versioning of SessionConfig, add missing
         # default values. Really should use PERSISTENTSTATE_CURRENTVERSION
         # and do conversions.
         for key, defvalue in sessdefaults.iteritems():
@@ -393,87 +371,6 @@ class Session(SessionRuntimeConfig):
             self.sesslock.release()
 
     #
-    # Internal tracker
-    #
-    def get_internal_tracker_url(self):
-        """ Returns the announce URL for the internal tracker.
-        @return URL """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            url = None
-            if 'tracker_url' in self.sessconfig:
-                url = self.sessconfig['tracker_url']  # user defined override, e.g. specific hostname
-            if url is None:
-                ip = self.lm.get_ext_ip()
-                port = self.get_listen_port()
-                url = 'http://' + ip + ':' + str(port) + '/announce/'
-            return url
-        finally:
-            self.sesslock.release()
-
-    def get_internal_tracker_dir(self):
-        """ Returns the directory containing the torrents tracked by the internal
-        tracker (and associated databases).
-        @return An absolute path. """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            if self.sessconfig['state_dir'] is None:
-                return None
-            else:
-                return os.path.join(self.sessconfig['state_dir'], STATEDIR_ITRACKER_DIR)
-        finally:
-            self.sesslock.release()
-
-    def add_to_internal_tracker(self, tdef):
-        """ Add a torrent def to the list of torrents tracked by the internal
-        tracker. Use this method to use the Session as a standalone tracker.
-        @param tdef A finalized TorrentDef.
-        """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            infohash = tdef.get_infohash()
-            filename = self.get_internal_tracker_torrentfilename(infohash)
-            tdef.save(filename)
-
-            print >> sys.stderr, "Session: add_to_int_tracker: saving to", filename, "url-compat", tdef.get_url_compat()
-
-            # Bring to attention of Tracker thread
-            self.lm.tracker_rescan_dir()
-        finally:
-            self.sesslock.release()
-
-    def remove_from_internal_tracker(self, tdef):
-        """ Remove a torrent def from the list of torrents tracked by the
-        internal tracker. Use this method to use the Session as a standalone
-        tracker.
-        @param tdef A finalized TorrentDef.
-        """
-        infohash = tdef.get_infohash()
-        self.remove_from_internal_tracker_by_infohash(infohash)
-
-    def remove_from_internal_tracker_by_infohash(self, infohash):
-        """ Remove a torrent def from the list of torrents tracked by the
-        internal tracker. Use this method to use the Session as a standalone
-        tracker.
-        @param infohash Identifier of the torrent def to remove.
-        """
-        # Called by any thread
-        self.sesslock.acquire()
-        try:
-            filename = self.get_internal_tracker_torrentfilename(infohash)
-            if DEBUG:
-                print >> sys.stderr, "Session: removing itracker entry", filename
-            if os.access(filename, os.F_OK):
-                os.remove(filename)
-            # Bring to attention of Tracker thread
-            self.lm.tracker_rescan_dir()
-        finally:
-            self.sesslock.release()
-
-    #
     # Notification of events in the Session
     #
     def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], objectID=None, cache=0):
@@ -524,6 +421,9 @@ class Session(SessionRuntimeConfig):
         NTFY_CHANNELCAST -> ChannelCastDBHandler
         </pre>
         """
+        if not self.get_megacache():
+            raise OperationNotEnabledByConfigurationException()
+
         # Called by any thread
         self.sesslock.acquire()
         try:
@@ -550,8 +450,6 @@ class Session(SessionRuntimeConfig):
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
-
-
 
     #
     # Persistence and shutdown
@@ -628,10 +526,10 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        if not self.lm.rtorrent_handler:
+            raise OperationNotEnabledByConfigurationException()
 
-        rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
 
     def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -646,10 +544,10 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        if not self.lm.rtorrent_handler:
+            raise OperationNotEnabledByConfigurationException()
 
-        rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
 
     def download_torrentmessages_from_peer(self, candidate, infohashes, usercallback, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -664,10 +562,17 @@ class Session(SessionRuntimeConfig):
         @param infohash The infohash of the torrent.
         @param usercallback A function adhering to the above spec.
         """
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+        if not self.lm.rtorrent_handler:
+            raise OperationNotEnabledByConfigurationException()
 
-        rtorrent_handler = RemoteTorrentHandler.getInstance()
-        rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrentmessages(candidate, infohashes, usercallback, prio)
+
+    def get_dispersy_instance(self):
+        if not self.get_dispersy():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.dispersy
+
 
     #
     # Internal persistence methods
@@ -713,13 +618,3 @@ class Session(SessionRuntimeConfig):
         """
         return os.path.join(state_dir, STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
-
-
-    def get_internal_tracker_torrentfilename(self, infohash):
-        """ Return the absolute pathname of the torrent file used by the
-        internal tracker.
-        @return A filename
-        """
-        trackerdir = self.get_internal_tracker_dir()
-        basename = binascii.hexlify(infohash) + '.torrent'  # ignore .tribe stuff, not vital
-        return os.path.join(trackerdir, basename)
