@@ -13,7 +13,7 @@
 #########################################################################
 
 import logging.config
-logging.config.fileConfig("logger.conf")#, disable_existing_loggers = False)
+logging.config.fileConfig("logger.conf")  # , disable_existing_loggers = False)
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -187,7 +187,7 @@ class ABCApp():
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
 
-            print >> sys.stderr, 'Tribler Version:',self.utility.lang.get('version'),' Build:',self.utility.lang.get('build')
+            print >> sys.stderr, 'Tribler Version:', self.utility.lang.get('version'), ' Build:', self.utility.lang.get('build')
 
             self.splash.tick('Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -358,10 +358,10 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
-        if self.dispersy:
-            self.sesscb_ntfy_dispersy()
-        else:
-            s.add_observer(self.sesscb_ntfy_dispersy, NTFY_DISPERSY, [NTFY_STARTED])
+        self.dispersy.attach_progress_handler(self.frame.progressHandler)
+        self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
+
+        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
 
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
@@ -440,6 +440,28 @@ class ABCApp():
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         s.start()
+
+        dispersy = s.get_dispersy_instance()
+        def define_communities():
+            from Tribler.community.search.community import SearchCommunity
+            from Tribler.community.allchannel.community import AllChannelCommunity
+            from Tribler.community.channel.community import ChannelCommunity
+            from Tribler.community.channel.preview import PreviewChannelCommunity
+
+            # must be called on the Dispersy thread
+            dispersy.define_auto_load(SearchCommunity,
+                                           (s.dispersy_member,),
+                                           load=True)
+            dispersy.define_auto_load(AllChannelCommunity,
+                                           (s.dispersy_member,),
+                                           {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                           load=True)
+            dispersy.define_auto_load(ChannelCommunity, load=True)
+            dispersy.define_auto_load(PreviewChannelCommunity)
+
+            print >> sys.stderr, "tribler: Dispersy communities are ready"
+
+        dispersy.callback.call(define_communities)
         return s
 
     def configure_install_dir(self, installdir):
@@ -839,15 +861,6 @@ class ABCApp():
         if self.ready and self.frame.ready:
             self.frame.selectedchannellist.OnMarkingCreated(objectID)
             self.frame.playlist.OnModerationCreated(objectID)
-
-    @forceWxThread
-    def sesscb_ntfy_dispersy(self, subject=None, changeType=None, objectID=None, *args):
-        assert self.utility.session.lm.dispersy
-        disp = self.utility.session.lm.dispersy
-        disp.attach_progress_handler(self.frame.progressHandler)
-        disp._callback.attach_exception_handler(self.frame.exceptionHandler)
-
-        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
 
     @forceWxThread
     def onError(self, e):

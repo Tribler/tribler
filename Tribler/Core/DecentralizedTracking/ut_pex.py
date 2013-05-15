@@ -31,26 +31,25 @@ ran BitTorrent and was downloading this swarm (assuming the tracker is trustwort
 
 """
 import sys
-from types import DictType,StringType
-from Tribler.Core.InternalTracker.track import compact_peer_info
+from types import DictType, StringType
 from Tribler.Core.Utilities.bencode import bencode
 
-EXTEND_MSG_UTORRENT_PEX_ID = chr(1) # Can be any value, the name 'ut_pex' is standardized
-EXTEND_MSG_UTORRENT_PEX = 'ut_pex' # note case sensitive
+EXTEND_MSG_UTORRENT_PEX_ID = chr(1)  # Can be any value, the name 'ut_pex' is standardized
+EXTEND_MSG_UTORRENT_PEX = 'ut_pex'  # note case sensitive
 
 DEBUG = False
 
-def create_ut_pex(addedconns,droppedconns,thisconn):
-    #print >>sys.stderr,"ut_pex: create_ut_pex:",addedconns,droppedconns,thisconn
+def create_ut_pex(addedconns, droppedconns, thisconn):
+    # print >>sys.stderr,"ut_pex: create_ut_pex:",addedconns,droppedconns,thisconn
 
-    #Niels: Force max 50 added/dropped connections
-    #"Some clients may choose to enforce these limits and drop connections which don't obey these limits."
-    #http://wiki.theory.org/BitTorrentPeerExchangeConventions
+    # Niels: Force max 50 added/dropped connections
+    # "Some clients may choose to enforce these limits and drop connections which don't obey these limits."
+    # http://wiki.theory.org/BitTorrentPeerExchangeConventions
     addedconns = addedconns[:50]
     droppedconns = droppedconns[:50]
 
     d = {}
-    compactedpeerstr = compact_connections(addedconns,thisconn)
+    compactedpeerstr = compact_connections(addedconns, thisconn)
     d['added'] = compactedpeerstr
     flags = ''
     for i in range(len(addedconns)):
@@ -65,7 +64,7 @@ def create_ut_pex(addedconns,droppedconns,thisconn):
         if conn.is_tribler_peer():
             flag |= 4
 
-        #print >>sys.stderr,"ut_pex: create_ut_pex: add flag",`flag`
+        # print >>sys.stderr,"ut_pex: create_ut_pex: add flag",`flag`
         flags += chr(flag)
     d['added.f'] = flags
     compactedpeerstr = compact_connections(droppedconns)
@@ -82,8 +81,8 @@ def check_ut_pex(d):
     # tribler peers
     same_apeers = []
 
-    apeers = check_ut_pex_peerlist(d,'added')
-    dpeers = check_ut_pex_peerlist(d,'dropped')
+    apeers = check_ut_pex_peerlist(d, 'added')
+    dpeers = check_ut_pex_peerlist(d, 'dropped')
     if 'added.f' in d:
         addedf = d['added.f']
         if type(addedf) != StringType:
@@ -98,7 +97,7 @@ def check_ut_pex(d):
         # filter out all 'same' peers. the loop runs in reverse order
         # so the indexes don't change as we pop them from the apeers
         # list
-        for i in range(min(len(apeers),len(addedf))-1,-1,-1):
+        for i in range(min(len(apeers), len(addedf)) - 1, -1, -1):
             if addedf[i] & 4:
                 same_apeers.append(apeers.pop(i))
 
@@ -107,32 +106,32 @@ def check_ut_pex(d):
                 addedf.pop(i)
 
     # Arno, 2008-09-12: Be liberal in what we receive
-    ##else:
-        ##raise ValueError('ut_pex: added.f: missing')
+    # #else:
+        # #raise ValueError('ut_pex: added.f: missing')
 
     if DEBUG:
-        print >>sys.stderr,"ut_pex: Got",apeers
+        print >> sys.stderr, "ut_pex: Got", apeers
 
-    return (same_apeers,apeers,dpeers)
+    return (same_apeers, apeers, dpeers)
 
-def check_ut_pex_peerlist(d,name):
+def check_ut_pex_peerlist(d, name):
     if name not in d:
         # Arno, 2008-09-12: Be liberal in what we receive, some clients
         # leave out 'dropped' key
-        ##raise ValueError('ut_pex:'+name+': missing')
+        # #raise ValueError('ut_pex:'+name+': missing')
         return []
     peerlist = d[name]
     if type(peerlist) != StringType:
-        raise ValueError('ut_pex:'+name+': not string')
+        raise ValueError('ut_pex:' + name + ': not string')
     if len(peerlist) % 6 != 0:
-        raise ValueError('ut_pex:'+name+': not multiple of 6 bytes')
+        raise ValueError('ut_pex:' + name + ': not multiple of 6 bytes')
     peers = decompact_connections(peerlist)
-    for ip,port in peers:
+    for ip, port in peers:
         if ip == '127.0.0.1':
-            raise ValueError('ut_pex:'+name+': address is localhost')
+            raise ValueError('ut_pex:' + name + ': address is localhost')
     return peers
 
-def ut_pex_get_conns_diff(currconns,prevconns):
+def ut_pex_get_conns_diff(currconns, prevconns):
     addedconns = []
     droppedconns = []
     for conn in currconns:
@@ -143,10 +142,10 @@ def ut_pex_get_conns_diff(currconns,prevconns):
         if not (conn in currconns):
             # old conn, was dropped
             droppedconns.append(conn)
-    return (addedconns,droppedconns)
+    return (addedconns, droppedconns)
 
 
-def compact_connections(conns,thisconn=None):
+def compact_connections(conns, thisconn=None):
     """ See BitTornado/BT1/track.py """
     compactpeers = []
     for conn in conns:
@@ -157,19 +156,29 @@ def compact_connections(conns,thisconn=None):
         if port is None:
             raise ValueError("ut_pex: compact: listen port unknown?!")
         else:
-            compactpeer = compact_peer_info(ip,port)
+            compactpeer = compact_peer_info(ip, port)
             compactpeers.append(compactpeer)
 
     # Create compact representation of peers
     compactpeerstr = ''.join(compactpeers)
     return compactpeerstr
 
+def compact_peer_info(ip, port):
+    try:
+        s = (''.join([chr(int(i)) for i in ip.split('.')])
+              + chr((port & 0xFF00) >> 8) + chr(port & 0xFF))
+        if len(s) != 6:
+            raise ValueError
+    except:
+        s = ''  # not a valid IP, must be a domain name
+    return s
+
 
 def decompact_connections(p):
     """ See BitTornado/BT1/Rerequester.py """
     peers = []
     for x in xrange(0, len(p), 6):
-        ip = '.'.join([str(ord(i)) for i in p[x:x+4]])
-        port = (ord(p[x+4]) << 8) | ord(p[x+5])
+        ip = '.'.join([str(ord(i)) for i in p[x:x + 4]])
+        port = (ord(p[x + 4]) << 8) | ord(p[x + 5])
         peers.append((ip, port))
     return peers

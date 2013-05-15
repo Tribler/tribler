@@ -140,7 +140,7 @@ class TestMagnet(TestAsServer):
     A MiniBitTorrent instance is used to connect to BitTorrent clients
     and download the info part from the metadata.
     """
-    def setUp(self, setupSeeder = True):
+    def setUp(self, setupSeeder=True):
         TestAsServer.setUp(self)
 
         # the metadata that we want to transfer
@@ -150,17 +150,21 @@ class TestMagnet(TestAsServer):
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
         self.tdef.finalize()
-        
+
         self.setupSeeder = setupSeeder
         if self.setupSeeder:
             self.setup_seeder()
-            
+
+    def setUpPreSession(self):
+        TestAsServer.setUpPreSession(self)
+        self.config.set_libtorrent(True)
+
     def tearDown(self):
         if self.setupSeeder:
             self.teardown_seeder()
-            
+
         TestAsServer.tearDown(self)
-        
+
     def setup_seeder(self):
         self.seeder_setup_complete = threading.Event()
 
@@ -170,10 +174,10 @@ class TestMagnet(TestAsServer):
         self.download.set_state_callback(self.seeder_state_callback)
 
         assert self.seeder_setup_complete.wait(30)
-        
+
     def teardown_seeder(self):
         self.session.remove_download(self.download)
-        
+
     def seeder_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeder_setup_complete.set()
@@ -240,7 +244,7 @@ class TestMagnetFakePeer(TestMagnet, MagnetHelpers):
             # supply fake addresses (regular dht obviously wont work here)
             for magnetlink in MagnetHandler.get_instance().get_magnets():
                 magnetlink._swarm.add_potential_peers([("127.0.0.1", LISTEN_PORT)])
-        self.session.lm.rawserver.add_task(do_supply, delay = 5.0)
+        self.session.lm.rawserver.add_task(do_supply, delay=5.0)
 
         # accept incoming connection
         # self.server.settimeout(10.0)
@@ -262,7 +266,7 @@ class TestMagnetFakePeer(TestMagnet, MagnetHelpers):
         # no more metadata request may be send and the connection must
         # be closed
         self.read_extend_metadata_close(conn)
-        
+
         assert tags["retrieved"].wait(5)
         assert tags["metainfo"]["info"] == self.tdef.get_metainfo()["info"]
 

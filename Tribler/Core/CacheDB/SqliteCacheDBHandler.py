@@ -81,6 +81,11 @@ class BasicDBHandler:
         with cls._singleton_lock:
             cls._single = None
 
+    @classmethod
+    def hasInstance(cls):
+        return cls._single != None
+
+
     def __del__(self):
         try:
             self.sync()
@@ -1019,7 +1024,7 @@ class TorrentDBHandler(BasicDBHandler):
     def deleteTorrent(self, infohash, delete_file=False, commit=True):
         if not self.hasTorrent(infohash):
             return False
-        
+
         torrent_id = self._db.getTorrentID(infohash)
         if self.mypref_db.hasMyPreference(torrent_id):  # don't remove torrents in my pref
             return False
