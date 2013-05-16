@@ -27,9 +27,9 @@ class WebPageInjector:
         self.__url = url
         self.__localcopy = WebPage(url)
         if content == None:
-            self.__localcopy.download()
+            self.__localcopy.DownloadContent()
         else:
-            self.__localcopy.writeContent(content)
+            self.__localcopy.setContent(content)
         self.__soup = BeautifulSoup(self.__localcopy.getContent())
         self.__fixlinks()
         self.__localcopy.ext = ".html" # If you want the 'real' extension, use __ripext
@@ -126,7 +126,7 @@ class WebPageInjector:
         """Save your web page alterations to a file.
             Note that this member does not commit any tag changes.
         """
-        self.__localcopy.saveToFile()
+        self.__localcopy.tarToFile()
     
     def getFileName(self):
-        return self.__localcopy.getFileName()
+        return self.__localcopy.getFileName(self.__localcopy.getUrl())

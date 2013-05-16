@@ -110,9 +110,9 @@ class WebBrowser(XRCPanel):
         '''Load a webpage from a webpage Torrent created by the seed button'''
         webPage = WebPage()
         webPage.createFromFile(filename)
-        self.__loadHTMLSource(webPage.getContent(), webPage.getUrl())
+        self.__loadHTMLSource(webPage.getUrl(), webPage.getContent())
     
-    def __loadHTMLSource(self, source, url):
+    def __loadHTMLSource(self, url, source):
         '''Load a webpage from HTML Source.
         Args:
             source (string): The HTML source to be loaded.
@@ -122,8 +122,8 @@ class WebBrowser(XRCPanel):
     def onURLLoading(self, event):
         '''Actions to be taken when an URL start to be loaded.'''
         url = self.webview.GetCurrentURL()
-        #Notify our sniffer that we are constructing a new dictionary
-        self.__sniffer.StartLoading(url)
+        #Notify our sniffer that we are constructing a new WebPage
+        self.__sniffer.StartLoading(url, self.webview.GetPageSource())
         #Update the adressbar
         self.adressBar.SetValue(url)
     

@@ -1,23 +1,30 @@
 #!/usr/bin/python2.7
 
 import urllib
-from xdg.Menu import __getFileName
+import os
+import Tribler.Core.Utilities.tar as tar_lib
+
+import Tribler
+
 
 class WebPage:
     """Webpage:
         Allows you to download a web page from a URL and then
-        modify its contents.
+        modify its contents. It stores the URL,HTML source and resources.
     """
     
-    __url = ""          # URL we represent
-    __content = ""      # Raw web page content
-    ext = ""          # Extension of the webpage
+    __url = ''          # URL we represent
+    __content = ''      # Raw web page content
+    ext = ''          # Extension of the webpage
+    __resourceDictionary = {}
+    __folderName = ''
+    __fileIndex = 0
     
     def __init__(self, url='', content=''):
-        self.__url = url
+        self.setUrl(url)
         self.__content = content
         
-    def download(self):
+    def DownloadContent(self):
         """Downloads the web page pointed to by our url to memory
         """
         webPage = None
@@ -26,13 +33,16 @@ class WebPage:
         self.__content = webPage.read()
         webPage.close()
         
+    def addResource(self, uri):
+        self.__resourceDictionary[uri] = self.__folderName+ self.getFileName(uri)
+    
     def getContent(self):
         """Returns the web page content as it exists in memory
         """
         return self.__content
     
-    def writeContent(self, content):
-        """Writes new web page content to our memory
+    def setContent(self, content):
+        """Set new web page content to our memory
         """
         self.__content = content
 
@@ -46,14 +56,7 @@ class WebPage:
             Note that this member does not download the actual page
         """
         self.__url = url
-        
-    def saveToFile(self):
-        """Saves the web page in memory to disk
-        """
-        filename = self.getFileName()
-        file = open(filename,'wb')
-        file.write(self.__content)
-        file.close()
+        self.__folderName = self.getFileName(url) + os.sep
     
     def createFromFile(self, filename):
         '''Create a web page from disk'''
@@ -62,12 +65,27 @@ class WebPage:
         self.__url = WebPage.getURLName(filename)
         self.__ext = '.html'
         
-    def getFileName(self):
+    def tarToFile(self):
+        '''Create a tar of this webppage and its resources and save it to disk.'''
+        #Create a Tar file
+        tar = tarfile.open(name = ''.join([self.getFileName(),'.tar.gz']), mode = 'w:gz')
+        #Create a HTML File
+        self.__createHTMLFile()
+        #Add HTML File.
+        tar.add(self.getFileName(), arcname = '')
+        #Add resources
+        for resource in self.__resourceDictionary:
+            tar.add(resource.filePath, arcname = '')
+        #Close the tar.       
+        tar.close()
+        
+    @staticmethod
+    def getFileName(url):
         '''Get the appropiate filename by using the given url
         Args:
             url (str): The url to be used  to creat the filename.'''
         #Remove http://www.
-        result = self.__url
+        result = url
         if result.startswith("http://"):
             result = result[7:]
         if result.startswith('www.'):
@@ -75,7 +93,7 @@ class WebPage:
         #Replace all / with -
         result = ['_' if x=='/' else x for x in result]
         #Return
-        return ''.join(result) + self.ext
+        return ''.join(result) 
 
     @staticmethod
     def getURLName(filename):
@@ -90,5 +108,50 @@ class WebPage:
         #Add http://www.
         result = 'http://' + 'www.'+''.join(result)
         #return
-        return result
+        return result   
+    
+    def GetTarName(self):
+        return self.getFileName(self.__url) + '.tar.gz'
+    
+    def createTar(self):
+        '''Create a tar file of the WebPage'''
+        #Create folder
+        if not os.path.exists(self.__folderName[:-1]):
+            os.makedirs(self.__folderName[:-1])
+        #Save content.
+        self.__createHTMLFile()
+        #Save Resources
+        self.__DownloadResources()
+        #Tar folder
+        folderPath = os.path.dirname(os.path.realpath(os.path.realpath(Tribler.__file__) + os.sep + ".."))
+        #Add tar to torrent
+        return tar_lib.tarFolder(folderPath + os.sep + self.__folderName, folderPath, self.__folderName[:-1])
+        #return torrent
+    
+    def __createHTMLFile(self):
+        """Saves the web page HTML to disk"""
+        fileName = self.__folderName + self.getFileName(self.__url)
+        file = open(fileName,'wb')
+        file.write(self.__content)
+        file.close()
+      
+    def __DownloadResources(self):
+        '''Download all resources of this WebPage.'''
+        #Download resources
+        for resource in self.__resourceDictionary:
+            self.__DownloadResource(resource)
+        
+    def __DownloadResource(self, url):
+        '''Downloads the resource pointed to by the url
+        Args:
+            url (str): URL pointing to the resource that needs to be downloaded.'''
+        #Open the location
+        location = urllib.urlopen(url)
+        #Read the resource.
+        resource = location.read()
+        #Write to disk.
+        file = open(self.__folderName + str(self.__fileIndex),'wb')
+        self.__fileIndex = self.__fileIndex +1
+        file.write(resource)
+        file.close()
         
