@@ -17,38 +17,38 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from file')
             self.quit()
-            
+
         def item_shown_in_list():
             self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
-            
+
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
             self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
-            
+
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
         self.startTest(do_downloadfromurl)
 
     def test_downloadfromurl(self):
         infohash = binascii.unhexlify('24ad1d85206db5f85491a690e6723e27f4551e01')
-        
+
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from url')
             self.quit()
-            
+
         def item_shown_in_list():
             self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
-            
+
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
             self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', self.getDestDir())
-            
+
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
         self.startTest(do_downloadfromurl)
@@ -59,20 +59,20 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from magnet')
             self.quit()
-            
+
         def item_shown_in_list():
             self.CallConditional(60, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
-            
+
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfrommagnet():
             self.guiUtility.showLibrary()
             self.frame.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', self.getDestDir())
-            
+
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
-        self.startTest(do_downloadfrommagnet)
+        self.startTest(do_downloadfrommagnet, True)
 
     def test_stopresumedelete(self):
         infohash = binascii.unhexlify('3d062d3b57481f23af8bd736ccfaaae0ccddf4b3')
@@ -108,10 +108,10 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.librarylist.list.Select(infohash)
             self.frame.top_bg.OnStop()
             self.Call(5, do_resume)
-           
+
         def item_shown_in_list():
             self.Call(30, do_stop)
-            
+
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
 
@@ -138,19 +138,21 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(60, lambda : d.network_calc_prebuf_frac() == 1.0, do_assert)
 
         def do_vod():
-            self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles = [os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)
+            self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)
             self.guiUtility.ShowPlayer()
             self.Call(30, do_monitor)
 
         self.startTest(do_vod)
 
+    def startTest(self, callback, waitforpeers=False):
+        if waitforpeers:
+            def wait_for_libtorrent():
+                ltmgr = LibtorrentMgr.getInstance()
+                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
 
-    def startTest(self, callback):
-        def wait_for_libtorrent():
-            ltmgr = LibtorrentMgr.getInstance()
-            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
-
-        TestGuiAsServer.startTest(self, wait_for_libtorrent)
+            TestGuiAsServer.startTest(self, wait_for_libtorrent)
+        else:
+            TestGuiAsServer.startTest(self, callback)
 
 if __name__ == "__main__":
     unittest.main()
