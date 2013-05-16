@@ -33,8 +33,22 @@ class SeedingResourceHandler(wx.html2.WebViewHandler):
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
    
+    WebViewModes = {'UNKNOWN' : 0,          # Unknown webpage
+                    'INTERNET' : 1,         # Webpage retrieved from the internet
+                    'SWARM_CACHE' : 2}      # Webpage downloaded from the swarm
+
+    WebViewModeColors = [(255,255,255),     # Unknown webpage
+                    (220,255,220),          # Webpage retrieved from the internet
+                    (255,255,220)]          # Webpage downloaded from the swarm
+    
+    WebViewModeTooltips = ["%s is not on the internet or the swarm",       # Unknown webpage
+                    "Visiting %s via the internet",                        # Webpage retrieved from the internet
+                    "Eternal webpage %s downloaded from the swarm"]        # Webpage downloaded from the swarm
+   
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
+    __shadowwv = None   #Shadow webview for system navigation preferences
+    __viewmode = 0      #What type of webpage are we visiting
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -68,6 +82,7 @@ class WebBrowser(XRCPanel):
         
         '''Create the webview'''
         self.webview = wx.html2.WebView.New(self)
+        self.__shadowwv = wx.html2.WebView.New(self)
         
         '''Register Resource Sniffer with webview'''
         self.__sniffer = ResourceSniffer()
@@ -76,7 +91,7 @@ class WebBrowser(XRCPanel):
         
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
-        self.webview.LoadURL("http://www.google.com/") 
+        self.LoadURL("http://www.google.com/")
               
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
@@ -85,12 +100,16 @@ class WebBrowser(XRCPanel):
         self.Layout()
         
         '''Register the action on the event that a URL is being loaded and when finished loading'''
-        
+        self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onShadowURLLoaded, self.__shadowwv)
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
+        self.Bind(wx.html2.EVT_WEBVIEW_ERROR, self.onHTTPError, self.webview)
         
-    def __del__(self):
-        WebBrowser.instances.remove(self)
+    def LoadURL(self, url):
+        self.__shadowwv.LoadURL(url)
+        
+    def onShadowURLLoaded(self, event):
+        self.webview.LoadURL(self.__shadowwv.GetCurrentURL()) 
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
@@ -104,7 +123,7 @@ class WebBrowser(XRCPanel):
         '''Load an URL from the adressbar'''
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
-        self.webview.LoadURL(url)
+        self.LoadURL(url)
       
     def loadTorrentFile(self, filename):
         '''Load a webpage from a webpage Torrent created by the seed button'''
@@ -134,6 +153,38 @@ class WebBrowser(XRCPanel):
         #Update the seedbutton
         self.seedButton.SetLabel("Seed")
         self.seedButton.Enable()
+        
+    def onHTTPError(self, event):
+        """Callback for when a page cannot be loaded.
+            Try to see if we forgot adding the http scheme.
+        """
+        if not event.GetURL().startswith("http"):
+            wx.CallAfter(self.LoadURL, "http://" + event.GetURL()) 
+        
+    def setViewMode(self, mode):
+        """Set the view mode we are currently using.
+            Mode can be either an integer or a string:
+                - WebViewModes['UNKNOWN'] or 'UNKNOWN'
+                - WebViewModes['INTERNET'] or 'INTERNET'
+                - WebViewModes['SWARM_CACHE'] or 'SWARM_CACHE'
+        """
+        if isinstance(mode, basestring):
+            self.__viewmode = WebBrowser.WebViewModes[mode]
+        else:
+            self.__viewmode = mode
+        self.adressBar.SetBackgroundColour(WebBrowser.WebViewModeColors[mode])
+        tooltip = WebBrowser.WebViewModeTooltips[mode] % (self.adressBar.GetValue())
+        print tooltip
+        self.adressBar.SetToolTip(tooltip)
+    
+    def getViewMode(self):
+        """Get the view mode we are currently using.
+            Can be:
+                - WebViewModes['UNKNOWN']
+                - WebViewModes['INTERNET']
+                - WebViewModes['SWARM_CACHE']
+        """
+        return self.__viewmode
         
     def seed(self, event):
         '''Start seeding the images on the website'''

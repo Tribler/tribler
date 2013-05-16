@@ -10,6 +10,9 @@ class ResourceSniffer:
 
     __listenforfiles = False    #Determines wether we are sensitive to incoming resources
     __webPage = None            #WebPage that contains all data of the webPage.
+    __dictionary = None         #Our dictionary for url to file path mapping
+    __url = ""                  #The URL we are eavesdropping on
+
 
     def __AddResourceToWebPage(self, uri):
         '''Add a mapping for a resource uri
@@ -31,7 +34,8 @@ class ResourceSniffer:
             our GetFile() member)
         '''
         self.__webPage = WebPage(url, source)
-        self.__listenforfiles = True        
+        self.__listenforfiles = True  
+        self.__listenforfiles = True
     	
     def Seed(self):
         '''Callback for when a user requests a page to be seeded.
@@ -48,3 +52,4 @@ class ResourceSniffer:
         self.__webPage.createTar()
         #Share tarfile
         ResourceSeeder.seedFile(self.__webPage.GetTarName())
+        ResourceSeeder.seedWebpage(tarfile, self.__webPage.getUrl())
