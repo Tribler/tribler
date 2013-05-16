@@ -51,5 +51,4 @@ class ResourceSniffer:
         #Gather all the files referenced on the page
         self.__webPage.createTar()
         #Share tarfile
-        ResourceSeeder.seedFile(self.__webPage.GetTarName())
-        ResourceSeeder.seedWebpage(tarfile, self.__webPage.getUrl())
+        ResourceSeeder.seedWebpage(self.__webPage.GetTarName(), self.__webPage.getUrl())
