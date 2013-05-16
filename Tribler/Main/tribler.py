@@ -39,10 +39,7 @@ import Tribler.Debug.console
 import os, sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
-from Tribler.dispersy.community import HardKilledCommunity
-# from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -180,12 +177,15 @@ class ABCApp():
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
 
+            print >> sys.stderr, "Tribler is expecting swift in", self.sconfig.get_swift_path()
+
             self.dispersy = s.lm.dispersy
 
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
+            GUIDBProducer.getInstance(self.dispersy.callback)
 
             print >> sys.stderr, 'Tribler Version:', self.utility.lang.get('version'), ' Build:', self.utility.lang.get('build')
 
@@ -393,16 +393,10 @@ class ABCApp():
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
 
+        self.sconfig.set_install_dir(self.installdir)
+
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
-
-        # Arno, 2012-05-04: swift
-        if not self.sconfig.get_swift_tunnel_listen_port():
-            self.sconfig.set_swift_tunnel_listen_port(7758)
-        if not self.sconfig.get_swift_tunnel_httpgw_listen_port():
-            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-        if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
-            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
 
         # Arno, 2012-05-21: Swift part II
         swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
@@ -410,10 +404,9 @@ class ABCApp():
             if not os.path.exists(swiftbinpath):
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
         self.sconfig.set_swift_path(swiftbinpath)
-        print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
 
-        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         progress('Loading downloadconfig')
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         if DEBUG:
             print >> sys.stderr, "main: Download config", dlcfgfilename
         try:
@@ -423,19 +416,21 @@ class ABCApp():
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
-
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
             os.makedirs(defaultDLConfig.get_dest_dir())
-
-        # 15/05/12 niels: fixing swift port
-        defaultDLConfig.set_swift_listen_port(7758)
 
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
             torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
-        self.sconfig.set_install_dir(self.installdir)
+        if not defaultDLConfig.get_swift_meta_dir():
+            defaultDLConfig.set_swift_meta_dir(os.path.join(self.sconfig.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
+        if not os.path.isdir(defaultDLConfig.get_swift_meta_dir()):
+            os.makedirs(defaultDLConfig.get_swift_meta_dir())
+
+        # 15/05/12 niels: fixing swift port
+        defaultDLConfig.set_swift_listen_port(7758)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
@@ -937,6 +932,7 @@ class ABCApp():
         Session.del_instance()
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
+        DefaultDownloadStartupConfig.delInstance()
 
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
@@ -1035,7 +1031,7 @@ class ABCApp():
             # 2. Convert to swift def
             sdef = SwiftDef()
             # RESEEDTODO: set to swift inf of pymDHT
-            sdef.set_tracker("127.0.0.1:9999")
+            sdef.set_tracker("127.0.0.1:%d" % self.sconfig.get_swift_dht_listen_port())
             iotuples = td.get_dest_files()
             for i, o in iotuples:
                 # print >>sys.stderr,"python: add_content",i,o
@@ -1052,10 +1048,7 @@ class ABCApp():
 
             # 3. Save swift files to metadata dir
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
-            if not os.path.exists(metadir):
-                os.makedirs(metadir)
-
+            metadir = defaultDLConfig.get_swift_meta_dir()
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1]  # Point to file on disk
                 metapath = os.path.join(metadir, os.path.split(storagepath)[1])

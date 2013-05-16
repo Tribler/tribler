@@ -1,9 +1,9 @@
-#Written by Niels Zeilemaker
-#Extending wx.lib.delayedresult with a startWorker method which uses single producer
-#Additionally DelayedResult is returned, allowing a thread to wait for result
+# Written by Niels Zeilemaker
+# Extending wx.lib.delayedresult with a startWorker method which uses single producer
+# Additionally DelayedResult is returned, allowing a thread to wait for result
 
 import wx
-from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException,\
+from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException, \
     DelayedResult, SenderNoWx
 
 import threading
@@ -13,7 +13,7 @@ from threading import Event, Lock, RLock
 from thread import get_ident
 from time import time
 import sys
-from traceback import format_stack, extract_stack, format_exc, print_exc,\
+from traceback import format_stack, extract_stack, format_exc, print_exc, \
     print_stack
 import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -31,19 +31,19 @@ class GUIDBProducer():
     __single = None
     __singleton_lock = RLock()
 
-    def __init__(self):
+    def __init__(self, database_thread):
         if GUIDBProducer.__single:
             raise RuntimeError, "GuiDBProducer is singleton"
 
-        self.getDatabaseThread()
+        self.database_thread = database_thread
         self.guitaskqueue = GUITaskQueue.getInstance()
 
-        #Lets get a reference to utility
+        # Lets get a reference to utility
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         if GUIUtility.hasInstance():
             self.utility = GUIUtility.getInstance().utility
         else:
-            Utility = namedtuple('Utility', ['abcquitting',])
+            Utility = namedtuple('Utility', ['abcquitting', ])
             self.utility = Utility(False)
 
         self.uIds = set()
@@ -61,14 +61,6 @@ class GUIDBProducer():
     @classmethod
     def delInstance(cls, *args, **kw):
         GUIDBProducer.__single = None
-        
-    def getDatabaseThread(self):
-        #Lets get the reference to the shared database_thread
-        from Tribler.Core.Session import Session
-        if Session.has_instance():
-            self.database_thread = Session.get_instance().lm.database_thread
-        else:
-            raise RuntimeError('Session not initialized')
 
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
@@ -77,15 +69,15 @@ class GUIDBProducer():
 
         return threading.currentThread().getName().startswith('GUITaskQueue')
 
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False, priority=0, workerType = "dbthread"):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay=0.0, uId=None, retryOnBusy=False, priority=0, workerType="dbthread"):
         """The sender will send the return value of
         workerFn(*args, **kwargs) to the main thread.
         """
         if self.utility.abcquitting:
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)"%name
+                print >> sys.stderr, "GUIDBHandler: abcquitting ignoring Task(%s)" % name
             return
-        
+
         assert uId is None or isinstance(uId, unicode), type(uId)
         assert name is None or isinstance(name, unicode), type(name)
 
@@ -94,7 +86,7 @@ class GUIDBProducer():
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
                     if DEBUG:
-                        print >> sys.stderr, "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s"%(name, uId)
+                        print >> sys.stderr, "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s" % (name, uId)
                     return
                 else:
                     self.uIds.add(uId)
@@ -106,13 +98,13 @@ class GUIDBProducer():
             callbackId = name
 
         if DEBUG:
-            print >> sys.stderr, "GUIDBHandler: adding Task(%s)"%callbackId
+            print >> sys.stderr, "GUIDBHandler: adding Task(%s)" % callbackId
 
         if __debug__:
             self.uIdsLock.acquire()
             self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
             if self.nrCallbacks[callbackId] > 10:
-                print >> sys.stderr, "GUIDBHandler: Scheduled Task(%s) %d times"%(callbackId, self.nrCallbacks[callbackId])
+                print >> sys.stderr, "GUIDBHandler: Scheduled Task(%s) %d times" % (callbackId, self.nrCallbacks[callbackId])
 
             self.uIdsLock.release()
 
@@ -132,7 +124,7 @@ class GUIDBProducer():
 
             except Exception, exc:
                 if str(exc).startswith("BusyError") and retryOnBusy:
-                    print >> sys.stderr, "GUIDBHandler: BusyError, retrying Task(%s) in 0.5s"%name
+                    print >> sys.stderr, "GUIDBHandler: BusyError, retrying Task(%s) in 0.5s" % name
                     self.database_thread.register(wrapper, delay=0.5, id_=name)
 
                     return
@@ -143,7 +135,7 @@ class GUIDBProducer():
 
             t3 = time()
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s"%(name, t2 - t1, delay, t3 - t2, workerType)
+                print >> sys.stderr, "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s" % (name, t2 - t1, delay, t3 - t2, workerType)
 
             if uId:
                 try:
@@ -151,18 +143,18 @@ class GUIDBProducer():
                     if uId in self.uIds:
                         self.uIds.discard(uId)
 
-                    #this callback has been removed during wrapper, cancel now
+                    # this callback has been removed during wrapper, cancel now
                     else:
                         return
                 finally:
                     self.uIdsLock.release()
 
-            #if we get to this step, send result to callback
+            # if we get to this step, send result to callback
             try:
                 sender.sendResult(result)
             except:
                 print_exc()
-                print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)"%name
+                print >> sys.stderr, "GUIDBHandler: Could not send result of Task(%s)" % name
 
         wrapper.__name__ = str(name)
 
@@ -170,23 +162,23 @@ class GUIDBProducer():
             if workerType == "dbThread":
                 if not self.database_thread.is_running:
                     self.getDatabaseThread()
-                
+
                 if isgeneratorfunction(workerFn):
                     self.database_thread.register(workerFn, delay=delay, priority=priority, id_=callbackId)
                 else:
                     self.database_thread.register(wrapper, delay=delay, priority=priority, id_=callbackId)
 
             elif workerType == "guiTaskQueue":
-                self.guitaskqueue.add_task(wrapper, t = delay)
+                self.guitaskqueue.add_task(wrapper, t=delay)
         else:
             if __debug__:
-                print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately"%name
+                print >> sys.stderr, "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately" % name
             wrapper()
 
     def Remove(self, uId):
         if uId in self.uIds:
             if DEBUG:
-                print >> sys.stderr, "GUIDBHandler: removing Task(%s)"%uId
+                print >> sys.stderr, "GUIDBHandler: removing Task(%s)" % uId
 
             try:
                 self.uIdsLock.acquire()
@@ -201,7 +193,7 @@ class GUIDBProducer():
             self.database_thread.unregister(uId)
             self.guitaskqueue.remove_task(uId)
 
-#Wrapping Senders for new delayedResult impl
+# Wrapping Senders for new delayedResult impl
 class MySender():
     def __init__(self, delayedResult):
         self.delayedResult = delayedResult
@@ -223,15 +215,15 @@ class MySenderWxEvent(MySender, SenderWxEvent):
 class MySenderCallAfter(MySender, SenderCallAfter):
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
         SenderCallAfter.__init__(self, listener, jobID, args, kwargs)
-        MySender.__init__(self,  delayedResult)
+        MySender.__init__(self, delayedResult)
 
 class MySenderNoWx(MySender, SenderNoWx):
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
         SenderNoWx.__init__(self, listener, jobID, args, kwargs)
-        MySender.__init__(self,  delayedResult)
+        MySender.__init__(self, delayedResult)
 
-#ASyncDelayedResult, allows a get call before result is set
-#This call is blocking, but allows you to specify a timeout
+# ASyncDelayedResult, allows a get call before result is set
+# This call is blocking, but allows you to specify a timeout
 class ASyncDelayedResult():
     def __init__(self, jobID=None):
         self.__result = None
@@ -251,9 +243,9 @@ class ASyncDelayedResult():
 
         self.isFinished.set()
 
-    def get(self, timeout = 100):
+    def get(self, timeout=100):
         if self.wait(timeout):
-            if self.__exception: # exception was raised!
+            if self.__exception:  # exception was raised!
                 self.__exception.originalTraceback = self.__original_traceback
                 print >> sys.stderr, self.__original_traceback
                 raise self.__exception
@@ -263,7 +255,7 @@ class ASyncDelayedResult():
             print_stack()
             print >> sys.stderr, "TIMEOUT on get", self.__jobID, timeout
 
-    def wait(self, timeout = None):
+    def wait(self, timeout=None):
         return self.isFinished.wait(timeout) or self.isFinished.isSet()
 
 def exceptionConsumer(delayedResult, *args, **kwargs):
@@ -272,8 +264,8 @@ def exceptionConsumer(delayedResult, *args, **kwargs):
     except Exception, e:
         print >> sys.stderr, e.originalTraceback
 
-#Modified startWorker to use our single thread
-#group and daemon variables have been removed
+# Modified startWorker to use our single thread
+# group and daemon variables have been removed
 def startWorker(
     consumer, workerFn,
     cargs=(), ckwargs={},
@@ -304,13 +296,13 @@ def startWorker(
     if jobID is None:
         if __debug__:
             try:
-                filename, line, function, text = extract_stack(limit = 2)[0]
+                filename, line, function, text = extract_stack(limit=2)[0]
                 _, filename = os.path.split(filename)
-                jobID = u"%s:%s (%s)"%(filename, line, function)
+                jobID = u"%s:%s (%s)" % (filename, line, function)
             except:
                 pass
         else:
-            jobID = unicode(randint(1,10000000))
+            jobID = unicode(randint(1, 10000000))
 
     result = ASyncDelayedResult(jobID)
     app = wx.GetApp()

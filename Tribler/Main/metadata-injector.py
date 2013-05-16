@@ -26,7 +26,6 @@ from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.community.channel.community import forceDispersyThread
 
 def main():
