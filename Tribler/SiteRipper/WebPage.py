@@ -2,6 +2,7 @@
 
 import urllib
 import os
+import shutil
 import Tribler.Core.Utilities.tar as tar_lib
 import hashlib
 
@@ -134,8 +135,12 @@ class WebPage:
         #Tar folder
         folderPath = os.path.dirname(os.path.realpath(os.path.realpath(Tribler.__file__) + os.sep + ".."))
         #Add tar to torrent
-        return tar_lib.tarFolder(folderPath + os.sep + self.__folderName, folderPath, self.__folderName[:-1])
+        sourcefolder = folderPath + os.sep + self.__folderName
+        out = tar_lib.tarFolder(sourcefolder, folderPath, self.__folderName[:-1])
+        #Cleanup sources
+        self.__removeTarSourceFiles(sourcefolder + os.sep)
         #return torrent
+        return out
     
     def __createHTMLFile(self):
         """Saves the web page HTML to disk"""
@@ -162,4 +167,11 @@ class WebPage:
         file = open(self.__folderName + self.GetResourceFileName(url),'wb')
         file.write(resource)
         file.close()
+        
+    def __removeTarSourceFiles(self, folderpath):
+        '''Remove all the files we packed earlier
+        '''
+        if not os.path.exists(folderpath):
+            return
+        shutil.rmtree(folderpath)
         
