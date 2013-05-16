@@ -68,7 +68,8 @@ class Singleton:
         return hasattr(cls, "_singleton_instance")
 
 class MagnetHandler(Singleton):
-    def __init__(self, raw_server):
+    def __init__(self, dht, raw_server):
+        self._dht = dht
         self._raw_server = raw_server
         self._magnets = []
 
@@ -134,9 +135,8 @@ class MagnetLink:
             # todo: catch the result from get_peers and call its stop
             # method.  note that this object does not yet contain a
             # stop method...
-            dht = mainlineDHT.dht
-            if dht:
-                dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
+            if self.magnet_handler._dht:
+                self.magnet_handler._dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0, True)
 
             try:
                 if self._trackers and any(tracker.startswith("http") for tracker in self._trackers):
@@ -221,7 +221,7 @@ class MagnetLink:
                     dn = value.decode()
 
                 elif key == "xt" and value.startswith("urn:btih:"):
-                    #vliegendhart: Adding support for base32 in magnet links (BEP 0009)
+                    # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
                     encoded_infohash = value[9:49]
                     if len(encoded_infohash) == 32:
                         xt = b32decode(encoded_infohash)

@@ -77,7 +77,7 @@ class Pymdht:
 
     def stop(self):
         """Stop the DHT node."""
-        #TODO: notify controller so it can do cleanup?
+        # TODO: notify controller so it can do cleanup?
         self.reactor.stop()
         # No need to call_asap because the minitwisted thread is dead by now
         self.controller.on_stop()
@@ -102,7 +102,7 @@ class Pymdht:
         callback needs to be ready to get peers BEFORE calling this fuction.
 
         """
-        #logger.critical("pymdht.get_peers: callback: %r" % (callback_f))
+        # logger.critical("pymdht.get_peers: callback: %r" % (callback_f))
         current_time = time.time()
         self.timestamps.append(current_time)
         num_sec = 0
@@ -125,8 +125,9 @@ class Pymdht:
                 num_10min, self.max_num_10min,
                 info_hash, callback_f))
 
-        use_cache = True
-        print 'pymdht: use_cache ON!!'
+        if not use_cache:
+            use_cache = True
+            print 'pymdht: use_cache ON!!'
         self.reactor.call_asap(self.controller.get_peers,
                                lookup_id, info_hash,
                                callback_f, bt_port,

@@ -9,8 +9,6 @@ from traceback import print_exc
 DEBUG = False
 dht_imported = False
 
-SWIFT_PORT = 9999
-
 if sys.version.split()[0] >= '2.5':
     try:
         import Tribler.Core.DecentralizedTracking.pymdht.core.pymdht as pymdht
@@ -22,18 +20,15 @@ if sys.version.split()[0] >= '2.5':
     except (ImportError), e:
         print_exc()
 
-dht = None
-
-def init(addr, conf_path):
-    global dht
+def init(addr, conf_path, swift_port):
     global dht_imported
-
     if DEBUG:
         print >> sys.stderr, 'dht: DHT initialization', dht_imported
         log_level = logging.DEBUG
     else:
         log_level = logging.ERROR
-    if dht_imported and dht is None:
+
+    if dht_imported:
         my_node = node.Node(addr, None, version=pymdht.VERSION_LABEL)
         private_dht_name = None
         dht = pymdht.Pymdht(my_node, conf_path,
@@ -42,21 +37,18 @@ def init(addr, conf_path):
                             experimental_m_mod,
                             private_dht_name,
                             log_level,
-                            swift_port=SWIFT_PORT)
+                            swift_port=swift_port)
         if DEBUG:
             print >> sys.stderr, 'dht: DHT running'
-
     return dht
 
 def control():
     import pdb
     pdb.set_trace()
 
-def deinit():
-    global dht
+def deinit(dht):
     if dht is not None:
         try:
             dht.stop()
         except:
             pass
-        dht = None

@@ -6,7 +6,6 @@ import errno
 import sys
 import os
 import pickle
-import socket
 import binascii
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
@@ -105,10 +104,9 @@ class TriblerLaunchMany(Thread):
                 self.swift_process = None
 
             # Dispersy
-            from Tribler.dispersy.callback import Callback
-
             self.session.dispersy_member = None
             if config['dispersy']:
+                from Tribler.dispersy.callback import Callback
                 from Tribler.dispersy.dispersy import Dispersy
                 from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
                 from Tribler.dispersy.community import HardKilledCommunity
@@ -128,7 +126,9 @@ class TriblerLaunchMany(Thread):
                 # TODO: see if we can postpone dispersy.start to improve GUI responsiveness.
                 # However, for now we must start self.dispersy.callback before running
                 # try_register(nocachedb, self.database_thread)!
+
                 self.dispersy.start()
+
                 print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
@@ -144,8 +144,20 @@ class TriblerLaunchMany(Thread):
 
                 self.database_thread = callback
             else:
-                # create a fake database_thread
-                pass
+                class FakeCallback():
+                    def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
+                        if kargs:
+                            call(*args, **kargs)
+                        else:
+                            call(*args)
+
+                        if callback:
+                            if callback_kargs:
+                                callback(*callback_args, **callback_kargs)
+                            else:
+                                callback(*callback_args)
+
+                self.database_thread = FakeCallback()
 
             if config['megacache']:
                 import Tribler.Core.CacheDB.cachedb as cachedb
@@ -153,10 +165,6 @@ class TriblerLaunchMany(Thread):
                 from Tribler.Category.Category import Category
                 from Tribler.Core.Tag.Extraction import TermExtraction
                 from Tribler.Core.CacheDB.sqlitecachedb import try_register
-
-                # init cache db
-                if config['nickname'] == '__default_name__':
-                    config['nickname'] = socket.gethostname()
 
                 if DEBUG:
                     print >> sys.stderr, 'tlm: Reading Session state from', config['state_dir']
@@ -197,7 +205,7 @@ class TriblerLaunchMany(Thread):
         if config['mainline_dht']:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             try:
-                self.mainline_dht = mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'])
+                self.mainline_dht = mainlineDHT.init(('127.0.0.1', config['mainline_dht_port']), config['state_dir'], config['swiftdhtport'])
                 self.upnp_ports.append((config['mainline_dht_port'], 'UDP'))
             except:
                 print_exc()
@@ -228,7 +236,7 @@ class TriblerLaunchMany(Thread):
         self.magnet_handler = None
         if config["magnetlink"]:
             from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
-            self.magnet_handler = MagnetHandler.get_instance(self.rawserver)
+            self.magnet_handler = MagnetHandler.get_instance(self.mainline_dht, self.rawserver)
 
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
@@ -494,6 +502,12 @@ class TriblerLaunchMany(Thread):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
             if dlconfig.has_key('name') and isinstance(dlconfig['name'], basestring) and sdef:
                 sdef.set_name(dlconfig['name'])
+            if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
+                current_port = int(sdef.get_tracker().split(":")[1])
+                if current_port != self.session.get_swift_dht_listen_port():
+                    print >> sys.stderr, "Modified SwiftDef to new tracker port"
+                    sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
+
             dscfg = DownloadStartupConfig(dlconfig)
 
         except:
@@ -645,7 +659,7 @@ class TriblerLaunchMany(Thread):
 
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
-            mainlineDHT.deinit()
+            mainlineDHT.deinit(self.mainline_dht)
 
         if self.magnet_handler:
             self.magnet_handler.del_instance()
