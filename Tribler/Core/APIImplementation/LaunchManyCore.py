@@ -145,18 +145,23 @@ class TriblerLaunchMany(Thread):
                 self.database_thread = callback
             else:
                 class FakeCallback():
+                    def __init__(self):
+                        from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
+                        self.queue = TimedTaskQueue()
+
                     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
-                        if kargs:
-                            call(*args, **kargs)
-                        else:
-                            call(*args)
-
-                        if callback:
-                            if callback_kargs:
-                                callback(*callback_args, **callback_kargs)
+                        def do_task():
+                            if kargs:
+                                call(*args, **kargs)
                             else:
-                                callback(*callback_args)
+                                call(*args)
 
+                            if callback:
+                                if callback_kargs:
+                                    callback(*callback_args, **callback_kargs)
+                                else:
+                                    callback(*callback_args)
+                        self.queue.add_task(do_task, t=delay)
                 self.database_thread = FakeCallback()
 
             if config['megacache']:
@@ -239,7 +244,7 @@ class TriblerLaunchMany(Thread):
             self.magnet_handler = MagnetHandler.get_instance(self.mainline_dht, self.rawserver)
 
         if self.rtorrent_handler:
-            self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
+            self.rtorrent_handler.register(self.dispersy, self.database_thread, self.session, int(config['torrent_collecting_max_torrents']))
 
         self.initComplete = True
 

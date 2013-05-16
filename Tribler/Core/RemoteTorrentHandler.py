@@ -59,9 +59,10 @@ class RemoteTorrentHandler:
         RemoteTorrentHandler.__single = None
     delInstance = staticmethod(delInstance)
 
-    def register(self, dispersy, session, max_num_torrents):
+    def register(self, dispersy, database_thead, session, max_num_torrents):
         self.session = session
         self.dispersy = dispersy
+        self.database_thead = database_thead
         self.max_num_torrents = max_num_torrents
         self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
@@ -72,7 +73,7 @@ class RemoteTorrentHandler:
         self.torrent_db = None
         if self.session.get_megacache():
             self.torrent_db = session.open_dbhandler('torrents')
-            self.dispersy.callback.register(self.__check_overflow, delay=30.0)
+            self.database_thead.register(self.__check_overflow, delay=30.0)
 
         if session.get_dht_torrent_collecting():
             self.drequesters[0] = MagnetRequester(self, 0)
@@ -226,7 +227,7 @@ class RemoteTorrentHandler:
 
     def has_torrent(self, infohash, callback):
         if self.torrent_db:
-            self.dispersy.callback.register(self._has_torrent, args=(infohash, self.tor_col_dir, callback))
+            self.database_thead.register(self._has_torrent, args=(infohash, self.tor_col_dir, callback))
         else:
             callback(False)
 
@@ -255,7 +256,7 @@ class RemoteTorrentHandler:
                 if not filename:
                     self._save_torrent(tdef, callback)
                 elif callback:
-                    self.dispersy.callback.register(callback)
+                    self.database_thead.register(callback)
 
             infohash = tdef.get_infohash()
             self.has_torrent(infohash, do_schedule)
@@ -289,7 +290,7 @@ class RemoteTorrentHandler:
                 callback()
 
         if self.torrent_db:
-            self.dispersy.callback.register(do_db, args=(callback,))
+            self.database_thead.register(do_db, args=(callback,))
         elif callback:
             callback()
 
@@ -336,7 +337,7 @@ class RemoteTorrentHandler:
         if os.path.exists(swiftpath) and self.torrent_db:
             try:
                 tdef = TorrentDef.load(swiftpath)
-                self.dispersy.callback.register(do_db, args=(tdef,))
+                self.database_thead.register(do_db, args=(tdef,))
 
             except:
                 # ignore if tdef loading fails
