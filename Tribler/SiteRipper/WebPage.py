@@ -3,6 +3,7 @@
 import urllib
 import os
 import Tribler.Core.Utilities.tar as tar_lib
+import hashlib
 
 import Tribler
 
@@ -16,9 +17,8 @@ class WebPage:
     __url = ''          # URL we represent
     __content = ''      # Raw web page content
     ext = ''          # Extension of the webpage
-    __resourceDictionary = {}
+    __resourceDictionary = []
     __folderName = ''
-    __fileIndex = 0
     
     def __init__(self, url='', content=''):
         self.setUrl(url)
@@ -34,7 +34,7 @@ class WebPage:
         webPage.close()
         
     def addResource(self, uri):
-        self.__resourceDictionary[uri] = self.__folderName+ self.getFileName(uri)
+        self.__resourceDictionary.append(uri)
     
     def getContent(self):
         """Returns the web page content as it exists in memory
@@ -83,7 +83,7 @@ class WebPage:
     def getFileName(url):
         '''Get the appropiate filename by using the given url
         Args:
-            url (str): The url to be used  to creat the filename.'''
+            url (str): The url to be used  to create the filename.'''
         #Remove http://www.
         result = url
         if result.startswith("http://"):
@@ -95,6 +95,15 @@ class WebPage:
         #Return
         return ''.join(result) 
 
+    @staticmethod
+    def GetResourceFileName(url):
+        """Get the appropiate resourcename by hashing the given url.
+        Args:
+            url (str): The url to be used  to create the filename."""
+        hasher = hashlib.md5()
+        hasher.update(url)
+        return hasher.hexdigest()
+        
     @staticmethod
     def getURLName(filename):
         '''Get the appropiate url by using the given filename
@@ -150,8 +159,7 @@ class WebPage:
         #Read the resource.
         resource = location.read()
         #Write to disk.
-        file = open(self.__folderName + str(self.__fileIndex),'wb')
-        self.__fileIndex = self.__fileIndex +1
+        file = open(self.__folderName + self.GetResourceFileName(url),'wb')
         file.write(resource)
         file.close()
         
