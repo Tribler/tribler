@@ -3,6 +3,9 @@ import Tribler.SiteRipper.ResourceSeeder as ResourceSeeder
 from Tribler.SiteRipper.TarFolderManager import TarFolderManager
 from Tribler.SiteRipper.WebPage import WebPage
 
+import os
+import Tribler
+
 class ResourceSniffer:
     '''ResourceSniffer
     Class for constructing a local copy of a webpage.
@@ -10,9 +13,6 @@ class ResourceSniffer:
 
     __listenforfiles = False    #Determines wether we are sensitive to incoming resources
     __webPage = None            #WebPage that contains all data of the webPage.
-    __dictionary = None         #Our dictionary for url to file path mapping
-    __url = ""                  #The URL we are eavesdropping on
-
 
     def __AddResourceToWebPage(self, uri):
         '''Add a mapping for a resource uri
@@ -49,6 +49,6 @@ class ResourceSniffer:
         #Shut down listening for files
         self.__listenforfiles = False
         #Gather all the files referenced on the page
-        self.__webPage.createTar()
+        tarpath, tarfile = self.__webPage.createTar()
         #Share tarfile
-        ResourceSeeder.seedWebpage(self.__webPage.GetTarName(), self.__webPage.getUrl())
+        ResourceSeeder.seedWebpage(tarpath, self.__webPage.getUrl())

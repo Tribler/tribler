@@ -9,11 +9,12 @@ def tarFolder(pathTarget, pathDestination,fileName):
         pathTarget (str): The path to the folder that needs to be tarred.
         pathDestination (str): The path to the destination of the new tarfile. tar.gz will be appended.
         fileName (str): Filename of the tarfile.'''
-    tar = tarfile.open(name = ''.join([pathDestination,os.sep,fileName,'.tar.gz']), mode = 'w:gz')
+    filename = ''.join([pathDestination,os.sep,fileName,'.tar.gz'])
+    tar = tarfile.open(name = filename, mode = 'w:gz')
     #Add the folder to the tarfile. Arcname is empty so the full path to the directory is not added.
     tar.add(pathTarget,arcname = '')
     tar.close()
-    return tar
+    return filename, tar
 
     
 def untarFolder(pathTarget, pathDestination, folderName):

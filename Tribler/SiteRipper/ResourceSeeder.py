@@ -41,7 +41,7 @@ class WebPageTorrentHeader:
         torrentdef.set_tracker(session.get_internal_tracker_url())
         #Add information to torrent definition
         torrentdef.set_name(self.__name)
-        torrentdef.set_comment("The eternal copy of " + self.__name + ".\nRetrieved on " + self.__accessdate + ".")
+#         torrentdef.set_comment("The eternal copy of " + self.__name + ".\nRetrieved on " + self.__accessdate + ".")
         torrentdef.finalize()
         return torrentdef
     
@@ -66,6 +66,7 @@ def seedWebpage(tarfile, webpage, accessdate = None):
     torrent = header.createTorrentDef(session)
     download = DownloadStartupConfig()
     download.set_dest_dir(header.getFileFolder())
+    print "Trying to seed from: " + header.getFileFolder()
     session.start_download(torrent, download)
 
 def seedFile(filename):
