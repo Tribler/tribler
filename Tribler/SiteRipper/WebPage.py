@@ -66,20 +66,6 @@ class WebPage:
         self.__url = WebPage.getURLName(filename)
         self.__ext = '.html'
         
-    def tarToFile(self):
-        '''Create a tar of this webppage and its resources and save it to disk.'''
-        #Create a Tar file
-        tar = tarfile.open(name = ''.join([self.getFileName(),'.tar.gz']), mode = 'w:gz')
-        #Create a HTML File
-        self.__createHTMLFile()
-        #Add HTML File.
-        tar.add(self.getFileName(), arcname = '')
-        #Add resources
-        for resource in self.__resourceDictionary:
-            tar.add(resource.filePath, arcname = '')
-        #Close the tar.       
-        tar.close()
-        
     @staticmethod
     def getFileName(url):
         '''Get the appropiate filename by using the given url
