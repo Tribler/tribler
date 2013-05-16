@@ -9,6 +9,7 @@ class ResourceSniffer:
 
     __listenforfiles = False    #Determines wether we are sensitive to incoming resources
     __dictionary = None         #Our dictionary for url to file path mapping
+    __url = ""                  #The URL we are eavesdropping on
 
     def __init__(self):
         self.__dictionary = None # TODO
@@ -34,6 +35,7 @@ class ResourceSniffer:
         '''
         self.__listenforfiles = True
         #self.__dictionary.Initialize(url)
+        self.__url = url
     	
     def Seed(self):
         '''Callback for when a user requests a page to be seeded.
@@ -55,5 +57,4 @@ class ResourceSniffer:
         foldermngr = TarFolderManager(archivename)
         tarfile = foldermngr.tarFromFolder(folder)
         #Share tarfile
-        ResourceSeeder.seedFile(tarfile)
-        print "STUB"
+        ResourceSeeder.seedWebpage(tarfile, self.__url)
