@@ -4,6 +4,7 @@ import urllib
 import os
 import shutil
 import Tribler.Core.Utilities.tar as tar_lib
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 import hashlib
 
 import Tribler
@@ -112,14 +113,13 @@ class WebPage:
     def createTar(self):
         '''Create a tar file of the WebPage'''
         #Create folder
-        if not os.path.exists(self.__folderName[:-1]):
-            os.makedirs(self.__folderName[:-1])
+        folderPath = self.__getDownloadsPath()
+        if not os.path.exists(folderPath + os.sep + self.__folderName[:-1]):
+            os.makedirs(folderPath + os.sep + self.__folderName[:-1])
         #Save content.
         self.__createHTMLFile()
         #Save Resources
         self.__DownloadResources()
-        #Tar folder
-        folderPath = os.path.dirname(os.path.realpath(os.path.realpath(Tribler.__file__) + os.sep + ".."))
         #Add tar to torrent
         sourcefolder = folderPath + os.sep + self.__folderName
         out = tar_lib.tarFolder(sourcefolder, folderPath, self.__folderName[:-1])
@@ -130,7 +130,7 @@ class WebPage:
     
     def __createHTMLFile(self):
         """Saves the web page HTML to disk"""
-        fileName = self.__folderName + self.getFileName(self.__url)
+        fileName = self.__getDownloadsPath() + os.sep + self.__folderName + self.getFileName(self.__url)
         file = open(fileName,'wb')
         file.write(self.__content)
         file.close()
@@ -150,10 +150,20 @@ class WebPage:
         #Read the resource.
         resource = location.read()
         #Write to disk.
-        file = open(self.__folderName + self.GetResourceFileName(url),'wb')
+        file = open(self.__getDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url),'wb')
         file.write(resource)
         file.close()
-        
+    
+    def __getDownloadsPath(self):
+        config = DefaultDownloadStartupConfig.getInstance()
+        folderPath = config.get_dest_dir() + os.sep + "EternalWebpages"
+        self.__assertFolder(folderPath)
+        return folderPath
+    
+    def __assertFolder(self, folderpath):
+        if not os.path.exists(folderpath):
+            os.makedirs(folderpath)
+    
     def __removeTarSourceFiles(self, folderpath):
         '''Remove all the files we packed earlier
         '''
