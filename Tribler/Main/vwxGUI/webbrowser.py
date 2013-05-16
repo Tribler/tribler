@@ -88,6 +88,7 @@ class WebBrowser(XRCPanel):
         
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
+        self.Bind(wx.html2.EVT_WEBVIEW_ERROR, self.onHTTPError, self.webview)
         
     def __del__(self):
         WebBrowser.instances.remove(self)
@@ -134,6 +135,13 @@ class WebBrowser(XRCPanel):
         #Update the seedbutton
         self.seedButton.SetLabel("Seed")
         self.seedButton.Enable()
+        
+    def onHTTPError(self, event):
+        """Callback for when a page cannot be loaded.
+            Try to see if we forgot adding the http scheme.
+        """
+        if not event.GetURL().startswith("http"):
+            wx.CallAfter(self.webview.LoadURL, "http://" + event.GetURL()) 
         
     def seed(self, event):
         '''Start seeding the images on the website'''
