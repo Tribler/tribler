@@ -20,6 +20,7 @@ from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 import re
+from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
@@ -33,6 +34,10 @@ defaults.dldefaults["saveas"] = DEST_DIR
 DEBUG = False
 
 class AbstractServer(unittest.TestCase):
+
+    def setup(self):
+        self.setUpCleanup()
+
     def setUpCleanup(self):
         # Elric: If the files are still there it means that either the last run segfaulted or
         # that there was some kind of lock on those and the tearDown wasn't able to delete them.
@@ -41,6 +46,9 @@ class AbstractServer(unittest.TestCase):
             path = os.path.join(BASE_DIR, path)
             if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
                 shutil.rmtree(path)
+
+    def tearDown(self):
+        self.tearDownCleanup()
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -105,6 +113,7 @@ class TestAsServer(AbstractServer):
         self.config.set_mainline_dht(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
+        self.config.set_dht_torrent_collecting(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
