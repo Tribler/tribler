@@ -724,7 +724,7 @@ class NewTorrentPanel(HomePanel):
 
     @forceWxThread
     def _UpdateStats(self, torrent):
-        self.list.InsertStringItem(0, torrent['name'])
+        self.list.InsertItem(0, torrent['name'])
         size = self.list.GetItemCount()
         if size > 10:
             self.list.DeleteItem(size-1)
@@ -767,7 +767,7 @@ class PopularTorrentPanel(NewTorrentPanel):
         self.list.DeleteAllItems()
         for item in topTen:
             if item[2] > 0:
-                self.list.InsertStringItem(sys.maxint, item[1])
+                self.list.InsertItem(sys.maxint, item[1])
 
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
@@ -776,7 +776,7 @@ class ActivityPanel(NewTorrentPanel):
     @forceWxThread
     def onActivity(self, msg):
         msg = strftime("%H:%M:%S ") + msg
-        self.list.InsertStringItem(0, msg)
+        self.list.InsertItem(0, msg)
         size = self.list.GetItemCount()
         if size > 50:
             self.list.DeleteItem(size-1)

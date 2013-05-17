@@ -76,7 +76,6 @@ class PlayerButton(wx.Panel):
 
     def createBackgroundImage(self):
         if self.bitmaps[0]:
-            #wx.EVT_PAINT(self, self.OnPaint)
             self.Bind(wx.EVT_PAINT, self.OnPaint)
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
 

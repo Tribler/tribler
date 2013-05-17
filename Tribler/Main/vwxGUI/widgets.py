@@ -445,6 +445,8 @@ class BetterText(wx.StaticText):
         pass
 
     def SetLabel(self, text):
+        if not self:
+            return
         if text != self.GetLabel():
             wx.StaticText.SetLabel(self, text)
 
@@ -1114,7 +1116,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdownlistbox.InsertColumn(0, "Select")
 
         for num, it in enumerate(choices):
-            self.dropdownlistbox.InsertStringItem(num, it)
+            self.dropdownlistbox.InsertItem(num, it)
 
         self.dropdownlistbox.SetColumnWidth(0, wx.LIST_AUTOSIZE) #autosize only works after adding rows
 
@@ -2514,7 +2516,8 @@ class Graph(wx.Panel):
             self.max_range = max([max(column) for column in self.data if column])
         else:
             self.max_range = max(self.max_range, value)
-        self.Refresh()
+        if self:
+            self.Refresh()
 
     def OnEraseBackground(self, event):
         pass

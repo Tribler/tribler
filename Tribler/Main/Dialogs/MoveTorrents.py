@@ -28,10 +28,10 @@ class MoveTorrents(wx.Dialog):
         self.listCtrl.setResizeColumn(0)
 
         for i, label in enumerate(labels):
-            row = self.listCtrl.InsertStringItem(sys.maxint, label)
+            row = self.listCtrl.InsertItem(sys.maxint, label)
 
             download = download_states[i].get_download()
-            self.listCtrl.SetStringItem(row, 1, download.get_dest_dir())
+            self.listCtrl.SetItem(row, 1, download.get_dest_dir())
 
         self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)
         vSizer.Add(self.listCtrl, 1, wx.EXPAND|wx.BOTTOM|wx.TOP, 3)

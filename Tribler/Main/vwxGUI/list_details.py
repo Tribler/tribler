@@ -414,16 +414,16 @@ class TorrentDetails(AbstractDetails):
                 
             for filename, size in files:
                 try:
-                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
+                    pos = self.listCtrl.InsertItem(sys.maxint, filename)
                 except:
                     try:
-                        pos = self.listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
+                        pos = self.listCtrl.InsertItem(sys.maxint, filename.decode('utf-8','ignore'))
                     except:
                         print >> sys.stderr, "Could not format filename", self.torrent.name
                 self.listCtrl.SetItemData(pos, pos)
                 
                 size = "%.1f MB"%(size/1048576.0)
-                self.listCtrl.SetStringItem(pos, 1, size)
+                self.listCtrl.SetItem(pos, 1, size)
                 
                 if filename in self.torrent.videofiles:
                     self.listCtrl.SetItemColumnImage(pos, 0, play_img)
@@ -431,7 +431,7 @@ class TorrentDetails(AbstractDetails):
                     self.listCtrl.SetItemColumnImage(pos, 0, file_img)
                     
                 if isinstance(self, LibraryDetails):
-                    self.listCtrl.SetStringItem(pos, 2, '')
+                    self.listCtrl.SetItem(pos, 2, '')
             
             self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
@@ -1288,14 +1288,14 @@ class LibraryDetails(TorrentDetails):
                 for peer_dict in peers:
                     peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict.get('completed', 0)*100.0)
                     if index < self.peerList.GetItemCount():
-                        self.peerList.SetStringItem(index, 0, peer_name)
+                        self.peerList.SetItem(index, 0, peer_name)
                     else:
-                        self.peerList.InsertStringItem(index, peer_name)
+                        self.peerList.InsertItem(index, peer_name)
                     
                     traffic = ""
                     traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
                     traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
-                    self.peerList.SetStringItem(index, 1, traffic.strip())
+                    self.peerList.SetItem(index, 1, traffic.strip())
                     
                     state = ""
                     if peer_dict.get('optimistic'):
@@ -1317,18 +1317,18 @@ class LibraryDetails(TorrentDetails):
                     if peer_dict.get('snubbed'):
                         state += "S,"
                     state += peer_dict.get('direction', '')
-                    self.peerList.SetStringItem(index, 2, state)
+                    self.peerList.SetItem(index, 2, state)
                     
                     if 'extended_version' in peer_dict:
                         try:
-                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('ascii'))
+                            self.peerList.SetItem(index, 3, peer_dict['extended_version'].decode('ascii'))
                         except:
                             try:
-                                self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
+                                self.peerList.SetItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
                             except:
                                 print >> sys.stderr, "Could not format peer client version"
                     else:
-                        self.peerList.SetStringItem(index, 3, '')
+                        self.peerList.SetItem(index, 3, '')
                     
                     index += 1
     
@@ -1365,19 +1365,22 @@ class LibraryDetails(TorrentDetails):
                         listfile = self.listCtrl.GetItem(i, 0).GetText()
                         
                         if listfile in selected_files or not selected_files:
-                            self.listCtrl.SetStringItem(i, 2, 'Included')
+                            self.listCtrl.SetItem(i, 2, 'Included')
                         else:
-                            self.listCtrl.SetStringItem(i, 2, 'Excluded')                            
+                            self.listCtrl.SetItem(i, 2, 'Excluded')                            
                         
                         progress = completion.get(listfile, None)
                         if isinstance(progress, float) or isinstance(progress, int):
-                            self.listCtrl.SetStringItem(i, 3, "%.2f%%"%(progress*100))
+                            self.listCtrl.SetItem(i, 3, "%.2f%%"%(progress*100))
                     
                     self.old_progress = dsprogress
+            
+            if not self.peerList:
+                return
                 
             if index == 0:
                 self.peerList.DeleteAllItems()
-                self.peerList.InsertStringItem(index, "Not connected to any peers")
+                self.peerList.InsertItem(index, "Not connected to any peers")
             else:
                 while index < self.peerList.GetItemCount():
                     self.peerList.DeleteItem(index)
@@ -2018,15 +2021,15 @@ class MyChannelDetails(wx.Panel):
             
         for filename, size in torrent.files:
             try:
-                pos = listCtrl.InsertStringItem(sys.maxint, filename)
+                pos = listCtrl.InsertItem(sys.maxint, filename)
             except:
                 try:
-                    pos = listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
+                    pos = listCtrl.InsertItem(sys.maxint, filename.decode('utf-8','ignore'))
                 except:
                     print >> sys.stderr, "Could not format filename", torrent.name
             listCtrl.SetItemData(pos, pos)
             size = self.guiutility.utility.size_format(size)
-            listCtrl.SetStringItem(pos, 1, size)
+            listCtrl.SetItem(pos, 1, size)
             
             if filename in torrent.videofiles:
                 listCtrl.SetItemColumnImage(pos, 0, play_img)
