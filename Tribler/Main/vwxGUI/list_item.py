@@ -53,7 +53,7 @@ class DoubleLineListItem(ListItem):
                     bmp = ActionButton(self, bitmap = icon[0], hover = False)
                     bmp.SetBitmapDisabled(icon[1] or icon[0])
                     bmp.SetBitmapHover(icon[1] or icon[0])
-                    bmp.SetToolTipString(icon[2])
+                    bmp.SetToolTip(icon[2])
                     if icon[3]:
                         bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
                     bmp.Show(icon[4] if len(icon) > 4 else True)
@@ -106,7 +106,7 @@ class DoubleLineListItem(ListItem):
                 self.descrSizer.Add(sline, 0, wx.EXPAND|wx.RIGHT|wx.LEFT, 7)
             
     def _add_columnresizing(self, sline, column_index):
-        sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
+        sline.SetCursor(wx.Cursor(wx.CURSOR_SIZEWE))
         # Take hidden columns into account
         control_index = self.columns[column_index]['controlindex']
                     
@@ -186,7 +186,7 @@ class DoubleLineListItem(ListItem):
                 self.icons[index].SetBitmapLabel(new_icon[0])
                 self.icons[index].SetBitmapDisabled(new_icon[1] or new_icon[0])
                 self.icons[index].SetBitmapHover(new_icon[1] or new_icon[0])
-                self.icons[index].SetToolTipString(new_icon[2])
+                self.icons[index].SetToolTip(new_icon[2])
                 self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3] if len(new_icon) > 3 else None)
                 self.icons[index].Enable(True)
                 self.icons[index].Show(True)
@@ -333,7 +333,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             # Add icon right after the torrent title, indicating that the torrent has thumbnails
             snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
             self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
-            self.snapshot.SetToolTipString("This torrent has thumbnails.")
+            self.snapshot.SetToolTip("This torrent has thumbnails.")
             self.AddEvents(self.snapshot)
             self.titleSizer.Add(self.snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
             self.Layout()
@@ -455,7 +455,7 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         visible_columns = [column['name'] for column in self.columns if column['show']]
         try:
             self.at_index = visible_columns.index('Associated torrents')
-            self.controls[self.at_index].SetToolTipString('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
+            self.controls[self.at_index].SetToolTip('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
             self.controls[self.at_index].Bind(wx.EVT_MOUSE_EVENTS, self.ShowSelected)
         except:
             pass

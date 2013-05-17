@@ -247,7 +247,7 @@ class ProgressSlider(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
         #self.SetSize((-1,self.bgImage.GetSize()[1]))
 
     def AcceptsFocus(self):
@@ -374,7 +374,7 @@ class ProgressSlider(wx.Panel):
 
     def OnPaint(self, evt):
         width, height = self.GetClientSize()
-        buffer = wx.EmptyBitmap(width, height)
+        buffer = wx.Bitmap(width, height)
         #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)
         #dc.BeginDrawing()
@@ -545,7 +545,7 @@ class VolumeSlider(wx.Panel):
 
     def OnPaint(self, evt):
         width, height = self.GetClientSize()
-        buffer = wx.EmptyBitmap(width, height)
+        buffer = wx.Bitmap(width, height)
         #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)
         dc.BeginDrawing()

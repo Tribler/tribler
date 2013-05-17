@@ -317,7 +317,7 @@ class TopSearchPanel(FancyPanel):
         if handler:
             button.Bind(wx.EVT_LEFT_UP, handler)
             if tooltip:
-                button.SetToolTipString(tooltip)
+                button.SetToolTip(tooltip)
             else:
                 button.SetToolTip(None)
         else:

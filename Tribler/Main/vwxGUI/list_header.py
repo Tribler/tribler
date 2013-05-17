@@ -54,7 +54,7 @@ class ListHeaderIcon:
         img = down.ConvertToImage()
         up = img.Rotate90().Rotate90().ConvertToBitmap()
         
-        empty = wx.EmptyBitmap(up.GetWidth(), up.GetHeight())
+        empty = wx.Bitmap(up.GetWidth(), up.GetHeight())
         dc = wx.MemoryDC(empty)
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
@@ -109,7 +109,7 @@ class ListHeader(wx.Panel):
             for i in xrange(len(columns)):
                 if columns[i].get('name', '') != '':
                     label = LinkText(parent, columns[i]['name'], fonts = [None, selectedfont], style = columns[i].get('style',0)|wx.ST_NO_AUTORESIZE, parentsizer = sizer)
-                    label.SetToolTipString('Click to sort table by %s.'%columns[i]['name'])
+                    label.SetToolTip('Click to sort table by %s.'%columns[i]['name'])
                     label.SetBackgroundColour(self.GetBackgroundColour())
                     label.column = i
                     label.Bind(wx.EVT_LEFT_UP, self.OnClick)
@@ -337,7 +337,7 @@ class TitleHeader(ListHeader):
         
     @warnWxThread   
     def SetToolTip(self, tooltip):
-        self.title.SetToolTipString(tooltip)
+        self.title.SetToolTip(tooltip)
 
 class SearchHeaderHelper():
     
@@ -453,7 +453,7 @@ class SearchHelpHeader(SearchHeaderHelper, TitleHeader):
         filename = os.path.join(gui_utility.vwxGUI_path, "images", "help.png")
         help = wx.StaticBitmap(parent, -1, wx.Bitmap(filename, wx.BITMAP_TYPE_ANY))
         help.Bind(wx.EVT_LEFT_UP, self.helpClick)
-        help.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+        help.SetCursor(wx.Cursor(wx.CURSOR_HAND))
 
         hSizer.Add(help, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 5)
 
@@ -1356,7 +1356,7 @@ class PlaylistHeader(ListItemHeader):
                             
             from Tribler.Main.vwxGUI.widgets import TagText
             tag = TagText(new_item, -1, label='channel', fill_colour = wx.Colour(210,252,120))
-            tag.SetToolTipString("Click on this icon to return to %s's channel"%playlist.channel.name)
+            tag.SetToolTip("Click on this icon to return to %s's channel"%playlist.channel.name)
             new_item.AddEvents(tag)
             tag.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(playlist.channel))
             new_item.titleSizer.Insert(0, tag, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 2)

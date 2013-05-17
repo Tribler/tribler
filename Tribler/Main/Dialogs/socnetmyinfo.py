@@ -172,7 +172,7 @@ class NameIconWizardPage(WizardPageSimple):
                 self.show_inputerror(self.utility.lang.get('cantopenfile'))
             else:
                 if sys.platform != 'darwin':
-                    bm = wx.BitmapFromImage(im.Scale(64,64),-1)
+                    bm = wx.Bitmap(im.Scale(64,64),-1)
                     self.iconbtn.SetBitmapLabel(bm)
 
                 # Arno, 2008-10-21: scale image!

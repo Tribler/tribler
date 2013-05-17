@@ -188,7 +188,7 @@ class ListItem(wx.Panel):
                     icon.type = None
                     
                     if tooltip:
-                        icon.SetToolTipString(tooltip)
+                        icon.SetToolTip(tooltip)
         return icon
     
     @warnWxThread
@@ -199,7 +199,7 @@ class ListItem(wx.Panel):
         if getattr(control, 'Bind', False):
             if not isinstance(control, (wx.Button, ActionButton, wx.StaticLine)):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
+                control.SetCursor(wx.Cursor(wx.CURSOR_HAND))
             else:
                 control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
                 control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
@@ -304,7 +304,7 @@ class ListItem(wx.Panel):
             control_index = column['controlindex']
             control = self.controls[control_index]
             if control:
-                control.SetToolTipString(tooltip)
+                control.SetToolTip(tooltip)
     
     @warnWxThread
     def Highlight(self, timeout = 3.0, revert = True, colour = LIST_HIGHTLIGHT):
@@ -461,7 +461,7 @@ class ListItem(wx.Panel):
         self.expandedPanel = panel
         
         if getattr(panel, 'SetCursor', False):
-            panel.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
+            panel.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
             #panel.SetFont(panel.GetDefaultAttributes().font)
         
         panel.Show()

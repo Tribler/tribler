@@ -1802,13 +1802,13 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         add = wx.Button(dlg, -1, "<<", style = wx.BU_EXACTFIT)
-        add.SetToolTipString("Add selected torrents to playlist")
+        add.SetToolTip("Add selected torrents to playlist")
         add.Bind(wx.EVT_BUTTON, self.OnAdd)
         vSizer.Add(add)
         
         if self.canDelete:
             remove = wx.Button(dlg, -1, ">>", style = wx.BU_EXACTFIT)
-            remove.SetToolTipString("Remove selected torrents from playlist")
+            remove.SetToolTip("Remove selected torrents from playlist")
             remove.Bind(wx.EVT_BUTTON, self.OnRemove)
             vSizer.Add(remove)
             
