@@ -3,8 +3,6 @@ import wx.html2
 
 from Tribler.Main.vwxGUI.list import XRCPanel
 
-from Tribler.SiteRipper.SiteRipper import seedWebPage
-
 import sys
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer

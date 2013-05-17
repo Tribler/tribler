@@ -124,7 +124,7 @@ class WebPage:
         sourcefolder = folderPath + os.sep + self.__folderName
         out = tar_lib.tarFolder(sourcefolder, folderPath, self.__folderName[:-1])
         #Cleanup sources
-        self.__removeTarSourceFiles(sourcefolder + os.sep)
+        self.__RemoveTarSourceFiles(sourcefolder + os.sep)
         #return torrent
         return out
     
@@ -162,7 +162,7 @@ class WebPage:
         return folderPath
     
     def __AssertFolder(self, folderpath):
-        """Assert that the folder exists. If it does not, then the folder is created"""s
+        """Assert that the folder exists. If it does not, then the folder is created"""
         if not os.path.exists(folderpath):
             os.makedirs(folderpath)
     
