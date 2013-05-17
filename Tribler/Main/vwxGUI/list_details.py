@@ -1949,7 +1949,8 @@ class ProgressPanel(wx.BoxSizer):
                 self.pb.setNormalPercentage(progress) # Show as having some
             else:
                 self.pb.reset(colour=0) # Show as having none
-            self.pb.Refresh()
+            if self.pb:
+                self.pb.Refresh()
         
         return return_val
     
