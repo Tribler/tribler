@@ -6,6 +6,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 import sys
 import urllib2
 import urlparse
+import os
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
 
@@ -110,13 +111,24 @@ class WebBrowser(XRCPanel):
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
         
-    def LoadURL(self, url):
+    def __LoadURLFromLocal(self, url):
+        import Tribler.SiteRipper
+        self.webview.LoadURL(os.path.dirname("file:" + os.sep + os.sep + Tribler.SiteRipper.__file__) + os.sep + "pagenotfound.html?" + url)
+        wx.CallAfter(self.adressBar.SetValue, url)
+    
+    def __LoadURLFromInternet(self, url):
         redirurl = self.__assertHttp(url)   # Make sure we are following an http protocol
         try:
             redirurl = str(self.__cookieprocessor.open(redirurl).geturl())
         except:
             pass    #We cannot get a redirection on our URL, so it must've been correct to begin with
         self.webview.LoadURL(redirurl)
+        
+    def LoadURL(self, url):
+        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+            self.__LoadURLFromLocal(url)
+        else:
+            self.__LoadURLFromInternet(url)
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
