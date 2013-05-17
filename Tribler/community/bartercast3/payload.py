@@ -1,7 +1,10 @@
 from Tribler.dispersy.payload import Payload
 
+
 class BarterRecordPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self,
                      meta,
                      cycle,
@@ -68,28 +71,40 @@ class BarterRecordPayload(Payload):
             self.second_associated_up = second_associated_up
             self.second_associated_down = second_associated_down
 
+
 class PingPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, member):
             super(PingPayload.Implementation, self).__init__(meta)
             self.identifier = identifier
             self.member = member
 
+
 class PongPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, member):
             super(PongPayload.Implementation, self).__init__(meta)
             self.identifier = identifier
             self.member = member
 
+
 class MemberRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier):
             super(MemberRequestPayload.Implementation, self).__init__(meta)
             self.identifier = identifier
 
+
 class MemberResponsePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier):
             super(MemberResponsePayload.Implementation, self).__init__(meta)
             self.identifier = identifier

@@ -7,11 +7,13 @@ import sys
 
 DEBUG = False
 
+
 class SmartCachingStream:
+
     """ Class that adds buffering to a seekable stream, such that reads after
     seeks that stay in the bounds of the buffer are handled from the buffer,
     instead of doing seeks and reads on the underlying stream.
-    
+
     Currently specifically tuned to input streams as returned by Core.
     """
     def __init__(self, inputstream, blocksize=1024 * 1024):
@@ -46,7 +48,6 @@ class SmartCachingStream:
 
                 return self.read_buf(nwant)
 
-
     def seek(self, offset, whence=0):
         if DEBUG:
             print >> sys.stderr, "seek: ", offset
@@ -64,7 +65,6 @@ class SmartCachingStream:
         self.instream.seek(offset, whence)
         self.inpos = offset
         self.bufpos = offset
-
 
     def read_new(self, nwant):
         if DEBUG:
@@ -94,7 +94,6 @@ class SmartCachingStream:
         self.inpos += len(self.buffer)
         self.bufend = self.inpos
 
-
     def read_buf(self, nwant):
         if DEBUG:
             print >> sys.stderr, "read_buf: ", nwant
@@ -106,5 +105,3 @@ class SmartCachingStream:
         if DEBUG:
             print >> sys.stderr, "read_buf: ngot", ngot, "returned", len(ret)
         return ret
-
-

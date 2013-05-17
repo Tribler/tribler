@@ -14,7 +14,7 @@
 
 import sys
 import os
-#import time
+# import time
 import copy
 import pickle
 from types import StringType
@@ -29,6 +29,7 @@ from Tribler.Core.osutils import getfreespace, get_desktop_dir
 
 
 class DownloadConfigInterface:
+
     """
     (key,value) pair config of per-torrent runtime parameters,
     e.g. destdir, file-allocation policy, etc. Also options to advocate
@@ -39,11 +40,11 @@ class DownloadConfigInterface:
 
     cf. libtorrent torrent_handle
     """
-    def __init__(self,dlconfig=None):
+    def __init__(self, dlconfig=None):
 
-        if dlconfig is not None: # copy constructor
+        if dlconfig is not None:  # copy constructor
 
-            #modify/fix incorrectly saved dlconfigs
+            # modify/fix incorrectly saved dlconfigs
             if isinstance(dlconfig['saveas'], tuple):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
 
@@ -77,7 +78,7 @@ class DownloadConfigInterface:
             return updatedFields
         return None
 
-    def set_dest_dir(self,path):
+    def set_dest_dir(self, path):
         """ Sets the directory where to save this Download.
         @param path A path of a directory.
         """
@@ -112,7 +113,7 @@ class DownloadConfigInterface:
         """
         self.dlconfig['correctedfilename'] = correctedfilename
 
-    def set_video_event_callback(self,usercallback,dlmode=DLMODE_VOD):
+    def set_video_event_callback(self, usercallback, dlmode=DLMODE_VOD):
         """ Download the torrent in Video-On-Demand mode or as live stream.
         When a playback event occurs, the usercallback function will be
         called, with the following list of arguments:
@@ -172,8 +173,7 @@ class DownloadConfigInterface:
         self.dlconfig['mode'] = dlmode
         self.dlconfig['vod_usercallback'] = usercallback
 
-
-    def set_video_events(self,events=[]):
+    def set_video_events(self, events=[]):
         """ Sets which events will be supported with the usercallback set
         by set_video_event_callback. Supporting the VODEVENT_START event is
         mandatory, and can therefore be omitted from the list.
@@ -184,7 +184,7 @@ class DownloadConfigInterface:
         # create a copy to avoid loosing the info
         self.dlconfig['vod_userevents'] = events[:]
 
-    def set_video_source(self,videosource,authconfig=None,restartstatefilename=None):
+    def set_video_source(self, videosource, authconfig=None, restartstatefilename=None):
         """ Provides the live video source for this torrent from an external
         source.
 
@@ -203,7 +203,7 @@ class DownloadConfigInterface:
         self.dlconfig['video_source_authconfig'] = authconfig
         self.dlconfig['video_source_restartstatefilename'] = restartstatefilename
 
-    def set_video_ratelimit(self,ratelimit):
+    def set_video_ratelimit(self, ratelimit):
         """ Sets a limit on the speed at which the video stream is to be read.
         Useful when creating a live stream from file or any other faster-than-live
         data stream.
@@ -212,12 +212,12 @@ class DownloadConfigInterface:
         """
         self.dlconfig['video_ratelimit'] = ratelimit
 
-    def set_mode(self,mode):
+    def set_mode(self, mode):
         """ Sets the mode of this download.
         @param mode DLMODE_NORMAL/DLMODE_VOD """
         self.dlconfig['mode'] = mode
 
-    def set_live_aux_seeders(self,seeders):
+    def set_live_aux_seeders(self, seeders):
         """ Sets a number of live seeders, auxiliary servers that
         get high priority at the source server to distribute its content
         to others.
@@ -259,8 +259,7 @@ class DownloadConfigInterface:
         @return A list of [IP address,port] lists. """
         return self.dlconfig['live_aux_seeders']
 
-
-    def set_selected_files(self,files):
+    def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
         be the names as they appear in the content def, including encoding.
         Trivially, when the torrent contains a file 'sjaak.avi' the files
@@ -275,7 +274,7 @@ class DownloadConfigInterface:
         ['harry.avi','sjaak.avi']). Not Unicode strings!
         """
         # TODO: can't check if files exists, don't have tdef here.... bugger
-        if type(files) == StringType: # convenience
+        if isinstance(files, StringType):  # convenience
             files = [files]
 
         if self.dlconfig['mode'] == DLMODE_VOD and len(files) > 1:
@@ -285,21 +284,17 @@ class DownloadConfigInterface:
         elif self.dlconfig['mode'] == DLMODE_SVC and len(files) < 2:
             raise ValueError("In SVC Video-On-Demand mode at least 2 files have to be selected for download")
 
-
         self.dlconfig['selected_files'] = files
-
 
     def get_selected_files(self):
         """ Returns the list of files selected for download.
         @return A list of strings. """
         return self.dlconfig['selected_files']
 
-
-
     #
     # Common download performance parameters
     #
-    def set_max_speed(self,direct,speed):
+    def set_max_speed(self, direct, speed):
         """ Sets the maximum upload or download speed for this Download.
         @param direct The direction (UPLOAD/DOWNLOAD)
         @param speed The speed in KB/s.
@@ -309,7 +304,7 @@ class DownloadConfigInterface:
         else:
             self.dlconfig['max_download_rate'] = speed
 
-    def get_max_speed(self,direct):
+    def get_max_speed(self, direct):
         """ Returns the configured maximum speed.
         Returns the speed in KB/s. """
         if direct == UPLOAD:
@@ -317,7 +312,7 @@ class DownloadConfigInterface:
         else:
             return self.dlconfig['max_download_rate']
 
-    def set_max_conns_to_initiate(self,nconns):
+    def set_max_conns_to_initiate(self, nconns):
         """ Sets the maximum number of connections to initiate for this
         Download.
         @param nconns A number of connections.
@@ -330,7 +325,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['max_initiate']
 
-    def set_max_conns(self,nconns):
+    def set_max_conns(self, nconns):
         """ Sets the maximum number of connections to connections for this
         Download.
         @param nconns A number of connections.
@@ -346,7 +341,7 @@ class DownloadConfigInterface:
     #
     # Advanced download parameters
     #
-    def set_max_uploads(self,value):
+    def set_max_uploads(self, value):
         """ Set the maximum number of uploads to allow at once.
         @param value A number.
         """
@@ -357,7 +352,7 @@ class DownloadConfigInterface:
         @return A number. """
         return self.dlconfig['max_uploads']
 
-    def set_keepalive_interval(self,value):
+    def set_keepalive_interval(self, value):
         """ Set the number of seconds to pause between sending keepalives.
         @param value An interval """
         self.dlconfig['keepalive_interval'] = value
@@ -367,7 +362,7 @@ class DownloadConfigInterface:
         @return A number of seconds. """
         return self.dlconfig['keepalive_interval']
 
-    def set_download_slice_size(self,value):
+    def set_download_slice_size(self, value):
         """ Set how many bytes to query for per request.
         @param value A number of bytes.
         """
@@ -378,7 +373,7 @@ class DownloadConfigInterface:
         @return A number of bytes. """
         return self.dlconfig['download_slice_size']
 
-    def set_upload_unit_size(self,value):
+    def set_upload_unit_size(self, value):
         """ When limiting upload rate, how many bytes to send at a time.
         @param value A number of bytes. """
         self.dlconfig['upload_unit_size'] = value
@@ -389,7 +384,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['upload_unit_size']
 
-    def set_request_backlog(self,value):
+    def set_request_backlog(self, value):
         """ Maximum number of requests to keep in a single pipe at once.
         @param value A number of requests.
         """
@@ -401,7 +396,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['request_backlog']
 
-    def set_max_message_length(self,value):
+    def set_max_message_length(self, value):
         """ Maximum message-length prefix to accept over the wire - larger
         values get the connection dropped.
         @param value A number of bytes.
@@ -414,7 +409,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['max_message_length']
 
-    def set_max_slice_length(self,value):
+    def set_max_slice_length(self, value):
         """ Maximum length slice to send to peers, larger requests are ignored.
         @param value A number of bytes.
         """
@@ -426,7 +421,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['max_slice_length']
 
-    def set_max_rate_period(self,value):
+    def set_max_rate_period(self, value):
         """ Maximum amount of time to guess the current rate estimate.
         @param value A number of seconds. """
         self.dlconfig['max_rate_period'] = value
@@ -437,7 +432,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['max_rate_period']
 
-    def set_upload_rate_fudge(self,value):
+    def set_upload_rate_fudge(self, value):
         """ Time equivalent of writing to kernel-level TCP buffer, for rate
         adjustment.
         @param value A number of seconds.
@@ -450,7 +445,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['upload_rate_fudge']
 
-    def set_tcp_ack_fudge(self,value):
+    def set_tcp_ack_fudge(self, value):
         """ How much TCP ACK download overhead to add to upload rate
         calculations. I.e. when a message is received we add X percent
         of this message to our upload rate to account for TCP ACKs that
@@ -465,7 +460,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['tcp_ack_fudge']
 
-    def set_rerequest_interval(self,value):
+    def set_rerequest_interval(self, value):
         """ Time to wait between requesting more peers from tracker.
         @param value An interval in seconds.
         """
@@ -477,7 +472,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['rerequest_interval']
 
-    def set_min_peers(self,value):
+    def set_min_peers(self, value):
         """ Minimum number of peers to not do rerequesting.
         @param value A number of peers.
          """
@@ -489,7 +484,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['min_peers']
 
-    def set_http_timeout(self,value):
+    def set_http_timeout(self, value):
         """ Number of seconds to wait before assuming that a HTTP connection
         has timed out.
         @param value A number of seconds.
@@ -502,7 +497,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['http_timeout']
 
-    def set_check_hashes(self,value):
+    def set_check_hashes(self, value):
         """ Whether to check the integrity of the data on disk using the
         hashes from the torrent definition.
         @param value Boolean
@@ -514,7 +509,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['check_hashes']
 
-    def set_alloc_type(self,value):
+    def set_alloc_type(self, value):
         """ Set disk-allocation type:
         <pre>
         * DISKALLOC_NORMAL:  Allocates space as data is received
@@ -533,7 +528,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['alloc_type']
 
-    def set_alloc_rate(self,value):
+    def set_alloc_rate(self, value):
         """ Set the rate to allocate space at using background
         allocation (DISKALLOC_BACKGROUND).
 
@@ -547,7 +542,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['alloc_rate']
 
-    def set_buffer_reads(self,value):
+    def set_buffer_reads(self, value):
         """ Whether to buffer disk reads.
         @param value Boolean
         """
@@ -558,7 +553,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['buffer_reads']
 
-    def set_write_buffer_size(self,value):
+    def set_write_buffer_size(self, value):
         """ The maximum amount of space to use for buffering disk writes
         (0 = disabled).
         @param value A buffer size in megabytes.
@@ -571,7 +566,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['write_buffer_size']
 
-    def set_breakup_seed_bitfield(self,value):
+    def set_breakup_seed_bitfield(self, value):
         """ Whether to send an incomplete BITFIELD and then fills with HAVE
         messages, in order to get around intellectually-challenged Internet
         Service Provider manipulation.
@@ -584,7 +579,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['breakup_seed_bitfield']
 
-    def set_snub_time(self,value):
+    def set_snub_time(self, value):
         """ Seconds to wait for data to come in over a connection before
         assuming it's semi-permanently choked.
         @param value  A number of seconds.
@@ -597,7 +592,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['snub_time']
 
-    def set_rarest_first_cutoff(self,value):
+    def set_rarest_first_cutoff(self, value):
         """ Number of downloads at which to switch from random to rarest first.
         @param value A number of downloads.
         """
@@ -609,7 +604,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['rarest_first_cutoff']
 
-    def set_rarest_first_priority_cutoff(self,value):
+    def set_rarest_first_priority_cutoff(self, value):
         """ The number of peers which need to have a piece before other
         partials take priority over rarest first policy.
         @param value A number of peers.
@@ -621,7 +616,7 @@ class DownloadConfigInterface:
         @return A number of peers. """
         return self.dlconfig['rarest_first_priority_cutoff']
 
-    def set_min_uploads(self,value):
+    def set_min_uploads(self, value):
         """ The number of uploads to fill out to with extra optimistic unchokes.
         @param value A number of uploads.
         """
@@ -632,7 +627,7 @@ class DownloadConfigInterface:
         @return A number of uploads. """
         return self.dlconfig['min_uploads']
 
-    def set_max_files_open(self,value):
+    def set_max_files_open(self, value):
         """ The maximum number of files to keep open at a time, 0 means no
         limit.
         @param value A number of files.
@@ -644,7 +639,7 @@ class DownloadConfigInterface:
         @return A number of files. """
         return self.dlconfig['max_files_open']
 
-    def set_round_robin_period(self,value):
+    def set_round_robin_period(self, value):
         """ The number of seconds between the client's switching upload targets.
         @param value A number of seconds.
         """
@@ -655,7 +650,7 @@ class DownloadConfigInterface:
         @return A number of seconds. """
         return self.dlconfig['round_robin_period']
 
-    def set_super_seeder(self,value):
+    def set_super_seeder(self, value):
         """ whether to use special upload-efficiency-maximizing routines (only
         for dedicated seeds).
         @param value Boolean
@@ -667,7 +662,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['super_seeder']
 
-    def set_security(self,value):
+    def set_security(self, value):
         """ Whether to enable extra security features intended to prevent abuse,
         such as checking for multiple connections from the same IP address.
         @param value Boolean
@@ -679,7 +674,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['security']
 
-    def set_auto_kick(self,value):
+    def set_auto_kick(self, value):
         """ Whether to automatically kick/ban peers that send bad data.
         @param value Boolean
         """
@@ -690,7 +685,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['auto_kick']
 
-    def set_double_check_writes(self,value):
+    def set_double_check_writes(self, value):
         """ Whether to double-check data being written to the disk for errors
         (may increase CPU load).
         @param value Boolean
@@ -701,7 +696,7 @@ class DownloadConfigInterface:
         """ Returns whether double-checking on writes is enabled. """
         return self.dlconfig['double_check']
 
-    def set_triple_check_writes(self,value):
+    def set_triple_check_writes(self, value):
         """ Whether to thoroughly check data being written to the disk (may
         slow disk access).
         @param value Boolean """
@@ -711,7 +706,7 @@ class DownloadConfigInterface:
         """ Returns whether triple-checking on writes is enabled. """
         return self.dlconfig['triple_check']
 
-    def set_lock_files(self,value):
+    def set_lock_files(self, value):
         """ Whether to lock files the Download is working with.
         @param value Boolean """
         self.dlconfig['lock_files'] = value
@@ -720,7 +715,7 @@ class DownloadConfigInterface:
         """ Returns whether locking of files is enabled. """
         return self.dlconfig['lock_files']
 
-    def set_lock_while_reading(self,value):
+    def set_lock_while_reading(self, value):
         """ Whether to lock access to files being read.
         @param value Boolean
         """
@@ -731,7 +726,7 @@ class DownloadConfigInterface:
         @return Boolean. """
         return self.dlconfig['lock_while_reading']
 
-    def set_auto_flush(self,value):
+    def set_auto_flush(self, value):
         """ Minutes between automatic flushes to disk (0 = disabled).
         @param value A number of minutes.
         """
@@ -742,7 +737,7 @@ class DownloadConfigInterface:
         @return A number of minutes. """
         return self.dlconfig['auto_flush']
 
-    def set_exclude_ips(self,value):
+    def set_exclude_ips(self, value):
         """ Set a list of IP addresses to be excluded.
         @param value A list of IP addresses in dotted notation.
         """
@@ -753,7 +748,7 @@ class DownloadConfigInterface:
         @return A list of strings. """
         return self.dlconfig['exclude_ips']
 
-    def set_ut_pex_max_addrs_from_peer(self,value):
+    def set_ut_pex_max_addrs_from_peer(self, value):
         """ Maximum number of addresses to accept from peer via the uTorrent
         Peer Exchange extension (0 = disable PEX)
         @param value A number of IP addresses.
@@ -767,7 +762,7 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['ut_pex_max_addrs_from_peer']
 
-    def set_same_nat_try_internal(self,value):
+    def set_same_nat_try_internal(self, value):
         """ Whether to try to detect if a peer is behind the same NAT as
         this Session and then establish a connection over the internal
         network
@@ -780,7 +775,7 @@ class DownloadConfigInterface:
         @return Boolean """
         return self.dlconfig['same_nat_try_internal']
 
-    def set_unchoke_bias_for_internal(self,value):
+    def set_unchoke_bias_for_internal(self, value):
         """ Amount to add to unchoke score for peers on the internal network.
         @param value A number
         """
@@ -793,7 +788,7 @@ class DownloadConfigInterface:
         return self.dlconfig['unchoke_bias_for_internal']
 
     # SWIFTPROC
-    def set_swift_listen_port(self,port):
+    def set_swift_listen_port(self, port):
         """ Set the UDP port for the swift process
         (download-to-process mapping permitting).
         @param port A port number.
@@ -806,7 +801,7 @@ class DownloadConfigInterface:
         @return Port number. """
         return self.dlconfig['swiftlistenport']
 
-    def set_swift_cmdgw_listen_port(self,port):
+    def set_swift_cmdgw_listen_port(self, port):
         """ Set the TCP listen port for the CMDGW of the swift process
         (download-to-process mapping permitting).
         @param port A port number.
@@ -820,7 +815,7 @@ class DownloadConfigInterface:
         @return Port number. """
         return self.dlconfig['swiftcmdgwlistenport']
 
-    def set_swift_httpgw_listen_port(self,port):
+    def set_swift_httpgw_listen_port(self, port):
         """ Set the TCP listen port for the CMDGW of the swift process
         (download-to-process mapping permitting).
         @param port A port number.
@@ -833,7 +828,7 @@ class DownloadConfigInterface:
         @return Port number. """
         return self.dlconfig['swifthttpgwlistenport']
 
-    def set_swift_meta_dir(self,value):
+    def set_swift_meta_dir(self, value):
         """ Set the metadir for storing .m* files of this Download.
         @param value An absolutepath.
         """
@@ -845,7 +840,9 @@ class DownloadConfigInterface:
         """
         return self.dlconfig['swiftmetadir']
 
-class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
+
+class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
+
     """
     (key,value) pair config of per-torrent runtime parameters,
     e.g. destdir, file-allocation policy, etc. Also options to advocate
@@ -853,13 +850,14 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
 
     cf. libtorrent torrent_handle
     """
-    def __init__(self,dlconfig=None):
+    def __init__(self, dlconfig=None):
         """ Normal constructor for DownloadStartupConfig (copy constructor
         used internally) """
-        DownloadConfigInterface.__init__(self,dlconfig)
+        DownloadConfigInterface.__init__(self, dlconfig)
     #
     # Class method
     #
+
     def load(filename):
         """
         Load a saved DownloadStartupConfig from disk.
@@ -868,20 +866,20 @@ class DownloadStartupConfig(DownloadConfigInterface,Serializable,Copyable):
         @return DownloadStartupConfig object
         """
         # Class method, no locking required
-        f = open(filename,"rb")
+        f = open(filename, "rb")
         dlconfig = pickle.load(f)
         dscfg = DownloadStartupConfig(dlconfig)
         f.close()
         return dscfg
     load = staticmethod(load)
 
-    def save(self,filename):
+    def save(self, filename):
         """ Save the DownloadStartupConfig to disk.
         @param filename  An absolute Unicode filename
         """
         # Called by any thread
-        f = open(filename,"wb")
-        pickle.dump(self.dlconfig,f)
+        f = open(filename, "wb")
+        pickle.dump(self.dlconfig, f)
         f.close()
 
     #
@@ -907,4 +905,4 @@ def get_default_dest_dir():
         return os.path.abspath(downloaddir)
 
     uhome = get_desktop_dir()
-    return os.path.join(uhome,downloaddir)
+    return os.path.join(uhome, downloaddir)

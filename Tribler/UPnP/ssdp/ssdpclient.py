@@ -11,9 +11,10 @@ import ssdpdaemon
 
 _LOG_TAG = "SSDPClient"
 
-##############################################
+#
 # SSDP CLIENT DAEMON
-##############################################
+#
+
 
 class SSDPClient(ssdpdaemon.SSDPDaemon):
 
@@ -29,16 +30,15 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
         ssdpdaemon.SSDPDaemon.__init__(self, task_runner, logger)
 
         # Devices
-        self._ssdp_devices = {} # uuid : SSDPDevice
+        self._ssdp_devices = {}  # uuid : SSDPDevice
 
         # Event Handlers
         self._add_handler = lambda uuid: None
         self._remove_handler = lambda uuid: None
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
-
+    #
 
     def set_add_handler(self, handler):
         """Add handler is executed whener a device is added."""
@@ -65,9 +65,9 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
         for device in self._ssdp_devices.values():
             device.close()
 
-    ##############################################
+    #
     # OVERRIDE HANDLERS
-    ##############################################
+    #
 
     def startup(self):
         """Extending Startup by adding Search."""
@@ -99,7 +99,7 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
             return
         uuid = uuid_module.UUID(tokens[1])
         # renew
-        if self._ssdp_devices.has_key(uuid):
+        if uuid in self._ssdp_devices:
             self._renew_device(uuid, msg.max_age)
         # new
         else:
@@ -126,11 +126,9 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
         uuid = uuid_module.UUID(tokens[1])
         self._remove_device(uuid)
 
-
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
-
+    #
     def _handle_expiry(self, uuid):
         """A device has expired, causing it to be removed."""
         self._remove_device(uuid)
@@ -143,7 +141,7 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
         self.log("ADD [%d] %s" % (ssdp_device.max_age, uuid))
         # Publish Event ADD
         self.task_runner.add_task(self._add_handler,
-                                  args=(uuid,ssdp_device.location))
+                                  args=(uuid, ssdp_device.location))
 
     def _renew_device(self, uuid, max_age):
         """Receive announce from already known device."""
@@ -152,7 +150,7 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
 
     def _remove_device(self, uuid):
         """Remove device."""
-        if self._ssdp_devices.has_key(uuid):
+        if uuid in self._ssdp_devices:
             del self._ssdp_devices[uuid]
             self.log("REMOVE %s" % (uuid))
             # Publish Event REMOVE
@@ -160,9 +158,9 @@ class SSDPClient(ssdpdaemon.SSDPDaemon):
                                       args=(uuid,))
 
 
-##############################################
+#
 # SSDP DEVICE
-##############################################
+#
 
 class SSDPDevice:
 
@@ -226,14 +224,14 @@ class SSDPDevice:
             self._task.cancel()
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == "__main__":
 
-
     class TestClient:
+
         """TestClient wraps SSDPClient to add some event handlers."""
 
         def __init__(self, ssdp_client):
@@ -250,9 +248,11 @@ if __name__ == "__main__":
             print "REMOVE %s" % uuid
 
     class MockLogger:
+
         """Mockup Logger object."""
         def __init__(self):
             pass
+
         def log(self, log_tag, msg):
             """Log to std out."""
             print log_tag, msg

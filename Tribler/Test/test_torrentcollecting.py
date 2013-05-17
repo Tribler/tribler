@@ -12,7 +12,9 @@ from Tribler.Core.TorrentDef import TorrentDef
 import os
 import threading
 
+
 class TestSeeding(TestAsServer):
+
     """
     Testing seeding via new tribler API:
     """

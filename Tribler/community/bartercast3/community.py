@@ -40,6 +40,7 @@ from Tribler.dispersy.resolution import PublicResolution
 MASTER_MEMBER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b8104002703819200040792e72441554e5d5448043bcf516c18d93125cf299244f85fa3bc2c89cdca3029b2f8d832573d337babae5f64ff49dbf70ceca5a0a15e1b13a685c50c4bf285252667e3470b82f90318ac8ee2ad2d09ddabdc140ca879b938921831f0089511321e456b67c3b545ca834f67259e4cf7eff02fbd797c03a2df6db5b945ff3589227d686d6bf593b1372776ece283ab0d".decode("HEX")
 MASTER_MEMBER_PUBLIC_KEY_DIGEST = "4fe1172862c649485c25b3d446337a35f389a2a2".decode("HEX")
 
+
 def bitcount(l):
     c = 0
     while l:
@@ -47,6 +48,7 @@ def bitcount(l):
             c += 1
         l >>= 1
     return c
+
 
 class PingCache(Cache):
     cleanup_delay = 0.0
@@ -63,7 +65,9 @@ class PingCache(Cache):
         if isinstance(self.candidate, WalkCandidate):
             self.candidate.obsolete(self.community, time())
 
+
 class MemberRequestCache(Cache):
+
     def __init__(self, func):
         super(MemberRequestCache, self).__init__()
         self.func = func
@@ -71,7 +75,9 @@ class MemberRequestCache(Cache):
     def on_timeout(self):
         logger.warning("unable to find missing member [id:%d]", self.identifier)
 
+
 class RecordCandidate(object):
+
     """
     Container class for a candidate that is on our slope.
     """
@@ -80,7 +86,9 @@ class RecordCandidate(object):
         self.candidate = candidate
         self.callback_id = callback_id
 
+
 class Association(object):
+
     def __init__(self):
         self.timestamp = 0.0
         self.member = None
@@ -96,7 +104,9 @@ class Association(object):
 
         return False
 
+
 class Book(object):
+
     """
     Container class for all the bookkeeping information per peer.
     """
@@ -116,7 +126,9 @@ class Book(object):
         # how much this member contributed - how much this member consumed
         return self.upload - self.download
 
+
 class BarterCommunity(Community):
+
     @classmethod
     def get_master_members(cls, dispersy):
         return [dispersy.get_member(MASTER_MEMBER_PUBLIC_KEY)]
@@ -154,12 +166,12 @@ class BarterCommunity(Community):
 
         options = dict(self._database.execute(u"SELECT key, value FROM option"))
         # _TOTAL_UP and _TOTAL_DOWN contain the total up and down statistics received from swift
-        self._total_up = long(str(options.get(u"total-up", 0L)))
-        self._total_down = long(str(options.get(u"total-down", 0L)))
+        self._total_up = long(str(options.get(u"total-up", 0)))
+        self._total_down = long(str(options.get(u"total-down", 0)))
         # _UNKNOWN_UP and _UNKNOWN_DOWN contain the total up and down statistics received from swift
         # where we were able to associate to a Dispersy member
-        self._associated_up = long(str(options.get(u"associated-up", 0L)))
-        self._associated_down = long(str(options.get(u"associated-down", 0L)))
+        self._associated_up = long(str(options.get(u"associated-up", 0)))
+        self._associated_down = long(str(options.get(u"associated-down", 0)))
 
         # _BOOKS cache (reduce _DATABASE access)
         self._books_length = 512
@@ -344,7 +356,7 @@ class BarterCommunity(Community):
             identifier = self._dispersy.request_cache.claim(cache)
             meta = self._meta_messages[u"member-request"]
             request = meta.impl(distribution=(self.global_time,),
-                                destination=(Candidate(swift_address, True),), # assume tunnel=True
+                                destination=(Candidate(swift_address, True),),  # assume tunnel=True
                                 payload=(identifier,))
             logger.debug("trying to obtain member from swift address %s:%d [id:%d]",
                          swift_address[0],
@@ -599,8 +611,8 @@ class BarterCommunity(Community):
                     # prevent this winner to 'win' again in this cycle
                     winners.add(winner)
 
-                    # # TODO: this may be and invalid assumption
-                    # # assume that the peer is online
+                    # TODO: this may be and invalid assumption
+                    # assume that the peer is online
                     # record_candidate.history.set(now)
 
                     self._dispersy.callback.unregister(record_candidate.callback_id)

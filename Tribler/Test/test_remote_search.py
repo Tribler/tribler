@@ -8,8 +8,11 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.list_item import ChannelListItem
 
 DEBUG = True
+
+
 class TestRemoteQuery(TestGuiAsServer):
-    """ 
+
+    """
     Testing QUERY message of Social Network extension V1
     """
     def test_remotesearch(self):
@@ -104,7 +107,7 @@ class TestRemoteQuery(TestGuiAsServer):
     def startTest(self, callback):
         def wait_for_search():
             print >> sys.stderr, "tgs: frame ready, staring to wait for search to be ready"
-            self.CallConditional(300, lambda : self.frame.SRstatusbar.GetConnections() > 0.5, callback)
+            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, callback)
 
         TestGuiAsServer.startTest(self, wait_for_search)
 

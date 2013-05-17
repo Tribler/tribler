@@ -16,7 +16,9 @@ from Tribler.Core.SessionConfig import SessionConfigInterface
 # We disable this error
 # pylint: disable-msg=E1101
 
+
 class SessionRuntimeConfig(SessionConfigInterface):
+
     """
     Implements the Tribler.Core.API.SessionConfigInterface
 
@@ -187,7 +189,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-
     #
     # Local Peer Discovery using IP Multicast
     #
@@ -214,7 +215,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-
     def set_swift_path(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -224,7 +224,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
             return SessionConfigInterface.get_swift_path(self)
         finally:
             self.sesslock.release()
-
 
     def set_swift_cmd_listen_port(self, port):
         raise OperationNotPossibleAtRuntimeException()

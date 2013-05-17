@@ -15,48 +15,50 @@ POLLHUP = 16
 
 DEBUG = False
 
+
 class poll:
+
     def __init__(self):
         self.rlist = []
         self.wlist = []
-        
+
     def register(self, f, t):
-        if type(f) != IntType:
+        if not isinstance(f, IntType):
             f = f.fileno()
         if (t & POLLIN):
             insert(self.rlist, f)
-        elif f in self.rlist: # Arno, 2012-07-31: Safety catch
+        elif f in self.rlist:  # Arno, 2012-07-31: Safety catch
             remove(self.rlist, f)
         if (t & POLLOUT):
             insert(self.wlist, f)
-        elif f in self.wlist: # Arno, 2012-07-31: Safety catch
+        elif f in self.wlist:  # Arno, 2012-07-31: Safety catch
             remove(self.wlist, f)
 
     def unregister(self, f):
-        if type(f) != IntType:
+        if not isinstance(f, IntType):
             f = f.fileno()
         remove(self.rlist, f)
         remove(self.wlist, f)
 
-    def poll(self, timeout = None):
+    def poll(self, timeout=None):
         if self.rlist or self.wlist:
             try:
                 # Arno, 2007-02-23: The original code never checked for errors
-                # on any file descriptors. 
+                # on any file descriptors.
                 elist = Set(self.rlist)
                 elist = elist.union(self.wlist)
                 elist = list(elist)    # in Python2.3, elist must be a list type
                 if DEBUG:
-                    print >>sys.stderr,"selectpoll: elist = ",elist
-                    
-                #print >>sys.stderr,"selectpoll: rlist",self.rlist,"wlist",self.wlist,"elist",elist
-                    
+                    print >>sys.stderr, "selectpoll: elist = ", elist
+
+                # print >>sys.stderr,"selectpoll: rlist",self.rlist,"wlist",self.wlist,"elist",elist
+
                 r, w, e = select(self.rlist, self.wlist, elist, timeout)
                 if DEBUG:
-                    print >>sys.stderr,"selectpoll: e = ",e
+                    print >>sys.stderr, "selectpoll: e = ", e
             except ValueError:
                 if DEBUG:
-                    print >>sys.stderr,"selectpoll: select: bad param"
+                    print >>sys.stderr, "selectpoll: select: bad param"
                 return None
         else:
             sleep(timeout)
@@ -70,15 +72,18 @@ class poll:
             result.append((s, POLLERR))
         return result
 
+
 def remove(list, item):
     i = bisect(list, item)
-    if i > 0 and list[i-1] == item:
-        del list[i-1]
+    if i > 0 and list[i - 1] == item:
+        del list[i - 1]
+
 
 def insert(list, item):
     i = bisect(list, item)
-    if i == 0 or list[i-1] != item:
+    if i == 0 or list[i - 1] != item:
         list.insert(i, item)
+
 
 def test_remove():
     x = [2, 4, 6]
@@ -105,6 +110,7 @@ def test_remove():
     x = []
     remove(x, 3)
     assert x == []
+
 
 def test_insert():
     x = [2, 4]

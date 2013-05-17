@@ -1,10 +1,10 @@
 # Written by ABC authors
 # see LICENSE.txt for license information
 
-########################################################################
+#
 # File ABCRegGUI.py v1.0                                               #
 # Tool for associate/unassociate torrent file with ABC                 #
-########################################################################
+#
 
 import sys
 import os
@@ -23,15 +23,18 @@ else:
 
 DEBUG = False
 
-################################################################
+#
 #
 # Class: RegChecker
 #
 # Used to check whether or not ABC is associated as the
 # default BitTorrent application
 #
-################################################################
+#
+
+
 class RegChecker:
+
     def __init__(self, utility):
         self.utility = utility
 
@@ -44,23 +47,23 @@ class RegChecker:
 
         # Arno: 2007-06-18: Assuming no concurrency on TRIBLER_TORRENT_EXT
         # tuple (array) with key to register
-        self.reg_data = [ (r".torrent", "", "bittorrent", _winreg.REG_SZ),
-                          (r".torrent", "Content Type", r"application/x-bittorrent", _winreg.REG_SZ),
+        self.reg_data = [(r".torrent", "", "bittorrent", _winreg.REG_SZ),
+                        (r".torrent", "Content Type", r"application/x-bittorrent", _winreg.REG_SZ),
                           (r"MIME\Database\Content Type\application/x-bittorrent", "Extension", ".torrent", _winreg.REG_SZ),
                           (r"bittorrent", "", "TORRENT File", _winreg.REG_SZ),
-                          (r"bittorrent\DefaultIcon", "", iconpath,_winreg.REG_SZ),
-                          (r"bittorrent", "EditFlags", chr(0)+chr(0)+chr(1)+chr(0), _winreg.REG_BINARY),
+                          (r"bittorrent\DefaultIcon", "", iconpath, _winreg.REG_SZ),
+                          (r"bittorrent", "EditFlags", chr(0) + chr(0) +chr(1)+chr(0), _winreg.REG_BINARY),
                           (r"bittorrent\shell", "", "open", _winreg.REG_SZ),
                           (r"bittorrent\shell\open\command", "", "\"" + abcpath + "\" \"%1\"", _winreg.REG_SZ)]
-        self.reg_data_delete = [ (r"bittorrent\shell\open\ddeexec") ]
+        self.reg_data_delete = [(r"bittorrent\shell\open\ddeexec")]
 
         # tuple (array) with key to delete
-        self.unreg_data = [ (r"bittorrent\shell\open\command"),
+        self.unreg_data = [(r"bittorrent\shell\open\command"),
                             (r"bittorrent\shell\open"),
                             (r"bittorrent\shell"),
                             (r"bittorrent"),
                             (r"MIME\Database\Content Type\application/x-bittorrent"),
-                            (r".torrent") ]
+                            (r".torrent")]
 
     # function that test Windows register for key & value exist
     def testRegistry(self):
@@ -91,7 +94,7 @@ class RegChecker:
 
         return True
 
-    def updateRegistry(self, register = True):
+    def updateRegistry(self, register=True):
         if (sys.platform != 'win32'):
             return False
 
