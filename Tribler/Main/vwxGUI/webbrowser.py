@@ -4,6 +4,7 @@ import wx.html2
 from Tribler.Main.vwxGUI.list import XRCPanel
 
 import sys
+import urllib2
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
 
@@ -45,7 +46,6 @@ class WebBrowser(XRCPanel):
    
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
-    __shadowwv = None   #Shadow webview for system navigation preferences
     __viewmode = 0      #What type of webpage are we visiting
    
     def __init__(self, parent=None):
@@ -80,7 +80,6 @@ class WebBrowser(XRCPanel):
         
         """Create the webview"""
         self.webview = wx.html2.WebView.New(self)
-        self.__shadowwv = wx.html2.WebView.New(self)
         
         """Register Resource Sniffer with webview"""
         self.__sniffer = ResourceSniffer()
@@ -98,16 +97,18 @@ class WebBrowser(XRCPanel):
         self.Layout()
         
         """Register the action on the event that a URL is being loaded and when finished loading"""
-        self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onShadowURLLoaded, self.__shadowwv)
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_ERROR, self.onHTTPError, self.webview)
         
     def LoadURL(self, url):
-        self.__shadowwv.LoadURL(url)
-        
-    def onShadowURLLoaded(self, event):
-        self.webview.LoadURL(self.__shadowwv.GetCurrentURL()) 
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
+        redirurl = url
+        try:
+            redirurl = str(opener.open(url).geturl())
+        except:
+            pass    #We cannot get a redirection on our URL, so it must've been correct to begin with
+        self.webview.LoadURL(redirurl)
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
