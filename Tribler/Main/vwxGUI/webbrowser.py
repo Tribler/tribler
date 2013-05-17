@@ -44,6 +44,10 @@ class WebBrowser(XRCPanel):
     WebViewModeTooltips = ["%s Not on the internet or in the swarm",       # Unknown webpage
                     "Visiting %s via the internet",                        # Webpage retrieved from the internet
                     "Eternal webpage %s downloaded from the swarm"]        # Webpage downloaded from the swarm
+    
+    WebViewModeLabels = ["SwitchMode",       # Unknown webpage
+                    "SwarmMode",           # Webpage retrieved from the internet
+                    "InternetMode"]          # Webpage downloaded from the swarm
    
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
@@ -56,29 +60,32 @@ class WebBrowser(XRCPanel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
              
         """Create the toolbar"""
-        toolBar = wx.BoxSizer(wx.HORIZONTAL)
+        self.toolBar = wx.BoxSizer(wx.HORIZONTAL)
         #Create the toolbar buttons.
         backwardButton = wx.Button(self, label="Backward")
         forwardButton = wx.Button(self, label="Forward")    
         goButton = wx.Button(self, label="Go")
         self.seedButton = wx.Button(self, label="Seed")
+        self.viewmodeButton = wx.Button(self, label="OfflineMode")
         #Register the actions
         self.Bind(wx.EVT_BUTTON, self.goBackward, backwardButton)
         self.Bind(wx.EVT_BUTTON, self.goForward, forwardButton)
         self.Bind(wx.EVT_BUTTON, self.loadURLFromAdressBar, goButton)
         self.Bind(wx.EVT_BUTTON, self.seed, self.seedButton)
+        self.Bind(wx.EVT_BUTTON, self.toggleViewMode, self.viewmodeButton)
         #Create the adressbar.
         self.adressBar = wx.TextCtrl(self,1, style = wx.TE_PROCESS_ENTER)
         #Register the enterkey.
         self.Bind(wx.EVT_TEXT_ENTER, self.loadURLFromAdressBar, self.adressBar)
         #Add all the components to the toolbar.
-        toolBar.Add(backwardButton, 0)
-        toolBar.Add(forwardButton, 0)
-        toolBar.Add(self.adressBar, 1, wx.EXPAND)
-        toolBar.Add(goButton, 0)
-        toolBar.Add(self.seedButton,0)
+        self.toolBar.Add(backwardButton, 0)
+        self.toolBar.Add(forwardButton, 0)
+        self.toolBar.Add(self.adressBar, 1, wx.EXPAND)
+        self.toolBar.Add(goButton, 0)
+        self.toolBar.Add(self.viewmodeButton, 0)
+        self.toolBar.Add(self.seedButton,0)
         #Add the toolbar to the panel.
-        vSizer.Add(toolBar, 0, wx.EXPAND)
+        vSizer.Add(self.toolBar, 0, wx.EXPAND)
         
         """Create the webview"""
         self.webview = wx.html2.WebView.New(self)
@@ -91,7 +98,7 @@ class WebBrowser(XRCPanel):
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
         self.LoadURL("about:blank")
-        self.setViewMode('UNKNOWN')
+        self.setViewMode('INTERNET')
               
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
@@ -165,9 +172,15 @@ class WebBrowser(XRCPanel):
             self.__viewmode = WebBrowser.WebViewModes.__getitem__(mode)
         else:
             self.__viewmode = mode
+        #Addressbar modifications
         self.adressBar.SetBackgroundColour(WebBrowser.WebViewModeColors[self.__viewmode])
         tooltip = WebBrowser.WebViewModeTooltips[self.__viewmode] % (self.adressBar.GetValue())
         self.adressBar.SetToolTip(tooltip)
+        #Viewmodeswitch modifications
+        self.viewmodeButton.SetLabel(WebBrowser.WebViewModeLabels[self.__viewmode])
+        self.viewmodeButton.SetBackgroundColour(WebBrowser.WebViewModeColors[self.__otherviewmode()])
+        #Refresh toolbar
+        self.toolBar.Layout()
     
     def getViewMode(self):
         """Get the view mode we are currently using.
@@ -177,6 +190,13 @@ class WebBrowser(XRCPanel):
                 - WebViewModes['SWARM_CACHE']
         """
         return self.__viewmode
+    
+    def toggleViewMode(self, event):
+        if self.getViewMode() == WebBrowser.WebViewModes['INTERNET']:
+            self.setViewMode(WebBrowser.WebViewModes['SWARM_CACHE'])
+        elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+            self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
+        #Fallthrough if we are in unknown mode for some reason
         
     def seed(self, event):
         """Start seeding the images on the website"""
@@ -193,4 +213,7 @@ class WebBrowser(XRCPanel):
         if parts.scheme == '':
             return 'http://' + url
         return url
+    
+    def __otherviewmode(self):
+        return 1 if self.__viewmode == 2 else 2
         
