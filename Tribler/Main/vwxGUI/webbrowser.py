@@ -5,6 +5,7 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 
 import sys
 import urllib2
+import urlparse
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
 
@@ -100,13 +101,12 @@ class WebBrowser(XRCPanel):
         """Register the action on the event that a URL is being loaded and when finished loading"""
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
-        self.Bind(wx.html2.EVT_WEBVIEW_ERROR, self.onHTTPError, self.webview)
         
     def LoadURL(self, url):
+        redirurl = self.__assertHttp(url)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
-        redirurl = url
         try:
-            redirurl = str(opener.open(url).geturl())
+            redirurl = str(opener.open(redirurl).geturl())
         except:
             pass    #We cannot get a redirection on our URL, so it must've been correct to begin with
         self.webview.LoadURL(redirurl)
@@ -154,13 +154,6 @@ class WebBrowser(XRCPanel):
         self.seedButton.SetLabel("Seed")
         self.seedButton.Enable()
         
-    def onHTTPError(self, event):
-        """Callback for when a page cannot be loaded.
-            Try to see if we forgot adding the http scheme.
-        """
-        if not event.GetURL().startswith("http"):
-            wx.CallAfter(self.LoadURL, "http://" + event.GetURL()) 
-        
     def setViewMode(self, mode):
         """Set the view mode we are currently using.
             Mode can be either an integer or a string:
@@ -195,4 +188,9 @@ class WebBrowser(XRCPanel):
 
         self.seedButton.SetLabel("Seeded")
         
+    def __assertHttp(self, url):
+        parts = urlparse.urlparse(url)
+        if parts.scheme == '':
+            return 'http://' + url
+        return url
         
