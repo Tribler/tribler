@@ -2434,7 +2434,7 @@ class HorizontalGradientGauge(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetValue(self, value):
-        self.value = min(max(0, value), 100)
+        self.value = min(max(0.0, value), 1.0)
 
     def OnEraseBackground(self, event):
         pass
