@@ -42,7 +42,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
-# from Tribler.community.effort.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST
+from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -158,8 +158,8 @@ class ABCApp():
 
         # DISPERSY will be set when available
         self.dispersy = None
-        # # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
-        # self.effort_community = None
+        # BARTER_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
+        self.barter_community = None
 
         self.seedingmanager = None
         self.i2is = None
@@ -213,7 +213,7 @@ class ABCApp():
             self.ratestatecallbackcount = 0
 
             # So we know if we asked for peer details last cycle
-            self.lastwantpeers = False
+            self.lastwantpeers = []
 
             # boudewijn 01/04/2010: hack to fix the seedupload speed that
             # was never used and defaulted to 0 (unlimited upload)
@@ -441,10 +441,10 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        dispersy = s.get_dispersy_instance()
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
+            from Tribler.community.bartercast3.community import BarterCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
 
@@ -456,11 +456,17 @@ class ABCApp():
                                            (s.dispersy_member,),
                                            {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
+            if swift_process:
+                dispersy.define_auto_load(BarterCommunity,
+                                          (swift_process,),
+                                          load=True)
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
+        swift_process = s.get_swift_proc() and s.get_swift_process()
+        dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
         return s
 
@@ -528,11 +534,11 @@ class ABCApp():
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
-    # def _dispersy_get_effort_community(self):
-    #     try:
-    #         return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
-    #     except KeyError:
-    #         return None
+    def _dispersy_get_barter_community(self):
+        try:
+            return self.dispersy.get_community(BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=False, auto_load=False)
+        except KeyError:
+            return None
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
@@ -567,26 +573,26 @@ class ABCApp():
                         no_collected_list.append(ds)
                 # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
                 # so only do it when needed for display.
-                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
+                wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
             except:
                 print_exc()
 
-            # if not self.effort_community:
-            #     self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
+            # Update bandwidth statistics in the Barter Community
+            if not self.barter_community:
+                self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
 
-            # if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
-            #     if self.effort_community.has_been_killed:
-            #         # set EFFORT_COMMUNITY to None.  next state callback we will again get the
-            #         # effort community resulting in the HardKilledCommunity instead
-            #         self.effort_community = None
-            #     else:
-            #         if self.lastwantpeers:
-            #             self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
+            if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
+                if self.barter_community.has_been_killed:
+                    # set BARTER_COMMUNITY to None.  next state callback we will again get the
+                    # community resulting in the HardKilledCommunity instead
+                    self.barter_community = None
+                else:
+                    if True in self.lastwantpeers:
+                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
 
-            #         # only request peer info every 120 intervals
-            #         if self.ratestatecallbackcount % 120 == 0:
-            #             wantpeers.append(True)
-
+                    # only request peer info every 120 intervals
+                    if self.ratestatecallbackcount % 120 == 0:
+                        wantpeers.append(True)
 
             # Find State of currently playing video
             playds = None

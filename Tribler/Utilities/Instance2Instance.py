@@ -206,6 +206,11 @@ class InstanceConnection:
                     # allow more bytes to be pushed into the buffer
                     self.buffer = "".join((cmd, separator, self.buffer))
 
+                    # 06/05/13 Boudewijn: we must return to read the remainder of the data.  note
+                    # that the remainder (all bytes behind the first separator) must be removed from
+                    # self.buffer during the readlinecallback call
+                    break
+
             else:
                 self.buffer = cmd
                 break

@@ -116,7 +116,6 @@ class TriblerLaunchMany(Thread):
                 # set communication endpoint
                 if config['dispersy-tunnel-over-swift'] and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
-                    self.swift_process.add_download(endpoint)
                 else:
                     endpoint = RawserverEndpoint(self.rawserver, config['dispersy_port'])
 
