@@ -23,7 +23,7 @@ class WebPage:
     __folderName = ''
     
     def __init__(self, url='', content=''):
-        self.setUrl(url)
+        self.SetUrl(url)
         self.__content = content
         
     def DownloadContent(self):
@@ -35,43 +35,43 @@ class WebPage:
         self.__content = webPage.read()
         webPage.close()
         
-    def addResource(self, uri):
+    def AddResource(self, uri):
         self.__resourceDictionary.append(uri)
     
-    def getContent(self):
+    def GetContent(self):
         """Returns the web page content as it exists in memory
         """
         return self.__content
     
-    def setContent(self, content):
+    def SetContent(self, content):
         """Set new web page content to our memory
         """
         self.__content = content
 
-    def getUrl(self):
+    def GetUrl(self):
         """Returns the URL we are pointing to
         """
         return self.__url
     
-    def setUrl(self, url):
+    def SetUrl(self, url):
         """Sets the URL we are pointing to
             Note that this member does not download the actual page
         """
         self.__url = url
-        self.__folderName = self.getFileName(url) + os.sep
+        self.__folderName = self.GetFileName(url) + os.sep
     
-    def createFromFile(self, filename):
-        '''Create a web page from disk'''
+    def CreateFromFile(self, filename):
+        """Create a web page from disk"""
         file = open(filename, 'rb')
         self.__content = file.read()
-        self.__url = WebPage.getURLName(filename)
+        self.__url = WebPage.GetURLName(filename)
         self.__ext = '.html'
         
     @staticmethod
-    def getFileName(url):
-        '''Get the appropiate filename by using the given url
+    def GetFileName(url):
+        """Get the appropiate filename by using the given url
         Args:
-            url (str): The url to be used  to create the filename.'''
+            url (str): The url to be used  to create the filename."""
         #Remove http://www.
         result = url
         if result.startswith("http://"):
@@ -93,10 +93,10 @@ class WebPage:
         return hasher.hexdigest()
         
     @staticmethod
-    def getURLName(filename):
-        '''Get the appropiate url by using the given filename
+    def GetURLName(filename):
+        """Get the appropiate url by using the given filename
         Args:
-            filename (str): The filename to be used  to create the url.'''
+            filename (str): The filename to be used  to create the url."""
         result = filename
         #Remove the extension
         result = result[:(result.rindex('.'))]
@@ -108,16 +108,16 @@ class WebPage:
         return result   
     
     def GetTarName(self):
-        return self.getFileName(self.__url) + '.tar.gz'
+        return self.GetFileName(self.__url) + '.tar.gz'
     
-    def createTar(self):
-        '''Create a tar file of the WebPage'''
+    def CreateTar(self):
+        """Create a tar file of the WebPage"""
         #Create folder
-        folderPath = self.__getDownloadsPath()
+        folderPath = self.__GetDownloadsPath()
         if not os.path.exists(folderPath + os.sep + self.__folderName[:-1]):
             os.makedirs(folderPath + os.sep + self.__folderName[:-1])
         #Save content.
-        self.__createHTMLFile()
+        self.__CreateHTMLFile()
         #Save Resources
         self.__DownloadResources()
         #Add tar to torrent
@@ -128,45 +128,47 @@ class WebPage:
         #return torrent
         return out
     
-    def __createHTMLFile(self):
+    def __CreateHTMLFile(self):
         """Saves the web page HTML to disk"""
-        fileName = self.__getDownloadsPath() + os.sep + self.__folderName + self.getFileName(self.__url)
+        fileName = self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetFileName(self.__url)
         file = open(fileName,'wb')
         file.write(self.__content)
         file.close()
       
     def __DownloadResources(self):
-        '''Download all resources of this WebPage.'''
+        """Download all resources of this WebPage."""
         #Download resources
         for resource in self.__resourceDictionary:
             self.__DownloadResource(resource)
         
     def __DownloadResource(self, url):
-        '''Downloads the resource pointed to by the url
+        """Downloads the resource pointed to by the url
         Args:
-            url (str): URL pointing to the resource that needs to be downloaded.'''
+            url (str): URL pointing to the resource that needs to be downloaded."""
         #Open the location
         location = urllib.urlopen(url)
         #Read the resource.
         resource = location.read()
         #Write to disk.
-        file = open(self.__getDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url),'wb')
+        file = open(self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url),'wb')
         file.write(resource)
         file.close()
     
-    def __getDownloadsPath(self):
+    def __GetDownloadsPath(self):
+        """Get the path to the Downloads."""
         config = DefaultDownloadStartupConfig.getInstance()
         folderPath = config.get_dest_dir() + os.sep + "EternalWebpages"
-        self.__assertFolder(folderPath)
+        self.__AssertFolder(folderPath)
         return folderPath
     
-    def __assertFolder(self, folderpath):
+    def __AssertFolder(self, folderpath):
+        """Assert that the folder exists. If it does not, then the folder is created"""s
         if not os.path.exists(folderpath):
             os.makedirs(folderpath)
     
-    def __removeTarSourceFiles(self, folderpath):
-        '''Remove all the files we packed earlier
-        '''
+    def __RemoveTarSourceFiles(self, folderpath):
+        """Remove all the files we packed earlier
+        """
         if not os.path.exists(folderpath):
             return
         shutil.rmtree(folderpath)

@@ -10,10 +10,10 @@ from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
 
 class SeedingResourceHandler(wx.html2.WebViewHandler):
-    '''SeedingResourceHandler:
+    """SeedingResourceHandler:
         Decorator for a normal WebViewFSHandler.
         Forwards requested resources to ResourceSniffer to be downloaded.
-    '''
+    """
     
     __sniffer = None        #Resource Sniffer (for fetching local copies)
     __httphandler = None    #Handler for http requests
@@ -24,14 +24,14 @@ class SeedingResourceHandler(wx.html2.WebViewHandler):
         self.__sniffer = sniffer
         
     def GetFile(self, uri):
-        '''Returns the wxFile descriptor for the WebView to retrieve the resource
-        '''
+        """Returns the wxFile descriptor for the WebView to retrieve the resource
+        """
         self.__sniffer.GetFile(uri)
         return self.__httphandler.GetFile(uri)
 
 
 class WebBrowser(XRCPanel):
-    '''WebView is a class that allows you to browse the worldwideweb.'''
+    """WebView is a class that allows you to browse the worldwideweb."""
    
     WebViewModes = {'UNKNOWN' : 0,          # Unknown webpage
                     'INTERNET' : 1,         # Webpage retrieved from the internet
@@ -55,7 +55,7 @@ class WebBrowser(XRCPanel):
         
         vSizer = wx.BoxSizer(wx.VERTICAL)
              
-        '''Create the toolbar'''
+        """Create the toolbar"""
         toolBar = wx.BoxSizer(wx.HORIZONTAL)
         #Create the toolbar buttons.
         backwardButton = wx.Button(self, label="Backward")
@@ -80,11 +80,11 @@ class WebBrowser(XRCPanel):
         #Add the toolbar to the panel.
         vSizer.Add(toolBar, 0, wx.EXPAND)
         
-        '''Create the webview'''
+        """Create the webview"""
         self.webview = wx.html2.WebView.New(self)
         self.__shadowwv = wx.html2.WebView.New(self)
         
-        '''Register Resource Sniffer with webview'''
+        """Register Resource Sniffer with webview"""
         self.__sniffer = ResourceSniffer()
         self.__reshandler = SeedingResourceHandler(self.__sniffer)
         self.webview.RegisterHandler(self.__reshandler)
@@ -95,11 +95,11 @@ class WebBrowser(XRCPanel):
               
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
-        '''Add all components'''
+        """Add all components"""
         self.SetSizer(vSizer)
         self.Layout()
         
-        '''Register the action on the event that a URL is being loaded and when finished loading'''
+        """Register the action on the event that a URL is being loaded and when finished loading"""
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onShadowURLLoaded, self.__shadowwv)
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
@@ -120,26 +120,26 @@ class WebBrowser(XRCPanel):
             self.webview.GoForward()
     
     def loadURLFromAdressBar(self, event):
-        '''Load an URL from the adressbar'''
+        """Load an URL from the adressbar"""
         url = self.adressBar.GetValue()
         self.adressBar.SetValue(url)
         self.LoadURL(url)
       
     def loadTorrentFile(self, filename):
-        '''Load a webpage from a webpage Torrent created by the seed button'''
+        """Load a webpage from a webpage Torrent created by the seed button"""
         webPage = WebPage()
-        webPage.createFromFile(filename)
-        self.__loadHTMLSource(webPage.getUrl(), webPage.getContent())
+        webPage.CreateFromFile(filename)
+        self.__loadHTMLSource(webPage.GetUrl(), webPage.GetContent())
     
     def __loadHTMLSource(self, url, source):
-        '''Load a webpage from HTML Source.
+        """Load a webpage from HTML Source.
         Args:
             source (string): The HTML source to be loaded.
-            url    (string): The URL that accompanies the HTML source.'''
+            url    (string): The URL that accompanies the HTML source."""
         self.webview.SetPage(source, url)
 
     def onURLLoading(self, event):
-        '''Actions to be taken when an URL start to be loaded.'''
+        """Actions to be taken when an URL start to be loaded."""
         url = self.webview.GetCurrentURL()
         #Notify our sniffer that we are constructing a new WebPage
         self.__sniffer.StartLoading(url, self.webview.GetPageSource())
@@ -147,7 +147,7 @@ class WebBrowser(XRCPanel):
         self.adressBar.SetValue(url)
     
     def onURLLoaded(self, event):
-        '''Actions to be taken when an URL is loaded.'''        
+        """Actions to be taken when an URL is loaded."""        
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
         #Update the seedbutton
@@ -187,7 +187,7 @@ class WebBrowser(XRCPanel):
         return self.__viewmode
         
     def seed(self, event):
-        '''Start seeding the images on the website'''
+        """Start seeding the images on the website"""
         self.seedButton.SetLabel("Seeding")
         #disable seed button
         self.seedButton.Disable()

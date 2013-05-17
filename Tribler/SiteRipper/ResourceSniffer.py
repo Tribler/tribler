@@ -17,7 +17,7 @@ class ResourceSniffer:
     def __AddResourceToWebPage(self, uri):
         '''Add a mapping for a resource uri
         '''
-        self.__webPage.addResource(uri)
+        self.__webPage.AddResource(uri)
 
     def GetFile(self, uri):
         '''Callback for when an uri is requested on a page
@@ -49,6 +49,6 @@ class ResourceSniffer:
         #Shut down listening for files
         self.__listenforfiles = False
         #Gather all the files referenced on the page
-        tarpath, tarfile = self.__webPage.createTar()
+        tarpath, tarfile = self.__webPage.CreateTar()
         #Share tarfile
-        ResourceSeeder.seedWebpage(tarpath, self.__webPage.getUrl())
+        ResourceSeeder.SeedWebpage(tarpath, self.__webPage.GetUrl())

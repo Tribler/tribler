@@ -31,7 +31,7 @@ class WebPageTorrentHeader:
             now = datetime.datetime.now()
             self.__accessdate = str(now.day) + "-" + str(now.month) + "-" + str(now.year)
         
-    def createTorrentDef(self, session):
+    def CreateTorrentDef(self, session):
         """Create the torrent definition (TorrentDef) for our current
             Tribler session.
         """
@@ -45,17 +45,17 @@ class WebPageTorrentHeader:
         torrentdef.finalize()
         return torrentdef
     
-    def getSeededFile(self):
+    def GetSeededFile(self):
         """Returns the (tar) file we are going to seed
         """
         return self.__file
     
-    def getFileFolder(self):
+    def GetFileFolder(self):
         """Returns the folder our (tar) file resides in
         """
         return os.path.dirname(self.__file)
         
-def seedWebpage(tarfile, webpage, accessdate = None):
+def SeedWebpage(tarfile, webpage, accessdate = None):
     """Seed a compressed webpage.
         Supply the path to the tarfile and the webpage URL.
         Optionally supply an accessdate if you do not want to use
@@ -63,22 +63,8 @@ def seedWebpage(tarfile, webpage, accessdate = None):
     """
     session = Session.get_instance()
     header = WebPageTorrentHeader(tarfile, webpage, accessdate)
-    torrent = header.createTorrentDef(session)
+    torrent = header.CreateTorrentDef(session)
     download = DownloadStartupConfig()
-    download.set_dest_dir(header.getFileFolder())
-    print "Trying to seed from: " + header.getFileFolder()
-    session.start_download(torrent, download)
-
-def seedFile(filename):
-    """Start seeding an arbitrary file
-    """
-    session = Session.get_instance()
-    torrent = TorrentDef()
-    torrent.add_content(filename)
-    torrent.set_tracker(session.get_internal_tracker_url())
-    torrent.finalize()
-
-    folder   = os.path.dirname(filename);
-    download = DownloadStartupConfig()
-    download.set_dest_dir(folder)
+    download.set_dest_dir(header.GetFileFolder())
+    print "Trying to seed from: " + header.GetFileFolder()
     session.start_download(torrent, download)
