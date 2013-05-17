@@ -3,6 +3,14 @@
         <title />Eternal Copy Not Found!</title />
     </head />
     
+    <script language="javascript" />
+        function switchToInternet(){
+            iurl = window.location.search.replace( "?", "" );
+            iurl = iurl.replace(":", "&#58;")
+            window.location = "internetmode://" + iurl;
+        }
+    </script />
+    
     <body />
         <h1 />Eternal Copy Not Found!</h1 />
         We are ever so terribly sorry. <br />
@@ -10,5 +18,7 @@
         <script language="javascript" />
             document.write("<blockquote /><font color=0000FF />" + window.location.search.replace( "?", "" ) + "</font /></blockquote />");
         </script />
+        
+        <button type="button" onclick="switchToInternet();">Try the internet</button>
     </body />
 </html />
