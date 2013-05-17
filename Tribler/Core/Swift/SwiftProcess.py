@@ -86,9 +86,7 @@ class SwiftProcess:
                 args.append(zerostatedir)
             args.append("-T")  # zero state connection timeout
             args.append("180")  # seconds
-        args.append("-B")  # Enable debugging on swift
-        # args.append("--debug")
-        # args.append("-D C:/Users/Niels/Desktop/swift.tmp")
+        # args.append("-B")  # Enable debugging on swift
 
         if DEBUG:
             print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
