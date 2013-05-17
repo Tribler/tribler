@@ -1,2 +1,2 @@
-'''List of supported extensions for the webbrowser.'''
-webPageExtDefaults = ['html']
+"""List of supported extensions for the webbrowser."""
+webPageExtDefaults = ['gz']

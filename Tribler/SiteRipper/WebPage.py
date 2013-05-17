@@ -60,9 +60,21 @@ class WebPage:
         self.__url = url
         self.__folderName = self.GetFileName(url) + os.sep
     
-    def CreateFromFile(self, filename):
+    def CreateFromFile(self, tarFileName):
         """Create a web page from disk"""
-        file = open(filename, 'rb')
+        folderPath = self.__GetDownloadsPath()
+        tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
+        #Create tar folder
+        self.__AssertFolder(tempPath)
+        #Untar folder
+        tar_lib.untarFolder(folderPath + os.sep + tarFileName, tempPath)
+        #Find .html file
+        #
+        #Load URL
+        
+        #Load Content
+        
+        file = open(tarFilename, 'rb')
         self.__content = file.read()
         self.__url = WebPage.GetURLName(filename)
         self.__ext = '.html'
@@ -114,8 +126,7 @@ class WebPage:
         """Create a tar file of the WebPage"""
         #Create folder
         folderPath = self.__GetDownloadsPath()
-        if not os.path.exists(folderPath + os.sep + self.__folderName[:-1]):
-            os.makedirs(folderPath + os.sep + self.__folderName[:-1])
+        self.__AssertFolder(folderPath + os.sep + self.__folderName[:-1])
         #Save content.
         self.__CreateHTMLFile()
         #Save Resources
@@ -159,7 +170,7 @@ class WebPage:
         config = DefaultDownloadStartupConfig.getInstance()
         folderPath = config.get_dest_dir() + os.sep + "EternalWebpages"
         self.__AssertFolder(folderPath)
-        return folderPath
+        return folderPath    
     
     def __AssertFolder(self, folderpath):
         """Assert that the folder exists. If it does not, then the folder is created"""

@@ -17,12 +17,12 @@ def tarFolder(pathTarget, pathDestination,fileName):
     return filename, tar
 
     
-def untarFolder(pathTarget, pathDestination, folderName):
+def untarFolder(pathTarget, pathDestination):
     '''untar a tarfile to the Destination
     Args:
         pathTarget (str): path to the Tarfile. 
         pathDestination: path to the place the tar needs to be unpacked to. 
         folderName: folderName in wich the tarfile will be unpacked to.'''
     tar = tarfile.open(pathTarget, mode = 'r:gz')
-    tar.extractall(path = ''.join([pathDestination,'/', folderName]))
+    tar.extractall(path = pathDestination)
         
