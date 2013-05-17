@@ -389,8 +389,8 @@ class BundlePanel(wx.BoxSizer):
             self.bundlelist.RefreshData(key, data)
     
     def SetDescription(self, description):
-        self.header.SetToolTipString(description)
-        self.info_icon.SetToolTipString(description)
+        self.header.SetToolTip(description)
+        self.info_icon.SetToolTip(description)
     
     def SetGeneralDescription(self, general_description):
         if general_description:

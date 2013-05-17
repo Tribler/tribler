@@ -335,7 +335,7 @@ class VLCLogoWindow(wx.Panel):
         print >>sys.stderr,"VLCLogoWindow: logopath is",logopath
 
         if logopath is not None and not animate:
-            self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
+            self.logo = wx.Bitmap(wx.Image(logopath),-1)
         else:
             self.logo = None
         self.contentname = None
@@ -402,7 +402,7 @@ class VLCLogoWindow(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"VLCWin: set_content_image"
         if wximg is not None:
-            self.contentbm = wx.BitmapFromImage(wximg,-1)
+            self.contentbm = wx.Bitmap(wximg,-1)
         else:
             self.contentbm = None
 

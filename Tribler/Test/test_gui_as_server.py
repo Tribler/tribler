@@ -177,7 +177,7 @@ class TestGuiAsServer(unittest.TestCase):
         rect = window.GetRect()
         
         screen = wx.WindowDC(window)
-        bmp = wx.EmptyBitmap(rect.GetWidth(), rect.GetHeight() + 30)
+        bmp = wx.Bitmap(rect.GetWidth(), rect.GetHeight() + 30)
         
         mem = wx.MemoryDC(bmp)
         mem.Blit(0, 30, rect.GetWidth(), rect.GetHeight(), screen, rect.GetX(), rect.GetY())

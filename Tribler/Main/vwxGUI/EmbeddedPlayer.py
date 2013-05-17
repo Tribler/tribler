@@ -85,7 +85,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             if border:
                 player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
-                self.player_img = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(player_img, wx.BITMAP_TYPE_ANY)))
+                self.player_img = wx.StaticBitmap(self, -1, wx.Bitmap(wx.Image(player_img, wx.BITMAP_TYPE_ANY)))
                 mainbox.Add(self.player_img, 0, wx.ALIGN_CENTER|wx.TOP, 5)
             mainbox.Add(self.vlcwin, 1, wx.EXPAND, 0)
 
@@ -672,7 +672,7 @@ class VLCLogoWindow(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"VLCWin: set_content_image"
         if wximg is not None:
-            self.contentbm = wx.BitmapFromImage(wximg,-1)
+            self.contentbm = wx.Bitmap(wximg,-1)
         else:
             self.contentbm = None
 

@@ -540,8 +540,8 @@ class DispersyPanel(HomePanel):
             self.gridSizer.Add(self.textdict[strkey])
 
             if strtooltip:
-                header.SetToolTipString(strtooltip)
-                self.textdict[strkey].SetToolTipString(strtooltip)
+                header.SetToolTip(strtooltip)
+                self.textdict[strkey].SetToolTip(strtooltip)
 
         for title, tooltip, _ in self.mapping:
             addColumn(title, tooltip)
@@ -926,7 +926,7 @@ class BuzzPanel(wx.Panel):
             text = LinkText(self.panel, term, fonts=[font, font], colours = [BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
             text.SetBackgroundColour(DEFAULT_BACKGROUND)
             text.Bind(wx.EVT_LEFT_UP, self.OnClick)
-        text.SetToolTipString("Click to search for '%s'"%term)
+        text.SetToolTip("Click to search for '%s'"%term)
         return text
 
     def DisplayTerms(self, rows):

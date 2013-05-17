@@ -126,7 +126,7 @@ class TotalFooter(TitleFooter):
         str_data = self.columns[column].get('fmt', str)(total)
         self.totals[column].SetLabel(str_data)
         if tooltip:
-            self.totals[column].SetToolTipString(tooltip)
+            self.totals[column].SetToolTip(tooltip)
                 
 class ChannelResultFooter(ListFooter):
     def GetMidPanel(self, hSizer):

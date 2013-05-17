@@ -50,8 +50,8 @@ class SRstatusbar(wx.StatusBar):
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1]) 
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
-        self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
-        self.firewallStatus.SetToolTipString('Port status unknown')
+        self.firewallStatus.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
+        self.firewallStatus.SetToolTip('Port status unknown')
 
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -131,7 +131,7 @@ class SRstatusbar(wx.StatusBar):
             
     def SetConnections(self, connectionPercentage, totalConnections):
         self.connection.SetPercentage(connectionPercentage)
-        self.connection.SetToolTipString('Connected to %d peers'%totalConnections)
+        self.connection.SetToolTip('Connected to %d peers'%totalConnections)
         
     def GetConnections(self):
         return self.connection.GetPercentage()
@@ -139,7 +139,7 @@ class SRstatusbar(wx.StatusBar):
     def onReachable(self,event=None):
         if not self.guiutility.firewall_restart:
             self.firewallStatus.setSelected(2)
-            self.firewallStatus.SetToolTipString('Port is working')
+            self.firewallStatus.SetToolTip('Port is working')
     
     def IsReachable(self):
         if not self.guiutility.firewall_restart:
@@ -153,7 +153,7 @@ class SRstatusbar(wx.StatusBar):
         
         self.activity.SetBitmap(self.activityImages[0])
         self.activity.Refresh()
-        self.activity.SetToolTipString(msg)
+        self.activity.SetToolTip(msg)
         wx.CallLater(200, revert)
     
     def format_bytes(self, bytes):

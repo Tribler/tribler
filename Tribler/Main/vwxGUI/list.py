@@ -1408,7 +1408,7 @@ class SearchList(GenericSearchList):
         self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
-        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
+        self.noSwift = wx.Bitmap(self.hasSwift.GetWidth(), self.hasSwift.GetHeight())
         GenericSearchList.__init__(self, None, LIST_GREY, [0,0], True, parent=parent)
        
     def _PostInit(self):
@@ -1679,7 +1679,7 @@ class LibraryList(SizeList):
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.hasTorrent = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bittorrent.png"), wx.BITMAP_TYPE_ANY)
-        self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
+        self.hasNothing = wx.Bitmap(self.hasSwift.GetWidth(), self.hasSwift.GetHeight())
         SizeList.__init__(self, None, LIST_GREY, [0,0], False, parent = parent)
         
     def OnDeleteKey(self, event):
@@ -2098,7 +2098,7 @@ class ChannelList(List):
             control.SetBackgroundColour(DEFAULT_BACKGROUND)
             #control.SetMinSize((50,10))
             control.SetPercentage(ratio)
-            control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
+            control.SetToolTip('%s users marked this channel as one of their favorites.'%pop)
             return control
     
     def OnExpand(self, item):

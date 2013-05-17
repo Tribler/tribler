@@ -995,7 +995,7 @@ class MainFrame(wx.Frame):
 
     def saveWindowSettings(self):
         width, height = self.GetSize()
-        x, y = self.GetPositionTuple()
+        x, y = self.GetPosition()
         self.utility.config.Write("window_width", width)
         self.utility.config.Write("window_height", height)
         self.utility.config.Write("window_x", x)
