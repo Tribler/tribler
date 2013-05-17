@@ -2639,7 +2639,8 @@ class ChannelCastDBHandler(BasicDBHandler):
 
                 sdef = SwiftDef.load_from_url(modification_value)
                 roothash = bin2str(sdef.get_roothash())
-                update_torrent = "UPDATE Torrent SET swift_hash = ? WHERE infohash = ?"
+                # If a user created two .torrents from the same set of files with different swarmnames we have two infohashes pointing to the same roothash.
+                update_torrent = "UPDATE or IGNORE Torrent SET swift_hash = ? WHERE infohash = ?"
                 self._db.execute_write(update_torrent, (roothash, infohash))
 
     def addOrGetChannelTorrentID(self, channel_id, infohash):
