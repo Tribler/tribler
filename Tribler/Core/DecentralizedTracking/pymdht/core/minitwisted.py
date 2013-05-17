@@ -100,7 +100,7 @@ class ThreadedReactor(threading.Thread):
 
         """
         self.running = True
-        logger.critical('run')
+        logger.info('run')
         try:
             while self.running:
                 self.run_one_step()

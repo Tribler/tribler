@@ -1,6 +1,6 @@
 [submodule "Tribler/dispersy"]
 	path = Tribler/dispersy
-	url = https://github.com/Tribler/dispersy.git
+	url = https://github.com/boudewijn-tribler/dispersy.git
 [submodule "Tribler/SwiftEngine"]
 	path = Tribler/SwiftEngine
 	url = https://github.com/Tribler/libswift.git

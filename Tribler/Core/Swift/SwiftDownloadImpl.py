@@ -176,6 +176,9 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             except:
                 print_exc()
 
+        if not os.path.isdir(self.get_swift_meta_dir()):
+            os.makedirs(self.get_swift_meta_dir())
+
         # Synchronous: starts process if needed
         self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port())
         if self.sp:

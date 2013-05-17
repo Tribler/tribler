@@ -16,7 +16,11 @@ from Tribler.Core.simpledefs import *
 # from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.FastI2I import *
 from Tribler.Core.Swift.SwiftDownloadImpl import CMDGW_PREBUFFER_BYTES
-from Tribler.Core import NoDispersyRLock
+
+try:
+    WindowsError
+except NameError:
+    WindowsError = Exception
 
 DEBUG = False
 
@@ -31,7 +35,7 @@ class SwiftProcess:
 
     def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr):
         # Called by any thread, assume sessionlock is held
-        self.splock = NoDispersyRLock()
+        self.splock = RLock()
         self.binpath = binpath
         self.workdir = workdir
         self.zerostatedir = zerostatedir
@@ -84,8 +88,8 @@ class SwiftProcess:
             args.append("180")  # seconds
         # args.append("-B")  # Enable debugging on swift
 
-        if True or DEBUG:
-            print >> sys.stderr, "SwiftProcess: __init__: Running", args, "workdir", workdir
+        if DEBUG:
+            print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
 
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -101,6 +105,10 @@ class SwiftProcess:
 
         # callbacks for when swift detect a channel close
         self._channel_close_callbacks = defaultdict(list)
+
+        # Only warn once when TUNNELRECV messages are received without us having a Dispersy endpoint.  This occurs after
+        # Dispersy shutdown
+        self._warn_missing_endpoint = True
 
     #
     # Instance2Instance
@@ -122,6 +130,7 @@ class SwiftProcess:
             return
 
         words = cmd.split()
+        assert all(isinstance(word, str) for word in words)
 
         if words[0] == "TUNNELRECV":
             address, session = words[1].split("/")
@@ -137,7 +146,12 @@ class SwiftProcess:
             data = ic.buffer[:length]
             ic.buffer = ic.buffer[length:]
 
-            self.roothash2dl["dispersy"].i2ithread_data_came_in(session, (host, port), data)
+            try:
+                self.roothash2dl["dispersy-endpoint"].i2ithread_data_came_in(session, (host, port), data)
+            except KeyError:
+                if self._warn_missing_endpoint:
+                    self._warn_missing_endpoint = False
+                    print >> sys.stderr, "sp: Dispersy endpoint is not available"
 
         else:
             roothash = binascii.unhexlify(words[1])
@@ -148,6 +162,7 @@ class SwiftProcess:
             elif words[0] == "CLOSE_EVENT":
                 roothash_hex = words[1]
                 address = words[2].split(":")
+                address = (address[0], int(address[1]))
                 raw_bytes_up = int(words[3])
                 raw_bytes_down = int(words[4])
                 cooked_bytes_up = int(words[5])

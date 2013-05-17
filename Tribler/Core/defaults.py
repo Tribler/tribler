@@ -62,7 +62,7 @@ sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
 sessdefaults['mainline_dht_port'] = 7757
 sessdefaults['dispersy'] = True
-sessdefaults['dispersy-tunnel-over-swift'] = False
+sessdefaults['dispersy-tunnel-over-swift'] = True
 sessdefaults['dispersy_port'] = 7759
 sessdefaults['libtorrent'] = True
 

@@ -661,15 +661,13 @@ class ChannelCommunity(Community):
                     infohash = self._channelcast_db._db.fetchone(u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
                     if infohash:
                         infohash = str2bin(infohash)
-                        if __debug__:
-                            print >> sys.stderr, "Incoming swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]
+                        logger.debug("Incoming swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
 
                         if not th_handler.has_thumbnail(infohash):
                             @forceDispersyThread
                             def callback(message = message):
                                 self._dispersy.on_messages([message])
-                            if __debug__:
-                                print >> sys.stderr, "Will try to download swift-thumbnails with roothash", hex_roothash, "from", message.candidate.sock_addr[0]
+                            logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
                             th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout = CANDIDATE_WALK_LIFETIME, usercallback = callback)
                             continue
 
