@@ -66,5 +66,4 @@ def SeedWebpage(tarfile, webpage, accessdate = None):
     torrent = header.CreateTorrentDef(session)
     download = DownloadStartupConfig()
     download.set_dest_dir(header.GetFileFolder())
-    print "Trying to seed from: " + header.GetFileFolder()
     session.start_download(torrent, download)
