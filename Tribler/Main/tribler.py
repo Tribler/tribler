@@ -1323,7 +1323,7 @@ def run(params=None):
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
-                app = wx.PySimpleApp(redirect=False)
+                app = wx.App(redirect=False)
             abc = ABCApp(params, single_instance_checker, installdir)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
