@@ -48,6 +48,7 @@ class WebBrowser(XRCPanel):
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
     __viewmode = 0      #What type of webpage are we visiting
+    __cookieprocessor = urllib2.build_opener(urllib2.HTTPCookieProcessor()) # Redirection handler
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -103,10 +104,9 @@ class WebBrowser(XRCPanel):
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
         
     def LoadURL(self, url):
-        redirurl = self.__assertHttp(url)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
+        redirurl = self.__assertHttp(url)   # Make sure we are following an http protocol
         try:
-            redirurl = str(opener.open(redirurl).geturl())
+            redirurl = str(self.__cookieprocessor.open(redirurl).geturl())
         except:
             pass    #We cannot get a redirection on our URL, so it must've been correct to begin with
         self.webview.LoadURL(redirurl)
