@@ -32,15 +32,15 @@ class SeedingResourceHandler(wx.html2.WebViewHandler):
 class WebBrowser(XRCPanel):
     """WebView is a class that allows you to browse the worldwideweb."""
    
-    WebViewModes = {'UNKNOWN' : 0,          # Unknown webpage
-                    'INTERNET' : 1,         # Webpage retrieved from the internet
-                    'SWARM_CACHE' : 2}      # Webpage downloaded from the swarm
+    WebViewModes = {'UNKNOWN':0,          # Unknown webpage
+                    'INTERNET':1,         # Webpage retrieved from the internet
+                    'SWARM_CACHE':2}      # Webpage downloaded from the swarm
 
     WebViewModeColors = [(255,255,255),     # Unknown webpage
                     (220,255,220),          # Webpage retrieved from the internet
                     (255,255,220)]          # Webpage downloaded from the swarm
     
-    WebViewModeTooltips = ["%s is not on the internet or the swarm",       # Unknown webpage
+    WebViewModeTooltips = ["%s Not on the internet or in the swarm",       # Unknown webpage
                     "Visiting %s via the internet",                        # Webpage retrieved from the internet
                     "Eternal webpage %s downloaded from the swarm"]        # Webpage downloaded from the swarm
    
@@ -88,7 +88,8 @@ class WebBrowser(XRCPanel):
         
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
-        self.LoadURL("http://www.google.com/")
+        self.LoadURL("about:blank")
+        self.setViewMode('UNKNOWN')
               
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
@@ -168,12 +169,11 @@ class WebBrowser(XRCPanel):
                 - WebViewModes['SWARM_CACHE'] or 'SWARM_CACHE'
         """
         if isinstance(mode, basestring):
-            self.__viewmode = WebBrowser.WebViewModes[mode]
+            self.__viewmode = WebBrowser.WebViewModes.__getitem__(mode)
         else:
             self.__viewmode = mode
-        self.adressBar.SetBackgroundColour(WebBrowser.WebViewModeColors[mode])
-        tooltip = WebBrowser.WebViewModeTooltips[mode] % (self.adressBar.GetValue())
-        print tooltip
+        self.adressBar.SetBackgroundColour(WebBrowser.WebViewModeColors[self.__viewmode])
+        tooltip = WebBrowser.WebViewModeTooltips[self.__viewmode] % (self.adressBar.GetValue())
         self.adressBar.SetToolTip(tooltip)
     
     def getViewMode(self):
