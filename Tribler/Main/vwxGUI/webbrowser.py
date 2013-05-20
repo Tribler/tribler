@@ -44,9 +44,15 @@ class ViewmodeSwitchHandler(wx.html2.WebViewHandler):
     def GetFile(self, uri):
         """Forward request for a webpage in internetmode to our WebBrowser
         """
+        #Strip down the url to remove the internetmode:// scheme
+        #This leaves the url the webpage is requesting to be shown in internetmode
         stripped = uri[15:]
         url = string.replace(stripped, "&#58;", ":")
-        self.webbrowser.handleWebpageViewmodeSwitch(url)
+        #We cannot load a different webpage while we are loading the current one
+        #Reloading the current page from cache and hooking into the URLLoaded callback
+        #is the cheapest way to avoid mid-load reloading crashes
+        self.webbrowser.URL_REQ = url
+        self.webbrowser.webview.Reload()
 
 
 class WebBrowser(XRCPanel):
@@ -73,6 +79,7 @@ class WebBrowser(XRCPanel):
     __viewmode = 0      #What type of webpage are we visiting
     __cookieprocessor = urllib2.build_opener(urllib2.HTTPCookieProcessor()) # Redirection handler
     __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
+    URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -113,7 +120,7 @@ class WebBrowser(XRCPanel):
         """Register Resource Sniffer with webview"""
         self.__sniffer = ResourceSniffer()
         self.__reshandler = SeedingResourceHandler(self.__sniffer)
-        #self.webview.RegisterHandler(self.__reshandler)
+        self.webview.RegisterHandler(self.__reshandler)
         
         """Register Viewmode Switcher with webview"""
         self.__viewmodeswitcher = ViewmodeSwitchHandler(self)
@@ -193,14 +200,20 @@ class WebBrowser(XRCPanel):
 
     def onURLLoading(self, event):
         """Actions to be taken when an URL start to be loaded."""
-        url = self.webview.GetCurrentURL()
         #Notify our sniffer that we are constructing a new WebPage
         self.__sniffer.StartLoading(url, self.webview.GetPageSource())
         #Update the adressbar
         self.adressBar.SetValue(url)
     
     def onURLLoaded(self, event):
-        """Actions to be taken when an URL is loaded."""     
+        """Actions to be taken when an URL is loaded."""
+        #We got a 'switch to internet' request
+        if self.URL_REQ:
+            redirection = self.URL_REQ
+            self.URL_REQ = None
+            if self.__handleWebpageViewmodeSwitch(redirection):
+                return
+        url = self.webview.GetCurrentURL()
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
         #Update the seedbutton
@@ -247,7 +260,7 @@ class WebBrowser(XRCPanel):
             self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
         #Fallthrough if we are in unknown mode for some reason
         
-    def handleWebpageViewmodeSwitch(self, url):
+    def __handleWebpageViewmodeSwitch(self, url):
         """Callback for a webpage's request to switch to internet mode
             Prompts the user if switching to the internet is O.K.
         """
@@ -257,6 +270,8 @@ class WebBrowser(XRCPanel):
         if (answer == wx.ID_YES):
             self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
             self.LoadURL(url)
+            return True
+        return False
         
     def seed(self, event):
         """Start seeding the images on the website"""
