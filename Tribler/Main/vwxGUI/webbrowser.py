@@ -169,6 +169,10 @@ class WebBrowser(XRCPanel):
     
     def onURLLoaded(self, event):
         """Actions to be taken when an URL is loaded."""
+        #Remove temporary webpage files if we are in swarm mode
+        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+            page = WebPage(self.webview.GetCurrentURL())
+            page.RemoveTempFiles(WebPage.GetTarName(page.GetUrl()))
         #We got a 'switch to internet' request
         if self.URL_REQ:
             redirection = self.URL_REQ
