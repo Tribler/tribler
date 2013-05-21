@@ -112,11 +112,10 @@ class WebBrowser(XRCPanel):
     def __LoadURLFromLocal(self, url):
         """Load a URL from the swarm cache.
         """
-        webPage = WebPage(url)
-        expectedFile = webPage.GetTarFilepath()
+        expectedFile = WebPage.GetTarFilepath(url)
         if os.path.isfile(expectedFile):
             #Tar exists, unpack and show
-            self.loadTorrentFile(WebPage.GetTarName(webPage.GetUrl()))
+            self.loadTorrentFile(WebPage.GetTarName(url))
         else:
             #Redirect to URL not found page
             self.__LoadURLNotFound(self.__normalizeAddress(url))

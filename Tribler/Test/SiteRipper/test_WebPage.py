@@ -24,6 +24,14 @@ class TestWebPage(unittest.TestCase):
         result = WebPage.GetFileName(testURL)
         #Assert
         self.assertEqual('google.com', result)
+        
+    def test_GetFileNameRemoveTrailingSlash(self):
+        #Arrange
+        testURL = 'http://www.google.com/test/'
+        #Act
+        result = WebPage.GetFileName(testURL)
+        #Assert
+        self.assertEqual('google.com_test', result)
     
     def test_GetFileNameReplaceSlash(self):
         #Arrange

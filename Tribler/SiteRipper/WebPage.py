@@ -57,13 +57,15 @@ class WebPage:
     def SetUrl(self, url):
         """Sets the URL we are pointing to
             Note that this member does not download the actual page
+            Nothing is set if url == ''.
         """
-        self.__url = url
-        self.__folderName = self.GetFileName(url) + os.sep
+        if not url:
+            self.__url = url
+            self.__folderName = self.GetFileName(url) + os.sep
     
     def CreateFromFile(self, tarFileName):
         """Create a web page from disk"""
-        folderPath = self.__GetDownloadsPath()
+        folderPath = WebPage.__GetDownloadsPath()
         tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
         #Create tar folder
         self.__AssertFolder(tempPath)
@@ -81,7 +83,7 @@ class WebPage:
     def RemoveTempFiles(self, tarFileName):
         """Remove unpacked temp files used for page viewing
         """
-        folderPath = self.__GetDownloadsPath()
+        folderPath = WebPage.__GetDownloadsPath()
         tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
         self.__RemoveTarSourceFiles(tempPath)
         
@@ -96,8 +98,12 @@ class WebPage:
             result = result[7:]
         if result.startswith('www.'):
             result = result[4:]
+        #Remove trailing /. This causes problems when browsing when it is not added by the user.
+        if result[-1] == '/':
+            result = result[:-1]
         #Replace all / with -
         result = ['_' if x=='/' else x for x in result]
+      
         #Return
         return ''.join(result) 
 
@@ -129,13 +135,14 @@ class WebPage:
     def GetTarName(url):
         return WebPage.GetFileName(url) + '.tar.gz'
     
-    def GetTarFilepath(self):
-        return self.__GetDownloadsPath() + os.sep + WebPage.GetTarName(self.GetUrl())
+    @staticmethod
+    def GetTarFilepath(url):
+        return WebPage.__GetDownloadsPath(url) + os.sep + WebPage.GetTarName(url)
     
     def CreateTar(self):
         """Create a tar file of the WebPage"""
         #Create folder
-        folderPath = self.__GetDownloadsPath()
+        folderPath = WebPage.__GetDownloadsPath()
         self.__AssertFolder(folderPath + os.sep + self.__folderName[:-1])
         #Save content.
         self.__CreateHTMLFile()
@@ -151,7 +158,7 @@ class WebPage:
     
     def __CreateHTMLFile(self):
         """Saves the web page HTML to disk"""
-        fileName = self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetFileName(self.__url)
+        fileName = WebPage.__GetDownloadsPath() + os.sep + self.__folderName + self.GetFileName(self.__url)
         file = open(fileName + self.ext,'wb')
         file.write(self.__content)
         file.close()
@@ -179,16 +186,18 @@ class WebPage:
         """Returns the map of the resource pointed to by the url
         Args:
             url (str): URL pointing to the resource that needs to be downloaded."""
-        return self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url)
+        return WebPage.__GetDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url)
     
+    @staticmethod
     def __GetDownloadsPath(self):
         """Get the path to the Downloads."""
         config = DefaultDownloadStartupConfig.getInstance()
         folderPath = config.get_dest_dir() + os.sep + "EternalWebpages"
-        self.__AssertFolder(folderPath)
+        WebPage.__AssertFolder(folderPath)
         return folderPath    
     
-    def __AssertFolder(self, folderpath):
+    @staticmethod
+    def __AssertFolder(folderpath):
         """Assert that the folder exists. If it does not, then the folder is created"""
         if not os.path.exists(folderpath):
             os.makedirs(folderpath)
