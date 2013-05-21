@@ -77,6 +77,13 @@ class WebPage:
         self.__url = WebPage.GetURLName(htmlFileName)
         self.__ext = '.html'
         
+    def RemoveTempFiles(self, tarFileName):
+        """Remove unpacked temp files used for page viewing
+        """
+        folderPath = self.__GetDownloadsPath()
+        tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
+        self.__RemoveTarSourceFiles(self, tempPath)
+        
     @staticmethod
     def GetFileName(url):
         """Get the appropiate filename by using the given url
