@@ -35,7 +35,7 @@ class WebBrowser(XRCPanel):
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
     __viewmode = 0      #What type of webpage are we visiting
-    __cookieprocessor = urllib2.build_opener(urllib2.HTTPCookieProcessor()) # Redirection handler
+    __cookieprocessor = urllib2.build_opener(urllib2.HTTPRedirectHandler()) # Redirection handler
     __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
     URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
     __condonedredirect = False  #Have we allowed the webbrowser to switch pages
