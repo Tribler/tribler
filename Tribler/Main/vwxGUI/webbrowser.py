@@ -39,6 +39,7 @@ class WebBrowser(XRCPanel):
     __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
     URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
     __condonedredirect = False  #Have we allowed the webbrowser to switch pages
+    __safepage = False  #Are we on a page we do NOT have to check for security reasons
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -104,6 +105,7 @@ class WebBrowser(XRCPanel):
         """Load our pagenotfound.html and give it the HTML URL parameter of the page we tried to reach
         """
         import Tribler.SiteRipper
+        self.__safepage = True
         fs = wx.FileSystem()
         notfoundpath = NotFoundFile.getFilenameCreate()
         notfoundurl = fs.FileNameToURL(notfoundpath) + "?" + url
@@ -131,9 +133,12 @@ class WebBrowser(XRCPanel):
             depending on our viewmode.
         """
         self.webview.Stop()
+        self.__safepage = False
         if url.startswith("about:"):
             self.webview.LoadURL(url)
         elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+            #Signal that we are responsibly redirecting pages
+            #I.e. we are not following a link on a page
             self.__condonedredirect = True
             self.__LoadURLFromLocal(url)
         else:
@@ -156,7 +161,10 @@ class WebBrowser(XRCPanel):
         """Load a webpage from a webpage Torrent created by the seed button"""
         webPage = WebPage()
         webPage.CreateFromFile(tarFileName)
+        #Signal that we are responsibly redirecting pages
+        #I.e. we are not following a link on a page
         self.__condonedredirect = True
+        
         self.__loadHTMLSource(webPage.GetUrl(), webPage.GetContent())
         self.setViewMode(WebBrowser.WebViewModes['SWARM_CACHE'])
     
@@ -207,6 +215,7 @@ class WebBrowser(XRCPanel):
                 - WebViewModes['SWARM_CACHE'] or 'SWARM_CACHE'
         """
         if isinstance(mode, basestring):
+            #We are supplied with a string, get the integer accordingly
             self.__viewmode = WebBrowser.WebViewModes.__getitem__(mode)
         else:
             self.__viewmode = mode
@@ -240,15 +249,20 @@ class WebBrowser(XRCPanel):
         elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
         #Fallthrough if we are in unknown mode for some reason
+        #Autoredirect according to new view:
         self.loadURLFromAdressBar(None)
         
     def __handleWebpageViewmodeSwitch(self, url):
         """Callback for a webpage's request to switch to internet mode
             Prompts the user if switching to the internet is O.K.
         """
-        dialog = wx.MessageDialog(self, "The current page is requesting you to leave SwarmMode and\nstart browsing the world wide web. Do you accept the redirection to:\n"+url, "Redirection to internet", wx.YES_NO|wx.CENTRE)
-        answer = dialog.ShowModal()
-        dialog.Destroy()
+        answer = wx.ID_YES
+        if not self.__safepage:
+            #Prompt for user consent when leaving an usafe page and entering
+            #the internet
+            dialog = wx.MessageDialog(self, "The current page is requesting you to leave SwarmMode and\nstart browsing the world wide web. Do you accept the redirection to:\n"+url, "Redirection to internet", wx.YES_NO|wx.CENTRE)
+            answer = dialog.ShowModal()
+            dialog.Destroy()
         if (answer == wx.ID_YES):
             self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
             self.LoadURL(url)
