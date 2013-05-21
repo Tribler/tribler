@@ -111,10 +111,14 @@ class WebBrowser(XRCPanel):
     def __LoadURLFromLocal(self, url):
         """Load a URL from the swarm cache.
         """
-        # TODO Uncompress files
-        # Resourcehandler will then use these files
-        # If can't find torrent, redirect with URLNotFound method
-        self.__LoadURLNotFound(self.__normalizeAddress(url))
+        webPage = WebPage(url)
+        expectedFile = webPage.GetTarFilepath()
+        if os.path.isfile(expectedFile):
+            #Tar exists, unpack and show
+            self.loadTorrentFile(WebPage.GetTarName(webPage.GetUrl()))
+        else:
+            #Redirect to URL not found page
+            self.__LoadURLNotFound(self.__normalizeAddress(url))
     
     def __LoadURLFromInternet(self, url):
         """Load a URL 'normally' from the internet
@@ -304,7 +308,11 @@ class ViewmodeResourceHandler(wx.html2.WebViewHandler):
     def __GetFileLocal(self, uri):
         """Retrieve a resource from our local filesystem
         """
-        return self.__httphandler.GetFile(uri) #TODO Temporarily still use internet switch to local fs
+        webPage = self.__sniffer._ResourceSniffer__webPage
+        filename = webPage.MapResource(uri)
+        fs = wx.FileSystem()
+        fileuri = fs.FileNameToURL(filename)
+        return fs.OpenFile(fileuri)
     
     def GetFile(self, uri):
         """Returns the wxFile descriptor for the WebView to retrieve the resource

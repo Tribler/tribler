@@ -129,6 +129,9 @@ class WebPage:
     def GetTarName(url):
         return WebPage.GetFileName(url) + '.tar.gz'
     
+    def GetTarFilepath(self):
+        return self.__GetDownloadsPath() + os.sep + WebPage.GetTarName(self.GetUrl())
+    
     def CreateTar(self):
         """Create a tar file of the WebPage"""
         #Create folder
@@ -168,9 +171,15 @@ class WebPage:
         #Read the resource.
         resource = location.read()
         #Write to disk.
-        file = open(self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url),'wb')
+        file = open(self.MapResource(url),'wb')
         file.write(resource)
         file.close()
+        
+    def MapResource(self, url):
+        """Returns the map of the resource pointed to by the url
+        Args:
+            url (str): URL pointing to the resource that needs to be downloaded."""
+        return self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url)
     
     def __GetDownloadsPath(self):
         """Get the path to the Downloads."""
