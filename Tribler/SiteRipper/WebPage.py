@@ -68,15 +68,13 @@ class WebPage:
         self.__AssertFolder(tempPath)
         #Untar folder
         tar_lib.untarFolder(folderPath + os.sep + tarFileName, tempPath)
-        #Find .html file
-        #
-        #Load URL
-        
-        #Load Content
-        
-        file = open(tarFilename, 'rb')
+        #Find .html file by removing .tar.gz and adding html
+        htmlFileName = tarFileName[:-7]+".html"
+        #Load URL        
+        #Load Content       
+        file = open(tempPath+htmlFileName, 'rb')
         self.__content = file.read()
-        self.__url = WebPage.GetURLName(filename)
+        self.__url = WebPage.GetURLName(htmlFileName)
         self.__ext = '.html'
         
     @staticmethod
@@ -142,7 +140,7 @@ class WebPage:
     def __CreateHTMLFile(self):
         """Saves the web page HTML to disk"""
         fileName = self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetFileName(self.__url)
-        file = open(fileName,'wb')
+        file = open(fileName + self.__ext,'wb')
         file.write(self.__content)
         file.close()
       
