@@ -83,7 +83,7 @@ class WebPage:
         """
         folderPath = self.__GetDownloadsPath()
         tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
-        self.__RemoveTarSourceFiles(self, tempPath)
+        self.__RemoveTarSourceFiles(tempPath)
         
     @staticmethod
     def GetFileName(url):
