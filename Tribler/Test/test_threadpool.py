@@ -13,8 +13,10 @@ from Tribler.Core.APIImplementation.ThreadPool import ThreadPool
 
 DEBUG = False
 
+
 class TestThreadPool(unittest.TestCase):
-    """ 
+
+    """
     Parent class for testing internal thread pool of Tribler
     """
 
@@ -42,7 +44,7 @@ class TestThreadPool(unittest.TestCase):
         if DEBUG:
             print >> sys.stderr, "test_queueTask1:"
         self.exp = [1]
-        self.tp.queueTask(lambda:self.do_task(1))
+        self.tp.queueTask(lambda: self.do_task(1))
 
     def do_task(self, val):
         self.gotlock.acquire()
@@ -55,8 +57,9 @@ class TestThreadPool(unittest.TestCase):
         if DEBUG:
             print >> sys.stderr, "test_queueTask10lambda:"
         self.exp = range(1, 11)
+
         def wrapper(x):
-            self.tp.queueTask(lambda:self.do_task(x))
+            self.tp.queueTask(lambda: self.do_task(x))
 
         for i in range(1, 11):
             if DEBUG:
@@ -80,7 +83,6 @@ class TestThreadPool(unittest.TestCase):
         self.tp.queueTask(self.do_task8)
         self.tp.queueTask(self.do_task9)
         self.tp.queueTask(self.do_task10)
-
 
     def test_joinAll(self):
         if DEBUG:
@@ -123,7 +125,6 @@ class TestThreadPool(unittest.TestCase):
             print >> sys.stderr, "test: post threads", self.tp.getThreadCount()
         time.sleep(1)
         self.test_joinAll()
-
 
     def do_task1(self):
         self.gotlock.acquire()

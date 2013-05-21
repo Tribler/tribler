@@ -49,7 +49,9 @@ SWIFT_ALIVE_CHECK_INTERVAL = 60.0
 
 DEBUG = False
 
+
 class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
+
     """ Download subclass that represents a swift download.
     The actual swift download takes places in a SwiftProcess.
     """
@@ -69,12 +71,12 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         # spstatus
         self.dlstatus = DLSTATUS_WAITING4HASHCHECK
-        self.dynasize = 0L
+        self.dynasize = 0
         self.progress = 0.0
-        self.curspeeds = {DOWNLOAD:0.0, UPLOAD:0.0}  # bytes/s
+        self.curspeeds = {DOWNLOAD: 0.0, UPLOAD: 0.0}  # bytes/s
         self.numleech = 0
         self.numseeds = 0
-        self.contentbytes = {DOWNLOAD:0, UPLOAD:0}  # bytes
+        self.contentbytes = {DOWNLOAD: 0, UPLOAD: 0}  # bytes
 
         self.done = False  # when set it means this download is being removed
         self.midict = {}
@@ -116,36 +118,35 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 cdcfg = dcfg
             self.dlconfig = copy.copy(cdcfg.dlconfig)
 
-
             # Things that only exist at runtime
             self.dlruntimeconfig = {}
             self.dlruntimeconfig['max_desired_upload_rate'] = 0
             self.dlruntimeconfig['max_desired_download_rate'] = 0
 
-            if pstate and pstate.has_key('dlstate'):
+            if pstate and 'dlstate' in pstate:
                 dlstate = pstate['dlstate']
-                if dlstate.has_key('time_seeding'):
+                if 'time_seeding' in dlstate:
                     self.time_seeding = [dlstate['time_seeding'], None]
-                if dlstate.has_key('total_up'):
+                if 'total_up' in dlstate:
                     self.total_up = dlstate['total_up']
-                if dlstate.has_key('total_down'):
+                if 'total_down' in dlstate:
                     self.total_down = dlstate['total_down']
 
             if DEBUG:
-                print >> sys.stderr, "SwiftDownloadImpl: setup: initialdlstatus", `self.sdef.get_roothash_as_hex()`, initialdlstatus
+                print >> sys.stderr, "SwiftDownloadImpl: setup: initialdlstatus", repr(self.sdef.get_roothash_as_hex()), initialdlstatus
 
             # Note: initialdlstatus now only works for STOPPED
             if initialdlstatus != DLSTATUS_STOPPED:
                 self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback)
 
             self.dllock.release()
-        except Exception, e:
+        except Exception as e:
             print_exc()
             self.set_error(e)
             self.dllock.release()
 
     def create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
-        network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus)
+        network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus)
         self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda)
 
     def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None):
@@ -156,7 +157,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
-        if not self.dlconfig.has_key('swiftmetadir') and not os.path.isdir(self.get_dest_dir()):
+        if 'swiftmetadir' not in self.dlconfig and not os.path.isdir(self.get_dest_dir()):
             # We must be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
@@ -214,7 +215,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             self.curspeeds[UPLOAD] = ulspeed
             self.numleech = numleech
             self.numseeds = numseeds
-            self.contentbytes = {DOWNLOAD:contentdl, UPLOAD:contentul}
+            self.contentbytes = {DOWNLOAD: contentdl, UPLOAD: contentul}
         finally:
             self.dllock.release()
 
@@ -234,7 +235,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 if duration is not None:
                     httpurl += '@' + duration
 
-                vod_usercallback_wrapper = lambda event, params:self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
+                vod_usercallback_wrapper = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
                 videoinfo = {}
                 videoinfo['usercallback'] = vod_usercallback_wrapper
 
@@ -249,17 +250,16 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
                 # Arno: No threading violation, lm_network_* is safe at the moment
                 self.lm_network_vod_event_callback(videoinfo, VODEVENT_START, {
-                    "complete":  False,
-                    "filename":  None,
-                    "mimetype":  'application/octet-stream',  # ARNOSMPTODO
-                    "stream":    None,
-                    "length":    self.get_dynasize(),
-                    "bitrate":   None,  # ARNOSMPTODO
-                    "url":       httpurl,
+                    "complete": False,
+                    "filename": None,
+                    "mimetype": 'application/octet-stream',  # ARNOSMPTODO
+                    "stream": None,
+                    "length": self.get_dynasize(),
+                    "bitrate": None,  # ARNOSMPTODO
+                    "url": httpurl,
                 })
         finally:
             self.dllock.release()
-
 
     def i2ithread_moreinfo_callback(self, midict):
         self.dllock.acquire()
@@ -281,7 +281,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         finally:
             self.dllock.release()
 
-
     def get_dynasize(self):
         """ Returns the size of the swift content. Note this may vary
         (generally ~1KiB because of dynamic size determination by the
@@ -293,7 +292,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             return self.dynasize
         finally:
             self.dllock.release()
-
 
     def get_progress(self):
         """ Return fraction of content downloaded.
@@ -372,7 +370,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         logmsgs = []
         return (status, stats, seeding_stats, logmsgs)
 
-
     def network_create_statistics_reponse(self):
         return SwiftStatisticsResponse(self.numleech, self.numseeds, self.midict)
 
@@ -404,7 +401,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         d['npieces'] = ((self.dynasize + 1023) / 1024)
         return d
 
-
     def network_create_spew_from_peerlist(self):
         if not 'channels' in self.midict:
             return []
@@ -428,12 +424,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Called by any thread """
         self.dllock.acquire()
         try:
-            network_get_state_lambda = lambda:self.network_get_state(usercallback, getpeerlist)
+            network_get_state_lambda = lambda: self.network_get_state(usercallback, getpeerlist)
             # First time on general rawserver
             self.session.lm.rawserver.add_task(network_get_state_lambda, delay)
         finally:
             self.dllock.release()
-
 
     def network_get_state(self, usercallback, getpeerlist, sessioncalling=False):
         """ Called by network thread """
@@ -459,7 +454,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         finally:
             self.dllock.release()
 
-
     def sesscb_get_state_returncallback(self, usercallback, when, newgetpeerlist):
         """ Called by SessionCallbackThread """
         self.dllock.acquire()
@@ -467,11 +461,10 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             if when > 0.0 and not self.done:
                 # Schedule next invocation, either on general or DL specific
                 # Note this continues when dl is stopped.
-                network_get_state_lambda = lambda:self.network_get_state(usercallback, newgetpeerlist)
+                network_get_state_lambda = lambda: self.network_get_state(usercallback, newgetpeerlist)
                 self.session.lm.rawserver.add_task(network_get_state_lambda, when)
         finally:
             self.dllock.release()
-
 
     #
     # Download stop/resume
@@ -491,7 +484,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.dllock.acquire()
         try:
             if DEBUG:
-                print >> sys.stderr, "SwiftDownloadImpl: network_stop", `self.sdef.get_name()`
+                print >> sys.stderr, "SwiftDownloadImpl: network_stop", repr(self.sdef.get_name())
 
             pstate = self.network_get_persistent_state()
             if self.sp is not None:
@@ -520,12 +513,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         """ Returns the file to which the downloaded content is saved. """
         return os.path.join(self.get_dest_dir(), self.sdef.get_roothash_as_hex())
 
-
     def restart(self, initialdlstatus=None):
         """ Restart the Download """
         # Called by any thread
         if DEBUG:
-            print >> sys.stderr, "SwiftDownloadImpl: restart:", `self.sdef.get_name()`
+            print >> sys.stderr, "SwiftDownloadImpl: restart:", repr(self.sdef.get_name())
         self.dllock.acquire()
         try:
             if self.sp is None:
@@ -535,7 +527,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             # No exception if already started, for convenience
         finally:
             self.dllock.release()
-
 
     #
     # Config parameters that only exists at runtime
@@ -576,7 +567,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         f2dlist.append(f2dtuple)
         return f2dlist
 
-
     #
     # Persistence
     #
@@ -596,7 +586,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
             return (self.sdef.get_roothash(), pstate)
         finally:
             self.dllock.release()
-
 
     def network_get_persistent_state(self):
         """ Assume dllock already held """
@@ -624,7 +613,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         pstate['engineresumedata'] = None
         return pstate
 
-
     #
     # Coop download
     #
@@ -635,7 +623,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
     def recontact_tracker(self):
         """ Called by any thread """
         pass
-
 
     #
     # MOREINFO
@@ -651,7 +638,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.sp is not None:
             self.sp.set_moreinfo_stats(self, enable)
 
-
     #
     # External addresses
     #
@@ -663,7 +649,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.sp is not None:
             self.sp.add_peer(self, addr)
 
-
     #
     # Internal methods
     #
@@ -671,7 +656,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.dllock.acquire()
         self.error = e
         self.dllock.release()
-
 
     #
     # Auto restart after swift crash
@@ -681,7 +665,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         try:
             if self.sp is not None and not self.done:
                 if not self.sp.is_alive():
-                    print >> sys.stderr, "SwiftDownloadImpl: network_check_swift_alive: Restarting", `self.sdef.get_name()`
+                    print >> sys.stderr, "SwiftDownloadImpl: network_check_swift_alive: Restarting", repr(self.sdef.get_name())
                     self.sp = None
                     self.restart()
         except:
@@ -691,6 +675,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         if not self.done:
             self.session.lm.rawserver.add_task(self.network_check_swift_alive, SWIFT_ALIVE_CHECK_INTERVAL)
+
 
 class SwiftStatisticsResponse:
 

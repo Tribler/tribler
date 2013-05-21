@@ -3,6 +3,7 @@ from time import sleep
 
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
+
 class TestTimedTaskQueue(unittest.TestCase):
 
     def setUp(self):

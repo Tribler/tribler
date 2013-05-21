@@ -1,12 +1,12 @@
 # Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 
-##########################
+#
 #
 # Things to handle backward compatability for the old-style
 # torrent.lst and abc.ini
 #
-##########################
+#
 
 import os
 import sys
@@ -15,6 +15,7 @@ from shutil import move, copy2
 
 from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Main.Utility.helpers import existsAndIsReadable
+
 
 def moveOldConfigFiles(utility):
     oldpath = utility.getPath()
@@ -54,6 +55,7 @@ def moveOldConfigFiles(utility):
         except:
             pass
 
+
 def convertOldList(utility):
     convertOldList1(utility)
     convertOldList2(utility)
@@ -62,6 +64,8 @@ def convertOldList(utility):
 # Convert the torrent.lst file to the new torrent.list
 # format the first time ABC is run (if necessary)
 #
+
+
 def convertOldList1(utility):
     # Only continue if torrent.lst exists
     filename = os.path.join(utility.getConfigPath(), "torrent.lst")
@@ -105,7 +109,7 @@ def convertOldList1(utility):
         except:
 #            data = StringIO()
 #            print_exc(file = data)
-#            sys.stderr.write(data.getvalue())   # report exception here too
+# sys.stderr.write(data.getvalue())   # report exception here too
             pass
 
         configline = oldconfig.readline()
@@ -121,11 +125,14 @@ def convertOldList1(utility):
 # Convert list to new format
 # (only src stored in list, everything else stored in torrentinfo)
 #
+
+
 def convertOldList2(utility):
     index = 0
     while convertOldList2B(utility, index):
         index += 1
     utility.torrentconfig.Flush()
+
 
 def convertOldList2B(utility, indexval):
     torrentconfig = utility.torrentconfig
@@ -148,7 +155,7 @@ def convertOldList2B(utility, indexval):
                 pass
 
     # Torrent information
-    filename = torrentconfig.Read("src", section = index)
+    filename = torrentconfig.Read("src", section=index)
     # Format from earlier 2.7.0 test builds:
     if not filename:
         # If the src is missing, then we should not try to add the torrent
@@ -177,6 +184,8 @@ def convertOldList2B(utility, indexval):
     return True
 
 # Get settings from the old abc.ini file
+
+
 def convertINI(utility):
     # Only continue if abc.ini exists
     filename = os.path.join(utility.getConfigPath(), "abc.ini")
@@ -188,10 +197,10 @@ def convertINI(utility):
 
     # We'll ignore anything that was set to the defaults
     # from the previous version
-    olddefaults = { 0: [-1, "abc_width", 710],
-                    1: [-1, "abc_height", 400],
-                    2: [-1, "detailwin_width", 610],
-                    3: [-1, "detailwin_height", 500],
+    olddefaults = {0: [-1, "abc_width", 710],
+                  1: [-1, "abc_height", 400],
+                  2: [-1, "detailwin_width", 610],
+                  3: [-1, "detailwin_height", 500],
                     4: [0, "Title", 150],
                     5: [1, "Progress", 60],
                     6: [2, "BT Status", 100],
@@ -209,7 +218,7 @@ def convertINI(utility):
                     18: [-1, "Download Size", 75],
                     19: [-1, "Upload Size", 75],
                     20: [-1, "Total Speed", 80],
-                    21: [-1, "Torrent Name", 150] }
+                    21: [-1, "Torrent Name", 150]}
 
     oldconfig = open(filename, "r+")
 

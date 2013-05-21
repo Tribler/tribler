@@ -16,14 +16,18 @@ protocol_name = "BitTorrent protocol"
 default_option_pattern = '\x00\x00\x00\x00\x00\x30\x00\x00'
 overlay_infohash = '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
+
 def toint(s):
     return long(b2a_hex(s), 16)
 
+
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
-        chr((i >> 8) & 0xFF) + chr(i & 0xFF))
+            chr((i >> 8) & 0xFF) + chr(i & 0xFF))
+
 
 class BTConnection:
+
     def __init__(self, hostname, port, opensock=None, user_option_pattern=None, user_infohash=None, myid=None, mylistenport=None, myoversion=None):
         assert user_option_pattern is None or isinstance(user_option_pattern, str)
         assert user_option_pattern is None or len(user_option_pattern) == 8
@@ -135,7 +139,7 @@ class BTConnection:
         while True:
             try:
                 data = self.s.recv(nwant)
-            except socket.error, e:
+            except socket.error as e:
                 if e[0] == 10035:
                     # WSAEWOULDBLOCK on Windows
                     continue

@@ -13,10 +13,10 @@ import wx.lib.imagebrowser as ib
 #   import wx
 #   x = wx.Wizard
 # it don't work. This explicit import seems to:
-from wx.wizard import Wizard,WizardPageSimple,EVT_WIZARD_PAGE_CHANGED,EVT_WIZARD_PAGE_CHANGING,EVT_WIZARD_CANCEL,EVT_WIZARD_FINISHED
+from wx.wizard import Wizard, WizardPageSimple, EVT_WIZARD_PAGE_CHANGED, EVT_WIZARD_PAGE_CHANGING, EVT_WIZARD_CANCEL, EVT_WIZARD_FINISHED
 
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
-#from common import CommonTriblerList
+# from common import CommonTriblerList
 from Tribler.Main.Utility.constants import *
 from Tribler.Core.SessionConfig import SessionStartupConfig
 
@@ -25,53 +25,54 @@ from Tribler.Core.osutils import get_home_dir, get_picture_dir
 
 DEBUG = False
 
-################################################################
+#
 #
 # Class: MyInfoDialog
 #
 # Dialog with user's public info
 #
-################################################################
+#
+
 
 class MyInfoWizard(Wizard):
 
-    def __init__(self,parent):
+    def __init__(self, parent):
 
         self.parent = parent
         self.utility = parent.utility
 
         title = self.utility.lang.get('myinfo')
         # TODO: bitmap?
-        Wizard.__init__(self,parent, -1, title, style = wx.DEFAULT_DIALOG_STYLE)
+        Wizard.__init__(self, parent, -1, title, style=wx.DEFAULT_DIALOG_STYLE)
 
-        self.page1 = NameIconWizardPage(self,type)
-        #self.page2 = RWIDsWizardPage(self,type)
-        #self.page1.Chain(self.page1,self.page2)
+        self.page1 = NameIconWizardPage(self, type)
+        # self.page2 = RWIDsWizardPage(self,type)
+        # self.page1.Chain(self.page1,self.page2)
         self.GetPageAreaSizer().Add(self.page1)
-        #self.GetPageAreaSizer().Add(self.page2)
+        # self.GetPageAreaSizer().Add(self.page2)
 
-        self.Bind(EVT_WIZARD_PAGE_CHANGED,self.OnPageChanged)
-        self.Bind(EVT_WIZARD_PAGE_CHANGING,self.OnPageChanging)
-        self.Bind(EVT_WIZARD_CANCEL,self.OnCancel)
-        self.Bind(EVT_WIZARD_FINISHED,self.OnFinished)
+        self.Bind(EVT_WIZARD_PAGE_CHANGED, self.OnPageChanged)
+        self.Bind(EVT_WIZARD_PAGE_CHANGING, self.OnPageChanging)
+        self.Bind(EVT_WIZARD_CANCEL, self.OnCancel)
+        self.Bind(EVT_WIZARD_FINISHED, self.OnFinished)
 
         self.guiUtility = GUIUtility.getInstance()
 
-    def OnPageChanged(self,event=None):
+    def OnPageChanged(self, event=None):
         pass
 
-    def OnPageChanging(self,event=None):
+    def OnPageChanging(self, event=None):
         if event is not None:
             if event.GetDirection():
                 if self.GetCurrentPage() == self.page1:
                     if not self.page1.IsFilledIn():
                         event.Veto()
 
-    def OnCancel(self,event=None):
+    def OnCancel(self, event=None):
         pass
 
-    def OnFinished(self,event=None):
-        (name,icondata, iconmime) = self.page1.getNameIconData()
+    def OnFinished(self, event=None):
+        (name, icondata, iconmime) = self.page1.getNameIconData()
 
         # write changes to the pickled config file, because on shutdown, changes are not pickled!
         # this is done to spare the mypreferences-changes.
@@ -80,7 +81,7 @@ class MyInfoWizard(Wizard):
         cfgfilename = self.utility.session.get_default_config_filename(state_dir)
         scfg = SessionStartupConfig.load(cfgfilename)
 
-        for target in [scfg,self.utility.session]:
+        for target in [scfg, self.utility.session]:
             try:
                 target.set_nickname(name)
                 target.set_mugshot(icondata, mime=iconmime)
@@ -95,12 +96,12 @@ class MyInfoWizard(Wizard):
         return self.page1
 
 
-
 class NameIconWizardPage(WizardPageSimple):
+
     """ Ask user for public name and icon """
 
-    def __init__(self,parent,type):
-        WizardPageSimple.__init__(self,parent)
+    def __init__(self, parent, type):
+        WizardPageSimple.__init__(self, parent)
         self.utility = parent.utility
 
         # 0. mainbox
@@ -115,14 +116,14 @@ class NameIconWizardPage(WizardPageSimple):
         name_box = wx.BoxSizer(wx.HORIZONTAL)
         self.myname = wx.TextCtrl(self, -1, name)
         name_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myname')), 0, wx.ALIGN_CENTER_VERTICAL)
-        name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-        topbox.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+        name_box.Add(self.myname, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RIGHT, 5)
+        topbox.Add(name_box, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RIGHT, 5)
 
         # Ask public user icon / avatar
         icon_box = wx.BoxSizer(wx.HORIZONTAL)
         icon_box.Add(wx.StaticText(self, -1, self.utility.lang.get('myicon')), 0, wx.ALIGN_CENTER_VERTICAL)
 
-        ## TODO: integrate this code with makefriends.py, especially checking code
+        # TODO: integrate this code with makefriends.py, especially checking code
         self.iconbtn = None
         self.iconmime, self.icondata = self.utility.session.get_mugshot()
         if self.icondata:
@@ -134,17 +135,16 @@ class NameIconWizardPage(WizardPageSimple):
         if sys.platform == 'darwin':
             path = get_home_dir()
             self.iconbtn = wx.FilePickerCtrl(self, -1, path)
-            self.Bind(wx.EVT_FILEPICKER_CHANGED,self.OnIconSelected,id=self.iconbtn.GetId())
-            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
+            self.Bind(wx.EVT_FILEPICKER_CHANGED, self.OnIconSelected, id=self.iconbtn.GetId())
+            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RIGHT, 5)
         else:
             self.iconbtn = wx.BitmapButton(self, -1, bm)
-            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-            #label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
-            #icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
+            icon_box.Add(self.iconbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RIGHT, 5)
+            # label = wx.StaticText(self, -1, self.utility.lang.get('obligiconformat'))
+            # icon_box.Add(label, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
             self.Bind(wx.EVT_BUTTON, self.OnIconButton, self.iconbtn)
 
-        topbox.Add(icon_box, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RIGHT, 5)
-
+        topbox.Add(icon_box, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.RIGHT, 5)
 
         mainbox.Add(topbox, 0, wx.EXPAND)
         self.SetSizerAndFit(mainbox)
@@ -160,8 +160,7 @@ class NameIconWizardPage(WizardPageSimple):
             pass
         dlg.Destroy()
 
-
-    def OnIconSelected(self,event=None):
+    def OnIconSelected(self, event=None):
         self.iconpath = self.iconbtn.GetPath()
         self.process_input()
 
@@ -172,17 +171,17 @@ class NameIconWizardPage(WizardPageSimple):
                 self.show_inputerror(self.utility.lang.get('cantopenfile'))
             else:
                 if sys.platform != 'darwin':
-                    bm = wx.BitmapFromImage(im.Scale(64,64),-1)
+                    bm = wx.BitmapFromImage(im.Scale(64, 64), -1)
                     self.iconbtn.SetBitmapLabel(bm)
 
                 # Arno, 2008-10-21: scale image!
-                sim = im.Scale(ICON_MAX_DIM,ICON_MAX_DIM)
-                [thumbhandle,thumbfilename] = tempfile.mkstemp("user-thumb")
+                sim = im.Scale(ICON_MAX_DIM, ICON_MAX_DIM)
+                [thumbhandle, thumbfilename] = tempfile.mkstemp("user-thumb")
                 os.close(thumbhandle)
-                sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+                sim.SaveFile(thumbfilename, wx.BITMAP_TYPE_JPEG)
 
                 self.iconmime = 'image/jpeg'
-                f = open(thumbfilename,"rb")
+                f = open(thumbfilename, "rb")
                 self.icondata = f.read()
                 f.close()
                 os.remove(thumbfilename)
@@ -190,18 +189,16 @@ class NameIconWizardPage(WizardPageSimple):
             print_exc()
             self.show_inputerror(self.utility.lang.get('iconbadformat'))
 
-
-
-    def show_inputerror(self,txt):
+    def show_inputerror(self, txt):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
 
     def IsFilledIn(self):
-        (name,_,_) = self.getNameIconData()
-        #print "ICONPATH IS",iconpath
-        return len(name) != 0 #and icondata is not None
+        (name, _, _) = self.getNameIconData()
+        # print "ICONPATH IS",iconpath
+        return len(name) != 0  # and icondata is not None
 
     def getNameIconData(self):
         name = self.myname.GetValue()
-        return (name,self.icondata, self.iconmime)
+        return (name, self.icondata, self.iconmime)

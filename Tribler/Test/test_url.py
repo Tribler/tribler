@@ -24,9 +24,11 @@ logger = getLogger(__name__)
 
 from Tribler.Core.API import *
 
-DEBUG=False
+DEBUG = False
+
 
 class TestP2PURLs(unittest.TestCase):
+
     """
     Testing P2P URLs version 0
     """
@@ -41,8 +43,8 @@ class TestP2PURLs(unittest.TestCase):
 
         badurllist += [("ribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "wrong scheme")]
         badurllist += [("tribe//127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "no colon after scheme")]
-        #badurllist += [("tribe://127.1.0.10:6969/announce?trai ler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "space not escaped")] # too strict
-        #badurllist += [("tribe://localhost;10/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "bad port spec")] # too strict
+        # badurllist += [("tribe://127.1.0.10:6969/announce?trai ler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "space not escaped")] # too strict
+        # badurllist += [("tribe://localhost;10/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "bad port spec")] # too strict
         badurllist += [("tribe://localhost:https/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "port not int")]
         badurllist += [("tribe://localhost/trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "not query")]
         if sys.platform != "win32":
@@ -53,10 +55,10 @@ class TestP2PURLs(unittest.TestCase):
         badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=", "query with malformed key value")]
 
         # IPv6 addresses
-        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unclosed IPv6 literal address")]
-        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unopened IPv6 literal address")]
-        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unclosed IPv6 literal address, no port")]
-        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg","unopened IPv6 literal address, no port")]
+        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unclosed IPv6 literal address")]
+        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unopened IPv6 literal address")]
+        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unclosed IPv6 literal address, no port")]
+        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unopened IPv6 literal address, no port")]
 
         self.run_badurllist(badurllist)
 
@@ -91,40 +93,40 @@ class TestP2PURLs(unittest.TestCase):
 
         self.run_badurllist(badurllist)
 
-    def run_badurllist(self,badurllist):
-        for url,problem in badurllist:
+    def run_badurllist(self, badurllist):
+        for url, problem in badurllist:
             try:
                 tdef = TorrentDef.load_from_url(url)
-                self.assert_(False,'Should not have accepted URL: "%s", %s ' % (url, problem))
-            except AssertionError,e:
+                self.assert_(False, 'Should not have accepted URL: "%s", %s ' % (url, problem))
+            except AssertionError as e:
                 raise e
             except:
                 logger.debug("", exc_info=True)
 
     def test_create_vod(self):
         paramlist = []
-        paramlist += [('Sjaak',134349,2 ** 15, "4:01")]
-        paramlist += [('Sjaak',1343490,2 ** 15, "1:04:01")] # long duration
-        paramlist += [('Sjaak Harry',134349,2 ** 15, "4:01")] # space in name
-        paramlist += [(u'Serg\u00e9Harr\u014c',134349,2 ** 15, "4:01")] # Unicode name
-        paramlist += [(u'\u4f60\u597d',134349,2 ** 15, "4:01")] # Unicode name, Ni Hao ;o)
+        paramlist += [('Sjaak', 134349, 2 ** 15, "4:01")]
+        paramlist += [('Sjaak', 1343490, 2 ** 15, "1:04:01")]  # long duration
+        paramlist += [('Sjaak Harry', 134349, 2 ** 15, "4:01")]  # space in name
+        paramlist += [(u'Serg\u00e9Harr\u014c', 134349, 2 ** 15, "4:01")]  # Unicode name
+        paramlist += [(u'\u4f60\u597d', 134349, 2 ** 15, "4:01")]  # Unicode name, Ni Hao ;o)
 
-        self.run_paramlist_vod(paramlist,"http://127.0.0.1/announce")
-        #self.run_paramlist_vod(paramlist,"http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce")
+        self.run_paramlist_vod(paramlist, "http://127.0.0.1/announce")
+        # self.run_paramlist_vod(paramlist,"http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce")
 
-    def run_paramlist_vod(self,paramlist,tracker):
+    def run_paramlist_vod(self, paramlist, tracker):
         tmpdirname = tempfile.mkdtemp()
 
-        for name,leng,piecesize,duration in paramlist:
-            tmpfilename = os.path.join(tmpdirname,name)
+        for name, leng, piecesize, duration in paramlist:
+            tmpfilename = os.path.join(tmpdirname, name)
 
             content = '*' * leng
-            f = open(tmpfilename,"wb")
+            f = open(tmpfilename, "wb")
             f.write(content)
             f.close()
 
             tdef = TorrentDef()
-            tdef.add_content(tmpfilename,playtime=duration)
+            tdef.add_content(tmpfilename, playtime=duration)
             tdef.set_tracker(tracker)
             tdef.set_piece_length(piecesize)
             tdef.set_create_merkle_torrent(True)
@@ -139,32 +141,34 @@ class TestP2PURLs(unittest.TestCase):
 
             tdef2 = TorrentDef.load_from_url(tdef.get_url())
 
-            if isinstance(name,unicode):
+            if isinstance(name, unicode):
                 utf8name = name.encode("UTF-8")
             else:
                 utf8name = name
 
-            #logger.debug("ORIG NAME %s", `utf8name`)
-            #logger.debug("TDEF NAME %s", `tdef2.get_name()`)
+            # logger.debug("ORIG NAME %s", `utf8name`)
+            # logger.debug("TDEF NAME %s", `tdef2.get_name()`)
 
-            self.assertEqual(tdef2.get_name(),utf8name)
-            self.assertEqual(tdef2.get_length(),leng)
-            self.assertEqual(tdef2.get_piece_length(),piecesize)
+            self.assertEqual(tdef2.get_name(), utf8name)
+            self.assertEqual(tdef2.get_length(), leng)
+            self.assertEqual(tdef2.get_piece_length(), piecesize)
             tbitrate = tdef2.get_bitrate()
             s = dur2s(duration)
-            ebitrate = leng/s
-            self.assertEqual(tbitrate,ebitrate)
+            ebitrate = leng / s
+            self.assertEqual(tbitrate, ebitrate)
 
-        #Do not swallow the exception, we want to know if there are problems cleaning up
+        # Do not swallow the exception, we want to know if there are problems cleaning up
         shutil.rmtree(tmpdirname)
 
-#TODO: Remove this and use the utility function instead.
+# TODO: Remove this and use the utility function instead.
+
+
 def dur2s(dur):
     """ [hh]mm:ss -> seconds """
     elems = dur.split(":")
     s = 0
-    for i in range(0,len(elems)):
+    for i in range(0, len(elems)):
         num = int(elems[i])
-        t = num * int(pow(60.0,len(elems)-i-1))
+        t = num * int(pow(60.0, len(elems) - i -1))
         s += t
     return s

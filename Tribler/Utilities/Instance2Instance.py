@@ -16,31 +16,32 @@ from Tribler.Core.RawServer.RawServer import RawServer
 try:
     prctlimported = True
     import prctl
-except ImportError,e:
+except ImportError as e:
     prctlimported = False
 
 DEBUG = False
 
+
 class Instance2InstanceServer(Thread):
 
-    def __init__(self,i2iport,connhandler,timeout=300.0):
+    def __init__(self, i2iport, connhandler, timeout=300.0):
         Thread.__init__(self)
         self.setDaemon(True)
-        self.setName('Instance2Instance'+self.getName())
+        self.setName('Instance2Instance' + self.getName())
         self.i2iport = i2iport
         self.connhandler = connhandler
 
-        print >> sys.stderr, "Instance2Instance binding to %s:%d"%("127.0.0.1", self.i2iport)
+        print >> sys.stderr, "Instance2Instance binding to %s:%d" % ("127.0.0.1", self.i2iport)
         self.i2idoneflag = Event()
         self.rawserver = RawServer(self.i2idoneflag,
-                                   timeout/5.0,
+                                   timeout / 5.0,
                                    timeout,
-                                   ipv6_enable = False,
-                                   failfunc = self.rawserver_fatalerrorfunc,
-                                   errorfunc = self.rawserver_nonfatalerrorfunc)
+                                   ipv6_enable=False,
+                                   failfunc=self.rawserver_fatalerrorfunc,
+                                   errorfunc=self.rawserver_nonfatalerrorfunc)
 
         # Only accept local connections
-        self.rawserver.bind(self.i2iport,bind=['127.0.0.1'],reuse=True)
+        self.rawserver.bind(self.i2iport, bind=['127.0.0.1'], reuse=True)
         self.rawserver.add_task(self.rawserver_keepalive, 10)
 
     def rawserver_keepalive(self):
@@ -48,7 +49,7 @@ class Instance2InstanceServer(Thread):
         processing any tasks on its queue at startup time
 
         Called by Instance2Instance thread """
-        self.rawserver.add_task(self.rawserver_keepalive,1)
+        self.rawserver.add_task(self.rawserver_keepalive, 1)
 
     def shutdown(self):
         self.connhandler.shutdown()
@@ -57,105 +58,105 @@ class Instance2InstanceServer(Thread):
     #
     # Following methods are called by Instance2Instance thread
     #
-    def rawserver_fatalerrorfunc(self,e):
+    def rawserver_fatalerrorfunc(self, e):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr,"i2is: RawServer fatal error func called",e
+            print >>sys.stderr, "i2is: RawServer fatal error func called", e
         print_exc()
 
-    def rawserver_nonfatalerrorfunc(self,e):
+    def rawserver_nonfatalerrorfunc(self, e):
         """ Called by network thread """
         if DEBUG:
-            print >>sys.stderr,"i2is: RawServer non fatal error func called",e
+            print >>sys.stderr, "i2is: RawServer non fatal error func called", e
             print_exc()
         # Could log this somewhere, or phase it out
 
     def run(self):
 
         if prctlimported:
-            prctl.set_name("Tribler"+currentThread().getName())
+            prctl.set_name("Tribler" + currentThread().getName())
 
         try:
             try:
                 if DEBUG:
-                    print >>sys.stderr,"i2is: Ready to receive remote commands on",self.i2iport
+                    print >>sys.stderr, "i2is: Ready to receive remote commands on", self.i2iport
                 self.rawserver.listen_forever(self)
             except:
                 print_exc()
         finally:
             self.rawserver.shutdown()
 
-    def external_connection_made(self,s):
+    def external_connection_made(self, s):
         try:
             if DEBUG:
-                print >>sys.stderr,"i2is: external_connection_made"
+                print >>sys.stderr, "i2is: external_connection_made"
             self.connhandler.external_connection_made(s)
         except:
             print_exc()
             s.close()
 
-    def connection_flushed(self,s):
+    def connection_flushed(self, s):
         self.connhandler.connection_flushed(s)
 
-    def connection_lost(self,s):
+    def connection_lost(self, s):
         if DEBUG:
-            print >>sys.stderr,"i2is: connection_lost ------------------------------------------------"
+            print >>sys.stderr, "i2is: connection_lost ------------------------------------------------"
         self.connhandler.connection_lost(s)
 
     def data_came_in(self, s, data):
         try:
-            self.connhandler.data_came_in(s,data)
+            self.connhandler.data_came_in(s, data)
         except:
             print_exc()
             s.close()
 
-    def add_task(self,func,t):
-        self.rawserver.add_task(func,t)
+    def add_task(self, func, t):
+        self.rawserver.add_task(func, t)
 
-    def start_connection(self,dns):
-        return self.rawserver.start_connection_raw(dns,handler=self.connhandler)
-
+    def start_connection(self, dns):
+        return self.rawserver.start_connection_raw(dns, handler=self.connhandler)
 
 
 class InstanceConnectionHandler:
-    def __init__(self,readlinecallback=None):
-        self.readlinecallback = readlinecallback
-        self.singsock2ic = {} # Maps Tribler/Core/BitTornado/SocketHandler.py:SingleSocket to InstanceConnection
 
-    def set_readlinecallback(self,readlinecallback):
+    def __init__(self, readlinecallback=None):
+        self.readlinecallback = readlinecallback
+        self.singsock2ic = {}  # Maps Tribler/Core/BitTornado/SocketHandler.py:SingleSocket to InstanceConnection
+
+    def set_readlinecallback(self, readlinecallback):
         self.readlinecallback = readlinecallback
 
-    def external_connection_made(self,s):
+    def external_connection_made(self, s):
         # Extra check in case bind() no work
         if DEBUG:
-            print >>sys.stderr,"i2is: ich: ext_conn_made"
+            print >>sys.stderr, "i2is: ich: ext_conn_made"
         peername = s.get_ip()
         if peername != "127.0.0.1":
-            print >>sys.stderr,"i2is: ich: ext_conn_made: Refusing non-local connection from",peername
+            print >>sys.stderr, "i2is: ich: ext_conn_made: Refusing non-local connection from", peername
             s.close()
 
-        ic = InstanceConnection(s,self,self.readlinecallback)
+        ic = InstanceConnection(s, self, self.readlinecallback)
         self.singsock2ic[s] = ic
 
-    def connection_flushed(self,s):
+    def connection_flushed(self, s):
         pass
 
-    def connection_lost(self,s):
+    def connection_lost(self, s):
         """ Called when peer closes connection and when we close the connection """
         if DEBUG:
-            print >>sys.stderr,"i2is: ich: connection_lost ------------------------------------------------"
+            print >>sys.stderr, "i2is: ich: connection_lost ------------------------------------------------"
 
         # Extra check in case bind() no work
         peername = s.get_ip()
         if peername != "127.0.0.1":
-            print >>sys.stderr,"i2is: ich: connection_lost: Refusing non-local connection from",peername
+            print >>sys.stderr, "i2is: ich: connection_lost: Refusing non-local connection from", peername
             return
 
         del self.singsock2ic[s]
 
-    def data_came_in(self,s, data):
+    def data_came_in(self, s, data):
         if DEBUG:
-            print >>sys.stderr,"i2is: ich: data_came_in"
+            print >>sys.stderr, "i2is: ich: data_came_in"
 
         ic = self.singsock2ic[s]
         try:
@@ -167,29 +168,29 @@ class InstanceConnectionHandler:
         for ic in self.singsock2ic.values():
             ic.shutdown()
 
-    def set_server(self,i2is):
+    def set_server(self, i2is):
         self.i2is = i2is
 
-    def start_connection(self,dns,ic):
+    def start_connection(self, dns, ic):
         s = self.i2is.start_connection(dns)
         self.singsock2ic[s] = ic
         return s
 
 
 class InstanceConnection:
-    def __init__( self, singsock, connhandler, readlinecallback):
+
+    def __init__(self, singsock, connhandler, readlinecallback):
         self.singsock = singsock
         self.connhandler = connhandler
         self.readlinecallback = readlinecallback
         self.buffer = ''
 
-
-    def data_came_in(self,data):
+    def data_came_in(self, data):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
         # data may come in in parts, not lines! Or multiple lines at same time
 
         if DEBUG:
-            print >>sys.stderr,"i2is: ic: data_came_in",`data`,len(data)
+            print >>sys.stderr, "i2is: ic: data_came_in", repr(data), len(data)
 
         if len(self.buffer) == 0:
             self.buffer = data
@@ -215,7 +216,7 @@ class InstanceConnection:
                 self.buffer = cmd
                 break
 
-    def write(self,data):
+    def write(self, data):
         if self.singsock is not None:
             self.singsock.write(data)
 
@@ -228,9 +229,9 @@ class InstanceConnection:
 
 class Instance2InstanceClient:
 
-    def __init__(self,port,cmd,param):
+    def __init__(self, port, cmd, param):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(('127.0.0.1',port))
-        msg = cmd+' '+param+'\r\n'
+        s.connect(('127.0.0.1', port))
+        msg = cmd + ' ' +param+'\r\n'
         s.send(msg)
         s.close()

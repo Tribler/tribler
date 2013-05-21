@@ -15,7 +15,9 @@ from Tribler.Utilities.Instance2Instance import *
 
 DEBUG = False
 
+
 class SwiftProcessMgr:
+
     """ Class that manages a number of SwiftProcesses """
 
     def __init__(self, binpath, i2iport, dlsperproc, tunnellistenport, sesslock):
@@ -111,7 +113,6 @@ class SwiftProcessMgr:
         for sp in deads:
             self.sps.remove(sp)
 
-
     def early_shutdown(self):
         """ First phase of two phase shutdown. network_shutdown is called after
         gracetime (see Session.shutdown()).
@@ -121,7 +122,6 @@ class SwiftProcessMgr:
         try:
             self.sesslock.acquire()
             self.done = True
-
 
             for sp in self.sps:
                 try:
@@ -153,4 +153,3 @@ class SwiftProcessMgr:
                     sp.start_cmd_connection()
         finally:
             self.sesslock.release()
-

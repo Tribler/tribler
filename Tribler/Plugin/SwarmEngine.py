@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# This is the SwarmEngine.py for the SwarmPlugin which currently doesn't self 
+# This is the SwarmEngine.py for the SwarmPlugin which currently doesn't self
 # destruct when the browser quits.
 #
 # So there are two SwarmEngine.py's
@@ -17,4 +17,4 @@ VIDEOHTTP_LISTENPORT = 6878
 
 
 if __name__ == '__main__':
-    run_bgapp("SwarmPlugin","1.1.0",I2I_LISTENPORT,BG_LISTENPORT,VIDEOHTTP_LISTENPORT,killonidle=False)
+    run_bgapp("SwarmPlugin", "1.1.0", I2I_LISTENPORT, BG_LISTENPORT, VIDEOHTTP_LISTENPORT, killonidle=False)

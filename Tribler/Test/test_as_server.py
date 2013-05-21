@@ -32,7 +32,9 @@ defaults.dldefaults["saveas"] = DEST_DIR
 
 DEBUG = False
 
+
 class AbstractServer(unittest.TestCase):
+
     def setUpCleanup(self):
         # Elric: If the files are still there it means that either the last run segfaulted or
         # that there was some kind of lock on those and the tearDown wasn't able to delete them.
@@ -73,7 +75,9 @@ class AbstractServer(unittest.TestCase):
         print >> f, time.time(), annotation, '1' if start else '0'
         f.close()
 
+
 class TestAsServer(AbstractServer):
+
     """
     Parent class for testing the server-side of Tribler
     """
@@ -142,7 +146,9 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
+
 class TestGuiAsServer(TestAsServer):
+
     """
     Parent class for testing the gui-side of Tribler
     """
@@ -179,17 +185,18 @@ class TestGuiAsServer(TestAsServer):
         from Tribler.Main.tribler import run
 
         self.quitting = False
+
         def wait_for_frame():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
-            self.CallConditional(30, lambda : self.frame.ready, callback)
+            self.CallConditional(30, lambda: self.frame.ready, callback)
 
         def wait_for_init():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
 
             self.guiUtility = GUIUtility.getInstance()
 
-            self.CallConditional(30, lambda : self.guiUtility.frame, wait_for_frame)
+            self.CallConditional(30, lambda: self.guiUtility.frame, wait_for_frame)
 
         def wait_for_guiutility():
             print >> sys.stderr, "tgs: waiting for guiutility instance"
@@ -200,7 +207,7 @@ class TestGuiAsServer(TestAsServer):
             self.session = Session.get_instance()
             self.lm = self.session.lm
 
-            self.CallConditional(30, lambda : self.lm.initComplete, wait_for_guiutility)
+            self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
         def wait_for_session():
             print >> sys.stderr, "tgs: waiting for session instance"

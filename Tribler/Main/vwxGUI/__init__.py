@@ -13,38 +13,38 @@ from Tribler.dispersy.dispersy import Dispersy
 from threading import Event
 from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG, register_task, call_task
 
-#batch size should be a nice divider of max size
+# batch size should be a nice divider of max size
 LIST_ITEM_BATCH_SIZE = 5
 LIST_ITEM_MAX_SIZE = 50
 LIST_RATE_LIMIT = 1
 
-DEFAULT_BACKGROUND = wx.Colour(255,255,255)
-LIST_LIGHTBLUE     = wx.Colour(240,248,255)
-LIST_BLUE          = wx.Colour(216,237,255)
-LIST_DARKBLUE      = wx.Colour(191,226,255)
-LIST_GREY          = wx.Colour(240,240,240)
-LIST_SELECTED      = LIST_LIGHTBLUE
-LIST_EXPANDED      = LIST_BLUE
-LIST_DESELECTED    = wx.Colour(255,255,255)
-LIST_HIGHTLIGHT    = wx.Colour(255,255,153)
-LIST_AT_HIGHLIST   = wx.Colour(255,242,255)
+DEFAULT_BACKGROUND = wx.Colour(255, 255, 255)
+LIST_LIGHTBLUE = wx.Colour(240, 248, 255)
+LIST_BLUE = wx.Colour(216, 237, 255)
+LIST_DARKBLUE = wx.Colour(191, 226, 255)
+LIST_GREY = wx.Colour(240, 240, 240)
+LIST_SELECTED = LIST_LIGHTBLUE
+LIST_EXPANDED = LIST_BLUE
+LIST_DESELECTED = wx.Colour(255, 255, 255)
+LIST_HIGHTLIGHT = wx.Colour(255, 255, 153)
+LIST_AT_HIGHLIST = wx.Colour(255, 242, 255)
 
-LIST_ORANGE = wx.Colour(255,209,126)
-LIST_GREEN = wx.Colour(176,255,150)
+LIST_ORANGE = wx.Colour(255, 209, 126)
+LIST_GREEN = wx.Colour(176, 255, 150)
 
 TRIBLER_RED = wx.Colour(255, 51, 0)
 
-SEEDING_COLOUR = wx.Colour(129,255,129)
-COMPLETED_COLOUR = wx.Colour(129,255,129)
-DOWNLOADING_COLOUR = wx.Colour(50,100,255)
+SEEDING_COLOUR = wx.Colour(129, 255, 129)
+COMPLETED_COLOUR = wx.Colour(129, 255, 129)
+DOWNLOADING_COLOUR = wx.Colour(50, 100, 255)
 STOPPED_COLOUR = TRIBLER_RED
 
-GRADIENT_LRED = wx.Colour(255,125,93)
-GRADIENT_DRED = wx.Colour(255,51,0)
-GRADIENT_LGREY = wx.Colour(254,254,254)
-GRADIENT_DGREY = wx.Colour(235,235,235)
-SEPARATOR_GREY = wx.Colour(210,210,210)
-FILTER_GREY = wx.Colour(240,240,240)
+GRADIENT_LRED = wx.Colour(255, 125, 93)
+GRADIENT_DRED = wx.Colour(255, 51, 0)
+GRADIENT_LGREY = wx.Colour(254, 254, 254)
+GRADIENT_DGREY = wx.Colour(235, 235, 235)
+SEPARATOR_GREY = wx.Colour(210, 210, 210)
+FILTER_GREY = wx.Colour(240, 240, 240)
 
 LIST_RADIUS = 7
 LIST_AUTOSIZEHEADER = -2
@@ -68,6 +68,7 @@ CHANNEL_MAX_NON_FAVORITE = 50
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 
+
 def format_time(val):
     try:
         today = datetime.today()
@@ -81,9 +82,11 @@ def format_time(val):
     except:
         return 'Unknown'
 
+
 def format_size(val):
-    size = (val/1048576.0)
-    return "%.0f MB"%size
+    size = (val / 1048576.0)
+    return "%.0f MB" % size
+
 
 def showError(textCtrl):
     def setColours(ctrl, fore, back):
@@ -96,46 +99,50 @@ def showError(textCtrl):
     setColours(textCtrl, wx.WHITE, wx.RED)
     wx.CallLater(2000, setColours, textCtrl, curFore, curBack)
 
+
 def warnWxThread(func):
-    def invoke_func(*args,**kwargs):
+    def invoke_func(*args, **kwargs):
         if not wx.Thread_IsMain():
             caller = inspect.stack()[1]
-            callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-            print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
+            print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
         return func(*args, **kwargs)
 
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+
 def forceWxThread(func):
-    def invoke_func(*args,**kwargs):
+    def invoke_func(*args, **kwargs):
         if wx.Thread_IsMain():
             func(*args, **kwargs)
         else:
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             wx.CallAfter(func, *args, **kwargs)
 
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+
 def forceAndReturnWxThread(func):
-    def invoke_func(*args,**kwargs):
+    def invoke_func(*args, **kwargs):
         if wx.Thread_IsMain():
             return func(*args, **kwargs)
 
         else:
             if TRHEADING_DEBUG:
                 caller = inspect.stack()[1]
-                callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
-                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+                callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
+                print >> sys.stderr, long(time()), "SWITCHING TO GUITHREAD %s %s:%s called by %s" % (func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
 
             event = Event()
 
             result = [None]
+
             def wx_thread():
                 try:
                     result[0] = func(*args, **kwargs)
