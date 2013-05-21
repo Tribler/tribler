@@ -131,7 +131,9 @@ class WebBrowser(XRCPanel):
             depending on our viewmode.
         """
         self.webview.Stop()
-        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+        if url.startswith("about:"):
+            self.webview.LoadURL(url)
+        elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             self.__condonedredirect = True
             self.__LoadURLFromLocal(url)
         else:
@@ -148,7 +150,6 @@ class WebBrowser(XRCPanel):
     def loadURLFromAdressBar(self, event):
         """Load an URL from the adressbar"""
         url = self.adressBar.GetValue()
-        self.adressBar.SetValue(url)
         self.LoadURL(url)
       
     def loadTorrentFile(self, tarFileName):
@@ -239,6 +240,7 @@ class WebBrowser(XRCPanel):
         elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
         #Fallthrough if we are in unknown mode for some reason
+        self.loadURLFromAdressBar(None)
         
     def __handleWebpageViewmodeSwitch(self, url):
         """Callback for a webpage's request to switch to internet mode
