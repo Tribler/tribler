@@ -35,7 +35,7 @@ class WebBrowser(XRCPanel):
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
     __viewmode = 0      #What type of webpage are we visiting
-    __cookieprocessor = urllib2.build_opener(urllib2.HTTPRedirectHandler()) # Redirection handler
+    __cookieprocessor = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPCookieProcessor()) # Redirection handler
     __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
     URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
     __condonedredirect = False  #Have we allowed the webbrowser to switch pages
@@ -142,6 +142,9 @@ class WebBrowser(XRCPanel):
             self.__condonedredirect = True
             self.__LoadURLFromLocal(url)
         else:
+            #Signal that we are responsibly redirecting pages
+            #I.e. we are not following a link on a page
+            self.__condonedredirect = True
             self.__LoadURLFromInternet(url)
         
     def goBackward(self, event):
@@ -181,7 +184,7 @@ class WebBrowser(XRCPanel):
         url = self.webview.GetCurrentURL()
         self.__sniffer.StartLoading(url, self.webview.GetPageSource())
         #Avoid a page being able to leave swarm mode without our consent
-        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE'] and not self.__condonedredirect:
+        if not self.__condonedredirect:
             event.Veto()
             self.LoadURL(event.GetURL())
             return
