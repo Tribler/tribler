@@ -127,7 +127,7 @@ class WebPage:
     
     @staticmethod
     def GetTarName(url):
-        return self.GetFileName(url) + '.tar.gz'
+        return WebPage.GetFileName(url) + '.tar.gz'
     
     def CreateTar(self):
         """Create a tar file of the WebPage"""
