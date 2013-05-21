@@ -25,6 +25,7 @@ class WebPage:
     def __init__(self, url='', content=''):
         self.SetUrl(url)
         self.__content = content
+        self.ext = '.html'
         
     def DownloadContent(self):
         """Downloads the web page pointed to by our url to memory
@@ -124,8 +125,9 @@ class WebPage:
         #return
         return result   
     
-    def GetTarName(self):
-        return self.GetFileName(self.__url) + '.tar.gz'
+    @staticmethod
+    def GetTarName(url):
+        return self.GetFileName(url) + '.tar.gz'
     
     def CreateTar(self):
         """Create a tar file of the WebPage"""
@@ -147,7 +149,7 @@ class WebPage:
     def __CreateHTMLFile(self):
         """Saves the web page HTML to disk"""
         fileName = self.__GetDownloadsPath() + os.sep + self.__folderName + self.GetFileName(self.__url)
-        file = open(fileName + self.__ext,'wb')
+        file = open(fileName + self.ext,'wb')
         file.write(self.__content)
         file.close()
       
