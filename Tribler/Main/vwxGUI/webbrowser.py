@@ -145,11 +145,12 @@ class WebBrowser(XRCPanel):
         self.adressBar.SetValue(url)
         self.LoadURL(url)
       
-    def loadTorrentFile(self, filename):
+    def loadTorrentFile(self, tarFileName):
         """Load a webpage from a webpage Torrent created by the seed button"""
         webPage = WebPage()
-        webPage.CreateFromFile(filename)
+        webPage.CreateFromFile(tarFileName)
         self.__loadHTMLSource(webPage.GetUrl(), webPage.GetContent())
+        self.setViewMode(WebBrowser.WebViewModes['SWARM_CACHE'])
     
     def __loadHTMLSource(self, url, source):
         """Load a webpage from HTML Source.
