@@ -6,29 +6,12 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 import sys
 import urllib2
 import urlparse
+import os
+import string
+import time
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
-
-class SeedingResourceHandler(wx.html2.WebViewHandler):
-    """SeedingResourceHandler:
-        Decorator for a normal WebViewFSHandler.
-        Forwards requested resources to ResourceSniffer to be downloaded.
-    """
-    
-    __sniffer = None        #Resource Sniffer (for fetching local copies)
-    __httphandler = None    #Handler for http requests
-
-    def __init__(self, sniffer):
-        wx.html2.WebViewHandler.__init__(self, "http")
-        self.__httphandler = wx.html2.WebViewFSHandler("http")
-        self.__sniffer = sniffer
-        
-    def GetFile(self, uri):
-        """Returns the wxFile descriptor for the WebView to retrieve the resource
-        """
-        self.__sniffer.GetFile(uri)
-        return self.__httphandler.GetFile(uri)
-
+from Tribler.SiteRipper.pagenotfound import NotFoundFile
 
 class WebBrowser(XRCPanel):
     """WebView is a class that allows you to browse the worldwideweb."""
@@ -38,7 +21,7 @@ class WebBrowser(XRCPanel):
                     'SWARM_CACHE':2}      # Webpage downloaded from the swarm
 
     WebViewModeColors = [(255,255,255),     # Unknown webpage
-                    (220,255,220),          # Webpage retrieved from the internet
+                    (255,255,255),          # Webpage retrieved from the internet
                     (255,255,220)]          # Webpage downloaded from the swarm
     
     WebViewModeTooltips = ["%s Not on the internet or in the swarm",       # Unknown webpage
@@ -53,6 +36,8 @@ class WebBrowser(XRCPanel):
     __reshandler = None #Resource Handler 
     __viewmode = 0      #What type of webpage are we visiting
     __cookieprocessor = urllib2.build_opener(urllib2.HTTPCookieProcessor()) # Redirection handler
+    __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
+    URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -92,8 +77,12 @@ class WebBrowser(XRCPanel):
         
         """Register Resource Sniffer with webview"""
         self.__sniffer = ResourceSniffer()
-        self.__reshandler = SeedingResourceHandler(self.__sniffer)
+        self.__reshandler = ViewmodeResourceHandler(self.__sniffer)
         self.webview.RegisterHandler(self.__reshandler)
+        
+        """Register Viewmode Switcher with webview"""
+        self.__viewmodeswitcher = ViewmodeSwitchHandler(self)
+        self.webview.RegisterHandler(self.__viewmodeswitcher)
         
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
@@ -110,13 +99,37 @@ class WebBrowser(XRCPanel):
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
         
+    def __LoadURLNotFound(self, url):
+        """Load our pagenotfound.html and give it the HTML URL parameter of the page we tried to reach
+        """
+        import Tribler.SiteRipper
+        fs = wx.FileSystem()
+        notfoundpath = NotFoundFile.getFilenameCreate()
+        notfoundurl = fs.FileNameToURL(notfoundpath) + "?" + url
+        self.webview.LoadURL(notfoundurl)    
+    
+    def __LoadURLFromLocal(self, url):
+        """Load a URL from the swarm cache.
+        """
+        # TODO Uncompress files
+        # Resourcehandler will then use these files
+        # If can't find torrent, redirect with URLNotFound method
+        self.__LoadURLNotFound(self.__normalizeAddress(url))
+    
+    def __LoadURLFromInternet(self, url):
+        """Load a URL 'normally' from the internet
+        """
+        self.webview.LoadURL(self.__normalizeAddress(url))
+        
     def LoadURL(self, url):
-        redirurl = self.__assertHttp(url)   # Make sure we are following an http protocol
-        try:
-            redirurl = str(self.__cookieprocessor.open(redirurl).geturl())
-        except:
-            pass    #We cannot get a redirection on our URL, so it must've been correct to begin with
-        self.webview.LoadURL(redirurl)
+        """Load a URL, automaticly delegates call to appropriate url handler
+            depending on our viewmode.
+        """
+        self.webview.Stop()
+        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+            self.__LoadURLFromLocal(url)
+        else:
+            self.__LoadURLFromInternet(url)
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
@@ -154,7 +167,13 @@ class WebBrowser(XRCPanel):
         self.adressBar.SetValue(url)
     
     def onURLLoaded(self, event):
-        """Actions to be taken when an URL is loaded."""        
+        """Actions to be taken when an URL is loaded."""
+        #We got a 'switch to internet' request
+        if self.URL_REQ:
+            redirection = self.URL_REQ
+            self.URL_REQ = None
+            if self.__handleWebpageViewmodeSwitch(redirection):
+                return
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
         #Update the seedbutton
@@ -181,6 +200,8 @@ class WebBrowser(XRCPanel):
         self.viewmodeButton.SetBackgroundColour(WebBrowser.WebViewModeColors[self.__otherviewmode()])
         #Refresh toolbar
         self.toolBar.Layout()
+        #Update our resource handler
+        self.__reshandler.SetViewMode(self.__viewmode)
     
     def getViewMode(self):
         """Get the view mode we are currently using.
@@ -192,11 +213,27 @@ class WebBrowser(XRCPanel):
         return self.__viewmode
     
     def toggleViewMode(self, event):
+        """Switch viewmode depending on our current viewmode.
+            Ergo, toggle between Internet and Swarm mode
+        """
         if self.getViewMode() == WebBrowser.WebViewModes['INTERNET']:
             self.setViewMode(WebBrowser.WebViewModes['SWARM_CACHE'])
         elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
         #Fallthrough if we are in unknown mode for some reason
+        
+    def __handleWebpageViewmodeSwitch(self, url):
+        """Callback for a webpage's request to switch to internet mode
+            Prompts the user if switching to the internet is O.K.
+        """
+        dialog = wx.MessageDialog(self, "The current page is requesting you to leave SwarmMode and\nstart browsing the world wide web. Do you accept the redirection to:\n"+url, "Redirection to internet", wx.YES_NO|wx.CENTRE)
+        answer = dialog.ShowModal()
+        dialog.Destroy()
+        if (answer == wx.ID_YES):
+            self.setViewMode(WebBrowser.WebViewModes['INTERNET'])
+            self.LoadURL(url)
+            return True
+        return False
         
     def seed(self, event):
         """Start seeding the images on the website"""
@@ -207,13 +244,96 @@ class WebBrowser(XRCPanel):
         self.__sniffer.Seed()
 
         self.seedButton.SetLabel("Seeded")
+    
+    def __normalizeAddress(self, url):
+        """Check wether we have a valid http scheme in our url and
+            try to retrieve the universal address from the DNS.
+        """
+        redirurl = self.__assertHttp(url)   # Make sure we are following an http protocol
+        try:
+            redirurl = str(self.__cookieprocessor.open(redirurl).geturl())
+        except:
+            pass    #We cannot get a redirection on our URL, so it must've been correct to begin with
+        return redirurl
         
     def __assertHttp(self, url):
+        """Prefix the http scheme to our url if we forgot it 
+        """
         parts = urlparse.urlparse(url)
         if parts.scheme == '':
             return 'http://' + url
         return url
     
     def __otherviewmode(self):
-        return 1 if self.__viewmode == 2 else 2
+        """Get the viewmode we are NOT using.
+            Ex. if we are in Internet mode return Swarm mode, and vice versa 
+        """
+        return WebBrowser.WebViewModes['INTERNET'] if self.__viewmode == WebBrowser.WebViewModes['SWARM_CACHE'] else WebBrowser.WebViewModes['SWARM_CACHE']
         
+class ViewmodeResourceHandler(wx.html2.WebViewHandler):
+    """ViewmodeResourceHandler:
+        Decorator for a normal WebViewFSHandler.
+        In internet mode:
+            Forwards requested resources to ResourceSniffer to be downloaded.
+        In swarm mode:
+            Retrieves requested resources from mapped local filesystem
+            resources.
+    """
+    
+    __sniffer = None        #Resource Sniffer (for fetching local copies)
+    __httphandler = None    #Handler for http requests
+    __viewmode = WebBrowser.WebViewModes['INTERNET'] #Viewmode we are using
+
+    def __init__(self, sniffer):
+        wx.html2.WebViewHandler.__init__(self, "http")
+        self.__httphandler = wx.html2.WebViewFSHandler("http")
+        self.__sniffer = sniffer
+        
+    def __GetFileInternet(self, uri):
+        """Retrieve a resource from the internet and let our sniffer sniff
+            the uri's.
+        """
+        self.__sniffer.GetFile(uri)             #Deliver to sniffer
+        return self.__httphandler.GetFile(uri)  #Actual internet resource
+    
+    def __GetFileLocal(self, uri):
+        """Retrieve a resource from our local filesystem
+        """
+        return self.__httphandler.GetFile(uri) #TODO Temporarily still use internet switch to local fs
+    
+    def GetFile(self, uri):
+        """Returns the wxFile descriptor for the WebView to retrieve the resource
+        """
+        if self.__viewmode == WebBrowser.WebViewModes['INTERNET']:
+            return self.__GetFileInternet(uri)
+        elif self.__viewmode == WebBrowser.WebViewModes['SWARM_CACHE']:
+            return self.__GetFileLocal(uri)
+        return None
+    
+    def SetViewMode(self, viewmode):
+        self.__viewmode = viewmode
+        
+    def GetViewMode(self):
+        return self.__viewmode
+    
+class ViewmodeSwitchHandler(wx.html2.WebViewHandler):
+    """ViewmodeSwitchHandler:
+        Handle requests by a website for the WebBrowser to swith modes.
+    """
+    
+    def __init__(self, parent):
+        wx.html2.WebViewHandler.__init__(self, "internetmode")
+        self.webbrowser = parent
+        
+    def GetFile(self, uri):
+        """Forward request for a webpage in internetmode to our WebBrowser
+        """
+        #Strip down the url to remove the internetmode:// scheme
+        #This leaves the url the webpage is requesting to be shown in internetmode
+        stripped = uri[15:]
+        url = string.replace(stripped, "&#58;", ":")
+        #We cannot load a different webpage while we are loading the current one
+        #Reloading the current page from cache and hooking into the URLLoaded callback
+        #is the cheapest way to avoid mid-load reloading crashes
+        self.webbrowser.URL_REQ = url
+        self.webbrowser.webview.Reload()
