@@ -249,6 +249,31 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
             self.set_state_callback(self.monitor_vod, delay = 5.0)
+
+    def set_vod_position(self, position, callback):
+        if self.handle and position >= 0.0 and position <= 1.0:
+            for fileindex, prio in enumerate(self.handle.file_priorities()):
+                if prio > 0:
+                    # Reset videofile priority to 1
+                    filepriorities = self.handle.file_priorities()
+                    filepriorities[fileindex] = 1
+                    self.handle.prioritize_files(filepriorities)
+
+                    # Find the piece related to the given position
+                    torrentinfo = self.handle.get_torrent_info()
+                    videofile = torrentinfo.file_at(fileindex)
+                    pieceposition = torrentinfo.map_file(fileindex, int(position * videofile.size), 0).piece
+
+                    # Set piece priority from start till pieceposition to 0
+                    piecepriorities = self.handle.piece_priorities()
+                    for pieceindex in range(pieceposition):
+                        piecepriorities[pieceindex] = 0
+                    self.handle.prioritize_pieces(piecepriorities)
+
+                    self.vod_readpos = int(position * videofile.size)
+                    self.callback = callback
+                    self.pause_vod()
+                    break
                
     def monitor_vod(self, ds):
         status = self.handle.status()
@@ -268,6 +293,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % self.bufferprogress
         
         if self.bufferprogress >= 1:
+            cb = getattr(self, 'callback', None)
+            if cb:
+                cb()
+                self.callback = None
+
             if not self.vod_status:
                 self.vod_pausepos = startofbuffer * self.handle.get_torrent_info().piece_length()
                 self.start_vod(complete = False)

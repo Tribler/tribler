@@ -2368,3 +2368,234 @@ class VideoProgress(wx.Panel):
         dc.SetFont(font)
         dc.SetTextForeground(self.text_colour)
         dc.DrawLabel(self.error or self.label, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
+
+
+class VideoSlider(wx.Panel):
+
+    def __init__(self, *args, **kwargs):
+        wx.Panel.__init__(self, *args, **kwargs)
+        self.slider_range    = [0, 0]
+        self.slider_radius   = 9
+        self.slider_position = [10, 0]
+        self.buffersize      = 0.0
+        # Colours for enabled slider
+        self.colour1  = wx.Colour(241, 93, 63)
+        self.colour2  = wx.Colour(246, 144, 119)
+        # Colours for disabled slider
+        self.colour3  = wx.Colour(200, 200, 200)
+        self.colour4  = wx.Colour(220, 220, 220)
+        self.dragging = False
+        self.enabled  = True
+        self.hovering = False
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+
+    def GetValue(self):
+        return float(self.slider_position[0] - self.slider_range[0]) / (self.slider_range[1] - self.slider_range[0])
+
+    def SetValue(self, value):
+        range = self.slider_range[1] - self.slider_range[0]
+        self.slider_position[0] = (range * value) + self.slider_range[0] if range else self.slider_range[0]
+        self.Refresh()
+
+    def GetBufferSize(self):
+        return self.buffersize
+
+    def SetBufferSize(self, buffersize):
+        self.buffersize = buffersize
+        self.Refresh()
+
+    def SetBufferFromPieces(self, pieces):
+        if pieces:
+            frompiece = topiece = int(len(pieces) * self.GetValue())
+            while topiece < len(pieces) and pieces[topiece]:
+                topiece += 1
+            self.SetBufferSize(float(topiece - frompiece) / len(pieces))
+        else:
+            self.SetBufferSize(0.0)
+
+    def PositionOnSlider(self, position = None):
+        x, y = position or self.ScreenToClient(wx.GetMousePosition())
+        return (x - self.slider_position[0])**2 + (y - self.slider_position[1])**2 < self.slider_radius**2
+
+    def OnLeftDown(self, event):
+        self.SetSlider(event)        
+        if self.PositionOnSlider(event.GetPositionTuple()):
+            self.dragging = True
+            self.CaptureMouse()
+
+    def OnLeftUp(self, event):
+        self.dragging = False
+        if self.HasCapture():
+            self.ReleaseMouse()
+        #Call parent
+        self.GetParent().GetParent().Seek()
+
+    def OnMotion(self, event):
+        if event.LeftIsDown():
+            self.SetSlider(event)
+        if self.hovering != self.PositionOnSlider(event.GetPositionTuple()):
+            self.Refresh()
+
+    def SetSlider(self, event):
+        mx = event.GetPositionTuple()[0]
+        if mx > self.slider_range[0] and mx < self.slider_range[1]:
+            self.slider_position[0] = mx
+            self.Refresh()
+
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnPaint(self, evt):
+        # Draw the background
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+        if getattr(self.GetParent(), 'bitmap', None):
+            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            sub = self.GetParent().bitmap.GetSubBitmap(rect)
+            dc.DrawBitmap(sub, 0, 0)
+        
+        width, height = self.GetClientSize()
+        gc = wx.GraphicsContext.Create(dc)
+        self.slider_range = [10, width - 10]
+        self.slider_position[1] = height / 2
+        rect_height = height / 4
+        
+        # Draw background rectangle
+        gc.SetPen(wx.TRANSPARENT_PEN)
+        gc.SetBrush(wx.Brush(self.colour4))
+        gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_range[1] - self.slider_range[0], rect_height)
+        
+        # Draw position rectangle
+        gc.SetBrush(wx.Brush(self.colour1))
+        gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_position[0] - self.slider_range[0], rect_height)
+
+        # Draw buffer rectangle
+        gc.SetBrush(wx.Brush(self.colour3))
+        curbuffer = (self.slider_range[1] - self.slider_range[0]) * self.buffersize
+        maxbuffer = self.slider_range[1] - self.slider_position[0]
+        gc.DrawRectangle(self.slider_position[0], height / 2 - rect_height / 2, min(curbuffer, maxbuffer), rect_height)
+
+        # Draw slider
+        if self.IsEnabled():
+            gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, self.slider_radius * 2 , 0, self.colour1, self.colour2))
+            path = gc.CreatePath()
+            path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
+            gc.DrawPath(path)
+            self.hovering = self.PositionOnSlider()
+            gc.SetBrush(wx.TRANSPARENT_BRUSH if self.hovering else wx.Brush(wx.Colour(244, 244, 244)))
+            path = gc.CreatePath()
+            path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius / 2)
+            gc.DrawPath(path)
+        else:
+            gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, self.slider_radius * 2 , 0, self.colour3, self.colour4))
+            path = gc.CreatePath()
+            path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
+            gc.DrawPath(path)
+
+    def Enable(self, enable):
+        if enable:
+            self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+            self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+            self.Bind(wx.EVT_MOTION, self.OnMotion)
+        elif not enable:
+            self.Unbind(wx.EVT_LEFT_UP)
+            self.Unbind(wx.EVT_LEFT_DOWN)
+            self.Unbind(wx.EVT_MOTION)
+        self.enabled = enable
+        self.Refresh()
+
+    def IsEnabled(self):
+        return self.enabled
+
+class VideoVolume(wx.Panel):
+
+    def __init__(self, *args, **kwargs):
+        wx.Panel.__init__(self, *args, **kwargs)
+
+        self.value = 0
+        self.handler = None
+        self.dragging = False
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+
+    def PositionOnTriangle(self, position = None):
+        x, y = position or self.ScreenToClient(wx.GetMousePosition())
+        w, h = self.GetClientSize()
+        return y > h - (x * h / w)
+
+    def OnLeftDown(self, event):
+        self.SetPosition(event)        
+        if self.PositionOnTriangle(event.GetPositionTuple()):
+            self.dragging = True
+            self.CaptureMouse()
+
+    def OnLeftUp(self, event):
+        self.dragging = False
+        if self.HasCapture():
+            self.ReleaseMouse()
+
+    def OnMotion(self, event):
+        if event.LeftIsDown():
+            self.SetPosition(event)
+
+    def SetPosition(self, event):
+        mx, _ = event.GetPosition()
+        value = float(mx) / self.GetClientSize().x
+        if self.value != value and self.handler:
+            self.handler(value)
+        self.value = value
+        self.Refresh()
+
+    def SetVolumeHandler(self, handler):
+        self.handler = handler
+
+    def SetValue(self, value):
+        self.value = min(max(0.0, value), 1.0)
+        self.Refresh()
+
+    def OnEraseBackground(self, event):
+        pass
+
+    def OnPaint(self, event):
+        # Draw the background
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+        if getattr(self.GetParent(), 'bitmap', None):
+            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            sub = self.GetParent().bitmap.GetSubBitmap(rect)
+            dc.DrawBitmap(sub, 0, 0)
+        
+        w, h = self.GetClientSize()
+
+        gc = wx.GraphicsContext.Create(dc)
+
+        if self.value > 0.0:
+            path = gc.CreatePath()
+            path.MoveToPoint(0, h - 1)
+            path.AddLineToPoint(self.value * w, h - 1)
+            path.AddLineToPoint(self.value * w, (1 - self.value) * h)
+            path.AddLineToPoint(0, h - 1)
+            path.CloseSubpath()
+            gc.SetPen(wx.TRANSPARENT_PEN)
+            gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w, 0, wx.Colour(244, 172, 156), wx.Colour(241, 92, 62)))
+            gc.DrawPath(path)
+
+        path = gc.CreatePath()
+        path.MoveToPoint(0, h - 1)
+        path.AddLineToPoint(w - 1, h - 1)
+        path.AddLineToPoint(w - 1, 0)
+        path.AddLineToPoint(0, h - 1)
+        path.CloseSubpath()
+        gc.SetPen(wx.Pen(wx.Colour(241, 92, 62)))
+        gc.SetBrush(wx.TRANSPARENT_BRUSH)
+        gc.DrawPath(path)

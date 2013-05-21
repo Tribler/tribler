@@ -428,6 +428,17 @@ class VLCWrapper:
 
             self.media.set_media_position(pos)
 
+    def set_media_position_relative(self, position, start = False):
+        if not self.initialized:
+            self._init_vlc()
+        check_threading()
+        if DEBUG:
+            print >>sys.stderr,"VLCWrapper: set_position"
+
+        if self.VLC_MEDIACONTROL_API_VERSION == "0.3":
+            if start:
+                self.vlc.libvlc_media_player_play(self.player)
+            self.vlc.libvlc_media_player_set_position(self.player, position)
 
     def sound_set_volume(self, frac):
         """ frac is float 0..1 """

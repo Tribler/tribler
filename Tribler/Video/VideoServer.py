@@ -221,7 +221,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             else:
                 DEBUG = DEBUGCONTENT
 
-            if DEBUG:
+            if True or DEBUG:
                 print >>sys.stderr,"videoserv: do_GET: Got request",self.path,self.headers.getheader('range'),currentThread().getName()
                 #print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
 
@@ -353,7 +353,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.send_response(200)
 
 
-                if DEBUG:
+                if True or DEBUG:
                     print >>sys.stderr,"videoserv: do_GET: final range",firstbyte,lastbyte,nbytes2send,currentThread().getName()
 
 

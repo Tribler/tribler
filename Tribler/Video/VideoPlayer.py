@@ -295,9 +295,6 @@ class VideoPlayer:
             else:
                 selectedinfilename = videofiles[0][0]
 
-        if self.videoframe is not None:
-            self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
-
         print >> sys.stderr , "videoplay: play: PROGRESS" , ds.get_progress()
         complete = ds.get_progress() == 1.0 or ds.get_status() == DLSTATUS_SEEDING
 
@@ -500,9 +497,6 @@ class VideoPlayer:
             print >>sys.stderr,"videoplay: Starting new VOD/live Download",`cdef.get_name()`
 
             download = self.utility.session.start_download(cdef,dscfg)
-
-            if self.videoframe is not None:
-                self.videoframe.get_videopanel().SetLoadingText(selectedinfilename)
 
             self.set_vod_download(download)
             return download
