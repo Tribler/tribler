@@ -11,6 +11,7 @@ import string
 import time
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
+from Tribler.SiteRipper.pagenotfound import NotFoundFile
 
 class WebBrowser(XRCPanel):
     """WebView is a class that allows you to browse the worldwideweb."""
@@ -103,7 +104,7 @@ class WebBrowser(XRCPanel):
         """
         import Tribler.SiteRipper
         fs = wx.FileSystem()
-        notfoundpath = os.path.dirname(Tribler.SiteRipper.__file__) + os.sep + "pagenotfound.html"
+        notfoundpath = NotFoundFile.getFilenameCreate()
         notfoundurl = fs.FileNameToURL(notfoundpath) + "?" + url
         self.webview.LoadURL(notfoundurl)    
     
