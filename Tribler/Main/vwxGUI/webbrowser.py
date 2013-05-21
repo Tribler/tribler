@@ -38,6 +38,7 @@ class WebBrowser(XRCPanel):
     __cookieprocessor = urllib2.build_opener(urllib2.HTTPCookieProcessor()) # Redirection handler
     __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
     URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
+    __condonedredirect = False  #Have we allowed the webbrowser to switch pages
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -131,6 +132,7 @@ class WebBrowser(XRCPanel):
         """
         self.webview.Stop()
         if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
+            self.__condonedredirect = True
             self.__LoadURLFromLocal(url)
         else:
             self.__LoadURLFromInternet(url)
@@ -153,6 +155,7 @@ class WebBrowser(XRCPanel):
         """Load a webpage from a webpage Torrent created by the seed button"""
         webPage = WebPage()
         webPage.CreateFromFile(tarFileName)
+        self.__condonedredirect = True
         self.__loadHTMLSource(webPage.GetUrl(), webPage.GetContent())
         self.setViewMode(WebBrowser.WebViewModes['SWARM_CACHE'])
     
@@ -165,14 +168,20 @@ class WebBrowser(XRCPanel):
 
     def onURLLoading(self, event):
         """Actions to be taken when an URL start to be loaded."""
-        url = self.webview.GetCurrentURL()
         #Notify our sniffer that we are constructing a new WebPage
+        url = self.webview.GetCurrentURL()
         self.__sniffer.StartLoading(url, self.webview.GetPageSource())
+        #Avoid a page being able to leave swarm mode without our consent
+        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE'] and not self.__condonedredirect:
+            event.Veto()
+            self.LoadURL(event.GetURL())
+            return
         #Update the adressbar
         self.adressBar.SetValue(url)
     
     def onURLLoaded(self, event):
         """Actions to be taken when an URL is loaded."""
+        self.__condonedredirect = False
         #Remove temporary webpage files if we are in swarm mode
         if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             page = WebPage(self.webview.GetCurrentURL())
