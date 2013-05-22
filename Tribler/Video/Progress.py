@@ -159,6 +159,8 @@ class ProgressBar(wx.Panel):
         dc.DrawRoundedRectangle(x, y, maxw, maxh, 2)
 
     def set_pieces(self, blocks):
+        if not self:
+            return
         maxBlocks = max(self.GetClientRect().width, 100)
         haveBlocks = len(blocks)
 
