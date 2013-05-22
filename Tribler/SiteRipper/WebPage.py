@@ -18,14 +18,14 @@ class WebPage:
     
     __url = ''          # URL we represent
     __content = ''      # Raw web page content
-    ext = ''          # Extension of the webpage
+    __ext = ''            # Extension of the webpage
     __resourceDictionary = []
     __folderName = ''
     
     def __init__(self, url='', content=''):
         self.SetUrl(url)
         self.__content = content
-        self.ext = '.html'
+        self.__ext = '.html'
         
     def DownloadContent(self):
         """Downloads the web page pointed to by our url to memory
@@ -142,7 +142,7 @@ class WebPage:
     def CreateTar(self):
         """Create a tar file of the WebPage"""
         #Create folder
-        folderPath = WebPage.__GetDownloadsPath()
+        folderPath = WebPage.__GetDownloadsPath(self.GetUrl())
         self.__AssertFolder(folderPath + os.sep + self.__folderName[:-1])
         #Save content.
         self.__CreateHTMLFile()
@@ -158,8 +158,8 @@ class WebPage:
     
     def __CreateHTMLFile(self):
         """Saves the web page HTML to disk"""
-        fileName = WebPage.__GetDownloadsPath() + os.sep + self.__folderName + self.GetFileName(self.__url)
-        file = open(fileName + self.ext,'wb')
+        fileName = WebPage.__GetDownloadsPath(self.GetUrl()) + os.sep + self.__folderName + self.GetFileName(self.__url)
+        file = open(fileName + self.__ext,'wb')
         file.write(self.__content)
         file.close()
       
