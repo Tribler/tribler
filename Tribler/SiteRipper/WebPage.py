@@ -59,13 +59,13 @@ class WebPage:
             Note that this member does not download the actual page
             Nothing is set if url == ''.
         """
-        if not url:
+        if url:
             self.__url = url
             self.__folderName = self.GetFileName(url) + os.sep
     
     def CreateFromFile(self, tarFileName):
         """Create a web page from disk"""
-        folderPath = WebPage.__GetDownloadsPath()
+        folderPath = WebPage.__GetDownloadsPath(tarFileName)
         tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
         #Create tar folder
         self.__AssertFolder(tempPath)
@@ -83,7 +83,7 @@ class WebPage:
     def RemoveTempFiles(self, tarFileName):
         """Remove unpacked temp files used for page viewing
         """
-        folderPath = WebPage.__GetDownloadsPath()
+        folderPath = WebPage.__GetDownloadsPath(tarFileName)
         tempPath = folderPath + os.sep + 'Temp' + os.sep + tarFileName + os.sep
         self.__RemoveTarSourceFiles(tempPath)
         
@@ -186,7 +186,7 @@ class WebPage:
         """Returns the map of the resource pointed to by the url
         Args:
             url (str): URL pointing to the resource that needs to be downloaded."""
-        return WebPage.__GetDownloadsPath() + os.sep + self.__folderName + self.GetResourceFileName(url)
+        return WebPage.__GetDownloadsPath(url) + os.sep + self.__folderName + self.GetResourceFileName(url)
     
     @staticmethod
     def __GetDownloadsPath(self):
