@@ -3,8 +3,10 @@
 from datetime import datetime
 from string import printable
 
+
 class NotInterested(Exception):
     pass
+
 
 def _counter(start):
     assert isinstance(start, (int, long))
@@ -12,6 +14,7 @@ def _counter(start):
     while True:
         yield count
         count += 1
+
 
 def _ignore_seperator(offset, stream):
     assert isinstance(offset, (int, long))
@@ -21,15 +24,17 @@ def _ignore_seperator(offset, stream):
             return start
     raise ValueError()
 
+
 def _decode_str(offset, stream):
     assert isinstance(offset, (int, long))
     assert isinstance(stream, str)
     for split in _counter(offset):
         if stream[split] == ":":
             length = int(stream[offset:split])
-            return split + length + 1, stream[split+1:split+length+1]
+            return split + length + 1, stream[split + 1:split + length+1]
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
+
 
 def _decode_hex(offset, stream):
     assert isinstance(offset, (int, long))
@@ -37,9 +42,10 @@ def _decode_hex(offset, stream):
     for split in _counter(offset):
         if stream[split] == ":":
             length = int(stream[offset:split])
-            return split + length + 1, stream[split+1:split+length+1].decode("HEX")
+            return split + length + 1, stream[split + 1:split + length+1].decode("HEX")
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
+
 
 def _decode_unicode(offset, stream):
     assert isinstance(offset, (int, long))
@@ -47,9 +53,10 @@ def _decode_unicode(offset, stream):
     for split in _counter(offset):
         if stream[split] == ":":
             length = int(stream[offset:split])
-            return split + length + 1, stream[split+1:split+length+1].decode("UTF8")
+            return split + length + 1, stream[split + 1:split + length+1].decode("UTF8")
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
+
 
 def _decode_Hex(offset, stream):
     assert isinstance(offset, (int, long))
@@ -57,9 +64,10 @@ def _decode_Hex(offset, stream):
     for split in _counter(offset):
         if stream[split] == ":":
             length = int(stream[offset:split])
-            return split + length + 1, stream[split+1:split+length+1].decode("HEX").decode("UTF8")
+            return split + length + 1, stream[split + 1:split + length+1].decode("HEX").decode("UTF8")
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
+
 
 def _decode_int(offset, stream):
     assert isinstance(offset, (int, long))
@@ -68,12 +76,14 @@ def _decode_int(offset, stream):
         if not stream[split] in "1234567890-":
             return split, int(stream[offset:split])
 
+
 def _decode_long(offset, stream):
     assert isinstance(offset, (int, long))
     assert isinstance(stream, str)
     for split in _counter(offset):
         if not stream[split] in "1234567890-":
             return split, long(stream[offset:split])
+
 
 def _decode_float(offset, stream):
     assert isinstance(offset, (int, long))
@@ -82,23 +92,26 @@ def _decode_float(offset, stream):
         if not stream[split] in "1234567890-.e":
             return split, float(stream[offset:split])
 
+
 def _decode_boolean(offset, stream):
     assert isinstance(offset, (int, long))
     assert isinstance(stream, str)
-    if stream[offset:offset+4] == "True":
-        return offset+4, True
-    elif stream[offset:offset+5] == "False":
-        return offset+5, False
+    if stream[offset:offset + 4] == "True":
+        return offset + 4, True
+    elif stream[offset:offset + 5] == "False":
+        return offset + 5, False
     else:
         raise ValueError()
+
 
 def _decode_none(offset, stream):
     assert isinstance(offset, (int, long))
     assert isinstance(stream, str)
-    if stream[offset:offset+4] == "None":
-        return offset+4, None
+    if stream[offset:offset + 4] == "None":
+        return offset + 4, None
     else:
         raise ValueError("Expected None")
+
 
 def _decode_tuple(offset, stream):
     assert isinstance(offset, (int, long))
@@ -106,30 +119,31 @@ def _decode_tuple(offset, stream):
     for split in _counter(offset):
         if stream[split] in ":":
             length = int(stream[offset:split])
-            if not stream[split+1] == "(":
-                raise ValueError("Expected '('", stream[split+1])
-            offset = split + 2 # compensate for ':('
+            if not stream[split + 1] == "(":
+                raise ValueError("Expected '('", stream[split + 1])
+            offset = split + 2  # compensate for ':('
             l = []
             if length:
                 for index in range(length):
                     offset, value = _decode(offset, stream)
                     l.append(value)
 
-                    if index < length and stream[offset] == "," and stream[offset+1] == " ":
-                        offset += 2 # compensate for ', '
+                    if index < length and stream[offset] == "," and stream[offset + 1] == " ":
+                        offset += 2  # compensate for ', '
                     elif index == length - 1 and stream[offset] == ")":
-                        offset += 1 # compensate for ')'
+                        offset += 1  # compensate for ')'
                     else:
                         raise ValueError()
             else:
                 if not stream[offset] == ")":
-                    raise ValueError("Expected ')'", stream[split+1])
-                offset += 1 # compensate for ')'
+                    raise ValueError("Expected ')'", stream[split + 1])
+                offset += 1  # compensate for ')'
 
             return offset, tuple(l)
 
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
+
 
 def _decode_list(offset, stream):
     assert isinstance(offset, (int, long))
@@ -137,30 +151,31 @@ def _decode_list(offset, stream):
     for split in _counter(offset):
         if stream[split] in ":":
             length = int(stream[offset:split])
-            if not stream[split+1] == "[":
-                raise ValueError("Expected '['", stream[split+1])
-            offset = split + 2 # compensate for ':['
+            if not stream[split + 1] == "[":
+                raise ValueError("Expected '['", stream[split + 1])
+            offset = split + 2  # compensate for ':['
             l = []
             if length:
                 for index in range(length):
                     offset, value = _decode(offset, stream)
                     l.append(value)
 
-                    if index < length and stream[offset] == "," and stream[offset+1] == " ":
-                        offset += 2 # compensate for ', '
+                    if index < length and stream[offset] == "," and stream[offset + 1] == " ":
+                        offset += 2  # compensate for ', '
                     elif index == length - 1 and stream[offset] == "]":
-                        offset += 1 # compensate for ']'
+                        offset += 1  # compensate for ']'
                     else:
                         raise ValueError()
             else:
                 if not stream[offset] == "]":
-                    raise ValueError("Expected ']'", stream[split+1])
-                offset += 1 # compensate for ']'
+                    raise ValueError("Expected ']'", stream[split + 1])
+                offset += 1  # compensate for ']'
 
             return offset, l
 
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
+
 
 def _decode_dict(offset, stream):
     assert isinstance(offset, (int, long))
@@ -168,9 +183,9 @@ def _decode_dict(offset, stream):
     for split in _counter(offset):
         if stream[split] in ":":
             length = int(stream[offset:split])
-            if not stream[split+1] == "{":
-                raise ValueError("Expected '{'", stream[split+1])
-            offset = split + 2 # compensate for ':{'
+            if not stream[split + 1] == "{":
+                raise ValueError("Expected '{'", stream[split + 1])
+            offset = split + 2  # compensate for ':{'
             d = {}
             for index in range(length):
                 offset, key = _decode(offset, stream)
@@ -178,14 +193,14 @@ def _decode_dict(offset, stream):
                     raise ValueError("Duplicate map entry", key)
                 if not stream[offset] == ":":
                     raise ValueError("Expected ':'", stream[offset])
-                offset += 1 # compensate for ':'
+                offset += 1  # compensate for ':'
                 offset, value = _decode(offset, stream)
                 d[key] = value
 
-                if index < length and stream[offset] == "," and stream[offset+1] == " ":
-                    offset += 2 # compensate for ', '
+                if index < length and stream[offset] == "," and stream[offset + 1] == " ":
+                    offset += 2  # compensate for ', '
                 elif index == length - 1 and stream[offset] == "}":
-                    offset += 1 # compensate for '}'
+                    offset += 1  # compensate for '}'
                 else:
                     raise ValueError()
 
@@ -194,11 +209,13 @@ def _decode_dict(offset, stream):
         elif not stream[split] in "1234567890":
             raise ValueError("Can not decode string length", stream[split])
 
+
 def _decode(offset, stream):
     if stream[offset] in _decode_mapping:
         return _decode_mapping[stream[offset]](offset + 1, stream)
     else:
         raise ValueError("Can not decode {0}".format(stream[offset]))
+
 
 def parse_line(stream, lineno=-1, interests=[]):
     assert isinstance(stream, str)
@@ -207,7 +224,7 @@ def parse_line(stream, lineno=-1, interests=[]):
     offset = _ignore_seperator(14, stream)
     if not stream[offset] == "s":
         raise ValueError("Expected a string encoded message")
-    offset, message = _decode_str(offset+1, stream)
+    offset, message = _decode_str(offset + 1, stream)
 
     try:
         if not interests or message in interests:
@@ -226,10 +243,11 @@ def parse_line(stream, lineno=-1, interests=[]):
                         raise ValueError("Can not decode character", stream[split], "on line", lineno, "offset", offset)
 
             return lineno, stamp, message, kargs
-    except Exception, e:
+    except Exception as e:
         raise ValueError("Cannot read line", str(e), "on line", lineno)
 
     raise NotInterested(message)
+
 
 def parse(filename, interests=[]):
     """
@@ -250,8 +268,9 @@ def parse(filename, interests=[]):
             yield parse_line(stream, lineno, interests)
         except NotInterested:
             pass
-        except Exception, exception:
+        except Exception as exception:
             print "#", exception
+
 
 def parse_frequencies(filename, select=None):
     """
@@ -333,18 +352,19 @@ def parse_frequencies(filename, select=None):
     else:
         return parse_without_select()
 
+
 def print_frequencies(frequencies, merge=None, limit=8):
     def print_helper(freq, total):
         for count, value in sorted([(count, value) for value, count in freq.iteritems()], reverse=True)[:limit]:
             if isinstance(value, str):
                 for char in value:
                     if not char in printable:
-                        print "{0:5} {1:4.0%}:  {2}".format(count, 1.0*count/total, value.encode("HEX"))
+                        print "{0:5} {1:4.0%}:  {2}".format(count, 1.0 * count / total, value.encode("HEX"))
                         break
                 else:
-                    print "{0:5} {1:4.0%}:  {2}".format(count, 1.0*count/total, value)
+                    print "{0:5} {1:4.0%}:  {2}".format(count, 1.0 * count / total, value)
             else:
-                print "{0:5} {1:4.0%}:  {2}".format(count, 1.0*count/total, value)
+                print "{0:5} {1:4.0%}:  {2}".format(count, 1.0 * count / total, value)
 
     def print_with_merge():
         freq = {}
@@ -367,7 +387,7 @@ def print_frequencies(frequencies, merge=None, limit=8):
         for message, (msg_count, key_freq) in frequencies.iteritems():
             print ">>>>> {0:20}   {1:5}      <<<<<".format(message, msg_count)
             for key, (key_count, value_freq) in key_freq.iteritems():
-                print ">     {0:20}   {1:5} {2:4.0%}     <".format(key, key_count, 1.0*key_count/msg_count)
+                print ">     {0:20}   {1:5} {2:4.0%}     <".format(key, key_count, 1.0 * key_count / msg_count)
                 print_helper(value_freq, key_count)
             print
 
@@ -377,15 +397,15 @@ def print_frequencies(frequencies, merge=None, limit=8):
         print_without_merge()
 
 _valid_key_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
-_decode_mapping = {"s":_decode_str,
-                   "h":_decode_hex,
-                   "u":_decode_unicode,
-                   "H":_decode_Hex,
-                   "i":_decode_int,
-                   "j":_decode_long,
-                   "f":_decode_float,
-                   "b":_decode_boolean,
-                   "n":_decode_none,
-                   "t":_decode_tuple,
-                   "l":_decode_list,
-                   "m":_decode_dict}
+_decode_mapping = {"s": _decode_str,
+                   "h": _decode_hex,
+                   "u": _decode_unicode,
+                   "H": _decode_Hex,
+                   "i": _decode_int,
+                   "j": _decode_long,
+                   "f": _decode_float,
+                   "b": _decode_boolean,
+                   "n": _decode_none,
+                   "t": _decode_tuple,
+                   "l": _decode_list,
+                   "m": _decode_dict}

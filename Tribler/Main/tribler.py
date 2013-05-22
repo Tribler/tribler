@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#########################################################################
+#
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 #
@@ -10,7 +10,7 @@
 #               need Python, WxPython in order to run from source code.
 #
 # see LICENSE.txt for license information
-#########################################################################
+#
 
 import logging.config
 logging.config.fileConfig("logger.conf")  # , disable_existing_loggers = False)
@@ -36,7 +36,8 @@ urllib.URLopener.open_https = original_open_https
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
 
-import os, sys
+import os
+import sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.dispersy import Dispersy
@@ -50,7 +51,7 @@ from threading import current_thread, currentThread
 try:
     prctlimported = True
     import prctl
-except ImportError, e:
+except ImportError as e:
     prctlimported = False
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
@@ -81,7 +82,7 @@ import thread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame, VideoMacFrame
-# # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
+# from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
@@ -130,14 +131,17 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = False
 
-##############################################################
+#
 #
 # Class : ABCApp
 #
 # Main ABC application class that contains ABCFrame Object
 #
-##############################################################
+#
+
+
 class ABCApp():
+
     def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -324,8 +328,8 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
@@ -334,7 +338,7 @@ class ABCApp():
 
             self.ready = True
 
-        except Exception, e:
+        except Exception as e:
             self.onError(e)
             return False
 
@@ -365,6 +369,7 @@ class ABCApp():
 
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
+
         def db_thread():
             return channelcast.getMyChannelId()
 
@@ -450,11 +455,11 @@ class ABCApp():
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
-                                           (s.dispersy_member,),
-                                           load=True)
+                                     (s.dispersy_member,),
+                                     load=True)
             dispersy.define_auto_load(AllChannelCommunity,
                                            (s.dispersy_member,),
-                                           {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                           {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
             if swift_process:
                 dispersy.define_auto_load(BarterCommunity,
@@ -556,12 +561,12 @@ class ABCApp():
             if DEBUG:
                 if self.ratestatecallbackcount % 5 == 0:
                     for ds in dslist:
-                        safename = `ds.get_download().get_def().get_name()`
+                        safename = repr(ds.get_download().get_def().get_name())
                         if DEBUG:
                             print >> sys.stderr, "%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            print >> sys.stderr, "main: Error:", `ds.get_error()`
+                            print >> sys.stderr, "main: Error:", repr(ds.get_error())
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -607,7 +612,7 @@ class ABCApp():
                     videoplayer_mediastate = self.videoplayer.get_state()
 
                     totalhelping = 0
-                    totalspeed = {UPLOAD:0.0, DOWNLOAD:0.0}
+                    totalspeed = {UPLOAD: 0.0, DOWNLOAD: 0.0}
                     for ds in dslist:
                         totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
                         totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
@@ -1094,6 +1099,7 @@ class ABCApp():
             print_exc()
             raise
 
+
 def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, decodeprogress, totalhelping, totalspeed):
 
     intime = "Not playing for quite some time."
@@ -1229,11 +1235,11 @@ def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, de
     return [topmsg, msg, said_start_playback, decodeprogress]
 
 
-##############################################################
+#
 #
 # Main Program Start Here
 #
-##############################################################
+#
 @attach_profiler
 def run(params=None):
     if params is None:

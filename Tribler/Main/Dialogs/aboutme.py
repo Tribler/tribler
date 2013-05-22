@@ -7,15 +7,18 @@ from threading import Thread
 from traceback import print_exc
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
-################################################################
+#
 #
 # Class: MyHtmlWindow
 #
 # Helper class to display html in a panel and handle clicking
 # on urls.
 #
-################################################################
+#
+
+
 class MyHtmlWindow(html.HtmlWindow):
+
     def __init__(self, parent, id):
         html.HtmlWindow.__init__(self, parent, id, size=(400, 300))
         self.Bind(wx.EVT_SCROLLWIN, self.OnScroll)
@@ -24,20 +27,21 @@ class MyHtmlWindow(html.HtmlWindow):
         event.Skip()
 
     def OnLinkClicked(self, linkinfo):
-        t = Thread(target = open_new(linkinfo.GetHref()))
-        t.setName( "AboutMeLinkOpen"+t.getName() )
+        t = Thread(target=open_new(linkinfo.GetHref()))
+        t.setName("AboutMeLinkOpen" +t.getName())
         t.setDaemon(True)
         t.start()
 
 
-################################################################
+#
 #
 # Class: MyHtmlDialog
 #
 # Displays html formatted information in a dialog
 #
-################################################################
+#
 class MyHtmlDialog(wx.Dialog):
+
     def __init__(self, parent, title, content):
         wx.Dialog.__init__(self, parent, -1, title)
 
@@ -59,7 +63,7 @@ class MyHtmlDialog(wx.Dialog):
         buttonbox.Add(btn, 0, wx.ALL, 5)
 
         outerbox = wx.BoxSizer(wx.VERTICAL)
-        outerbox.Add(self.html, 0, wx.EXPAND|wx.ALL, 5)
+        outerbox.Add(self.html, 0, wx.EXPAND | wx.ALL, 5)
         outerbox.Add(buttonbox, 0, wx.ALIGN_CENTER)
 
         self.SetAutoLayout(True)
@@ -67,20 +71,21 @@ class MyHtmlDialog(wx.Dialog):
         self.Fit()
 
 
-################################################################
+#
 #
 # Class: VersionDialog
 #
 # Show information about the current version of ABC
 #
-################################################################
+#
 class VersionDialog(MyHtmlDialog):
+
     def __init__(self, parent):
         self.parent = parent
         self.utility = parent.utility
 
         content = ""
-        try :
+        try:
             nu = self.hasNewVersion()
             if nu == 0:
                 content += "<FONT SIZE=+1>"
@@ -106,12 +111,11 @@ class VersionDialog(MyHtmlDialog):
 
         MyHtmlDialog.__init__(self, parent, title, content)
 
-
     def hasNewVersion(self):
         my_version = self.utility.getVersion()
         try:
             # Arno: TODO: don't let this be done by MainThread
-            curr_status = urlOpenTimeout('http://tribler.org/version/',timeout=1).readlines()
+            curr_status = urlOpenTimeout('http://tribler.org/version/', timeout=1).readlines()
             line1 = curr_status[0]
             if len(curr_status) > 1:
                 self.update_url = curr_status[1].strip()
@@ -149,15 +153,18 @@ class VersionDialog(MyHtmlDialog):
                 return False
         return False
 
-################################################################
+#
 #
 # Class: AboutMeDialog
 #
 # Display credits information about who has contributed to ABC
 # along with what software modules it uses.
 #
-################################################################
+#
+
+
 class AboutMeDialog(MyHtmlDialog):
+
     def __init__(self, parent):
 
         self.parent = parent
@@ -169,27 +176,26 @@ class AboutMeDialog(MyHtmlDialog):
 
         title = self.utility.lang.get('aboutabc')
 
-#        # Start UI in Dialog
-#        #######################
+# Start UI in Dialog
+#
 #
 #        btn = wx.Button(self, wx.ID_OK, " OK ")
 #        btn.SetDefault()
 #
 #        color = self.GetBackgroundColour()
-#        bgcolor = "#%02x%02x%02x" % (color.Red(), color.Green(), color.Blue())
+# bgcolor = "#%02x%02x%02x" % (color.Red(), color.Green(), color.Blue())
 
         wx_version = ""
         for v in wx.VERSION:
-            s = str(v)+"."
+            s = str(v) + "."
             wx_version += s
         wx_version = wx_version.strip(".")
 
         major, minor, micro, releaselevel, serial = sys.version_info
         python_version = str(major) + "." + str(minor) + "." + str(micro)
 
-
         content =    "<B><CENTER>" + \
-                       self.utility.lang.get('title') + " V" + self.utility.lang.get('version') + \
+            self.utility.lang.get('title') + " V" + self.utility.lang.get('version') + \
                      "</CENTER></B>" + \
                      "<FONT SIZE=-1>" + \
                      "<CENTER><BR>" + self.utility.lang.get('build_date') + "</CENTER>" + \

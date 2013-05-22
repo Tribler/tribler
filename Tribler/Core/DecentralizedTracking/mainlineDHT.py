@@ -19,10 +19,11 @@ if sys.version.split()[0] >= '2.5':
         import Tribler.Core.DecentralizedTracking.pymdht.plugins.lookup_a4 as lookup_mod
         import Tribler.Core.DecentralizedTracking.pymdht.core.exp_plugin_template as experimental_m_mod
         dht_imported = True
-    except (ImportError), e:
+    except (ImportError) as e:
         print_exc()
 
 dht = None
+
 
 def init(addr, conf_path):
     global dht
@@ -48,9 +49,11 @@ def init(addr, conf_path):
 
     return dht
 
+
 def control():
     import pdb
     pdb.set_trace()
+
 
 def deinit():
     global dht

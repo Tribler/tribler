@@ -5,15 +5,16 @@
 This module implements a console interface to a UPnP server.
 """
 
-##############################################
+#
 # UPNP SERVER CONSOLE
-##############################################
+#
 
 from upnpserver import UPnPServer
 from Tribler.UPnP.services import SwitchPower, URLService
 from Tribler.UPnP.services import BookmarkService
 from Tribler.UPnP.common.objectconsole import ObjectConsole
 from Tribler.UPnP.common.taskrunner import TaskRunner
+
 
 class UPnPServerConsole:
 
@@ -67,17 +68,14 @@ class UPnPServerConsole:
         self._server.close()
         self._task_runner.stop()
 
-
     def run(self):
         """Runs the UPnP Console."""
         self._console.run()
 
 
-
-##############################################
+#
 # MAIN
-##############################################
-
+#
 if __name__ == '__main__':
 
     UPnPServerConsole().run()

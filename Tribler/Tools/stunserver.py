@@ -15,24 +15,26 @@ DEBUG = True
 
 
 # Print usage information
-def usage() :
+def usage():
 
     print "Usage:"
     print "     python natserver.py <serverport> <bounceip> <bounceport>"
 
 
 # Serve client connections (if server 1 or 2)
-def servemain(bounceaddr, serveraddr) :
+def servemain(bounceaddr, serveraddr):
 
     # Set up the sockets
-    try :
+    try:
         udpsock = socket(AF_INET, SOCK_DGRAM)
-        udpsock.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
+        udpsock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         udpsock.bind(serveraddr)
 
-    except error, (errno, strerror) :
+    except error as xxx_todo_changeme4:
 
-        if udpsock :
+        (errno, strerror) = xxx_todo_changeme4.args
+
+        if udpsock:
             udpsock.close()
 
         if DEBUG:
@@ -41,24 +43,23 @@ def servemain(bounceaddr, serveraddr) :
 
         sys.exit(1)
 
-    try :
+    try:
         udpsock.setblocking(0)
-    except error :
+    except error:
         pass
 
-
     # Loop forever receiving messages and sending pings
-    while 1 :
+    while True:
 
         if DEBUG:
             print >> sys.stderr, serveraddr, "Waiting for connection..."
 
-        try :
-            ready_to_read, ready_to_write, errors = select.select([udpsock],[],[])
+        try:
+            ready_to_read, ready_to_write, errors = select.select([udpsock], [], [])
 
         except (KeyboardInterrupt, SystemExit):
 
-            if udpsock :
+            if udpsock:
                 udpsock.close()
 
             if DEBUG:
@@ -66,9 +67,11 @@ def servemain(bounceaddr, serveraddr) :
 
             sys.exit(1)
 
-        except select.error, (errno, strerror) :
+        except select.error as xxx_todo_changeme2:
 
-            if udpsock :
+            (errno, strerror) = xxx_todo_changeme2.args
+
+            if udpsock:
                 udpsock.close()
 
             if DEBUG:
@@ -76,25 +79,26 @@ def servemain(bounceaddr, serveraddr) :
 
             sys.exit(1)
 
-        for i in ready_to_read :
+        for i in ready_to_read:
 
             if DEBUG:
                 print >> sys.stderr, "Incoming connection..."
 
             # Serve udp connections
-            if i == udpsock :
+            if i == udpsock:
 
                 BUFSIZ = 1024
                 try:
                     data, clientaddr = udpsock.recvfrom(BUFSIZ)
                     print >> sys.stderr, strftime("%Y/%m/%d %H:%M:%S"), "...connected from:", clientaddr
 
-                except error, (errno, strerr) :
+                except error as xxx_todo_changeme1:
+                    (errno, strerr) = xxx_todo_changeme1.args
                     if DEBUG:
                         print >> sys.stderr, strerr
                     break
 
-                if data == "ping1" : # The client is running Test I
+                if data == "ping1":  # The client is running Test I
 
                     if DEBUG:
                         print >> sys.stderr, "received ping1"
@@ -105,7 +109,7 @@ def servemain(bounceaddr, serveraddr) :
                     except:
                         break
 
-                if data == "ping2": # The client is running Test II
+                if data == "ping2":  # The client is running Test II
 
                     if DEBUG:
                         print >> sys.stderr, "received ping2"
@@ -119,24 +123,26 @@ def servemain(bounceaddr, serveraddr) :
                         print >> sys.stderr, "bounce request is", reply
                         print >> sys.stderr, "bounce request sent to ", (bounceaddr)
 
-                if data == "ping3" :  # The client is running Test III
+                if data == "ping3":  # The client is running Test III
 
                     if DEBUG:
                         print >> sys.stderr, "received ping3"
 
                     # Create a new socket and bind it to a different port
-                    try :
+                    try:
 
-                        #serveraddr2 = (gethostbyname(gethostname()), int(sys.argv[1]) + 5)
+                        # serveraddr2 = (gethostbyname(gethostname()), int(sys.argv[1]) + 5)
                         serveraddr2 = (serveraddr[0], serveraddr[1] + 5)
                         udpsock2 = socket(AF_INET, SOCK_DGRAM)
                         udpsock2.bind(serveraddr2)
                         if DEBUG:
                             print >> sys.stderr, "new socket bind at ", serveraddr2
 
-                    except error, (errno, strerror) :
+                    except error as xxx_todo_changeme:
 
-                        if udpsock2 :
+                        (errno, strerror) = xxx_todo_changeme.args
+
+                        if udpsock2:
                             udpsock2.close()
 
                         if DEBUG:
@@ -145,7 +151,7 @@ def servemain(bounceaddr, serveraddr) :
                         break
 
                     # Send an echo back to the client using the new socket
-                    reply =  "%s:%s " % (clientaddr[0], clientaddr[1])
+                    reply = "%s:%s " % (clientaddr[0], clientaddr[1])
                     print >> sys.stderr, "send an echo back to the client using the new socket... reply=", reply, "clientaddr=", clientaddr
                     udpsock2.sendto(reply, clientaddr)
 
@@ -155,16 +161,16 @@ def servemain(bounceaddr, serveraddr) :
                     if DEBUG:
                         print >> sys.stderr, "data is: ", data
 
-                    try :
+                    try:
                         host, port = data.split(":")
 
-                    except (ValueError) :
+                    except (ValueError):
                         break
 
-                    try :
+                    try:
                         bouncedest = (host, int(port))
 
-                    except ValueError :
+                    except ValueError:
                         break
 
                     try:
@@ -174,23 +180,23 @@ def servemain(bounceaddr, serveraddr) :
                     if DEBUG:
                         print >> sys.stderr, "Bounceping sent to", bouncedest
 
-
     udpsock.close()
 
 
-
 # Serve bounce connections
-def bouncemain(serveraddr) :
+def bouncemain(serveraddr):
 
     # Set up the sockets
-    try :
+    try:
         udpsock = socket(AF_INET, SOCK_DGRAM)
-        udpsock.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
+        udpsock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         udpsock.bind(serveraddr)
 
-    except error, (errno, strerror) :
+    except error as xxx_todo_changeme5:
 
-        if udpsock :
+        (errno, strerror) = xxx_todo_changeme5.args
+
+        if udpsock:
             udpsock.close()
 
         if DEBUG:
@@ -198,24 +204,23 @@ def bouncemain(serveraddr) :
 
         sys.exit(1)
 
-    try :
+    try:
         udpsock.setblocking(0)
-    except error :
+    except error:
         pass
 
-
     # Loop forever receiving messages and sending pings
-    while 1 :
+    while True:
 
         if DEBUG:
-            print >> sys.stderr, serveraddr,  "Waiting for connection..."
+            print >> sys.stderr, serveraddr, "Waiting for connection..."
 
-        try :
-            ready_to_read, ready_to_write, errors = select.select([udpsock],[],[])
+        try:
+            ready_to_read, ready_to_write, errors = select.select([udpsock], [], [])
 
         except (KeyboardInterrupt, SystemExit):
 
-            if udpsock :
+            if udpsock:
                 udpsock.close()
 
             if DEBUG:
@@ -223,9 +228,11 @@ def bouncemain(serveraddr) :
 
             sys.exit(1)
 
-        except select.error, (errno, strerror) :
+        except select.error as xxx_todo_changeme3:
 
-            if udpsock :
+            (errno, strerror) = xxx_todo_changeme3.args
+
+            if udpsock:
                 udpsock.close()
 
             if DEBUG:
@@ -233,14 +240,13 @@ def bouncemain(serveraddr) :
 
             sys.exit(1)
 
-        for i in ready_to_read :
+        for i in ready_to_read:
 
             if DEBUG:
                 print >> sys.stderr, "Incoming connection..."
 
-
             # Serve udp connections
-            if i == udpsock :
+            if i == udpsock:
 
                 BUFSIZ = 1024
                 data, clientaddr = udpsock.recvfrom(BUFSIZ)
@@ -248,16 +254,16 @@ def bouncemain(serveraddr) :
                 if DEBUG:
                     print >> sys.stderr, "data is: ", data
 
-                try :
+                try:
                     host, port = data.split(":")
 
-                except (ValueError) :
+                except (ValueError):
                     break
 
-                try :
+                try:
                     bouncedest = (host, int(port))
 
-                except ValueError :
+                except ValueError:
                     break
 
                 try:
@@ -270,32 +276,31 @@ def bouncemain(serveraddr) :
     udpsock.close()
 
 
-
-if __name__=="__main__" :
+if __name__ == "__main__":
 
     # Server initialization
 
-    if len(sys.argv) != (4) :
+    if len(sys.argv) != (4):
         usage()
         sys.exit(1)
 
     bounceaddr = None
     serveraddr = None
 
-    try :
+    try:
         bounceaddr = (sys.argv[2], int(sys.argv[3]))
 
-    except ValueError, strerror :
+    except ValueError as strerror:
         if DEBUG:
             print >> sys.stderr, "ValueError: ", strerror
         usage()
         sys.exit(1)
 
-    try :
-        #serveraddr = (gethostbyname(gethostname()), int(sys.argv[1]))
+    try:
+        # serveraddr = (gethostbyname(gethostname()), int(sys.argv[1]))
         serveraddr = ("0.0.0.0", int(sys.argv[1]))
 
-    except ValueError, strerror :
+    except ValueError as strerror:
         if DEBUG:
             print >> sys.stderr, "ValueError: ", strerror
         usage()
@@ -306,8 +311,8 @@ if __name__=="__main__" :
         try:
             if DEBUG:
                 print >> sys.stderr, strftime("%Y/%m/%d %H:%M:%S"), "Stun server started"
-            #thread.start_new_thread(servemain, (bounceaddr, serveraddr) )
-            #bouncemain(serveraddr)
+            # thread.start_new_thread(servemain, (bounceaddr, serveraddr) )
+            # bouncemain(serveraddr)
             servemain(bounceaddr, serveraddr)
 
         except (KeyboardInterrupt, SystemExit):
@@ -317,6 +322,6 @@ if __name__=="__main__" :
 
             sys.exit(1)
 
-        #except:
-            #if DEBUG:
-                #print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]
+        # except:
+            # if DEBUG:
+                # print >> sys.stderr, "Unexpected error:", sys.exc_info()[0]

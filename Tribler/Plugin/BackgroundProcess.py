@@ -182,12 +182,11 @@ class BackgroundApp(BaseApp):
             print >> sys.stderr, "bg: Awaiting commands"
             return True
 
-        except Exception, e:
+        except Exception as e:
             print_exc()
             self.show_error(str(e))
             self.OnExit()
             return False
-
 
     #
     # InstanceConnectionHandler interface. Called by Instance2InstanceThread
@@ -200,7 +199,7 @@ class BackgroundApp(BaseApp):
 
         # Arno: Concurrency problems getting SEARCHURL message to work,
         # JavaScript can't always read it. TODO
-        # #ic.searchurl(self.searchurl)
+        # ic.searchurl(self.searchurl)
 
     def connection_lost(self, s):
         if DEBUG:
@@ -240,7 +239,7 @@ class BackgroundApp(BaseApp):
             # Arno, 2010-08-01: Restored old behaviour for live. Zapping
             # more important than extra robustness.
             #
-            d_delayed_remove_if_lambda = lambda:self.i2ithread_delayed_remove_if_not_complete(d2remove)
+            d_delayed_remove_if_lambda = lambda: self.i2ithread_delayed_remove_if_not_complete(d2remove)
             # h4x0r, abuse Istance2Instance server task queue for the delay
             self.i2is.add_task(d_delayed_remove_if_lambda, 10.0)
 
@@ -269,8 +268,7 @@ class BackgroundApp(BaseApp):
                     stream.close()  # Close original stream.
                 del self.dusers[d2remove]
             elif DEBUG:
-                print >> sys.stderr, "bg: remove_playing_download: No, someone interested", `duser['uic']`
-
+                print >> sys.stderr, "bg: remove_playing_download: No, someone interested", repr(duser['uic'])
 
     def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
@@ -326,7 +324,7 @@ class BackgroundApp(BaseApp):
                 ic.set_supported_vod_events([VODEVENT_START])
             else:
                 raise ValueError('bg: Unknown command: ' + cmd)
-        except Exception, e:
+        except Exception as e:
             print_exc()
             # Arno, 2010-05-27: Don't kill Control connection, for set_p2ptarget
             ic.error(str(e))
@@ -389,7 +387,7 @@ class BackgroundApp(BaseApp):
                     print >> sys.stderr, "bg: get_torrent_start_download: Restarting old Download in VOD mode"
 
             d = self.start_download(tdef, dlfile, poa, ic.get_supported_vod_events())
-            duser = {'uic':ic}
+            duser = {'uic': ic}
             self.dusers[d] = duser
         else:
             # oldd is already running in VOD mode. If it's a VOD torrent we
@@ -491,10 +489,9 @@ class BackgroundApp(BaseApp):
                 # 2010-08-10: not when file complete on disk ;-)
                 stream = AtBitrateStream(stream, params['bitrate'])
 
-
             blocksize = d.get_def().get_piece_length()
             # Ric: add svc on streaminfo, added bitrate
-            streaminfo = { 'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'], 'blocksize':blocksize, 'svc': d.get_mode() == DLMODE_SVC, 'bitrate': params['bitrate'] }
+            streaminfo = {'mimetype': params['mimetype'], 'stream': stream, 'length': params['length'], 'blocksize': blocksize, 'svc': d.get_mode() == DLMODE_SVC, 'bitrate': params['bitrate']}
 
             duser = self.dusers[d]
             duser['streaminfo'] = streaminfo
@@ -519,10 +516,9 @@ class BackgroundApp(BaseApp):
                 duser['uic'].resume()
             self.approxplayerstate = MEDIASTATE_PLAYING
 
-
     def get_supported_vod_events(self):
         # See BGInstanceConnection.set_supported_vod_events() too.
-        return [ VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME ]
+        return [VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME]
 
     #
     # VideoServer status/error reporting
@@ -560,10 +556,14 @@ class BackgroundApp(BaseApp):
                     b64_infohash = b64encode(dw.get_def().get_infohash())
                     vod_stats = ds.get_vod_stats()
                     # if vod_stats_has_key("prebuf"): event_reporter.add_event(b64_infohash, "prebufp:%d" % vod_stats['prebuf']) # prebuffering time that was needed
-                    if vod_stats.has_key("stall"): event_reporter.create_and_add_event("stall", [b64_infohash, vod_stats['stall']])  # time the player stalled
-                    if vod_stats.has_key("late"): event_reporter.create_and_add_event("late", [b64_infohash, vod_stats['late']])  # number of pieces arrived after they were due
-                    if vod_stats.has_key("dropped"): event_reporter.create_and_add_event("dropped", [b64_infohash, vod_stats['dropped']])  # number of pieces lost
-                    if vod_stats.has_key("pos"): event_reporter.create_and_add_event("pos", [b64_infohash, vod_stats['pos']])  # playback position
+                    if "stall" in vod_stats:
+                        event_reporter.create_and_add_event("stall", [b64_infohash, vod_stats['stall']])  # time the player stalled
+                    if "late" in vod_stats:
+                        event_reporter.create_and_add_event("late", [b64_infohash, vod_stats['late']])  # number of pieces arrived after they were due
+                    if "dropped" in vod_stats:
+                        event_reporter.create_and_add_event("dropped", [b64_infohash, vod_stats['dropped']])  # number of pieces lost
+                    if "pos" in vod_stats:
+                        event_reporter.create_and_add_event("pos", [b64_infohash, vod_stats['pos']])  # playback position
 
     def gui_webui_remove_download(self, d2remove):
         """ Called when user has decided to remove a specific DL via webUI """
@@ -571,20 +571,17 @@ class BackgroundApp(BaseApp):
             print >> sys.stderr, "bg: gui_webui_remove_download"
         self.gui_webui_halt_download(d2remove, stop=False)
 
-
     def gui_webui_stop_download(self, d2stop):
         """ Called when user has decided to stop a specific DL via webUI """
         if DEBUG:
             print >> sys.stderr, "bg: gui_webui_stop_download"
         self.gui_webui_halt_download(d2stop, stop=True)
 
-
     def gui_webui_restart_download(self, d2restart):
         """ Called when user has decided to restart a specific DL via webUI for sharing """
-        duser = {'uic':None}
+        duser = {'uic': None}
         self.dusers[d2restart] = duser
         d2restart.restart()
-
 
     def gui_webui_halt_download(self, d2halt, stop=False):
         """ Called when user has decided to stop or remove a specific DL via webUI.
@@ -607,7 +604,6 @@ class BackgroundApp(BaseApp):
         else:
             BaseApp.remove_playing_download(self, d2halt)
 
-
     def gui_webui_remove_all_downloads(self, ds2remove):
         """ Called when user has decided to remove all DLs via webUI """
         if DEBUG:
@@ -616,7 +612,6 @@ class BackgroundApp(BaseApp):
         for d2remove in ds2remove:
             self.gui_webui_halt_download(d2remove, stop=False)
 
-
     def gui_webui_stop_all_downloads(self, ds2stop):
         """ Called when user has decided to stop all DLs via webUI """
         if DEBUG:
@@ -624,7 +619,6 @@ class BackgroundApp(BaseApp):
 
         for d2stop in ds2stop:
             self.gui_webui_halt_download(d2stop, stop=True)
-
 
     def gui_webui_restart_all_downloads(self, ds2restart):
         """ Called when user has decided to restart all DLs via webUI """
@@ -667,7 +661,6 @@ class BGInstanceConnection(InstanceConnection):
         self.cstreaminfo = {}
         self.shutteddown = False
         self.supportedvodevents = [VODEVENT_START, VODEVENT_PAUSE, VODEVENT_RESUME]
-
 
     def set_streaminfo(self, streaminfo):
         """ Copy streaminfo contents and replace stream with a ControlledStream """
@@ -713,11 +706,10 @@ class BGInstanceConnection(InstanceConnection):
             try:
                 # TODO: get rid of del_inputstream lock
                 # Arno, 2009-12-11: Take this out of critical path on MainThread
-                http_del_inputstream_lambda = lambda:self.videoHTTPServer.del_inputstream(self.urlpath)
+                http_del_inputstream_lambda = lambda: self.videoHTTPServer.del_inputstream(self.urlpath)
                 self.bgapp.tqueue.add_task(http_del_inputstream_lambda, 0)
             except:
                 print_exc()
-
 
     def get_video_url(self):
         return 'http://127.0.0.1:' + str(self.videoHTTPServer.get_port()) + self.urlpath
@@ -765,6 +757,7 @@ class BGInstanceConnection(InstanceConnection):
 
 
 class ControlledStream:
+
     """ A file-like object that throws EOF when closed, without actually closing
     the underlying inputstream. See BGInstanceConnection.set_streaminfo() for
     an explanation on how this is used.
@@ -786,7 +779,9 @@ class ControlledStream:
         self.done = True
         # DO NOT close original stream
 
+
 class AtBitrateStream:
+
     """ Give from playback position plus a safe margin at video bitrate speed.
         On seeking resync the playback position and the safe margin.
     """
@@ -863,11 +858,11 @@ class AtBitrateStream:
         # DO NOT close original stream
 
 
-##############################################################
+#
 #
 # Main Program Start Here
 #
-##############################################################
+#
 def run_bgapp(appname, appversion, i2iport, sessport, httpport, params=None, killonidle=False):
     """ Set sys.argv[1] to "--nopause" to inform the Core that the player
     doesn't support VODEVENT_PAUSE, e.g. the SwarmTransport.

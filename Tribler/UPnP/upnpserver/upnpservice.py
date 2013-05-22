@@ -14,13 +14,15 @@ import uuid
 import exceptions
 import Tribler.UPnP.common.upnpmarshal as upnpmarshal
 
+
 class ActionError (exceptions.Exception):
+
     """Error associated with invoking actions on a UPnP Server. """
     pass
 
-##############################################
+#
 # XML FMT
-##############################################
+#
 
 _SERVICE_DESCRIPTION_FMT = """<?xml version="1.0"?>
 <scpd xmlns="urn:schemas-upnp-org:service-1-0">
@@ -61,6 +63,7 @@ _ARG_VARIABLE_FMT = """<stateVariable sendEvents="no">
 </stateVariable>
 """
 
+
 def _service_description_toxml(service):
     """This function produces the UPnP XML service description."""
 
@@ -76,9 +79,9 @@ def _service_description_toxml(service):
     arg_counter = 0
 
     # One state variable per type (event variables of arguments)
-    unique_variables = {} # type : variable name
+    unique_variables = {}  # type : variable name
     for evar in service.get_evented_variables():
-        if not unique_variables.has_key(evar.the_type):
+        if evar.the_type not in unique_variables:
             unique_variables[evar.the_type] = evar.the_name
 
     # Arguments
@@ -87,7 +90,7 @@ def _service_description_toxml(service):
         for arg in action.in_arg_list + action.out_arg_list:
 
             # Check if argument can be related to event variable
-            if unique_variables.has_key(arg.the_type):
+            if arg.the_type in unique_variables:
                 related_variable_name = unique_variables[arg.the_type]
             else:
                 arg_counter += 1
@@ -108,11 +111,9 @@ def _service_description_toxml(service):
     return _SERVICE_DESCRIPTION_FMT % (actions_str, svs_str)
 
 
-
-##############################################
+#
 # UPNP SERVICE
-##############################################
-
+#
 class UPnPService:
 
     """
@@ -128,14 +129,14 @@ class UPnPService:
     def __init__(self, service_id, service_type, service_version=1):
         self.service_manager = None
 
-        self._actions = {} # actionName : Action
-        self._events = {} # eventName : Event
-        self._subs = {} # callbackURL : Subscriptions
+        self._actions = {}  # actionName : Action
+        self._events = {}  # eventName : Event
+        self._subs = {}  # callbackURL : Subscriptions
 
         # Initialise
         self.service_type = service_type
         self.service_version = service_version
-        self.service_id =  service_id
+        self.service_id = service_id
 
         self.base_url = ""
         self.description_path = ""
@@ -169,7 +170,7 @@ class UPnPService:
     def get_service_type(self):
         """Return service type."""
         fmt = "urn:schemas-upnp-org:service:%s:%s"
-        return  fmt % (self.service_type, self.service_version)
+        return fmt % (self.service_type, self.service_version)
 
     def get_xml_description(self):
         """Returns xml description of service."""
@@ -180,18 +181,18 @@ class UPnPService:
         for sub in self._subs.values():
             sub.close()
 
-    ##############################################
+    #
     # LOG API
-    ##############################################
+    #
 
     def log(self, msg):
         """Logger."""
         if self._logger:
             self._logger.log("SERVICE", "%s %s" % (self.service_id, msg))
 
-    ##############################################
+    #
     # SUBSCRIBE / NOTIFY API
-    ##############################################
+    #
 
     def notify(self, evented_variables):
         """Notify all subscribers of updated event variables."""
@@ -209,7 +210,7 @@ class UPnPService:
         # For the moment, just accept a single callbackUrl
         # Subscriber defined by callbackUrl
         callback_url = callback_urls[0]
-        if self._subs.has_key(callback_url):
+        if callback_url in self._subs:
             # Subscriber already exists
             return (None, None)
         else:
@@ -226,7 +227,8 @@ class UPnPService:
         for sub in self._subs.values():
             if str(sub.sid) == sid_str:
                 return sub.renew(requested_duration)
-        else: return None
+        else:
+            return None
 
     def unsubscribe(self, sid_str):
         """Request to unsubscribe an existing subscription."""
@@ -247,11 +249,9 @@ class UPnPService:
             if sub.is_expired:
                 del self._subs[url]
 
-
-    ##############################################
+    #
     # ACTION API
-    ##############################################
-
+    #
     def define_action(self, method, in_args=None, out_args=None,
                       name=None):
         """Define an action that the service implements.
@@ -275,23 +275,21 @@ class UPnPService:
         Used by httpserver as part of UPnP control interface."""
         # in_args is assumed to be tuple of (name, data) all unicode string.
         try:
-            if not self._actions.has_key(action_name):
-                raise ActionError, "Action Not Supported"
+            if action_name not in self._actions:
+                raise ActionError("Action Not Supported")
             else:
                 action = self._actions[action_name]
                 return action.execute(in_args)
-        except ActionError, why:
+        except ActionError as why:
             print why
 
     def get_actions(self):
         """Returns all actions that the service implements."""
         return self._actions.values()
 
-
-    ##############################################
+    #
     # EVENTED VARIABLE API
-    ##############################################
-
+    #
     def define_evented_variable(self, event_name, the_type, default_value):
         """Define an evented variable for the service. Used by subclass."""
         evar = _EventedVariable(self, event_name, the_type, default_value)
@@ -325,9 +323,9 @@ class UPnPService:
         self.notify(changed_variables)
 
 
-##############################################
+#
 # EVENTED VARIABLE
-##############################################
+#
 
 class _EventedVariable:
 
@@ -337,20 +335,20 @@ class _EventedVariable:
     def __init__(self, service, the_name, the_type, default_value):
         self._service = service
         self.the_name = the_name
-        if type(the_type) == types.TypeType:
+        if isinstance(the_type, type):
             self.the_type = the_type
         else:
             msg = "Argument 'the_type' is not actually a python type."
-            raise TypeError,  msg
+            raise TypeError(msg)
         self._value = default_value
         self.default_value = default_value
 
     def set(self, new_value, notify_ok=True):
         """Set a new value for the evented variable. If the value
         is different from the old value, notifications will be generated."""
-        if type(new_value) != self.the_type:
+        if not isinstance(new_value, self.the_type):
             msg = "Argument 'the_type' is not actually a python type."
-            raise TypeError, msg
+            raise TypeError(msg)
         if new_value != self._value:
             # Update Value
             self._value = new_value
@@ -358,18 +356,19 @@ class _EventedVariable:
             if notify_ok:
                 self._service.notify([self])
             return True
-        else : return False
+        else:
+            return False
 
     def get(self):
         """Get the value of an evented variable."""
         return self._value
 
 
-##############################################
+#
 # ARGUMENT
-##############################################
+#
 
-class _Argument :
+class _Argument:
 
     """The class defines an argument by holding a type and
     and argument name."""
@@ -377,19 +376,24 @@ class _Argument :
         self.the_name = the_name
         self.the_type = the_type
 
+
 class _InArg(_Argument):
+
     """The class defines an input argument by holding a type and
     and argument name."""
     pass
 
+
 class _OutArg(_Argument):
+
     """The class defines an output argument (result value) by
     holding a type and and argument name."""
     pass
 
-##############################################
+#
 # ACTION
-##############################################
+#
+
 
 class _Action:
 
@@ -407,37 +411,37 @@ class _Action:
         # in_args is assumed to be tuple of (name, data) all unicode string.
         # the tuple is supposed to be ordered according to in_arg_list
         if len(in_args) != len(self.in_arg_list):
-            raise ActionError, "Wrong number of input arguments"
+            raise ActionError("Wrong number of input arguments")
         typed_args = []
         for i in range(len(in_args)):
             name, data = in_args[i]
             in_arg = self.in_arg_list[i]
             if name != in_arg.the_name:
-                raise ActionError, "Wrong name/order for input argument"
+                raise ActionError("Wrong name/order for input argument")
             try:
                 value = upnpmarshal.loads(in_arg.the_type, data)
-            except upnpmarshal.MarshalError, why:
-                raise ActionError, why
+            except upnpmarshal.MarshalError as why:
+                raise ActionError(why)
             typed_args.append(value)
 
         # Execute
         try:
             result = self.method(*typed_args)
-        except TypeError, why:
-            raise ActionError, "Method Execution Failed (%s)" % why
+        except TypeError as why:
+            raise ActionError("Method Execution Failed (%s)" % why)
 
         # Result is eiter a single value (incl. None) or a tuple of values.
         # Make it into a list in both cases.
         if result == None:
             result = []
-        elif result == types.TupleType:
+        elif result == tuple:
             result = list(result)
         else:
             result = [result]
 
         # Check that result holds the correct number of values
         if len(result) != len(self.out_arg_list):
-            raise ActionError, "Wrong number of Results"
+            raise ActionError("Wrong number of Results")
         # Check that each value has the correct type
         # Also convert python type objects to string representations.
         # Construct out_args list of tuples [(name, data), ...]
@@ -446,23 +450,25 @@ class _Action:
             out_arg = self.out_arg_list[i]
             value = result[i]
             if not isinstance(value, out_arg.the_type):
-                raise ActionError, "Result is wrong type."
+                raise ActionError("Result is wrong type.")
             else:
                 try:
                     data = upnpmarshal.dumps(value)
-                except upnpmarshal.MarshalError, why:
-                    raise ActionError, why
+                except upnpmarshal.MarshalError as why:
+                    raise ActionError(why)
                 out_args.append((out_arg.the_name, data))
         return out_args
 
 
-##############################################
+#
 # SUBSCRIPTION
-##############################################
+#
 
 class NotifyError (exceptions.Exception):
+
     """Error associated with event notification."""
     pass
+
 
 class _Subscription:
 
@@ -477,14 +483,14 @@ class _Subscription:
         self.sid = uuid.uuid1()
         self.event_key = 0
         self.callback_url = callback_url
-        self.duration = 1800 # ignore requested_duration
+        self.duration = 1800  # ignore requested_duration
         self.is_expired = False
 
     def notify(self, evented_variables):
         """Notify this subscriber that given evented variables
         have been updated."""
-        if self.is_expired :
-            return False # should not be neccesary
+        if self.is_expired:
+            return False  # should not be neccesary
         else:
             self.event_key += 1
             # Construct list of tuples [(name, value), ...]
@@ -492,8 +498,8 @@ class _Subscription:
             for evar in evented_variables:
                 try:
                     data = upnpmarshal.dumps(evar.get())
-                except upnpmarshal.MarshalError, why:
-                    raise NotifyError, why
+                except upnpmarshal.MarshalError as why:
+                    raise NotifyError(why)
                 variables.append((evar.the_name, data))
 
             # Dispatch Notification
@@ -515,8 +521,8 @@ class _Subscription:
         for evar in evented_variables:
             try:
                 data = upnpmarshal.dumps(evar.get())
-            except upnpmarshal.MarshalError, why:
-                raise NotifyError, why
+            except upnpmarshal.MarshalError as why:
+                raise NotifyError(why)
             variables.append((evar.the_name, data))
 
         # Dispatch Notification
@@ -539,30 +545,36 @@ class _Subscription:
         """Close this subscription safely."""
         pass
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 
     class MockEventDispatcher:
+
         """Mock Event Dispatcher."""
         def __init__(self):
             pass
+
         def dispatch(self, sid, event_key, callback_url, variables):
             """Mock method."""
             print "Notify", sid, event_key, callback_url, variables
 
     class MockServiceManager:
+
         """Mock Service Manager."""
         def __init__(self):
             self._ed = MockEventDispatcher()
+
         def get_event_dispatcher(self):
             """Mock method."""
             return self._ed
+
         def get_base_url(self):
             """Mock method."""
             return "http://myhost:44444"
+
         def get_logger(self):
             """Mock method."""
             return None

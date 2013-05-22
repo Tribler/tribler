@@ -32,9 +32,11 @@ DEBUG = False
 SWIFTFAILED_TIMEOUT = 5 * 60  # 5 minutes
 LOW_PRIO_COLLECTING = 2
 
+
 class RemoteTorrentHandler:
 
     __single = None
+
     def __init__(self):
         RemoteTorrentHandler.__single = self
 
@@ -282,7 +284,7 @@ class RemoteTorrentHandler:
             if self.torrent_db.hasTorrent(infohash):
                 self.torrent_db.updateTorrent(infohash, swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
             else:
-                self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash':sdef.get_roothash(), 'status':'good'})
+                self.torrent_db.addExternalTorrent(tdef, extra_info={'filename': swiftpath, 'swift_torrent_hash': sdef.get_roothash(), 'status': 'good'})
 
             # notify all
             self.notify_possible_torrent_infohash(infohash, True)
@@ -330,7 +332,7 @@ class RemoteTorrentHandler:
             if self.torrent_db.hasTorrent(tdef.get_infohash()):
                 self.torrent_db.updateTorrent(tdef.get_infohash(), swift_torrent_hash=sdef.get_roothash(), torrent_file_name=swiftpath)
             else:
-                self.torrent_db._addTorrentToDB(tdef, source="SWIFT", extra_info={'filename': swiftpath, 'swift_torrent_hash':roothash, 'status':'good'}, commit=True)
+                self.torrent_db._addTorrentToDB(tdef, source="SWIFT", extra_info={'filename': swiftpath, 'swift_torrent_hash': roothash, 'status': 'good'}, commit=True)
 
         sdef = SwiftDef(roothash)
         swiftpath = os.path.join(self.session.get_torrent_collecting_dir(), sdef.get_roothash_as_hex())
@@ -416,6 +418,7 @@ class RemoteTorrentHandler:
         for requester in self.trequesters.values() + self.mrequesters.values() + self.drequesters.values():
             requester.remove_all_requests
 
+
 class Requester:
     REQUEST_INTERVAL = 0.5
 
@@ -439,7 +442,7 @@ class Requester:
             self.sources[hash] = set()
 
         if timeout is None:
-            timeout = sys.maxint
+            timeout = sys.maxsize
         else:
             timeout = timeout + time()
 
@@ -508,6 +511,7 @@ class Requester:
 
     def doFetch(self, hash, candidates):
         raise NotImplementedError()
+
 
 class TorrentRequester(Requester):
     MAGNET_TIMEOUT = 5.0
@@ -634,6 +638,7 @@ class TorrentRequester(Requester):
         # Arno+Niels, 2012-09-19: Remove content as well on failed swift dl.
         self.session.remove_download(d, removecontent=removestate, removestate=removestate, hidden=True)
 
+
 class TorrentMessageRequester(Requester):
 
     def __init__(self, remote_th, searchcommunity, prio):
@@ -657,6 +662,7 @@ class TorrentMessageRequester(Requester):
                 attempting_download = True
 
         return attempting_download
+
 
 class MagnetRequester(Requester):
     MAX_CONCURRENT = 1

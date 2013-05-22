@@ -14,6 +14,7 @@ from Tribler.Core import NoDispersyRLock
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
 
+
 class LibtorrentMgr:
     # Code to make this a singleton
     __single = None
@@ -21,7 +22,7 @@ class LibtorrentMgr:
     def __init__(self, trsession, ignore_singleton=False):
         if not ignore_singleton:
             if LibtorrentMgr.__single:
-                raise RuntimeError, "LibtorrentMgr is singleton"
+                raise RuntimeError("LibtorrentMgr is singleton")
             LibtorrentMgr.__single = self
 
         self.trsession = trsession

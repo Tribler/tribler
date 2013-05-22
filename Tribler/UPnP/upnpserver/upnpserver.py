@@ -10,7 +10,7 @@ from servicemanager import ServiceManager
 from upnpeventdispatcher import EventDispatcher
 
 DEFAULT_ROOT_DEVICE_CONFIG = {
-    'device_type' : "Basic",
+    'device_type': "Basic",
     'device_version': 1,
     'name': "Basic",
     'device_domain': 'schemas-upnp-org',
@@ -26,19 +26,22 @@ DEFAULT_ROOT_DEVICE_CONFIG = {
 
 _LOG_TAG = "UPnPServer"
 
+
 class _Logger:
+
     """Internal Logger presented to modules within the UPnP Server."""
     def __init__(self, logger):
         self._logger = logger
+
     def log(self, log_tag, msg):
         """Log module tag and msg. UPnPServer logtag is added."""
         if self._logger:
             self._logger.log(_LOG_TAG, log_tag, msg)
 
 
-##############################################
+#
 # UPNP SERVER
-##############################################
+#
 
 class UPnPServer:
 
@@ -102,9 +105,9 @@ class UPnPServer:
         self._ed.close()
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 

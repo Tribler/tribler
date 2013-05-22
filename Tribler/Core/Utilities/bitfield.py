@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import sys
+from functools import reduce
 
 try:
     True
@@ -15,7 +16,8 @@ try:
     negsum = lambda a: len(a) - sum(a)
 except:
     negsum = lambda a: reduce(lambda x, y: x + (not y), a, 0)
-    
+
+
 def _int_to_booleans(x):
     r = []
     for i in range(8):
@@ -32,23 +34,24 @@ for i in xrange(256):
 
 
 class Bitfield:
-    def __init__(self, length = None, bitstring = None, copyfrom = None, fromarray = None, calcactiveranges=False):
+
+    def __init__(self, length=None, bitstring = None, copyfrom = None, fromarray = None, calcactiveranges=False):
         """
-        STBSPEED 
-        @param calcactivetanges   Calculate which parts of the piece-space 
+        STBSPEED
+        @param calcactivetanges   Calculate which parts of the piece-space
         are non-zero, used an optimization for hooking in whilst live streaming.
         Only works in combination with bitstring parameter.
         """
-        
+
         self.activeranges = []
-        
+
         if copyfrom is not None:
             self.length = copyfrom.length
             self.array = copyfrom.array[:]
             self.numfalse = copyfrom.numfalse
             return
         if length is None:
-            raise ValueError, "length must be provided unless copying from another array"
+            raise ValueError("length must be provided unless copying from another array")
         self.length = length
         if bitstring is not None:
             extra = len(bitstring) * 8 - length
@@ -56,15 +59,15 @@ class Bitfield:
                 raise ValueError
             t = lookup_table
             r = []
-            
+
             chr0 = chr(0)
             inrange = False
             startpiece = 0
             countpiece = 0
             for c in bitstring:
                 r.extend(t[ord(c)])
-        
-                # STBSPEED        
+
+                # STBSPEED
                 if calcactiveranges:
                     if c != chr0:
                         # Non-zero value, either start or continuation of range
@@ -79,7 +82,7 @@ class Bitfield:
                         # Zero, either end or continuation of zeroness
                         if inrange:
                             # End of activerange
-                            self.activeranges.append((startpiece,countpiece))
+                            self.activeranges.append((startpiece, countpiece))
                             inrange = False
                         else:
                             # Stay in zero
@@ -88,16 +91,16 @@ class Bitfield:
 
             if calcactiveranges:
                 if inrange:
-                    # activerange ended at end of piece space 
-                    self.activeranges.append((startpiece,min(countpiece,self.length-1)))
-                       
+                    # activerange ended at end of piece space
+                    self.activeranges.append((startpiece, min(countpiece, self.length - 1)))
+
             if extra > 0:
                 if r[-extra:] != [0] * extra:
                     raise ValueError
                 del r[-extra:]
             self.array = r
             self.numfalse = negsum(r)
-            
+
         elif fromarray is not None:
             self.array = fromarray
             self.numfalse = negsum(self.array)
@@ -107,7 +110,7 @@ class Bitfield:
 
     def __setitem__(self, index, val):
         val = bool(val)
-        self.numfalse += self.array[index]-val
+        self.numfalse += self.array[index] - val
         self.array[index] = val
 
     def __getitem__(self, index):
@@ -120,9 +123,9 @@ class Bitfield:
         booleans = self.array
         t = reverse_lookup_table
         s = len(booleans) % 8
-        r = [ t[tuple(booleans[x:x+8])] for x in xrange(0, len(booleans)-s, 8) ]
+        r = [t[tuple(booleans[x:x +8])] for x in xrange(0, len(booleans)-s, 8)]
         if s:
-            r += t[tuple(booleans[-s:] + ([0] * (8-s)))]
+            r += t[tuple(booleans[-s:] + ([0] * (8 - s)))]
         return ''.join(r)
 
     def complete(self):
@@ -133,7 +136,7 @@ class Bitfield:
 
     def toboollist(self):
         bools = [False] * self.length
-        for piece in range(0,self.length):
+        for piece in range(0, self.length):
             bools[piece] = self.array[piece]
         return bools
 

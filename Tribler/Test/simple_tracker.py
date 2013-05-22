@@ -1,4 +1,4 @@
-# Written by Arno Bakker, extracted 
+# Written by Arno Bakker, extracted
 # from test_connect_overlay.py by Niels Zeilemaker
 
 import socket
@@ -6,18 +6,20 @@ import thread
 import BaseHTTPServer
 from SocketServer import ThreadingMixIn
 
-DEBUG=True
-class MyTracker(ThreadingMixIn,BaseHTTPServer.HTTPServer):
+DEBUG = True
 
-    def __init__(self,trackport,myid,myip,myport):
+
+class MyTracker(ThreadingMixIn, BaseHTTPServer.HTTPServer):
+
+    def __init__(self, trackport, myid, myip, myport):
         self.myid = myid
         self.myip = myip
         self.myport = myport
-        BaseHTTPServer.HTTPServer.__init__( self, ("",trackport), SimpleServer )
+        BaseHTTPServer.HTTPServer.__init__(self, ("", trackport), SimpleServer)
         self.daemon_threads = True
 
-    def background_serve( self ):
-        thread.start_new_thread( self.serve_forever, () )
+    def background_serve(self):
+        thread.start_new_thread(self.serve_forever, ())
 
     def shutdown(self):
         self.socket.close()
@@ -27,10 +29,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
 
-        print >>sys.stderr,"test: tracker: Got GET request",self.path
+        print >>sys.stderr, "test: tracker: Got GET request", self.path
 
         p = []
-        p1 = {'peer id':self.server.myid,'ip':self.server.myip,'port':self.server.myport}
+        p1 = {'peer id': self.server.myid, 'ip': self.server.myip,'port':self.server.myport}
         p.append(p1)
         d = {}
         d['interval'] = 1800
@@ -45,5 +47,5 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
         try:
             self.wfile.write(bd)
-        except Exception,e:
+        except Exception as e:
             print_exc()

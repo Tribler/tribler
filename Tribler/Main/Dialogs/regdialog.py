@@ -1,20 +1,21 @@
 # Written by Tim Tucker
 # see LICENSE.txt for license information
-#########################################################################
+#
 # Description : Ask whether or not to associate ABC with torrents
-#########################################################################
+#
 import wx
 
 
-################################################################
+#
 #
 # Class: RegCheckDialog
 #
 # Prompts to associate ABC with .torrent files if it is not
 # already associated with them
 #
-################################################################
+#
 class RegCheckDialog(wx.Dialog):
+
     def __init__(self, parent):
         self.utility = parent.utility
 
@@ -24,9 +25,9 @@ class RegCheckDialog(wx.Dialog):
         pre.Create(parent, -1, title)
         self.this = pre.this
 
-        outerbox = wx.BoxSizer( wx.VERTICAL )
+        outerbox = wx.BoxSizer(wx.VERTICAL)
 
-        outerbox.Add(wx.StaticText(self, -1,  self.utility.lang.get('notassociated')), 0, wx.ALIGN_LEFT|wx.ALL, 5)
+        outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('notassociated')), 0, wx.ALIGN_LEFT | wx.ALL, 5)
 
         self.yesbtn = wx.Button(self, -1, self.utility.lang.get('yes'))
         self.Bind(wx.EVT_BUTTON, self.onYES, self.yesbtn)
@@ -36,22 +37,22 @@ class RegCheckDialog(wx.Dialog):
 
         self.cancelbtn = wx.Button(self, wx.ID_CANCEL, self.utility.lang.get('cancel'))
 
-        buttonbox = wx.BoxSizer( wx.HORIZONTAL )
+        buttonbox = wx.BoxSizer(wx.HORIZONTAL)
         buttonbox.Add(self.yesbtn, 0, wx.ALL, 5)
         buttonbox.Add(self.nobtn, 0, wx.ALL, 5)
         buttonbox.Add(self.cancelbtn, 0, wx.ALL, 5)
 
-        outerbox.Add( buttonbox, 0, wx.ALIGN_CENTER)
+        outerbox.Add(buttonbox, 0, wx.ALIGN_CENTER)
 
-        self.SetAutoLayout( True )
-        self.SetSizer( outerbox )
+        self.SetAutoLayout(True)
+        self.SetSizer(outerbox)
         self.Fit()
 
-    def onYES(self, event = None):
+    def onYES(self, event=None):
         self.apply(True)
         self.EndModal(wx.ID_YES)
 
-    def onNO(self, event = None):
+    def onNO(self, event=None):
         self.apply(False)
         self.EndModal(wx.ID_NO)
 
@@ -62,7 +63,7 @@ class RegCheckDialog(wx.Dialog):
             dlg = wx.MessageDialog(self, self.utility.lang.get('errorassociating'), self.utility.lang.get('error'), wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             dlg.Destroy()
-            register=False
+            register = False
 
         self.utility.config.Write('associate', register, "boolean")
         self.utility.config.Flush()

@@ -26,7 +26,9 @@ from Tribler.Core.Merkle.merkle import MerkleTree
 
 DEBUG = True
 
+
 class TestMerkleMessage(TestAsServer):
+
     """
     Testing Merkle hashpiece messages for both:
     * Merkle BEP style
@@ -47,7 +49,6 @@ class TestMerkleMessage(TestAsServer):
         TestAsServer.setUpPreSession(self)
         self.config.set_overlay(False)
         self.config.set_megacache(False)
-
 
     def setUpPostSession(self):
         """ override TestAsServer """
@@ -94,13 +95,12 @@ class TestMerkleMessage(TestAsServer):
         piece_hashes = []
         for i in range(0, len(piecesstr), 20):
             hash = piecesstr[i:i + 20]
-            print >> sys.stderr, "test: piece", i / 20, "hash", `hash`
+            print >> sys.stderr, "test: piece", i / 20, "hash", repr(hash)
             piece_hashes.append(hash)
 
         print >> sys.stderr, "test: Putting", len(piece_hashes), "into MerkleTree, size", self.tdef.get_piece_length(), tdef2.get_piece_length()
 
         self.tree = MerkleTree(self.tdef.get_piece_length(), self.tdef.get_length(), None, piece_hashes)
-
 
         f = open(self.sourcefn, "rb")
         piece1 = f.read(2 ** 18)
@@ -110,12 +110,11 @@ class TestMerkleMessage(TestAsServer):
         f.close()
         hash1 = sha(piece1).digest()
         hash2 = sha(piece2).digest()
-        print >> sys.stderr, "hash piece1", `hash1`
-        print >> sys.stderr, "hash piece2", `hash2`
+        print >> sys.stderr, "hash piece1", repr(hash1)
+        print >> sys.stderr, "hash piece2", repr(hash2)
         f2 = open("piece1.bin", "wb")
         f2.write(piece2)
         f2.close()
-
 
     def setUpDownloadConfig(self):
         dscfg = DownloadStartupConfig()
@@ -131,7 +130,6 @@ class TestMerkleMessage(TestAsServer):
             os.remove('piece1.bin')
         except:
             pass
-
 
     def singtest_good_hashpiece_bepstyle(self):
         self.subtest_good_hashpiece(False)
@@ -174,7 +172,7 @@ class TestMerkleMessage(TestAsServer):
             s = BTConnection('localhost', self.hisport, user_option_pattern=options, user_infohash=infohash)
         print >> sys.stderr, "test: test_good: Create EXTEND HS"
         msg = extend_hs_gen_func()
-        print >> sys.stderr, "test: test_good: Sending EXTEND HS", `msg`
+        print >> sys.stderr, "test: test_good: Sending EXTEND HS", repr(msg)
         s.send(msg)
         print >> sys.stderr, "test: test_good: Waiting for BT HS"
         s.read_handshake_medium_rare()
@@ -231,7 +229,7 @@ class TestMerkleMessage(TestAsServer):
     def create_good_nontribler_extend_hs(self):
         """ Merkle BEP style """
         d = {}
-        d['m'] = {'Tr_hashpiece':250}
+        d['m'] = {'Tr_hashpiece': 250}
         d['p'] = self.mylistenport
         d['v'] = 'TestSweet 1.2.3.4'
         bd = bencode(d)
@@ -240,23 +238,22 @@ class TestMerkleMessage(TestAsServer):
     def create_good_tribler_extend_hs(self):
         """ old Tribler style """
         d = {}
-        d['m'] = {'Tr_OVERLAYSWARM':253}
+        d['m'] = {'Tr_OVERLAYSWARM': 253}
         d['p'] = self.mylistenport
         d['v'] = 'Tribler 3.5.1'
         bd = bencode(d)
         return EXTEND + chr(0) + bd
 
-
     def check_tribler_extend_hs(self, data):
         self.assert_(data[0] == chr(0))
         d = bdecode(data[1:])
-        self.assert_(type(d) == DictType)
+        self.assert_(isinstance(d, DictType))
         self.assert_('m' in d.keys())
         m = d['m']
-        self.assert_(type(m) == DictType)
+        self.assert_(isinstance(m, DictType))
         self.assert_('Tr_hashpiece' in m.keys())
         val = m['Tr_hashpiece']
-        self.assert_(type(val) == IntType)
+        self.assert_(isinstance(val, IntType))
         self.assert_(val == 250)
 
     def check_request(self, data):
@@ -292,8 +289,6 @@ class TestMerkleMessage(TestAsServer):
         chunk = f.read(length)
         f.close()
         return chunk
-
-
 
     #
     # Test whether Tribler sends good Tr_hashpiece on our requests
@@ -357,7 +352,6 @@ class TestMerkleMessage(TestAsServer):
         time.sleep(3)
         s.close()
 
-
     def get_piece_length(self, index):
         if index == (self.numpieces - 1):
             plen = self.tdef.get_length() % self.tdef.get_piece_length()
@@ -373,11 +367,9 @@ class TestMerkleMessage(TestAsServer):
                 length = plen - begin
         return length
 
-
     def create_request(self, chunkid):
         index, begin, length = chunkid
         return REQUEST + tobinary(index) + tobinary(begin) + tobinary(length)
-
 
     def check_hashpiece(self, resp):
         """ Merkle BEP style """
@@ -393,15 +385,15 @@ class TestMerkleMessage(TestAsServer):
         hischunk = resp[14 + ohlen:]
 
         if begin == 0:
-            self.assert_(type(hisohlist) == ListType)
+            self.assert_(isinstance(hisohlist, ListType))
             for oh in hisohlist:
-                self.assert_(type(oh) == ListType)
+                self.assert_(isinstance(oh, ListType))
                 self.assert_(len(oh) == 2)
-                self.assert_(type(oh[0]) == IntType)
-                self.assert_(type(oh[1]) == StringType)
+                self.assert_(isinstance(oh[0], IntType))
+                self.assert_(isinstance(oh[1], StringType))
 
             hisohlist.sort()
-            print >> sys.stderr, "test: good_request: check_hashpiece", `hisohlist`
+            print >> sys.stderr, "test: good_request: check_hashpiece", repr(hisohlist)
             myohlist = self.tree.get_hashes_for_piece(index)
             myohlist.sort()
 
@@ -427,7 +419,6 @@ class TestMerkleMessage(TestAsServer):
         # Must have set_breakup_seed_bitfield() set to False
         self.assert_(bitmap == '\xc0')
 
-
     #
     # Bad EXTEND handshake message
     #
@@ -446,20 +437,19 @@ class TestMerkleMessage(TestAsServer):
         self._test_bad(self.create_ohlist_wrong_bad_offset, oldstyle)
         self._test_bad(self.create_ohlist_wrong_bad_hash, oldstyle)
         # TODO: need working peer kicking for that
-        # #self._test_bad(self.create_bad_chunk,oldstyle)
+        # self._test_bad(self.create_bad_chunk,oldstyle)
 
     #
     # Main test code for bad EXTEND handshake messages
     #
     def _test_bad(self, msg_gen_func, oldstyle):
-        print >> sys.stderr, "test: test_BAD: Create EXTEND HS", `msg_gen_func`, oldstyle
+        print >> sys.stderr, "test: test_BAD: Create EXTEND HS", repr(msg_gen_func), oldstyle
         if oldstyle:
             options = None
             exthsmsg = self.create_good_tribler_extend_hs()
         else:
             options = '\x00\x00\x00\x00\x00\x10\x00\x00'
             exthsmsg = self.create_good_nontribler_extend_hs()
-
 
         s = BTConnection('localhost', self.hisport, user_option_pattern=options, user_infohash=self.infohash)
         s.send(exthsmsg)
@@ -499,12 +489,10 @@ class TestMerkleMessage(TestAsServer):
                     s.send(msg)
                     break
 
-
             # s.close()
         except socket.timeout:
             print >> sys.stderr, "test: Timeout, bad, peer didn't reply in time"
             self.assert_(False)
-
 
         time.sleep(3)
         # Should have closed the connection
@@ -515,7 +503,6 @@ class TestMerkleMessage(TestAsServer):
             print_exc()
 
         s.close()
-
 
     #
     # Bad message creators (all create Merkle BEP style, I strip first byte
@@ -558,7 +545,7 @@ class TestMerkleMessage(TestAsServer):
 
     def create_ohlist_wrong_no_hashes(self, chunkid):
         index, begin, length = chunkid
-        ohlist = [ (0, '#' * 20), (1, '$' * 20)]  # should contain 3 for file2.wmv: own, sibling and root
+        ohlist = [(0, '#' * 20), (1, '$' * 20)]  # should contain 3 for file2.wmv: own, sibling and root
         bohlist = bencode(ohlist)
         chunk = '*' * (2 ** 14)
         payload = tobinary(index) + tobinary(begin) + tobinary(len(bohlist)) + bohlist + chunk
@@ -577,7 +564,6 @@ class TestMerkleMessage(TestAsServer):
         chunk = self.read_chunk(index, begin, length)
         payload = tobinary(index) + tobinary(begin) + tobinary(len(bohlist)) + bohlist + chunk
         return EXTEND + HASHPIECE + payload
-
 
     def create_ohlist_wrong_bad_offset(self, chunkid):
         index, begin, length = chunkid
@@ -616,6 +602,7 @@ def test_suite():
         suite.addTest(TestMerkleMessage(sys.argv[1]))
 
     return suite
+
 
 def main():
     unittest.main(defaultTest='test_suite', argv=[sys.argv[0]])

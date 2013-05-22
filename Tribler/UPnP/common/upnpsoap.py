@@ -41,9 +41,10 @@ def _get_element_data(element):
                 data += str(node.data)
     return data
 
-##############################################
+#
 # PARSE ACTION REQUEST
-##############################################
+#
+
 
 class _ActionRequest:
 
@@ -108,6 +109,7 @@ class _ActionRequest:
 
 _INSTANCE = _ActionRequest()
 
+
 def parse_action_request(data):
     """This function parses the soap xml request and
     returns three values. The function hides the details of
@@ -128,9 +130,9 @@ def parse_action_request(data):
         return action_name, name_space, args
 
 
-##############################################
+#
 # CREATE ACTION REQUEST
-##############################################
+#
 
 ACTION_REQUEST_FMT = """<?xml version="1.0"?>
 <s:Envelope
@@ -148,6 +150,7 @@ ACTION_REQUEST_FMT = ACTION_REQUEST_FMT.replace('\n', '')
 
 ARG_FMT = "<%s>%s</%s>"
 
+
 def create_action_request(service_type, action_name, args):
     """Create action request. Returns string."""
     data_str = ""
@@ -157,9 +160,9 @@ def create_action_request(service_type, action_name, args):
                                  data_str, action_name)
 
 
-##############################################
+#
 # CREATE ACTION RESPONSE
-##############################################
+#
 
 ACTION_RESPONSE_FMT = u"""<?xml version="1.0"?>
 <s:Envelope
@@ -176,6 +179,7 @@ xmlns:u="%s">
 ACTION_RESPONSE_FMT = ACTION_RESPONSE_FMT.replace('\n', '')
 
 RESULT_FMT = u"<%s>%s</%s>"
+
 
 def create_action_response(name_space, action_name, result_list):
     """This function creates a soap xml action response,
@@ -195,9 +199,9 @@ def create_action_response(name_space, action_name, result_list):
     return ACTION_RESPONSE_FMT % (action_name, name_space, data_str, action_name)
 
 
-##############################################
+#
 # PARSE ACTION RESPONSE
-##############################################
+#
 def parse_action_response(xmldata):
     """This parses the xmldata and makes the included information
     easily accessible."""
@@ -223,9 +227,9 @@ def parse_action_response(xmldata):
     return result
 
 
-##############################################
+#
 # ERROR RESPONSE
-##############################################
+#
 
 
 ERROR_RESPONSE_FMT = u"""<?xml version="1.0" ?>
@@ -256,14 +260,15 @@ def create_error_response(error_code, error_description):
     return ERROR_RESPONSE_FMT % (error_code, error_description)
 
 
-##############################################
+#
 # CREATE EVENT MESSAGE
-##############################################
+#
 
 _EVENT_MSG_XML_FMT = u"""<?xml version="1.0"?>
 <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
 %s</e:propertyset>"""
 _EVENT_MSG_PROP_FMT = u"<e:property>\n<%s>%s</%s>\n</e:property>\n"
+
 
 def create_event_message(variables):
     """This function creates a soap xml UPnP event message.
@@ -278,9 +283,9 @@ def create_event_message(variables):
     return _EVENT_MSG_XML_FMT % data_str
 
 
-##############################################
+#
 # PARSE EVENT MESSAGE
-##############################################
+#
 
 def parse_event_message(xmldata):
     """This parses the xmldata and makes the included information
@@ -297,9 +302,9 @@ def parse_event_message(xmldata):
     return tuples
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 
@@ -317,7 +322,6 @@ xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     REQUEST_XML = REQUEST_XML.replace('\n', '')
     print parse_action_request(REQUEST_XML)
     print parse_action_request(REQUEST_XML)
-
 
     SERVICE_TYPE = "urn:schemas-upnp-org:service:ServiceType:1"
     ACTION_NAME = "GetTarget"

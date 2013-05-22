@@ -5,27 +5,29 @@
 import ptime as time
 import sys
 import pdb
-#import guppy
+# import guppy
 
-import logging, logging_conf
+import logging
+import logging_conf
 logs_path = '.'
-logs_level = logging.DEBUG # This generates HUGE (and useful) logs
-#logs_level = logging.INFO # This generates some (useful) logs
-#logs_level = logging.WARNING # This generates warning and error logs
-#logs_level = logging.CRITICAL
+logs_level = logging.DEBUG  # This generates HUGE (and useful) logs
+# logs_level = logging.INFO # This generates some (useful) logs
+# logs_level = logging.WARNING # This generates warning and error logs
+# logs_level = logging.CRITICAL
 
 import identifier
 import kadtracker
 
 
-#hp = guppy.hpy()
+# hp = guppy.hpy()
 
 def peers_found(peers):
     print 'Peers found:', time.time()
     return
     for peer in peers:
         print peer
-    print '-'*20
+    print '-' * 20
+
 
 def lookup_done():
     print 'Lookup DONE'
@@ -82,13 +84,13 @@ info_hashes = (
     identifier.Id('c3903c6e209a7ca26e4e665da5f51f292dafa18e'),
     identifier.Id('3d0dd1397e904d23819480ff4e9e118f7c1b99b5'),
     identifier.Id('b2ca4ec859fca51295ed2ebfedbe40b8bc60275a'),
-    )
+)
 
 if len(sys.argv) == 1:
     logging.critical('argv %r' % sys.argv)
     RUN_DHT = True
-    my_addr = ('192.16.125.242', 2222)#(sys.argv[1], int(sys.argv[2])) #
-    logs_path = '.'#sys.argv[3]
+    my_addr = ('192.16.125.242', 2222)  # (sys.argv[1], int(sys.argv[2])) #
+    logs_path = '.'  # sys.argv[3]
     print 'logs_path:', logs_path
     logging_conf.setup(logs_path, logs_level)
     dht = kadtracker.KadTracker(my_addr, logs_path)
@@ -102,15 +104,15 @@ try:
     if RUN_DHT:
         time.sleep(10 * 60)
         for i, info_hash in enumerate(info_hashes):
-            #splitted_heap_str = str(hp.heap()).split()
-            #print i, splitted_heap_str[10]
-            #dht.print_routing_table_stats()
+            # splitted_heap_str = str(hp.heap()).split()
+            # print i, splitted_heap_str[10]
+            # dht.print_routing_table_stats()
             print '>>>>>>>>>>>>>>>>>>> [%d] Lookup:' % (i)
             dht.get_peers(info_hash, peers_found)
             time.sleep(1 * 60)
-            #time.sleep(1.5)
-            #dht.stop()
-            #pdb.set_trace()
+            # time.sleep(1.5)
+            # dht.stop()
+            # pdb.set_trace()
             i = i + 1
         time.sleep(10 * 60)
         dht.stop()

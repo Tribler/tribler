@@ -4,18 +4,19 @@ import sys
 import os
 import time
 from Tribler.Core.TorrentDef import TorrentDef
-DIR_CHECK_FREQUENCY = 10 # Check directories every 10 seconds
+DIR_CHECK_FREQUENCY = 10  # Check directories every 10 seconds
+
 
 class DirectoryFeedThread(Thread):
     __single = None
 
     def __init__(self):
         if DirectoryFeedThread.__single:
-            raise RuntimeError, "DirectoryFeedThread is singleton"
+            raise RuntimeError("DirectoryFeedThread is singleton")
         DirectoryFeedThread.__single = self
 
         Thread.__init__(self)
-        self.setName("DirectoryFeed"+self.getName())
+        self.setName("DirectoryFeed" + self.getName())
         self.setDaemon(True)
 
         self.paths = {}
@@ -36,7 +37,7 @@ class DirectoryFeedThread(Thread):
             os.makedirs(imported_dir)
         shutil.move(torrentpath, os.path.join(imported_dir, os.path.basename(torrentpath)))
 
-    def addDir(self, dirpath, callback = None):
+    def addDir(self, dirpath, callback=None):
         # callback(dirpath, infohash, torrent_data)
 
         if dirpath not in self.paths:
@@ -44,7 +45,7 @@ class DirectoryFeedThread(Thread):
             feed = DirectoryFeedReader(dirpath)
             self.feeds.append([feed, callback])
 
-        elif callback: #replace callback
+        elif callback:  # replace callback
             for tup in self.feeds:
                 if tup[0].path == dirpath:
                     tup[2] = callback
@@ -61,18 +62,19 @@ class DirectoryFeedThread(Thread):
                         callback(feed.path, infohash, torrent_data)
 
     def run(self):
-        time.sleep(60) # Let other Tribler components, in particular, Session startup
+        time.sleep(60)  # Let other Tribler components, in particular, Session startup
 
         print >>sys.stderr, '*** DirectoryFeedThread: Starting first refresh round'
         while not self.done.isSet():
             self.refresh()
             time.sleep(DIR_CHECK_FREQUENCY)
 
-
     def shutdown(self):
         self.done.set()
 
+
 class DirectoryFeedReader:
+
     def __init__(self, path):
         self.path = path
 

@@ -20,7 +20,9 @@ TRACKER = 'http://www.tribler.org/announce'
 PLAYTIME = "1:02"  # 1 min 2 secs. Coordinate with size of file.wmv to get > 1 bitrate
 PLAYTIME_SECS = 62  # PLAYTIME in seconds
 
+
 class TestTorrentDef(unittest.TestCase):
+
     """
     Testing TorrentDef version 0
     """
@@ -87,7 +89,6 @@ class TestTorrentDef(unittest.TestCase):
         t2 = TorrentDef.load(filename)
         self.assert_(t2.get_metadata() == dummydata)
 
-
     def subtest_add_content_file(self, merkle=True):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
@@ -121,7 +122,7 @@ class TestTorrentDef(unittest.TestCase):
         t.set_tracker(TRACKER)
         t.finalize()
 
-        exps = 0L
+        exps = 0
         for f in os.listdir(dn):
             if f.startswith('.'):
                 continue
@@ -136,7 +137,7 @@ class TestTorrentDef(unittest.TestCase):
         self.general_check(metainfo)
 
         self.assert_(metainfo['info']['name'] == 'dirintorrent')
-        reals = 0L
+        reals = 0
         for file in metainfo['info']['files']:
             s = file['length']
             print "test: real size", file['path'], s
@@ -145,7 +146,6 @@ class TestTorrentDef(unittest.TestCase):
         print "test: real size of files in torrent", reals
 
         self.assert_(exps == reals)
-
 
     def subtest_add_content_dir_and_file(self, merkle=True):
         """ Add a single dir and single file to a TorrentDef """
@@ -173,11 +173,10 @@ class TestTorrentDef(unittest.TestCase):
         self.general_check(metainfo)
         self.assert_(metainfo['info']['name'] == 'dirintorrent')
 
-        reals = 0L
+        reals = 0
         for file in metainfo['info']['files']:
             reals += file['length']
         self.assert_(exps == reals)
-
 
     def subtest_add_content_file_playtime(self, merkle=True):
         """ Add a single file with playtime to a TorrentDef """
@@ -198,7 +197,6 @@ class TestTorrentDef(unittest.TestCase):
         realspeedbps = content['Speed Bps']
         expspeedbps = s / PLAYTIME_SECS
         self.assert_(realspeedbps == expspeedbps)
-
 
     def subtest_add_content_dir_playtime(self, merkle=True):
         """ Add a single dir to a TorrentDef """
@@ -228,7 +226,6 @@ class TestTorrentDef(unittest.TestCase):
         expspeedbps = s / PLAYTIME_SECS
         self.assert_(realspeedbps == expspeedbps)
 
-
     def subtest_add_content_file_thumbnail(self, merkle=True):
         """ Add a single file with thumbnail to a TorrentDef """
         t = TorrentDef()
@@ -251,7 +248,6 @@ class TestTorrentDef(unittest.TestCase):
         realthumb = content['Thumbnail']
         self.assert_(realthumb == expthumb)
 
-
     def subtest_add_content_announce_list(self, merkle=True):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
@@ -267,7 +263,6 @@ class TestTorrentDef(unittest.TestCase):
         self.general_check(metainfo)
         realhier = metainfo['announce-list']
         self.assert_(realhier == exphier)
-
 
     def subtest_add_content_httpseeds(self, merkle=True):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
@@ -285,7 +280,6 @@ class TestTorrentDef(unittest.TestCase):
         realseeds = metainfo['httpseeds']
         self.assert_(realseeds == expseeds)
 
-
     def subtest_add_content_piece_length(self, merkle=True):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
@@ -299,7 +293,6 @@ class TestTorrentDef(unittest.TestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         self.assert_(metainfo['info']['piece length'] == 2 ** 16)
-
 
     def subtest_add_content_file_save(self, merkle=True):
         """ Add a single file to a TorrentDef and save the latter"""
@@ -322,7 +315,6 @@ class TestTorrentDef(unittest.TestCase):
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
         self.assert_(metainfo == data)
-
 
     def general_check(self, metainfo):
         self.assert_(isValidTorrentFile(metainfo))

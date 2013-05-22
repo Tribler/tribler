@@ -55,6 +55,7 @@ class GetPeersLookup(object):
         announce_to_myself = False
         return announcements_to_send, announce_to_myself
 
+
 class MaintenanceLookup(GetPeersLookup):
 
     def __init__(self, msg_f, my_id, target):

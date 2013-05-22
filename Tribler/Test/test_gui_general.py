@@ -5,8 +5,11 @@ import unittest
 from Tribler.Test.test_as_server import TestGuiAsServer
 
 DEBUG = True
+
+
 class TestRemoteQuery(TestGuiAsServer):
-    """ 
+
+    """
     Testing QUERY message of Social Network extension V1
     """
     def test_debugpanel(self):
