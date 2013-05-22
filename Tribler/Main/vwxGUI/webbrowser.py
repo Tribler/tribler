@@ -119,7 +119,7 @@ class WebBrowser(XRCPanel):
         
         """Register the action on the event that a URL is being loaded and when finished loading"""
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
-        self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
+        self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, self.onURLLoading, self.webview)
         
         self.LoadURL("about:blank")
     
@@ -155,6 +155,8 @@ class WebBrowser(XRCPanel):
     def __LoadURLFromInternet(self, url):
         """Load a URL 'normally' from the internet
         """
+        print "REQUESTED: " + url
+        print "NORMALIZED: " + self.__normalizeAddress(url)
         self.webview.LoadURL(self.__normalizeAddress(url))
         
     def LoadURL(self, url):
@@ -216,6 +218,7 @@ class WebBrowser(XRCPanel):
         """Actions to be taken when an URL is loaded."""
         self.__condonedredirect = False
         self.__loading = False
+        print "LOADED: " + event.GetURL()
         #Remove temporary webpage files if we are in swarm mode
         if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             page = WebPage(self.webview.GetCurrentURL())
