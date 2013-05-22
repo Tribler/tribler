@@ -28,9 +28,14 @@ class WebBrowser(XRCPanel):
                     "Visiting %s via the internet",                        # Webpage retrieved from the internet
                     "Eternal webpage %s downloaded from the swarm"]        # Webpage downloaded from the swarm
     
-    WebViewModeLabels = ["SwitchMode",       # Unknown webpage
-                    "SwarmMode",           # Webpage retrieved from the internet
-                    "InternetMode"]          # Webpage downloaded from the swarm
+    #These labels are inverted. Because in internetmode you hav ea button to go to swarmMode.
+    WebViewModeLabels = ["SwitchMode",          # Unknown webpage
+                    "SwarmMode",                # Webpage retrieved from the internet
+                    "InternetMode"]             # Webpage downloaded from the swarm
+    
+    WebViewModeEnableSeedButton = [False,    # Unknown webpage
+                                   True,   # Webpage retrieved from the internet
+                                   False]    # Webpage downloaded from the swarm
    
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
@@ -52,13 +57,13 @@ class WebBrowser(XRCPanel):
         backwardButton = wx.Button(self, label="Backward")
         forwardButton = wx.Button(self, label="Forward")    
         goButton = wx.Button(self, label="Go")
-        self.seedButton = wx.Button(self, label="Seed")
+        self.__seedButton = wx.Button(self, label="Seed")
         self.viewmodeButton = wx.Button(self, label="OfflineMode")
         #Register the actions
         self.Bind(wx.EVT_BUTTON, self.goBackward, backwardButton)
         self.Bind(wx.EVT_BUTTON, self.goForward, forwardButton)
         self.Bind(wx.EVT_BUTTON, self.loadURLFromAdressBar, goButton)
-        self.Bind(wx.EVT_BUTTON, self.seed, self.seedButton)
+        self.Bind(wx.EVT_BUTTON, self.seed, self.__seedButton)
         self.Bind(wx.EVT_BUTTON, self.toggleViewMode, self.viewmodeButton)
         #Create the adressbar.
         self.adressBar = wx.TextCtrl(self,1, style = wx.TE_PROCESS_ENTER)
@@ -70,7 +75,7 @@ class WebBrowser(XRCPanel):
         self.toolBar.Add(self.adressBar, 1, wx.EXPAND)
         self.toolBar.Add(goButton, 0)
         self.toolBar.Add(self.viewmodeButton, 0)
-        self.toolBar.Add(self.seedButton,0)
+        self.toolBar.Add(self.__seedButton,0)
         #Add the toolbar to the panel.
         vSizer.Add(self.toolBar, 0, wx.EXPAND)
         
@@ -205,9 +210,9 @@ class WebBrowser(XRCPanel):
                 return
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
-        #Update the seedbutton
-        self.seedButton.SetLabel("Seed")
-        self.seedButton.Enable()
+        #Update the __seedButton
+        self.__seedButton.SetLabel("Seed")
+        self.__seedButton.Enable()
         
     def setViewMode(self, mode):
         """Set the view mode we are currently using.
@@ -232,6 +237,8 @@ class WebBrowser(XRCPanel):
         self.toolBar.Layout()
         #Update our resource handler
         self.__reshandler.SetViewMode(self.__viewmode)
+        #Update the seed button
+        self.__seedButton.Enable(WebBrowser.WebViewModeEnableSeedButton[self.__viewmode])
     
     def getViewMode(self):
         """Get the view mode we are currently using.
@@ -273,13 +280,13 @@ class WebBrowser(XRCPanel):
         
     def seed(self, event):
         """Start seeding the images on the website"""
-        self.seedButton.SetLabel("Seeding")
+        self.__seedButton.SetLabel("Seeding")
         #disable seed button
-        self.seedButton.Disable()
+        self.__seedButton.Disable()
         #Start seeding webpage.
         self.__sniffer.Seed()
-
-        self.seedButton.SetLabel("Seeded")
+        
+        self.__seedButton.SetLabel("Seeded")
     
     def __normalizeAddress(self, url):
         """Check wether we have a valid http scheme in our url and
