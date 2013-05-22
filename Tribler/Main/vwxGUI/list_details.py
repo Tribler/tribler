@@ -1287,6 +1287,8 @@ class LibraryDetails(TorrentDetails):
                 
                 for peer_dict in peers:
                     peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict.get('completed', 0)*100.0)
+                    if not self.peerList:
+                        return
                     if index < self.peerList.GetItemCount():
                         self.peerList.SetItem(index, 0, peer_name)
                     else:

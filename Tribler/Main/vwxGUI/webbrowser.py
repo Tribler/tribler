@@ -9,9 +9,17 @@ import urlparse
 import os
 import string
 import time
+import thread
+from collections import deque
 from Tribler.SiteRipper.WebPage import WebPage
 from Tribler.SiteRipper.ResourceSniffer import ResourceSniffer
 from Tribler.SiteRipper.pagenotfound import NotFoundFile
+
+def wx_dispatch_later(call, args):
+    """Wait until wx calms down and try calling 'call(args)'
+    """
+    time.sleep(0.1)
+    wx.CallAfter(thread.start_new, call, args )
 
 class WebBrowser(XRCPanel):
     """WebView is a class that allows you to browse the worldwideweb."""
@@ -37,14 +45,21 @@ class WebBrowser(XRCPanel):
                                    True,   # Webpage retrieved from the internet
                                    False]    # Webpage downloaded from the swarm
    
+    __loading = False   #Check to see if we are currently loading a page
+   
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
+    
     __viewmode = 0      #What type of webpage are we visiting
-    __cookieprocessor = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPCookieProcessor()) # Redirection handler
     __viewmodeswitcher = None   #Handler for webpage viewmode switch requests
+    
+    __cookieprocessor = urllib2.build_opener(urllib2.HTTPRedirectHandler(),urllib2.HTTPCookieProcessor()) # Redirection handler
     URL_REQ = None      #Set this if we get an internetmode URL request from the webpage
     __condonedredirect = False  #Have we allowed the webbrowser to switch pages
     __safepage = False  #Are we on a page we do NOT have to check for security reasons
+    
+    __history = None    #Our webpage history
+    __browsing_history = False #Are we currently browsing our history (i.e. do not count this page as new)
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -93,6 +108,7 @@ class WebBrowser(XRCPanel):
         
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
+        self.__history = WebviewHistory()
         self.LoadURL("about:blank")
         self.setViewMode('INTERNET')
               
@@ -105,7 +121,15 @@ class WebBrowser(XRCPanel):
         """Register the action on the event that a URL is being loaded and when finished loading"""
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
+    
+    def goBackward(self, event):
+        self.__browsing_history = True
+        self.LoadURL(self.__history.getPrevious())
         
+    def goForward(self, event):
+        self.__browsing_history = True
+        self.LoadURL(self.__history.getNext())
+    
     def __LoadURLNotFound(self, url):
         """Load our pagenotfound.html and give it the HTML URL parameter of the page we tried to reach
         """
@@ -136,29 +160,19 @@ class WebBrowser(XRCPanel):
         """Load a URL, automaticly delegates call to appropriate url handler
             depending on our viewmode.
         """
-        self.webview.Stop()
-        self.__safepage = False
-        if url.startswith("about:"):
-            self.webview.LoadURL(url)
-        elif self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
-            #Signal that we are responsibly redirecting pages
-            #I.e. we are not following a link on a page
-            self.__condonedredirect = True
+        #If we try to load a page while we are loading a page, we crash
+        #So we wait until the current page has finished loading and try again
+        if self.__loading:
+            wx_dispatch_later(self.LoadURL, (url,) )
+            return
+        #Signal that we are responsibly redirecting pages
+        #I.e. we are not following a link on a page
+        self.__condonedredirect = True
+        if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             self.__LoadURLFromLocal(url)
         else:
-            #Signal that we are responsibly redirecting pages
-            #I.e. we are not following a link on a page
-            self.__condonedredirect = True
             self.__LoadURLFromInternet(url)
-        
-    def goBackward(self, event):
-        if self.webview.CanGoBack():
-            self.webview.GoBack()
-        
-    def goForward(self, event):
-        if self.webview.CanGoForward():
-            self.webview.GoForward()
-    
+
     def loadURLFromAdressBar(self, event):
         """Load an URL from the adressbar"""
         url = self.adressBar.GetValue()
@@ -184,20 +198,23 @@ class WebBrowser(XRCPanel):
 
     def onURLLoading(self, event):
         """Actions to be taken when an URL start to be loaded."""
-        #Notify our sniffer that we are constructing a new WebPage
-        url = self.webview.GetCurrentURL()
-        self.__sniffer.StartLoading(url, self.webview.GetPageSource())
         #Avoid a page being able to leave swarm mode without our consent
         if not self.__condonedredirect:
             event.Veto()
             self.LoadURL(event.GetURL())
             return
+        #Notify our sniffer that we are constructing a new WebPage
+        url = self.webview.GetCurrentURL()
+        self.__sniffer.StartLoading(url, self.webview.GetPageSource())
         #Update the adressbar
         self.adressBar.SetValue(url)
+        #Signal loading
+        self.__loading = True
     
     def onURLLoaded(self, event):
         """Actions to be taken when an URL is loaded."""
         self.__condonedredirect = False
+        self.__loading = False
         #Remove temporary webpage files if we are in swarm mode
         if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
             page = WebPage(self.webview.GetCurrentURL())
@@ -210,9 +227,13 @@ class WebBrowser(XRCPanel):
                 return
         #Show the actual page address in the address bar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
-        #Update the __seedButton
+        #Update the seedbutton
         self.__seedButton.SetLabel("Seed")
         self.__seedButton.Enable()
+        #Notify our history of having visited this page
+        if not self.__browsing_history:
+            self.__history.visited(event.GetURL())
+        self.__browsing_history = False # Reset the browsing history flag for the next request
         
     def setViewMode(self, mode):
         """Set the view mode we are currently using.
@@ -384,3 +405,80 @@ class ViewmodeSwitchHandler(wx.html2.WebViewHandler):
         #is the cheapest way to avoid mid-load reloading crashes
         self.webbrowser.URL_REQ = url
         self.webbrowser.webview.Reload()
+        
+class WebviewHistory():
+    
+    __history_size = 0      # The (maximum) size of our history, defaults to 5 
+    __history = None        # The deque of urls signifying our history
+    __finger = 0            # What index of our history urls are we viewing
+    
+    def __init__(self, historysize = 5):
+        self.__history_size = historysize
+        self.__history = deque([])
+        
+    def visited(self, url):
+        """Call this if we visit a new url
+            We then add it to our history and pop any old history
+            if our list gets too big.
+        """
+        #If we are viewing history, remove forward history
+        if self.__finger != len(self.__history)-1:
+            self.__rmForwardHistory()
+        #Add page to history (right side)
+        self.__history.append(url)
+        self.__finger = len(self.__history) - 1 #Forward to current page
+        if len(self.__history) > self.__history_size:
+            self.__history.popleft()
+            self.__finger -= 1
+    
+    def __validIndex(self, index):
+        """Returns index if it is a valid index in our list of urls.
+            Otherwise returns None.
+        """
+        if index < 0 or index >= len(self.__history):
+            return None
+        return index     
+    
+    def __rmForwardHistory(self):
+        """Remove all values to the right of finger in our history
+        """
+        for i in range(self.__finger+1, len(self.__history)):
+            self.__history.pop()
+            
+    def getCurrent(self):
+        """Get our current page, returns "about:blank" if there is no
+            current page.
+        """
+        index = self.__validIndex(self.__finger)
+        if index:
+            return self.__history[index]
+        return 'about:blank'
+    
+    def getPrevious(self):
+        """Get the previous page in our history
+        """
+        if self.hasPrevious():
+            self.__finger -= 1
+            return self.__history[self.__finger]
+        return self.getCurrent()
+    
+    def getNext(self):
+        """Get the next page in our history
+        """
+        if self.hasNext():
+            self.__finger += 1
+            return self.__history[self.__finger]
+        return self.getCurrent()
+    
+    def hasPrevious(self):
+        """Returns True if and only if there is a history item to go back to
+        """
+        index = self.__validIndex(self.__finger - 1)
+        return index is not None
+        
+    def hasNext(self):
+        """Returns True if and only there is a history item to go forward to
+        """
+        index = self.__validIndex(self.__finger + 1)
+        return index is not None
+        
