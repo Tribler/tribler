@@ -109,7 +109,6 @@ class WebBrowser(XRCPanel):
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
         self.__history = WebviewHistory()
-        self.LoadURL("about:blank")
         self.setViewMode('INTERNET')
               
         vSizer.Add(self.webview, 1, wx.EXPAND) 
@@ -121,6 +120,8 @@ class WebBrowser(XRCPanel):
         """Register the action on the event that a URL is being loaded and when finished loading"""
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATED, self.onURLLoading, self.webview)
+        
+        self.LoadURL("about:blank")
     
     def goBackward(self, event):
         self.__browsing_history = True
@@ -203,9 +204,9 @@ class WebBrowser(XRCPanel):
             event.Veto()
             self.LoadURL(event.GetURL())
             return
+        url = event.GetURL()
         #Notify our sniffer that we are constructing a new WebPage
-        url = self.webview.GetCurrentURL()
-        self.__sniffer.StartLoading(url, self.webview.GetPageSource())
+        self.__sniffer.StartLoading(url)
         #Update the adressbar
         self.adressBar.SetValue(url)
         #Signal loading
