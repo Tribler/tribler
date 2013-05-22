@@ -35,6 +35,9 @@ class ResourceSniffer:
         """
         self.__webPage = WebPage(url)
         self.__listenforfiles = True  
+        
+    def GetWebPage(self):
+        return self.__webPage
     	
     def Seed(self):
         """Callback for when a user requests a page to be seeded.

@@ -45,7 +45,8 @@ class WebBrowser(XRCPanel):
                                    True,   # Webpage retrieved from the internet
                                    False]    # Webpage downloaded from the swarm
    
-    __loading = False   #Check to see if we are currently loading a page
+    __loading = False    #Check to see if we are currently loading a page
+    __loading_netloc = None #The server we are trying to access
    
     __sniffer = None    #Resource Sniffer (for fetching local copies)
     __reshandler = None #Resource Handler 
@@ -131,6 +132,17 @@ class WebBrowser(XRCPanel):
         self.__browsing_history = True
         self.LoadURL(self.__history.getNext())
     
+    def __StartLoading(self, url):
+        """Fire all notifications that we are loading a webpage
+        """
+        #Set loading flag
+        self.__loading = True
+        self.__loading_netloc = urlparse.urlparse(url).netloc
+        #Notify our sniffer that we are constructing a new WebPage
+        self.__sniffer.StartLoading(url)
+        #Update the adressbar
+        self.adressBar.SetValue(url)
+    
     def __LoadURLNotFound(self, url):
         """Load our pagenotfound.html and give it the HTML URL parameter of the page we tried to reach
         """
@@ -139,6 +151,8 @@ class WebBrowser(XRCPanel):
         fs = wx.FileSystem()
         notfoundpath = NotFoundFile.getFilenameCreate()
         notfoundurl = fs.FileNameToURL(notfoundpath) + "?" + url
+        #Signal loading
+        self.__StartLoading(notfoundurl)
         self.webview.LoadURL(notfoundurl)    
     
     def __LoadURLFromLocal(self, url):
@@ -155,8 +169,8 @@ class WebBrowser(XRCPanel):
     def __LoadURLFromInternet(self, url):
         """Load a URL 'normally' from the internet
         """
-        print "REQUESTED: " + url
-        print "NORMALIZED: " + self.__normalizeAddress(url)
+        #Signal loading
+        self.__StartLoading(self.__normalizeAddress(url))
         self.webview.LoadURL(self.__normalizeAddress(url))
         
     def LoadURL(self, url):
@@ -188,7 +202,8 @@ class WebBrowser(XRCPanel):
         #Signal that we are responsibly redirecting pages
         #I.e. we are not following a link on a page
         self.__condonedredirect = True
-        
+        #Signal loading
+        self.__StartLoading(webPage.GetUrl())
         self.__loadHTMLSource(webPage.GetUrl(), webPage.GetContent())
         self.setViewMode(WebBrowser.WebViewModes['SWARM_CACHE'])
     
@@ -201,27 +216,26 @@ class WebBrowser(XRCPanel):
 
     def onURLLoading(self, event):
         """Actions to be taken when an URL start to be loaded."""
-        #Avoid a page being able to leave swarm mode without our consent
+        #Intervene if a 3rd party is trying to pull us from the page
+        if self.__loading and urlparse.urlparse(event.GetURL()).netloc != self.__loading_netloc:
+            event.Veto()
+            return
+        #Avoid a page being able to redirect without our consent
         if not self.__condonedredirect:
             event.Veto()
             self.LoadURL(event.GetURL())
             return
-        url = event.GetURL()
-        #Notify our sniffer that we are constructing a new WebPage
-        self.__sniffer.StartLoading(url)
-        #Update the adressbar
-        self.adressBar.SetValue(url)
-        #Signal loading
-        self.__loading = True
     
     def onURLLoaded(self, event):
         """Actions to be taken when an URL is loaded."""
+        #We loaded an embedded webpage, don't do anything special
+        if urlparse.urlparse(event.GetURL()).netloc != self.__loading_netloc:
+            return
         self.__condonedredirect = False
         self.__loading = False
-        print "LOADED: " + event.GetURL()
         #Remove temporary webpage files if we are in swarm mode
         if self.getViewMode() == WebBrowser.WebViewModes['SWARM_CACHE']:
-            page = WebPage(self.webview.GetCurrentURL())
+            page = WebPage(event.GetURL())
             page.RemoveTempFiles(WebPage.GetTarName(page.GetUrl()))
         #We got a 'switch to internet' request
         if self.URL_REQ:
@@ -230,7 +244,7 @@ class WebBrowser(XRCPanel):
             if self.__handleWebpageViewmodeSwitch(redirection):
                 return
         #Show the actual page address in the address bar
-        self.adressBar.SetValue(self.webview.GetCurrentURL())
+        self.adressBar.SetValue(event.GetURL())
         #Update the seedbutton
         self.__seedButton.SetLabel("Seed")
         self.__seedButton.Enable()
@@ -367,7 +381,7 @@ class ViewmodeResourceHandler(wx.html2.WebViewHandler):
     def __GetFileLocal(self, uri):
         """Retrieve a resource from our local filesystem
         """
-        webPage = self.__sniffer._ResourceSniffer__webPage
+        webPage = self.__sniffer.GetWebPage()
         filename = webPage.MapResource(uri)
         fs = wx.FileSystem()
         fileuri = fs.FileNameToURL(filename)
