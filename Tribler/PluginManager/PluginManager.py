@@ -40,8 +40,8 @@ class PluginManager:
             Returns False if the plug-in directory could not be found
         """
         if os.path.exists(self.__CategoryFolder(categoryName)):
-            __categoryFolders[categoryName] = self.__CategoryFolder(categoryName)
-            __categoryInterfaces[categoryName] = interface
+            self.__categoryFolders[categoryName] = self.__CategoryFolder(categoryName)
+            self.__categoryInterfaces[categoryName] = interface
             return True
         return False
         
