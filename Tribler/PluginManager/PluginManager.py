@@ -62,6 +62,7 @@ class PluginManager:
         """
         self.__yapsyManager.setPluginPlaces(self.__categoryFolders.values())
         self.__yapsyManager.setCategoriesFilter(self.__categoryInterfaces)
+        self.__yapsyManager.collectPlugins()
         
     def GetPluginsForCategory(self, categoryName):
         """Returns all plug-in objects for a certain category
