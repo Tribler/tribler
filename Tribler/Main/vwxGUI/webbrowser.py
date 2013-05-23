@@ -1,5 +1,6 @@
 import wx
 import wx.html2
+import urlparse
 
 from Tribler.Main.vwxGUI.list import XRCPanel
 
@@ -63,7 +64,8 @@ class WebBrowser(XRCPanel):
     def loadURLFromAdressBar(self, event):
         '''Load an URL from the adressbar'''
         url = self.adressBar.GetValue()
-        self.adressBar.SetValue(url)
+        if not urlparse.urlparse(url).scheme:
+            url = 'http://' + url
         self.webview.LoadURL(url)
     
     def onURLLoaded(self, event):
