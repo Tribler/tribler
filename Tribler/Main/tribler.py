@@ -98,6 +98,7 @@ from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.PluginManager.PluginManager import PluginManager
 from Tribler.PluginManager.IPlugin import IStubPlugin
+from yapsy.IPlugin import IPlugin
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
@@ -518,9 +519,11 @@ class ABCApp():
         
         progress('Loading plug-ins')
         self.pluginmanager = PluginManager()
-        self.pluginmanager.RegisterCategory("Matcher", IStubPlugin())
-        self.pluginmanager.RegisterCategory("Parser", IStubPlugin())
-        self.pluginmanager.RegisterCategory("TorrentFinder", IStubPlugin())
+        self.pluginmanager.RegisterCategory("Matcher", IPlugin)
+        self.pluginmanager.RegisterCategory("Parser", IPlugin)
+        self.pluginmanager.RegisterCategory("TorrentFinder", IPlugin)
+        self.pluginmanager.LoadPlugins()
+        
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):

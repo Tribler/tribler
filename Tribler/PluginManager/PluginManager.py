@@ -71,5 +71,5 @@ class PluginManager:
         if not self.CategoryExists(categoryName):
             return out
         for pluginWrapper in self.__yapsyManager.getPluginsOfCategory(categoryName):
-            out.append(pluginInfo.plugin_object)
+            out.append(pluginWrapper.plugin_object)
         return out
