@@ -6,7 +6,7 @@
 #
 
 import sys
-from threading import Thread, Lock, currentThread
+from threading import Thread, Lock, currentThread, Event
 import socket
 from traceback import print_exc
 try:
@@ -32,12 +32,14 @@ class FastI2IConnection(Thread):
         self.closecallback = closecallback
 
         self.sock = None
+        self.sock_connected = Event()
         # Socket only every read by self
         self.buffer = ''
         # write lock on socket
         self.lock = Lock()
 
         self.start()
+        assert self.sock_connected.wait(60), 'Did not connect to socket within 60s.'
 
     @attach_profiler
     def run(self):
@@ -48,6 +50,7 @@ class FastI2IConnection(Thread):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.connect(("127.0.0.1", self.port))
+            self.sock_connected.set()
             while True:
                 data = self.sock.recv(10240)
                 if len(data) == 0:
@@ -66,21 +69,12 @@ class FastI2IConnection(Thread):
         except:
             pass
 
-    def stop(self):
-        try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect(('127.0.0.1', self.port))
-            s.send('')
-            s.close()
-        except:
-            pass
-
     def data_came_in(self, data):
         """ Read \r\n ended lines from data and call readlinecallback(self,line) """
         # data may come in in parts, not lines! Or multiple lines at same time
 
         if DEBUG:
-            print >>sys.stderr, "fasti2i: data_came_in", repr(data), len(data)
+            print >> sys.stderr, "fasti2i: data_came_in", repr(data), len(data)
 
         if len(self.buffer) == 0:
             self.buffer = data
@@ -120,3 +114,4 @@ class FastI2IConnection(Thread):
             self.sock.close()
             self.closecallback(self.port)
             self.sock = None
+            self.sock_connected.clear()
