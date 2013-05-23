@@ -39,8 +39,7 @@ class WebBrowser(XRCPanel):
         self.webview = wx.html2.WebView.New(self)
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
-        self.webview.LoadURL("http://www.google.com/")
-        self.adressBar.SetValue(self.webview.GetCurrentURL()) 
+        
         
         vSizer.Add(self.webview, 1, wx.EXPAND) 
         
@@ -49,7 +48,9 @@ class WebBrowser(XRCPanel):
         self.Layout()
         
         '''Register the action on the event that a URL is being loaded and when finished loading'''
-        self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, self.onURLLoading, self.webview)
+        self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
+        
+        self.webview.LoadURL("http://www.google.com/") 
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
@@ -65,7 +66,9 @@ class WebBrowser(XRCPanel):
         self.adressBar.SetValue(url)
         self.webview.LoadURL(url)
     
-    def onURLLoading(self, event):
-        '''Actions to be taken when an URL start to be loaded.'''
+    def onURLLoaded(self, event):
+        '''Actions to be taken when an URL is loaded.'''
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
+
+        

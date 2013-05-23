@@ -28,13 +28,16 @@ class ResourceSniffer:
     	if self.__listenforfiles:
             self.__AddResourceToWebPage(uri)
     	
-    def StartLoading(self, url, source):
+    def StartLoading(self, url):
         """Callback for when a page starts to get loaded
             (Resources meant to be sniffed are going to pour into
             our GetFile() member)
         """
-        self.__webPage = WebPage(url, source)
+        self.__webPage = WebPage(url)
         self.__listenforfiles = True  
+        
+    def GetWebPage(self):
+        return self.__webPage
     	
     def Seed(self):
         """Callback for when a user requests a page to be seeded.
@@ -45,6 +48,8 @@ class ResourceSniffer:
             2. Compressing the dictionary (tar)
             3. Sharing dictionary (torrent)
         """
+        #Retrieve page content
+        self.__webPage.DownloadContent()
         #Shut down listening for files
         self.__listenforfiles = False
         #Gather all the files referenced on the page
