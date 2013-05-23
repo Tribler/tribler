@@ -18,9 +18,9 @@ from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
 
-URLHIST_TIMEOUT = 7 * 24 *3600.0   # Don't revisit links for this time
-RSS_RELOAD_FREQUENCY = 30 * 60    # reload a rss source every n seconds
-RSS_CHECK_FREQUENCY = 2         # test a potential .torrent in a rss source every n seconds
+URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
+RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
+RSS_CHECK_FREQUENCY = 2  # test a potential .torrent in a rss source every n seconds
 
 DEBUG = False
 
@@ -50,6 +50,10 @@ class RssParser(Thread):
             RssParser(*args, **kw)
         return RssParser.__single
     getInstance = staticmethod(getInstance)
+
+    def delInstance(*args, **kw):
+        RssParser.__single = None
+    delInstance = staticmethod(delInstance)
 
     def register(self, session, defaultkey):
         if not self.isRegistered:
@@ -110,7 +114,7 @@ class RssParser(Thread):
             f.close()
         except:
             if DEBUG:
-                print >>sys.stderr, "RssParser: subscriptions.txt does not yet exist"
+                print >> sys.stderr, "RssParser: subscriptions.txt does not yet exist"
 
     def writefile(self):
         filename = self.getfilename()
@@ -226,7 +230,7 @@ class RssParser(Thread):
                                         print >> sys.stderr, "RssParser: trying", new_url
 
                                     referer = urlparse(new_url)
-                                    referer = referer.scheme + "://" +referer.netloc+"/"
+                                    referer = referer.scheme + "://" + referer.netloc + "/"
                                     stream = urlOpenTimeout(new_url, referer=referer)
                                     bdata = stream.read()
                                     stream.close()
@@ -242,7 +246,7 @@ class RssParser(Thread):
                                                 print_exc()
 
                                     if self.remote_th.is_registered():
-                                        callback = lambda key=key: processCallbacks(key)
+                                        callback = lambda key = key: processCallbacks(key)
                                         self.remote_th.save_torrent(torrent, callback)
                                     else:
                                         processCallbacks(key)

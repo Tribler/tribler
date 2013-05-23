@@ -46,18 +46,14 @@ class MissingChannelCache(MissingSomethingCache):
 
 _register_task = None
 
-
 def register_callback(callback):
     global _register_task
-    if not _register_task:
-        _register_task = callback.register
-
+    _register_task = callback.register
 
 def register_task(*args, **kwargs):
     global _register_task
     assert _register_task, "_REGISTER_TASK must have been set"
     return _register_task(*args, **kwargs)
-
 
 def forceDispersyThread(func):
     def invoke_func(*args, **kwargs):
@@ -72,7 +68,6 @@ def forceDispersyThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
-
 def forcePrioDispersyThread(func):
     def invoke_func(*args, **kwargs):
         if not currentThread().getName() == 'Dispersy':
@@ -85,7 +80,6 @@ def forcePrioDispersyThread(func):
 
     invoke_func.__name__ = func.__name__
     return invoke_func
-
 
 def forceAndReturnDispersyThread(func):
     def invoke_func(*args, **kwargs):
@@ -115,7 +109,6 @@ def forceAndReturnDispersyThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
-
 class ChannelCommunity(Community):
 
     """
@@ -123,7 +116,6 @@ class ChannelCommunity(Community):
     """
     def __init__(self, dispersy, master, integrate_with_tribler=True):
         self.integrate_with_tribler = integrate_with_tribler
-        register_callback(dispersy.callback)
 
         self._channel_id = None
         super(ChannelCommunity, self).__init__(dispersy, master)
@@ -679,7 +671,7 @@ class ChannelCommunity(Community):
                             def callback(message=message):
                                 self._dispersy.on_messages([message])
                             logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
-                            th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback= callback)
+                            th_handler.download_thumbnail(message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             continue
 
             yield message
@@ -1233,7 +1225,7 @@ class ChannelCommunity(Community):
     def _get_packet_id(self, global_time, mid):
         if global_time and mid:
             try:
-                packet_id,  = self._dispersy.database.execute(u"""
+                packet_id, = self._dispersy.database.execute(u"""
                     SELECT sync.id
                     FROM sync
                     JOIN member ON (member.id = sync.member)
