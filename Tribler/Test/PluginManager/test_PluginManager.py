@@ -34,7 +34,7 @@ class TestPluginManager(unittest.TestCase):
         manager.RegisterCategory("TestPlugin2", TestPluginInterface)
         manager.LoadPlugins()
         #Act
-        plugins = manager.GetAllPlugins()
+        plugins = manager.GetAllPluginDescriptors()
         #Assert  
         assert len(plugins)==2
         

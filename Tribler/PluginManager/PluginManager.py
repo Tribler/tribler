@@ -92,5 +92,7 @@ class PluginManager:
             out.append(pluginWrapper.plugin_object)
         return out
     
-    def GetAllPlugins(self):
+    def GetAllPluginDescriptors(self):
+        """Returns all the description objects for loaded plug-ins.
+        """
         return self.__yapsyManager.getAllPlugins()
