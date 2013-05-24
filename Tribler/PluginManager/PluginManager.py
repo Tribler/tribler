@@ -22,6 +22,17 @@ class PluginManager:
     __categoryFolders = None        #Dictionary of categoryname -> categoryfolder  
     __categoryInterfaces = None     #Dictionary of categoryname -> IPlugin interface
     
+    __singleton = None              #Singleton accessor, if claimed
+    
+    @staticmethod
+    def getInstance():
+        return PluginManager.__singleton
+    
+    def RegisterAsSingleton(self):
+        """Register this PluginManager as the only one in the system
+        """
+        PluginManager.__singleton = self
+    
     def __init__(self):
         self.__yapsyManager = yPluginManager()
         

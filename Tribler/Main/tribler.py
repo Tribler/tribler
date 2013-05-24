@@ -523,6 +523,7 @@ class ABCApp():
         self.pluginmanager.RegisterCategory("Parser", IPlugin)
         self.pluginmanager.RegisterCategory("TorrentFinder", IPlugin)
         self.pluginmanager.LoadPlugins()
+        self.pluginmanager.RegisterAsSingleton()
         
 
     @forceWxThread
