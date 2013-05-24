@@ -1,8 +1,4 @@
-
-def enum(**enums):
-    return type('Enum', (), enums)
-
-MovieQuality = enum('-360p','+-720p','+1080p')
+MovieQuality = {'CRAP':'-360p','NORMAL':'+-720p','HIGH':'+1080p'}
 
 class IMovieTorrentDef():
     

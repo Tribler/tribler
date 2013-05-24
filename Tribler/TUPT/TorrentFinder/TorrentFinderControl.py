@@ -1,3 +1,6 @@
+import sys
+
+from Tribler.PluginManager.PluginManager import PluginManager
 
 class TorrentFinderControl:
     """TorrentFinderControl
@@ -9,34 +12,50 @@ class TorrentFinderControl:
          - 1080p or more Category (High quality)
     """
     
-    def __init__(self):
-        pass
+    __crapQList = []
+    __normalQList = []
+    __highQList = []
     
-    def LoadLists(self, query):
+    def LoadLists(self, movie):
         """Query plug-ins for a title using a Movie object
         """
-        pass
+        manager = PluginManager.GetInstance()
+        plugins = manager.GetPluginsForCategory('TorrentFinder')
+        for plugin in plugins:
+            list = plugin.GetTorrentDefsForMovie(movie)
+            for item in list:
+                self.__ProcessTorrentDef(item)    
     
-    def __ProcessTorrentDef(self):
+    def __ProcessTorrentDef(self, definition):
         """Inspect a returned torrent definition and place in
             proper list.
         """
-        pass
+        if not isinstance(definition, IMovieTorrentDef):
+            print sys.stderr, "TorrentFinderControl error: returned torrent definition is not of type IMovieTorrentDef"
+            return
+        quality = definition.GetMovieQuality()
+        if quality == IMovieTorrentDef.MovieQuality['HIGH']:
+            self.__highQList.append(definition)
+        elif quality == IMovieTorrentDef.MovieQuality['NORMAL']:
+            self.__normalQList.append(definition)
+        else:
+            #Note that any implementation supplying an unknown quality also ends up here 
+            self.__crapQList.append(definition)
     
     def GetCrapQualityList(self):
         """Returns the list of found torrents with crap quality.
             Also known as the 360p or less list.
         """
-        pass
+        return self.__crapQList
     
     def GetNormalQualityList(self):
         """Returns the list of found torrents with normal quality.
             Also known as the 720p list.
         """
-        pass
+        return self.__normalQList
     
     def GetHighQualityList(self):
         """Returns the list of found torrents with high quality.
             Also known as the 1080p or more list.
         """
-        pass
+        return self.__highQList
