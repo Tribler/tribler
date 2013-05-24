@@ -34,6 +34,13 @@ class PluginManager:
     def __CategoryFolder(self, categoryName):    
         return self.__pluginsFolder + os.sep + categoryName
     
+    def OverwritePluginsFolder(self, folder):
+        """By default we store plug-ins in Triblers profile folder.
+            If you want to overwrite this (for testing for example) use
+            this method
+        """
+        self.__pluginsFolder = folder
+    
     def RegisterCategory(self, categoryName, interface):
         """Register a category for loading with LoadPlugins()
             Returns True if a category was created
