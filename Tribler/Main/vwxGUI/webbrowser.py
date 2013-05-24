@@ -160,6 +160,7 @@ class WebBrowser(XRCPanel):
             start = time.time()
             self.infobaroverlay.SetSizeHints(-1, -1,-1, int(finalHeight/smoothness*i))
             self.infobaroverlay.vSizer.Layout()
+            self.infobaroverlay.Layout()
             self.Refresh()
             remtime = animtime/smoothness-(time.time() - start)
             time.sleep(remtime if remtime > 0 else 0)
