@@ -8,8 +8,6 @@ import traceback
 
 from Tribler.Main.vwxGUI.list import XRCPanel
 
-
-
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''
    
