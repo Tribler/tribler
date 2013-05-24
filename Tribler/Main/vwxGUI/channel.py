@@ -15,7 +15,7 @@ from __init__ import *
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, SMALL_ICON_MAX_DIM
-from Tribler.community.channel.community import ChannelCommunity,\
+from Tribler.community.channel.community import ChannelCommunity, \
     forceAndReturnDispersyThread
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -105,7 +105,7 @@ class ChannelManager(BaseManager):
 
                 if DEBUG:
                     t3 = time()
-                    print >> sys.stderr, "SelChannelManager complete refresh took", t3 - t1, t2 -t1, t3
+                    print >> sys.stderr, "SelChannelManager complete refresh took", t3 - t1, t2 - t1, t3
 
                 return total_items, nrfiltered, torrentList, playlists, state, iamModerator
 
@@ -119,7 +119,7 @@ class ChannelManager(BaseManager):
                 self._on_data(total_items, nrfiltered, torrentList, playlists)
 
         if self.list.channel:
-            startWorker(do_gui, db_callback, uId= u"ChannelManager_refresh_list_%d" % self.list.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(do_gui, db_callback, uId=u"ChannelManager_refresh_list_%d" % self.list.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -189,7 +189,7 @@ class ChannelManager(BaseManager):
         infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
         self.do_or_schedule_partial(infohashes)
 
-    def channelUpdated(self, channel_id, stateChanged=False, modified= False):
+    def channelUpdated(self, channel_id, stateChanged=False, modified=False):
         _channel = self.list.channel
         if _channel and _channel == channel_id:
             if _channel.isFavorite() or _channel.isMyChannel():
@@ -210,7 +210,7 @@ class ChannelManager(BaseManager):
         if self.list.channel == channel_id:
             self.do_or_schedule_refresh()
 
-    def playlistUpdated(self, playlist_id, infohash=False, modified= False):
+    def playlistUpdated(self, playlist_id, infohash=False, modified=False):
         if self.list.InList(playlist_id):
             if self.list.InList(infohash):  # if infohash is shown, complete refresh is necessary
                 self.do_or_schedule_refresh()
@@ -256,7 +256,7 @@ class SelectedChannelList(GenericSearchList):
         self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "star.png"), wx.BITMAP_TYPE_ANY)
 
-        GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange= True, parent = parent)
+        GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
 
         newId = wx.NewId()
         self.accelerators = [(wx.ACCEL_NORMAL, wx.WXK_BACK, newId)]
@@ -267,7 +267,7 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def _PostInit(self):
-        self.notebook = SimpleNotebook(self.parent, show_single_tab=False, style= wx.NB_NOPAGETHEME)
+        self.notebook = SimpleNotebook(self.parent, show_single_tab=False, style=wx.NB_NOPAGETHEME)
         self.notebook.SetForegroundColour(self.parent.GetForegroundColour())
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
 
@@ -445,9 +445,9 @@ class SelectedChannelList(GenericSearchList):
             self.header.SetSubTitle(header + ' %d torrent' % nr)
         else:
             if self.channel and self.channel.isFavorite():
-                self.header.SetSubTitle(header + ' %d torrents' %nr)
+                self.header.SetSubTitle(header + ' %d torrents' % nr)
             else:
-                self.header.SetSubTitle(header + ' %d torrents' %nr)
+                self.header.SetSubTitle(header + ' %d torrents' % nr)
 
     @forceWxThread
     def RefreshData(self, key, data):
@@ -720,9 +720,9 @@ class SelectedChannelList(GenericSearchList):
         dial = wx.MessageDialog(None, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?" % nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
         if dial.ShowModal() == wx.ID_YES:
             self.OnFavorite()
-            startWorker(None, do_db, wargs=(True, ))
+            startWorker(None, do_db, wargs=(True,))
         else:
-            startWorker(None, do_db, wargs=(False, ))
+            startWorker(None, do_db, wargs=(False,))
 
         dial.Destroy()
 
@@ -784,7 +784,7 @@ class PlaylistManager(BaseManager):
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
 
         if self.list.playlist:
-            startWorker(self._on_data, db_call, uId= u"PlaylistManager_refresh_list_%d" % self.list.playlist.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(self._on_data, db_call, uId=u"PlaylistManager_refresh_list_%d" % self.list.playlist.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     @forceDBThread
     def refresh_partial(self, ids):
@@ -869,13 +869,13 @@ class Playlist(SelectedChannelList):
     def SetIds(self, channel):
         if channel:
             manager = self.commentList.GetManager()
-            manager.SetIds(channel=channel, playlist= self.playlist)
+            manager.SetIds(channel=channel, playlist=self.playlist)
 
             manager = self.activityList.GetManager()
-            manager.SetIds(channel=channel, playlist= self.playlist)
+            manager.SetIds(channel=channel, playlist=self.playlist)
 
             manager = self.moderationList.GetManager()
-            manager.SetIds(channel=channel, playlist= self.playlist)
+            manager.SetIds(channel=channel, playlist=self.playlist)
 
     def OnCommentCreated(self, key):
         SelectedChannelList.OnCommentCreated(self, key)
@@ -885,7 +885,7 @@ class Playlist(SelectedChannelList):
             manager.new_comment()
 
     def CreateFooter(self, parent):
-        return PlaylistFooter(parent, radius=0, spacers= [7, 7])
+        return PlaylistFooter(parent, radius=0, spacers=[7, 7])
 
     @warnWxThread
     def ResetBottomWindow(self):
@@ -919,7 +919,7 @@ class ManageChannelFilesManager(BaseManager):
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents=False)
 
-        startWorker(self._on_data, db_call, uId= u"ManageChannelFilesManager_refresh_%d" % self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_data, db_call, uId=u"ManageChannelFilesManager_refresh_%d" % self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -958,7 +958,7 @@ class ManageChannelFilesManager(BaseManager):
             # if fixtorrent not in kwargs -> new torrent created
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
-                download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir= kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename', None))
+                download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
                 self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
             return self.AddTDef(tdef)
         except:
@@ -976,7 +976,7 @@ class ManageChannelFilesManager(BaseManager):
                     # if fixtorrent not in kwargs -> new torrent created
                     tdef = TorrentDef.load(torrentfilename)
                     if 'fixtorrent' not in kwargs:
-                        download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir= kwargs.get('destdir', None), correctedFilename = kwargs.get('correctedFilename', None))
+                        download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
                         self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
 
                     torrentdefs.append(tdef)
@@ -1040,7 +1040,7 @@ class ManageChannelFilesManager(BaseManager):
 
                     nr_torrents_exported += 1
 
-            self.guiutility.Notify('%d torrents exported' % nr_torrents_exported, icon= wx.ART_INFORMATION)
+            self.guiutility.Notify('%d torrents exported' % nr_torrents_exported, icon=wx.ART_INFORMATION)
 
 
 class ManageChannelPlaylistsManager(BaseManager):
@@ -1067,10 +1067,10 @@ class ManageChannelPlaylistsManager(BaseManager):
             _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.channel)
             return playlistList
 
-        startWorker(self.list.SetDelayedData, db_call, uId= u"ManageChannelPlaylistsManager_refresh_%d" % self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self.list.SetDelayedData, db_call, uId=u"ManageChannelPlaylistsManager_refresh_%d" % self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def refresh_partial(self, playlist_id):
-        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs = (playlist_id,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs=(playlist_id,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def SetChannel(self, channel):
         if channel != self.channel:
@@ -1085,17 +1085,17 @@ class ManageChannelPlaylistsManager(BaseManager):
         self.channelsearch_manager.removeAllPlaylists(self.channel)
 
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs=(self.channel,), wkwargs = {'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs=(self.channel,), wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
 
     def GetTorrentsNotInPlaylist(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs=(self.channel,), wkwargs = {'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs=(self.channel,), wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
 
     def GetTorrentsFromPlaylist(self, playlist):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs=(playlist,), wkwargs = {'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs=(playlist,), wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
 
@@ -1216,7 +1216,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         gridSizer.AddGrowableCol(1)
         gridSizer.AddGrowableRow(1)
 
-        self.statebox = wx.RadioBox(self.settingspage, choices=('Open', 'Semi-Open', 'Closed'), style = wx.RA_VERTICAL)
+        self.statebox = wx.RadioBox(self.settingspage, choices=('Open', 'Semi-Open', 'Closed'), style=wx.RA_VERTICAL)
         self._add_row(self.settingspage, gridSizer, "Configuration", self.statebox)
         vSizer.Add(gridSizer, 0, wx.EXPAND | wx.RIGHT, 10)
 
@@ -1310,14 +1310,13 @@ class ManageChannel(XRCPanel, AbstractDetails):
         # add-rss
         rssSizer.Add(wx.StaticText(parent, -1, "Add an rss-feed:"), 0, wx.TOP, 3)
         addSizer = wx.BoxSizer(wx.HORIZONTAL)
-        url = wx.TextCtrl(parent)
+        self.rss_url = wx.TextCtrl(parent)
         addButton = wx.Button(parent, -1, "Add")
-        addButton.url = url
         addButton.Bind(wx.EVT_BUTTON, self.OnAddRss)
-        addSizer.Add(url, 1, wx.ALIGN_CENTER_VERTICAL)
-        addSizer.Add(addButton, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL |wx.ALIGN_RIGHT, 5)
+        addSizer.Add(self.rss_url, 1, wx.ALIGN_CENTER_VERTICAL)
+        addSizer.Add(addButton, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT, 5)
         rssSizer.Add(addSizer, 0, wx.EXPAND, 10)
-        sizer.Add(rssSizer, 1, wx.EXPAND | wx.LEFT |wx.TOP|wx.BOTTOM, 10)
+        sizer.Add(rssSizer, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
 
     def RebuildRssPanel(self):
         self.gridSizer.ShowItems(False)
@@ -1493,9 +1492,8 @@ class ManageChannel(XRCPanel, AbstractDetails):
             self.playlistlist.Focus()
         event.Skip()
 
-    def OnAddRss(self, event):
-        item = event.GetEventObject()
-        url = item.url.GetValue().strip()
+    def OnAddRss(self, event=None):
+        url = self.rss_url.GetValue().strip()
         if len(url) > 0:
             self.torrentfeed.addURL(url, self.channel.id)
             self.RebuildRssPanel()
@@ -1533,7 +1531,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
             if nr_imported == 1:
                 self.guiutility.Notify('New torrent added to My Channel', icon=wx.ART_INFORMATION)
             else:
-                self.guiutility.Notify('Added %d torrents to your Channel' % nr_imported, icon= wx.ART_INFORMATION)
+                self.guiutility.Notify('Added %d torrents to your Channel' % nr_imported, icon=wx.ART_INFORMATION)
 
     def Show(self, show=True):
         if not show:
@@ -1590,7 +1588,7 @@ class ManageChannel(XRCPanel, AbstractDetails):
         manager = self.playlistlist.GetManager()
         manager.playlistUpdated(playlist_id, modified)
 
-    def channelUpdated(self, channel_id, created=False, modified= False):
+    def channelUpdated(self, channel_id, created=False, modified=False):
         if self.channel == channel_id:
             manager = self.fileslist.GetManager()
             manager.do_or_schedule_refresh()
@@ -1608,7 +1606,7 @@ class ManageChannelFilesList(List):
         columns = [{'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False},
                    {'name': 'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True, 'showColumname': False}]
 
-        List.__init__(self, columns, LIST_LIGHTBLUE, [0, 0], parent=parent, borders= False)
+        List.__init__(self, columns, LIST_LIGHTBLUE, [0, 0], parent=parent, borders=False)
 
     def CreateHeader(self, parent):
         return TitleHeader(parent, self, self.columns, 0, wx.FONTWEIGHT_BOLD, 0)
@@ -1680,7 +1678,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def __init__(self, parent):
         columns = [{'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False}]
 
-        List.__init__(self, columns, LIST_LIGHTBLUE, [0, 0], True, parent=parent, borders= False)
+        List.__init__(self, columns, LIST_LIGHTBLUE, [0, 0], True, parent=parent, borders=False)
 
     def CreateFooter(self, parent):
         return ManageChannelPlaylistFooter(parent, self.OnNew)
@@ -1740,11 +1738,11 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def OnNew(self, event):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        dlg = wx.Dialog(None, -1, 'Create a new playlist', size= (500, 300), style = wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Create a new playlist', size=(500, 300), style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
         playlistdetails = MyChannelPlaylist(dlg, self.OnManage, can_edit=True)
 
         vSizer.Add(playlistdetails, 1, wx.EXPAND | wx.ALL, 3)
-        vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND |wx.ALL, 3)
+        vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND | wx.ALL, 3)
 
         dlg.SetSizer(vSizer)
         if dlg.ShowModal() == wx.ID_OK:
@@ -1773,7 +1771,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             manager.savePlaylistTorrents(playlist.id, torrent_ids)
 
     def OnManage(self, playlist):
-        dlg = wx.Dialog(None, -1, 'Manage the torrents for this playlist', size= (900, 500), style = wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Manage the torrents for this playlist', size=(900, 500), style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
 
         manager = self.GetManager()
         available = manager.GetTorrentsFromChannel()
@@ -1791,10 +1789,10 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         selected_names = [torrent.name for torrent in dlg.selected]
         available_names = [torrent.name for torrent in dlg.available]
 
-        dlg.selectedList = wx.ListBox(dlg, choices=selected_names, style= wx.LB_MULTIPLE)
+        dlg.selectedList = wx.ListBox(dlg, choices=selected_names, style=wx.LB_MULTIPLE)
         dlg.selectedList.SetMinSize((1, -1))
 
-        dlg.availableList = wx.ListBox(dlg, choices=available_names, style= wx.LB_MULTIPLE)
+        dlg.availableList = wx.ListBox(dlg, choices=available_names, style=wx.LB_MULTIPLE)
         dlg.availableList.SetMinSize((1, -1))
 
         sizer = wx.FlexGridSizer(2, 3, 3, 3)
@@ -1852,9 +1850,9 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         sizer.Add(vSizer)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(sizer, 1, wx.TOP | wx.LEFT |wx.RIGHT|wx.EXPAND, 10)
+        vSizer.Add(sizer, 1, wx.TOP | wx.LEFT | wx.RIGHT | wx.EXPAND, 10)
         vSizer.AddSpacer((1, 3))
-        vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND |wx.BOTTOM|wx.LEFT|wx.RIGHT, 10)
+        vSizer.Add(dlg.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL), 0, wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, 10)
 
         dlg.SetSizer(vSizer)
 
@@ -1960,7 +1958,7 @@ class CommentManager(BaseManager):
         self.playlist = None
         self.channeltorrent = None
 
-    def SetIds(self, channel, playlist=None, channeltorrent= None):
+    def SetIds(self, channel, playlist=None, channeltorrent=None):
         changed = False
 
         if channel:
@@ -2047,7 +2045,7 @@ class CommentManager(BaseManager):
 
 class CommentList(List):
 
-    def __init__(self, parent, parent_list, canReply=False, quickPost = False, horizontal = False, noheader = False):
+    def __init__(self, parent, parent_list, canReply=False, quickPost=False, horizontal=False, noheader=False):
         if quickPost:
             self.quickPost = self.OnThankYou
         else:
@@ -2055,7 +2053,7 @@ class CommentList(List):
         self.horizontal = horizontal
         self.noheader = noheader
 
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect= True, borders = False)
+        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
         self.parent_list = parent_list
         self.canReply = canReply
 
@@ -2085,7 +2083,7 @@ class CommentList(List):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
 
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius=0, spacers= [4, 7])
+        return TitleHeader(parent, self, [], 0, radius=0, spacers=[4, 7])
 
     def CreateFooter(self, parent):
         return CommentFooter(parent, self.OnNew, self.quickPost, self.horizontal)
@@ -2226,12 +2224,12 @@ class ActivityManager(BaseManager):
 class ActivityList(List):
 
     def __init__(self, parent, parent_list):
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect= True, borders = False)
+        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
         self.parent_list = parent_list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
 
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius=0, spacers= [4, 7])
+        return TitleHeader(parent, self, [], 0, radius=0, spacers=[4, 7])
 
     def CreateFooter(self, parent):
         return None
@@ -2321,7 +2319,7 @@ class ModificationManager(BaseManager):
 class ModificationList(List):
 
     def __init__(self, parent, canModify=True):
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect= True, borders = False)
+        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
         self.canModify = canModify
 
     def CreateHeader(self, parent):
@@ -2351,22 +2349,22 @@ class ModificationList(List):
         self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing modifications.', 'No modifications received yet')
 
     def OnRevertModification(self, modification):
-        dlg = wx.Dialog(None, -1, 'Revert this modification', size= (700, 400), style = wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1, 'Revert this modification', size=(700, 400), style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
         dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected = DEFAULT_BACKGROUND), 0, wx.EXPAND | wx.LEFT |wx.RIGHT|wx.TOP, 7)
+        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected=DEFAULT_BACKGROUND), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 7)
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout
 
         why = StaticText(dlg, -1, 'Why do you want to revert this modification?')
         _set_font(why, fontweight=wx.FONTWEIGHT_BOLD)
         ori_why_colour = why.GetForegroundColour()
-        vSizer.Add(why, 0, wx.EXPAND | wx.LEFT |wx.RIGHT|wx.TOP, 7)
+        vSizer.Add(why, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 7)
 
         reason = wx.TextCtrl(dlg, -1, style=wx.TE_MULTILINE)
         reason.SetMinSize((-1, 50))
-        vSizer.Add(reason, 1, wx.EXPAND | wx.LEFT |wx.RIGHT, 7)
+        vSizer.Add(reason, 1, wx.EXPAND | wx.LEFT | wx.RIGHT, 7)
 
         def canClose(event):
             givenReason = reason.GetValue().strip()
@@ -2390,7 +2388,7 @@ class ModificationList(List):
         buttonSizer.Add(revert)
 
         vSizer.AddStretchSpacer()
-        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT | wx.LEFT |wx.RIGHT|wx.BOTTOM|wx.TOP, 7)
+        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT | wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.TOP, 7)
 
         dlg.SetSizer(vSizer)
         id = dlg.ShowModal()
@@ -2415,7 +2413,7 @@ class ModerationManager(BaseManager):
         self.playlist = None
         self.channeltorrent = None
 
-    def SetIds(self, channel=None, playlist= None):
+    def SetIds(self, channel=None, playlist=None):
         changed = False
         if channel:
             self.channel = channel
@@ -2452,7 +2450,7 @@ class ModerationManager(BaseManager):
 class ModerationList(List):
 
     def __init__(self, parent, parent_list):
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect= True, borders = False)
+        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
         self.parent_list = parent_list
 
     def CreateHeader(self, parent):

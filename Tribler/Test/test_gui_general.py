@@ -7,11 +7,8 @@ from Tribler.Test.test_as_server import TestGuiAsServer
 DEBUG = True
 
 
-class TestRemoteQuery(TestGuiAsServer):
+class TestGuiGeneral(TestGuiAsServer):
 
-    """
-    Testing QUERY message of Social Network extension V1
-    """
     def test_debugpanel(self):
         def do_assert():
             self.assert_(self.guiUtility.guiPage == 'stats', 'Debug page is not selected')
