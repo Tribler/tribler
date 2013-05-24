@@ -96,6 +96,10 @@ from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
+from Tribler.PluginManager.PluginManager import PluginManager
+from Tribler.PluginManager.IPlugin import IStubPlugin
+from yapsy.IPlugin import IPlugin
+
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
 from Tribler.Core.Utilities.utilities import show_permid_short
@@ -171,7 +175,7 @@ class ABCApp():
         try:
             bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Images', 'splash.png'), wx.BITMAP_TYPE_ANY)
             self.splash = GaugeSplash(bm)
-            self.splash.setTicks(10)
+            self.splash.setTicks(11)
             self.splash.Show()
 
             self.utility = Utility(self.installdir, Session.get_default_state_dir())
@@ -512,6 +516,14 @@ class ABCApp():
         # Schedule task for checkpointing Session, to avoid hash checks after
         # crashes.
         self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
+        
+        progress('Loading plug-ins')
+        self.pluginmanager = PluginManager()
+        self.pluginmanager.RegisterCategory("Matcher", IPlugin)
+        self.pluginmanager.RegisterCategory("Parser", IPlugin)
+        self.pluginmanager.RegisterCategory("TorrentFinder", IPlugin)
+        self.pluginmanager.LoadPlugins()
+        
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
