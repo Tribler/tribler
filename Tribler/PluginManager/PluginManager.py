@@ -25,7 +25,7 @@ class PluginManager:
     __singleton = None              #Singleton accessor, if claimed
     
     @staticmethod
-    def getInstance():
+    def GetInstance():
         return PluginManager.__singleton
     
     def RegisterAsSingleton(self):
