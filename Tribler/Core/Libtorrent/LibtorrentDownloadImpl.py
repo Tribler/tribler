@@ -19,6 +19,8 @@ from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilena
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
 
+from Tribler.Video.VideoUtility import get_videoinfo
+
 if sys.platform == "win32":
     try:
         import win32api
@@ -254,20 +256,17 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.handle and position >= 0.0 and position <= 1.0:
             for fileindex, prio in enumerate(self.handle.file_priorities()):
                 if prio > 0:
-                    # Reset videofile priority to 1
-                    filepriorities = self.handle.file_priorities()
-                    filepriorities[fileindex] = 1
-                    self.handle.prioritize_files(filepriorities)
-
                     # Find the piece related to the given position
                     torrentinfo = self.handle.get_torrent_info()
                     videofile = torrentinfo.file_at(fileindex)
-                    pieceposition = torrentinfo.map_file(fileindex, int(position * videofile.size), 0).piece
+                    first_piece = torrentinfo.map_file(fileindex, 0, 0).piece
+                    current_piece = torrentinfo.map_file(fileindex, int(position * videofile.size), 0).piece
+                    last_piece = torrentinfo.map_file(fileindex, int(videofile.size), 0).piece
 
-                    # Set piece priority from start till pieceposition to 0
+                    # Set piece priority from start of the vod file till current_piece to 0
                     piecepriorities = self.handle.piece_priorities()
-                    for pieceindex in range(pieceposition):
-                        piecepriorities[pieceindex] = 0
+                    for pieceindex in range(first_piece, last_piece):
+                        piecepriorities[pieceindex] = 0 if pieceindex < current_piece else 1
                     self.handle.prioritize_pieces(piecepriorities)
 
                     self.vod_readpos = int(position * videofile.size)
@@ -284,12 +283,13 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             selected_files = self.get_selected_files()
             startofbuffer = [t for t, _, f in self.filepieceranges if not selected_files or f == selected_files[0]][0]
         else:
-            startofbuffer = int(self.vod_readpos / self.handle.get_torrent_info().piece_length())
+            fileindex = self.handle.file_priorities().index(1)
+            startofbuffer = self.handle.get_torrent_info().map_file(fileindex, self.vod_readpos, 0).piece
         endofbuffer = startofbuffer + int(self.prebuffsize / self.handle.get_torrent_info().piece_length() + 1)
         buffer = pieces[startofbuffer:endofbuffer]
         self.bufferprogress = float(buffer.count(True))/len(buffer) if len(buffer) > 0 else 1
 
-        if DEBUG:        
+        if True or DEBUG:        
             print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % self.bufferprogress
         
         if self.bufferprogress >= 1:
@@ -307,8 +307,24 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         elif self.bufferprogress <= 0.1 and self.vod_status:
             self.pause_vod()
 
+        # If the first megabyte has been downloaded, attempt to estimate the bitrate of the videofile with ffmpeg
+        if not self.videoinfo.get('bitrate', None):
+            startoffile = [t for t, _, f in self.filepieceranges if not selected_files or f == selected_files[0]][0] if self.tdef.is_multifile_torrent() else 0
+            numpieces = int(1*1024*1024 / self.handle.get_torrent_info().piece_length()) + 1
+            if all(pieces[startoffile:startoffile + numpieces]):
+                if DEBUG:        
+                    print >> sys.stderr, 'LibtorrentDownloadImpl: first megabyte downloaded, run ffmpeg to estimate bitrate'
+                videofile = self.videoinfo["outpath"][0]
+                videoanalyser = self.session.get_video_analyser_path()
+                duration, bitrate, _ = get_videoinfo(videofile, videoanalyser)
+                self.videoinfo['bitrate'] = bitrate
+                self.videoinfo['duration'] = duration
+
         delay = 1.0 if self.handle and not self.handle.is_paused() else 0.0            
         return (delay, False)
+
+    def get_vod_duration(self):
+        return self.videoinfo.get('duration', None)
     
     def start_vod(self, complete = False):
         if not self.vod_status:

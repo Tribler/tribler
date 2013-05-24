@@ -41,6 +41,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.estduration = None
         self.fullscreenwindow = None
         self.download = None
+        self.update = True
+        self.timeoffset = None
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -228,11 +230,19 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             position = self.slider.GetValue()
+            self.update = False
     
             @forceWxThread
             def set_position():
                 try:
                     self.vlcwrap.set_media_position_relative(position, self.GetState() == MEDIASTATE_STOPPED)
+
+                    length = self.vlcwrap.get_stream_information_length()
+                    length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
+                    time_position = length * position
+                    self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000) 
+
+                    self.update = True
                 except:
                     print_exc()
                     if DEBUG:
@@ -404,27 +414,14 @@ class EmbeddedPlayerPanel(wx.Panel):
     @warnWxThread
     def UpdateSlider(self, evt):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
-        if self.vlcwrap:
+        if self.vlcwrap and self.update:
             if self.GetState() != MEDIASTATE_STOPPED:
     
-#                length = self.vlcwrap.get_stream_information_length()
-#                if length == -1 or length == 0:
-#                    if self.estduration is None:
-#                        return
-#                    else:
-#                        length = int(self.estduration)
-#                else:
-#                    length /= 1000
-#    
-#                cur = self.vlcwrap.get_media_position() / 1000
-    
-                #self.slider.SetRange(0, length)
-                #self.slider.SetValue(cur)
-                cur = self.vlcwrap.get_media_position() / 1000 #self.vlcwrap.vlc.libvlc_media_player_get_position(self.vlcwrap.player)
                 length = self.vlcwrap.get_stream_information_length()
-                length = length / 1000 if length > 0 else self.estduration
-
-                print >> sys.stderr, cur, length
+                length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
+                cur = self.vlcwrap.get_media_position() / 1000
+                if length and self.timeoffset:
+                    cur += self.timeoffset
 
                 if cur >= 0 and length:
                     self.slider.SetValue(cur / length)

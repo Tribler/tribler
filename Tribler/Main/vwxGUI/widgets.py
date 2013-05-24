@@ -2482,12 +2482,12 @@ class VideoSlider(wx.Panel):
 
         # Draw slider
         if self.IsEnabled():
-            gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, self.slider_radius * 2 , 0, self.colour1, self.colour2))
+            gc.SetBrush(gc.CreateLinearGradientBrush(self.slider_position[0], 0, self.slider_position[1] + self.slider_radius * 2 , 0, self.colour1, self.colour2))
             path = gc.CreatePath()
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
             gc.DrawPath(path)
             self.hovering = self.PositionOnSlider()
-            gc.SetBrush(wx.TRANSPARENT_BRUSH if self.hovering else wx.Brush(wx.Colour(244, 244, 244)))
+            gc.SetBrush(wx.TRANSPARENT_BRUSH if self.hovering or self.dragging else wx.Brush(wx.Colour(244, 244, 244)))
             path = gc.CreatePath()
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius / 2)
             gc.DrawPath(path)
