@@ -737,14 +737,11 @@ class TorrentDetails(AbstractDetails):
     def OnDoubleClick(self, event):
         selected = self.listCtrl.GetFirstSelected()
         playable_files = self.torrent.videofiles
-        webbrowsableFiles = self.torrent.webPageFiles()
             
         if selected != -1:
             selected_file = self.listCtrl.GetItemText(selected)
             if selected_file in playable_files:
                 self.guiutility.library_manager.playTorrent(self.torrent, selected_file)
-            elif selected_file in webbrowsableFiles:
-                self.guiutility.library_manager.webBrowseTorrent(selected_file)
 
             elif self.torrent.progress == 1: #not playable, but are we complete?
                 file = self._GetPath(selected_file)

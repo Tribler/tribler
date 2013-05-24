@@ -97,7 +97,6 @@ from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
 from Tribler.PluginManager.PluginManager import PluginManager
-from Tribler.PluginManager.IPlugin import IStubPlugin
 from yapsy.IPlugin import IPlugin
 
 from Tribler.Core.API import *
