@@ -55,7 +55,7 @@ class PluginManager:
     def GetCategories(self):
         """Return all registered categories
         """
-        return self.__categoryFolders.keys()
+        return self.__yapsyManager.getCategories()
     
     def CategoryExists(self, categoryName):
         """Return True if and only if categoryName is a successfully registered
@@ -80,3 +80,6 @@ class PluginManager:
         for pluginWrapper in self.__yapsyManager.getPluginsOfCategory(categoryName):
             out.append(pluginWrapper.plugin_object)
         return out
+    
+    def GetAllPlugins(self):
+        return self.__yapsyManager.getAllPlugins()
