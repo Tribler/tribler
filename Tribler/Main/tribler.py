@@ -465,6 +465,9 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
+            from Tribler.community.channel.community import register_callback
+            register_callback(dispersy.callback)
+
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
         swift_process = s.get_swift_proc() and s.get_swift_process()
@@ -898,6 +901,7 @@ class ABCApp():
             self.i2is.shutdown()
         if self.torrentfeed:
             self.torrentfeed.shutdown()
+            self.torrentfeed.delInstance()
         if self.webUI:
             self.webUI.stop()
         if self.guiserver:
