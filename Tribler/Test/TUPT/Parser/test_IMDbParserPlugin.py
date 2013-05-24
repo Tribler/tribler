@@ -6,6 +6,15 @@ class TestIMDbParserPlugin(unittest.TestCase):
     
     __result = {'title' : 'The Matrix', 'releaseYear' : 1999, 'director' : ['Andy Wachowski', 'Lana Wachowski']}
 
+    def download_webpage(self, url, filename):
+        """Download a webpage pointed to by 'url' to the file 'filename' using
+            the Mozilla 5.0 header.
+        """
+        req = urllib2.Request(url, headers={'User-Agent':"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
+        f = open(filename, 'w')
+        f.write(urllib2.urlopen(req).read())
+        f.close()
+
     def test_ParseWebsiteCombinedDetails(self):
         '''Test parsing the combined details page'''
         #Arrange
