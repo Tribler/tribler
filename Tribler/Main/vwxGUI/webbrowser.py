@@ -3,6 +3,8 @@ import wx.html2
 import urlparse
 import time
 import thread
+import sys
+import traceback
 
 from Tribler.Main.vwxGUI.list import XRCPanel
 
@@ -54,13 +56,16 @@ class WebBrowser(XRCPanel):
         self.SetSizer(vSizer)
         self.Layout()
         
+        '''Add observerlist for checking load events'''
+        self.loadlisteners = []
+        
         '''Register the action on the event that a URL is being loaded and when finished loading'''
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         
         self.infobaroverlay.Bind(wx.EVT_ENTER_WINDOW, self.OnInfoBarMouseOver, self.infobaroverlay)
         self.infobaroverlay.Bind(wx.EVT_LEAVE_WINDOW, self.OnInfoBarMouseOut, self.infobaroverlay)
         
-        self.webview.LoadURL("http://www.google.com/")         
+        self.webview.LoadURL("http://www.google.com/")       
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
@@ -77,10 +82,26 @@ class WebBrowser(XRCPanel):
             url = 'http://' + url
         self.webview.LoadURL(url)
     
+    def AddLoadedListener(self, listener):
+        """Loaded listeners must expose a webpageLoaded(event) method
+        """
+        self.loadlisteners.append(listener)
+        
+    def RemoveLoadedListener(self, listener):
+        self.loadlisteners.remove(listener)
+    
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
+        for listener in self.loadlisteners:
+            try:
+                listener.webpageLoaded(event)
+            except:
+                #Anything can go wrong with custom listeners, not our problem
+                print >> sys.stderr, "WebBrowser: An error occurred in LoadedListener " + str(listener)
+                traceback.print_exc()
+                
     
     def OnInfoBarMouseOver(self, event):
         """When we roll over the InfoBar, set our background to be brighter
