@@ -17,7 +17,7 @@ if sys.version.split()[0] >= '2.5':
         import Tribler.Core.DecentralizedTracking.pymdht.plugins.lookup_a4 as lookup_mod
         import Tribler.Core.DecentralizedTracking.pymdht.core.exp_plugin_template as experimental_m_mod
         dht_imported = True
-    except (ImportError), e:
+    except (ImportError) as e:
         print_exc()
 
 def init(addr, conf_path, swift_port):
@@ -41,6 +41,7 @@ def init(addr, conf_path, swift_port):
         if DEBUG:
             print >> sys.stderr, 'dht: DHT running'
     return dht
+
 
 def control():
     import pdb

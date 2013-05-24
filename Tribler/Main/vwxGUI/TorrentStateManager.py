@@ -20,13 +20,14 @@ from traceback import print_exc
 
 DEBUG = True
 
+
 class TorrentStateManager:
     # Code to make this a singleton
     __single = None
 
     def __init__(self, guiUtility):
         if TorrentStateManager.__single:
-            raise RuntimeError, "TorrentStateManager is singleton"
+            raise RuntimeError("TorrentStateManager is singleton")
         TorrentStateManager.__single = self
 
     def getInstance(*args, **kw):
@@ -91,8 +92,8 @@ class TorrentStateManager:
             print >> sys.stderr, 'create_and_seed_metadata: going to seed metadata for torrent', torrent.name
 
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
-        video_info = {'duration': duration, \
-                      'bitrate': bitrate, \
+        video_info = {'duration': duration,
+                      'bitrate': bitrate,
                       'resolution': resolution}
 
         if DEBUG:
@@ -136,7 +137,7 @@ class TorrentStateManager:
             if DEBUG:
                 print_exc()
 
-        modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())), \
+        modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())),
                          'video-info': json.dumps(video_info)}
 
         if DEBUG:

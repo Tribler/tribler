@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#########################################################################
+#
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 #
@@ -10,7 +10,7 @@
 #               need Python, WxPython in order to run from source code.
 #
 # see LICENSE.txt for license information
-#########################################################################
+#
 
 import logging.config
 logging.config.fileConfig("logger.conf")  # , disable_existing_loggers = False)
@@ -36,10 +36,13 @@ urllib.URLopener.open_https = original_open_https
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
 
-import os, sys
+import os
+import sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
+from Tribler.dispersy.community import HardKilledCommunity
+from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
@@ -47,7 +50,7 @@ from threading import current_thread, currentThread
 try:
     prctlimported = True
     import prctl
-except ImportError, e:
+except ImportError as e:
     prctlimported = False
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
@@ -78,7 +81,7 @@ import thread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame, VideoMacFrame
-# # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
+# from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
@@ -127,14 +130,17 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = False
 
-##############################################################
+#
 #
 # Class : ABCApp
 #
 # Main ABC application class that contains ABCFrame Object
 #
-##############################################################
+#
+
+
 class ABCApp():
+
     def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -155,8 +161,8 @@ class ABCApp():
 
         # DISPERSY will be set when available
         self.dispersy = None
-        # # EFFORT_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
-        # self.effort_community = None
+        # BARTER_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
+        self.barter_community = None
 
         self.seedingmanager = None
         self.i2is = None
@@ -213,7 +219,7 @@ class ABCApp():
             self.ratestatecallbackcount = 0
 
             # So we know if we asked for peer details last cycle
-            self.lastwantpeers = False
+            self.lastwantpeers = []
 
             # boudewijn 01/04/2010: hack to fix the seedupload speed that
             # was never used and defaulted to 0 (unlimited upload)
@@ -324,8 +330,8 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
@@ -334,7 +340,7 @@ class ABCApp():
 
             self.ready = True
 
-        except Exception, e:
+        except Exception as e:
             self.onError(e)
             return False
 
@@ -365,6 +371,7 @@ class ABCApp():
 
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
+
         def db_thread():
             return channelcast.getMyChannelId()
 
@@ -436,26 +443,32 @@ class ABCApp():
         s = Session(self.sconfig)
         s.start()
 
-        dispersy = s.get_dispersy_instance()
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
             from Tribler.community.allchannel.community import AllChannelCommunity
+            from Tribler.community.bartercast3.community import BarterCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
-                                           (s.dispersy_member,),
-                                           load=True)
+                                     (s.dispersy_member,),
+                                     load=True)
             dispersy.define_auto_load(AllChannelCommunity,
                                            (s.dispersy_member,),
-                                           {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                           {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
+            if swift_process:
+                dispersy.define_auto_load(BarterCommunity,
+                                          (swift_process,),
+                                          load=True)
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
+        swift_process = s.get_swift_proc() and s.get_swift_process()
+        dispersy = s.get_dispersy_instance()
         dispersy.callback.call(define_communities)
         return s
 
@@ -523,11 +536,11 @@ class ABCApp():
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
-    # def _dispersy_get_effort_community(self):
-    #     try:
-    #         return self.dispersy.get_community(EFFORT_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=True)
-    #     except KeyError:
-    #         return None
+    def _dispersy_get_barter_community(self):
+        try:
+            return self.dispersy.get_community(BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST, load=False, auto_load=False)
+        except KeyError:
+            return None
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
@@ -545,12 +558,12 @@ class ABCApp():
             if DEBUG:
                 if self.ratestatecallbackcount % 5 == 0:
                     for ds in dslist:
-                        safename = `ds.get_download().get_def().get_name()`
+                        safename = repr(ds.get_download().get_def().get_name())
                         if DEBUG:
                             print >> sys.stderr, "%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            print >> sys.stderr, "main: Error:", `ds.get_error()`
+                            print >> sys.stderr, "main: Error:", repr(ds.get_error())
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -562,26 +575,26 @@ class ABCApp():
                         no_collected_list.append(ds)
                 # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
                 # so only do it when needed for display.
-                wantpeers = self.guiUtility.library_manager.download_state_callback(no_collected_list)
+                wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
             except:
                 print_exc()
 
-            # if not self.effort_community:
-            #     self.effort_community = self.dispersy.callback.call(self._dispersy_get_effort_community)
+            # Update bandwidth statistics in the Barter Community
+            if not self.barter_community:
+                self.barter_community = self.dispersy.callback.call(self._dispersy_get_barter_community)
 
-            # if self.effort_community and not isinstance(self.effort_community, HardKilledCommunity):
-            #     if self.effort_community.has_been_killed:
-            #         # set EFFORT_COMMUNITY to None.  next state callback we will again get the
-            #         # effort community resulting in the HardKilledCommunity instead
-            #         self.effort_community = None
-            #     else:
-            #         if self.lastwantpeers:
-            #             self.dispersy.callback.register(self.effort_community.download_state_callback, (dslist,))
+            if self.barter_community and not isinstance(self.barter_community, HardKilledCommunity):
+                if self.barter_community.has_been_killed:
+                    # set BARTER_COMMUNITY to None.  next state callback we will again get the
+                    # community resulting in the HardKilledCommunity instead
+                    self.barter_community = None
+                else:
+                    if True in self.lastwantpeers:
+                        self.dispersy.callback.register(self.barter_community.download_state_callback, (dslist, True))
 
-            #         # only request peer info every 120 intervals
-            #         if self.ratestatecallbackcount % 120 == 0:
-            #             wantpeers.append(True)
-
+                    # only request peer info every 120 intervals
+                    if self.ratestatecallbackcount % 120 == 0:
+                        wantpeers.append(True)
 
             # Find State of currently playing video
             playds = None
@@ -596,7 +609,7 @@ class ABCApp():
                     videoplayer_mediastate = self.videoplayer.get_state()
 
                     totalhelping = 0
-                    totalspeed = {UPLOAD:0.0, DOWNLOAD:0.0}
+                    totalspeed = {UPLOAD: 0.0, DOWNLOAD: 0.0}
                     for ds in dslist:
                         totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
                         totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
@@ -1081,6 +1094,7 @@ class ABCApp():
             print_exc()
             raise
 
+
 def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, decodeprogress, totalhelping, totalspeed):
 
     intime = "Not playing for quite some time."
@@ -1216,11 +1230,11 @@ def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, de
     return [topmsg, msg, said_start_playback, decodeprogress]
 
 
-##############################################################
+#
 #
 # Main Program Start Here
 #
-##############################################################
+#
 @attach_profiler
 def run(params=None):
     if params is None:

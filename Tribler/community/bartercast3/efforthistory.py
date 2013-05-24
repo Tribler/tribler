@@ -1,22 +1,20 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from binascii import hexlify, unhexlify
 
 from Tribler.dispersy.decorator import Constructor, constructor
-from Tribler.dispersy.revision import update_revision_information
-
-if __debug__:
-    from Tribler.dispersy.dprint import dprint
-
-# update version information directly from SVN
-update_revision_information("$HeadURL$", "$Revision$")
 
 # a cycle is defined as a N second period
-CYCLE_SIZE = 1800.0
+CYCLE_SIZE = 60.0 * 30
 
 # the number of bits used per history
 BIT_COUNT = 64 * 8
 assert BIT_COUNT % 8 == 0
 
+
 class EffortHistory(Constructor):
+
     @constructor(float)
     def _init_bits_origin(self, origin):
         """
@@ -26,7 +24,7 @@ class EffortHistory(Constructor):
         ORIGIN: float timestamp.
         """
         assert isinstance(origin, float)
-        self._long = 0L
+        self._long = 0
         self._origin = origin
 
     @constructor(long, float)
@@ -87,10 +85,10 @@ class EffortHistory(Constructor):
         """
         assert isinstance(origin, float)
         difference = int(origin / CYCLE_SIZE) - int(self._origin / CYCLE_SIZE)
-        if __debug__:
-            dprint("difference ", difference, " (", origin - self._origin, "s)")
-            if origin < self._origin:
-                dprint("currently it is not possible to set bits in the past", level="warning")
+        logger.debug("difference %d (%d seconds)", difference, origin - self._origin)
+        if origin < self._origin:
+            logger.warning("currently it is not possible to set bits in the past")
+
         if difference > 0:
             if __debug__:
                 BEFORE = self._long
@@ -101,14 +99,14 @@ class EffortHistory(Constructor):
             self._long <<= difference
 
             # remove now obsolete bits
-            self._long &= (2**BIT_COUNT - 1)
+            self._long &= (2 ** BIT_COUNT - 1)
 
             # set last bit ACTIVE
             self._long |= 1
 
             if __debug__:
                 AFTER = self._long
-                dprint(bin(BEFORE), " -> ", bin(AFTER), " (bits: ", BIT_COUNT, ")")
+                logger.debug("%s -> %s (bits: %d)", bin(BEFORE), bin(AFTER), BIT_COUNT)
 
             return True
 

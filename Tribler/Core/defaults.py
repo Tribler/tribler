@@ -60,7 +60,6 @@ sessdefaults['family_filter'] = True
 sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
 sessdefaults['mainline_dht_port'] = DEFAULTPORT - 3
-
 sessdefaults['libtorrent'] = True
 
 # SWIFTPROC config

@@ -24,6 +24,7 @@ try:
     from urlparse import parse_qsl
 except ImportError:
     from urllib import unquote_plus
+
     def parse_qsl(query):
         """
         'foo=bar&moo=milk' --> [('foo', 'bar'), ('moo', 'milk')]
@@ -38,6 +39,7 @@ from Tribler.Core.DecentralizedTracking.MagnetLink.MiniBitTorrent import MiniSwa
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 
 DEBUG = False
+
 
 class Singleton:
     _singleton_lock = Lock()
@@ -67,6 +69,7 @@ class Singleton:
     def has_instance(cls, *args, **kargs):
         return hasattr(cls, "_singleton_instance")
 
+
 class MagnetHandler(Singleton):
     def __init__(self, dht, raw_server):
         self._dht = dht
@@ -87,7 +90,9 @@ class MagnetHandler(Singleton):
     def get_magnets(self):
         return self._magnets
 
+
 class MagnetLink:
+
     def __init__(self, url, callback, timeout, max_connections=30):
         """
         If the URL conforms to a magnet link, the .torrent info is
@@ -172,7 +177,7 @@ class MagnetLink:
                 assert isinstance(address[1], int)
 
         # create metadata
-        metadata = {"info":metainfo}
+        metadata = {"info": metainfo}
         if self._trackers:
             if len(self._trackers) > 1:
                 metadata["announce-list"] = [self._trackers]
@@ -201,7 +206,8 @@ class MagnetLink:
         xt = None
         trs = []
 
-        if DEBUG: print >> sys.stderr, "Magnet.parse_url()", url
+        if DEBUG:
+            print >> sys.stderr, "Magnet.parse_url()", url
 
         schema, netloc, path, query, fragment = urlsplit(url)
         if schema == "magnet":
@@ -231,8 +237,11 @@ class MagnetLink:
                 elif key == "tr":
                     trs.append(value)
 
-            if DEBUG: print >> sys.stderr, "Magnet.parse_url() NAME:", dn
-            if DEBUG: print >> sys.stderr, "Magnet.parse_url() HASH:", xt
-            if DEBUG: print >> sys.stderr, "Magnet.parse_url() TRACS:", trs
+            if DEBUG:
+                print >> sys.stderr, "Magnet.parse_url() NAME:", dn
+            if DEBUG:
+                print >> sys.stderr, "Magnet.parse_url() HASH:", xt
+            if DEBUG:
+                print >> sys.stderr, "Magnet.parse_url() TRACS:", trs
 
         return (dn, xt, trs)

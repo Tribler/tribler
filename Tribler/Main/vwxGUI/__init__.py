@@ -68,6 +68,7 @@ CHANNEL_MAX_NON_FAVORITE = 50
 
 VLC_SUPPORTED_SUBTITLES = ['.cdg', '.idx', '.srt', '.sub', '.utf', '.ass', '.ssa', '.aqt', '.jss', '.psb', '.rt', '.smi']
 
+
 def format_time(val):
     try:
         today = datetime.today()
@@ -80,6 +81,7 @@ def format_time(val):
 
     except:
         return 'Unknown'
+
 
 def format_size(val):
     size = (val / 1048576.0)
@@ -96,6 +98,7 @@ def showError(textCtrl):
     setColours(textCtrl, wx.WHITE, wx.RED)
     wx.CallLater(2000, setColours, textCtrl, curFore, curBack)
 
+
 def warnWxThread(func):
     def invoke_func(*args, **kwargs):
         if not wx.Thread_IsMain():
@@ -107,6 +110,7 @@ def warnWxThread(func):
 
     invoke_func.__name__ = func.__name__
     return invoke_func
+
 
 def forceWxThread(func):
     def invoke_func(*args, **kwargs):
@@ -122,6 +126,7 @@ def forceWxThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+
 def forceAndReturnWxThread(func):
     def invoke_func(*args, **kwargs):
         if wx.Thread_IsMain():
@@ -136,6 +141,7 @@ def forceAndReturnWxThread(func):
             event = Event()
 
             result = [None]
+
             def wx_thread():
                 try:
                     result[0] = func(*args, **kwargs)

@@ -28,6 +28,7 @@ from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 
 from Tribler.community.channel.community import forceDispersyThread
 
+
 def main():
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
@@ -49,9 +50,12 @@ def main():
     print "Type 'Q' to stop the metadata-injector"
 
     sscfg = SessionStartupConfig()
-    if opt.statedir: sscfg.set_state_dir(unicode(os.path.realpath(opt.statedir)))
-    if opt.port: sscfg.set_dispersy_port(opt.port)
-    if opt.nickname: sscfg.set_nickname(opt.nickname)
+    if opt.statedir:
+        sscfg.set_state_dir(unicode(os.path.realpath(opt.statedir)))
+    if opt.port:
+        sscfg.set_dispersy_port(opt.port)
+    if opt.nickname:
+        sscfg.set_nickname(opt.nickname)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
@@ -74,7 +78,6 @@ def main():
     except:
         print_exc()
 
-
     torrentfeed = RssParser.getInstance()
     torrentfeed.shutdown()
 
@@ -84,6 +87,7 @@ def main():
     session.shutdown()
     print "Shutting down..."
     time.sleep(5)
+
 
 def dispersy_started(session, opt):
     myPermid = permid_for_user(session.get_permid())

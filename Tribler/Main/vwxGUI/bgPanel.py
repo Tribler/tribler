@@ -1,13 +1,17 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker
 # see LICENSE.txt for license information
-import wx, os, sys
+import wx
+import os
+import sys
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.list import XRCPanel
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
+
 class ImagePanelBasic(XRCPanel):
+
     """
     Panel with automatic backgroundimage control.
     """
@@ -33,20 +37,20 @@ class ImagePanelBasic(XRCPanel):
     def setBackground(self, colour):
         self.backgroundColour = colour
 
-    def loadBitmap(self, name = None):
+    def loadBitmap(self, name=None):
         # get the image directory
         self.imagedir = os.path.join(self.guiUtility.vwxGUI_path, 'images')
 
         # find a file with same name as this panel
         if name is None:
-            self.bitmapPath = os.path.join(self.imagedir, self.GetName()+'.png')
+            self.bitmapPath = os.path.join(self.imagedir, self.GetName() + '.png')
         else:
             self.bitmapPath = os.path.join(self.imagedir, name)
 
         if os.path.isfile(self.bitmapPath):
             self.setBitmap(wx.Bitmap(self.bitmapPath, wx.BITMAP_TYPE_ANY))
         elif DEBUG:
-            print >>sys.stderr,'bgPanel: Could not load image: %s' % self.bitmapPath
+            print >>sys.stderr, 'bgPanel: Could not load image: %s' % self.bitmapPath
 
     def setBitmap(self, bitmap):
         self.bitmap = bitmap
@@ -55,7 +59,7 @@ class ImagePanelBasic(XRCPanel):
             w, h = self.GetSize()
             iw, ih = self.bitmap.GetSize()
 
-            self.xpos, self.ypos = (w-iw)/2, (h-ih)/2
+            self.xpos, self.ypos = (w - iw) /2, (h-ih)/2
 
         self.Refresh()
 
@@ -76,12 +80,16 @@ class ImagePanelBasic(XRCPanel):
             dc.SetBackground(wx.Brush(self.backgroundColour))
             dc.Clear()
 
+
 class bgPanel(ImagePanelBasic):
-    def __init__(self, parent = None, name = ''):
+
+    def __init__(self, parent=None, name = ''):
         tile = True
         ImagePanelBasic.__init__(self, parent, tile, name)
 
+
 class ImagePanel(ImagePanelBasic):
+
     def __init__(self, parent, name):
         tile = False
         ImagePanelBasic.__init__(self, parent, tile, name)

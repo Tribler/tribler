@@ -18,7 +18,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     def __init__(self, dlconfig=None):
 
         if DefaultDownloadStartupConfig.__single:
-            raise RuntimeError, "DefaultDownloadStartupConfig is singleton"
+            raise RuntimeError("DefaultDownloadStartupConfig is singleton")
         DefaultDownloadStartupConfig.__single = self
 
         DownloadStartupConfig.__init__(self, dlconfig=dlconfig)
@@ -41,6 +41,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     #
     # Class method
     #
+
     def load(filename):
         """
         Load a saved DownloadStartupConfig from disk.

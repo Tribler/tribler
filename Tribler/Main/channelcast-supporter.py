@@ -24,6 +24,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 
 from Tribler.Core.Overlay.permid import permid_for_user
 
+
 def main():
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
@@ -36,9 +37,12 @@ def main():
     print "Press Ctrl-C to stop the metadata-injector"
 
     sscfg = SessionStartupConfig()
-    if opt.statedir: sscfg.set_state_dir(os.path.realpath(opt.statedir))
-    if opt.port: sscfg.set_listen_port(opt.port)
-    if opt.nickname: sscfg.set_nickname(opt.nickname)
+    if opt.statedir:
+        sscfg.set_state_dir(os.path.realpath(opt.statedir))
+    if opt.port:
+        sscfg.set_listen_port(opt.port)
+    if opt.nickname:
+        sscfg.set_nickname(opt.nickname)
 
     # set_moderationcast_promote_own() will ensure your moderations on
     # the RSS feed items are sent to any peer you connect to on the

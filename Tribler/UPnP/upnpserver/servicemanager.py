@@ -12,9 +12,10 @@ import platform
 _SSDP_PORT = 44443
 _HTTP_PORT = 44444
 
-##############################################
+#
 # SERVICE MANAGER
-##############################################
+#
+
 
 class ServiceManager:
 
@@ -142,7 +143,8 @@ class ServiceManager:
         """Get services contained within a device."""
         if device == self._root_device:
             return self._services.values()
-        else: return []
+        else:
+            return []
 
     def close(self):
         """Close service manager."""

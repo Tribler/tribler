@@ -38,6 +38,11 @@ from threading import currentThread, RLock, Lock
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 import binascii
 
+try:
+    WindowsError
+except NameError:
+    WindowsError = Exception
+
 # maxflow constants
 MAXFLOW_DISTANCE = 2
 ALPHA = float(1) / 30000
@@ -54,11 +59,13 @@ MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each co
 
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
+
 def show_permid_shorter(permid):
     if not permid:
         return 'None'
     s = base64.encodestring(permid).replace("\n", "")
     return s[-5:]
+
 
 class BasicDBHandler:
     _singleton_lock = RLock()
@@ -84,7 +91,6 @@ class BasicDBHandler:
     @classmethod
     def hasInstance(cls):
         return cls._single != None
-
 
     def __del__(self):
         try:
@@ -118,6 +124,7 @@ class BasicDBHandler:
 
 NETW_MIME_TYPE = 'image/jpeg'
 
+
 class PeerDBHandler(BasicDBHandler):
 
     gui_value_name = ('permid', 'name', 'ip', 'port', 'similarity', 'friend',
@@ -127,7 +134,7 @@ class PeerDBHandler(BasicDBHandler):
 
     def __init__(self):
         if PeerDBHandler._single:
-            raise RuntimeError, "PeerDBHandler is singleton"
+            raise RuntimeError("PeerDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'Peer')  # # self, db ,'Peer'
 
@@ -205,13 +212,12 @@ class PeerDBHandler(BasicDBHandler):
                 return []
             s = str(peerids).replace('[', '(').replace(']', ')')
 #            if len(peerids) == 1:
-#                s = '(' + str(peerids[0]) + ')'    # tuple([1]) = (1,), syntax error for sql
+# s = '(' + str(peerids[0]) + ')'    # tuple([1]) = (1,), syntax error for sql
 #            else:
 #                s = str(tuple(peerids))
             sql = 'select permid from Peer where peer_id in ' + s
             permid_strs = self._db.fetchall(sql)
             return [str2bin(permid_str[0]) for permid_str in permid_strs]
-
 
     def getPeers(self, peer_list, keys):  # get a list of dictionaries given peer list
         # BUG: keys must contain 2 entries, otherwise the records in all are single values??
@@ -247,7 +253,6 @@ class PeerDBHandler(BasicDBHandler):
 
         return list
 
-
     def addPeer(self, permid, value, update_dns=True, update_connected=False, commit=True):
         # add or update a peer
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
@@ -258,9 +263,9 @@ class PeerDBHandler(BasicDBHandler):
             _permid = value.pop('permid')
 
         if not update_dns:
-            if value.has_key('ip'):
+            if 'ip' in value:
                 _ip = value.pop('ip')
-            if value.has_key('port'):
+            if 'port' in value:
                 _port = value.pop('port')
 
         if update_connected:
@@ -269,7 +274,6 @@ class PeerDBHandler(BasicDBHandler):
                 value['connected_times'] = 1
             else:
                 value['connected_times'] = old_connected + 1
-
 
         peer_existed = self._db.insertPeer(permid, commit=commit, **value)
 
@@ -291,21 +295,19 @@ class PeerDBHandler(BasicDBHandler):
         # print >>sys.stderr,"sqldbhand: addPeer",`permid`,self._db.getPeerID(permid),`value`
         # print_stack()
 
-
     def hasPeer(self, permid):
         return self._db.hasPeer(permid)
-
 
     def findPeers(self, key, value):
         # only used by Connecter
         if key == 'permid':
             value = bin2str(value)
-        res = self.getAll('permid', **{key:value})
+        res = self.getAll('permid', **{key: value})
         if not res:
             return []
         ret = []
         for p in res:
-            ret.append({'permid':str2bin(p[0])})
+            ret.append({'permid': str2bin(p[0])})
         return ret
 
     def setPeerLocalFlag(self, permid, is_local, commit=True):
@@ -412,7 +414,6 @@ class PeerDBHandler(BasicDBHandler):
         # if self.mm is not None:
         #    self.mm.save_data(permid, icontype, icondata)
 
-
     def getPeerIcon(self, permid):
         item = self.getOne('thumbnail', permid=bin2str(permid))
         if item:
@@ -431,20 +432,20 @@ class PeerDBHandler(BasicDBHandler):
         else:
             return None, None
 
-
     def searchNames(self, kws):
         return doPeerSearchNames(self, 'Peer', kws)
+
 
 class TorrentDBHandler(BasicDBHandler):
 
     def __init__(self):
         if TorrentDBHandler._single is not None:
-            raise RuntimeError, "TorrentDBHandler is singleton"
+            raise RuntimeError("TorrentDBHandler is singleton")
 
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
 
-        self.status_table = {'good':1, 'unknown':0, 'dead':2}
+        self.status_table = {'good': 1, 'unknown': 0, 'dead': 2}
         self.status_table.update(self._db.getTorrentStatusTable())
         self.id2status = dict([(x, y) for (y, x) in self.status_table.items()])
         self.id2status[None] = 'unknown'
@@ -453,14 +454,14 @@ class TorrentDBHandler(BasicDBHandler):
         # 1 - good
         # 2 - dead
 
-        self.category_table = {u'Video':1,
-                                u'VideoClips':2,
-                                u'Audio':3,
-                                u'Compressed':4,
-                                u'Document':5,
-                                u'Picture':6,
-                                u'xxx':7,
-                                u'other':8, }
+        self.category_table = {u'Video': 1,
+                                u'VideoClips': 2,
+                                u'Audio': 3,
+                                u'Compressed': 4,
+                                u'Document': 5,
+                                u'Picture': 6,
+                                u'xxx': 7,
+                                u'other': 8, }
         self.category_table.update(self._db.getTorrentCategoryTable())
         self.category_table[u'unknown'] = 0
 
@@ -488,7 +489,6 @@ class TorrentDBHandler(BasicDBHandler):
                 'source_id', 'category_id', 'status_id',
                 'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash']
         self.existed_torrents = set()
-
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                       'num_leechers', 'num_seeders', 'length',
@@ -552,7 +552,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, source, extra_info={}):
         if not self.hasTorrent(infohash):
-            metainfo = {'info':{}, 'encoding':'utf_8'}
+            metainfo = {'info': {}, 'encoding': 'utf_8'}
             metainfo['info']['name'] = name.encode('utf_8')
             metainfo['info']['piece length'] = -1
             metainfo['info']['pieces'] = ''
@@ -561,7 +561,7 @@ class TorrentDBHandler(BasicDBHandler):
                 files_as_dict = []
                 for filename, file_lenght in files:
                     filename = filename.encode('utf_8')
-                    files_as_dict.append({'path':[filename], 'length':file_lenght})
+                    files_as_dict.append({'path': [filename], 'length': file_lenght})
                 metainfo['info']['files'] = files_as_dict
 
             elif len(files) == 1:
@@ -669,25 +669,25 @@ class TorrentDBHandler(BasicDBHandler):
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
         mime, thumb = torrentdef.get_thumbnail()
 
-        dict = {"infohash":bin2str(torrentdef.get_infohash()),
-                "name":torrentdef.get_name_as_unicode(),
-                "torrent_file_name":extra_info.get("filename", None),
-                "length":torrentdef.get_length(),
-                "creation_date":torrentdef.get_creation_date(),
-                "num_files":len(torrentdef.get_files()),
-                "thumbnail":bool(thumb),
-                "insert_time":long(time()),
-                "secret":0,  # todo: check if torrent is secret
-                "relevance":0.0,
-                "source_id":self._getSourceID(source),
+        dict = {"infohash": bin2str(torrentdef.get_infohash()),
+                "name": torrentdef.get_name_as_unicode(),
+                "torrent_file_name": extra_info.get("filename", None),
+                "length": torrentdef.get_length(),
+                "creation_date": torrentdef.get_creation_date(),
+                "num_files": len(torrentdef.get_files()),
+                "thumbnail": bool(thumb),
+                "insert_time": long(time()),
+                "secret": 0,  # todo: check if torrent is secret
+                "relevance": 0.0,
+                "source_id": self._getSourceID(source),
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
-                "category_id":self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
-                "status_id":self._getStatusID(extra_info.get("status", "unknown")),
-                "num_seeders":extra_info.get("seeder", -1),
-                "num_leechers":extra_info.get("leecher", -1),
-                "comment":torrentdef.get_comment_as_unicode()
+                "category_id": self._getCategoryID(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
+                "status_id": self._getStatusID(extra_info.get("status", "unknown")),
+                "num_seeders": extra_info.get("seeder", -1),
+                "num_leechers": extra_info.get("leecher", -1),
+                "comment": torrentdef.get_comment_as_unicode()
                 }
 
         if extra_info.get('swift_hash', ''):
@@ -804,7 +804,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         # each torrent only has one announce with tier number 1
         tier_num = 2
-        trackers = {announce:None}
+        trackers = {announce: None}
         if add_all:
             for tier in announce_list:
                 for tracker in tier:
@@ -862,7 +862,6 @@ class TorrentDBHandler(BasicDBHandler):
     def on_torrent_collect_response(self, torrents):
         torrents = [(bin2str(torrent[0]), bin2str(torrent[1])) for torrent in torrents]
 
-
         infohashes = [infohash for infohash, _ in torrents if infohash]
         roothashes = [roothash for _, roothash in torrents if roothash]
 
@@ -885,7 +884,6 @@ class TorrentDBHandler(BasicDBHandler):
                 info_dict[infohash] = torrent_id
             if roothash:
                 root_dict[roothash] = torrent_id
-
 
         to_be_inserted = []
         update_infohash = []
@@ -1003,7 +1001,7 @@ class TorrentDBHandler(BasicDBHandler):
         if torrent_id is None:
             return
         update = {}
-        assert type(kw) == dict and kw, 'updateTracker error: kw should be filled dict, but is: %s' % kw
+        assert isinstance(kw, dict) and kw, 'updateTracker error: kw should be filled dict, but is: %s' % kw
         if 'last_check_time' in kw:
             update['last_check'] = kw.pop('last_check_time')
         if 'ignore_number' in kw:
@@ -1065,7 +1063,7 @@ class TorrentDBHandler(BasicDBHandler):
 
             try:
                 os.remove(src)
-            except Exception, msg:
+            except Exception as msg:
                 print >> sys.stderr, "cachedbhandler: failed to erase torrent", src, Exception, msg
                 return False
 
@@ -1129,7 +1127,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         return results
 
-    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness= -1):
+    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
         """
         Returns the largest number of the sources that have seen the torrent.
         @author: Rahim
@@ -1353,7 +1351,7 @@ class TorrentDBHandler(BasicDBHandler):
             # print >>sys.stderr,"TorrentDBHandler: GET TORRENTS",`torrent`
 
             torrent_list.append(torrent)
-        return  torrent_list
+        return torrent_list
 
     def __fixTorrents(self, keys, results):
         def fix_value(key):
@@ -1399,13 +1397,13 @@ class TorrentDBHandler(BasicDBHandler):
 
         sql = "SELECT infohash, swift_torrent_hash FROM Torrent WHERE torrent_file_name is NULL and infohash in (" + parameters + ")"
         results = self._db.fetchall(sql, map(bin2str, hashes))
-        return  [(str2bin(hash), str2bin(roothash)) for hash, roothash in results]
+        return [(str2bin(hash), str2bin(roothash)) for hash, roothash in results]
 
     def getTorrentsStats(self):
         return self._db.getOne('CollectedTorrent', ['count(torrent_id)', 'sum(length)', 'sum(num_files)'])
 
     def freeSpace(self, torrents2del):
-#        if torrents2del > 100:  # only delete so many torrents each time
+# if torrents2del > 100:  # only delete so many torrents each time
 #            torrents2del = 100
         if self.channelcast_db and self.channelcast_db._channel_id:
             sql = """
@@ -1525,7 +1523,6 @@ class TorrentDBHandler(BasicDBHandler):
         if num_seeders_index == -1:
             doSort = False
 
-
         t1 = time()
         values = ", ".join(keys)
         mainsql = "SELECT " + values + ", C.channel_id, Matchinfo(FullTextIndex) FROM"
@@ -1609,12 +1606,12 @@ class TorrentDBHandler(BasicDBHandler):
             result = results[i]
 
             result[infohash_index] = str2bin(result[infohash_index])
-            if swift_hash_index >= 0 and result[swift_hash_index] :
+            if swift_hash_index >= 0 and result[swift_hash_index]:
                 result[swift_hash_index] = str2bin(result[swift_hash_index])
             if swift_torrent_hash_index >= 0 and result[swift_torrent_hash_index]:
                 result[swift_torrent_hash_index] = str2bin(result[swift_torrent_hash_index])
 
-            matches = {'swarmname':set(), 'filenames':set(), 'fileextensions': set()}
+            matches = {'swarmname': set(), 'filenames': set(), 'fileextensions': set()}
 
             # Matchinfo is documented at: http://www.sqlite.org/fts3.html#matchinfo
             matchinfo = str(result[-1])
@@ -1659,6 +1656,7 @@ class TorrentDBHandler(BasicDBHandler):
 
     def getSearchSuggestion(self, keywords, limit=1):
         match = [keyword.lower() for keyword in keywords]
+
         def lev(b):
             a = match
             b = b.lower()
@@ -1846,14 +1844,14 @@ class TorrentDBHandler(BasicDBHandler):
             else:
                 torrent_path = None
 
-            res = {'torrent_id':res[0],
-                   'ignored_times':res[1],
-                   'retried_times':res[2],
-                   'torrent_path':torrent_path,
-                   'infohash':str2bin(res[4]),
-                   'status':self.id2status[res[5]],
-                   'last_check':res[8],
-                   'trackers':[res[9]],
+            res = {'torrent_id': res[0],
+                   'ignored_times': res[1],
+                   'retried_times': res[2],
+                   'torrent_path': torrent_path,
+                   'infohash': str2bin(res[4]),
+                   'status': self.id2status[res[5]],
+                   'last_check': res[8],
+                   'trackers': [res[9]],
                   }
             return res
 
@@ -1890,13 +1888,14 @@ class TorrentDBHandler(BasicDBHandler):
 
 
 class MyPreferenceDBHandler(BasicDBHandler):
+
     def __init__(self):
         if MyPreferenceDBHandler._single is not None:
-            raise RuntimeError, "MyPreferenceDBHandler is singleton"
+            raise RuntimeError("MyPreferenceDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
 
-        self.status_table = {'good':1, 'unknown':0, 'dead':2}
+        self.status_table = {'good': 1, 'unknown': 0, 'dead': 2}
         self.status_table.update(self._db.getTorrentStatusTable())
         self.status_good = self.status_table['good']
         self.rlock = threading.RLock()
@@ -1998,7 +1997,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         else:
             return self.recent_preflist_with_swarmsize
 
-
     def getRecentLivePrefList(self, num=0):
         if self.recent_preflist is None:
             self.rlock.acquire()
@@ -2011,8 +2009,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.recent_preflist[:num]
         else:
             return self.recent_preflist
-
-
 
     def addClicklogToMyPreference(self, infohash, clicklog_data, commit=True):
         torrent_id = self._db.getTorrentID(infohash)
@@ -2042,8 +2038,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
                                        torrent_id=torrent_id,
                                        terms=clicklog_data['keywords'],
                                        commit=commit)
-
-
 
     def _getRecentLivePrefListWithClicklog(self, num=0):
         """returns a list containing a list for each torrent: [infohash, [seach terms], click position, reranking strategy]"""
@@ -2145,7 +2139,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return True
 
     def deletePreference(self, torrent_id, commit=True):
-        self._db.delete(self.table_name, commit=commit, **{'torrent_id':torrent_id})
+        self._db.delete(self.table_name, commit=commit, **{'torrent_id': torrent_id})
 
         infohash = self._db.getInfohash(torrent_id)
         if infohash:
@@ -2183,13 +2177,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id:
             self.updateDestDir(torrent_id, destdir, commit=commit)
 
+
 class VoteCastDBHandler(BasicDBHandler):
 
     def __init__(self):
         try:
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self, db, 'VoteCast')
-            if DEBUG: print >> sys.stderr, "votecast: DB made"
+            if DEBUG:
+                print >> sys.stderr, "votecast: DB made"
         except:
             print >> sys.stderr, "votecast: couldn't make the table"
 
@@ -2295,7 +2291,6 @@ class VoteCastDBHandler(BasicDBHandler):
             channels.add(vote[0])
         self._updateChannelsVotes(channels)
 
-
     def removeVote(self, channel_id, voter_id, commit=True):
         if voter_id:
             sql = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND voter_id = ?"
@@ -2328,7 +2323,7 @@ class VoteCastDBHandler(BasicDBHandler):
         self._db.execute_write("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", (nr_favorites, nr_spam, channel_id), commit=commit)
 
     def _updateChannelsVotes(self, channel_ids, commit=True):
-        parameters = ",".join("?"*len(channel_ids))
+        parameters = ",".join("?" * len(channel_ids))
         sql = "Select channel_id, vote FROM ChannelVotes WHERE channel_id in (" + parameters + ")"
         positive_votes = {}
         negative_votes = {}
@@ -2431,7 +2426,8 @@ class ChannelCastDBHandler(BasicDBHandler):
         try:
             db = SQLiteCacheDB.getInstance()
             BasicDBHandler.__init__(self, db, '_Channels')
-            if DEBUG: print >> sys.stderr, "Channels: DB made"
+            if DEBUG:
+                print >> sys.stderr, "Channels: DB made"
         except:
             print >> sys.stderr, "Channels: couldn't make the table"
 
@@ -2583,7 +2579,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
             # if new or not yet collected
             if infohash in inserted:
-                self.torrent_db.addExternalTorrentNoDef(infohash, name, files, trackers, timestamp, "DISP", {'dispersy_id':dispersy_id})
+                self.torrent_db.addExternalTorrentNoDef(infohash, name, files, trackers, timestamp, "DISP", {'dispersy_id': dispersy_id})
 
             insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1
@@ -2718,7 +2714,7 @@ class ChannelCastDBHandler(BasicDBHandler):
                 new_name = latest_update[channel_id][1][:40]
                 self._db.execute_write(update_name, (new_name, modified, nrTorrents, channel_id), commit=False)
             else:
-                self._db.execute_write(update_channel, (modified, nrTorrents , channel_id), commit=False)
+                self._db.execute_write(update_channel, (modified, nrTorrents, channel_id), commit=False)
 
         if self.shouldCommit:
             self._db.commit()
@@ -2737,7 +2733,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if isinstance(reply_after, (str)):
             reply_after = buffer(reply_after)
         mid_global_time = buffer(mid_global_time)
-
 
         sql = "INSERT OR REPLACE INTO _Comments (channel_id, dispersy_id, peer_id, comment, reply_to_id, reply_after_id, time_stamp) VALUES (?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"
         comment_id = self._db.fetchone(sql, (channel_id, dispersy_id, peer_id, comment, reply_to, reply_after, timestamp))
@@ -3059,7 +3054,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
         if othersrecenttorrents and len(othersrecenttorrents) == NUM_OTHERS_RECENT_TORRENTS and least_recent != -1:
             sql = "select dispersy_cid, infohash from ChannelTorrents, Channels, Torrent where ChannelTorrents.torrent_id = Torrent.torrent_id AND Channels.id = ChannelTorrents.channel_id AND ChannelTorrents.channel_id in (select channel_id from ChannelVotes where voter_id ISNULL and vote=2) and time_stamp < ? and ChannelTorrents.dispersy_id <> -1 order by random() limit ?"
-            othersrandomtorrents = self._db.fetchall(sql, (least_recent , NUM_OTHERS_RANDOM_TORRENTS))
+            othersrandomtorrents = self._db.fetchall(sql, (least_recent, NUM_OTHERS_RANDOM_TORRENTS))
             for cid, infohash in othersrandomtorrents:
                 torrent_dict.setdefault(str(cid), set()).add(str2bin(infohash))
 
@@ -3513,7 +3508,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def getTimeframeForChannel(self, channel_id):
         sql = 'Select min(time_stamp), max(time_stamp), count(distinct torrent_id) From ChannelTorrents Where channel_id = ?'
-        return  self._db.fetchone(sql, (channel_id,))
+        return self._db.fetchone(sql, (channel_id,))
 
     def getTorrentMarkings(self, channeltorrent_id):
         counts = {}
@@ -3556,11 +3551,12 @@ class ChannelCastDBHandler(BasicDBHandler):
                     best_channel = channel
             return best_channel
 
+
 class SearchDBHandler(BasicDBHandler):
 
     def __init__(self):
         if SearchDBHandler._single is not None:
-            raise RuntimeError, "SearchDBHandler is singleton"
+            raise RuntimeError("SearchDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'ClicklogSearch')  # # self,db,'Search'
 
@@ -3620,7 +3616,9 @@ class SearchDBHandler(BasicDBHandler):
             return_dict[torrent_id].add(term)
         return return_dict
 
+
 class NetworkBuzzDBHandler(BasicDBHandler):
+
     """
     The Network Buzz database handler singleton for sampling the TermFrequency table
     and maintaining the TorrentBiTermPhrase table.
@@ -3628,7 +3626,7 @@ class NetworkBuzzDBHandler(BasicDBHandler):
 
     def __init__(self):
         if NetworkBuzzDBHandler._single is not None:
-            raise RuntimeError, "NetworkBuzzDBHandler is singleton"
+            raise RuntimeError("NetworkBuzzDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'TermFrequency')
 
@@ -3935,7 +3933,9 @@ class NetworkBuzzDBHandler(BasicDBHandler):
         else:
             return []
 
+
 class UserEventLogDBHandler(BasicDBHandler):
+
     """
     The database handler for logging user events.
     """
@@ -3945,7 +3945,7 @@ class UserEventLogDBHandler(BasicDBHandler):
 
     def __init__(self):
         if UserEventLogDBHandler._single is not None:
-            raise RuntimeError, "UserEventLogDBHandler is singleton"
+            raise RuntimeError("UserEventLogDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'UserEventLog')
 
@@ -3973,7 +3973,7 @@ class UserEventLogDBHandler(BasicDBHandler):
 
         if self.count > UserEventLogDBHandler.MAX_EVENTS:
             sql = \
-            '''
+                '''
             DELETE FROM UserEventLog
             WHERE timestamp < (SELECT MIN(timestamp)
                                FROM (SELECT timestamp
@@ -3985,7 +3985,9 @@ class UserEventLogDBHandler(BasicDBHandler):
         else:
             self._db.commit()
 
+
 class BundlerPreferenceDBHandler(BasicDBHandler):
+
     """
     The Bundler Preference database handler singleton for
     storing a chosen bundle method for a particular query.
@@ -3993,7 +3995,7 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
 
     def __init__(self):
         if BundlerPreferenceDBHandler._single is not None:
-            raise RuntimeError, "BundlerPreferenceDBHandler is singleton"
+            raise RuntimeError("BundlerPreferenceDBHandler is singleton")
         db = SQLiteCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'BundlerPreference')
 
@@ -4043,6 +4045,7 @@ def doPeerSearchNames(self, dbname, kws):
         peer['permid'] = str2bin(peer['permid'])
         peer_list.append(peer)
     return peer_list
+
 
 def ranksfind(ranks, key):
     if ranks is None:

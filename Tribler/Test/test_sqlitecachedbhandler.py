@@ -24,21 +24,24 @@ BUSYTIMEOUT = 5000
 SQLiteCacheDB.DEBUG = False
 DEBUG = False
 
+
 class AbstractDB(AbstractServer):
+
     def setUp(self):
         self.setUpCleanup()
-        
+
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
         self.sqlitedb = SQLiteCacheDB.getInstance()
         self.sqlitedb.initDB(dbpath, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.waitForUpdateComplete()
-        
+
     def tearDown(self):
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
-        
+
         self.tearDownCleanup()
+
 
 class TestSqliteBasicDBHandler(AbstractDB):
 
@@ -119,6 +122,7 @@ class TestSqliteBasicDBHandler(AbstractDB):
                 assert nip == 2842, nip
                 break
 
+
 class TestSqlitePeerDBHandler(AbstractDB):
 
     def setUp(self):
@@ -142,8 +146,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert isinstance(p1, dict)
         assert isinstance(p2, dict)
         if DEBUG:
-            print >> sys.stderr, "singtest_GETLIST P1", `p1`
-            print >> sys.stderr, "singtest_GETLIST P2", `p2`
+            print >> sys.stderr, "singtest_GETLIST P1", repr(p1)
+            print >> sys.stderr, "singtest_GETLIST P2", repr(p2)
         assert p1['port'] == 1
         assert p2['port'] == 2
 
@@ -168,8 +172,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert bin2str(peerlist[345]) == 'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEACxVRvG/Gr19EAPJru2Z5gjctEzv973/PJCQIua2ATMP6euq+Kf4gYpdKbsB/PWqJnfY/wSKPHHfIByV'
 
     def test_getPeers(self):
-        peerlist = self.pdb.getPeerList()
-        peerlist.sort()
+        peerlist = sorted(self.pdb.getPeerList())
         pl = peerlist[:10]
         peers = self.pdb.getPeers(pl, ['permid', 'peer_id', 'ip', 'port', 'name'])
         # for p in peers: print p
@@ -180,8 +183,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     def test_addPeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234,
-                  'name':'fake peer x', 'last_seen':12345}
+        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
+                  'name': 'fake peer x', 'last_seen': 12345}
         oldsize = self.pdb.size()
         self.pdb.addPeer(fake_permid_x, peer_x)
         assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
@@ -263,8 +266,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     def test_updatePeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234,
-                  'name':'fake peer x', 'last_seen':12345}
+        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
+                  'name': 'fake peer x', 'last_seen': 12345}
         oldsize = self.pdb.size()
         self.pdb.addPeer(fake_permid_x, peer_x)
         assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
@@ -288,8 +291,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     def test_deletePeer(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234,
-                  'name':'fake peer x', 'last_seen':12345, 'friend':1, 'superpeer':0}
+        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
+                  'name': 'fake peer x', 'last_seen': 12345, 'friend': 1, 'superpeer': 0}
         oldsize = self.pdb.size()
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None, p
@@ -321,8 +324,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     def test_updateTimes(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234,
-                  'name':'fake peer x', 'last_seen':12345, 'connected_times':3}
+        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
+                  'name': 'fake peer x', 'last_seen': 12345, 'connected_times': 3}
         oldsize = self.pdb.size()
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None, p
@@ -351,8 +354,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     def test_getPermIDByIP(self):
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid':fake_permid_x, 'ip':'1.2.3.4', 'port':234,
-                  'name':'fake peer x', 'last_seen':12345, 'connected_times':3}
+        peer_x = {'permid': fake_permid_x, 'ip': '1.2.3.4', 'port': 234,
+                  'name': 'fake peer x', 'last_seen': 12345, 'connected_times': 3}
         oldsize = self.pdb.size()
         p = self.pdb.getPeer(fake_permid_x)
         assert p == None, p
@@ -368,6 +371,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
         assert not self.pdb.hasPeer(fake_permid_x)
         assert self.pdb.size() == oldsize
 
+
 class TestTorrentDBHandler(AbstractDB):
 
     def setUp(self):
@@ -382,7 +386,7 @@ class TestTorrentDBHandler(AbstractDB):
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         NetworkBuzzDBHandler.delInstance()
-        
+
         AbstractDB.tearDown(self)
 
     def test_hasTorrent(self):
@@ -425,10 +429,10 @@ class TestTorrentDBHandler(AbstractDB):
 
         sid = self.tdb._db.getTorrentID(s_infohash)
         mid = self.tdb._db.getTorrentID(m_infohash)
-        
+
         single_torrent_file_path = os.path.join(self.getStateDir(), 'single.torrent')
         multiple_torrent_file_path = os.path.join(self.getStateDir(), 'multiple.torrent')
-        
+
         copyFile(S_TORRENT_PATH_BACKUP, single_torrent_file_path)
         copyFile(M_TORRENT_PATH_BACKUP, multiple_torrent_file_path)
 
@@ -438,8 +442,8 @@ class TestTorrentDBHandler(AbstractDB):
         multiple_tdef = TorrentDef.load(multiple_torrent_file_path)
         assert m_infohash == multiple_tdef.get_infohash()
 
-        self.tdb.addExternalTorrent(single_tdef, extra_info={'filename':single_torrent_file_path})
-        self.tdb.addExternalTorrent(multiple_tdef, source=src, extra_info={'filename':multiple_torrent_file_path})
+        self.tdb.addExternalTorrent(single_tdef, extra_info={'filename': single_torrent_file_path})
+        self.tdb.addExternalTorrent(multiple_tdef, source=src, extra_info={'filename': multiple_torrent_file_path})
 
         single_torrent_id = self.tdb._db.getTorrentID(s_infohash)
         multiple_torrent_id = self.tdb._db.getTorrentID(m_infohash)
@@ -465,7 +469,7 @@ class TestTorrentDBHandler(AbstractDB):
 
         # TODO: action is flagged as XXX causing this torrent to be XXX instead of other
         cat = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
-        #assert cat == 8, cat  # other
+        # assert cat == 8, cat  # other
 
         sid = self.tdb._db.getOne('TorrentSource', 'source_id', name=src)
         assert sid > 1
@@ -501,12 +505,12 @@ class TestTorrentDBHandler(AbstractDB):
                          other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb._db.getTorrentID(m_infohash)
         res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
-        # ## assert 3.1415926 == res_r
+        # assert 3.1415926 == res_r
         self.tdb.updateTorrentRelevance(m_infohash, 1.41421)
         res_r = self.tdb.getOne('relevance', torrent_id=multiple_torrent_id)
-        # ## assert 1.41421 == res_r
+        # assert 1.41421 == res_r
         cid = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
-        # ## assert cid == 2, cid
+        # assert cid == 2, cid
         sid = self.tdb.getOne('status_id', torrent_id=multiple_torrent_id)
         assert sid == 1
         p = self.tdb.mypref_db.getOne('progress', torrent_id=multiple_torrent_id)
@@ -555,17 +559,18 @@ class TestTorrentDBHandler(AbstractDB):
         res = self.tdb.getNumberCollectedTorrents()
         assert old_res - res == 20
 
+
 class TestMyPreferenceDBHandler(AbstractDB):
 
     def setUp(self):
         AbstractDB.setUp(self)
-        
+
         self.mdb = MyPreferenceDBHandler.getInstance()
         self.mdb.loadData()
 
     def tearDown(self):
         MyPreferenceDBHandler.delInstance()
-        
+
         AbstractDB.tearDown(self)
 
     def test_getPrefList(self):
@@ -608,17 +613,17 @@ class TestMyPreferenceDBHandler(AbstractDB):
         assert len(pl) == 22
         assert infohash not in pl
 
-        data = {'destination_path':destpath}
+        data = {'destination_path': destpath}
         self.mdb.addMyPreference(torrent_id, data)
         p2 = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
-        assert p2[0] == p[0] and p2[1] == p[1] and p2[2] == 0 and time() - p2[3] < 10 , p2
+        assert p2[0] == p[0] and p2[1] == p[1] and p2[2] == 0 and time() - p2[3] < 10, p2
 
         self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 22
         assert infohash not in pl
 
-        data = {'destination_path':destpath, 'progress':progress, 'creation_time':creation_time}
+        data = {'destination_path': destpath, 'progress': progress, 'creation_time': creation_time}
         self.mdb.addMyPreference(torrent_id, data)
         p3 = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
         assert p3 == p, p3

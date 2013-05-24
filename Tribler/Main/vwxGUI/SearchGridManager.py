@@ -50,13 +50,14 @@ SEARCHMODE_SEARCHING = 2
 SEARCHMODE_NONE = 3
 VOTE_LIMIT = -5
 
+
 class TorrentManager:
     # Code to make this a singleton
     __single = None
 
     def __init__(self, guiUtility):
         if TorrentManager.__single:
-            raise RuntimeError, "TorrentManager is singleton"
+            raise RuntimeError("TorrentManager is singleton")
         self.guiUtility = guiUtility
         self.dispersy = None
         self.col_torrent_dir = None
@@ -123,7 +124,7 @@ class TorrentManager:
                     if self.torrent_db.hasTorrent(torrent.infohash):
                         self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
                     else:
-                        self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status':'good'}, commit=True)
+                        self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'}, commit=True)
 
                     return torrent_filename
 
@@ -137,7 +138,6 @@ class TorrentManager:
                 torrent.swift_torrent_hash = dict['swift_torrent_hash']
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
-
 
     def getCollectedFilenameFromDef(self, torrentdef):
         torrent = self.getTorrentByInfohash(torrentdef.infohash)
@@ -233,7 +233,7 @@ class TorrentManager:
 
         name = torrent.get('name', torrent.infohash)
         clicklog = {'keywords': self.searchkeywords,
-                   'reranking_strategy': self.rerankingStrategy.getID()}
+                    'reranking_strategy': self.rerankingStrategy.getID()}
 
         if "click_position" in torrent:
             clicklog["click_position"] = torrent["click_position"]
@@ -362,7 +362,8 @@ class TorrentManager:
         return nr_requests_made
 
     def getHitsInCategory(self, categorykey='all', sort='fulltextmetric'):
-        if DEBUG: begintime = time()
+        if DEBUG:
+            begintime = time()
         # categorykey can be 'all', 'Video', 'Document', ...
         bundle_mode = self.bundle_mode
 
@@ -398,7 +399,7 @@ class TorrentManager:
                     self.fulltextSort()
 
                 self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db,
-                                                            None, self.mypref_db, None)
+                                                         None, self.mypref_db, None)
 
                 self.hits = self.library_manager.addDownloadStates(self.hits)
 
@@ -421,7 +422,7 @@ class TorrentManager:
         bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
         self.bundle_mode_changed = False
 
-        return [len(returned_hits), self.filteredResults , new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits, modified_hits]
+        return [len(returned_hits), self.filteredResults, new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits, modified_hits]
 
     def prefetch_hits(self):
         """
@@ -438,7 +439,8 @@ class TorrentManager:
         seconds. This gives search results from multiple sources the
         chance to be received and sorted before prefetching a subset.
         """
-        if DEBUG: begin_time = time()
+        if DEBUG:
+            begin_time = time()
 
         def sesscb_prefetch_done(infohash):
             if DEBUG:
@@ -462,7 +464,8 @@ class TorrentManager:
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
                     if self.downloadTorrentfileFromPeers(hit, lambda infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
-                        if DEBUG: print >> sys.stderr, "Prefetch: attempting to download actual torrent", hit.name
+                        if DEBUG:
+                            print >> sys.stderr, "Prefetch: attempting to download actual torrent", hit.name
                         prefetch_counter[0] += 1
 
                 elif prefetch_counter[1] < prefetch_counter_limit[1] and i < hit_counter_limit[1]:
@@ -645,7 +648,7 @@ class TorrentManager:
         refreshGrid = False
         try:
             if DEBUG:
-                print >> sys.stderr, "TorrentSearchGridManager: gotRemoteHist: got", len(results) , "unfiltered results for", keywords, candidate, time()
+                print >> sys.stderr, "TorrentSearchGridManager: gotRemoteHist: got", len(results), "unfiltered results for", keywords, candidate, time()
             self.remoteLock.acquire()
 
             if self.searchkeywords == keywords:
@@ -736,7 +739,7 @@ class TorrentManager:
             score = 0.8 * norm_num_seeders[hit.infohash] - 0.1 * norm_neg_votes[hit.infohash] + 0.1 * norm_subscriptions[hit.infohash]
             hit.relevance_score[-1] = score
 
-        self.hits.sort(key=lambda hit:hit.relevance_score, reverse=True)
+        self.hits.sort(key=lambda hit: hit.relevance_score, reverse=True)
 
     def doStatNormalization(self, hits, normKey):
         '''Center the variance on zero (this means mean == 0) and divide
@@ -773,13 +776,14 @@ class TorrentManager:
                 return_dict[hit.infohash] = 0
         return return_dict
 
+
 class LibraryManager:
     # Code to make this a singleton
     __single = None
 
     def __init__(self, guiUtility):
         if LibraryManager.__single:
-            raise RuntimeError, "LibraryManager is singleton"
+            raise RuntimeError("LibraryManager is singleton")
         self.guiUtility = guiUtility
         self.guiserver = GUITaskQueue.getInstance()
         self.connected = False
@@ -1065,7 +1069,8 @@ class LibraryManager:
             raise RuntimeError('LibrarySearchGridManager is already connected')
 
     def getHitsInCategory(self):
-        if DEBUG: begintime = time()
+        if DEBUG:
+            begintime = time()
 
         results = self.torrent_db.getLibraryTorrents(LIBRARY_REQ_COLUMNS)
 
@@ -1104,7 +1109,6 @@ class LibraryManager:
                         torrentdict[torrent.infohash] = torrent
 
             results = torrentdict.values()
-
 
         def sort_by_name(a, b):
             return cmp(a.name.lower(), b.name.lower())
@@ -1147,13 +1151,14 @@ class LibraryManager:
         if self.gridmgr is not None:
             self.gridmgr.refresh()
 
+
 class ChannelManager:
     # Code to make this a singleton
     __single = None
 
     def __init__(self):
         if ChannelManager.__single:
-            raise RuntimeError, "ChannelManager is singleton"
+            raise RuntimeError("ChannelManager is singleton")
         self.connected = False
 
         # Contains all matches for keywords in DB, not filtered by category
@@ -1306,15 +1311,15 @@ class ChannelManager:
 
     def getTorrentsFromChannel(self, channel, filterTorrents=True, limit=None):
         hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
-        return self._createTorrents(hits, filterTorrents, {channel.id : channel})
+        return self._createTorrents(hits, filterTorrents, {channel.id: channel})
 
     def getRecentReceivedTorrentsFromChannel(self, channel, filterTorrents=True, limit=None):
         hits = self.channelcast_db.getRecentReceivedTorrentsFromChannelId(channel.id, CHANNEL_REQ_COLUMNS, limit)
-        return self._createTorrents(hits, filterTorrents, {channel.id : channel})
+        return self._createTorrents(hits, filterTorrents, {channel.id: channel})
 
     def getTorrentsNotInPlaylist(self, channel, filterTorrents=True):
         hits = self.channelcast_db.getTorrentsNotInPlaylist(channel.id, CHANNEL_REQ_COLUMNS)
-        results = self._createTorrents(hits, filterTorrents, {channel.id : channel})
+        results = self._createTorrents(hits, filterTorrents, {channel.id: channel})
 
         if isinstance(channel, RemoteChannel):
             if len(results) == 0:
@@ -1323,7 +1328,7 @@ class ChannelManager:
 
     def getTorrentsFromPlaylist(self, playlist, filterTorrents=True, limit=None):
         hits = self.channelcast_db.getTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
-        return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
+        return self._createTorrents(hits, filterTorrents, {playlist.channel.id: playlist.channel}, playlist)
 
     def getTorrentFromPlaylist(self, playlist, infohash):
         data = self.channelcast_db.getTorrentFromPlaylist(playlist.id, infohash, CHANNEL_REQ_COLUMNS)
@@ -1331,7 +1336,7 @@ class ChannelManager:
 
     def getRecentTorrentsFromPlaylist(self, playlist, filterTorrents=True, limit=None):
         hits = self.channelcast_db.getRecentTorrentsFromPlaylist(playlist.id, CHANNEL_REQ_COLUMNS, limit)
-        return self._createTorrents(hits, filterTorrents, {playlist.channel.id : playlist.channel}, playlist)
+        return self._createTorrents(hits, filterTorrents, {playlist.channel.id: playlist.channel}, playlist)
 
     def populateWithPlaylists(self, torrents):
         torrentdict = {}
@@ -1753,7 +1758,7 @@ class ChannelManager:
 
     @forceDispersyThread
     def modifyPlaylist(self, channel_id, playlist_id, name, description):
-        dict = {'name':name, 'description':description}
+        dict = {'name': name, 'description': description}
 
         community = self._disp_get_community_from_channel_id(channel_id)
         community.modifyPlaylist(playlist_id, dict)
@@ -1828,7 +1833,8 @@ class ChannelManager:
                 self.remoteLock.release()
 
     def getChannelHits(self):
-        if DEBUG: begintime = time()
+        if DEBUG:
+            begintime = time()
 
         hitsUpdated = self.searchLocalDatabase()
         if DEBUG:

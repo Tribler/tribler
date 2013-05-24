@@ -1,8 +1,8 @@
 *.pyc
 *.pyo
 *~
-.#*
+\#*\#
+/.Tribler
 /.noseids
 /output
-\#*\#
 /swift

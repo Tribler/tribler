@@ -9,6 +9,8 @@ from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 DEBUG = True
+
+
 class TestLibtorrentDownload(TestGuiAsServer):
 
     def test_downloadfromfile(self):
@@ -22,7 +24,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
 
         def download_object_ready():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
+            self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
@@ -43,7 +45,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
 
         def download_object_ready():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
+            self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
@@ -64,7 +66,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(60, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
 
         def download_object_ready():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
+            self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfrommagnet():
             self.guiUtility.showLibrary()
@@ -78,7 +80,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
         infohash = binascii.unhexlify('3d062d3b57481f23af8bd736ccfaaae0ccddf4b3')
 
         def do_final():
-            self.assert_(not self.frame.librarylist.list.items.has_key(infohash), 'download not deleted')
+            self.assert_(infohash not in self.frame.librarylist.list.items, 'download not deleted')
 
             self.screenshot('After deleting a libtorrent download')
             self.quit()
@@ -100,7 +102,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.Call(5, do_deletedownload)
 
         def do_stop():
-            self.assert_(self.frame.librarylist.list.items.has_key(infohash), 'no download in librarylist')
+            self.assert_(infohash in self.frame.librarylist.list.items, 'no download in librarylist')
             self.assert_(self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, 'no download progress')
 
             self.screenshot('After starting a libtorrent download')
@@ -113,7 +115,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.Call(30, do_stop)
 
         def download_object_ready():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.items.has_key(infohash), item_shown_in_list, 'no download in librarylist')
+            self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
 
         def do_start():
             self.guiUtility.showLibrary()
@@ -135,7 +137,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.assert_(bool(d), "No VOD download found")
 
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda : d.network_calc_prebuf_frac() == 1.0, do_assert)
+            self.CallConditional(60, lambda: d.network_calc_prebuf_frac() == 1.0, do_assert)
 
         def do_vod():
             self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)

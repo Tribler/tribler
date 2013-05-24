@@ -24,6 +24,7 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
 
 class SessionConfigInterface:
+
     """
     (key,value) pair config of global parameters,
     e.g. PermID keypair, listen port, max upload speed, etc.
@@ -65,8 +66,6 @@ class SessionConfigInterface:
 
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
 
-
-
     def set_state_dir(self, statedir):
         """ Set the directory to store the Session's state in.
         @param statedir  A preferably absolute path name. If the directory
@@ -90,7 +89,6 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['install_dir']
 
-
     def set_permid_keypair_filename(self, keypairfilename):
         """ Set the filename containing the Elliptic Curve keypair to use for
         PermID-based authentication in this Session.
@@ -106,7 +104,6 @@ class SessionConfigInterface:
         """ Returns the filename of the Session's keypair.
         @return An absolute path name. """
         return self.sessconfig['eckeypairfilename']
-
 
     def set_listen_port(self, port):
         """ Set the UDP and TCP listen port for this Session.
@@ -287,7 +284,6 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['videoanalyserpath']  # strings immutable
 
-
     def set_mainline_dht(self, value):
         """ Enable mainline DHT support (default = True)
         @param value Boolean.
@@ -438,7 +434,6 @@ class SessionConfigInterface:
         @return A number of downloads. """
         return self.sessconfig['swiftdlsperproc']
 
-
     #
     # Config for swift tunneling e.g. dispersy traffic
     #
@@ -484,6 +479,7 @@ class SessionConfigInterface:
 
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
+
     """ Class to configure a Session """
 
     def __init__(self, sessconfig=None):

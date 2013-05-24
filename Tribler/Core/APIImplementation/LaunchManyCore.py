@@ -16,7 +16,7 @@ from Tribler.Core.ServerPortHandler import MultiHandler
 try:
     prctlimported = True
     import prctl
-except ImportError, e:
+except ImportError as e:
     prctlimported = False
 
 from Tribler.__init__ import LIBRARYNAME
@@ -45,6 +45,7 @@ PROFILE = False
 
 # Internal classes
 #
+
 
 class TriblerLaunchMany(Thread):
 
@@ -114,7 +115,6 @@ class TriblerLaunchMany(Thread):
                 # set communication endpoint
                 if config['dispersy-tunnel-over-swift'] and self.swift_process:
                     endpoint = TunnelEndpoint(self.swift_process)
-                    self.swift_process.add_download(endpoint)
                 else:
                     endpoint = RawserverEndpoint(self.rawserver, config['dispersy_port'])
 
@@ -132,7 +132,7 @@ class TriblerLaunchMany(Thread):
                 print >> sys.stderr, "lmc: Dispersy is listening on port", self.dispersy.wan_address[1], "[%d]" % id(self.dispersy)
                 self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
-                self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity,), kargs={'load':True})
+                self.dispersy.callback.call(self.dispersy.define_auto_load, args=(HardKilledCommunity,), kargs={'load': True})
 
                 # notify dispersy finished loading
                 self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
@@ -281,7 +281,7 @@ class TriblerLaunchMany(Thread):
         if d and not hidden and self.session.get_megacache():
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
-                data = {'destination_path':d.get_dest_dir()}
+                data = {'destination_path': d.get_dest_dir()}
                 self.mypref_db.addMyPreference(torrent_id, data, commit=commit)
 
             if isinstance(tdef, TorrentDefNoMetainfo):
@@ -291,7 +291,7 @@ class TriblerLaunchMany(Thread):
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
             else:
-                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status':'good'}, commit=commit)
+                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status': 'good'}, commit=commit)
                 write_my_pref()
 
         return d
@@ -415,7 +415,7 @@ class TriblerLaunchMany(Thread):
             # 2013-04-17: Libtorrent now uses set_moreinfo_stats as well.
             d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_id() in getpeerlist)
 
-        network_set_download_states_callback_lambda = lambda:self.network_set_download_states_callback(usercallback)
+        network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
         self.rawserver.add_task(network_set_download_states_callback_lambda, when)
 
     def network_set_download_states_callback(self, usercallback):
@@ -458,7 +458,7 @@ class TriblerLaunchMany(Thread):
     def load_checkpoint(self, initialdlstatus=None, initialdlstatus_dict={}):
         """ Called by any thread """
         if not self.initComplete:
-            network_load_checkpoint_callback_lambda = lambda:self.load_checkpoint(initialdlstatus, initialdlstatus_dict)
+            network_load_checkpoint_callback_lambda = lambda: self.load_checkpoint(initialdlstatus, initialdlstatus_dict)
             self.rawserver.add_task(network_load_checkpoint_callback_lambda, 1.0)
 
         else:
@@ -483,7 +483,7 @@ class TriblerLaunchMany(Thread):
             basename = binascii.hexlify(infohash) + '.pickle'
             filename = os.path.join(dir, basename)
             return self.load_download_pstate(filename)
-        except Exception, e:
+        except Exception as e:
             # TODO: remove saved checkpoint?
             # self.rawserver_nonfatalerrorfunc(e)
             return None
@@ -497,7 +497,7 @@ class TriblerLaunchMany(Thread):
             # SWIFTPROC
             if SwiftDef.is_swift_url(pstate['metainfo']):
                 sdef = SwiftDef.load_from_url(pstate['metainfo'])
-            elif pstate['metainfo'].has_key('infohash'):
+            elif 'infohash' in pstate['metainfo']:
                 tdef = TorrentDefNoMetainfo(pstate['metainfo']['infohash'], pstate['metainfo']['name'])
             else:
                 tdef = TorrentDef.load_from_dict(pstate['metainfo'])
@@ -505,7 +505,7 @@ class TriblerLaunchMany(Thread):
             dlconfig = pstate['dlconfig']
             if isinstance(dlconfig['saveas'], tuple):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
-            if dlconfig.has_key('name') and isinstance(dlconfig['name'], basestring) and sdef:
+            if 'name' in dlconfig and isinstance(dlconfig['name'], basestring) and sdef:
                 sdef.set_name(dlconfig['name'])
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])
@@ -565,7 +565,7 @@ class TriblerLaunchMany(Thread):
                         initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
                         self.swift_add(sdef, dscfg, pstate, initialdlstatus)
 
-                except Exception, e:
+                except Exception as e:
                     self.rawserver_nonfatalerrorfunc(e)
             else:
                 print >> sys.stderr, "tlm: removing checkpoint", filename, "destdir is", dscfg.get_dest_dir()
@@ -584,10 +584,9 @@ class TriblerLaunchMany(Thread):
         if DEBUG or stop:
             print >> sys.stderr, "tlm: checkpointing", len(dllist), "stopping", stop
 
-        network_checkpoint_callback_lambda = lambda:self.network_checkpoint_callback(dllist, stop, checkpoint, gracetime)
+        network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint, gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda, 0.0)
         # TODO: checkpoint overlayapps / friendship msg handler
-
 
     def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
         """ Called by network thread """
@@ -607,7 +606,7 @@ class TriblerLaunchMany(Thread):
                         print >> sys.stderr, "tlm: network checkpointing:", d.get_def().get_name(), pstate
 
                     self.save_download_pstate(infohash, pstate)
-                except Exception, e:
+                except Exception as e:
                     self.rawserver_nonfatalerrorfunc(e)
 
         if stop:
@@ -618,7 +617,7 @@ class TriblerLaunchMany(Thread):
                 if diff < gracetime:
                     print >> sys.stderr, "tlm: shutdown: delaying for early shutdown tasks", gracetime - diff
                     delay = gracetime - diff
-                    network_shutdown_callback_lambda = lambda:self.network_shutdown()
+                    network_shutdown_callback_lambda = lambda: self.network_shutdown()
                     self.rawserver.add_task(network_shutdown_callback_lambda, delay)
                     return
 
@@ -711,7 +710,6 @@ class TriblerLaunchMany(Thread):
         pickle.dump(pstate, f)
         f.close()
 
-
     def load_download_pstate(self, filename):
         """ Called by any thread """
         f = open(filename, "rb")
@@ -788,7 +786,7 @@ class TriblerLaunchMany(Thread):
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
         try:
             self.torrent_checking.setInterval(self.torrent_checking_period)
-        except Exception, e:
+        except Exception as e:
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)
 
@@ -822,7 +820,7 @@ class TriblerLaunchMany(Thread):
 
             # TODO: if user renamed the dest_path for single-file-torrent
             dest_path = d.get_dest_dir()
-            data = {'destination_path':dest_path}
+            data = {'destination_path': dest_path}
             mypref_db.addMyPreference(torrent_id, data)
 
         if d and not hidden and self.session.get_megacache():
@@ -854,6 +852,7 @@ class TriblerLaunchMany(Thread):
 
         if not hidden and self.session.get_megacache():
             self.database_thread.register(do_db, args=(self.torrent_db, self.mypref_db, roothash), priority=1024)
+
 
 def singledownload_size_cmp(x, y):
     """ Method that compares 2 SingleDownload objects based on the size of the

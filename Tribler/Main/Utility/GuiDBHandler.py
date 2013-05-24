@@ -26,6 +26,7 @@ DEFAULT_PRI_DISPERSY = 0
 
 DEBUG = False
 
+
 class GUIDBProducer():
     # Code to make this a singleton
     __single = None
@@ -33,7 +34,7 @@ class GUIDBProducer():
 
     def __init__(self, database_thread):
         if GUIDBProducer.__single:
-            raise RuntimeError, "GuiDBProducer is singleton"
+            raise RuntimeError("GuiDBProducer is singleton")
 
         self.database_thread = database_thread
         self.guitaskqueue = GUITaskQueue.getInstance()
@@ -109,6 +110,7 @@ class GUIDBProducer():
             self.uIdsLock.release()
 
         t1 = time()
+
         def wrapper():
             if __debug__:
                 self.uIdsLock.acquire()
@@ -122,7 +124,7 @@ class GUIDBProducer():
             except (AbortedException, wx.PyDeadObjectError):
                 return
 
-            except Exception, exc:
+            except Exception as exc:
                 if str(exc).startswith("BusyError") and retryOnBusy:
                     print >> sys.stderr, "GUIDBHandler: BusyError, retrying Task(%s) in 0.5s" % name
                     self.database_thread.register(wrapper, delay=0.5, id_=name)
@@ -195,6 +197,7 @@ class GUIDBProducer():
 
 # Wrapping Senders for new delayedResult impl
 class MySender():
+
     def __init__(self, delayedResult):
         self.delayedResult = delayedResult
 
@@ -207,17 +210,22 @@ class MySender():
         self.delayedResult.setException(exception, originalTb)
         self._sendImpl(self.delayedResult)
 
+
 class MySenderWxEvent(MySender, SenderWxEvent):
+
     def __init__(self, handler, eventClass, delayedResult, resultAttr="delayedResult", jobID=None, **kwargs):
         SenderWxEvent.__init__(self, handler, eventClass, resultAttr, jobID, **kwargs)
         MySender.__init__(self, delayedResult)
 
+
 class MySenderCallAfter(MySender, SenderCallAfter):
+
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
         SenderCallAfter.__init__(self, listener, jobID, args, kwargs)
         MySender.__init__(self, delayedResult)
 
 class MySenderNoWx(MySender, SenderNoWx):
+
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
         SenderNoWx.__init__(self, listener, jobID, args, kwargs)
         MySender.__init__(self, delayedResult)
@@ -225,6 +233,7 @@ class MySenderNoWx(MySender, SenderNoWx):
 # ASyncDelayedResult, allows a get call before result is set
 # This call is blocking, but allows you to specify a timeout
 class ASyncDelayedResult():
+
     def __init__(self, jobID=None):
         self.__result = None
         self.__exception = None
@@ -258,10 +267,11 @@ class ASyncDelayedResult():
     def wait(self, timeout=None):
         return self.isFinished.wait(timeout) or self.isFinished.isSet()
 
+
 def exceptionConsumer(delayedResult, *args, **kwargs):
     try:
         delayedResult.get()
-    except Exception, e:
+    except Exception as e:
         print >> sys.stderr, e.originalTraceback
 
 # Modified startWorker to use our single thread
@@ -272,7 +282,7 @@ def startWorker(
     wargs=(), wkwargs={},
     jobID=None, delay=0.0,
     uId=None, retryOnBusy=False,
-    priority=DEFAULT_PRI_DISPERSY, workerType="dbThread"):
+        priority=DEFAULT_PRI_DISPERSY, workerType="dbThread"):
     """
     Convenience function to send data produced by workerFn(*wargs, **wkwargs)
     running in separate thread, to a consumer(*cargs, **ckwargs) running in
@@ -320,9 +330,11 @@ def startWorker(
 
     return result
 
+
 def cancelWorker(uId):
     thread = GUIDBProducer.getInstance()
     thread.Remove(uId)
+
 
 def onWorkerThread(type):
     dbProducer = GUIDBProducer.getInstance()

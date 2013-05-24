@@ -11,11 +11,12 @@ from Tribler.Core.Search.SearchManager import split_into_keywords
 USE_PSYCO = False  # Enables Psyco optimization for the Levenshtein algorithm
 DEBUG = False  # Enables debug print messages to stderr
 class HitsGroup(object):
+
     """
     A HitsGroup represents a list of similar hits (i.e., search results) grouped together.
     With each group, an identifier is associated. The identifier is used by the GUI
     for refreshing and updating GUI controls.
-    In addition to an id, a HitsGroup stores the "key" and "simkey" used by the grouping 
+    In addition to an id, a HitsGroup stores the "key" and "simkey" used by the grouping
     algorithms (see GroupingAlgorithm for more information on these notions).
     """
 
@@ -33,7 +34,7 @@ class HitsGroup(object):
     def __init__(self, id= -1, key=None, simkey=None, prev_group=None):
         """
         Constructs a new HitsGroup object.
-        
+
         @param id Identifier assigned to this group. If set to -1, a new id
         is automatically assigned and the attribute reassignable_id is set to True.
         @param key The "key" of the representative hit, computed by a GroupingAlgorithm.
@@ -55,7 +56,7 @@ class HitsGroup(object):
         """
         Gets the representative hit of this group, i.e. the first item.
         Assumes a non-empty group.
-        @return Representative hit of this group. 
+        @return Representative hit of this group.
         """
         return self.hits[0]
 
@@ -63,11 +64,11 @@ class HitsGroup(object):
         """
         Changes the identifier of this group. This method should only be called if
         no explicit id was given at construction (i.e. id=-1) and it should only
-        be called once. It is the caller's responsibility to check the value of 
+        be called once. It is the caller's responsibility to check the value of
         the reassignable_id attribute.
-        
-        @param newid The new identifier for this group. Should be an identifier 
-        that has been previously assigned. 
+
+        @param newid The new identifier for this group. Should be an identifier
+        that has been previously assigned.
         """
         self.id = newid
         self.reassignable_id = False
@@ -96,7 +97,7 @@ class HitsGroup(object):
     def __getitem__(self, i):
         """
         Returns the ith added hit.
-        @param i The index of the hit to be returned 
+        @param i The index of the hit to be returned
         @return The hit with index i.
         """
         return self.hits[i]
@@ -109,13 +110,15 @@ class HitsGroup(object):
         """
         return self.prev_group and self.hits != self.prev_group.hits
 
+
 class GroupsList(object):
+
     """
     A GroupsList represents a list of grouped hits, i.e., a list of HitsGroups, and
     is responsible for constructing these HitsGroups using a given grouping algorithm
     and, optionally, the state from a previous given list.
     The list of groups is exposed through the groups attribute.
-    
+
     Note: This class does not expose any methods to mutate an instance (e.g., adding new
     hits). Instead, for each change or set of changes, a new instance must be constructed.
     """
@@ -126,7 +129,7 @@ class GroupsList(object):
     def __init__(self, query, algorithm, hits, prev_grouplist=None, max_bundles=None, two_step=False):
         """
         Constructs a GroupsList.
-        
+
         @param query The query that was used to retrieve the hits.
         @param algorithm The algorithm to apply to group the hits.
         @param hits The hits retrieved by the query.
@@ -155,7 +158,6 @@ class GroupsList(object):
         if not two_step:
             self.finalize()
 
-
     def finalize(self):
         """
         Finalizes this GroupsList in case of a two-step construction.
@@ -175,9 +177,9 @@ class GroupsList(object):
         """
         Private auxiliary method to compute the differences since the previous
         GroupsList and updates the context state.
-        
+
         @param hits The hits to be grouped.
-        @return A tuple containing the previous representatives, the previous index 
+        @return A tuple containing the previous representatives, the previous index
         and whether the old GroupsList can be reused.
         """
         if self.prev_grouplist is not None:
@@ -209,7 +211,7 @@ class GroupsList(object):
             for hit in hits:
                 key = algorithm.key(hit)
                 simkey = algorithm.simkey(key)
-                
+
                 group = None
                 if key in index:
                     group = index[key]
@@ -218,9 +220,9 @@ class GroupsList(object):
                     index[simkey] = new_group
                     grouped_hits.append(new_group)
                     group = new_group
-                
+
                 group.append(hit)
-        
+
         @param hits The hits to be grouped.
         @param max_bundles The maximum number of bundles to be created. Default: None (no limit).
         """
@@ -245,7 +247,6 @@ class GroupsList(object):
             # only create a new group
             new_group = HitsGroup(group_id, key, hit_infohash)
             return new_group
-
 
         # Niels: Used bundler.py from 5.4.x, i'll fix it afterwards.
         if self.reuse:
@@ -304,10 +305,12 @@ class GroupsList(object):
                 group.add(hit)
                 infohashes.add(hit_infohash)
 
+
 class GroupingAlgorithm(object):
+
     """
     Abstract base class for grouping algorithms.
-    Grouping algorithms specify to which group a hit should be added and 
+    Grouping algorithms specify to which group a hit should be added and
     are used by the GroupsList class in order to perform the actual grouping.
     """
 
@@ -316,9 +319,9 @@ class GroupingAlgorithm(object):
         Returns a general description which is used to customize a header
         in the GUI. The substring "Similar" in "Similar items" will be replaced
         by the string returned by this method.
-        If None is returned (default implementation), the GUI does not perform 
+        If None is returned (default implementation), the GUI does not perform
         a replacement.
-        
+
         @return A string or None.
         """
         return None
@@ -328,7 +331,7 @@ class GroupingAlgorithm(object):
         Returns a description for a specific group of hits. The GUI can display
         this as e.g. a tooltip.
         The default implementation returns None.
-        
+
         @return A string or None.
         """
         return None
@@ -338,17 +341,17 @@ class GroupingAlgorithm(object):
         Optional method. Creates a new state object (of any type) that is
         updated and threaded between instances of GroupsList.
         See also: update_context_state
-        
+
         @return A state object.
         """
         return None
 
     def update_context_state(self, new_hits, context_state):
         """
-        Optional method. Updates the given context state based upon a list of 
+        Optional method. Updates the given context state based upon a list of
         new hits since the last time this method was called for the given
         context state.
-        
+
         @param new_hits A list of new hits since the last call.
         @param context_state A context state that needs to be updated.
         """
@@ -358,9 +361,9 @@ class GroupingAlgorithm(object):
         """
         Maps a hit onto a key. A key represents certain features of a hit
         corresponding to a particular notion of similarity.
-        
+
         @param hit The hit to compute the key of.
-        @param context_state The previous context state. 
+        @param context_state The previous context state.
         @return The hit's key.
         """
         raise NotImplementedError('key')
@@ -369,9 +372,9 @@ class GroupingAlgorithm(object):
         """
         Maps a key to a "simkey". A simkey is a representation of a keys
         that are similar to the given key (including the key itself).
-        
+
         @param key The key to compute the simkey of.
-        @param context_state The previous context state. 
+        @param context_state The previous context state.
         @return The key's simkey.
         """
         raise NotImplementedError('simkey')
@@ -382,12 +385,13 @@ class GroupingAlgorithm(object):
         Creates a new instance of the GroupingAlgorithm's index datastructure.
         The index datastructure is used to map keys to groups. The datastructure
         depends on the algorithm's choice of representation of the keys and simkeys.
-        
+
         @return A new instance of the GroupingAlgorithm's index datastructure.
         """
         return cls.Index()
 
     class Index(object):
+
         """
         Abstract base class for a GroupingAlgorithm's index datastructure.
         The datastructure supports 3 main operations:
@@ -397,13 +401,14 @@ class GroupingAlgorithm(object):
           * Storing a new group under a particular simkey (__setitem__ method).
         """
         __slots__ = []
+
         def __contains__(self, key):
             """
             Checks whether a group exists that covers hits with a particular
             key.
-            
+
             @param key The key of a hit that needs to be assigned to a group.
-            @return True if a group exists for the key 'key'. 
+            @return True if a group exists for the key 'key'.
             """
             raise NotImplementedError('__contains__')
 
@@ -411,16 +416,16 @@ class GroupingAlgorithm(object):
             """
             Checks whether a group exists that covers hits with a particular
             key.
-            
+
             @param key The key of a hit that needs to be assigned to a group.
-            @return True if a group exists for the key 'key'. 
+            @return True if a group exists for the key 'key'.
             """
             raise NotImplementedError('__getitem__')
 
         def __setitem__(self, simkey, group):
             """
             Stores a new group under a given simkey.
-            
+
             @param simkey The simkey of the key of the group's representative hit.
             @param group The group to be stored in the index.
             """
@@ -428,6 +433,7 @@ class GroupingAlgorithm(object):
 
 
 class SimpleExactKeyGrouping(GroupingAlgorithm):
+
     """
     The SimpleExactKeyGrouping is an abstract base class for algorithms
     that perform exact grouping based on a single key. For these algorithms,
@@ -439,23 +445,29 @@ class SimpleExactKeyGrouping(GroupingAlgorithm):
         return key
 
     class Index(GroupingAlgorithm.Index):
+
         """
         The Index datastructure is isomorphic to a dict.
         """
         __slots__ = ['mapTo']
+
         def __init__(self):
             self.mapTo = {}
+
         def __contains__(self, key):
             return key in self.mapTo
+
         def __getitem__(self, key):
             return self.mapTo[key]
+
         def __setitem__(self, simkey, group):
             self.mapTo[simkey] = group
 
 class IntGrouping(SimpleExactKeyGrouping):
+
     """
     The IntGrouping algorithm groups similarly numbered hits together.
-    
+
     The key of a hit is a sequence (tuple) of numbers appearing in the
     hit's name. The simkey of a key simply the key. Hence, the IntGrouping
     algorithm only groups hits together when their names contain the exact
@@ -479,6 +491,7 @@ class IntGrouping(SimpleExactKeyGrouping):
 
 
 class CategoryGrouping(SimpleExactKeyGrouping):
+
     """
     The CategoryGrouping algorithm groups hits from the same category together.
     """
@@ -503,17 +516,18 @@ class CategoryGrouping(SimpleExactKeyGrouping):
 
 
 class LevGrouping(GroupingAlgorithm):
+
     """
     The LevGrouping algorithm groups similarly named hits together based
     on a weighted edit distance. Edit costs have a lower weight when they
     occur further in the string.
-    
-    The key of a hit is a string representation formed by a simple concatenation 
+
+    The key of a hit is a string representation formed by a simple concatenation
     of the keywords (see Tribler.Core.Search.SearchManager.split_into_keywords)
     extracted from its name. The simkey of a key are all keys (taken from all hits)
     that are within a MAX_COST edit distance.
-    
-    In order to efficiently compute a simkey, the LevGrouping algorithm keeps 
+
+    In order to efficiently compute a simkey, the LevGrouping algorithm keeps
     track of all keys using a trie as its context state
     (see LevenshteinTrie and LevenshteinTrie_Cached).
     """
@@ -569,13 +583,15 @@ class LevGrouping(GroupingAlgorithm):
         return trie.search(key, LevGrouping.MAX_COST)
 
     class Index(GroupingAlgorithm.Index):
+
         """
         The LevGrouping's index datastructure is quite similar to a dict.
-        The only difference is that storing a new group in the index 
+        The only difference is that storing a new group in the index
         corresponds to multiple insertion in a dict, one per key contained
         within the simkey.
         """
         __slots__ = ['mapTo']
+
         def __init__(self):
             self.mapTo = {}
 
@@ -593,12 +609,13 @@ class LevGrouping(GroupingAlgorithm):
 
 
 class SizeGrouping(GroupingAlgorithm):
+
     """
     The SizeGrouping algorithm groups similarly sized hits together based
     on file size.
-    
-    The key of a hit is just its file size. The simkey of a key is a range 
-    of keys, represented by a tuple containing a lower bound and an upper 
+
+    The key of a hit is just its file size. The simkey of a key is a range
+    of keys, represented by a tuple containing a lower bound and an upper
     bound.
     """
 
@@ -621,13 +638,15 @@ class SizeGrouping(GroupingAlgorithm):
         return interval
 
     class Index(GroupingAlgorithm.Index):
+
         """
         The SizeGrouping's index datastructure is backed by an interval tree
-        for storing intervals and quick lookups. In order to speed up the 
+        for storing intervals and quick lookups. In order to speed up the
         common {__contains__;__getitem__} pattern, it prevents duplicate
         IntervalTree.find_first calls by caching the most recent call.
         """
         __slots__ = ['itree', 'cached_contains']
+
         def __init__(self):
             self.itree = IntervalTree()
             # cache for {__contains__; __getitem__} pattern:
@@ -648,7 +667,6 @@ class SizeGrouping(GroupingAlgorithm):
         def __setitem__(self, simkey, group):
             node = self.itree.insert(simkey, return_node=True)
             node.group = group
-
 
 
 # TrieNode and LevenshteinTrie are based on public domain code,
@@ -678,6 +696,8 @@ class TrieNode(object):
 
 LOG_COSTS = False
 LOG_DEPTH = False
+
+
 class LevenshteinTrie(object):
     if LOG_COSTS:
         __slots__ = ['root', 'MAX_LEN', 'matrix', '_costs']
@@ -760,19 +780,19 @@ class LevenshteinTrie(object):
             print >> _logfh, row_index
             _logfh.close()
 
-
-
     def _dynamic_penalty(self, i):
         if i > 2:
             return 1.0 / (i - 1)
         return 1.0
 
+
 class LevenshteinTrie_Cached(object):
+
     """
     LevenshteinTrie_Cached is a caching front-end for the LevenshteinTrie
     datastructure. It caches all calls to the search method.
-    
-    Calls to add_word, however, possibly invalidate the cache and it is 
+
+    Calls to add_word, however, possibly invalidate the cache and it is
     imperative that after a series of add_word calls, you must invoke
     the update_cache method before invoking the search method.
     """
@@ -818,6 +838,7 @@ class LevenshteinTrie_Cached(object):
 # IntervalTree based on description available at
 # http://en.wikipedia.org/wiki/Interval_tree#Augmented_tree
 class IntervalTree:
+
     def __init__(self):
         self.root = None
 
@@ -879,6 +900,7 @@ class IntervalTree:
                 )
 
     class Node:
+
         def __init__(self, interval):
             self.left = None
             self.right = None
@@ -891,13 +913,13 @@ class IntervalTree:
             return a <= point <= b
 
 
-
 class Bundler:
+
     """
     The Bundler class is a facade to the various grouping classes. Its main exposed
     operation is to bundle a ranked list of hits according to a chosen algorithm.
-    
-    A Bundler instance holds on to previously created GroupsList to speed up the 
+
+    A Bundler instance holds on to previously created GroupsList to speed up the
     creation of newer GroupsLists.
     """
 
@@ -942,13 +964,13 @@ class Bundler:
         """
         Bundles a ranked list of hits using a selected algorithm. A bundle
         is a dict containing an identifier for the bundle (key),
-        two descriptions (bundle_description, bundle_general_description) 
+        two descriptions (bundle_description, bundle_general_description)
         and the bundle (bundle) itself.
-        
+
         @param hits A ranked list of hits.
-        @param bundle_mode The algorithm, selected by one of the 
-        Bundle.ALG_* constants. 
-        @param searchkeywords The search keywords used to retrieve 
+        @param bundle_mode The algorithm, selected by one of the
+        Bundle.ALG_* constants.
+        @param searchkeywords The search keywords used to retrieve
         the list of hits.
         @return A list containing hits and bundles and the actual applied bundle mode.
         """
@@ -1037,14 +1059,12 @@ class Bundler:
                 self.previous_groups[bundle_mode] = grouped_hits
                 bundled_hits = self._convert_groupslist(grouped_hits, algorithm, hits2)
 
-
             self.number_of_calls += 1
             if self.number_of_calls >= Bundler.GC_ROUNDS:
                 self.__gc()
                 self.number_of_calls = 0
 
         return bundled_hits, selected_bundle_mode
-
 
     def _convert_groupslist(self, groupslist, algorithm, suffix=[]):
         res = []
@@ -1089,5 +1109,3 @@ if USE_PSYCO:
     psyco.bind(LevenshteinTrie_Cached)
 
     # Can give speedups up to 3x
-
-

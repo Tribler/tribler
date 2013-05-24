@@ -1,7 +1,8 @@
 # written by Yuan Yuan, Jelle Roozenburg
 # see LICENSE.txt for license information
 
-import os, re
+import os
+import re
 from Tribler.Category.init_category import getCategoryInfo
 from FamilyFilter import XXXFilter
 from traceback import print_exc
@@ -23,7 +24,7 @@ class Category:
     def __init__(self, install_dir='.', ffEnabled=False):
 
         if Category.__single:
-            raise RuntimeError, "Category is singleton"
+            raise RuntimeError("Category is singleton")
         filename = os.path.join(install_dir, LIBRARYNAME, 'Category', category_file)
         Category.__single = self
         try:
@@ -38,7 +39,7 @@ class Category:
 
         if DEBUG:
             print >> sys.stderr, "category: Categories defined by user", self.getCategoryNames()
-            
+
         self.ffEnabled = ffEnabled
         self.set_family_filter(None)
 
@@ -48,7 +49,7 @@ class Category:
             Category(*args, **kw)
         return Category.__single
     getInstance = staticmethod(getInstance)
-    
+
     def delInstance(*args, **kw):
         Category.__single = None
     delInstance = staticmethod(delInstance)
@@ -79,9 +80,9 @@ class Category:
         try:
             name = torrent['category'][0]
         except:
-            print >> sys.stderr, 'Torrent: %s has no valid category' % `torrent['content_name']`
+            print >> sys.stderr, 'Torrent: %s has no valid category' % repr(torrent['content_name'])
             return False
-        for category in [{'name':'other', 'rank':1}] + self.category_info:
+        for category in [{'name': 'other', 'rank': 1}] + self.category_info:
             rank = category['rank']
             if rank == -1:
                 break
@@ -118,7 +119,6 @@ class Category:
 
         comment = torrent_dict.get('comment')
         return self.calculateCategoryNonDict(files_list, display_name, tracker, comment)
-
 
     def calculateCategoryNonDict(self, files_list, display_name, tracker, comment):
         # Check xxx
@@ -172,7 +172,7 @@ class Category:
             totalSize += length
             # judge file size
             if (length < category['minfilesize']) or \
-                (category['maxfilesize'] > 0 and length > category['maxfilesize']):
+                    (category['maxfilesize'] > 0 and length > category['maxfilesize']):
                 continue
 
             # judge file suffix
@@ -210,8 +210,8 @@ class Category:
 
         return (False, 0)
 
-
     WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
+
     def _getWords(self, string):
         return self.WORDS_REGEXP.findall(string)
 
@@ -227,9 +227,9 @@ class Category:
         if b != old or b is None:  # update category data if initial call, or if state changes
             if b is None:
                 b = old
-                
+
             self.ffEnabled = b
-            
+
             # change category data
             for category in self.category_info:
                 if category['name'] == 'xxx':
@@ -248,8 +248,6 @@ class Category:
             if forbiddencats:
                 return " and %scategory_id not in (%s)" % (table_name, ','.join([str(_getCategoryID([cat])) for cat in forbiddencats]))
         return ''
-
-
 
 
 def rankcmp(a, b):

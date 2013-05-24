@@ -10,11 +10,13 @@ import urlparse
 import Tribler.UPnP.common.upnpsoap as upnpsoap
 import Tribler.UPnP.common.asynchHTTPserver as httpserver
 
-##############################################
+#
 # REQUEST HANDLER
-##############################################
+#
+
 
 class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
+
     """Request Handler for UPnP Server HTTP Server."""
 
     def do_GET(self):
@@ -72,7 +74,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('content-length', str(len(body)))
                 self.send_header('content-type', content_type)
-                if self.headers.has_key('accept-language'):
+                if 'accept-language' in self.headers:
                     self.send_header('content-language',
                                      self.headers['accept-language'])
                 else:
@@ -83,9 +85,8 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.request.close()
             else:
                 self.send_error(404)
-        except socket.error, error:
+        except socket.error as error:
             self.server.log("SocketError %s" % error)
-
 
     def do_POST(self):
         """Responds to POST request."""
@@ -117,13 +118,13 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.server.log(msg)
 
                 service = self.server.service_manager.get_service(service_id)
-                if service :
+                if service:
                     result_list = service.invoke_action(action_name, args)
 
-                if isinstance(result_list, types.ListType):
+                if isinstance(result_list, list):
                     # Reply
                     result_body = upnpsoap.create_action_response(name_space,
-                    action_name, result_list)
+                                                                  action_name, result_list)
                     self.send_response(200)
                 else:
                     # Error
@@ -134,7 +135,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.send_header('Content-Length', str(len(result_body)))
                 self.send_header('Content-Type', 'text/xml; charset="utf-8"')
                 self.send_header('DATE', self.date_time_string())
-                self.send_header('EXT','')
+                self.send_header('EXT', '')
                 self.send_header('SERVER', self.server.get_server_header())
                 self.end_headers()
                 self.wfile.write(result_body)
@@ -142,7 +143,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 return
 
         self.server.log("ERROR Post %s %s" % (path,
-                                                   self.client_address[0]))
+                       self.client_address[0]))
         self.send_response(500)
         self.end_headers()
         self.request.close()
@@ -168,15 +169,17 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
             service = self.server.service_manager.get_service(service_id)
 
             # Requested Duration of Subscription
-            if self.headers.has_key('timeout'):
+            if 'timeout' in self.headers:
                 duration = self.headers['timeout'].split('-')[-1]
                 if duration == 'infinite':
                     duration = 0
-                else: duration = int(duration)
-            else : duration = 0
+                else:
+                    duration = int(duration)
+            else:
+                duration = 0
 
             # Subscribe
-            if self.headers.has_key('nt'):
+            if 'nt' in self.headers:
                 # Callback URLs
                 callback_urls = re.findall('<.*?>', self.headers['callback'])
                 callback_urls = [url.strip('<>') for url in callback_urls]
@@ -187,7 +190,7 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.server.log(msg)
 
             # Renew
-            elif self.headers.has_key('sid'):
+            elif 'sid' in self.headers:
                 sid = self.headers['sid'].split(':')[-1]
                 # Renew
                 duration = service.renew(sid, duration)
@@ -206,9 +209,8 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
                 self.wfile.flush()
                 self.request.close()
                 return
-            else :
-                error = 412 # Precondition failed
-
+            else:
+                error = 412  # Precondition failed
 
         msg = "ERROR [%d] Subscribe %s %s" % (error, path,
                                          self.client_address[0])
@@ -266,13 +268,15 @@ class _RequestHandler(httpserver.AsynchHTTPRequestHandler):
         except socket.error:
             pass
 
-##############################################
+#
 # HTTP SERVER
-##############################################
+#
 
 _HTTP_PORT = 44444
 
+
 class HTTPServer(httpserver.AsynchHTTPServer):
+
     """HTTP Server for the UPnP Server."""
 
     def __init__(self, task_runner, logger=None):

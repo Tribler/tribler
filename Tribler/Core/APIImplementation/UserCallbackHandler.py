@@ -14,6 +14,7 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 
 DEBUG = False
 
+
 class UserCallbackHandler:
 
     def __init__(self, session):
@@ -34,7 +35,8 @@ class UserCallbackHandler:
     def perform_vod_usercallback(self, d, usercallback, event, params):
         """ Called by network thread """
         if DEBUG:
-            print >> sys.stderr, "Session: perform_vod_usercallback()", `d.get_def().get_name()`
+            print >> sys.stderr, "Session: perform_vod_usercallback()", repr(d.get_def().get_name())
+
         def session_vod_usercallback_target():
             try:
                 usercallback(d, event, params)
@@ -46,6 +48,7 @@ class UserCallbackHandler:
         """ Called by network thread """
         if DEBUG:
             print >> sys.stderr, "Session: perform_getstate_usercallback()"
+
         def session_getstate_usercallback_target():
             try:
                 (when, getpeerlist) = usercallback(data)
@@ -54,11 +57,11 @@ class UserCallbackHandler:
                 print_exc()
         self.perform_usercallback(session_getstate_usercallback_target)
 
-
     def perform_removestate_callback(self, infohash, contentdests, removecontent):
         """ Called by network thread """
         if DEBUG:
             print >> sys.stderr, "Session: perform_removestate_callback()"
+
         def session_removestate_callback_target():
             if DEBUG:
                 print >> sys.stderr, "Session: session_removestate_callback_target called", currentThread().getName()
@@ -81,11 +84,11 @@ class UserCallbackHandler:
         """  See DownloadImpl.setup().
         Called by SessionCallbackThread """
         if DEBUG:
-            print >> sys.stderr, "Session: sesscb_removestate called", `infohash`, contentdests, removecontent
+            print >> sys.stderr, "Session: sesscb_removestate called", repr(infohash), contentdests, removecontent
         self.sesslock.acquire()
         try:
             if self.session.lm.download_exists(infohash):
-                print >> sys.stderr, "Session: sesscb_removestate: Download is back, restarted? Canceling removal!", `infohash`
+                print >> sys.stderr, "Session: sesscb_removestate: Download is back, restarted? Canceling removal!", repr(infohash)
                 return
 
             dlpstatedir = os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR)
@@ -143,5 +146,5 @@ class UserCallbackHandler:
         Notify all interested observers about an event with threads from the pool
         """
         if DEBUG:
-            print >> sys.stderr, "ucb: notify called:", subject, changeType, `obj_id`, args
+            print >> sys.stderr, "ucb: notify called:", subject, changeType, repr(obj_id), args
         self.notifier.notify(subject, changeType, obj_id, *args)

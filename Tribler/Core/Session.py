@@ -30,7 +30,9 @@ except ImportError:
 
 DEBUG = False
 
+
 class Session(SessionRuntimeConfig):
+
     """
 
     A Session is a running instance of the Tribler Core and the Core's central
@@ -40,7 +42,6 @@ class Session(SessionRuntimeConfig):
     cf. libtorrent session
     """
     __single = None
-
 
     def __init__(self, scfg=None, ignore_singleton=False):
         """
@@ -58,7 +59,7 @@ class Session(SessionRuntimeConfig):
         """
         if not ignore_singleton:
             if Session.__single:
-                raise RuntimeError, "Session is singleton"
+                raise RuntimeError("Session is singleton")
             Session.__single = self
 
         self.ignore_singleton = ignore_singleton
@@ -208,7 +209,6 @@ class Session(SessionRuntimeConfig):
             # SWIFTPROC
             return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
 
-
     def resume_download_from_file(self, filename):
         """
         Recreates Download from resume file
@@ -272,7 +272,6 @@ class Session(SessionRuntimeConfig):
         self.lm.remove_id(id)
         self.uch.perform_removestate_callback(id, [], False)
 
-
     def set_download_states_callback(self, usercallback, getpeerlist=None):
         """
         See Download.set_state_callback. Calls usercallback with a list of
@@ -288,7 +287,6 @@ class Session(SessionRuntimeConfig):
         @param usercallback A function adhering to the above spec.
         """
         self.lm.set_download_states_callback(usercallback, getpeerlist or [])
-
 
     #
     # Config parameters that only exist at runtime
@@ -311,7 +309,6 @@ class Session(SessionRuntimeConfig):
         @return A string. """
         # locking done by lm
         return self.lm.get_ext_ip()
-
 
     def get_externally_reachable(self):
         """ Returns whether the Session is externally reachable, i.e., its
@@ -416,7 +413,6 @@ class Session(SessionRuntimeConfig):
         finally:
             self.sesslock.release()
 
-
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
@@ -437,12 +433,10 @@ class Session(SessionRuntimeConfig):
         """
         self.lm.load_checkpoint(initialdlstatus, initialdlstatus_dict)
 
-
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir. """
         # Called by any thread
         self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
-
 
     def start(self):
         """ Create the LaunchManyCore instance and start it"""
@@ -543,6 +537,11 @@ class Session(SessionRuntimeConfig):
 
         return self.lm.dispersy
 
+    def get_swift_process(self):
+        if not self.get_swift_proc():
+            raise OperationNotEnabledByConfigurationException()
+
+        return self.lm.swift_process
 
     #
     # Internal persistence methods
@@ -564,7 +563,7 @@ class Session(SessionRuntimeConfig):
             if hacksessconfcheckpoint:
                 try:
                     self.save_pstate_sessconfig()
-                except Exception, e:
+                except Exception as e:
                     self.lm.rawserver_nonfatalerrorfunc(e)
 
             # Checkpoint all Downloads and stop NetworkThread
@@ -580,7 +579,6 @@ class Session(SessionRuntimeConfig):
         sscfg = self.get_current_startup_config_copy()
         cfgfilename = Session.get_default_config_filename(sscfg.get_state_dir())
         sscfg.save(cfgfilename)
-
 
     def get_default_config_filename(state_dir):
         """ Return the name of the file where a session config is saved by default.

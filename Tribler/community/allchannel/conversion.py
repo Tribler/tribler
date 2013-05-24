@@ -5,7 +5,9 @@ from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 
+
 class AllChannelConversion(BinaryConversion):
+
     def __init__(self, community):
         super(AllChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
@@ -15,7 +17,7 @@ class AllChannelConversion(BinaryConversion):
         self.define_meta_message(chr(5), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
 
     def _encode_channelcast(self, message):
-        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
 
         def create_msg():
             return encode(message.payload.torrents)
@@ -27,7 +29,7 @@ class AllChannelConversion(BinaryConversion):
             if nrTorrents == 1:
                 del message.payload.torrents[community]
             else:
-                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents-1))
+                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents - 1))
 
             packet = create_msg()
 

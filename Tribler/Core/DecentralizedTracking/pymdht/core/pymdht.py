@@ -18,7 +18,8 @@ import ptime as time
 
 import minitwisted
 import controller
-import logging, logging_conf
+import logging
+import logging_conf
 import swift_tracker
 
 logger = logging.getLogger('dht')
@@ -32,6 +33,7 @@ VERSION_LABEL = ''.join(
 
 
 class Pymdht:
+
     """Pymdht is the interface for the whole package.
 
     Setting up the DHT node is as simple as creating this object.
@@ -120,10 +122,10 @@ class Pymdht:
         self.max_num_10min = max(self.max_num_10min, num_10min)
         self.timestamps = self.timestamps[-num_10min:]
         logger.info("%d(%d) %d(%d) %d(%d) --- %r callback: %r" % (
-                num_sec, self.max_num_sec,
-                num_min, self.max_num_min,
-                num_10min, self.max_num_10min,
-                info_hash, callback_f))
+            num_sec, self.max_num_sec,
+            num_min, self.max_num_min,
+            num_10min, self.max_num_10min,
+            info_hash, callback_f))
 
         if not use_cache:
             use_cache = True

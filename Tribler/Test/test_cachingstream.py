@@ -14,6 +14,8 @@ from traceback import print_exc
 from Tribler.Video.CachingStream import SmartCachingStream
 
 DEBUG = False
+
+
 class TestCachingStream(unittest.TestCase):
 
     """ Note: CachingStream currently actually reads 4x the blocksize into
@@ -85,7 +87,6 @@ class TestCachingStream(unittest.TestCase):
         self.g.close()
         self.cmp_files()
 
-
     def test_sequential_readnseek(self):
         pos = 0
         while True:
@@ -104,7 +105,6 @@ class TestCachingStream(unittest.TestCase):
         self.g.close()
         self.cmp_files()
 
-
     def test_read1sttwice(self):
         data1 = self.c.read(32768)
         if DEBUG:
@@ -114,7 +114,6 @@ class TestCachingStream(unittest.TestCase):
         if DEBUG:
             print >> sys.stderr, "test: Got bytes", len(data2)
         self.assert_(data1 == data2)
-
 
     def test_inside_1stblock(self):
         data1 = self.c.read(32768)
@@ -131,7 +130,6 @@ class TestCachingStream(unittest.TestCase):
         if DEBUG:
             print >> sys.stderr, "test: Got bytes", len(data3)
         self.assert_(data1[10000:10000 + 20000] == data3)
-
 
     def cmp_files(self):
         f1 = open(self.srcfilename, "rb")

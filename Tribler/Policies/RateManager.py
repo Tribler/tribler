@@ -13,6 +13,7 @@ DEBUG = False
 
 
 class RateManager:
+
     def __init__(self):
         self.lock = RLock()
         self.statusmap = {}
@@ -23,7 +24,7 @@ class RateManager:
     def add_downloadstate(self, ds):
         """ Returns the number of unique states currently stored """
         if DEBUG:
-            print >> sys.stderr, "RateManager: add_downloadstate", `ds.get_download().get_def().get_infohash()`
+            print >> sys.stderr, "RateManager: add_downloadstate", repr(ds.get_download().get_def().get_infohash())
 
         self.lock.acquire()
         try:
@@ -76,6 +77,7 @@ class RateManager:
 
 
 class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
+
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
@@ -162,7 +164,6 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 d = ds.get_download()
                 d.set_max_speed(dir, localmaxspeed)
 
-
         ltmgr = LibtorrentMgr.getInstance()
         rate = self.global_max_speed[direct]  # unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = -1 if rate == 0 else (0.0001 if rate == -1 else rate * 1024)
@@ -178,7 +179,9 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         else:
             return self.global_max_speed[dir]
 
+
 class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager):
+
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
@@ -304,7 +307,9 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                     print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Normal set to", piece
                     d.set_max_speed(dir, localmaxspeed)
 
+
 class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager):
+
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
@@ -358,7 +363,6 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
         # TEST globalmaxspeed = 1.0
         if DEBUG:
             print >> sys.stderr, "RateManager: set_lim: globalmaxspeed is", globalmaxspeed, dir
-
 
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:

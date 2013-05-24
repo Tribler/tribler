@@ -31,7 +31,7 @@ from collections import deque
 try:
     prctlimported = True
     import prctl
-except ImportError, e:
+except ImportError as e:
     prctlimported = False
 
 from Tribler.Core.Utilities.bencode import bdecode
@@ -47,13 +47,14 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 QUEUE_SIZE_LIMIT = 250
 DEBUG = False
 
+
 class TorrentChecking(Thread):
 
     __single = None
 
     def __init__(self, interval=15, tor_col_dir="."):
         if TorrentChecking.__single:
-            raise RuntimeError, "Torrent Checking is singleton"
+            raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
 
         Thread.__init__(self)
@@ -133,13 +134,13 @@ class TorrentChecking(Thread):
         if torrent._torrent_id != -1 and torrent.infohash not in self.queueset and len(self.queueset) < QUEUE_SIZE_LIMIT:
 
             # convert torrent gui-dbtuple to internal format
-            res = {'torrent_id':torrent._torrent_id,
-                   'ignored_times':0,
-                   'retried_times':0,
-                   'torrent_path':'',
-                   'infohash':torrent.infohash,
-                   'status':'good',
-                   'last_check':0}
+            res = {'torrent_id': torrent._torrent_id,
+                   'ignored_times': 0,
+                   'retried_times': 0,
+                   'torrent_path': '',
+                   'infohash': torrent.infohash,
+                   'status': 'good',
+                   'last_check': 0}
 
             if 'last_check' in torrent:
                 res['last_check'] = torrent.last_check
@@ -196,7 +197,7 @@ class TorrentChecking(Thread):
                     trackerStart = time()
                     multi_announce_dict = multiTrackerChecking(torrent, self.getInfoHashesForTracker)
                     if DEBUG:
-                        print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", "") , torrent["info"].get("announce-list", "")
+                        print >> sys.stderr, "TorrentChecking: tracker checking took ", time() - trackerStart, torrent["info"].get("announce", ""), torrent["info"].get("announce-list", "")
 
                     if not self.shouldquit:
                         # Modify last_check time such that the torrents in queue will be skipped if present in this multi-announce
@@ -234,7 +235,7 @@ class TorrentChecking(Thread):
                 if DEBUG:
                     print >> sys.stderr, 'TorrentChecking: ignoring torrent:', torrent
 
-                kw = { 'ignored_times': torrent['ignored_times'] - 1 }
+                kw = {'ignored_times': torrent['ignored_times'] - 1}
                 self.torrentdb.updateTorrent(torrent['infohash'], **kw)
                 self.announceQueue.put(None)
 
@@ -244,7 +245,7 @@ class TorrentChecking(Thread):
                 if self.hasTrackers(torrent):
                     self.announceQueue.put(torrent)
                 else:
-                    self.dbUpdateTorrents(torrent, {torrent['infohash']:(-2, -2)})
+                    self.dbUpdateTorrents(torrent, {torrent['infohash']: (-2, -2)})
                     self.announceQueue.put(None)
         else:
             self.announceQueue.put(None)
@@ -376,7 +377,7 @@ class TorrentChecking(Thread):
                         retried_times = torrent["retried_times"] + 1
 
             # store result
-            curkw = {'seeder':seeders, 'leecher':leechers, 'ignored_times': ignored_times, 'last_check_time': long(time()), 'status': status, 'retried_times':retried_times}
+            curkw = {'seeder': seeders, 'leecher': leechers, 'ignored_times': ignored_times, 'last_check_time': long(time()), 'status': status, 'retried_times': retried_times}
             self.torrentdb.updateTorrent(key, **curkw)
 
             if DEBUG:
