@@ -13,7 +13,7 @@ class TestIMDbParserPlugin(unittest.TestCase):
         html = file.read()
         parser = IMDbParserPlugin()
         #Act
-        result = parser.ParseWebSite(html)
+        result = parser.ParseWebSite(html)[0]
         #Assert        
         self.__AssertResult(result)
         
@@ -25,7 +25,7 @@ class TestIMDbParserPlugin(unittest.TestCase):
         html = file.read()
         parser = IMDbParserPlugin()
         #Act
-        result = parser.ParseWebSite(html)
+        result = parser.ParseWebSite(html)[0]
         #Assert
         self.__AssertResult(result)
        

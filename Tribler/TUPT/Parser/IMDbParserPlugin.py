@@ -1,9 +1,8 @@
 from imdb.parser.http.movieParser import DOMHTMLMovieParser
 from Tribler.TUPT.Movie import Movie
-
-
+from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
     
-class IMDbParserPlugin:    
+class IMDbParserPlugin(IParserPlugin):    
     '''Dictionary containing keys that can be parsed and a tuple. The tuple contains the corresponding moviedictionarykey and the corresponding parsefunction'''
 
     __items = {}
@@ -27,7 +26,7 @@ class IMDbParserPlugin:
                 #Call on the found result the corresponding parse function and store this on the proper moviekey in movies.
                 movie.dictionary[self.__items[key][0]] = self.__items[key][1](parseResult[key])
         #Return the result.                         
-        return movie
+        return [movie]
 
     @staticmethod
     def __ParseNothing(input):
