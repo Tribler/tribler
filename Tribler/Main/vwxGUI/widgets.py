@@ -2431,6 +2431,7 @@ class VideoSlider(wx.Panel):
         self.dragging = False
         if self.HasCapture():
             self.ReleaseMouse()
+        self.buffersize = 0
         #Call parent
         self.GetParent().GetParent().Seek()
 
