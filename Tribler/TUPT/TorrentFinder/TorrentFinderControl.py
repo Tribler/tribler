@@ -13,7 +13,7 @@ class TorrentFinderControl:
         pass
     
     def LoadLists(self, query):
-        """Query plug-ins for a title 
+        """Query plug-ins for a title using a Movie object
         """
         pass
     
