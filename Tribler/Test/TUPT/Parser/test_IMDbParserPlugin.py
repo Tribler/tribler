@@ -1,5 +1,8 @@
 import unittest
 from Tribler.TUPT.Parser.IMDbParserPlugin import IMDbParserPlugin
+from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
+from Tribler.PluginManager.PluginManager import PluginManager
+import os
 
 class TestIMDbParserPlugin(unittest.TestCase):
     '''Test class to test the IMDbParserPlugin.'''
@@ -37,8 +40,25 @@ class TestIMDbParserPlugin(unittest.TestCase):
         result = parser.ParseWebSite(html)[0]
         #Assert
         self.__AssertResult(result)
-       
         
+    def test_ImportPlugin(self):
+        '''Test if the plugin can be correctly imported using Yapsy.'''
+        #Act
+        pluginmanager = PluginManager()
+        #Overwrite the path to the sourcefolder of the plugin.        
+        path = os.path.realpath(os.getcwd() + os.sep + '..' + os.sep + '..' + os.sep + '..' + os.sep + 'TUPT')
+        pluginmanager.OverwritePluginsFolder(path)
+        #Load the plugin
+        pluginmanager.RegisterCategory("Parser", IParserPlugin)
+        pluginmanager.LoadPlugins()
+        #Assert
+        plugins =  pluginmanager.GetPluginsForCategory('Parser')
+        result = False
+        for plugin in plugins:
+            if type(plugin) == 'IMDbParserPlugin':
+                result = true
+        self.assertTrue(result)
+
     def __AssertResult(self, result):
        '''Asserts the result for the parser'''
        for key in self.__result:

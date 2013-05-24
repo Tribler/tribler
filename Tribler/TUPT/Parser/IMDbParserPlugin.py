@@ -28,6 +28,10 @@ class IMDbParserPlugin(IParserPlugin):
         #Return the result.                         
         return [movie]
 
+    def GetParseableSites(self):
+        '''Returns a list of parsable urls'''
+        return ['imdb.com']
+
     @staticmethod
     def __ParseNothing(input):
         ''' Call this function if no extra parsing is necessary'''
