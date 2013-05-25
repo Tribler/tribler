@@ -9,7 +9,7 @@ import traceback
 from Tribler.Main.vwxGUI.list import XRCPanel
 
 class WebBrowser(XRCPanel):
-    '''WebView is a class that allows you to browse the worldwideweb.'''
+    '''WebView is a class that allows you to browse the worldwideweb.'''    
    
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
@@ -44,6 +44,11 @@ class WebBrowser(XRCPanel):
         self.infobaroverlay.SetBackgroundColour(wx.Colour(255,255,153))
         self.infobaroverlay.vSizer = vSizer
         vSizer.Add(self.infobaroverlay, 1, wx.EXPAND)
+        
+        self.infobaroverlay.COLOR_BACKGROUND = wx.Colour(255,255,153)
+        self.infobaroverlay.COLOR_FOREGROUND = wx.Colour(50,50,50)
+        self.infobaroverlay.COLOR_BACKGROUND_SEL = wx.Colour(255,255,230)
+        self.infobaroverlay.COLOR_FOREGROUND_SEL = wx.Colour(0,0,0)
         
         '''Create the webview'''
         self.webview = wx.html2.WebView.New(self)
@@ -107,15 +112,15 @@ class WebBrowser(XRCPanel):
         """When we roll over the InfoBar, set our background to be brighter
             Set the foreground if any of our children want to stick to our style
         """
-        self.infobaroverlay.SetBackgroundColour(wx.Colour(255,255,230))
-        self.infobaroverlay.SetForegroundColour(wx.Colour(0,0,0))
+        self.infobaroverlay.SetBackgroundColour(self.infobaroverlay.COLOR_BACKGROUND_SEL)
+        self.infobaroverlay.SetForegroundColour(self.infobaroverlay.COLOR_FOREGROUND_SEL)
         
     def OnInfoBarMouseOut(self, event):
         """When we roll off the InfoBar, set our background to be darker
             Set the foreground if any of our children want to stick to our style
         """
-        self.infobaroverlay.SetBackgroundColour(wx.Colour(255,255,153))
-        self.infobaroverlay.SetForegroundColour(wx.Colour(50,50,50))
+        self.infobaroverlay.SetBackgroundColour(self.infobaroverlay.COLOR_BACKGROUND)
+        self.infobaroverlay.SetForegroundColour(self.infobaroverlay.COLOR_FOREGROUND)
     
     def SetInfoBarContents(self, *orderedContents):
         """Add content to the infobar in left -> right ordering

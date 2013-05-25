@@ -37,18 +37,23 @@ class TUPTControl:
         textlabel.SetLabelMarkup(" <b>We have found the following video qualties for you: </b>")
         
         comboCtrl = wx.ComboCtrl(self.webview.infobaroverlay)
-        
         comboCtrl.SetSizeHints(-1,-1,150,-1)
+        
+        comboCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+        comboCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
 
         popupCtrl = ListViewComboPopup()
+        
+        popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND)
+        popupCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
         
         # It is important to call SetPopupControl() as soon as possible
         comboCtrl.SetPopupControl(popupCtrl)
         
         # Populate using wx.ListView methods
-        popupCtrl.lc.InsertItem(popupCtrl.lc.GetItemCount(), "Bad Quality")
-        popupCtrl.lc.InsertItem(popupCtrl.lc.GetItemCount(), "Normal Quality")
-        popupCtrl.lc.InsertItem(popupCtrl.lc.GetItemCount(), "High Quality")
+        popupCtrl.AddItem("Bad Quality")
+        popupCtrl.AddItem("Normal Quality")
+        popupCtrl.AddItem("High Quality")
         
-        self.webview.SetInfoBarContents((textlabel,wx.CENTER), (comboCtrl, wx.CENTER | wx.ALIGN_RIGHT))
+        self.webview.SetInfoBarContents((textlabel,wx.CENTER), (comboCtrl, wx.CENTER))
         self.webview.ShowInfoBar()

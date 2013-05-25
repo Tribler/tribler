@@ -11,6 +11,9 @@ import wx
 
 class ListCtrlComboPopup(wx.ComboPopup):
 
+    foregroundcolour = wx.Colour(0,0,0)
+    backgroundcolour = wx.Colour(255,255,255)
+
     def __init__(self):
         wx.ComboPopup.__init__(self)
         self.lc = None
@@ -28,6 +31,17 @@ class ListCtrlComboPopup(wx.ComboPopup):
         self.value = self.curitem
         self.Dismiss()
 
+    def SetForegroundColour(self, colour):
+        self.foregroundcolour = colour
+        
+    def SetBackgroundColour(self, colour):
+        self.backgroundcolour = colour
+    
+    def GetForegroundColour(self):
+        return self.foregroundcolour
+    
+    def GetBackgroundColour(self):
+        return self.backgroundcolour
 
     # The following methods are those that are overridable from the
     # ComboPopup base class.  Most of them are not required, but all
@@ -44,6 +58,8 @@ class ListCtrlComboPopup(wx.ComboPopup):
         self.lc = wx.ListCtrl(parent, style=wx.LC_LIST | wx.LC_SINGLE_SEL | wx.SIMPLE_BORDER)
         self.lc.Bind(wx.EVT_MOTION, self.OnMotion)
         self.lc.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.lc.SetForegroundColour(self.GetForegroundColor())
+        self.lc.SetBackgroundColour(self.GetBackgroundColor())
         return True
 
     # Return the widget that is to be used for the popup
@@ -93,7 +109,12 @@ class ListCtrlComboPopup(wx.ComboPopup):
     # maxHeight = max height for window, as limited by screen size
     #   and should only be rounded down, if necessary.
     def GetAdjustedSize(self, minWidth, prefHeight, maxHeight):
-        return wx.ComboPopup.GetAdjustedSize(self, minWidth, prefHeight, maxHeight)
+        size = 0
+        if len(self.lc.GetChildren()):
+            child = self.lc.GetChildren()[0]
+            width, height = child.GetFont().GetPixelSize()
+            size = height*self.lc.GetItemCount()*1.5
+        return wx.ComboPopup.GetAdjustedSize(self, minWidth, size, size)
 
     # Return true if you want delay the call to Create until the popup
     # is shown for the first time. It is more efficient, but note that
