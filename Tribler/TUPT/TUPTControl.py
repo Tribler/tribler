@@ -1,5 +1,6 @@
 import wx
 import time
+import urlparse
 
 from yapsy.IPlugin import IPlugin
 
@@ -26,18 +27,18 @@ class TUPTControl:
         """Callback for when a webpage was loaded
             We can now start feeding our controllers
         """
+        netloc = urlparse.urlparse(event.GetURL()).netloc   #The url identifier, ex 'www.google.com'   
         # DEBUG
         self.webview.HideInfoBar()
-        if (event.GetURL() == "http://www.wxpython.org/"):
+        if (netloc == "www.wxpython.org"):
             time.sleep(1)
             self.ShowInfoBarQuality()
     
-    def ShowInfoBarQuality(self):
-        textlabel = wx.StaticText(self.webview.infobaroverlay)
-        textlabel.SetLabelMarkup(" <b>We have found the following video qualties for you: </b>")
-        
+    def __CreateStdComboCtrl(self, width = 150):
+        """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
+        """
         comboCtrl = wx.ComboCtrl(self.webview.infobaroverlay)
-        comboCtrl.SetSizeHints(-1,-1,150,-1)
+        comboCtrl.SetSizeHints(-1,-1,width,-1)
         
         comboCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
         comboCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
@@ -47,13 +48,20 @@ class TUPTControl:
         popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND)
         popupCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
         
-        # It is important to call SetPopupControl() as soon as possible
         comboCtrl.SetPopupControl(popupCtrl)
+
+        return comboCtrl, popupCtrl
         
-        # Populate using wx.ListView methods
-        popupCtrl.AddItem("Bad Quality")
+    
+    def ShowInfoBarQuality(self):
+        textlabel = wx.StaticText(self.webview.infobaroverlay)
+        textlabel.SetLabelMarkup(" <b>We have found the following video qualties for you: </b>")
+        
+        comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
+        
+        popupCtrl.AddItem("Bad    Quality")
         popupCtrl.AddItem("Normal Quality")
-        popupCtrl.AddItem("High Quality")
+        popupCtrl.AddItem("High   Quality")
         
         self.webview.SetInfoBarContents((textlabel,wx.CENTER), (comboCtrl, wx.CENTER))
         self.webview.ShowInfoBar()
