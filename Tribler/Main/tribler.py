@@ -96,8 +96,7 @@ from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
 
-from Tribler.PluginManager.PluginManager import PluginManager
-from yapsy.IPlugin import IPlugin
+from Tribler.TUPT.TUPTControl import TUPTControl
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
@@ -303,6 +302,9 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
+
+        #Add TUPT GUI observer
+        self.tuptcontroller.CoupleGUI(self.guiUtility)
 
         if self.dispersy:
             self.sesscb_ntfy_dispersy()
@@ -516,13 +518,8 @@ class ABCApp():
         # crashes.
         self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
         
-        progress('Loading plug-ins')
-        self.pluginmanager = PluginManager()
-        self.pluginmanager.RegisterCategory("Matcher", IPlugin)
-        self.pluginmanager.RegisterCategory("Parser", IPlugin)
-        self.pluginmanager.RegisterCategory("TorrentFinder", IPlugin)
-        self.pluginmanager.LoadPlugins()
-        self.pluginmanager.RegisterAsSingleton()
+        progress('Loading TUPT plug-ins')
+        self.tuptcontroller = TUPTControl()
         
 
     @forceWxThread
