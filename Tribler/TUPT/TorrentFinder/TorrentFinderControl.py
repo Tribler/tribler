@@ -16,8 +16,8 @@ class TorrentFinderControl:
     __normalQList = []
     __highQList = []
     
-    def LoadLists(self, movie):
-        """Query plug-ins for a title using a Movie object
+    def FindTorrents(self, movie):
+        """Query plug-ins for a title using a Movie object. The results will be stored in the lists.
         """
         manager = PluginManager.GetInstance()
         plugins = manager.GetPluginsForCategory('TorrentFinder')
