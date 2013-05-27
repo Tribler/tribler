@@ -163,7 +163,7 @@ class WebBrowser(XRCPanel):
         self.infobaroverlay.vSizer.Layout()
         self.Refresh()
         
-    def ShowInfoBar(self, animtime=0.3, smoothness=10, finalHeight=30.0):      
+    def ShowInfoBar(self, animtime=0.3, smoothness=10, finalHeight=28.0):      
         """Animated InfoBar drop down.
             Will attempt to be done in 'animtime' seconds
             Will chop the animation frames up in 'animtime'/'smoothness' iterations
@@ -171,7 +171,7 @@ class WebBrowser(XRCPanel):
         """
         for i in range(smoothness):
             start = time.time()
-            self.infobaroverlay.SetSizeHints(-1, -1,-1, int(finalHeight/smoothness*i))
+            self.infobaroverlay.SetSizeHints(-1, -1,-1, int(finalHeight/smoothness*(i+1)))
             self.infobaroverlay.vSizer.Layout()
             self.infobaroverlay.Layout()
             self.Refresh()
