@@ -32,10 +32,7 @@ class TUPTControl:
         self.webview.HideInfoBar()
         if (netloc == "www.wxpython.org"):
             time.sleep(1)
-            self.ShowInfoBarQuality()
-        elif (netloc == "www.linux.org"):
-            time.sleep(1)
-            self.ShowInfoBarAlternative()
+            self.ShowInfoBarCommitPiracy()
     
     def __CreateStdComboCtrl(self, width = 150):
         """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
@@ -54,7 +51,20 @@ class TUPTControl:
         comboCtrl.SetPopupControl(popupCtrl)
 
         return comboCtrl, popupCtrl
+    
+    def ShowInfoBarCommitPiracy(self):
+        textlabel = wx.StaticText(self.webview.infobaroverlay)
+        textlabel.SetLabelMarkup(" <b>We have found a torrent for you: </b>")
         
+        button = wx.Button(self.webview.infobaroverlay)
+        button.SetLabel("Commit Piracy!")
+        button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+        button.SetSizeHints(-1,-1,150,-1)
+        
+        emptylabel = wx.StaticText(self.webview.infobaroverlay)
+        
+        self.webview.SetInfoBarContents((textlabel,), (button,), (emptylabel,wx.EXPAND))
+        self.webview.ShowInfoBar()    
     
     def ShowInfoBarQuality(self):
         textlabel = wx.StaticText(self.webview.infobaroverlay)
