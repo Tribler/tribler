@@ -4,17 +4,32 @@ class SortedTorrentList:
     """Class for sorting search results as they come in
     """
     
+    __orderedList = []
+    
     def GetList(self):
-        pass
+        """Return the ordered list of torrent definitions based on
+            quality rank
+        """
+        return self.__orderedList
     
-    def Insert(self, torrentDef):
-        pass
-    
-    def __UserRating(self, netloc):
-        return 0.5
+    def Insert(self, torrentDef, trust):
+        """Insert a value into our ordered list of torrents
+        """
+        rank = self.__GetRank(torrentDef, trust)
+        inserted = False
+        for i in range(len(self.__orderedList)):
+            if trust > self.__orderedList[i]:
+                self.__orderedList[i:i] = torrentDef
+                inserted = True
+                break
+        if not inserted:
+            self.__orderedList.append(torrentDef)
     
     def __GetUserDict(self):
-        return []
+        """Returns a list of terms set by the user that signify some sort
+            of quality (Like your favority torrent release group).
+        """
+        return []   # TODO LOAD
     
     def __MatchesInDict(self, string, dict):
         """For all of the values in 'dict' we perform fuzzy matching
@@ -32,7 +47,7 @@ class SortedTorrentList:
                 matches += 1
         return matches
     
-    def __GetRank(self, torrentDef):
+    def __GetRank(self, torrentDef, trust):
         """Use a heuristic for determining a certain score for a torrent
             definition. 
         """
@@ -43,4 +58,4 @@ class SortedTorrentList:
         potSpeed = torrentDef.GetSeeders() + 0.5 * torrentDef.GetLeechers()
         techWant = (self.__MatchesInDict(torrentName, movieDict) + 1) * (self.__MatchesInDict(torrentName, userDict) + 1)
         
-        return self.__UserRating(torrentDef.GetTorrentProviderName()) * techWant * potSpeed
+        return trust * techWant * potSpeed

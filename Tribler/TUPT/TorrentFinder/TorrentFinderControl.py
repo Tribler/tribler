@@ -18,20 +18,25 @@ class TorrentFinderControl:
         """Query plug-ins for a title using a Movie object. The results will be stored in the lists.
         """
         manager = PluginManager.GetInstance()
-        plugins = manager.GetPluginsForCategory('TorrentFinder')
-        for plugin in plugins:
-            list = plugin.GetTorrentDefsForMovie(movie)
+        plugins = manager.GetPluginDescriptorsForCategory('TorrentFinder')
+        for plugin_info in plugins:
+            trust = 0.5
+            try:
+                trust = plugin_info.getfloat("Core","Trust")
+            except:
+                trust = 0.5 #Not a valid float
+            list = plugin_info.plugin_object.GetTorrentDefsForMovie(movie)
             for item in list:
-                self.__ProcessTorrentDef(item)    
+                self.__ProcessTorrentDef(item, trust)    
     
-    def __ProcessTorrentDef(self, definition):
+    def __ProcessTorrentDef(self, definition, trust):
         """Inspect a returned torrent definition and place it in our list if appropriate
         """
         if not isinstance(definition, IMovieTorrentDef):
             print sys.stderr, "TorrentFinderControl error: returned torrent definition is not of type IMovieTorrentDef"
             return
         if definition.IsHighDef():
-            self.__torrentDefList.Insert(definition)
+            self.__torrentDefList.Insert(definition, trust)
 
     def GetTorrentList(self):
         """Returns the list of found torrents
