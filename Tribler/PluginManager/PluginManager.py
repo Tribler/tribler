@@ -85,3 +85,10 @@ class PluginManager:
         """Returns all the description objects for loaded plug-ins.
         """
         return self.__yapsyManager.getAllPlugins()
+    
+    def GetPluginDescriptorsForCategory(self, categoryName):
+        """Returns all the description objects for a certain category.
+        """
+        if not self.CategoryExists(categoryName):
+            return []
+        return self.__yapsyManager.getPluginsOfCategory(categoryName)
