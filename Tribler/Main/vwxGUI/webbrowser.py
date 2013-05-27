@@ -137,16 +137,18 @@ class WebBrowser(XRCPanel):
             for child in previousContent.GetChildren():
                 windows.append(child.GetWindow())
             for window in windows:
-                self.infobaroverlay.RemoveChild(window)
+                if window:
+                    self.infobaroverlay.RemoveChild(window)
             self.infobaroverlay.Layout()
         #Overwrite with new sizer and contents
         infobarSizer = wx.BoxSizer(wx.HORIZONTAL)
         i = 0
         for contentTuple in orderedContents:
-            flags = 1 if not contentTuple[1] else contentTuple[1]
+            flags = wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_LEFT if len(contentTuple)==1 else contentTuple[1]
             infobarSizer.Add(contentTuple[0], i, flags)
             i += 1
         self.infobaroverlay.SetSizer(infobarSizer)
+        infobarSizer.Fit(self.infobaroverlay)
     
     def HideInfoBar(self):     
         """Hide the InfoBar immediately

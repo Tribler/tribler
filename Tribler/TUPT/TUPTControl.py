@@ -33,6 +33,9 @@ class TUPTControl:
         if (netloc == "www.wxpython.org"):
             time.sleep(1)
             self.ShowInfoBarQuality()
+        elif (netloc == "www.linux.org"):
+            time.sleep(1)
+            self.ShowInfoBarAlternative()
     
     def __CreateStdComboCtrl(self, width = 150):
         """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
@@ -55,7 +58,7 @@ class TUPTControl:
     
     def ShowInfoBarQuality(self):
         textlabel = wx.StaticText(self.webview.infobaroverlay)
-        textlabel.SetLabelMarkup(" <b>We have found the following video qualties for you: </b>")
+        textlabel.SetLabelMarkup(" <b>We have found the following video qualities for you: </b>")
         
         comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
         
@@ -63,5 +66,29 @@ class TUPTControl:
         popupCtrl.AddItem("Normal Quality")
         popupCtrl.AddItem("High   Quality")
         
-        self.webview.SetInfoBarContents((textlabel,wx.CENTER), (comboCtrl, wx.CENTER))
+        self.webview.SetInfoBarContents((textlabel,), (comboCtrl,))
+        self.webview.ShowInfoBar()
+        
+    def ShowInfoBarAlternative(self):
+        textlabel = wx.StaticText(self.webview.infobaroverlay)
+        textlabel.SetLabelMarkup(" <b>Video not loading? Try another quality: </b>")
+        
+        comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
+        
+        popupCtrl.AddItem("Bad    Quality")
+        popupCtrl.AddItem("Normal Quality")
+        popupCtrl.AddItem("High   Quality")
+        
+        textlabel2 = wx.StaticText(self.webview.infobaroverlay)
+        textlabel2.SetLabelMarkup(" <b>Or try the next best alternative: </b>")
+        textlabel2.SetSizeHints(-1,-1,textlabel2.GetEffectiveMinSize().width,-1)
+        
+        button = wx.Button(self.webview.infobaroverlay)
+        button.SetLabel("Alternative")
+        button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+        button.SetSizeHints(-1,-1,150,-1)
+        
+        emptylabel = wx.StaticText(self.webview.infobaroverlay)
+        
+        self.webview.SetInfoBarContents((textlabel,), (comboCtrl,), (textlabel2,), (button,), (emptylabel,wx.EXPAND))
         self.webview.ShowInfoBar()
