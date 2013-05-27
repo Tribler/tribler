@@ -48,7 +48,7 @@ class TUPTControl:
 
         popupCtrl = ListViewComboPopup()
         
-        popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND)
+        popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
         popupCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
         
         comboCtrl.SetPopupControl(popupCtrl)

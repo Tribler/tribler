@@ -58,8 +58,8 @@ class ListCtrlComboPopup(wx.ComboPopup):
         self.lc = wx.ListCtrl(parent, style=wx.LC_LIST | wx.LC_SINGLE_SEL | wx.SIMPLE_BORDER)
         self.lc.Bind(wx.EVT_MOTION, self.OnMotion)
         self.lc.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-        self.lc.SetForegroundColour(self.GetForegroundColor())
-        self.lc.SetBackgroundColour(self.GetBackgroundColor())
+        self.lc.SetForegroundColour(self.GetForegroundColour())
+        self.lc.SetBackgroundColour(self.GetBackgroundColour())
         return True
 
     # Return the widget that is to be used for the popup
