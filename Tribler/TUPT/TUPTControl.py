@@ -25,32 +25,17 @@ class TUPTControl:
         
     def webpageLoaded(self, event):
         """Callback for when a webpage was loaded
-            We can now start feeding our controllers
+            We can now start feeding our parser controller
         """
         netloc = urlparse.urlparse(event.GetURL()).netloc   #The url identifier, ex 'www.google.com'   
-        # DEBUG
-        self.webview.HideInfoBar()
-        if (netloc == "www.wxpython.org"):
-            time.sleep(1)
-            self.ShowInfoBarCommitPiracy()
-    
-    def __CreateStdComboCtrl(self, width = 150):
-        """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
+        pass
+            
+    def piracyButtonPressed(self, event):
+        """Callback for when the user wants to commit piracy.
+            We can patch our parser result through the Matcher and
+            the TorrentFinder now.
         """
-        comboCtrl = wx.ComboCtrl(self.webview.infobaroverlay)
-        comboCtrl.SetSizeHints(-1,-1,width,-1)
-        
-        comboCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-        comboCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
-
-        popupCtrl = ListViewComboPopup()
-        
-        popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-        popupCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
-        
-        comboCtrl.SetPopupControl(popupCtrl)
-
-        return comboCtrl, popupCtrl
+        pass
     
     def ShowInfoBarCommitPiracy(self):
         textlabel = wx.StaticText(self.webview.infobaroverlay)
@@ -61,44 +46,9 @@ class TUPTControl:
         button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
         button.SetSizeHints(-1,-1,150,-1)
         
+        self.webview.Bind(wx.EVT_BUTTON, self.piracyButtonPressed, button)
+        
         emptylabel = wx.StaticText(self.webview.infobaroverlay)
         
         self.webview.SetInfoBarContents((textlabel,), (button,), (emptylabel,wx.EXPAND))
         self.webview.ShowInfoBar()    
-    
-    def ShowInfoBarQuality(self):
-        textlabel = wx.StaticText(self.webview.infobaroverlay)
-        textlabel.SetLabelMarkup(" <b>We have found the following video qualities for you: </b>")
-        
-        comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
-        
-        popupCtrl.AddItem("Bad    Quality")
-        popupCtrl.AddItem("Normal Quality")
-        popupCtrl.AddItem("High   Quality")
-        
-        self.webview.SetInfoBarContents((textlabel,), (comboCtrl,))
-        self.webview.ShowInfoBar()
-        
-    def ShowInfoBarAlternative(self):
-        textlabel = wx.StaticText(self.webview.infobaroverlay)
-        textlabel.SetLabelMarkup(" <b>Video not loading? Try another quality: </b>")
-        
-        comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
-        
-        popupCtrl.AddItem("Bad    Quality")
-        popupCtrl.AddItem("Normal Quality")
-        popupCtrl.AddItem("High   Quality")
-        
-        textlabel2 = wx.StaticText(self.webview.infobaroverlay)
-        textlabel2.SetLabelMarkup(" <b>Or try the next best alternative: </b>")
-        textlabel2.SetSizeHints(-1,-1,textlabel2.GetEffectiveMinSize().width,-1)
-        
-        button = wx.Button(self.webview.infobaroverlay)
-        button.SetLabel("Alternative")
-        button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-        button.SetSizeHints(-1,-1,150,-1)
-        
-        emptylabel = wx.StaticText(self.webview.infobaroverlay)
-        
-        self.webview.SetInfoBarContents((textlabel,), (comboCtrl,), (textlabel2,), (button,), (emptylabel,wx.EXPAND))
-        self.webview.ShowInfoBar()
