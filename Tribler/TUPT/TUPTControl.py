@@ -37,11 +37,17 @@ class TUPTControl:
         """
         netloc = urlparse.urlparse(event.GetURL()).netloc   #The url identifier, ex 'www.google.com'   
         #Parse the Website.
+        results =[]
         if self.parserControl.HasParser(netloc):
-            results = self.parserControl.ParseWebsite(netloc, html)
-            if results is not None:
+            movies = self.parserControl.ParseWebsite(netloc, html)
+            if movies is not None:
                 #Find torrents corresponding to the movie.
-                self.ShowInfoBar(results)
+                for movie in movies:
+                    results.append((movie,['SD'],['HD']))
+                    self.ShowInfoBar(results)
+                    
+        
+                                
     
     def __CreateStdComboCtrl(self, width = 150):
         """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
@@ -67,33 +73,32 @@ class TUPTControl:
             results (movie,[torrents]) = all found movies and their corresponding movie.
         '''
         #Add movie to the infobar
-        textlabel = wx.StaticText(self.webview.infobaroverlay)
-        textlabel.SetLabelMarkup(" <b>We have found the following movie: " + results[0].dictionary['title'] + " </b>")
-        #Create play button.
-        button = wx.Button(self.webview.infobaroverlay)
-        button.SetLabel("Play!")
-        button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-        button.SetSizeHints(-1,-1,150,-1)
-        #Register action
-        self.webview.Bind(wx.EVT_BUTTON, self.piracyButtonPressed, button)
-        
-        self.webview.SetInfoBarContents((textlabel,), (button,))
-        self.webview.ShowInfoBar()  
-        
-        
-    def ShowInfoBarMovie(self, Movie):
-        '''Display the result for the movie'''
-        textlabel = wx.StaticText(self.webview.infobaroverlay)
-        textlabel.SetLabelMarkup(" <b>We have found the following movie for you: " + Movie[0].dictionary['title'] + " </b>")
-                
-        self.webview.SetInfoBarContents((textlabel,wx.CENTER))
-        self.webview.ShowInfoBar()
-        pass
+        if results[0][1] or results[0][2]:
+            text = " <b>The following movie was found: " + results[0][0].dictionary['title'] + ". Do you want to watch this movie in:</b>"
+            label = wx.StaticText(self.webview.infobaroverlay)
+            label.SetLabelMarkup(text)
             
-    def piracyButtonPressed(self, event):
-        """Callback for when the user wants to commit piracy.
-            We can patch our parser result through the Matcher and
-            the TorrentFinder now.
+            #Create the quality selection.
+            comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
+            if results[0][2]:
+                popupCtrl.AddItem("HD    Quality")  
+            if results[0][1]:
+                popupCtrl.AddItem("SD    Quality")          
+                         
+            #Create play button.
+            button = wx.Button(self.webview.infobaroverlay)
+            button.SetLabel("Play!")
+            button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+            button.SetSizeHints(-1,-1,150,-1)
+            #Register action
+            self.webview.Bind(wx.EVT_BUTTON, self.playButtonPressed, button)
+            
+            #Add all elements to the infobar.
+            self.webview.SetInfoBarContents((label,),(comboCtrl,), (button,))
+            self.webview.ShowInfoBar()  
+     
+    def playButtonPressed(self, event):
+        """Callback for when the user wants to play the movie.
         """
         pass
         
