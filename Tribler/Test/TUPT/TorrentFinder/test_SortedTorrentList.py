@@ -78,6 +78,47 @@ class TestSortedTorrentList(unittest.TestCase):
         assert stList.GetList()[0] == torrentDef1
         assert stList.GetList()[1] == torrentDef2
         
+    def test_MatchingSort(self):
+        '''Test the algorithm prioritizing better torrent name matches
+            over worse name matches given there are no other 
+            distinguishable differences.
+        '''
+        #Arrange
+        wantedMovie = Movie()
+        wantedMovie.dictionary = {'Title':'''Barbie's Pretty Pink Ponies'''}
+        stList = SortedTorrentList()
+        torrentDef1 = testMovieTorrentDef()
+        torrentDef1.getMovieDescriptor = wantedMovie
+        torrentDef1.getTorrentName = 'barbie pink pony'
+        torrentDef2 = testMovieTorrentDef()
+        torrentDef2.getMovieDescriptor = wantedMovie
+        torrentDef2.getTorrentName = 'barbies pretty pink ponies'
+        #Act
+        stList.Insert(torrentDef1, 1)
+        stList.Insert(torrentDef2, 1)
+        #Assert     
+        assert stList.GetList()[0] == torrentDef2
+        assert stList.GetList()[1] == torrentDef1
+        
+    def test_UserWords(self):
+        '''Test the algorithm prioritizing torrent names with special words
+            over torrents without them given there are no other 
+            distinguishable differences.
+        '''
+        #Arrange
+        userDict = {'RELEASE_GROUP':'BBCRipz'}
+        stList = SortedTorrentList()
+        stList.SetUserDict(userDict)
+        torrentDef1 = testMovieTorrentDef()
+        torrentDef1.getTorrentName = '[BBCRipz]Documentary 32'
+        torrentDef2 = testMovieTorrentDef()
+        torrentDef2.getTorrentName = '[Whatevs]Documentary 32'
+        #Act
+        stList.Insert(torrentDef1, 1)
+        stList.Insert(torrentDef2, 1)
+        #Assert     
+        assert stList.GetList()[0] == torrentDef1
+        assert stList.GetList()[1] == torrentDef2
            
 if __name__ == '__main__':
     unittest.main()

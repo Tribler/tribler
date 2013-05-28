@@ -52,14 +52,11 @@ class SortedTorrentList:
         """
         lstring = string.lower()
         matchers = dict.values()
-        matches = 0
+        matches = 0.0
         for match in matchers:
             matcher = difflib.SequenceMatcher(None, match.lower(), lstring)
             matchrate = matcher.ratio()
-            footprint = float(len(match))/float(len(string))
-            longmatch = matcher.find_longest_match(0, len(match), 0, len(string))
-            if matchrate > footprint and longmatch > 2:
-                matches += 1
+            matches += matchrate
         return matches
     
     def __GetRank(self, torrentDef, trust):
