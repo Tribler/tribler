@@ -2,20 +2,28 @@ import wx
 import time
 import urlparse
 
-from yapsy.IPlugin import IPlugin
-
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.PluginManager.PluginManager import PluginManager
+
+
+from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
+from Tribler.TUPT.Parser.ParserControl import ParserControl
+
+from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 
 from ListCtrlComboPopup import ListCtrlComboPopup as ListViewComboPopup
 
 class TUPTControl:
+    '''Class that controls the flow for parsing, matching and finding movies'''
     
-    def __init__(self):
-        self.pluginmanager = PluginManager()
-        self.pluginmanager.RegisterCategory("Matcher", IPlugin)
-        self.pluginmanager.RegisterCategory("Parser", IPlugin)
-        self.pluginmanager.RegisterCategory("TorrentFinder", IPlugin)
+    def __init__(self, pluginManager = PluginManager()):
+        self.pluginmanager = pluginManager
+        self.parserControl = ParserControl(pluginManager)
+        
+        #Setup the plugins.
+        self.pluginmanager.RegisterCategory("Matcher", object)
+        self.pluginmanager.RegisterCategory("Parser", IParserPlugin)
+        self.pluginmanager.RegisterCategory("TorrentFinder", ITorrentFinderPlugin)
         self.pluginmanager.LoadPlugins()
         
     def CoupleGUI(self, gui):
@@ -23,11 +31,17 @@ class TUPTControl:
         webview.AddLoadedListener(self)
         self.webview = webview
         
-    def webpageLoaded(self, event):
+    def webpageLoaded(self, event, html):
         """Callback for when a webpage was loaded
             We can now start feeding our controllers
         """
         netloc = urlparse.urlparse(event.GetURL()).netloc   #The url identifier, ex 'www.google.com'   
+        #Parse the Website.
+        if self.parserControl.HasParser(netloc):
+            results = self.parserControl.ParseWebsite(netloc, html)
+            if results is not None:
+                self.ShowInfoBarQuality()
+        
         # DEBUG
         self.webview.HideInfoBar()
         if (netloc == "www.wxpython.org"):
@@ -55,6 +69,13 @@ class TUPTControl:
 
         return comboCtrl, popupCtrl
         
+    def ShowInfoBarMovie(self, Movie):
+        '''Display the result for the movie'''
+        textlabel = wx.StaticText(self.webview.infobaroverlay)
+        textlabel.SetLabelMarkup(" <b>We have found the following movie for you: " + Movie[0].dictionary['title'] + " </b>")
+                
+        self.webview.SetInfoBarContents((textlabel,wx.CENTER))
+        self.webview.ShowInfoBar()
     
     def ShowInfoBarQuality(self):
         textlabel = wx.StaticText(self.webview.infobaroverlay)

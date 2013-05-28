@@ -101,7 +101,7 @@ class WebBrowser(XRCPanel):
         self.adressBar.SetValue(self.webview.GetCurrentURL())
         for listener in self.loadlisteners:
             try:
-                listener.webpageLoaded(event)
+                listener.webpageLoaded(event, self.webview.GetPageSource())
             except:
                 #Anything can go wrong with custom listeners, not our problem
                 print >> sys.stderr, "WebBrowser: An error occurred in LoadedListener " + str(listener)
