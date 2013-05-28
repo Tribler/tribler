@@ -3,6 +3,7 @@ from Tribler.TUPT.Parser.IMDbParserPlugin import IMDbParserPlugin
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.PluginManager.PluginManager import PluginManager
 import os
+import urllib2
 
 class TestIMDbParserPlugin(unittest.TestCase):
     '''Test class to test the IMDbParserPlugin.'''
@@ -13,16 +14,21 @@ class TestIMDbParserPlugin(unittest.TestCase):
         """Download a webpage pointed to by 'url' to the file 'filename' using
             the Mozilla 5.0 header.
         """
-        req = urllib2.Request(url, headers={'User-Agent':"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
-        f = open(filename, 'w')
-        f.write(urllib2.urlopen(req).read())
-        f.close()
+        if not os.path.exists(filename):
+            req = urllib2.Request(url, headers={'User-Agent':"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
+            file = open(filename, 'w')
+            html  = urllib2.urlopen(req).read()
+            file.write(html)
+            file.close()
+            return html
 
     def test_ParseWebsiteCombinedDetails(self):
         '''Test parsing the combined details page'''
         #Arrange
-        file = open('test_ParseWebsiteCombinedDetails.html','r')
-        html = file.read()
+        html = self.download_webpage('http://www.imdb.com/title/tt0133093/fullcredits?ref_=tt_cl_sm#cast', 'test_ParseWebsiteCombinedDetails.html')
+        if not html:
+            file = open('test_ParseWebsiteCombinedDetails.html','r')
+            html = file.read()
         parser = IMDbParserPlugin()
         #Act
         result = parser.ParseWebSite(html)[0]
@@ -33,8 +39,10 @@ class TestIMDbParserPlugin(unittest.TestCase):
     def test_ParseWebsiteMainPage(self):
         '''Test parsing the main details page'''
         #Arrange
-        file = open('test_ParseWebsiteMainPage.html','r')
-        html = file.read()
+        html = self.download_webpage('http://www.imdb.com/title/tt0133093/', 'test_ParseWebsiteMainPage.html')
+        if not html:
+            file = open('test_ParseWebsiteMainPage.html','r')        
+            html = file.read()
         parser = IMDbParserPlugin()
         #Act
         result = parser.ParseWebSite(html)[0]
@@ -55,8 +63,8 @@ class TestIMDbParserPlugin(unittest.TestCase):
         plugins =  pluginmanager.GetPluginsForCategory('Parser')
         result = False
         for plugin in plugins:
-            if type(plugin) == 'IMDbParserPlugin':
-                result = true
+            if plugin.__class__.__name__ == 'IMDbParserPlugin':
+                result = True
         self.assertTrue(result)
 
     def __AssertResult(self, result):
