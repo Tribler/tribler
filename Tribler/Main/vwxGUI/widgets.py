@@ -2400,8 +2400,8 @@ class VideoSlider(wx.Panel):
     def SetValue(self, value):
         self.value = value
         if not self.dragging:
-            slider_range = self.slider_range[1] - self.slider_range[0]
-            self.slider_position[0] = (slider_range * self.value) + self.slider_range[0] if slider_range else self.slider_range[0]
+            slider_width = self.slider_range[1] - self.slider_range[0]
+            self.slider_position[0] = (slider_width * self.value) + self.slider_range[0] if slider_width else self.slider_range[0]
             self.Refresh()
 
     def GetBufferSize(self):
@@ -2474,16 +2474,17 @@ class VideoSlider(wx.Panel):
         gc.SetPen(wx.TRANSPARENT_PEN)
         gc.SetBrush(wx.Brush(self.colour4))
         gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_range[1] - self.slider_range[0], rect_height)
+
+        # Draw buffer rectangle
+        gc.SetBrush(wx.Brush(self.colour3))
+        slider_width = self.slider_range[1] - self.slider_range[0]
+        curbuffer = slider_width * self.buffersize
+        curbuffer = min(curbuffer, (self.slider_range[1] - self.slider_position[0]))
+        gc.DrawRectangle(self.slider_range[0] + (slider_width * self.value), height / 2 - rect_height / 2, curbuffer, rect_height)
         
         # Draw position rectangle
         gc.SetBrush(wx.Brush(self.colour1))
         gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_position[0] - self.slider_range[0], rect_height)
-
-        # Draw buffer rectangle
-        gc.SetBrush(wx.Brush(self.colour3))
-        curbuffer = (self.slider_range[1] - self.slider_range[0]) * self.buffersize
-        maxbuffer = self.slider_range[1] - self.slider_position[0]
-        gc.DrawRectangle(self.slider_position[0], height / 2 - rect_height / 2, min(curbuffer, maxbuffer), rect_height)
 
         # Draw slider
         if self.IsEnabled():
