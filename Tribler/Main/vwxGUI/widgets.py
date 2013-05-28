@@ -2299,7 +2299,7 @@ class Graph(wx.Panel):
 
 class VideoProgress(wx.Panel):
 
-    def __init__(self, parent, id=-1, label='Loading\n 0%', value = 0.0, fill_colour = wx.Colour(255,51,0), edge_colour = wx.Colour(200,200,200), text_colour = wx.Colour(190,190,190), **kwargs):
+    def __init__(self, parent, id=-1, label='Loading\n 0%', value = 0.0, fill_colour = wx.Colour(220,220,220), edge_colour = wx.Colour(210,210,210), text_colour = wx.Colour(210,210,210), **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.fill_colour = fill_colour
         self.edge_colour = edge_colour
@@ -2344,7 +2344,7 @@ class VideoProgress(wx.Panel):
         path.AddCircle(0, 0, radius / 1.5)
         gc.PushState()
         gc.Translate(width / 2, height / 2)
-        gc.SetBrush(wx.Brush(wx.Colour(220,220,220)))
+        gc.SetBrush(wx.Brush(wx.Colour(180,180,180)))
         gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
         gc.DrawPath(path)
         

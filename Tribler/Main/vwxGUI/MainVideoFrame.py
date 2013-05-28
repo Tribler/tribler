@@ -69,7 +69,7 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
 
     def get_videopanel(self):
         if self.videopanel is None:
-            self.videopanel = EmbeddedPlayerPanel(self, self.utility, self.vlcwrap, '#E6E6E6', False)
+            self.videopanel = EmbeddedPlayerPanel(self, self.utility, self.vlcwrap, wx.BLACK)
             self.videopanel.SetMinSize((320,300)) # vliegendhart: why 320x280? -> Niels: we need space for ctrlsizer
             
             mainbox = wx.BoxSizer()
@@ -89,7 +89,7 @@ class VideoDummyFrame(VideoBaseFrame):
     """
     
     def __init__(self,parent,utility,vlcwrap):
-        self.videopanel = EmbeddedPlayerPanel(parent, utility, vlcwrap, '#E6E6E6')
+        self.videopanel = EmbeddedPlayerPanel(parent, utility, vlcwrap, wx.BLACK)
         self.parent  = parent
         self.utility = utility
         self.vlcwrap = vlcwrap
@@ -103,7 +103,7 @@ class VideoDummyFrame(VideoBaseFrame):
             
     def recreate_videopanel(self):
         old_videopanel = self.videopanel
-        new_videopanel = EmbeddedPlayerPanel(self.parent, self.utility, self.vlcwrap, '#E6E6E6')
+        new_videopanel = EmbeddedPlayerPanel(self.parent, self.utility, self.vlcwrap, wx.BLACK)
 
         self.parent.GetSizer().Replace(old_videopanel, new_videopanel)
         self.parent.GetSizer().Layout()
