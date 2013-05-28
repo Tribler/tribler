@@ -45,10 +45,7 @@ class TUPTControl:
                 for movie in movies:
                     results.append((movie,['SD'],['HD']))
                     self.ShowInfoBar(results)
-                    
-        
-                                
-    
+                      
     def __CreateStdComboCtrl(self, width = 150):
         """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
         """
@@ -70,10 +67,12 @@ class TUPTControl:
     def ShowInfoBar(self,results):
         '''Display found movies and their corresponding torrents.
         Args:
-            results (movie,[torrents]) = all found movies and their corresponding movie.
+            results (movie,[SD torrents], [HD torrents]) = all found movies and their corresponding movie.
+            Only if a torrent is found will the infobar be shown.
         '''
-        #Add movie to the infobar
-        if results[0][1] or results[0][2]:
+        #Show infobar if torrents exists.
+        if len(results[0][1]) > 0 or len(results[0][2]) > 0:
+            #Add movie to the infobar
             text = " <b>The following movie was found: " + results[0][0].dictionary['title'] + ". Do you want to watch this movie in:</b>"
             label = wx.StaticText(self.webview.infobaroverlay)
             label.SetLabelMarkup(text)
@@ -81,9 +80,14 @@ class TUPTControl:
             #Create the quality selection.
             comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
             if results[0][2]:
-                popupCtrl.AddItem("HD    Quality")  
+                popupCtrl.AddItem("HD    Quality")
+                #Set default value to HD Quality.
+                comboCtrl.SetValue("HD    Quality")  
             if results[0][1]:
-                popupCtrl.AddItem("SD    Quality")          
+                popupCtrl.AddItem("SD    Quality")
+            #Set default value to SD quality if no HD quality    
+            if not results[0][2]:
+                comboCtrl.SetValue("SD    Quality")
                          
             #Create play button.
             button = wx.Button(self.webview.infobaroverlay)
