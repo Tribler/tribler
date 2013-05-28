@@ -2387,6 +2387,7 @@ class VideoSlider(wx.Panel):
         self.dragging = False
         self.enabled  = True
         self.hovering = False
+        self.value    = 0.0
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -2394,12 +2395,14 @@ class VideoSlider(wx.Panel):
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
     def GetValue(self):
-        return float(self.slider_position[0] - self.slider_range[0]) / (self.slider_range[1] - self.slider_range[0])
+        return self.value
 
     def SetValue(self, value):
-        range = self.slider_range[1] - self.slider_range[0]
-        self.slider_position[0] = (range * value) + self.slider_range[0] if range else self.slider_range[0]
-        self.Refresh()
+        self.value = value
+        if not self.dragging:
+            slider_range = self.slider_range[1] - self.slider_range[0]
+            self.slider_position[0] = (slider_range * self.value) + self.slider_range[0] if slider_range else self.slider_range[0]
+            self.Refresh()
 
     def GetBufferSize(self):
         return self.buffersize
@@ -2429,6 +2432,7 @@ class VideoSlider(wx.Panel):
 
     def OnLeftUp(self, event):
         self.dragging = False
+        self.SetValue(float(self.slider_position[0] - self.slider_range[0]) / (self.slider_range[1] - self.slider_range[0]))
         if self.HasCapture():
             self.ReleaseMouse()
         self.buffersize = 0
