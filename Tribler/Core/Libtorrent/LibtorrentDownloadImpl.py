@@ -46,6 +46,9 @@ class VODFile(object):
 
     def read(self, *args):
         result = self._file.read(*args)
+        # Workaround for streaming issues in parse storage mode.
+        if len(result) < args[0]:
+            result += '\0' * (args[0] - len(result))
         self._download.vod_readpos += len(result)
         return result
 
@@ -155,8 +158,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         atp = {}
         atp["save_path"] = str(self.dlconfig['saveas'])
-        # Using full allocation seems to fix issues with streaming certain files.
-        atp["storage_mode"] = lt.storage_mode_t.storage_mode_allocate if self.get_mode() == DLMODE_VOD else lt.storage_mode_t.storage_mode_sparse
+        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
