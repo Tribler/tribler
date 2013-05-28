@@ -17,38 +17,44 @@ class WebBrowser(XRCPanel):
         vSizer = wx.BoxSizer(wx.VERTICAL)
              
         '''Create the toolbar'''
-        self.toolBar = wx.BoxSizer(wx.HORIZONTAL)
+        toolBarPanel = wx.Panel(self)
+        toolBarPanel.SetBackgroundColour(wx.Colour(255,255,255))
+        toolBar = wx.BoxSizer(wx.HORIZONTAL)
+        toolBarPanel.SetSizer(toolBar)
         #Create the toolbar buttons.
-        backwardButton = wx.Button(self, label="Backward")
-        forwardButton = wx.Button(self, label="Forward")    
-        goButton = wx.Button(self, label="Go")
+        backwardButton = wx.Button(toolBarPanel, label="Backward")
+        forwardButton = wx.Button(toolBarPanel, label="Forward")    
+        goButton = wx.Button(toolBarPanel, label="Go")
         #Register the actions
         self.Bind(wx.EVT_BUTTON, self.goBackward, backwardButton)
         self.Bind(wx.EVT_BUTTON, self.goForward, forwardButton)
         self.Bind(wx.EVT_BUTTON, self.loadURLFromAdressBar, goButton)
         #Create the adressbar.
-        self.adressBar = wx.TextCtrl(self,1, style = wx.TE_PROCESS_ENTER)
+        self.adressBar = wx.TextCtrl(toolBarPanel,1, style = wx.TE_PROCESS_ENTER)
         #Register the enterkey.
         self.Bind(wx.EVT_TEXT_ENTER, self.loadURLFromAdressBar, self.adressBar)
         #Add all the components to the toolbar.
-        self.toolBar.Add(backwardButton, 0)
-        self.toolBar.Add(forwardButton, 0)
-        self.toolBar.Add(self.adressBar, 1, wx.EXPAND)
-        self.toolBar.Add(goButton, 0)
+        toolBar.Add(backwardButton, 0)
+        toolBar.Add(forwardButton, 0)
+        toolBar.Add(self.adressBar, 1, wx.EXPAND)
+        toolBar.Add(goButton, 0)
+        toolBarPanel.Layout()
         #Add the toolbar to the panel.
-        vSizer.Add(self.toolBar, 0, wx.EXPAND)
+        vSizer.Add(toolBarPanel, 0, wx.EXPAND)
         
         '''Add the overlay for the info bar'''
         self.infobaroverlay = wx.Panel(self)
         self.infobaroverlay.SetSizeHints(-1,0,-1,0)
         self.infobaroverlay.SetBackgroundColour(wx.Colour(255,255,153))
         self.infobaroverlay.vSizer = vSizer
-        vSizer.Add(self.infobaroverlay, 1, wx.EXPAND)
+        vSizer.Add(self.infobaroverlay, 1, wx.EXPAND | wx.ALL, 1)
         
         self.infobaroverlay.COLOR_BACKGROUND = wx.Colour(255,255,153)
         self.infobaroverlay.COLOR_FOREGROUND = wx.Colour(50,50,50)
         self.infobaroverlay.COLOR_BACKGROUND_SEL = wx.Colour(255,255,230)
         self.infobaroverlay.COLOR_FOREGROUND_SEL = wx.Colour(0,0,0)
+        
+        self.SetBackgroundColour(wx.Colour(205,190,112))
         
         '''Create the webview'''
         self.webview = wx.html2.WebView.New(self)
@@ -157,7 +163,7 @@ class WebBrowser(XRCPanel):
         self.infobaroverlay.vSizer.Layout()
         self.Refresh()
         
-    def ShowInfoBar(self, animtime=0.3, smoothness=10, finalHeight=30.0):      
+    def ShowInfoBar(self, animtime=0.3, smoothness=10, finalHeight=28.0):      
         """Animated InfoBar drop down.
             Will attempt to be done in 'animtime' seconds
             Will chop the animation frames up in 'animtime'/'smoothness' iterations
@@ -165,7 +171,7 @@ class WebBrowser(XRCPanel):
         """
         for i in range(smoothness):
             start = time.time()
-            self.infobaroverlay.SetSizeHints(-1, -1,-1, int(finalHeight/smoothness*i))
+            self.infobaroverlay.SetSizeHints(-1, -1,-1, int(finalHeight/smoothness*(i+1)))
             self.infobaroverlay.vSizer.Layout()
             self.infobaroverlay.Layout()
             self.Refresh()

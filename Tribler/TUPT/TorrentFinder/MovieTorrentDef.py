@@ -1,10 +1,17 @@
-MovieQuality = {'CRAP':'-360p','NORMAL':'+-720p','HIGH':'+1080p'}
-
 class IMovieTorrentDef():
     
-    def GetMovieQuality(self):
-        """Returns a MovieQuality enum value that corresponds to the
-            torrent's movie quality.
+    def GetSeeders(self):
+        """Return the amount of seeders for the torrent
+        """
+        pass
+    
+    def GetLeechers(self):
+        """Return the amount of leechers for the torrent
+        """
+        pass
+    
+    def IsHighDef(self):
+        """Return True if a movie is High Definition
         """
         pass
     
