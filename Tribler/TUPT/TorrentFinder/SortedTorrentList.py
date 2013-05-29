@@ -54,7 +54,7 @@ class SortedTorrentList:
         matchers = dict.values()
         matches = 0.0
         for match in matchers:
-            matcher = difflib.SequenceMatcher(None, match.lower(), lstring)
+            matcher = difflib.SequenceMatcher(None, str(match).lower(), lstring)
             matchrate = matcher.ratio()
             matches += matchrate
         return matches
