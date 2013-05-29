@@ -2,7 +2,7 @@ import threading
 
 from binascii import hexlify
 
-from Tribler.Main.vwxGUI.SearchGridManager import SearchGridManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
@@ -62,7 +62,7 @@ class TriblerTorrentFinderPlugin(ITorrentFinderPlugin):
             callReturn = infohash
             evt.set()
         #Perform search
-        searchMngr = SearchGridManager.getInstance()
+        searchMngr = TorrentManager.getInstance()
         searchMngr.setSearchKeywords(self.__GetQueryForMovie(movie.dictionary))
         hits_info = searchMngr.getHitsInCategory()
         hits = hits_info[4]

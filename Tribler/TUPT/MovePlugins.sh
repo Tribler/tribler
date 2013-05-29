@@ -25,6 +25,12 @@ files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
 files[${#files[*]}]="TorrentFinder/KatPhTorrentFinderPlugin.yapsy-plugin"
 files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
 
+files[${#files[*]}]="TorrentFinder/TriblerTorrentFinderPlugin.py"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
+
+files[${#files[*]}]="TorrentFinder/TriblerTorrentFinderPlugin.yapsy-plugin"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
+
 curdir=${PWD}"/"
 
 for (( i = 0; i < ${#files[*]}; i=i+2 ))
