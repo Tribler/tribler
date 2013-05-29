@@ -10,7 +10,7 @@ import binascii
 try:
     prctlimported = True
     import prctl
-except ImportError as e:
+except ImportError, e:
     prctlimported = False
 
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -65,7 +65,7 @@ class TorrentStateManager:
                     self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
-        t = Thread(target=self._create_and_seed_metadata, args= (videofile, torrent), name = "ThumbnailGenerator")
+        t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
         t.start()
 
     def _create_and_seed_metadata(self, videofile, torrent):
@@ -114,7 +114,7 @@ class TorrentStateManager:
                 print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode)
 
         sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:9999")
+        sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
         for thumbfile in thumb_filenames:
             if os.path.exists(thumbfile):
                 xi = os.path.relpath(thumbfile, torcoldir)
@@ -130,8 +130,8 @@ class TorrentStateManager:
         try:
             swift_filename = os.path.join(torcoldir, hex_roothash)
             shutil.move(specpn, swift_filename)
-            shutil.move(specpn + '.mhash', swift_filename +'.mhash')
-            shutil.move(specpn + '.mbinmap', swift_filename +'.mbinmap')
+            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
+            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
 
         except:
             if DEBUG:

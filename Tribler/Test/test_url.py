@@ -20,15 +20,14 @@ import os
 import tempfile
 import shutil
 from logging import getLogger
+from Tribler.Test.test_as_server import AbstractServer
 logger = getLogger(__name__)
 
 from Tribler.Core.API import *
 
 DEBUG = False
 
-
-class TestP2PURLs(unittest.TestCase):
-
+class TestP2PURLs(AbstractServer):
     """
     Testing P2P URLs version 0
     """
@@ -98,7 +97,7 @@ class TestP2PURLs(unittest.TestCase):
             try:
                 tdef = TorrentDef.load_from_url(url)
                 self.assert_(False, 'Should not have accepted URL: "%s", %s ' % (url, problem))
-            except AssertionError as e:
+            except AssertionError, e:
                 raise e
             except:
                 logger.debug("", exc_info=True)
@@ -115,9 +114,10 @@ class TestP2PURLs(unittest.TestCase):
         # self.run_paramlist_vod(paramlist,"http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce")
 
     def run_paramlist_vod(self, paramlist, tracker):
-        tmpdirname = tempfile.mkdtemp()
+        tmpdirname = self.getStateDir()
 
         for name, leng, piecesize, duration in paramlist:
+            # Niels: creating utf8 torrents seems to cause problems when removing them on windows?
             tmpfilename = os.path.join(tmpdirname, name)
 
             content = '*' * leng
@@ -157,18 +157,13 @@ class TestP2PURLs(unittest.TestCase):
             ebitrate = leng / s
             self.assertEqual(tbitrate, ebitrate)
 
-        # Do not swallow the exception, we want to know if there are problems cleaning up
-        shutil.rmtree(tmpdirname)
-
 # TODO: Remove this and use the utility function instead.
-
-
 def dur2s(dur):
     """ [hh]mm:ss -> seconds """
     elems = dur.split(":")
     s = 0
     for i in range(0, len(elems)):
         num = int(elems[i])
-        t = num * int(pow(60.0, len(elems) - i -1))
+        t = num * int(pow(60.0, len(elems) - i - 1))
         s += t
     return s

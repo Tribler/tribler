@@ -74,7 +74,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
-        self.startTest(do_downloadfrommagnet)
+        self.startTest(do_downloadfrommagnet, True)
 
     def test_stopresumedelete(self):
         infohash = binascii.unhexlify('3d062d3b57481f23af8bd736ccfaaae0ccddf4b3')
@@ -146,12 +146,15 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         self.startTest(do_vod)
 
-    def startTest(self, callback):
-        def wait_for_libtorrent():
-            ltmgr = LibtorrentMgr.getInstance()
-            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
+    def startTest(self, callback, waitforpeers=False):
+        if waitforpeers:
+            def wait_for_libtorrent():
+                ltmgr = LibtorrentMgr.getInstance()
+                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
 
-        TestGuiAsServer.startTest(self, wait_for_libtorrent)
+            TestGuiAsServer.startTest(self, wait_for_libtorrent)
+        else:
+            TestGuiAsServer.startTest(self, callback)
 
 if __name__ == "__main__":
     unittest.main()

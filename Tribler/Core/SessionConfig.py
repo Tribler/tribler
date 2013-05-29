@@ -158,6 +158,18 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['torrent_collecting']
 
+    def set_dht_torrent_collecting(self, value):
+        """ Automatically collect torrents from the dht if peers fail to respond
+        @param value Boolean.
+        """
+        self.sessconfig['dht_torrent_collecting'] = value
+
+    def get_dht_torrent_collecting(self):
+        """ Returns whether to automatically collect torrents from the dht if peers fail
+        to respond.
+        @return Boolean. """
+        return self.sessconfig['dht_torrent_collecting']
+
     def set_torrent_collecting_max_torrents(self, value):
         """ Set the maximum number of torrents to collect from other peers.
         @param value A number of torrents.
@@ -283,6 +295,20 @@ class SessionConfigInterface:
         @return Boolean. """
         return self.sessconfig['mainline_dht']
 
+    def set_mainline_dht_listen_port(self, port):
+        """ Sets the port that the mainline DHT uses to receive and send UDP
+        datagrams.
+        @param value int
+        """
+        self.sessconfig['mainline_dht_port'] = port
+
+    def get_mainline_dht_listen_port(self):
+        """ Returns the port that the mainline DHT uses to receive and send
+        USP datagrams.
+        @return int
+        """
+        return self.sessconfig['mainline_dht_port']
+
     #
     # Local Peer Discovery using IP Multicast
     #
@@ -382,6 +408,18 @@ class SessionConfigInterface:
         """ Returns the local listen port for swift cmd socket communication.
         @return Port number. """
         return self.sessconfig['swiftcmdlistenport']
+
+    def set_swift_dht_listen_port(self, port):
+        """ Set the local UDP listen port for dht socket communication to
+        the swift processes. 
+        @param port A port number.
+        """
+        self.sessconfig['swiftdhtport'] = port
+
+    def get_swift_dht_listen_port(self):
+        """ Returns the local dht port for swift communication.
+        @return Port number. """
+        return self.sessconfig['swiftdhtport']
 
     def set_swift_downloads_per_process(self, value):
         """ Number of downloads per swift process. When exceeded, a new swift
