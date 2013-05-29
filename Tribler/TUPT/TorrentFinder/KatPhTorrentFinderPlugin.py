@@ -5,7 +5,7 @@ import StringIO
 import xml.dom.minidom as minidom
 
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
-from Tribler.TUPT.TorrentFinder.MovieTorrentDef import IMovieTorrentDef
+from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
 from Tribler.TUPT.Movie import Movie
 
 class KatPhMovieTorrentDef(IMovieTorrentDef):

@@ -1,7 +1,9 @@
 import sys
 
 from Tribler.PluginManager.PluginManager import PluginManager
+
 from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
+from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
 
 class TorrentFinderControl:
     """TorrentFinderControl
@@ -12,15 +14,15 @@ class TorrentFinderControl:
     __hdTorrentDefList = None
     __sdTorrentDefList = None
     
-    def __init__(self):
+    def __init__(self, pluginManager):
         self.__hdTorrentDefList = SortedTorrentList()
         self.__sdTorrentDefList = SortedTorrentList()
+        self.__pluginManager = pluginManager
     
     def FindTorrents(self, movie):
         """Query plug-ins for a title using a Movie object. The results will be stored in the lists.
         """
-        manager = PluginManager.GetInstance()
-        plugins = manager.GetPluginDescriptorsForCategory('TorrentFinder')
+        plugins = self.__pluginManager.GetPluginDescriptorsForCategory('TorrentFinder')
         for plugin_info in plugins:
             trust = 0.5
             try:

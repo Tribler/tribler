@@ -1,7 +1,7 @@
 import unittest
 
 from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
-from Tribler.TUPT.TorrentFinder.MovieTorrentDef import IMovieTorrentDef
+from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
 from Tribler.TUPT.Movie import Movie
 
 class testMovieTorrentDef(IMovieTorrentDef):

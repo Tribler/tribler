@@ -10,11 +10,14 @@ from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Parser.ParserControl import ParserControl
 
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
+from Tribler.TUPT.TorrentFinder.TorrentFinderControl import TorrentFinderControl
 
 from ListCtrlComboPopup import ListCtrlComboPopup as ListViewComboPopup
 
 class TUPTControl:
     '''Class that controls the flow for parsing, matching and finding movies'''
+    
+    __infoBar = None
     
     def __init__(self, pluginManager = PluginManager()):
         self.pluginmanager = pluginManager
@@ -41,39 +44,26 @@ class TUPTControl:
         if self.parserControl.HasParser(netloc):
             movies = self.parserControl.ParseWebsite(netloc, html)
             if movies is not None:
-                #Find torrents corresponding to the movie.
-                for movie in movies:
-                    results.append((movie,['SD'],['HD']))
-                    self.ShowInfoBar(results)
-                      
-    def __CreateStdComboCtrl(self, width = 150):
-        """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
+                for movie in movies:                    
+                    #Find torrents corresponding to the movie.
+                    torrentFinder = TorrentFinderControl(self.pluginmanager)
+                    torrentFinder.FindTorrents(movie)                    
+                    results.append((movie,torrentFinder))
+                    self.__movies = results   
+                    self.__infoBar = TorrentInfoBar(self.webview, results)
+    
+class TorrentInfoBar():
+    '''Class that willl create and show the found movies'''
+    
+    def playButtonPressed(self, event):
+        """Callback for when the user wants to play the movie.
         """
-        comboCtrl = wx.ComboCtrl(self.webview.infobaroverlay)
-        comboCtrl.SetSizeHints(-1,-1,width,-1)
-        
-        comboCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-        comboCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
-
-        popupCtrl = ListViewComboPopup()
-        
-        popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND)
-        popupCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
-        
-        comboCtrl.SetPopupControl(popupCtrl)
-
-        return comboCtrl, popupCtrl
-        
-    def ShowInfoBar(self,results):
-        '''Display found movies and their corresponding torrents.
-        Args:
-            results (movie,[SD torrents], [HD torrents]) = all found movies and their corresponding movie.
-            Only if a torrent is found will the infobar be shown.
-        '''
-        #Show infobar if torrents exists.
-        if len(results[0][1]) > 0 or len(results[0][2]) > 0:
-            #Add movie to the infobar
-            text = " <b>The following movie was found: " + results[0][0].dictionary['title'] + ". Do you want to watch this movie in:</b>"
+        pass
+    
+    def __init__(self, webview, movies):
+       if movies[0][1].HasTorrent():
+            #Add movie to the infobar    
+            text = " <b>The following movie was found: " + movies[0][0].dictionary['title'] + ". Do you want to watch this movie in:</b>"
             label = wx.StaticText(self.webview.infobaroverlay)
             label.SetLabelMarkup(text)
             
@@ -94,16 +84,27 @@ class TUPTControl:
             button.SetLabel("Play!")
             button.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
             button.SetSizeHints(-1,-1,150,-1)
-            #Register action
+            #Register action.
             self.webview.Bind(wx.EVT_BUTTON, self.playButtonPressed, button)
             
             #Add all elements to the infobar.
-            self.webview.SetInfoBarContents((label,),(comboCtrl,), (button,))
-            self.webview.ShowInfoBar()  
-     
-    def playButtonPressed(self, event):
-        """Callback for when the user wants to play the movie.
+            webview.SetInfoBarContents((label,),(comboCtrl,), (button,))
+            webview.ShowInfoBar()
+            
+    def __CreateStdComboCtrl(self, width = 150):
+        """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
         """
-        pass
+        comboCtrl = wx.ComboCtrl(self.webview.infobaroverlay)
+        comboCtrl.SetSizeHints(-1,-1,width,-1)
         
-          
+        comboCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+        comboCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
+
+        popupCtrl = ListViewComboPopup()
+        
+        popupCtrl.SetBackgroundColour(self.webview.infobaroverlay.COLOR_BACKGROUND)
+        popupCtrl.SetForegroundColour(self.webview.infobaroverlay.COLOR_FOREGROUND)
+        
+        comboCtrl.SetPopupControl(popupCtrl)
+
+        return comboCtrl, popupCtrl  
