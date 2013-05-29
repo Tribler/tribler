@@ -82,4 +82,6 @@ class TriblerTorrentFinderPlugin(ITorrentFinderPlugin):
                 torrentDef.torrenturl = magnetlink
                 #Finally add the torrentDef as a result
                 torrents.append(torrentDef)
+                if len(torrents) == 10:
+                    break
         return torrents
