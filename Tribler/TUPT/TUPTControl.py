@@ -53,7 +53,21 @@ class TUPTControl:
                     movieTorrent = MovieTorrent(movie, torrentFinder.GetHDTorrentList(), torrentFinder.GetSDTorrentList())                    
                     self.__movieTorrentIterator.append(movieTorrent)
                     self.__infoBar = TorrentInfoBar(self.webview, self, movieTorrent)
-                    
+    
+    def PlayHD(self, movieTorrent):
+        '''P'''
+        pass
+    def PlaySD(self, MovieTorrent):
+        pass
+    
+    def DownloadTorrent(torrentURL):
+        """Download a torrent containing the movie"""
+        #Get the torrentfile from the URL
+        req = urllib2.Request(url, headers={'User-Agent':"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
+        torrent  = urllib2.urlopen(req).read()
+        session = Session.get_instance()
+        session.start_download(torrent)
+    
 class MovieTorrentIterator:
     """Class that can hold movies and a HD torrentlist and a SD torrentlist"""
     
@@ -118,35 +132,32 @@ class TorrentInfoBar():
     def playButtonPressed(self, event):
         """Callback for when the user wants to play the movie.
         """
-        #Get selection
+        #Get selection and the corresponding calls.
         selection = self.__comboCtrl.GetCurrentSelection()
         if selection == self.HDCHOICE:
-            torrent = self.__movies[0][1].Get
+            self.__tuptControl.PlayHD()
         else:
-            
-        #Get corresponding torrent
-        #Add torrent to downloads
-            pass
+            self.__tuptControl.PlaySD()
     
-    def __init__(self, webview, tupt, movieTorrent):
+    def __init__(self, webview, __tuptControl, movieTorrent):
        if movieTorrent.HasTorrent():
-            self.__movieTorrent = movieTorrent
             self.__webview = webview
+            self.__tuptControl = __tuptControl
             #Add movie to the infobar    
-            text = " <b>The following movie was found: " + self.__movieTorrent.movie.dictionary['title'] + ". Do you want to watch this movie in:</b>"
+            text = " <b>The following movie was found: " + movieTorrent.movie.dictionary['title'] + ". Do you want to watch this movie in:</b>"
             label = wx.StaticText(webview.infobaroverlay)
             label.SetLabelMarkup(text)
             
             #Create the quality selection.
             comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
-            if self.__movieTorrent.HasHDTorrent():
+            if movieTorrent.HasHDTorrent():
                 popupCtrl.AddItem(self.HDCHOICE)
                 #Set default value to HD Quality.
                 comboCtrl.SetValue(self.HDCHOICE)  
-            if self.__movieTorrent.HasSDTorrent():
+            if movieTorrent.HasSDTorrent():
                 popupCtrl.AddItem(self.SDCHOICE)
             #Set default value to SD quality if no HD quality    
-            if not self.__movieTorrent.HasHDTorrent():
+            if not movieTorrent.HasHDTorrent():
                 comboCtrl.SetValue(self.SDCHOICE)
             
             self.__comboCtrl = comboCtrl             
