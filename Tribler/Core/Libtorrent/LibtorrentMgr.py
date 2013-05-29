@@ -2,6 +2,7 @@
 import os
 import sys
 import time
+import binascii
 import threading
 import libtorrent as lt
 
@@ -220,9 +221,10 @@ class LibtorrentMgr:
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout = 30):
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
-        infohash = infohash_or_magnet if not magnet else MagnetLink.parse_url(magnet)[1]
+        infohash_bin = infohash_or_magnet if not magnet else MagnetLink.parse_url(magnet)[1]
+        infohash = binascii.hexlify(infohash_bin)
 
-        if infohash.encode('hex') not in self.metainfo_requests:
+        if infohash not in self.metainfo_requests:
                 
             if DEBUG:
                 print >> sys.stderr, 'LibtorrentMgr: get_metainfo', infohash_or_magnet, callback, timeout
@@ -232,9 +234,8 @@ class LibtorrentMgr:
             if magnet:
                 atp['url'] = magnet
             else:
-                atp['info_hash'] = lt.big_number(infohash)
+                atp['info_hash'] = lt.big_number(infohash_bin)
             handle = self.ltsession.add_torrent(atp)
-            infohash = str(handle.info_hash())
     
             self.metainfo_requests[infohash] = (handle, callback)
             self.trsession.lm.rawserver.add_task(lambda: self.got_metainfo(infohash, True), timeout)
