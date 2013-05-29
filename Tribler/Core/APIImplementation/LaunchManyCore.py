@@ -147,7 +147,7 @@ class TriblerLaunchMany(Thread):
                 class FakeCallback():
                     def __init__(self):
                         from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
-                        self.queue = TimedTaskQueue()
+                        self.queue = TimedTaskQueue("FakeCallback")
 
                     def register(self, call, args=(), kargs=None, delay=0.0, priority=0, id_=u"", callback=None, callback_args=(), callback_kargs=None, include_id=False):
                         def do_task():
@@ -162,6 +162,10 @@ class TriblerLaunchMany(Thread):
                                 else:
                                     callback(*callback_args)
                         self.queue.add_task(do_task, t=delay)
+
+                    def shutdown(self, immediately=False):
+                        self.queue.shutdown(immediately)
+
                 self.database_thread = FakeCallback()
 
             if config['megacache']:
@@ -642,6 +646,8 @@ class TriblerLaunchMany(Thread):
         if self.dispersy:
             print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
             self.dispersy.stop(666.666)
+        else:
+            self.database_thread.shutdown(True)
 
         if self.session.get_megacache():
             self.peer_db.delInstance()

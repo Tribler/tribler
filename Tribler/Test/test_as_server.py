@@ -173,7 +173,9 @@ class TestGuiAsServer(TestAsServer):
         self.frame = None
         self.lm = None
         self.session = None
+
         self.quitting = False
+        self.hadSession = False
 
         self.asserts = []
 
@@ -194,6 +196,7 @@ class TestGuiAsServer(TestAsServer):
         from Tribler.Main.tribler import run
 
         self.quitting = False
+        self.hadSession = False
 
         def wait_for_frame():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
@@ -219,6 +222,7 @@ class TestGuiAsServer(TestAsServer):
             self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
         def wait_for_session():
+            self.hadSession = True
             print >> sys.stderr, "tgs: waiting for session instance"
             self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
 
@@ -227,6 +231,8 @@ class TestGuiAsServer(TestAsServer):
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
         run()
+
+        assert self.hadSession, 'Did not even create a session'
 
     def Call(self, seconds, callback):
         if not self.quitting:
