@@ -30,6 +30,7 @@ class TorrentFinderControl:
             except:
                 trust = 0.5 #Not a valid float
             list = plugin_info.plugin_object.GetTorrentDefsForMovie(movie)
+            print "Plugin " + plugin_info.name + " returned " + str(len(list)) + " results."
             for item in list:
                 self.__ProcessTorrentDef(item, trust)    
     

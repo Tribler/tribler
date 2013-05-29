@@ -75,7 +75,7 @@ class TriblerTorrentFinderPlugin(ITorrentFinderPlugin):
             torrentDef.moviedescriptor = movie
             #Wait for the callback to finish
             #if the eventcode is False, we didn't manage to get the torrent file 
-            eventcode = callback.wait(5)
+            eventcode = callback.wait(1)
             if eventcode:
                 #Construct a magnetlink from the returned infohash
                 magnetlink = "magnet:?xt=urn:btih:"+hexlify(callReturn)
