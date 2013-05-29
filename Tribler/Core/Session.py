@@ -18,6 +18,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.osutils import get_appstate_dir
 from Tribler.Core import NoDispersyRLock
+import socket
 
 GOTM2CRYPTO = False
 try:
@@ -80,41 +81,42 @@ class Session(SessionRuntimeConfig):
             # Work from copy
             self.sessconfig = copy.copy(scfg.sessconfig)
 
-        # Create dir for session state, if not exist
-        state_dir = self.sessconfig['state_dir']
-        if state_dir is None:
-            state_dir = Session.get_default_state_dir()
-            self.sessconfig['state_dir'] = state_dir
+        def create_dir(fullpath):
+            if not os.path.isdir(fullpath):
+                os.makedirs(fullpath)
 
-        if not os.path.isdir(state_dir):
-            os.makedirs(state_dir)
+        def set_and_create_dir(config, name, default_dir):
+            dirname = config.get(name, None)
+            if dirname is None:
+                config[name] = default_dir
 
-        collected_torrent_dir = self.sessconfig['torrent_collecting_dir']
-        if not collected_torrent_dir:
-            collected_torrent_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR)
-            self.sessconfig['torrent_collecting_dir'] = collected_torrent_dir
+            create_dir(config[name])
 
-        collected_subtitles_dir = self.sessconfig.get('subtitles_collecting_dir', None)
-        if not collected_subtitles_dir:
-            collected_subtitles_dir = os.path.join(self.sessconfig['state_dir'], STATEDIR_SUBSCOLL_DIR)
-            self.sessconfig['subtitles_collecting_dir'] = collected_subtitles_dir
+        set_and_create_dir(self.sessconfig, 'state_dir', Session.get_default_state_dir())
+        set_and_create_dir(self.sessconfig, 'torrent_collecting_dir', os.path.join(self.sessconfig['state_dir'], STATEDIR_TORRENTCOLL_DIR))
+        set_and_create_dir(self.sessconfig, 'peer_icon_path', os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR))
 
-        if not os.path.exists(collected_torrent_dir):
-            os.makedirs(collected_torrent_dir)
+        create_dir(os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR))
 
-        if not self.sessconfig['peer_icon_path']:
-            self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
+        # Poor man's versioning of SessionConfig, add missing
+        # default values. Really should use PERSISTENTSTATE_CURRENTVERSION
+        # and do conversions.
+        for key, defvalue in sessdefaults.iteritems():
+            if key not in self.sessconfig:
+                self.sessconfig[key] = defvalue
 
-        # PERHAPS: load default TorrentDef and DownloadStartupConfig from state dir
-        # Let user handle that, he's got default_state_dir, etc.
+        if self.sessconfig['nickname'] == '__default_name__':
+            self.sessconfig['nickname'] = socket.gethostname()
 
-        # Core init
-        # print >>sys.stderr,'Session: __init__ config is', self.sessconfig
+        # SWIFTPROC
+        if self.sessconfig['swiftpath'] is None:
+            if sys.platform == "win32":
+                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift.exe")
+            else:
+                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift")
 
         if GOTM2CRYPTO:
             permidmod.init()
-
-            #
             # Set params that depend on state_dir
             #
             # 1. keypair
@@ -133,38 +135,6 @@ class Session(SessionRuntimeConfig):
                 pubfilename = os.path.join(self.sessconfig['state_dir'], 'ecpub.pem')
                 permidmod.save_keypair(self.keypair, pairfilename)
                 permidmod.save_pub_key(self.keypair, pubfilename)
-
-        # 2. Downloads persistent state dir
-        dlpstatedir = os.path.join(self.sessconfig['state_dir'], STATEDIR_DLPSTATE_DIR)
-        if not os.path.isdir(dlpstatedir):
-            os.mkdir(dlpstatedir)
-
-        # 3. peer_icon_path
-        if self.sessconfig['peer_icon_path'] is None:
-            self.sessconfig['peer_icon_path'] = os.path.join(self.sessconfig['state_dir'], STATEDIR_PEERICON_DIR)
-            if not os.path.isdir(self.sessconfig['peer_icon_path']):
-                os.mkdir(self.sessconfig['peer_icon_path'])
-
-        # 4. Poor man's versioning of SessionConfig, add missing
-        # default values. Really should use PERSISTENTSTATE_CURRENTVERSION
-        # and do conversions.
-        for key, defvalue in sessdefaults.iteritems():
-            if key not in self.sessconfig:
-                self.sessconfig[key] = defvalue
-
-        if not 'live_aux_seeders' in self.sessconfig:
-            # Poor man's versioning, really should update PERSISTENTSTATE_CURRENTVERSION
-            self.sessconfig['live_aux_seeders'] = sessdefaults['live_aux_seeders']
-
-        if not 'mainline_dht' in self.sessconfig:
-            self.sessconfig['mainline_dht'] = sessdefaults['mainline_dht']
-
-        # SWIFTPROC
-        if self.sessconfig['swiftpath'] is None:
-            if sys.platform == "win32":
-                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift.exe")
-            else:
-                self.sessconfig['swiftpath'] = os.path.join(self.sessconfig['install_dir'], "swift")
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()

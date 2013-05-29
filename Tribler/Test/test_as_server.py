@@ -1,4 +1,5 @@
 # Written by Arno Bakker, Jie Yang
+# Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
 import unittest
@@ -20,6 +21,7 @@ from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 import re
+from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
@@ -35,6 +37,9 @@ DEBUG = False
 
 class AbstractServer(unittest.TestCase):
 
+    def setup(self):
+        self.setUpCleanup()
+
     def setUpCleanup(self):
         # Elric: If the files are still there it means that either the last run segfaulted or
         # that there was some kind of lock on those and the tearDown wasn't able to delete them.
@@ -43,6 +48,9 @@ class AbstractServer(unittest.TestCase):
             path = os.path.join(BASE_DIR, path)
             if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
                 shutil.rmtree(path)
+
+    def tearDown(self):
+        self.tearDownCleanup()
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -109,6 +117,7 @@ class TestAsServer(AbstractServer):
         self.config.set_mainline_dht(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
+        self.config.set_dht_torrent_collecting(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
@@ -164,7 +173,9 @@ class TestGuiAsServer(TestAsServer):
         self.frame = None
         self.lm = None
         self.session = None
+
         self.quitting = False
+        self.hadSession = False
 
         self.asserts = []
 
@@ -185,6 +196,7 @@ class TestGuiAsServer(TestAsServer):
         from Tribler.Main.tribler import run
 
         self.quitting = False
+        self.hadSession = False
 
         def wait_for_frame():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
@@ -210,6 +222,7 @@ class TestGuiAsServer(TestAsServer):
             self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
         def wait_for_session():
+            self.hadSession = True
             print >> sys.stderr, "tgs: waiting for session instance"
             self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
 
@@ -218,6 +231,8 @@ class TestGuiAsServer(TestAsServer):
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
         run()
+
+        assert self.hadSession, 'Did not even create a session'
 
     def Call(self, seconds, callback):
         if not self.quitting:

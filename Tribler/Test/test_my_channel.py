@@ -24,7 +24,7 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.notebook.SetSelection(mt_index)
 
             managefiles = self.managechannel.fileslist
-            self.CallConditional(60, lambda: len(managefiles.GetItems()) > 0, do_files_check)
+            self.CallConditional(60, lambda: len(managefiles.GetItems()) > 0, do_files_check, 'Channel did not have torrents')
 
         def do_rss():
             # switch to manage tab
@@ -42,7 +42,7 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.description.SetValue('Channel created for UNITTESTING purposes')
 
             self.managechannel.Save()
-            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_rss)
+            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_rss, 'Channel instance did not arrive at managechannel')
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')
@@ -74,7 +74,7 @@ class TestMyChannel(TestGuiAsServer):
             manager = manageplaylist.GetManager()
             manager.createPlaylist('Unittest', 'Playlist created for Unittest', [infohash, ])
 
-            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, do_overview)
+            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, do_overview, 'Channel did not have a playlist')
 
         def do_add_torrent():
             self.screenshot('Channel is created')
@@ -89,7 +89,7 @@ class TestMyChannel(TestGuiAsServer):
             manager.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', fixtorrent=True)
             manager.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
 
-            self.CallConditional(60, lambda: len(managefiles.GetItems()) == 3, do_create_playlist)
+            self.CallConditional(60, lambda: len(managefiles.GetItems()) == 3, do_create_playlist, 'Channel did not have 3 torrents')
 
         def do_create():
             self.screenshot('After selecting mychannel page')
@@ -102,7 +102,7 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.Save()
             self.screenshot('After clicking save')
 
-            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_add_torrent)
+            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_add_torrent, 'Channel instance did not arrive at managechannel')
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')

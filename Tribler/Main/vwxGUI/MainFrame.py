@@ -397,7 +397,7 @@ class MainFrame(wx.Frame):
         return True
 
     def startDownloadFromSwift(self, url, destdir=None):
-        url = url.replace("ppsp://", "tswift://127.0.0.1:9999/") if url.startswith("ppsp://") else url
+        url = url.replace("ppsp://", "tswift://127.0.0.1:%d/" % self.utility.session.get_swift_dht_listen_port()) if url.startswith("ppsp://") else url
         sdef = SwiftDef.load_from_url(url)
         sdef.set_name("Unnamed video - " + time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
         wx.CallAfter(self.startDownload, sdef=sdef, destdir=destdir)
@@ -520,9 +520,6 @@ class MainFrame(wx.Frame):
 
                         else:
                             dscfg.set_selected_files(selectedFiles)
-
-                    if sdef and not tdef:
-                        dscfg.set_swift_meta_dir(os.path.join(get_default_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
                     print >> sys.stderr, 'MainFrame: startDownload: Starting in DL mode'
                     result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)

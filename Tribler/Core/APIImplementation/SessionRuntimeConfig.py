@@ -93,6 +93,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    def set_dht_torrent_collecting(self, value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_dht_torrent_collecting(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_dht_torrent_collecting(self)
+        finally:
+            self.sesslock.release()
+
     def set_torrent_collecting_dir(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -148,6 +158,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_mainline_dht(self)
+        finally:
+            self.sesslock.release()
+
+    def set_mainline_dht_listen_port(self, port):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_mainline_dht_listen_port(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_mainline_dht_listen_port(self)
         finally:
             self.sesslock.release()
 
@@ -232,6 +252,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_swift_cmd_listen_port(self)
+        finally:
+            self.sesslock.release()
+
+    def set_swift_dht_listen_port(self, port):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_swift_dht_listen_port(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_swift_dht_listen_port(self)
         finally:
             self.sesslock.release()
 

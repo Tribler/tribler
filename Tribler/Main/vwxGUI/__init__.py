@@ -7,9 +7,9 @@ import inspect
 import sys
 
 from datetime import datetime
-from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker,\
+from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker, \
     GUI_PRI_DISPERSY
-from Tribler.dispersy.dispersy import Dispersy
+
 from threading import Event
 from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG, register_task, call_task
 
@@ -86,7 +86,6 @@ def format_time(val):
 def format_size(val):
     size = (val / 1048576.0)
     return "%.0f MB" % size
-
 
 def showError(textCtrl):
     def setColours(ctrl, fore, back):
