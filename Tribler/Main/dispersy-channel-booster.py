@@ -30,7 +30,9 @@ from Tribler.Core.Statistics.Logger import OverlayLogger
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.message import Message
 
+
 class BoosterDispersy(Dispersy):
+
     def __init__(self, callback, statedir):
         super(BoosterDispersy, self).__init__(callback, statedir)
 
@@ -48,9 +50,10 @@ class BoosterDispersy(Dispersy):
 
             if isinstance(result, Message.Implementation) and message.payload.sync:
                 payload = message.payload
-                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.authentication.member.mid.encode("HEX"), message.candidate.lan_address[0], message.candidate.lan_address[1], message.candidate.wan_address[0], message.candidate.wan_address[1], payload.connection_type, payload.advice, payload.time_low, payload.time_high, payload.modulo, payload.offset, after-before)
+                self._logger("DISP_SYNC_IN", message.community.cid.encode("HEX"), message.authentication.member.mid.encode("HEX"), message.candidate.lan_address[0], message.candidate.lan_address[1], message.candidate.wan_address[0], message.candidate.wan_address[1], payload.connection_type, payload.advice, payload.time_low, payload.time_high, payload.modulo, payload.offset, after - before)
 
             yield result
+
 
 def main():
     command_line_parser = optparse.OptionParser()
@@ -70,10 +73,14 @@ def main():
     print "Press Ctrl-C to stop the booster"
 
     sscfg = SessionStartupConfig()
-    if opt.statedir: sscfg.set_state_dir(os.path.realpath(opt.statedir))
-    if opt.port: sscfg.set_listen_port(opt.port)
-    if opt.dispersy_port: sscfg.set_dispersy_port(opt.dispersy_port)
-    if opt.nickname: sscfg.set_nickname(opt.nickname)
+    if opt.statedir:
+        sscfg.set_state_dir(os.path.realpath(opt.statedir))
+    if opt.port:
+        sscfg.set_listen_port(opt.port)
+    if opt.dispersy_port:
+        sscfg.set_dispersy_port(opt.dispersy_port)
+    if opt.nickname:
+        sscfg.set_nickname(opt.nickname)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)

@@ -8,40 +8,41 @@
 #
 import sys
 
-from threading import Thread,Condition, RLock, currentThread
-from traceback import print_exc,print_stack,format_stack
+from threading import Thread, Condition, RLock, currentThread
+from traceback import print_exc, print_stack, format_stack
 from time import time
 try:
     prctlimported = True
     import prctl
-except ImportError,e:
+except ImportError as e:
     prctlimported = False
 
 DEBUG = False
+
 
 class TimedTaskQueue:
 
     __single = None
 
-    def __init__(self,nameprefix="TimedTaskQueue",isDaemon=True, inDEBUG = DEBUG):
+    def __init__(self, nameprefix="TimedTaskQueue", isDaemon=True, inDEBUG= DEBUG):
         self.inDEBUG = inDEBUG
 
         self.cond = Condition(RLock())
         self.queue = []
-        self.count = 0.0 # serves to keep task that were scheduled at the same time in FIFO order
-        self.thread = Thread(target = self.run)
+        self.count = 0.0  # serves to keep task that were scheduled at the same time in FIFO order
+        self.thread = Thread(target=self.run)
         self.thread.setDaemon(isDaemon)
-        self.thread.setName( nameprefix+self.thread.getName() )
+        self.thread.setName(nameprefix +self.thread.getName())
         self.thread.start()
 
         if __debug__:
-            self.callstack = {} # callstack by self.count
+            self.callstack = {}  # callstack by self.count
 
-    def shutdown(self, immediately = False):
+    def shutdown(self, immediately=False):
         self.add_task("stop", -time() if immediately else 0)
         self.add_task = lambda task, t=0, id=None: None
 
-    def add_task(self,task,t=0,id=None):
+    def add_task(self, task, t=0, id=None):
         """ t parameter is now usable, unlike before.
             If id is given, all the existing tasks with the same id will be removed
             before inserting this task
@@ -51,30 +52,30 @@ class TimedTaskQueue:
             print_stack()
 
         self.cond.acquire()
-        when = time()+t
+        when = time() + t
         if DEBUG:
             debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
-            print >>sys.stderr,"ttqueue: ADD EVENT",t , task, debug_call_name
+            print >>sys.stderr, "ttqueue: ADD EVENT", t, task, debug_call_name
 
         if __debug__:
             self.callstack[self.count] = format_stack()
 
         if id != None:  # remove all redundant tasks
-            self.queue = filter(lambda item:item[3]!=id, self.queue)
-        self.queue.append((when,self.count,task,id))
+            self.queue = filter(lambda item: item[3] != id, self.queue)
+        self.queue.append((when, self.count, task, id))
         self.count += 1.0
         self.cond.notify()
         self.cond.release()
 
     def remove_task(self, id):
         self.cond.acquire()
-        self.queue = filter(lambda item:item[3]!=id, self.queue)
+        self.queue = filter(lambda item: item[3] != id, self.queue)
         self.cond.notify()
         self.cond.release()
 
     def does_task_exist(self, id):
-        return any(item[3]==id for item in self.queue)
-    
+        return any(item[3] == id for item in self.queue)
+
     def get_nr_tasks(self):
         return len(self.queue)
 
@@ -82,7 +83,7 @@ class TimedTaskQueue:
         """ Run by server thread """
 
         if prctlimported:
-            prctl.set_name("Tribler"+currentThread().getName())
+            prctl.set_name("Tribler" + currentThread().getName())
 
         while True:
             task = None
@@ -101,20 +102,20 @@ class TimedTaskQueue:
                 # A new event was added or an event is due
                 self.queue.sort()
 
-                (when,count,task,id) = self.queue[0]
+                (when, count, task, id) = self.queue[0]
                 if DEBUG:
-                    print >>sys.stderr,"ttqueue: EVENT IN QUEUE",when,task
+                    print >>sys.stderr, "ttqueue: EVENT IN QUEUE", when, task
                 now = time()
                 if now < when:
                     # Event not due, wait some more
                     if DEBUG:
-                        print >>sys.stderr,"ttqueue: EVENT NOT TILL",when-now
-                    timeout = when-now
+                        print >>sys.stderr, "ttqueue: EVENT NOT TILL", when - now
+                    timeout = when - now
                     flag = True
                 else:
                     # Event due, execute
                     if DEBUG:
-                        print >>sys.stderr,"ttqueue: EVENT DUE"
+                        print >>sys.stderr, "ttqueue: EVENT DUE"
                     self.queue.pop(0)
                     if __debug__:
                         assert count in self.callstack
@@ -131,9 +132,9 @@ class TimedTaskQueue:
                     if len(self.queue) == 0:
                         break
                     else:
-                        (when,count,task,id) = self.queue[-1]
-                        t = when-time()+0.001
-                        self.add_task('quit',t)
+                        (when, count, task, id) = self.queue[-1]
+                        t = when - time() +0.001
+                        self.add_task('quit', t)
                 else:
                     if self.inDEBUG:
                         t1 = time()
@@ -144,7 +145,7 @@ class TimedTaskQueue:
                         took = time() - t1
                         if took > 0.2:
                             debug_call_name = task.__name__ if hasattr(task, "__name__") else str(task)
-                            print >> sys.stderr,"ttqueue: EVENT TOOK", took, debug_call_name
+                            print >> sys.stderr, "ttqueue: EVENT TOOK", took, debug_call_name
             except:
                 print_exc()
                 if __debug__:

@@ -9,6 +9,7 @@ logger = logging.getLogger('dht')
 
 
 class SuperBucket(object):
+
     def __init__(self, index, max_nodes, ips_in_main,
                  ips_in_replacement):
         self.index = index
@@ -19,6 +20,7 @@ class SuperBucket(object):
 
 
 class Bucket(object):
+
     def __init__(self, max_rnodes, ips_in_table):
         self.max_rnodes = max_rnodes
         self.ips_in_table = ips_in_table
@@ -38,7 +40,7 @@ class Bucket(object):
         self.rnodes.append(rnode)
         if self.ips_in_table is not None:
             self.ips_in_table.add(rnode.ip)
-        #self.last_changed_ts = time.time()
+        # self.last_changed_ts = time.time()
 
     def remove(self, node_):
         i = self._find(node_)
@@ -66,7 +68,7 @@ class Bucket(object):
         return not self == other
 
     def there_is_room(self, min_places=1):
-        return len(self.rnodes) + min_places <=  self.max_rnodes
+        return len(self.rnodes) + min_places <= self.max_rnodes
 
 #    def occupancy(self):
 #        return float(len(self.rnodes) / self.max_rnodes)
@@ -112,13 +114,15 @@ class Bucket(object):
         for i, rnode in enumerate(self.rnodes):
             if rnode == node_:
                 return i
-        return -1 # not found
+        return -1  # not found
 
 
-
-NUM_SBUCKETS = 160 # log_distance returns a number in range [-1,159]
+NUM_SBUCKETS = 160  # log_distance returns a number in range [-1,159]
 NUM_NODES = 8
+
+
 class RoutingTable(object):
+
     '''
     '''
 
@@ -129,13 +133,13 @@ class RoutingTable(object):
         self.sbuckets = [None] * NUM_SBUCKETS
         self.num_rnodes = 0
         self._ips_in_main = set()
-        self._ips_in_replacement = None #set() #bugfix
+        self._ips_in_replacement = None  # set() #bugfix
         return
 
     def get_sbucket(self, log_distance):
         index = log_distance
         if index < 0:
-            raise IndexError, 'index (%d) must be >= 0' % index
+            raise IndexError('index (%d) must be >= 0' % index)
         sbucket = self.sbuckets[index]
         if not sbucket:
             sbucket = SuperBucket(index, self.nodes_per_bucket[index],
@@ -151,7 +155,7 @@ class RoutingTable(object):
             sbucket = self.sbuckets[i]
             if not sbucket:
                 continue
-            result.extend(sbucket.main.rnodes[:max_rnodes-len(result)])
+            result.extend(sbucket.main.rnodes[:max_rnodes - len(result)])
             if len(result) == max_rnodes:
                 return result
         # Include myself (when appropiate)
@@ -162,7 +166,7 @@ class RoutingTable(object):
             sbucket = self.sbuckets[i]
             if not sbucket:
                 continue
-            result.extend(sbucket.main.rnodes[:max_rnodes-len(result)])
+            result.extend(sbucket.main.rnodes[:max_rnodes - len(result)])
             if len(result) == max_rnodes:
                 break
         return result

@@ -8,6 +8,7 @@ from traceback import print_exc, print_stack
 from Tribler.Core.simpledefs import *
 from threading import Timer
 
+
 class Notifier:
 
     SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_DISPERSY]
@@ -16,9 +17,9 @@ class Notifier:
     # todo: add all datahandler types+other observables
     __single = None
 
-    def __init__(self, pool = None):
+    def __init__(self, pool=None):
         if Notifier.__single:
-            raise RuntimeError, "Notifier is singleton"
+            raise RuntimeError("Notifier is singleton")
         self.pool = pool
 
         self.observers = []
@@ -39,7 +40,7 @@ class Notifier:
         Notifier.__single = None
     delInstance = staticmethod(delInstance)
 
-    def add_observer(self, func, subject, changeTypes = [NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id = None, cache = 0):
+    def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id= None, cache = 0):
         """
         Add observer function which will be called upon certain event
         Example:
@@ -49,8 +50,8 @@ class Notifier:
                     callbacks when peer-searchresults of of search
                     with id=='a_search_id' come in
         """
-        assert type(changeTypes) == list
-        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS'%subject
+        assert isinstance(changeTypes, list)
+        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS' % subject
 
         obs = (func, subject, changeTypes, id, cache)
         self.observerLock.acquire()
@@ -62,13 +63,13 @@ class Notifier:
         """
 
         self.observerLock.acquire()
-        i=0
+        i = 0
         while i < len(self.observers):
             ofunc = self.observers[i][0]
             if ofunc == func:
                 del self.observers[i]
             else:
-                i+=1
+                i += 1
         self.observerLock.release()
 
     def remove_observers(self):
@@ -81,7 +82,7 @@ class Notifier:
         Notify all interested observers about an event with threads from the pool
         """
         tasks = []
-        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS'%subject
+        assert subject in self.SUBJECTS, 'Subject %s not in SUBJECTS' % subject
 
         args = [subject, changeType, obj_id] + list(args)
 
@@ -90,7 +91,7 @@ class Notifier:
             try:
                 if (subject == osubject and
                     changeType in ochangeTypes and
-                    (oid is None or oid == obj_id)):
+                        (oid is None or oid == obj_id)):
 
                     if not cache:
                         tasks.append(ofunc)
@@ -119,11 +120,11 @@ class Notifier:
                         self.observerscache[ofunc].append(args)
             except:
                 print_exc()
-                print >>sys.stderr,"notify: OIDs were",`oid`,`obj_id`
+                print >>sys.stderr, "notify: OIDs were", repr(oid), repr(obj_id)
 
         self.observerLock.release()
         for task in tasks:
             if self.pool:
                 self.pool.queueTask(task, args)
             else:
-                task(*args) # call observer function in this thread
+                task(*args)  # call observer function in this thread

@@ -7,10 +7,11 @@ import ptime as time
 import utils
 import identifier
 
+
 class Node(object):
 
     def __init__(self, addr, node_id=None, version=1, ns_node=False):
-        #assert version != 1 # debug only
+        # assert version != 1 # debug only
         self._addr = addr
         self._id = node_id
         self.version = version
@@ -19,11 +20,12 @@ class Node(object):
 
     def get_id(self):
         return self._id
+
     def set_id(self, node_id):
         if self._id is None:
             self._id = node_id
         else:
-            raise AttributeError, "Node's id is read-only"
+            raise AttributeError("Node's id is read-only")
     id = property(get_id, set_id)
 
     @property
@@ -42,7 +44,7 @@ class Node(object):
         if self.addr == other.addr:
             try:
                 return self.id == other.id
-            except AttributeError: #self.id == None (id.bin_id fails)
+            except AttributeError:  # self.id == None (id.bin_id fails)
                 return self.id is None and other.id is None
         else:
             return False
@@ -58,7 +60,7 @@ class Node(object):
 
     def __repr__(self):
         return '<node: %26r %r (%s)>' % (self.addr,
-                                       self.id,
+                                         self.id,
                                        self.version)
 
     def distance(self, other):
@@ -81,6 +83,7 @@ TIMEOUT = 'timeout'
 
 MAX_LAST_EVENTS = 10
 
+
 class RoutingNode(Node):
 
     def __init__(self, node_, log_distance):
@@ -95,7 +98,7 @@ class RoutingNode(Node):
         self.num_timeouts = 0
         self.msgs_since_timeout = 0
         self.last_events = []
-        #self.refresh_task = None
+        # self.refresh_task = None
         self.rank = 0
         current_time = time.time()
         self.creation_ts = current_time
@@ -104,7 +107,7 @@ class RoutingNode(Node):
         self.last_seen = current_time
         self.bucket_insertion_ts = None
 
-    #def __repr__(self):
+    # def __repr__(self):
     #    return '<rnode: %r %r>' % (self.addr, self.id)
 
     def get_rnode(self):
@@ -124,9 +127,9 @@ class RoutingNode(Node):
             if event == TIMEOUT:
                 result += 1
             elif event == RESPONSE or \
-                     (consider_queries and event == QUERY):
+                    (consider_queries and event == QUERY):
                 return result
-        return result # all timeouts (and queries), or empty list
+        return result  # all timeouts (and queries), or empty list
 
 
 class LookupNode(Node):

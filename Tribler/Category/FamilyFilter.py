@@ -1,7 +1,9 @@
 # Written by Jelle Roozenburg
 # see LICENSE.txt for license information
 
-import re, sys, os
+import re
+import sys
+import os
 from traceback import print_exc
 
 from Tribler.__init__ import LIBRARYNAME
@@ -9,9 +11,11 @@ from Tribler.__init__ import LIBRARYNAME
 WORDS_REGEXP = re.compile('[a-zA-Z0-9]+')
 DEBUG = False
 
+
 class XXXFilter:
+
     def __init__(self, install_dir):
-        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category','filter_terms.filter')
+        termfilename = os.path.join(install_dir, LIBRARYNAME, 'Category', 'filter_terms.filter')
         self.xxx_terms, self.xxx_searchterms = self.initTerms(termfilename)
 
     def initTerms(self, filename):
@@ -33,7 +37,7 @@ class XXXFilter:
                 print_exc()
 
         if DEBUG:
-            print 'Read %d XXX terms from file %s' % (len(terms)+len(searchterms), filename)
+            print 'Read %d XXX terms from file %s' % (len(terms) + len(searchterms), filename)
         return terms, searchterms
 
     def _getWords(self, string):
@@ -41,7 +45,7 @@ class XXXFilter:
 
     def isXXXTorrent(self, files_list, torrent_name, tracker, comment=None):
         if tracker:
-            tracker = tracker.lower().replace('http://', '').replace('announce','')
+            tracker = tracker.lower().replace('http://', '').replace('announce', '')
         else:
             tracker = ''
         terms = [a[0].lower() for a in files_list]
@@ -57,18 +61,17 @@ class XXXFilter:
                 print 'Torrent is NOT XXX: %s %s' % (torrent_name, tracker)
         return is_xxx
 
-
     def isXXX(self, s, isFilename=True):
         s = s.lower()
-        if self.isXXXTerm(s): # We have also put some full titles in the filter file
+        if self.isXXXTerm(s):  # We have also put some full titles in the filter file
             return True
         if not self.isAudio(s) and self.foundXXXTerm(s):
             return True
         words = self._getWords(s)
-        words2 = [' '.join(words[i:i+2]) for i in xrange(0, len(words)-1)]
-        num_xxx = len([w for w in words+words2 if self.isXXXTerm(w, s)])
+        words2 = [' '.join(words[i:i + 2]) for i in xrange(0, len(words) -1)]
+        num_xxx = len([w for w in words + words2 if self.isXXXTerm(w, s)])
         if isFilename and self.isAudio(s):
-            return num_xxx > 2 # almost never classify mp3 as porn
+            return num_xxx > 2  # almost never classify mp3 as porn
         else:
             return num_xxx > 0
 
@@ -101,5 +104,6 @@ class XXXFilter:
         return False
 
     audio_extensions = ['cda', 'flac', 'm3u', 'mp2', 'mp3', 'md5', 'vorbis', 'wav', 'wma', 'ogg']
+
     def isAudio(self, s):
-        return s[s.rfind('.')+1:] in self.audio_extensions
+        return s[s.rfind('.') + 1:] in self.audio_extensions

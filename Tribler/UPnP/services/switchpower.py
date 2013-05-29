@@ -6,9 +6,10 @@
 import types
 from Tribler.UPnP.upnpserver import UPnPService
 
-##############################################
+#
 # SWITCH POWER SERVICE
-##############################################
+#
+
 
 class SwitchPower(UPnPService):
 
@@ -19,7 +20,7 @@ class SwitchPower(UPnPService):
     def __init__(self, service_id):
         UPnPService.__init__(self, service_id, 'SwitchPower',
                              service_version=1)
-        boolean = types.BooleanType
+        boolean = bool
 
         # Define EventVariables
         self._status = self.define_evented_variable("Status",
@@ -27,7 +28,7 @@ class SwitchPower(UPnPService):
 
         # Define Actions
         self.define_action(self.get_status,
-                           out_args=[("ResultStatus", boolean )],
+                           out_args=[("ResultStatus", boolean)],
                            name="GetStatus")
         self.define_action(self.get_target,
                            out_args=[("RetTargetValue", boolean)],

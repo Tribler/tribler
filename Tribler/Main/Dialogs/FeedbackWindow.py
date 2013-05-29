@@ -23,7 +23,9 @@ from Tribler.Main.vwxGUI.widgets import AutoWidthListCtrl
 import httplib
 from urllib import urlencode
 
+
 class FeedbackWindow(wx.PyOnDemandOutputWindow):
+
     """
     An error dialog that would be shown in case there is an uncaught
     exception. The user can send the error report back to us as well.
@@ -40,18 +42,18 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             self.sysInfo.InsertColumn(1, 'value')
 
             def add(col, val):
-                pos = self.sysInfo.InsertStringItem(sys.maxint, col)
+                pos = self.sysInfo.InsertStringItem(sys.maxsize, col)
                 self.sysInfo.SetStringItem(pos, 1, val)
 
             # data
             add('os.getcwd', '%s' % os.getcwd())
             add('sys.executable', '%s' % sys.executable)
 
-            add('os',os.name)
-            add('platform',sys.platform)
-            add('platform.details',platform.platform())
+            add('os', os.name)
+            add('platform', sys.platform)
+            add('platform.details', platform.platform())
             add('platform.machine', platform.machine())
-            add('python.version',sys.version)
+            add('python.version', sys.version)
             add('indebug', str(__debug__))
 
             for argv in sys.argv:
@@ -63,7 +65,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             for key in os.environ.keys():
                 add('os.environ', '%s: %s' % (key, os.environ[key]))
 
-            #read tribler.log?
+            # read tribler.log?
 #            try:
 #
 #                f = codecs.open(os.path.join(Globals.options.profileDir,
@@ -88,7 +90,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             guiUtility = GUIUtility.getInstance()
             utility = guiUtility.utility
 
-            self.text.AppendText('%s version: %s\n' %(utility.lang.get('title'), utility.lang.get('version')))
+            self.text.AppendText('%s version: %s\n' % (utility.lang.get('title'), utility.lang.get('version')))
         except:
             pass
 
@@ -96,7 +98,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.text.AppendText(st)
 
     def CreateOutputWindow(self, st):
-        self.frame = wx.Dialog(self.parent, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER)
+        self.frame = wx.Dialog(self.parent, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
 
         self.frame.CenterOnParent()
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -107,11 +109,11 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(wx.StaticText(self.frame, -1, 'Tribler encountered an error, to help us fix this please send an error-report.'))
 
-        self.text = wx.TextCtrl(self.frame, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
+        self.text = wx.TextCtrl(self.frame, -1, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.text.SetMinSize((600, 150))
         vSizer.Add(self.text, 0, wx.EXPAND)
 
-        self.sysInfo = AutoWidthListCtrl(self.frame, style = wx.LC_REPORT|wx.NO_BORDER)
+        self.sysInfo = AutoWidthListCtrl(self.frame, style= wx.LC_REPORT | wx.NO_BORDER)
         self.sysInfo.SetMinSize((-1, 200))
         vSizer.Add(self.sysInfo, 1, wx.EXPAND)
 
@@ -139,8 +141,8 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.closeButton.Bind(wx.EVT_BUTTON, self.OnCloseWindow)
         buttonSizer.Add(self.closeButton)
 
-        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT|wx.TOP, 10)
-        sizer.Add(vSizer, 1, wx.EXPAND|wx.LEFT, 10)
+        vSizer.Add(buttonSizer, 0, wx.ALIGN_RIGHT | wx.TOP, 10)
+        sizer.Add(vSizer, 1, wx.EXPAND | wx.LEFT, 10)
 
         self._fillRequiredSection(st)
         self._fillOptionalSection()
@@ -149,7 +151,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.frame.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
         border = wx.BoxSizer()
-        border.Add(sizer, 1, wx.ALL|wx.EXPAND, 10)
+        border.Add(sizer, 1, wx.ALL | wx.EXPAND, 10)
 
         self.frame.SetSizerAndFit(border)
 
@@ -193,7 +195,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             if self.comments.GetValue():
                 comments = self.comments.GetValue()
 
-            body_dict = {'email':email, 'comments':comments}
+            body_dict = {'email': email, 'comments': comments}
             body_dict['stack'] = self.text.GetValue()
 
             optional = ''
@@ -216,7 +218,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         else:
             self.sendButton.SetLabel('Sent')
 
-    def Show(self, show = True):
+    def Show(self, show=True):
         return self.frame.Show(show)
 
     def ShowModal(self):

@@ -15,9 +15,9 @@ _XML_DOC = '<?xml version="1.0"?>\n<bookmarks>\n%s</bookmarks>'
 _XML_ITEM = '<item>%s</item>\n'
 
 
-##############################################
+#
 # BOOKMARK SERVICE
-##############################################
+#
 
 class BookmarkService(UPnPService):
 
@@ -45,14 +45,14 @@ class BookmarkService(UPnPService):
 
         # Define Event Variable
         self._update_event = self.define_evented_variable("UPDATE",
-                                                          types.BooleanType, False)
+                                                          bool, False)
 
         # Define Actions
         self.define_action(self.get,
-                           out_args=[("BOOKMARKS", types.StringType)],
+                           out_args=[("BOOKMARKS", bytes)],
                            name="GET")
         self.define_action(self.post,
-                           in_args=[("BOOKMARK", types.StringType)],
+                           in_args=[("BOOKMARK", bytes)],
                            name="POST")
 
     def post(self, bookmark):

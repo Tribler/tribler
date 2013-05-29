@@ -16,7 +16,9 @@ from Tribler.Core.SessionConfig import SessionConfigInterface
 # We disable this error
 # pylint: disable-msg=E1101
 
+
 class SessionRuntimeConfig(SessionConfigInterface):
+
     """
     Implements the Tribler.Core.API.SessionConfigInterface
 
@@ -91,6 +93,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    def set_dht_torrent_collecting(self, value):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_dht_torrent_collecting(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_dht_torrent_collecting(self)
+        finally:
+            self.sesslock.release()
+
     def set_torrent_collecting_dir(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -149,6 +161,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
+    def set_mainline_dht_listen_port(self, port):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_mainline_dht_listen_port(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_mainline_dht_listen_port(self)
+        finally:
+            self.sesslock.release()
+
     def set_nickname(self, value):
         self.sesslock.acquire()
         try:
@@ -187,7 +209,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-
     #
     # Local Peer Discovery using IP Multicast
     #
@@ -214,7 +235,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-
     def set_swift_path(self, value):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -225,7 +245,6 @@ class SessionRuntimeConfig(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-
     def set_swift_cmd_listen_port(self, port):
         raise OperationNotPossibleAtRuntimeException()
 
@@ -233,6 +252,16 @@ class SessionRuntimeConfig(SessionConfigInterface):
         self.sesslock.acquire()
         try:
             return SessionConfigInterface.get_swift_cmd_listen_port(self)
+        finally:
+            self.sesslock.release()
+
+    def set_swift_dht_listen_port(self, port):
+        raise OperationNotPossibleAtRuntimeException()
+
+    def get_swift_dht_listen_port(self):
+        self.sesslock.acquire()
+        try:
+            return SessionConfigInterface.get_swift_dht_listen_port(self)
         finally:
             self.sesslock.release()
 

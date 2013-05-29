@@ -1,10 +1,14 @@
 from .community import BarterCommunity
 
+
 class DummySwiftProcess(object):
+
     def set_subscribe_channel_close(self, *args, **kargs):
         pass
 
+
 class BarterCrawler(object):
+
     def __init__(self, dispersy):
         masters = BarterCommunity.get_master_members(dispersy)
         assert len(masters) == 1

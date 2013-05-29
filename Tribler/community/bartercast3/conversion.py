@@ -6,7 +6,9 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
+
 class BarterConversion(BinaryConversion):
+
     def __init__(self, community):
         super(BarterConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"barter-record"), self._encode_barter_record, self._decode_barter_record)
@@ -51,7 +53,7 @@ class BarterConversion(BinaryConversion):
 
         if len(data) < offset + length:
             raise DropPacket("Insufficient packet size (_decode_barter_record)")
-        effort = EffortHistory(data[offset:offset+length], cycle * CYCLE_SIZE)
+        effort = EffortHistory(data[offset:offset + length], cycle * CYCLE_SIZE)
         offset += length
 
         # the following parameters are used for debugging only
@@ -107,7 +109,7 @@ class BarterConversion(BinaryConversion):
         if len(data) < offset + key_length:
             raise DropPacket("Insufficient packet size (_decode_ping_pong)")
         try:
-            member = Member(data[offset:offset+key_length])
+            member = Member(data[offset:offset + key_length])
         except:
             raise DropPacket("Invalid public key (_decode_ping_pong)")
         offset += key_length

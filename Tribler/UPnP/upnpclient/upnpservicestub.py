@@ -14,6 +14,7 @@ import Tribler.UPnP.common.asynchHTTPclient as httpclient
 
 _HTTP_200_RESPONSE = "HTTP/1.1 200 OK"
 
+
 def _parse_sub_response_header(response_header):
     """Parse Subscription response header. Response header is
     assumed to be a string."""
@@ -31,40 +32,43 @@ def _parse_sub_response_header(response_header):
     sid = _get_sid(header_map)
     return sid, duration
 
+
 def _get_duration(header_map):
     """
     Get the Subscription duration (int) from
     header_map (dictionary).
     """
-    if header_map.has_key('timeout'):
+    if 'timeout' in header_map:
         duration = header_map['timeout'].split('-')[-1]
         if duration == 'infinite':
             return 0
         else:
             return int(duration)
-    else :
+    else:
         return None
+
 
 def _get_sid(header_map):
     """
     Get the Subscription ID (uuid.UUID) from
     header_map (dictionary).
     """
-    if header_map.has_key('sid'):
+    if 'sid' in header_map:
         return uuid.UUID(header_map['sid'].split(':')[-1])
-    else :
+    else:
         return None
 
 
-##############################################
+#
 # ACTION REQUEST HTTP HEADER
-##############################################
+#
 
 _ACTION_REQUEST_HDR_FMT = """POST %s HTTP/1.1\r
 HOST: %s:%d\r
 Content-Length: %d\r
 Content-Type: text/xml; charset="utf-8"\r
 SOAPACTION: "%s#%s"\r\n\r\n"""
+
 
 def _get_action_request_hdr(url, length, service_type, action_name):
     """Return action request http header as string."""
@@ -74,9 +78,9 @@ def _get_action_request_hdr(url, length, service_type, action_name):
                                       service_type,
                                       action_name)
 
-##############################################
+#
 # SUBSCRIBE REQUEST HTTP HEADER
-##############################################
+#
 
 _SUBSCRIBE_REQUEST_HDR_FMT = """SUBSCRIBE %s HTTP/1.1\r
 HOST: %s:%d\r
@@ -84,20 +88,22 @@ CALLBACK: <%s>\r
 NT: upnp:event\r
 TIMEOUT: Second-%d\r\n\r\n"""
 
+
 def _get_subscription_request_hdr(url, callback_url, seconds):
     """Return subscription request http header as string."""
     return _SUBSCRIBE_REQUEST_HDR_FMT % (url.path, url.hostname,
                                          url.port, callback_url, seconds)
 
 
-##############################################
+#
 # RENEW REQUEST HTTP HEADER
-##############################################
+#
 
 _RENEW_REQUEST_HDR_FMT = """SUBSCRIBE %s HTTP/1.1\r
 HOST: %s:%d\r
 SID: uuid:%s\r
 TIMEOUT: Second-%d\r\n\r\n"""
+
 
 def _get_renew_request_hdr(url, sid, seconds):
     """Return subscription renewal request http header as string."""
@@ -105,13 +111,14 @@ def _get_renew_request_hdr(url, sid, seconds):
                                      url.port, sid, seconds)
 
 
-##############################################
+#
 # UNSUBSCRIBE REQUEST HTTP HEADER
-##############################################
+#
 
 _UNSUBSCRIBE_REQUEST_HDR_FMT = """UNSUBSCRIBE %s HTTP/1.1\r
 HOST: %s:%d\r
 SID: uuid:%s\r\n\r\n"""
+
 
 def _get_unsubscribe_request_hdr(url, sid):
     """Return unsubscribe request http header as string."""
@@ -119,22 +126,22 @@ def _get_unsubscribe_request_hdr(url, sid):
                                            url.hostname, url.port, sid)
 
 
-
-##############################################
+#
 # ACTION ERROR
-##############################################
-
+#
 class ActionError (exceptions.Exception):
+
     """Error associated with invoking actions on a remote UPnP
     Service. """
     pass
 
 
-##############################################
+#
 # ACTION WRAPPER
-##############################################
+#
 
 class ActionWrapper:
+
     """
     Convenience wrapper of action invokations.
     This allows the actions to appear as named methods
@@ -149,7 +156,7 @@ class ActionWrapper:
         """Callable object refers to action method of stub."""
         res = self._stub.action(self._action_name, list(args))
         if res == None:
-            raise ActionError, "Some Error"
+            raise ActionError("Some Error")
         elif len(res) == 0:
             return None
         elif len(res) == 1:
@@ -157,11 +164,13 @@ class ActionWrapper:
         else:
             return tuple(res)
 
-##############################################
+#
 # SUBSCRIPTION
-##############################################
+#
+
 
 class Subscription:
+
     """
     A Service Stub may hold a single subscription for events
     from the remote service. This is the local representation
@@ -196,17 +205,19 @@ class Subscription:
         return self._expiry
 
 
-##############################################
+#
 # EVENT DEF
-##############################################
+#
 
 class EventDef:
+
     """Event Definition."""
     def __init__(self, service_stub, sv_def):
         self._sv_def = sv_def
         self._service_stub = service_stub
 
     FMT = "EventDef: %s -> %s\n\tPyType(%s), UPnPType(%s)"
+
     def __str__(self):
         """String representation."""
         return EventDef.FMT % (
@@ -215,9 +226,9 @@ class EventDef:
             self._sv_def['upnpType'])
 
 
-##############################################
+#
 # SV DEF
-##############################################
+#
 
 class SvDef:
 
@@ -248,6 +259,7 @@ class SvDef:
 
     FMT = "SvDef: %s -> %s\n\tPyType(%s), "
     FMT += "UPnPType(%s), Default(%s), Evented(%s)\n"
+
     def __str__(self):
         """String representation."""
         return SvDef.FMT % (self._service_stub.get_short_service_id(),
@@ -256,11 +268,12 @@ class SvDef:
                             str(self.is_evented()))
 
 
-##############################################
+#
 # ACTION DEF
-##############################################
+#
 
 class ActionDef:
+
     """Action Definition. Referenset to input arguments and output
     results."""
 
@@ -275,16 +288,17 @@ class ActionDef:
     def get_inargs(self):
         """Get list of input arguments of Action Definition. Tuples of
         (name, pyType and upnpType)."""
-        return [(arg['name'], arg['rsv']['pyType'], arg['rsv']['upnpType'])\
-                    for arg in self._action_def['inargs']]
+        return [(arg['name'], arg['rsv']['pyType'], arg['rsv']['upnpType'])
+                for arg in self._action_def['inargs']]
 
     def get_outargs(self):
         """Get list of result arguments of Action Definition. Tuples of
         (name, pyType and upnpType)."""
-        return [(arg['name'], arg['rsv']['pyType'], arg['rsv']['upnpType']) \
-                    for arg in self._action_def['outargs']]
+        return [(arg['name'], arg['rsv']['pyType'], arg['rsv']['upnpType'])
+               for arg in self._action_def['outargs']]
 
     FMT = "ActionDef: %s -> %s\n\tInArgs: %s\n\tOutArgs: %s\n"
+
     def __str__(self):
         """String representation of Action Definition."""
         return ActionDef.FMT % \
@@ -292,9 +306,9 @@ class ActionDef:
              self.get_name(), self.get_inargs(), self.get_outargs())
 
 
-##############################################
+#
 # UPNP SERVICE STUB
-##############################################
+#
 
 class UPnPServiceStub:
 
@@ -312,8 +326,8 @@ class UPnPServiceStub:
         self._synch_httpc = upnp_client.synch_httpc
         self._device = device
         self._service = service
-        self._sv_def_map = {} # name: svdef
-        self._action_def_map = {} # actionName: actiondef
+        self._sv_def_map = {}  # name: svdef
+        self._action_def_map = {}  # actionName: actiondef
         self._subscription = Subscription()
         self._base_callback_url = self._upnp_client.get_base_event_url()
         self._notify_handlers = []
@@ -324,11 +338,9 @@ class UPnPServiceStub:
         for action_spec in service_spec['actions']:
             self._define_action(action_spec)
 
-
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
-
+    #
     def _define_state_variable(self, sv_spec):
         """Define a state variable for the stub. Called as a result of parsing
         the xml service description."""
@@ -338,13 +350,13 @@ class UPnPServiceStub:
             sv_def['upnpType'] = upnp_type = str(sv_spec['dataType'])
             sv_def['pyType'] = upnpmarshal.loads_python_type(upnp_type)
             dvalue = sv_spec['defaultValue']
-            if  dvalue != None:
+            if dvalue != None:
                 dvalue = upnpmarshal.loads_data_by_upnp_type(upnp_type, dvalue)
             sv_def['defaultValue'] = dvalue
-            sv_def['sendEvents'] = upnpmarshal.loads(types.BooleanType,
+            sv_def['sendEvents'] = upnpmarshal.loads(bool,
                                                      sv_spec['sendEvents'])
             self._sv_def_map[name] = sv_def
-        except upnpmarshal.MarshalError, why:
+        except upnpmarshal.MarshalError as why:
             print why
             return
 
@@ -360,14 +372,14 @@ class UPnPServiceStub:
     def _create_action_request(self, action_name, inargs):
         """Build action request as string given name and input arguments."""
         # Check inargs
-        if not self._action_def_map.has_key(action_name):
+        if action_name not in self._action_def_map:
             return None, None
         action_def = self._action_def_map[action_name]
         if not len(inargs) == len(action_def['inargs']):
             return None, None
 
         # Convert inargs from python objects to (name, value) strings
-        args = [] # (name, data)
+        args = []  # (name, data)
         for i in range(len(inargs)):
             inargdef = action_def['inargs'][i]
             stv = inargdef['rsv']
@@ -394,7 +406,8 @@ class UPnPServiceStub:
             header, body = reply
             if header[:len(_HTTP_200_RESPONSE)] == _HTTP_200_RESPONSE:
                 return header, body
-            else: return None, None
+            else:
+                return None, None
         elif status == httpclient.SynchHTTPClient.FAIL:
             return None, None
 
@@ -428,7 +441,7 @@ class UPnPServiceStub:
     def notify(self, sid, seq, var_list):
         """Event notification delivered by UPnPClient."""
         for var_name, data in var_list:
-            if self._sv_def_map.has_key(var_name):
+            if var_name in self._sv_def_map:
                 stv = self._sv_def_map[var_name]
                 obj = upnpmarshal.loads_data_by_upnp_type(
                     stv['upnpType'], data)
@@ -467,20 +480,16 @@ class UPnPServiceStub:
                 return False
         return False
 
-
-
-
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
-
+    #
     def get_service_id(self):
         """Return full service id of remote UPnPService."""
         return self._service['serviceId']
 
     def get_short_service_id(self):
         """Return short service id of remote UPnPService."""
-        return  self._service['serviceId'].split(":", 3)[3]
+        return self._service['serviceId'].split(":", 3)[3]
 
     def get_service_type(self):
         """Return service type of remote UPnPService."""
@@ -519,12 +528,12 @@ class UPnPServiceStub:
 
     def get_sv_def(self, sv_name):
         """Get state variable definition given name."""
-        if self._sv_def_map.has_key(sv_name):
+        if sv_name in self._sv_def_map:
             return SvDef(self, self._sv_def_map[sv_name])
 
     def get_action_def(self, action_name):
         """Get action definition given name. """
-        if self._action_def_map.has_key(action_name):
+        if action_name in self._action_def_map:
             return ActionDef(self, self._action_def_map[action_name])
 
     def get_action(self, action_name):
@@ -547,12 +556,12 @@ class UPnPServiceStub:
         if outargs == None:
             return None
         self.log("Action %s %s %s" % (action_def['name'], inargs, outargs))
-        return  outargs
+        return outargs
 
     def log(self, msg):
         """Utility log object."""
         msg = "%s %s" % (self.get_short_service_id(), msg)
-        self._upnp_client.logger.log("SERVICE",  msg)
+        self._upnp_client.logger.log("SERVICE", msg)
 
     def subscribe(self, handler):
         """Subscribe to events from remote UPnPService. Blocking."""
@@ -597,5 +606,5 @@ class UPnPServiceStub:
         """
         if action_name in self.get_action_names():
             return ActionWrapper(self, action_name)
-        else :
-            raise AttributeError, action_name
+        else:
+            raise AttributeError(action_name)

@@ -17,9 +17,10 @@ import exceptions
 import os
 import threadhotel
 
-##############################################
+#
 # BLOCKING HTTP CLIENT
-##############################################
+#
+
 
 class SynchHTTPClient:
 
@@ -45,7 +46,7 @@ class SynchHTTPClient:
         rid = self._asynchclient.get_request_id()
         self._threadhotel.reserve(rid)
         self._asynchclient.request(rid, host, port, request_data,
-                self._abort_handler, self._response_handler, timeout=10)
+                                   self._abort_handler, self._response_handler, timeout=10)
         return self._threadhotel.wait_reply(rid)
 
     def _abort_handler(self, rid, error, comment):
@@ -59,12 +60,11 @@ class SynchHTTPClient:
         self._threadhotel.wakeup(rid, SynchHTTPClient.OK, reply)
 
 
-
-##############################################
+#
 #  NON-BLOCKING  HTTP CLIENT
-##############################################
-
+#
 _LOG_TAG = "HTTPClient"
+
 
 class AsynchHTTPClient:
 
@@ -80,14 +80,14 @@ class AsynchHTTPClient:
     def __init__(self, task_runner, logger=None):
         self._task_runner = task_runner
         self._request_id = 0
-        self._requests = {} # requestID: (request, aHandler, rHandler)
+        self._requests = {}  # requestID: (request, aHandler, rHandler)
         # Logging
         self._log_tag = _LOG_TAG
         self._logger = logger
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
+    #
 
     def get_request_id(self):
         """Generate new request id."""
@@ -118,9 +118,9 @@ class AsynchHTTPClient:
             request = tup[0]
             request.close()
 
-    ##############################################
+    #
     # PRIVATE HANDLERS
-    ##############################################
+    #
 
     def _handle_response(self, rid, header, body):
         """Dispatches responses by invoking given r_handler."""
@@ -142,9 +142,9 @@ class AsynchHTTPClient:
         if a_handler:
             a_handler(rid, error, why)
 
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
+    #
 
     def _log(self, msg):
         """Logger."""
@@ -152,13 +152,15 @@ class AsynchHTTPClient:
             self._logger.log(self._log_tag, msg)
 
 
-##############################################
+#
 # HTTP REQUEST
-##############################################
+#
 
 class HTTPRequestError(exceptions.Exception):
+
     """Error associated with the request response protocol."""
     pass
+
 
 class HTTPRequest:
 
@@ -214,20 +216,20 @@ class HTTPRequest:
         self._recv_to = recv_timeout
         self._conn_to = conn_timeout
         # Handler Upcalls
-        self._recv_handler = lambda requestID, hdr, body:None
-        self._abort_handler = lambda requestID, error, comment : None
+        self._recv_handler = lambda requestID, hdr, body: None
+        self._abort_handler = lambda requestID, error, comment: None
         # Logging
         self._logger = logger
         self._log_tag = "Request [%d]" % self._request_id
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
+    #
 
     def dispatch(self, host, port, request_data):
         """Dispatch a new request."""
-        if self._state !=  HTTPRequest.STATE_INIT:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+        if self._state != HTTPRequest.STATE_INIT:
+            raise HTTPRequestError("Illegal Operation given protocol State")
         self._request_data = request_data
         self._connect_start(host, port)
 
@@ -241,13 +243,13 @@ class HTTPRequest:
 
     def close(self):
         """Cleanup the request-response protocol and close the socket."""
-        if self._conn_task :
+        if self._conn_task:
             self._conn_task.cancel()
-        if self._conn_to_task :
+        if self._conn_to_task:
             self._conn_to_task.cancel()
-        if self._send_task :
+        if self._send_task:
             self._send_task.cancel()
-        if self._recv_task :
+        if self._recv_task:
             self._recv_task.cancel()
         if self._recv_to_task:
             self._recv_to_task.cancel()
@@ -259,27 +261,27 @@ class HTTPRequest:
                 pass
             self._sock = None
 
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
+    #
 
     def _log(self, msg):
         """Logging."""
         if self._logger:
             self._logger.log(self._log_tag, msg)
 
-
     def _get_content_length(self):
         """Extract body length from HTTP header."""
         lines = self._header.split('\r\n')
-        if not lines :
+        if not lines:
             return
         for line in lines[1:]:
             if len(line.strip()) > 0:
                 elem_name, elem_value = line.split(":", 1)
                 if elem_name.lower() == 'content-length':
                     return int(elem_value.strip())
-        else: return 0
+        else:
+            return 0
 
     def _http_header_ok(self):
         """Check that received data is a valid HTTP header."""
@@ -291,19 +293,22 @@ class HTTPRequest:
     def _do(self, method, args=()):
         """Shorthand for add_task."""
         return self._task_runner.add_task(method, args)
+
     def _do_write(self, file_descriptor, method):
         """Shorthand for add_write."""
         return self._task_runner.add_write_task(file_descriptor, method)
+
     def _do_read(self, file_descriptor, method):
         """Shorthand for add_read."""
         return self._task_runner.add_read_task(file_descriptor, method)
+
     def _do_to(self, timeout, method):
         """Shorthand for add_delay."""
         return self._task_runner.add_delay_task(timeout, method)
 
-    ##############################################
+    #
     # PRIVATE PROTOCOL METHODS
-    ##############################################
+    #
 
     def _connect_start(self, host, port):
         """Start non-blocking connect."""
@@ -327,7 +332,7 @@ class HTTPRequest:
         """
         self._log("Connect OK")
         if self._state != HTTPRequest.STATE_CONNECT_STARTED:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         self._state = HTTPRequest.STATE_CONNECT_OK
         self._conn_task.cancel()
         self._conn_to_task.cancel()
@@ -338,7 +343,7 @@ class HTTPRequest:
         """Handle connect timeout."""
         self._log("Connect Timeout")
         if self._state != HTTPRequest.STATE_CONNECT_STARTED:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         self._connect_attempts += 1
         if self._connect_attempts >= self._max_connect_attempts:
             # Abort
@@ -357,19 +362,20 @@ class HTTPRequest:
         self._send_count += 1
         first_attempt = True if self._send_count == 1 else False
         if first_attempt and self._state != HTTPRequest.STATE_CONNECT_OK:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         elif not first_attempt and \
                 self._state != HTTPRequest.STATE_SEND_STARTED:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         if first_attempt:
             self._state = HTTPRequest.STATE_SEND_STARTED
             self._log("Send Started")
-        else: self._log("Send Continue")
+        else:
+            self._log("Send Continue")
 
         # (Continue) Send
         try:
             bytes_sent = self._sock.send(self._request_data[self._bytes:])
-        except socket.error, why:
+        except socket.error as why:
             if why[0] == errno.EAGAIN:
                 # Send on full buffer
                 # Continue sending again once the socket becomes writeable
@@ -397,7 +403,7 @@ class HTTPRequest:
                 return
         else:
             # 0 bytes sent => error
-            if self._send_task :
+            if self._send_task:
                 self._send_task.cancel()
             msg = "Sent 0 bytes, yet fd was writeable and no exception occurred"
             self._abort(errno.EPIPE, msg)
@@ -413,7 +419,7 @@ class HTTPRequest:
         """Handle completely sent request."""
         self._log("Send OK")
         if self._state != HTTPRequest.STATE_SEND_OK:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         # Cancel Send Task
         if self._send_task:
             self._send_task.cancel()
@@ -431,10 +437,10 @@ class HTTPRequest:
         self._recv_count += 1
         first_attempt = True if self._recv_count == 1 else False
         if first_attempt and self._state != HTTPRequest.STATE_SEND_OK:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         elif not first_attempt and \
                 self._state != HTTPRequest.STATE_RECV_STARTED:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         if first_attempt:
             self._state = HTTPRequest.STATE_RECV_STARTED
             self._log("Recv Started")
@@ -444,7 +450,7 @@ class HTTPRequest:
         # Recv a chunk
         try:
             data = self._sock.recv(1024)
-        except socket.error, why:
+        except socket.error as why:
             if why[0] == errno.EAGAIN:
                 # EAGAIN: Enter/stay in writeset
                 self._recv_continue()
@@ -511,7 +517,7 @@ class HTTPRequest:
         """Handle receive timeout."""
         self._log("Receive Timeout")
         if self._state != HTTPRequest.STATE_SEND_OK:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         # Cancel RecvTask
         if self._recv_task:
             self._recv_task.cancel()
@@ -521,7 +527,7 @@ class HTTPRequest:
         """Handle completely received response."""
         self._log("Receive OK")
         if self._state != HTTPRequest.STATE_RECV_OK:
-            raise HTTPRequestError, "Illegal Operation given protocol State"
+            raise HTTPRequestError("Illegal Operation given protocol State")
         # Upcall
         body = self._response_data[len(self._header) + len(self._delimiter):]
         self._state = HTTPRequest.STATE_DONE
@@ -531,21 +537,20 @@ class HTTPRequest:
     def _abort(self, error, comment):
         """Abort this request-response protocol."""
         fmt = "Abort [%d] %s '%s' (%s)"
-        self._log(fmt % (error, errno.errorcode[error], \
-                             os.strerror(error), comment))
+        self._log(fmt % (error, errno.errorcode[error],
+                 os.strerror(error), comment))
         self._state = HTTPRequest.STATE_DONE
         args = (self._request_id, error, comment)
         self._do(self._abort_handler, args)
 
 
-
-##############################################
+#
 # MAIN
-##############################################
-
+#
 if __name__ == '__main__':
 
     class _MockLogger:
+
         """Mock-up Logger."""
         def log(self, tag, msg):
             """Log to stdout."""
@@ -586,8 +591,8 @@ if __name__ == '__main__':
         print fmt % (error, errno.errorcode[error],
                      os.strerror(error), comment, rid)
 
-
     class _TestSynchHTTPClient:
+
         """Runnable test class for Synchronous HTTPClient."""
 
         def __init__(self, asynch_httpclient):

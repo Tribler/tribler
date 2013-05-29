@@ -9,26 +9,29 @@ import xml.dom.minidom as minidom
 import urlparse
 import uuid
 
-##############################################
+#
 #  PRIVATE UTILITY FUNCTIONS
-##############################################
+#
+
 
 def _get_subelement_data(element, subelement_tagname):
     """Parse the data given an element and the tagName of an
     assumed subelement of that element."""
     subelement = _get_subelement(element, subelement_tagname)
-    if not subelement :
+    if not subelement:
         return None
-    else :
+    else:
         return _get_element_data(subelement)
+
 
 def _get_subelement(element, subelement_tagname):
     """Get an element, given a parent element and a subelement tagname."""
     subelements = element.getElementsByTagName(subelement_tagname)
     if not subelements:
         return None
-    else :
+    else:
         return subelements[0]
+
 
 def _get_element_data(element):
     """Parse the data of the given element."""
@@ -40,15 +43,18 @@ def _get_element_data(element):
             text += node.data
     return str(text)
 
+
 def _get_absolute_url(base_url_string, url_string):
     """Construct absolute URL from an absolute base URL and a relative URL."""
     if base_url_string == None:
         # Try to use only url_string
         if _is_absolute_url(url_string):
             return url_string
-        else: return None
+        else:
+            return None
     else:
         return urlparse.urljoin(base_url_string, url_string)
+
 
 def _is_absolute_url(url_string):
     """Determine whether given URL is absolute or not."""
@@ -58,31 +64,32 @@ def _is_absolute_url(url_string):
         ret = False
     if url.port == None:
         ret = False
-    if len(url.netloc) == 0 :
+    if len(url.netloc) == 0:
         ret = False
     return ret
 
 
-
-##############################################
+#
 #  PUBLIC PARSERS
-##############################################
-
+#
 def parse_device_description(xml_description, base_url):
     """Parse device description. Return dictionary."""
     ddp = _DeviceDescriptionParser()
     return ddp.parse(xml_description, base_url)
+
 
 def parse_service_description(xml_description):
     """Parse service description. Return dictionary."""
     sdp = _ServiceDescriptionParser()
     return sdp.parse(xml_description)
 
-##############################################
+#
 #  DEVICE DESCRIPTION PARSER
-##############################################
+#
+
 
 class _DeviceDescriptionParser:
+
     """
     This class implements parsing of the xml description of a
     upnp device (rootdevice).
@@ -128,7 +135,8 @@ class _DeviceDescriptionParser:
             device['deviceDomain'] = tokens[1]
             device['deviceTypeShort'] = tokens[3]
             device['deviceVersion'] = tokens[4]
-        else : return None
+        else:
+            return None
 
         # UDN & UUID
         data = _get_subelement_data(device_elem, 'UDN')
@@ -138,7 +146,8 @@ class _DeviceDescriptionParser:
         if len(tokens) == 2:
             device['UDN'] = data
             device['uuid'] = uuid.UUID(tokens[1])
-        else: return None
+        else:
+            return None
 
         # Optional fields
         device['name'] = _get_subelement_data(device_elem,
@@ -158,8 +167,8 @@ class _DeviceDescriptionParser:
         device['UPC'] = _get_subelement_data(device_elem, 'UPC')
         url_str = _get_subelement_data(device_elem, 'presentationURL')
         if url_str:
-            device['presentationURL'] =  _get_absolute_url(device['URLBase'],
-                                                           url_str)
+            device['presentationURL'] = _get_absolute_url(device['URLBase'],
+                  url_str)
 
         # Services
         device['services'] = []
@@ -170,15 +179,15 @@ class _DeviceDescriptionParser:
                 data_str = {}
                 data_str['serviceType'] = _get_subelement_data(service_elem,
                                                                'serviceType')
-                data_str['serviceId'] =  _get_subelement_data(service_elem,
-                                                              'serviceId')
-                url_str =  _get_subelement_data(service_elem, 'SCPDURL')
-                data_str['SCPDURL'] =  _get_absolute_url(device['URLBase'],
-                                                         url_str)
-                url_str =  _get_subelement_data(service_elem, 'controlURL')
+                data_str['serviceId'] = _get_subelement_data(service_elem,
+                        'serviceId')
+                url_str = _get_subelement_data(service_elem, 'SCPDURL')
+                data_str['SCPDURL'] = _get_absolute_url(device['URLBase'],
+                        url_str)
+                url_str = _get_subelement_data(service_elem, 'controlURL')
                 data_str['controlURL'] = _get_absolute_url(device['URLBase'],
                                                            url_str)
-                url_str =  _get_subelement_data(service_elem, 'eventSubURL')
+                url_str = _get_subelement_data(service_elem, 'eventSubURL')
                 data_str['eventSubURL'] = _get_absolute_url(device['URLBase'],
                                                             url_str)
                 device['services'].append(data_str)
@@ -186,11 +195,12 @@ class _DeviceDescriptionParser:
         return device
 
 
-##############################################
+#
 #  SERVICE  DESCRIPTION PARSER
-##############################################
+#
 
 class _ServiceDescriptionParser:
+
     """
     This class implements parsing of the xml description of a
     upnp service.
@@ -216,7 +226,7 @@ class _ServiceDescriptionParser:
 
         # State Variables
         service['stateVariables'] = []
-        sv_table_elem =  _get_subelement(root_elem, 'serviceStateTable')
+        sv_table_elem = _get_subelement(root_elem, 'serviceStateTable')
         sv_elems = sv_table_elem.getElementsByTagName('stateVariable')
         for sv_elem in sv_elems:
             stv = {}
@@ -262,9 +272,9 @@ class _ServiceDescriptionParser:
         return service
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 

@@ -10,29 +10,29 @@ import ssdpdaemon
 
 # SSDP Message Configuration
 
-_ROOT_CONF_TEMPL =  {
-    'target':  "upnp:rootdevice",
+_ROOT_CONF_TEMPL = {
+    'target': "upnp:rootdevice",
     'usn': "uuid:%(uuid)s::upnp:rootdevice",
-    }
+}
 
 _DEVICE_CONF_TEMPL_1 = {
     'target': "uuid:%(uuid)s",
     'usn': "uuid:%(uuid)s",
-    }
+}
 
 _DEVICE_CONF_TEMPL_2 = {
-    'target':  "urn:%(device_domain)s:device:" + \
+    'target': "urn:%(device_domain)s:device:" +
         "%(device_type)s:%(device_version)s",
-    'usn': "uuid:%(uuid)s::urn:%(device_domain)s:device:" + \
+    'usn': "uuid:%(uuid)s::urn:%(device_domain)s:device:" +
         "%(device_type)s:%(device_version)s",
-    }
+}
 
 _SERVICE_CONF_TEMPL = {
-    'target':  "urn:schemas-upnp-org:service:" + \
+    'target': "urn:schemas-upnp-org:service:" +
         "%(service_type)s:%(service_version)s",
-    'usn': "uuid:%(uuid)s::urn:schemas-upnp-org:service:" + \
+    'usn': "uuid:%(uuid)s::urn:schemas-upnp-org:service:" +
         "%(service_type)s:%(service_version)s",
-    }
+}
 
 _MAX_DELAY = 4
 _MAX_AGE = 1800
@@ -52,6 +52,7 @@ def _create_msg_config(config_template, kwargs):
         'target': config_template['target'] % kwargs,
         'usn': config_template['usn'] % kwargs
         }
+
 
 def _create_msg_configs(root_device):
     """Create all message configs for all devices and services."""
@@ -80,18 +81,18 @@ def _create_msg_configs(root_device):
 
 def _initialise_message(ssdp_config, msg):
     """Utility method for initialising SSDP messages with common data."""
-    msg.init (
+    msg.init(
         location=ssdp_config['location'],
         osversion=ssdp_config['osversion'],
-        productversion = ssdp_config['productversion'],
+        productversion=ssdp_config['productversion'],
         max_age=ssdp_config['max_age']
         )
     return msg
 
 
-##############################################
+#
 # SSDP SERVER
-##############################################
+#
 
 class SSDPServer(ssdpdaemon.SSDPDaemon):
 
@@ -117,9 +118,9 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
         reference to itself."""
         self._sm = service_manager
 
-    ##############################################
+    #
     # PRIVATE PROTOCOL OPERATIONS
-    ##############################################
+    #
 
     def startup(self):
         """Extends superclass startup  when taskrunner starts."""
@@ -134,9 +135,9 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
         # Initial Announce
         self.announce()
 
-    ##############################################
+    #
     # OVERRIDE HANDLERS
-    ##############################################
+    #
 
     def handle_search(self, msg, sock_addr):
         """Handles the receipt of a SSDP Search message."""
@@ -152,7 +153,7 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
             configs = _create_msg_configs(self._root_device)
         elif msg.st == "upnp:rootdevice":
             # Reply only single special message for root device
-            configs = [_create_msg_config(_ROOT_CONF_TEMPL, \
+            configs = [_create_msg_config(_ROOT_CONF_TEMPL,
                                           self._root_device.__dict__)]
         else:
             device_type = msg.st.split(':')[-2]
@@ -183,9 +184,9 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
         """Handles the receipt of a SSDP UnAnnounce message."""
         self.log("IGNORE %s from %s" % (msg.type, sock_addr))
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
+    #
 
     def announce(self):
         """Multicast SSDP announce messages."""
@@ -219,55 +220,66 @@ class SSDPServer(ssdpdaemon.SSDPDaemon):
         ssdpdaemon.SSDPDaemon.close(self)
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 
     import uuid
+
     class MockRootDevice:
+
         """Mockup root device."""
         def __init__(self):
             self.uuid = uuid.uuid1()
             self.device_domain = "schemas-upnp-org"
             self.device_type = "Basic"
             self.device_version = 1
+
         def get_devices(self):
             """Get mock devices."""
             return []
+
         def get_services(self):
             """Get mock services."""
             return []
 
     class MockServiceManager:
+
         """Mock up service manager."""
         def __init__(self):
             pass
+
         def get_root_device(self):
             """Get mock root device."""
             return MockRootDevice()
+
         def get_description_url(self):
             """Get mock description URL."""
             return "http://192.168.1.235:44444/description.xml"
+
         def get_os_version(self):
             """Get mock os version."""
             return "linux 1.0"
+
         def get_product_version(self):
             """Get mock product version."""
             return "product 1.0"
+
         def set_ssdp_port(self, port):
             """Set mock Port."""
             pass
 
     class MockLogger:
+
         """MockLogger object."""
         def __init__(self):
             pass
+
         def log(self, log_tag, msg):
             """Log to std out."""
             print log_tag, msg
-
 
     import Tribler.UPnP.common.taskrunner as taskrunner
     TR = taskrunner.TaskRunner()

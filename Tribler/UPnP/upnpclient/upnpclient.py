@@ -19,10 +19,13 @@ _HTTP_200_RESPONSE = "HTTP/1.1 200 OK"
 
 _LOG_TAG = "UPnPClient"
 
+
 class _Logger:
+
     """Internal Logger presented to internal modules."""
     def __init__(self, logger):
         self._logger = logger
+
     def log(self, log_tag, msg):
         """
         UPnPClient logtag is atted to log info from
@@ -30,9 +33,10 @@ class _Logger:
         if self._logger:
             self._logger.log(_LOG_TAG, log_tag, msg)
 
-##############################################
+#
 # SERVICE STUB CACHE
-##############################################
+#
+
 
 class ServiceStubCache:
 
@@ -90,11 +94,9 @@ class ServiceStubCache:
         return None
 
 
-
-##############################################
+#
 # UPNP CLIENT
-##############################################
-
+#
 class UPnPClient:
 
     """UPnP Client (Control Point) keeps an update view of the local network,
@@ -126,10 +128,10 @@ class UPnPClient:
         self.synch_httpc = httpclient.SynchHTTPClient(self._asynch_httpc)
 
         # Pending Non-blocking HTTP Requests
-        self._pending = {} # rid: uuid
+        self._pending = {}  # rid: uuid
 
         # UPnPDevice Specifications
-        self._device_map = {} # uuid:{}
+        self._device_map = {}  # uuid:{}
 
         # Service Stubs (cache)
         self._stub_cache = ServiceStubCache()
@@ -147,9 +149,9 @@ class UPnPClient:
         """Submit a new search for devices. Non-blocking."""
         self.task_runner.add_task(self._ssdpc.search)
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
+    #
 
     def get_base_event_url(self):
         """Get URL where notifications from remote services will be accepted."""
@@ -196,7 +198,7 @@ class UPnPClient:
     def get_services_by_short_id(self, short_service_id):
         """Get all service stubs of live services, given short service id."""
         service_id = "urn:upnp-org:serviceId:" + short_service_id
-        return  self.get_services_by_id(service_id)
+        return self.get_services_by_id(service_id)
 
     def get_services_by_id(self, service_id):
         """Get all service stubs of live services, given service id."""
@@ -223,11 +225,9 @@ class UPnPClient:
         self._ssdpc.close()
         self._asynch_httpc.close()
 
-
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
-
+    #
     def _get_all_services(self):
         """Return all services know to UPnPClient. Return tuples of
         device_uuid, service_id, service_type."""
@@ -241,7 +241,7 @@ class UPnPClient:
     def _get_cached_stub(self, device_uuid, service_id):
         """Get service stub instance from cache."""
         # Check Device Map
-        if not self._device_map.has_key(device_uuid):
+        if device_uuid not in self._device_map:
             return None
         # Check Cache
         return self._stub_cache.lookup(device_uuid, service_id)
@@ -250,7 +250,7 @@ class UPnPClient:
         """Get device description (dictionary) and service description
         (dictionary)."""
         # Check Device Map
-        if not self._device_map.has_key(device_uuid):
+        if device_uuid not in self._device_map:
             return None, None
         # Check if Device has Service with given service_id
         service = None
@@ -279,7 +279,7 @@ class UPnPClient:
         http_request = _HTTP_GET_REQUEST_FMT % (url.path,
                                                 url.hostname, url.port)
         status, reply = self.synch_httpc.request(url.hostname,
-                                                  url.port, http_request)
+                                                 url.port, http_request)
         xml_data = ""
         if status == httpclient.SynchHTTPClient.OK:
             header, xml_data = reply
@@ -297,11 +297,9 @@ class UPnPClient:
         self._stub_cache.insert(stub)
         return stub
 
-
-    ##############################################
+    #
     # PRIVATE HANDLERS
-    ##############################################
-
+    #
     def _handle_ssdpc_add_device(self, uuid, location):
         """A new device has been added by the SSDP client."""
          # Check Location
@@ -344,7 +342,7 @@ class UPnPClient:
             for rid in found_rids:
                 del self._pending[rid]
         # Remove from deviceMap
-        if self._device_map.has_key(uuid):
+        if uuid in self._device_map:
             del self._device_map[uuid]
 
     def _handle_httpc_response(self, rid, header, body):
@@ -353,7 +351,7 @@ class UPnPClient:
         uuid, location = self._pending[rid]
         del self._pending[rid]
 
-        if self._device_map.has_key(uuid):
+        if uuid in self._device_map:
             # Second response
             return
 
@@ -374,9 +372,9 @@ class UPnPClient:
         stub = self._get_cached_stub(device_uuid, service_id)
         stub.notify(sid, seq, var_list)
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == "__main__":
 
@@ -434,7 +432,7 @@ if __name__ == "__main__":
     def test_swp_action(client):
         """Test SwitchPower action api."""
         services = client.get_services_by_short_id("MySwitchPower")
-        #services = client.get_services_by_short_id("SwitchPower:1")
+        # services = client.get_services_by_short_id("SwitchPower:1")
         if not services:
             return
         swp_service = services[0]
@@ -446,6 +444,7 @@ if __name__ == "__main__":
         swp_service.unsubscribe(event_handler)
 
     class Test:
+
         """Tester."""
         def __init__(self, client):
             self.client = client
@@ -454,14 +453,13 @@ if __name__ == "__main__":
             """Run testeer."""
             LOGGER.log("TEST", "", "Start")
             time.sleep(4)
-            #test_reflection(self.client)
-            #stub_list = test_service_id(self.client)
-            #stub_list = test_service_type(self.client)
-            #print_stub_list(stub_list)
+            # test_reflection(self.client)
+            # stub_list = test_service_id(self.client)
+            # stub_list = test_service_type(self.client)
+            # print_stub_list(stub_list)
             test_swp_action(self.client)
             time.sleep(4)
             LOGGER.log("TEST", "", "Stop")
-
 
     TEST = Test(CLIENT)
     THREAD = threading.Thread(target=TEST.run)
@@ -469,9 +467,9 @@ if __name__ == "__main__":
     THREAD.start()
     try:
         TR.run_forever()
-    except KeyboardInterrupt, w:
+    except KeyboardInterrupt as w:
         print
-    except exceptions.Exception, e:
+    except exceptions.Exception as e:
         traceback.print_exc()
     CLIENT.close()
     TR.stop()

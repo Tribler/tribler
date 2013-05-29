@@ -11,13 +11,16 @@ import __builtin__
 import threading
 import exceptions
 
-##############################################
+#
 # OBJECT CONSOLE
-##############################################
+#
+
 
 class ConsoleError(exceptions.Exception):
+
     """Error associated with the console."""
     pass
+
 
 class ObjectConsole:
 
@@ -36,7 +39,6 @@ class ObjectConsole:
     included in the console namespace.
     """
     TIMEOUT = 2
-
 
     def __init__(self, object_, name_space=None, run='run',
                  stop='stop', name=""):
@@ -62,7 +64,6 @@ class ObjectConsole:
         self._app_name = name
         self._usage()
 
-
     def _usage(self):
         """Print usage information."""
         print "\nConsole:", self._app_name
@@ -81,4 +82,4 @@ class ObjectConsole:
         self._object_stop()
         self._thread.join(ObjectConsole.TIMEOUT)
         if self._thread.isAlive():
-            raise ConsoleError, "Worker Thread still alive"
+            raise ConsoleError("Worker Thread still alive")

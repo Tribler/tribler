@@ -8,6 +8,7 @@ import time
 from Tribler.Core.Statistics.Status import Status
 from Tribler.Core.Statistics.Status import LivingLabReporter
 
+
 class TestOnChangeStatusReporter(Status.OnChangeStatusReporter):
 
     name = None
@@ -16,6 +17,7 @@ class TestOnChangeStatusReporter(Status.OnChangeStatusReporter):
     def report(self, element):
         self.name = element.name
         self.value = element.value
+
 
 class TestPeriodicStatusReporter(Status.PeriodicStatusReporter):
     last_value = None
@@ -26,7 +28,9 @@ class TestPeriodicStatusReporter(Status.PeriodicStatusReporter):
         assert len(elements) == 1
         self.last_value = elements[0].get_value()
 
+
 class StatusTest(unittest.TestCase):
+
     """
     Unit tests for the Status class
 
@@ -35,6 +39,7 @@ class StatusTest(unittest.TestCase):
 
     def setUp(self):
         pass
+
     def tearDown(self):
         pass
 
@@ -60,7 +65,7 @@ class StatusTest(unittest.TestCase):
         self.assertEquals(x, i)
 
         # Test set and get values
-        for j in range(0,10):
+        for j in range(0, 10):
             i.set_value(j)
             self.assertEquals(i.get_value(), j)
 
@@ -69,7 +74,7 @@ class StatusTest(unittest.TestCase):
         try:
             status.get_status_element("TestInteger")
             self.fail("Remove does not remove status element 'TestInteger'")
-        except Status.NoSuchElementException, e:
+        except Status.NoSuchElementException as e:
             # Expected
             pass
 
@@ -80,28 +85,27 @@ class StatusTest(unittest.TestCase):
         try:
             i = status.create_status_element(None)
             self.fail("Does not throw exception with no name")
-        except AssertionError, e:
+        except AssertionError as e:
             pass
 
         try:
             status.get_status_element(None)
             self.fail("Invalid get_status_element does not throw exception")
-        except AssertionError,e:
+        except AssertionError as e:
             pass
 
         try:
             status.remove_status_element(None)
             self.fail("Invalid remove_status_element does not throw exception")
-        except AssertionError,e:
+        except AssertionError as e:
             pass
 
         elem = Status.StatusElement("name", "description")
         try:
             status.remove_status_element(elem)
             self.fail("Invalid remove_status_element does not throw exception")
-        except Status.NoSuchElementException,e:
+        except Status.NoSuchElementException as e:
             pass
-
 
     def testPolicy_ON_CHANGE(self):
 
@@ -116,11 +120,10 @@ class StatusTest(unittest.TestCase):
             if x != reporter.value:
                 self.fail("Callback does not work for ON_CHANGE policy")
             if reporter.name != "TestInteger":
-                self.fail("On_Change callback get's the wrong parameter, got '%s', expected 'TestInteger'"%reporter.name)
+                self.fail("On_Change callback get's the wrong parameter, got '%s', expected 'TestInteger'" % reporter.name)
 
         # Clean up
         status.remove_status_element(i)
-
 
     def testPolicy_PERIODIC(self):
 
@@ -133,14 +136,14 @@ class StatusTest(unittest.TestCase):
 
         for x in range(0, 5):
             i.set_value(x)
-            self.assertEquals(reporter.last_value, None) # Not updated yet
+            self.assertEquals(reporter.last_value, None)  # Not updated yet
 
         time.sleep(1)
 
         assert reporter.last_value == 4
 
         for x in range(5, 9):
-            self.assertEquals(reporter.last_value, 4) # Not updated yet
+            self.assertEquals(reporter.last_value, 4)  # Not updated yet
             i.set_value(x)
         time.sleep(1)
 
@@ -193,6 +196,7 @@ class StatusTest(unittest.TestCase):
 
         status.remove_event(event)
 
+
 class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter):
 
     def __init__(self, name, report_time):
@@ -214,7 +218,6 @@ class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter)
         finally:
             self.cond.release()
 
-
     def post(self, xml):
         # TODO: Check the XML?
         print xml
@@ -224,7 +227,7 @@ class TestLivingLabPeriodicReporter(LivingLabReporter.LivingLabPeriodicReporter)
         self.cond.release()
 
     def count_errors(self, zero, error):
-        print "ERROR",error
+        print "ERROR", error
         self.errors.append(error)
 
     def get_errors(self):

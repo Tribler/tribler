@@ -20,22 +20,23 @@ argsdef = [('torr', '', 'original torrent file, mandatory argument!'),
            ('end', '', 'end time in seconds, if not specified the program will download the original video file until the end'),
            ('videoOut', 'video_part.mpeg', 'name for the segment of downloaded video'),
            ('torrName', 'videoOut', 'name for the torrent created from the downloaded segment of video'),
-           ('destdir', 'default download dir','dir to save torrent (and stream)'),
+           ('destdir', 'default download dir', 'dir to save torrent (and stream)'),
            ('continueDownload', 'False', 'set to true to continue downloading and seeding the original torrent'),
            ('createNewTorr', 'True', 'create a torrent with the newly downloaded section of video'),
            ('quitAfter', 'Flase', 'quit the program after the segmented video has been downloaded'),
            ('seedAfter', 'True', 'share the newly created torrent'),
            ('debug', 'False', 'set to true for additional information about the process')]
 
+
 def get_usage(defs):
-    return parseargs.formatDefinitions(defs,80)
+    return parseargs.formatDefinitions(defs, 80)
 
 
-def vod_event_callback(d,event,params):
+def vod_event_callback(d, event, params):
     if event == VODEVENT_START:
 
         stream = params["stream"]
-        length   = params["length"]
+        length = params["length"]
         mimetype = params["mimetype"]
 
         global FIRST_ITERATION, QUIT_NOW, SESSION
@@ -72,7 +73,7 @@ def vod_event_callback(d,event,params):
                 if mimetype == 'video/mp2t':
                     # Ric if it is a ts stream we can round the start
                     # byte to the beginning of a ts packet (ts pkt = 188 bytes)
-                    seekbyte = seekbyte - seekbyte%188
+                    seekbyte = seekbyte - seekbyte % 188
 
                     stream.seek(int(seekbyte))
 
@@ -86,9 +87,8 @@ def vod_event_callback(d,event,params):
 
         if end != '':
             # Determine the final size of the stream depending on the end Time
-            endbyte = float( bitrate * int(config['end']) )
+            endbyte = float(bitrate * int(config['end']))
             partialSize = endbyte - seekbyte
-
 
         else:
             print >>sys.stderr, "Seeking to the the beginning"
@@ -104,14 +104,14 @@ def vod_event_callback(d,event,params):
         if config['debug']:
             print >>sys.stderr, "main: Saving the file in the following location: ", filename
 
-        f = open(filename,"wb")
+        f = open(filename, "wb")
         prev_data = None
 
         while not FIRST_ITERATION and (currentSize < partialSize):
             data = stream.read()
             if config['debug']:
-                print >>sys.stderr,"main: VOD ready callback: reading",type(data)
-                print >>sys.stderr,"main: VOD ready callback: reading",len(data)
+                print >>sys.stderr, "main: VOD ready callback: reading", type(data)
+                print >>sys.stderr, "main: VOD ready callback: reading", len(data)
             if len(data) == 0 or data == prev_data:
                 if config['debug']:
                     print >>sys.stderr, "main: Same data replicated: we reached the end of the stream"
@@ -120,13 +120,12 @@ def vod_event_callback(d,event,params):
             currentSize += len(data)
             prev_data = data
 
-
         # Stop the download
         if not config['continueDownload']:
-            #SESSION.remove_
+            # SESSION.remove_
             d.stop()
 
-        #seek(0)
+        # seek(0)
 
         if config['quitAfter']:
             QUIT_NOW = True
@@ -139,9 +138,10 @@ def vod_event_callback(d,event,params):
         if config['createNewTorr']:
             createTorr(filename)
 
+
 def createTorr(filename):
 
-    #get the time in a convinient format
+    # get the time in a convinient format
     seconds = int(config['end']) - int(config['start'])
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
@@ -154,61 +154,60 @@ def createTorr(filename):
     dcfg = DownloadStartupConfig()
 #  dcfg.set_dest_dir(basename)
     tdef = TorrentDef()
-    tdef.add_content( filename, playtime=humantime)
+    tdef.add_content(filename, playtime=humantime)
     tdef.set_tracker(SESSION.get_internal_tracker_url())
     print >>sys.stderr, tdef.get_tracker()
     tdef.finalize()
 
     if config['torrName'] == '':
-        torrentbasename = config['videoOut']+'.torrent'
+        torrentbasename = config['videoOut'] + '.torrent'
     else:
-        torrentbasename = config['torrName']+'.torrent'
+        torrentbasename = config['torrName'] + '.torrent'
 
-    torrentfilename = os.path.join(config['destdir'],torrentbasename)
+    torrentfilename = os.path.join(config['destdir'], torrentbasename)
     tdef.save(torrentfilename)
 
     if config['seedAfter']:
         if config['debug']:
             print >>sys.stderr, "Seeding the newly created torrent"
-        d = SESSION.start_download(tdef,dcfg)
+        d = SESSION.start_download(tdef, dcfg)
         d.set_state_callback(state_callback)
 
 
 def state_callback(ds):
     try:
         d = ds.get_download()
-        p = "%.0f %%" % (100.0*ds.get_progress())
+        p = "%.0f %%" % (100.0 * ds.get_progress())
         dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
         ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
-        print >>sys.stderr,dlstatus_strings[ds.get_status() ],p,dl,ul,"=====", d.get_def().get_name()
+        print >>sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "=====", d.get_def().get_name()
     except:
         print_exc()
 
-    return (1.0,False)
+    return (1.0, False)
 
 if __name__ == "__main__":
 
-    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
-    print >>sys.stderr,"config is",config
-    print "fileargs is",fileargs
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
+    print >>sys.stderr, "config is", config
+    print "fileargs is", fileargs
 
     if config['torr'] == '' or config['start'] == '':
-        print "Usage:  ",get_usage(argsdef)
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
 
-
     scfg = SessionStartupConfig()
-    scfg.set_megacache( False )
-    scfg.set_overlay( False )
-    s = Session( scfg )
+    scfg.set_megacache(False)
+    scfg.set_overlay(False)
+    s = Session(scfg)
 
     SESSION = s
 
-    tdef = TorrentDef.load( config['torr'] )
+    tdef = TorrentDef.load(config['torr'])
     dscfg = DownloadStartupConfig()
-    dscfg.set_video_event_callback( vod_event_callback )
+    dscfg.set_video_event_callback(vod_event_callback)
 
-    d = s.start_download( tdef, dscfg )
+    d = s.start_download(tdef, dscfg)
 
     d.set_state_callback(state_callback)
 

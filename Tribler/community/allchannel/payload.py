@@ -1,6 +1,8 @@
 from Tribler.dispersy.payload import Payload
 
+
 class ChannelCastPayload(Payload):
+
     """
     Propagate semi random channel data.
 
@@ -8,6 +10,7 @@ class ChannelCastPayload(Payload):
      - torrent
     """
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, torrents):
             if __debug__:
                 assert isinstance(torrents, dict), 'torrents should be a dictionary containing cid:set(infohashes)'
@@ -26,19 +29,23 @@ class ChannelCastPayload(Payload):
         def torrents(self):
             return self._torrents
 
+
 class ChannelCastRequestPayload(ChannelCastPayload):
     pass
 
+
 class ChannelSearchPayload(Payload):
+
     """
     Propagate a search for a channel
     """
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, keywords):
             if __debug__:
                 assert isinstance(keywords, list), 'keywords should be list'
                 for keyword in keywords:
-                    assert isinstance(keyword, unicode), '%s is type %s'%(keyword, type(keyword))
+                    assert isinstance(keyword, unicode), '%s is type %s' % (keyword, type(keyword))
                     assert len(keyword) > 0
 
             super(ChannelSearchPayload.Implementation, self).__init__(meta)
@@ -48,8 +55,11 @@ class ChannelSearchPayload(Payload):
         def keywords(self):
             return self._keywords
 
+
 class ChannelSearchResponsePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, keywords, torrents):
             if __debug__:
                 assert isinstance(keywords, list), 'keywords should be list'
@@ -74,16 +84,19 @@ class ChannelSearchResponsePayload(Payload):
         def torrents(self):
             return self._torrents
 
+
 class VoteCastPayload(Payload):
+
     """
     Propagate vote for a channel
     """
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, cid, vote, timestamp):
             assert isinstance(cid, str)
             assert len(cid) == 20
             assert isinstance(vote, int)
-            assert vote in [-1,0,2]
+            assert vote in [-1, 0, 2]
             assert isinstance(timestamp, (int, long))
 
             super(VoteCastPayload.Implementation, self).__init__(meta)

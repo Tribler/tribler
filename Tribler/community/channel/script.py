@@ -5,14 +5,18 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.script import ScriptBase
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 
+
 class ChannelNode(DebugNode):
+
     def create_channel(self, name, description, global_time):
         meta = self._community.get_meta_message(u"channel")
         return meta.impl(authentication=(self._my_member,),
                          distribution=(global_time,),
                          payload=(name, description))
 
+
 class ChannelScript(ScriptBase):
+
     def run(self):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)

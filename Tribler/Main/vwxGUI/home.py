@@ -28,6 +28,7 @@ from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 from Tribler.Core.Tag.Extraction import TermExtraction
 
+
 class Home(XRCPanel):
 
     def _PostInit(self):
@@ -138,7 +139,9 @@ class Home(XRCPanel):
             self.searchBox.SetFocus()
             self.searchBox.SelectAll()
 
+
 class Stats(XRCPanel):
+
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
         self.createTimer = None
@@ -283,7 +286,7 @@ class Stats(XRCPanel):
 
     def _printDBStats(self):
         torrentdb = TorrentDBHandler.getInstance()
-        tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+        tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
             print >> sys.stderr, table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table)
 
@@ -294,7 +297,9 @@ class Stats(XRCPanel):
 
         XRCPanel.Show(self, show)
 
+
 class HomePanel(wx.Panel):
+
     def __init__(self, parent, title, background, hspacer=(0, 0)):
         wx.Panel.__init__(self, parent)
 
@@ -330,8 +335,10 @@ class HomePanel(wx.Panel):
 
     def CreateHeader(self):
         return DetailHeader(self)
+
     def CreatePanel(self):
         pass
+
     def CreateFooter(self):
         return ListFooter(self)
 
@@ -341,9 +348,11 @@ class HomePanel(wx.Panel):
         self.GetParent().Layout()
         self.Thaw()
 
+
 class NetworkPanel(HomePanel):
+
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Network info' , SEPARATOR_GREY, (0, 1))
+        HomePanel.__init__(self, parent, 'Network info', SEPARATOR_GREY, (0, 1))
 
         self.torrentdb = TorrentDBHandler.getInstance()
         self.channelcastdb = ChannelCastDBHandler.getInstance()
@@ -437,7 +446,9 @@ class NetworkPanel(HomePanel):
         else:
             self.timer = wx.CallLater(10000, self.UpdateStats)
 
+
 class DispersyPanel(HomePanel):
+
     def __init__(self, parent):
         self.buildColumns = False
 
@@ -446,7 +457,7 @@ class DispersyPanel(HomePanel):
         if not self.dispersy:
             raise RuntimeError("Dispersy has not started yet")
 
-        HomePanel.__init__(self, parent, 'Dispersy info' , SEPARATOR_GREY)
+        HomePanel.__init__(self, parent, 'Dispersy info', SEPARATOR_GREY)
 
         self.SetMinSize((-1, 200))
 
@@ -484,7 +495,7 @@ class DispersyPanel(HomePanel):
             ("Walker resets", '', lambda stats: str(stats.walk_reset)),
             ("Bloom reuse", 'Total number of bloomfilters reused vs bloomfilters sent in this session', lambda stats: ratio(sum(c.sync_bloom_reuse for c in stats.communities), sum(c.sync_bloom_send for c in stats.communities))),
             ("Debug mode", '', lambda stats: "yes" if __debug__ else "no"),
-            ]
+        ]
 
     def CreatePanel(self):
         panel = wx.Panel(self)
@@ -537,6 +548,7 @@ class DispersyPanel(HomePanel):
 
     def CreateColumns(self):
         self.textdict = {}
+
         def addColumn(strkey, strtooltip):
             # strkey = key.replace("_", " ").capitalize()
             header = StaticText(self.panel, -1, strkey)
@@ -654,7 +666,6 @@ class DispersyPanel(HomePanel):
                 # self.summary_tree.Expand(parent)
             # self.summary_tree.ExpandAll()
 
-
         # left tree
         if not self.tree.blockUpdate:
             self.tree.DeleteAllItems()
@@ -697,9 +708,11 @@ class DispersyPanel(HomePanel):
 
         self.panel.Layout()
 
+
 class NewTorrentPanel(HomePanel):
+
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Newest Torrents' , SEPARATOR_GREY, (0, 1))
+        HomePanel.__init__(self, parent, 'Newest Torrents', SEPARATOR_GREY, (0, 1))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -742,9 +755,11 @@ class NewTorrentPanel(HomePanel):
             selected_file = self.list.GetItemText(selected)
             self.guiutility.dosearch(selected_file)
 
+
 class PopularTorrentPanel(NewTorrentPanel):
+
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Popular Torrents' , SEPARATOR_GREY, (1, 0))
+        HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
         self.torrentdb = TorrentDBHandler.getInstance()
@@ -764,7 +779,7 @@ class PopularTorrentPanel(NewTorrentPanel):
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 
-            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where=familyfilter_sql , order_by="(num_seeders+num_leechers) DESC", limit=10)
+            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where=familyfilter_sql, order_by="(num_seeders+num_leechers) DESC", limit=10)
             self._RefreshList(topTen)
 
         startWorker(None, db_callback, uId=u"PopularTorrentPanel_RefreshList", priority=GUI_PRI_DISPERSY)
@@ -775,12 +790,14 @@ class PopularTorrentPanel(NewTorrentPanel):
         self.list.DeleteAllItems()
         for item in topTen:
             if item[2] > 0:
-                self.list.InsertStringItem(sys.maxint, item[1])
+                self.list.InsertStringItem(sys.maxsize, item[1])
         self.list.Thaw()
 
+
 class ActivityPanel(NewTorrentPanel):
+
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Recent Activity' , SEPARATOR_GREY, (1, 0))
+        HomePanel.__init__(self, parent, 'Recent Activity', SEPARATOR_GREY, (1, 0))
 
     @forceWxThread
     def onActivity(self, msg):
@@ -789,6 +806,7 @@ class ActivityPanel(NewTorrentPanel):
         size = self.list.GetItemCount()
         if size > 50:
             self.list.DeleteItem(size - 1)
+
 
 class BuzzPanel(wx.Panel):
     INACTIVE_COLOR = (255, 51, 0)
@@ -1031,7 +1049,7 @@ class BuzzPanel(wx.Panel):
     def OnClick(self, event):
         evtobj = event.GetEventObject()
         term = evtobj.GetLabel()
-        if term <> '...collecting buzz information...':
+        if term != '...collecting buzz information...':
             self.guiutility.dosearch(term)
 
             evtobj.enter = False

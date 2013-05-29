@@ -29,24 +29,24 @@ except ImportError:
 # support_version = (3,5,9)
 # support_version = (3,3,13)
 # apsw_version = tuple([int(r) for r in apsw.apswversion().split('-')[0].split('.')])
-# #print apsw_version
+# print apsw_version
 # assert apsw_version >= support_version, "Required APSW Version >= %d.%d.%d."%support_version + " But your version is %d.%d.%d.\n"%apsw_version + \
 #                        "Please download and install it from http://code.google.com/p/apsw/"
 
-# #Changed from 4 to 5 by andrea for subtitles support
-# #Changed from 5 to 6 by George Milescu for ProxyService
-# #Changed from 6 to 7 for Raynor's TermFrequency table
-# #Changed from 7 to 8 for Raynor's BundlerPreference table
-# #Changed from 8 to 9 for Niels's Open2Edit tables
-# #Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
-# #Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
-# #Changed from 11 to 12 imposing some limits on the Tribler database
-# #Changed from 12 to 13 introduced swift-url modification type
-# #Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
-# #Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
-# #Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
-# #Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
-# #Changed from 17 to 18 added swift-thumbnails/video-info metadatatypes
+# Changed from 4 to 5 by andrea for subtitles support
+# Changed from 5 to 6 by George Milescu for ProxyService
+# Changed from 6 to 7 for Raynor's TermFrequency table
+# Changed from 7 to 8 for Raynor's BundlerPreference table
+# Changed from 8 to 9 for Niels's Open2Edit tables
+# Changed from 9 to 10 for Fix in Open2Edit PlayListTorrent table
+# Changed from 10 to 11 add a index on channeltorrent.torrent_id to improve search performance
+# Changed from 11 to 12 imposing some limits on the Tribler database
+# Changed from 12 to 13 introduced swift-url modification type
+# Changed from 13 to 14 introduced swift_hash/swift_torrent_hash torrent columns + upgrade script
+# Changed from 14 to 15 added indices on swift_hash/swift_torrent_hash torrent
+# Changed from 15 to 16 changed all swift_torrent_hash that was an empty string to NULL
+# Changed from 16 to 17 cleaning buddycast, preference, terms, and subtitles tables, removed indices
+# Changed from 17 to 18 added swift-thumbnails/video-info metadatatypes
 
 # Arno, 2012-08-01: WARNING You must also update the version number that is
 # written to the DB in the schema_sdb_v*.sql file!!!
@@ -74,7 +74,7 @@ DEBUG_TIME = True
 TRHEADING_DEBUG = False
 DEPRECATION_DEBUG = False
 
-__DEBUG_QUERIES__ = environ.has_key('TRIBLER_DEBUG_DATABASE_QUERIES')
+__DEBUG_QUERIES__ = 'TRIBLER_DEBUG_DATABASE_QUERIES' in environ
 if __DEBUG_QUERIES__:
     from random import randint
     from os.path import exists
@@ -83,10 +83,13 @@ if __DEBUG_QUERIES__:
     while exists(DB_DEBUG_FILE):
         DB_DEBUG_FILE = "tribler_database_queries_%d.txt" % randint(1, 9999999)
 
+
 class Warning(Exception):
     pass
 
+
 class LimitedOrderedDict(OrderedDict):
+
     def __init__(self, limit, *args, **kargs):
         super(LimitedOrderedDict, self).__init__(*args, **kargs)
         self._limit = limit
@@ -95,6 +98,7 @@ class LimitedOrderedDict(OrderedDict):
         super(LimitedOrderedDict, self).__setitem__(*args, **kargs)
         if len(self) > self._limit:
             self.popitem(last=False)
+
 
 def init(config, db_exception_handler=None):
     """ create sqlite database """
@@ -110,14 +114,18 @@ def init(config, db_exception_handler=None):
     sqlitedb.initDB(sqlite_db_path, CREATE_SQL_FILE)  # the first place to create db in Tribler
     return sqlitedb
 
+
 def bin2str(bin):
     # Full BASE64-encoded
     return encodestring(bin).replace("\n", "")
 
+
 def str2bin(str):
     return decodestring(str)
 
+
 class safe_dict(dict):
+
     def __init__(self, *args, **kw):
         self.lock = threading.RLock()
         dict.__init__(self, *args, **kw)
@@ -157,6 +165,7 @@ class safe_dict(dict):
         finally:
             self.lock.release()
 
+
 class SQLiteCacheDBBase:
     lock = threading.RLock()
 
@@ -165,7 +174,7 @@ class SQLiteCacheDBBase:
 
         self.cursor_lock = RLock()
         self.cursor_table = {}  # {thread_name:cur}
-        self.class_variables = safe_dict({'db_path':None, 'busytimeout':None})  # busytimeout is in milliseconds
+        self.class_variables = safe_dict({'db_path': None, 'busytimeout': None})  # busytimeout is in milliseconds
 
         # Arno, 2012-08-02: As there is just Dispersy thread here, removing
         # safe_dict() here
@@ -254,7 +263,6 @@ class SQLiteCacheDBBase:
             cur = con.cursor()
             self.cursor_table[thread_name] = cur
 
-
         if not self.applied_pragma:
             self.applied_pragma = True
             page_size, = next(cur.execute("PRAGMA page_size"))
@@ -324,7 +332,7 @@ class SQLiteCacheDBBase:
                     # reuse the busytimeout
                     return self.openDB(class_db_path, self.class_variables['busytimeout'])
                 else:  # no db file opened
-                    raise Exception, "You must specify the path of database file when open it at the first time"
+                    raise Exception("You must specify the path of database file when open it at the first time")
             else:
                 if class_db_path is None:  # the first time to open db path, store it
 
@@ -339,7 +347,7 @@ class SQLiteCacheDBBase:
                     return self.openDB()  # return the cursor, won't reopen the db
 
                 elif sqlite_filepath != class_db_path:  # not the first time to open db path, check if it is the same
-                    raise Exception, "Only one database file can be opened. You have opened %s and are trying to open %s." % (class_db_path, sqlite_filepath)
+                    raise Exception("Only one database file can be opened. You have opened %s and are trying to open %s." % (class_db_path, sqlite_filepath))
 
         finally:
             self.lock.release()
@@ -381,7 +389,7 @@ class SQLiteCacheDBBase:
                 sqlite_db_version = self.readDBVersion()
                 if sqlite_db_version == NULL or int(sqlite_db_version) < 1:
                     raise NotImplementedError
-        except Exception, exception:
+        except Exception as exception:
             if isinstance(exception, Warning):
                 # user friendly warning to log the creation of a new database
                 print >> sys.stderr, exception
@@ -399,7 +407,7 @@ class SQLiteCacheDBBase:
                 sql_create_tables = f.read()
                 f.close()
             else:
-                raise Exception, "Cannot open sql script at %s" % os.path.realpath(sql_create)
+                raise Exception("Cannot open sql script at %s" % os.path.realpath(sql_create))
 
             self.createDBTable(sql_create_tables, dbfile_path, busytimeout)
             if check_version:
@@ -470,7 +478,7 @@ class SQLiteCacheDBBase:
             else:
                 return cur.execute(sql, args)
 
-        except Exception, msg:
+        except Exception as msg:
             if str(msg).startswith("BusyError"):
                 print >> sys.stderr, "cachedb: busylock error"
 
@@ -496,7 +504,7 @@ class SQLiteCacheDBBase:
             else:
                 return cur.executemany(sql, args)
 
-        except Exception, msg:
+        except Exception as msg:
             if str(msg).startswith("BusyError"):
                 print >> sys.stderr, "cachedb: busylock error"
             else:
@@ -557,7 +565,7 @@ class SQLiteCacheDBBase:
             sql = u'UPDATE %s SET ' % table_name
             arg = []
             for k, v in argv.iteritems():
-                if type(v) is tuple:
+                if isinstance(v, tuple):
                     sql += u'%s %s ?,' % (k, v[0])
                     arg.append(v[1])
                 else:
@@ -572,7 +580,7 @@ class SQLiteCacheDBBase:
         sql = u'DELETE FROM %s WHERE ' % table_name
         arg = []
         for k, v in argv.iteritems():
-            if type(v) is tuple:
+            if isinstance(v, tuple):
                 sql += u'%s %s ? AND ' % (k, v[0])
                 arg.append(v[1])
             else:
@@ -643,7 +651,7 @@ class SQLiteCacheDBBase:
         if kw:
             arg = []
             for k, v in kw.iteritems():
-                if type(v) is tuple:
+                if isinstance(v, tuple):
                     operator = v[0]
                     arg.append(v[1])
                 else:
@@ -688,7 +696,7 @@ class SQLiteCacheDBBase:
         if kw:
             arg = []
             for k, v in kw.iteritems():
-                if type(v) is tuple:
+                if isinstance(v, tuple):
                     operator = v[0]
                     arg.append(v[1])
                 else:
@@ -714,10 +722,10 @@ class SQLiteCacheDBBase:
 
         try:
             return self.fetchall(sql, arg) or []
-        except Exception, msg:
+        except Exception as msg:
             print >> sys.stderr, "sqldb: Wrong getAll sql statement:", sql
             print_exc()
-            raise Exception, msg
+            raise Exception(msg)
 
     # ----- Tribler DB operations ----
 
@@ -811,7 +819,7 @@ class SQLiteCacheDBBase:
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
         if infohash in self.infohash_id:
             if check_dup:
-                print >> sys.stderr, 'sqldb: infohash to insert already exists', `infohash`
+                print >> sys.stderr, 'sqldb: infohash to insert already exists', repr(infohash)
             return
 
         infohash_str = bin2str(infohash)
@@ -913,7 +921,9 @@ class SQLiteCacheDBBase:
         res2 = len(self.getAll('Peer', 'name', 'name is not NULL'))
         return (res1, res2)
 
+
 class SQLiteCacheDBV5(SQLiteCacheDBBase):
+
     def updateDB(self, fromver, tover):
 
         # bring database up to version 2, if necessary
@@ -946,7 +956,6 @@ CREATE INDEX idx_terms_term ON ClicklogTerm(term);
 """
 
             self.execute_write(sql, commit=False)
-
 
         if fromver < 3:
             sql = """
@@ -1070,7 +1079,7 @@ UPDATE Torrent SET relevance = 0;
             self.execute_write(sql, commit=False)
         if fromver < 5:
             sql = \
-"""
+                """
 --------------------------------------
 -- Creating Subtitles (future RichMetadata) DB
 ----------------------------------
@@ -1170,7 +1179,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
 
         if fromver < 7:
             sql = \
-            """
+                """
             --------------------------------------
             -- Creating TermFrequency DB
             ----------------------------------
@@ -1439,12 +1448,12 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
         self.commit()
 
         tqueue = None
+
         def kill_threadqueue_if_empty():
             if tqueue.get_nr_tasks() == 0:
                 tqueue.shutdown(True)
             else:
                 tqueue.add_task(kill_threadqueue_if_empty, SUCCESIVE_UPGRADE_PAUSE, "kill_if_empty")
-
 
         from Tribler.Core.Session import Session
         session = Session.get_instance()
@@ -1513,12 +1522,10 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                 # upgradation not yet complete; comeback after 5 sec
                 tqueue.add_task(upgradeTorrents, SUCCESIVE_UPGRADE_PAUSE)
 
-
             # Create an empty file to mark the process of upgradation.
             # In case this process is terminated before completion of upgradation,
             # this file remains even though fromver >= 4 and hence indicating that
             # rest of the torrents need to be inserted into the InvertedIndex!
-
             # ensure the temp-file is created, if it is not already
             try:
                 open(tmpfilename, "w")
@@ -1526,7 +1533,8 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             except:
                 print >> sys.stderr, "DB Upgradation: failed to create temp-file", tmpfilename
 
-            if DEBUG: print >> sys.stderr, "Upgrading DB .. inserting into InvertedIndex"
+            if DEBUG:
+                print >> sys.stderr, "Upgrading DB .. inserting into InvertedIndex"
             from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
             from sets import Set
             from Tribler.Core.Search.SearchManager import split_into_keywords
@@ -1602,7 +1610,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
             values = []
             for torrent_id, name in records:
                 keywords = set(split_into_keywords(name))
-
 
                 for keyword in keywords:
                     if len(keyword) == 2:
@@ -1748,6 +1755,7 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                         callback = dispersy.callback
 
                         community = None
+
                         def create_my_channel():
                             global community
 
@@ -1864,7 +1872,6 @@ ALTER TABLE Peer ADD COLUMN services integer DEFAULT 0;
                     WHERE torrent_id NOT IN (SELECT rowid FROM FullTextIndex)
                     LIMIT %d""" % UPGRADE_BATCH_SIZE
                     records = self.fetchall(sql)
-
 
                     if len(records) == 0:
                         self.execute_write("DROP TABLE InvertedIndex")
@@ -2181,6 +2188,7 @@ _shouldCommit = False
 _callback = None
 _callback_lock = RLock()
 
+
 def try_register(db, callback=None):
     global _callback, _callback_lock
 
@@ -2202,9 +2210,11 @@ def try_register(db, callback=None):
         finally:
             _callback_lock.release()
 
+
 def unregister():
     global _callback
     _callback = None
+
 
 def register_task(db, *args, **kwargs):
     global _callback
@@ -2215,6 +2225,7 @@ def register_task(db, *args, **kwargs):
             call(*args, **kwargs)
         return fakeDispersy(*args)
     return _callback.register(*args, **kwargs)
+
 
 def call_task(db, *args, **kwargs):
     global _callback
@@ -2227,8 +2238,10 @@ def call_task(db, *args, **kwargs):
         return fakeDispersy(*args)
     return _callback.call(*args, **kwargs)
 
+
 def onDBThread():
     return currentThread().getName() == 'Dispersy'
+
 
 def forceDBThread(func):
     def invoke_func(*args, **kwargs):
@@ -2248,6 +2261,7 @@ def forceDBThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+
 def forcePrioDBThread(func):
     def invoke_func(*args, **kwargs):
         if not onDBThread():
@@ -2265,6 +2279,7 @@ def forcePrioDBThread(func):
 
     invoke_func.__name__ = func.__name__
     return invoke_func
+
 
 def forceAndReturnDBThread(func):
     def invoke_func(*args, **kwargs):
@@ -2285,6 +2300,7 @@ def forceAndReturnDBThread(func):
 
     invoke_func.__name__ = func.__name__
     return invoke_func
+
 
 class SQLiteNoCacheDB(SQLiteCacheDBV5):
     DEBUG = False
@@ -2318,7 +2334,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
         global _shouldCommit, _cacheCommit
         if _cacheCommit and _shouldCommit and onDBThread():
             try:
-                if DEBUG: print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
+                if DEBUG:
+                    print >> sys.stderr, "SQLiteNoCacheDB.commitNow: COMMIT"
                 self._execute("COMMIT;")
             except:
                 print >> sys.stderr, "COMMIT FAILED"
@@ -2328,7 +2345,6 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
             if vacuum:
                 self._execute("VACUUM;")
-
 
             if not exiting:
                 try:
@@ -2409,7 +2425,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
             return result
 
-        except Exception, msg:
+        except Exception as msg:
             if DEBUG:
                 print_exc()
                 print_stack()
@@ -2450,7 +2466,7 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
 
             return result
 
-        except Exception, msg:
+        except Exception as msg:
             if DEBUG:
                 print_exc()
                 print_stack()
@@ -2461,6 +2477,8 @@ class SQLiteNoCacheDB(SQLiteCacheDBV5):
             raise msg
 
 # Arno, 2012-08-02: If this becomes multithreaded again, reinstate safe_dict() in caches
+
+
 class SQLiteCacheDB(SQLiteNoCacheDB):
     __single = None  # used for multithreaded singletons pattern
 
@@ -2488,7 +2506,7 @@ class SQLiteCacheDB(SQLiteNoCacheDB):
     def __init__(self, *args, **kargs):
         # always use getInstance() to create this object
         if self.__single != None:
-            raise RuntimeError, "SQLiteCacheDB is singleton"
+            raise RuntimeError("SQLiteCacheDB is singleton")
         SQLiteNoCacheDB.__init__(self, *args, **kargs)
 
     def schedule_task(self, task, delay=0.0):

@@ -10,16 +10,16 @@ from cStringIO import StringIO
 from ConfigParser import ConfigParser, MissingSectionHeaderError, NoSectionError, ParsingError, DEFAULTSECT
 
 from Tribler.Core.Utilities.bencode import bencode, bdecode
-from Tribler.Core.defaults import dldefaults,DEFAULTPORT
+from Tribler.Core.defaults import dldefaults, DEFAULTPORT
 
 # TODO: remove these defaults, config doesn't work this way with Tribler Core.
 bt1_defaults = []
-for k,v in dldefaults.iteritems():
-    bt1_defaults.append((k,v,"See triblerAPI"))
+for k, v in dldefaults.iteritems():
+    bt1_defaults.append((k, v, "See triblerAPI"))
 
 DEBUG = False
 
-################################################################
+#
 #
 # Class: ConfigReader
 #
@@ -27,26 +27,29 @@ DEBUG = False
 # config values.  Values are converted to strings when writing
 # and back into their respective types when reading.
 #
-################################################################
+#
+
+
 class ConfigReader(ConfigParser):
-    def __init__(self, filename, section, defaults = None):
+
+    def __init__(self, filename, section, defaults=None):
         if defaults is None:
             defaults = {}
 
         ConfigParser.__init__(self)
         self.defaults = defaults
 
-        self.defaultvalues = { "string"  : "",
-                               "int"     : 0,
-                               "float"   : 0.0,
-                               "boolean" : False,
-                               "color"   : wx.Colour(0, 0, 0),
-                               "bencode-list" : [],
+        self.defaultvalues = {"string": "",
+                             "int": 0,
+                               "float": 0.0,
+                               "boolean": False,
+                               "color": wx.Colour(0, 0, 0),
+                               "bencode-list": [],
                                "bencode-string": "",
                                "bencode-fontinfo": {'name': None,
                                                     'size': None,
                                                     'style': None,
-                                                    'weight': None }
+                                                    'weight': None}
                               }
 
         self.filename = filename
@@ -86,7 +89,7 @@ class ConfigReader(ConfigParser):
             self.tryRepair()
             self.read(self.filename)
 
-    def testConfig(self, goodconfig, newline, passes = 0):
+    def testConfig(self, goodconfig, newline, passes=0):
         if newline:
             testconfig = goodconfig + newline + "\r\n"
 
@@ -103,7 +106,7 @@ class ConfigReader(ConfigParser):
                     # Something is odd here... just return the version that works
                     return goodconfig
                 else:
-                    return self.testConfig(goodconfig + "[" + self.section + "]\n", newline, passes = 1)
+                    return self.testConfig(goodconfig + "[" + self.section + "]\n", newline, passes=1)
             except ParsingError:
                 # Ignore the line, don't add it to the config file
                 return goodconfig
@@ -165,7 +168,7 @@ class ConfigReader(ConfigParser):
         elif typex.startswith("bencode"):
             text = bencode(value)
         else:
-            if type(value) is unicode:
+            if isinstance(value, unicode):
                 text = value
             else:
                 text = str(value)
@@ -205,7 +208,7 @@ class ConfigReader(ConfigParser):
 
         return value
 
-    def ReadDefault(self, param, type = "string", section = None):
+    def ReadDefault(self, param, type="string", section= None):
         if section is None:
             section = self.section
 
@@ -219,12 +222,12 @@ class ConfigReader(ConfigParser):
 
         return value
 
-    def Read(self, param, type = "string", section = None):
+    def Read(self, param, type="string", section= None):
         if section is None:
             section = self.section
 
         if DEBUG:
-            print >>sys.stderr,"ConfigReader: Read(",param,"type",type,"section",section
+            print >>sys.stderr, "ConfigReader: Read(", param, "type", type, "section", section
 
         if param is None or param == "":
             return ""
@@ -249,7 +252,7 @@ class ConfigReader(ConfigParser):
                     # sys.stderr.write("ConfigReader: Error while reading parameter, no def: (" + str(param) + ")\n")
                     # print_stack()
 
-                for k,v,d in bt1_defaults:
+                for k, v, d in bt1_defaults:
                     if k == param:
                         value = v
                         break
@@ -258,19 +261,19 @@ class ConfigReader(ConfigParser):
 #            sys.stderr.write(data.getvalue())
 
         if DEBUG:
-            print >>sys.stderr,"ConfigReader: Read",param,type,section,"got",value
+            print >>sys.stderr, "ConfigReader: Read", param, type, section, "got", value
 
         value = self.StringToValue(value, type)
 
         return value
 
-    def Exists(self, param, section = None):
+    def Exists(self, param, section=None):
         if section is None:
             section = self.section
 
         return self.has_option(section, param)
 
-    def Items(self, section = None):
+    def Items(self, section=None):
         if section is None:
             section = self.section
 
@@ -286,7 +289,7 @@ class ConfigReader(ConfigParser):
             self.add_section(section)
         return []
 
-    def GetOptions(self, section = None):
+    def GetOptions(self, section=None):
         if section is None:
             section = self.section
         try:
@@ -295,7 +298,7 @@ class ConfigReader(ConfigParser):
             options = []
         return options
 
-    def Write(self, param, value, type = "string", section = None):
+    def Write(self, param, value, type="string", section= None):
         if section is None:
             section = self.section
 
@@ -304,13 +307,12 @@ class ConfigReader(ConfigParser):
 
         param = param.lower()
 
-
         if not self.has_section(section):
             self.add_section(section)
 
         text = self.ValueToString(value, type)
 
-        while 1:
+        while True:
             try:
                 oldtext = self.Read(param)
 
@@ -332,7 +334,7 @@ class ConfigReader(ConfigParser):
 
         return False
 
-    def DeleteEntry(self, param, section = None):
+    def DeleteEntry(self, param, section=None):
         if section is None:
             section = self.section
 
@@ -341,7 +343,7 @@ class ConfigReader(ConfigParser):
         except:
             return False
 
-    def DeleteGroup(self, section = None):
+    def DeleteGroup(self, section=None):
         if section is None:
             section = self.section
 
@@ -410,7 +412,7 @@ class ConfigReader(ConfigParser):
                             # ';' is a comment delimiter only if it follows
                             # a spacing character
                             pos = optval.find(';')
-                            if pos != -1 and optval[pos-1].isspace():
+                            if pos != -1 and optval[pos - 1].isspace():
                                 optval = optval[:pos]
                         optval = optval.strip()
                         # allow empty values
@@ -440,7 +442,7 @@ class ConfigReader(ConfigParser):
         if self._defaults:
             fp.write("[%s]\n" % DEFAULTSECT)
             for (key, value) in self._defaults.items():
-                if type(value) is not str and type(value) is not unicode:
+                if not isinstance(value, str) and not isinstance(value, unicode):
                     value = str(value)
                 fp.write((key + " = " + value + "\n").encode('utf_8'))
             fp.write("\n")
@@ -448,7 +450,7 @@ class ConfigReader(ConfigParser):
             fp.write("[%s]\n" % section)
             for (key, value) in self._sections[section].items():
                 if key != "__name__":
-                    if type(value) is not str and type(value) is not unicode:
+                    if not isinstance(value, str) and not isinstance(value, unicode):
                         value = str(value)
                     try:
                         fp.write((key + " = " + value + "\n").encode('utf_8'))

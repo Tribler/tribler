@@ -6,7 +6,9 @@ from Tribler.dispersy.tool.lencoder import log
 from random import choice
 from string import letters
 
+
 class DemersScript(ScenarioScriptBase):
+
     def __init__(self, dispersy, **kargs):  # , script, name, **kargs):
         ScenarioScriptBase.__init__(self, dispersy, 'barter.log', **kargs)
 

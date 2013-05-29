@@ -6,18 +6,20 @@ import wx
 from traceback import print_exc
 
 try:
-    import win32gui #, win32con
+    import win32gui  # , win32con
     WIN32 = True
 except:
     WIN32 = False
 
-##############################################################
+#
 #
 # Class : ABCTaskBarIcon
 #
 # Task Bar Icon
 #
-##############################################################
+#
+
+
 class ABCTaskBarIcon(wx.TaskBarIcon):
 
     def __init__(self, parent):
@@ -30,11 +32,11 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 
         # setup a taskbar icon, and catch some events from it
         self.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, parent.onTaskBarActivate)
-        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id = self.TBMENU_RESTORE)
+        self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id=self.TBMENU_RESTORE)
 
         self.updateIcon(False)
 
-    def updateIcon(self,iconifying = False):
+    def updateIcon(self, iconifying=False):
         remove = True
 
         mintray = self.utility.config.Read('mintray', "int")
@@ -49,13 +51,13 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
     def CreatePopupMenu(self):
         menu = wx.Menu()
 
-        mi = menu.Append(-1,self.utility.lang.get('stopall'))
+        mi = menu.Append(-1, self.utility.lang.get('stopall'))
         self.Bind(wx.EVT_MENU, self.OnStopAll, id=mi.GetId())
         menu.AppendSeparator()
-        mi = menu.Append(-1,self.utility.lang.get('restartall'))
+        mi = menu.Append(-1, self.utility.lang.get('restartall'))
         self.Bind(wx.EVT_MENU, self.OnRestartAll, id=mi.GetId())
         menu.AppendSeparator()
-        mi = menu.Append(-1,self.utility.lang.get('menuexit'))
+        mi = menu.Append(-1, self.utility.lang.get('menuexit'))
         self.Bind(wx.EVT_MENU, self.OnExitClient, id=mi.GetId())
         return menu
 
@@ -83,7 +85,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
 
         lpdata = (self.__GetIconHandle(),
                   99,
-                  win32gui.NIF_MESSAGE|win32gui.NIF_TIP|win32gui.NIF_INFO|win32gui.NIF_ICON,
+                  win32gui.NIF_MESSAGE | win32gui.NIF_TIP |win32gui.NIF_INFO|win32gui.NIF_ICON,
                   0,
                   hicon,
                   '',
@@ -111,12 +113,12 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
                 pass
         return self._chwnd
 
-    def SetIcon(self, icon, tooltip = ""):
+    def SetIcon(self, icon, tooltip=""):
         self.icon = icon
         self.tooltip = tooltip
         wx.TaskBarIcon.SetIcon(self, icon, tooltip)
 
-    def OnStopAll(self,event=None):
+    def OnStopAll(self, event=None):
         dlist = self.utility.session.get_downloads()
         for d in dlist:
             try:
@@ -124,7 +126,7 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
             except:
                 print_exc()
 
-    def OnRestartAll(self,event=None):
+    def OnRestartAll(self, event=None):
         dlist = self.utility.session.get_downloads()
         for d in dlist:
             try:
@@ -132,5 +134,5 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
             except:
                 print_exc()
 
-    def OnExitClient(self,event=None):
+    def OnExitClient(self, event=None):
         self.parent.quit()

@@ -23,6 +23,8 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 from M2Crypto import EC
 
 # Print usage message
+
+
 def usage():
     print "Usage: python proxy-cmdlinedl.py [options] torrent_file"
     print "Options:"
@@ -66,29 +68,34 @@ def usage():
     print "Report bugs to <" + report_email + ">"
 
 # Print version information
+
+
 def print_version():
     print version, "<" + report_email + ">"
 
 # Print torrent statistics
+
+
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
     print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
-            (d.get_def().get_name(), \
-            dlstatus_strings[ds.get_status()], \
-            ds.get_progress() * 100, \
-            ds.get_error(), \
-            ds.get_current_speed(UPLOAD), \
+        (d.get_def().get_name(),
+            dlstatus_strings[ds.get_status()],
+            ds.get_progress() * 100,
+            ds.get_error(),
+            ds.get_current_speed(UPLOAD),
             ds.get_current_speed(DOWNLOAD))
 
     return (1.0, False)
+
 
 def main():
     try:
         # opts = a list of (option, value) pairs
         # args = the list of program arguments left after the option list was stripped
         opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir=", "port=", "doemode=", "proxyservice=", "proxies=", "test-mode=", "state-dir=", "no-download"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
@@ -100,7 +107,7 @@ def main():
     doe_mode = DOE_MODE_OFF
     proxy_service = PROXYSERVICE_OFF
     proxies = 5
-    test_mode="off" # off, doe, proxy
+    test_mode = "off"  # off, doe, proxy
     no_download = False
     statedir = "/tmp/tmp-tribler"
 
@@ -163,10 +170,10 @@ def main():
 
     # session setup
     session_startup_config = SessionStartupConfig()
-    #statedir = tempfile.mkdtemp()
+    # statedir = tempfile.mkdtemp()
     # ProxyDevel - set custom state dir
     session_startup_config.set_state_dir(statedir)
-    session_startup_config.set_proxyservice_dir(os.path.join(statedir,"proxyservice"))
+    session_startup_config.set_proxyservice_dir(os.path.join(statedir, "proxyservice"))
     session_startup_config.set_listen_port(port)
     session_startup_config.set_megacache(True)
     session_startup_config.set_overlay(True)
@@ -174,9 +181,9 @@ def main():
     session_startup_config.set_internal_tracker(False)
     session_startup_config.set_dispersy(True)
     # ProxyDevel - turn DHT off
-    #session_startup_config.set_mainline_dht(False)
+    # session_startup_config.set_mainline_dht(False)
     # ProxyDevel - turn buddycast off
-    #session_startup_config.set_buddycast(False)
+    # session_startup_config.set_buddycast(False)
     # ProxyDevel - set new core API values
     session_startup_config.set_proxyservice_status(proxy_service)
 
@@ -191,12 +198,12 @@ def main():
     if test_mode == "doe":
         # add the helper 1 as a friend
         # get helper1 permid
-        helper1_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy01/statedir","ec.pem")
+        helper1_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy01/statedir", "ec.pem")
         helper1_keypair = EC.load_key(helper1_keypair_filename)
         helper1_permid = str(helper1_keypair.pub().get_der())
         # set helper1 ip address
 #        helper1_ip="10.10.3.1"
-        helper1_ip="141.85.224.202"
+        helper1_ip = "141.85.224.202"
         # set helper1 port
         helper1_port = 25123
         # add helper1 as a peer
@@ -210,12 +217,12 @@ def main():
 
         # add the helper 2 as a friend
         # get helper2 permid
-        helper2_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy02/statedir","ec.pem")
+        helper2_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy02/statedir", "ec.pem")
         helper2_keypair = EC.load_key(helper2_keypair_filename)
         helper2_permid = str(helper2_keypair.pub().get_der())
         # set helper2 ip address
 #        helper2_ip="10.10.4.1"
-        helper2_ip="141.85.224.203"
+        helper2_ip = "141.85.224.203"
         # set helper2 port
         helper2_port = 25123
         # add helper2 as a peer
@@ -229,11 +236,11 @@ def main():
 
         # add the helper 3 as a friend
         # get helper3 permid
-        helper3_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy03/statedir","ec.pem")
+        helper3_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy03/statedir", "ec.pem")
         helper3_keypair = EC.load_key(helper3_keypair_filename)
         helper3_permid = str(helper3_keypair.pub().get_der())
         # set helper3 ip address
-        helper3_ip="141.85.224.204"
+        helper3_ip = "141.85.224.204"
         # set helper3 port
         helper3_port = 25123
         # add helper3 as a peer
@@ -247,11 +254,11 @@ def main():
 
         # add the helper 4 as a friend
         # get helper4 permid
-        helper4_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy04/statedir","ec.pem")
+        helper4_keypair_filename = os.path.join("../../P2P-Testing-Infrastructure/ClientWorkingFolders/Proxy04/statedir", "ec.pem")
         helper4_keypair = EC.load_key(helper4_keypair_filename)
         helper4_permid = str(helper4_keypair.pub().get_der())
         # set helper4 ip address
-        helper4_ip="141.85.224.205"
+        helper4_ip = "141.85.224.205"
         # set helper4 port
         helper4_port = 25123
         # add helper4 as a peer
@@ -270,7 +277,7 @@ def main():
             download_startup_config = DownloadStartupConfig()
             download_startup_config.set_dest_dir(output_dir)
             # ProxyDevel - turn PEX off
-            #download_startup_config.set_ut_pex_max_addrs_from_peer(0)
+            # download_startup_config.set_ut_pex_max_addrs_from_peer(0)
             download_startup_config.set_doe_mode(doe_mode)
             download_startup_config.set_proxyservice_role(PROXYSERVICE_ROLE_DOE)
             download_startup_config.set_no_proxies(proxies)
@@ -300,7 +307,7 @@ def main():
                 peerlist.append(helper2_permid)
                 peerlist.append(helper3_permid)
                 peerlist.append(helper4_permid)
-                #download.sd.dow.proxydownloader.doe.send_relay_request(peerlist)
+                # download.sd.dow.proxydownloader.doe.send_relay_request(peerlist)
 
     #
     # loop while waiting for CTRL-C (or any other signal/interrupt)
@@ -315,14 +322,14 @@ def main():
 
     try:
         while True:
-            time.sleep(sys.maxint/2048)
+            time.sleep(sys.maxsize / 2048)
     except:
         print_exc()
 
     s.shutdown()
     time.sleep(3)
     # ProxyDevel
-    #shutil.rmtree(statedir)
+    # shutil.rmtree(statedir)
 
 if __name__ == "__main__":
     main()

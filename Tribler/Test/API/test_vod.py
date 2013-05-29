@@ -1,14 +1,16 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-from  threading import currentThread
+from threading import currentThread
 from unittest import skip
 
 from Tribler.Core.API import *
 from Tribler.Video.VideoServer import VideoHTTPServer
 from Tribler.Test.test_as_server import TestAsServer
 
+
 def state_callback(d, ds):
     print >> sys.stderr, "main: Stats", dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error()
+
 
 def vod_ready_callback(d, event, params):
     print >> sys.stderr, "main: VOD ready callback called", currentThread().getName(), "###########################################################", params["mimetype"]
@@ -28,6 +30,7 @@ def vod_ready_callback(d, event, params):
 
     videoserv = VideoHTTPServer.getInstance()
     videoserv.set_inputstream('video/mpeg', params["stream"], None)
+
 
 class TestVod(TestAsServer):
 

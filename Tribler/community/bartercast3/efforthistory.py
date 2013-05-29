@@ -12,7 +12,9 @@ CYCLE_SIZE = 60.0 * 30
 BIT_COUNT = 64 * 8
 assert BIT_COUNT % 8 == 0
 
+
 class EffortHistory(Constructor):
+
     @constructor(float)
     def _init_bits_origin(self, origin):
         """
@@ -22,7 +24,7 @@ class EffortHistory(Constructor):
         ORIGIN: float timestamp.
         """
         assert isinstance(origin, float)
-        self._long = 0L
+        self._long = 0
         self._origin = origin
 
     @constructor(long, float)
@@ -97,7 +99,7 @@ class EffortHistory(Constructor):
             self._long <<= difference
 
             # remove now obsolete bits
-            self._long &= (2**BIT_COUNT - 1)
+            self._long &= (2 ** BIT_COUNT - 1)
 
             # set last bit ACTIVE
             self._long |= 1

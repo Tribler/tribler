@@ -23,8 +23,8 @@ for line in f:
     created = max(peers)
     if created not in piece_created:
         piece_created[created] = time
-        #piece_created[created] = 120 * created
-        print "new part", peers.index(created), time, created * 120, piece_received.get(created-1, 0)
+        # piece_created[created] = 120 * created
+        print "new part", peers.index(created), time, created * 120, piece_received.get(created - 1, 0)
 
     updated_parts = set()
 
@@ -40,7 +40,7 @@ for line in f:
             print >> f2, piece_received[part], took, part
             if piece_received[part] == 1000:
                 took_list.append(took)
-                print "received part", part, took, sum(took_list)/float(len(took_list))
+                print "received part", part, took, sum(took_list) / float(len(took_list))
 
 f.close()
 f2.close()

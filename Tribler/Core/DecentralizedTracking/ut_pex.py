@@ -39,6 +39,7 @@ EXTEND_MSG_UTORRENT_PEX = 'ut_pex'  # note case sensitive
 
 DEBUG = False
 
+
 def create_ut_pex(addedconns, droppedconns, thisconn):
     # print >>sys.stderr,"ut_pex: create_ut_pex:",addedconns,droppedconns,thisconn
 
@@ -71,8 +72,9 @@ def create_ut_pex(addedconns, droppedconns, thisconn):
     d['dropped'] = compactedpeerstr
     return bencode(d)
 
+
 def check_ut_pex(d):
-    if type(d) != DictType:
+    if not isinstance(d, DictType):
         raise ValueError('ut_pex: not a dict')
 
     # 'same' peers are peers that indicate (with a bit) that the peer
@@ -85,7 +87,7 @@ def check_ut_pex(d):
     dpeers = check_ut_pex_peerlist(d, 'dropped')
     if 'added.f' in d:
         addedf = d['added.f']
-        if type(addedf) != StringType:
+        if not isinstance(addedf, StringType):
             raise ValueError('ut_pex: added.f: not string')
         if len(addedf) != len(apeers) and not len(addedf) == 0:
             # KTorrent sends an empty added.f, be nice
@@ -106,22 +108,23 @@ def check_ut_pex(d):
                 addedf.pop(i)
 
     # Arno, 2008-09-12: Be liberal in what we receive
-    # #else:
-        # #raise ValueError('ut_pex: added.f: missing')
+    # else:
+        # raise ValueError('ut_pex: added.f: missing')
 
     if DEBUG:
         print >> sys.stderr, "ut_pex: Got", apeers
 
     return (same_apeers, apeers, dpeers)
 
+
 def check_ut_pex_peerlist(d, name):
     if name not in d:
         # Arno, 2008-09-12: Be liberal in what we receive, some clients
         # leave out 'dropped' key
-        # #raise ValueError('ut_pex:'+name+': missing')
+        # raise ValueError('ut_pex:'+name+': missing')
         return []
     peerlist = d[name]
-    if type(peerlist) != StringType:
+    if not isinstance(peerlist, StringType):
         raise ValueError('ut_pex:' + name + ': not string')
     if len(peerlist) % 6 != 0:
         raise ValueError('ut_pex:' + name + ': not multiple of 6 bytes')
@@ -130,6 +133,7 @@ def check_ut_pex_peerlist(d, name):
         if ip == '127.0.0.1':
             raise ValueError('ut_pex:' + name + ': address is localhost')
     return peers
+
 
 def ut_pex_get_conns_diff(currconns, prevconns):
     addedconns = []
@@ -163,10 +167,11 @@ def compact_connections(conns, thisconn=None):
     compactpeerstr = ''.join(compactpeers)
     return compactpeerstr
 
+
 def compact_peer_info(ip, port):
     try:
         s = (''.join([chr(int(i)) for i in ip.split('.')])
-              + chr((port & 0xFF00) >> 8) + chr(port & 0xFF))
+             + chr((port & 0xFF00) >> 8) + chr(port & 0xFF))
         if len(s) != 6:
             raise ValueError
     except:

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#########################################################################
+#
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 #
@@ -10,7 +10,7 @@
 #               need Python, WxPython in order to run from source code.
 #
 # see LICENSE.txt for license information
-#########################################################################
+#
 
 import logging.config
 logging.config.fileConfig("logger.conf")  # , disable_existing_loggers = False)
@@ -36,10 +36,10 @@ urllib.URLopener.open_https = original_open_https
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
 
-import os, sys
+import os
+import sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
@@ -50,7 +50,7 @@ from threading import current_thread, currentThread
 try:
     prctlimported = True
     import prctl
-except ImportError, e:
+except ImportError as e:
     prctlimported = False
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
@@ -81,7 +81,7 @@ import thread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame, VideoMacFrame
-# # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
+# from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
@@ -130,14 +130,17 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = False
 
-##############################################################
+#
 #
 # Class : ABCApp
 #
 # Main ABC application class that contains ABCFrame Object
 #
-##############################################################
+#
+
+
 class ABCApp():
+
     def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -180,12 +183,15 @@ class ABCApp():
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
 
+            print >> sys.stderr, "Tribler is expecting swift in", self.sconfig.get_swift_path()
+
             self.dispersy = s.lm.dispersy
 
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
+            GUIDBProducer.getInstance(self.dispersy.callback)
 
             print >> sys.stderr, 'Tribler Version:', self.utility.lang.get('version'), ' Build:', self.utility.lang.get('build')
 
@@ -324,8 +330,8 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
@@ -334,7 +340,7 @@ class ABCApp():
 
             self.ready = True
 
-        except Exception, e:
+        except Exception as e:
             self.onError(e)
             return False
 
@@ -365,6 +371,7 @@ class ABCApp():
 
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
+
         def db_thread():
             return channelcast.getMyChannelId()
 
@@ -393,16 +400,10 @@ class ABCApp():
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
 
+        self.sconfig.set_install_dir(self.installdir)
+
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
-
-        # Arno, 2012-05-04: swift
-        if not self.sconfig.get_swift_tunnel_listen_port():
-            self.sconfig.set_swift_tunnel_listen_port(7758)
-        if not self.sconfig.get_swift_tunnel_httpgw_listen_port():
-            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-        if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
-            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
 
         # Arno, 2012-05-21: Swift part II
         swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
@@ -410,10 +411,9 @@ class ABCApp():
             if not os.path.exists(swiftbinpath):
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
         self.sconfig.set_swift_path(swiftbinpath)
-        print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
 
-        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         progress('Loading downloadconfig')
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         if DEBUG:
             print >> sys.stderr, "main: Download config", dlcfgfilename
         try:
@@ -423,19 +423,21 @@ class ABCApp():
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
-
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
             os.makedirs(defaultDLConfig.get_dest_dir())
-
-        # 15/05/12 niels: fixing swift port
-        defaultDLConfig.set_swift_listen_port(7758)
 
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
             torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
 
-        self.sconfig.set_install_dir(self.installdir)
+        if not defaultDLConfig.get_swift_meta_dir():
+            defaultDLConfig.set_swift_meta_dir(os.path.join(self.sconfig.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
+        if not os.path.isdir(defaultDLConfig.get_swift_meta_dir()):
+            os.makedirs(defaultDLConfig.get_swift_meta_dir())
+
+        # 15/05/12 niels: fixing swift port
+        defaultDLConfig.set_swift_listen_port(7758)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
@@ -450,11 +452,11 @@ class ABCApp():
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
-                                           (s.dispersy_member,),
-                                           load=True)
+                                     (s.dispersy_member,),
+                                     load=True)
             dispersy.define_auto_load(AllChannelCommunity,
                                            (s.dispersy_member,),
-                                           {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                           {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
             if swift_process:
                 dispersy.define_auto_load(BarterCommunity,
@@ -462,6 +464,9 @@ class ABCApp():
                                           load=True)
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
+
+            from Tribler.community.channel.community import register_callback
+            register_callback(dispersy.callback)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
@@ -556,12 +561,12 @@ class ABCApp():
             if DEBUG:
                 if self.ratestatecallbackcount % 5 == 0:
                     for ds in dslist:
-                        safename = `ds.get_download().get_def().get_name()`
+                        safename = repr(ds.get_download().get_def().get_name())
                         if DEBUG:
                             print >> sys.stderr, "%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            print >> sys.stderr, "main: Error:", `ds.get_error()`
+                            print >> sys.stderr, "main: Error:", repr(ds.get_error())
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -607,7 +612,7 @@ class ABCApp():
                     videoplayer_mediastate = self.videoplayer.get_state()
 
                     totalhelping = 0
-                    totalspeed = {UPLOAD:0.0, DOWNLOAD:0.0}
+                    totalspeed = {UPLOAD: 0.0, DOWNLOAD: 0.0}
                     for ds in dslist:
                         totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
                         totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
@@ -896,6 +901,7 @@ class ABCApp():
             self.i2is.shutdown()
         if self.torrentfeed:
             self.torrentfeed.shutdown()
+            self.torrentfeed.delInstance()
         if self.webUI:
             self.webUI.stop()
         if self.guiserver:
@@ -943,6 +949,7 @@ class ABCApp():
         Session.del_instance()
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
+        DefaultDownloadStartupConfig.delInstance()
 
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
@@ -1041,7 +1048,7 @@ class ABCApp():
             # 2. Convert to swift def
             sdef = SwiftDef()
             # RESEEDTODO: set to swift inf of pymDHT
-            sdef.set_tracker("127.0.0.1:9999")
+            sdef.set_tracker("127.0.0.1:%d" % self.sconfig.get_swift_dht_listen_port())
             iotuples = td.get_dest_files()
             for i, o in iotuples:
                 # print >>sys.stderr,"python: add_content",i,o
@@ -1058,10 +1065,7 @@ class ABCApp():
 
             # 3. Save swift files to metadata dir
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
-            if not os.path.exists(metadir):
-                os.makedirs(metadir)
-
+            metadir = defaultDLConfig.get_swift_meta_dir()
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1]  # Point to file on disk
                 metapath = os.path.join(metadir, os.path.split(storagepath)[1])
@@ -1093,6 +1097,7 @@ class ABCApp():
         except:
             print_exc()
             raise
+
 
 def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, decodeprogress, totalhelping, totalspeed):
 
@@ -1229,11 +1234,11 @@ def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, de
     return [topmsg, msg, said_start_playback, decodeprogress]
 
 
-##############################################################
+#
 #
 # Main Program Start Here
 #
-##############################################################
+#
 @attach_profiler
 def run(params=None):
     if params is None:

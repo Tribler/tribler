@@ -19,12 +19,14 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
 DEBUG = True
 
+
 class TestVideoOnDemand(TestAsServer):
-    """ 
+
+    """
     Testing Merkle hashpiece messages for both:
     * Merkle BEP style
     * old Tribler <= 4.5.2 that did not use the Extention protocol (BEP 10).
-     
+
     See BitTornado/BT1/Connecter.py
     """
 
@@ -65,11 +67,11 @@ class TestVideoOnDemand(TestAsServer):
         d = ds.get_download()
     #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
         print >> sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
-                (d.get_def().get_name(), \
-                dlstatus_strings[ds.get_status()], \
-                ds.get_progress() * 100, \
-                ds.get_error(), \
-                ds.get_current_speed(UPLOAD), \
+            (d.get_def().get_name(),
+                dlstatus_strings[ds.get_status()],
+                ds.get_progress() * 100,
+                ds.get_error(),
+                ds.get_current_speed(UPLOAD),
                 ds.get_current_speed(DOWNLOAD))
 
         return (1.0, [])
@@ -106,7 +108,6 @@ class TestVideoOnDemand(TestAsServer):
         print >> sys.stderr, "Test: stream: Got data", len(data)
         self.assertEquals(len(data), size)
         self.assertEquals(data, self.content[off:off + size])
-
 
     def test_99(self):
         self.contentlen = 99

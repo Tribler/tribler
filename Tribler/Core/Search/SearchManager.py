@@ -6,14 +6,15 @@
 import re
 import sys
 
-#from Tribler.Core.Search.KeywordSearch import KeywordSearch
+# from Tribler.Core.Search.KeywordSearch import KeywordSearch
 
 DEBUG = False
 
 re_keywordsplit = re.compile(r"[\W_]", re.UNICODE)
 dialog_stopwords = set(['an', 'and', 'by', 'for', 'from', 'of', 'the', 'to', 'with'])
 
-def split_into_keywords(string, filterStopwords = False):
+
+def split_into_keywords(string, filterStopwords=False):
     """
     Takes a (unicode) string and returns a list of (unicode) lowercase
     strings.  No empty strings are returned.
@@ -28,8 +29,10 @@ def split_into_keywords(string, filterStopwords = False):
 
     return [keyword for keyword in re_keywordsplit.split(string.lower()) if len(keyword) > 0]
 
+
 def filter_keywords(keywords):
     return [keyword for keyword in keywords if len(keyword) > 0 and keyword not in dialog_stopwords]
+
 
 def fts3_preprocess(keywords):
     fts3_only = []
@@ -48,20 +51,22 @@ def fts3_preprocess(keywords):
 
     return fts3_only, " ".join(normal_keywords)
 
+
 class SearchManager:
+
     """ Arno: This is DB neutral. All it assumes is a DBHandler with
     a searchNames() method that returns records with at least a 'name' field
     in them.
     """
 
-    def __init__(self,dbhandler):
+    def __init__(self, dbhandler):
         self.dbhandler = dbhandler
         # self.keywordsearch = KeywordSearch()
 
     def search(self, kws, maxhits=None):
         """ Called by any thread """
         if DEBUG:
-            print >>sys.stderr,"SearchManager: search",kws
+            print >>sys.stderr, "SearchManager: search", kws
 
         hits = self.dbhandler.searchNames(kws)
         if maxhits is None:
@@ -70,8 +75,8 @@ class SearchManager:
             return hits[:maxhits]
 
     def searchLibrary(self):
-        return self.dbhandler.getTorrents(sort = "name", library = True)
+        return self.dbhandler.getTorrents(sort="name", library= True)
 
-    def searchChannels(self, query): ##
+    def searchChannels(self, query):
         data = self.dbhandler.searchChannels(query)
         return data

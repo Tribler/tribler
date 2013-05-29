@@ -10,7 +10,7 @@ import binascii
 try:
     prctlimported = True
     import prctl
-except ImportError,e:
+except ImportError, e:
     prctlimported = False
 
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -20,13 +20,14 @@ from traceback import print_exc
 
 DEBUG = True
 
+
 class TorrentStateManager:
     # Code to make this a singleton
     __single = None
 
     def __init__(self, guiUtility):
         if TorrentStateManager.__single:
-            raise RuntimeError, "TorrentStateManager is singleton"
+            raise RuntimeError("TorrentStateManager is singleton")
         TorrentStateManager.__single = self
 
     def getInstance(*args, **kw):
@@ -41,7 +42,7 @@ class TorrentStateManager:
         self.channelsearch_manager = channelsearch_manager
 
     def torrentFinished(self, infohash):
-        _,_, torrents = self.channelsearch_manager.getChannnelTorrents(infohash)
+        _, _, torrents = self.channelsearch_manager.getChannnelTorrents(infohash)
 
         openTorrents = []
         for torrent in torrents:
@@ -64,23 +65,23 @@ class TorrentStateManager:
                     self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
-        t = Thread(target = self._create_and_seed_metadata, args = (videofile, torrent), name = "ThumbnailGenerator")
+        t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
         t.start()
 
     def _create_and_seed_metadata(self, videofile, torrent):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
         if prctlimported:
-            prctl.set_name("Tribler"+currentThread().getName())
+            prctl.set_name("Tribler" + currentThread().getName())
 
         self.guiutility = GUIUtility.getInstance()
-        self.session    = self.guiutility.utility.session
-        videoanalyser   = self.session.get_video_analyser_path()
+        self.session = self.guiutility.utility.session
+        videoanalyser = self.session.get_video_analyser_path()
 
-        torcoldir    = self.session.get_torrent_collecting_dir()
-        rel_thumbdir = 'thumbs-'+binascii.hexlify(torrent.infohash)
+        torcoldir = self.session.get_torrent_collecting_dir()
+        rel_thumbdir = 'thumbs-' + binascii.hexlify(torrent.infohash)
         abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
-        videoname    = os.path.basename(videofile)
+        videoname = os.path.basename(videofile)
 
         if os.path.exists(abs_thumbdir):
             if DEBUG:
@@ -91,8 +92,8 @@ class TorrentStateManager:
             print >> sys.stderr, 'create_and_seed_metadata: going to seed metadata for torrent', torrent.name
 
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
-        video_info = {'duration': duration, \
-                      'bitrate': bitrate, \
+        video_info = {'duration': duration,
+                      'bitrate': bitrate,
                       'resolution': resolution}
 
         if DEBUG:
@@ -101,9 +102,9 @@ class TorrentStateManager:
         if not os.path.exists(abs_thumbdir):
             os.makedirs(abs_thumbdir)
 
-        thumb_filenames = [os.path.join(abs_thumbdir, videoname + postfix) for postfix in ["-thumb%d.jpg" % i for i in range(1,5)]]
+        thumb_filenames = [os.path.join(abs_thumbdir, videoname + postfix) for postfix in ["-thumb%d.jpg" % i for i in range(1, 5)]]
         thumb_resolutions = [(1280, 720), (320, 240), (320, 240), (320, 240)]
-        thumb_timecodes = preferred_timecodes(videofile, duration, limit_resolution(resolution, (100, 100)), videoanalyser, k = 4)
+        thumb_timecodes = preferred_timecodes(videofile, duration, limit_resolution(resolution, (100, 100)), videoanalyser, k=4)
 
         for filename, max_res, timecode in zip(thumb_filenames, thumb_resolutions, thumb_timecodes):
             thumb_res = limit_resolution(resolution, max_res)
@@ -113,30 +114,30 @@ class TorrentStateManager:
                 print >> sys.stderr, 'create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d' % (path_exists, timecode)
 
         sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:9999")
+        sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
         for thumbfile in thumb_filenames:
             if os.path.exists(thumbfile):
                 xi = os.path.relpath(thumbfile, torcoldir)
                 if sys.platform == "win32":
-                    xi = xi.replace("\\","/")
+                    xi = xi.replace("\\", "/")
                 si = xi.encode("UTF-8")
                 sdef.add_content(thumbfile, si)
 
-        specpn = sdef.finalize(self.session.get_swift_path(), destdir = torcoldir)
+        specpn = sdef.finalize(self.session.get_swift_path(), destdir=torcoldir)
 
         hex_roothash = sdef.get_roothash_as_hex()
 
         try:
             swift_filename = os.path.join(torcoldir, hex_roothash)
             shutil.move(specpn, swift_filename)
-            shutil.move(specpn+'.mhash', swift_filename+'.mhash')
-            shutil.move(specpn+'.mbinmap', swift_filename+'.mbinmap')
+            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
+            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
 
         except:
             if DEBUG:
                 print_exc()
 
-        modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())), \
+        modifications = {'swift-thumbnails': json.dumps((thumb_timecodes, sdef.get_roothash_as_hex())),
                          'video-info': json.dumps(video_info)}
 
         if DEBUG:

@@ -15,10 +15,12 @@ import random
 
 DEBUG = False
 
+
 class TestVideoHTTPServer(unittest.TestCase):
-    """ 
+
+    """
     Class for testing HTTP-based video server.
-    
+
     Mainly HTTP range queries.
     """
 
@@ -31,8 +33,8 @@ class TestVideoHTTPServer(unittest.TestCase):
 
         self.sourcefn = os.path.join(BASE_DIR, "API", "file.wmv")  # 82KB or 82948 bytes
         self.sourcesize = os.path.getsize(self.sourcefn)
-        
-        #wait 5s to allow server to start
+
+        # wait 5s to allow server to start
         time.sleep(5)
 
     def tearDown(self):
@@ -59,12 +61,12 @@ class TestVideoHTTPServer(unittest.TestCase):
     def test_specific_range(self):
         self.range_check(115, 214, self.sourcesize)
 
-    def test_last_100(self):        
+    def test_last_100(self):
         self.range_check(self.sourcesize - 100, None, self.sourcesize)
-    
+
     def test_first_100(self):
         self.range_check(None, 100, self.sourcesize)
-    
+
     def test_combined(self):
         self.range_check(115, 214, self.sourcesize, setset=True)
 
@@ -74,7 +76,7 @@ class TestVideoHTTPServer(unittest.TestCase):
     def register_file_stream(self):
         stream = open(self.sourcefn, "rb")
 
-        streaminfo = { 'mimetype': 'video/x-ms-wmv', 'stream': stream, 'length': self.sourcesize }
+        streaminfo = {'mimetype': 'video/x-ms-wmv', 'stream': stream, 'length': self.sourcesize}
 
         self.serv.set_inputstream(streaminfo, "/stream")
 
@@ -100,7 +102,7 @@ class TestVideoHTTPServer(unittest.TestCase):
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('127.0.0.1', self.port))
-        
+
         head = self.get_std_header()
 
         head += "Range: bytes="
@@ -138,7 +140,7 @@ class TestVideoHTTPServer(unittest.TestCase):
         while True:
             line = self.readline(s)
             if DEBUG:
-                print >> sys.stderr, "test: Got line", `line`
+                print >> sys.stderr, "test: Got line", repr(line)
 
             if len(line) == 0:
                 if DEBUG:

@@ -27,15 +27,18 @@ from Tribler.Main.Utility.constants import *  # IGNORE:W0611
 
 from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
-################################################################
+#
 #
 # Class: Utility
 #
 # Generic "glue" class that contains commonly used helper
 # functions and helps to keep track of objects
 #
-################################################################
+#
+
+
 class Utility:
+
     def __init__(self, abcpath, configpath):
 
         self.version = version_id
@@ -60,13 +63,12 @@ class Utility:
 
         self.setupTorrentList()
 
-        self.torrents = { "all": [],
-                          "active": {},
-                          "inactive": {},
-                          "pause": {},
+        self.torrents = {"all": [],
+                        "active": {},
+                        "inactive": {},
+                        "pause": {},
                           "seeding": {},
-                          "downloading": {} }
-
+                          "downloading": {}}
 
         self.accessflag = Event()
         self.accessflag.set()
@@ -85,17 +87,17 @@ class Utility:
         else:
             self.regchecker = None
 
-        self.lastdir = { "save" : "",
-                         "open" : "",
-                         "log": "" }
+        self.lastdir = {"save": "",
+                         "open": "",
+                         "log": ""}
 
         # Is ABC in the process of shutting down?
         self.abcquitting = False
 #        self.abcdonequitting = False
 
         # Keep track of the last tab that was being viewed
-        self.lasttab = { "advanced" : 0,
-                         "preferences" : 0 }
+        self.lasttab = {"advanced": 0,
+                         "preferences": 0}
 
         self.languages = {}
 
@@ -108,16 +110,13 @@ class Utility:
     def getVersion(self):
         return self.version
 
-
-
 #===============================================================================
 #    def getNumPeers(self):
-#        return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
+# return self.peer_db.getNumEncounteredPeers()#, self.peer_db.size()
 #
 #    def getNumFiles(self):
-#        return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
+# return self.torrent_db.getNumMetadataAndLive()#, self.torrent_db.size()
 #===============================================================================
-
     def getConfigPath(self):
         return self.dir_root
         # TODO: python 2.3.x has a bug with os.access and unicode
@@ -128,7 +127,7 @@ class Utility:
             # MiscPanel
             'language_file': 'english.lang',
             'confirmonclose': '1',
-            'associate' : '1',
+            'associate': '1',
             # DiskPanel
             'removetorrent': '0',
             'diskfullthreshold': '1',
@@ -145,12 +144,12 @@ class Utility:
             # AdvancedNetworkPanel
             # AdvancedDiskPanel
             # TriblerPanel
-            'torrentcollectsleep':'15',  # for RSS Subscriptions
+            'torrentcollectsleep': '15',  # for RSS Subscriptions
             # VideoPanel
-            'videoplaybackmode':'0',
+            'videoplaybackmode': '0',
             # Misc
-            'enableweb2search':'0',
-            'torrentassociationwarned':'0',
+            'enableweb2search': '0',
+            'torrentassociationwarned': '0',
             # GUI
             'window_width': '1024',
             'window_height': '670',
@@ -159,7 +158,7 @@ class Utility:
             'prefwindow_width': '1000',
             'prefwindow_height': '480',
             'prefwindow_split': '400',
-            'sash_position' : '-185',
+            'sash_position': '-185',
             't4t_option': 0,  # Seeding items added by Boxun
             't4t_ratio': 100,  # T4T seeding ratio added by Niels
             't4t_hours': 0,
@@ -174,11 +173,11 @@ class Utility:
             'use_bundle_magic': 0,
 
             # WebUI
-            'use_webui':0,
-            'webui_port':8080,
+            'use_webui': 0,
+            'webui_port': 8080,
 
             # swift reseed
-            'swiftreseed':1
+            'swiftreseed': 1
         }
 
         if sys.platform == 'win32':
@@ -370,7 +369,7 @@ class Utility:
             if truncate > 1:
                 text += ":" + secstr
 
-        return  text
+        return text
 
     def getMetainfo(self, src, openoptions='rb', style="file"):
         return getMetainfo(src, openoptions=openoptions, style=style)
@@ -386,14 +385,14 @@ class Utility:
                 text = '%d KB/s' % (s // 1024)
             elif s < 104857600:
                 text = '%2.1f MB/s' % (s / 1048576.0)
-            elif s < 1047527425L:
+            elif s < 1047527425:
                 text = '%d MB/s' % (s // 1048576)
-            elif s < 107374182400L:
+            elif s < 107374182400:
                 text = '%2.1f GB/s' % (s / 1073741824.0)
-            elif s < 1072668082177L:
+            elif s < 1072668082177:
                 text = '%d GB/s' % (s // 1073741824)
             else:
-                text = '%2.1f TB/s' % (s // 1099511627776L)
+                text = '%2.1f TB/s' % (s // 1099511627776)
 
             return text
         return ''
@@ -412,10 +411,10 @@ class Utility:
         elif ((s < 1048576) and stopearly is None) or stopearly == "KB":
             size = (s / 1024.0)
             text = "KB"
-        elif ((s < 1073741824L) and stopearly is None) or stopearly == "MB":
+        elif ((s < 1073741824) and stopearly is None) or stopearly == "MB":
             size = (s / 1048576.0)
             text = "MB"
-        elif ((s < 1099511627776L) and stopearly is None) or stopearly == "GB":
+        elif ((s < 1099511627776) and stopearly is None) or stopearly == "GB":
             size = (s / 1073741824.0)
             text = "GB"
         else:
@@ -465,8 +464,7 @@ class Utility:
                 value = int(round(value / 150.0) * 150)
 
             returnar.add(value)
-        returnar = list(returnar)
-        returnar.sort()
+        returnar = sorted(returnar)
         return returnar
 
     def makeNumCtrl(self, parent, value, integerWidth=6, fractionWidth=0, min=0, max=None, size=wx.DefaultSize):
@@ -583,9 +581,9 @@ class Utility:
             fixedname = self.fixWindowsName(pathitems[0])
             if fixedname:
                 dlg = wx.MessageDialog(parent,
-                                       pathitems[0] + '\n' + \
-                                       self.lang.get('invalidwinname') + '\n' + \
-                                       self.lang.get('suggestedname') + '\n\n' + \
+                                       pathitems[0] + '\n' +
+                                       self.lang.get('invalidwinname') + '\n' +
+                                       self.lang.get('suggestedname') + '\n\n' +
                                        fixedname,
                                        self.lang.get('error'), wx.ICON_ERROR)
                 dlg.ShowModal()
@@ -605,8 +603,8 @@ class Utility:
                 fixedname = self.fixWindowsName(pathitems[0], unit=True)
                 if fixedname:
                     dlg = wx.MessageDialog(parent,
-                                           pathitems[0] + '\n' + \
-                                           self.lang.get('invalidwinname') + \
+                                           pathitems[0] + '\n' +
+                                           self.lang.get('invalidwinname') +
                                            fixedname,
                                            self.lang.get('error'), wx.ICON_ERROR)
                     dlg.ShowModal()
@@ -650,15 +648,14 @@ class Utility:
             fontinfo = {'name': fontname,
                         'size': fontsize,
                         'style': fontstyle,
-                        'weight': fontweight }
+                        'weight': fontweight}
         except:
             fontinfo = {'name': "",
                         'size': 8,
                         'style': wx.FONTSTYLE_NORMAL,
-                        'weight': wx.FONTWEIGHT_NORMAL }
+                        'weight': wx.FONTWEIGHT_NORMAL}
 
         return fontinfo
-
 
     def getFontFromInfo(self, fontinfo):
         size = fontinfo['size']
@@ -701,10 +698,11 @@ class Utility:
 
 def printTorrent(torrent, pre=''):
     for key, value in torrent.items():
-        if type(value) == dict:
+        if isinstance(value, dict):
             printTorrent(value, pre + ' ' + key)
         elif key.lower() not in ['pieces', 'thumbnail', 'preview']:
             print '%s | %s: %s' % (pre, key, value)
+
 
 def getMetainfo(src, openoptions='rb', style="file"):
     if src is None:
@@ -733,6 +731,7 @@ def getMetainfo(src, openoptions='rb', style="file"):
         metainfo = None
     return metainfo
 
+
 def copyTorrent(torrent):
     # make a copy of a torrent, to check if any of its "basic" props has been changed
     # NB: only copies basic properties
@@ -746,6 +745,7 @@ def copyTorrent(torrent):
         if not value is None:
             ntorrent[key] = value
     return ntorrent
+
 
 def similarTorrent(t1, t2):
     # make a copy of a torrent, to check if any of its "basic" props has been changed
@@ -763,6 +763,7 @@ def similarTorrent(t1, t2):
             return False
     return True
 
+
 def copyPeer(peer):
     # make a copy of a peer, to check if any of its "basic" props has been changed
     # NB: only copies basic properties
@@ -776,6 +777,7 @@ def copyPeer(peer):
         if not value is None:
             npeer[key] = value
     return npeer
+
 
 def similarPeer(t1, t2):
     # make a copy of a peer, to check if any of its "basic" props has been changed

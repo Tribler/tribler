@@ -9,6 +9,7 @@ portable_standard_time = standard_time.time
 
 time = sleep = is_real = None
 
+
 def normal_mode():
     global time
     global sleep
@@ -17,6 +18,7 @@ def normal_mode():
     time = portable_standard_time
     sleep = standard_time.sleep
     is_real = True
+
 
 def mock_mode():
     global time

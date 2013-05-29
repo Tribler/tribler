@@ -7,6 +7,7 @@ from LivingLabReporter import LivingLabPeriodicReporter
 
 DEBUG = False
 
+
 class TUDelftReporter(LivingLabPeriodicReporter):
     host = "dispersyreporter.tribler.org"
     path = "/post.py"
@@ -16,16 +17,19 @@ class TUDelftReporter(LivingLabPeriodicReporter):
         # note: public_key is set to self.device_id
 
     def report(self):
-        if DEBUG: print >> sys.stderr, "TUDelftReporter: report"
+        if DEBUG:
+            print >> sys.stderr, "TUDelftReporter: report"
         events = self.get_events()
         if events:
-            events = [{"name":event.get_name(), "time":event.get_time(), "values":event.get_values()} for event in events]
+            events = [{"name": event.get_name(), "time": event.get_time(), "values": event.get_values()} for event in events]
             data = (time(), self.device_id.encode("HEX"), events)
             compressed = compress(encode(data))
-            if DEBUG: print >> sys.stderr, "TUDelftReporter: posting", len(compressed), "bytes payload"
+            if DEBUG:
+                print >> sys.stderr, "TUDelftReporter: posting", len(compressed), "bytes payload"
             self.post(compressed)
         else:
-            if DEBUG: print >> sys.stderr, "TUDelftReporter: Nothing to report"
+            if DEBUG:
+                print >> sys.stderr, "TUDelftReporter: Nothing to report"
 
 if __debug__:
     if __name__ == "__main__":

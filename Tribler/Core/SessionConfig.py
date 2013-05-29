@@ -24,6 +24,7 @@ from Tribler.Core.Utilities.utilities import find_prog_in_PATH
 
 
 class SessionConfigInterface:
+
     """
     (key,value) pair config of global parameters,
     e.g. PermID keypair, listen port, max upload speed, etc.
@@ -65,8 +66,6 @@ class SessionConfigInterface:
 
         self.sessconfig['ipv6_binds_v4'] = autodetect_socket_style()
 
-
-
     def set_state_dir(self, statedir):
         """ Set the directory to store the Session's state in.
         @param statedir  A preferably absolute path name. If the directory
@@ -90,7 +89,6 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['install_dir']
 
-
     def set_permid_keypair_filename(self, keypairfilename):
         """ Set the filename containing the Elliptic Curve keypair to use for
         PermID-based authentication in this Session.
@@ -106,7 +104,6 @@ class SessionConfigInterface:
         """ Returns the filename of the Session's keypair.
         @return An absolute path name. """
         return self.sessconfig['eckeypairfilename']
-
 
     def set_listen_port(self, port):
         """ Set the UDP and TCP listen port for this Session.
@@ -160,6 +157,18 @@ class SessionConfigInterface:
         """ Returns whether to automatically collect torrents.
         @return Boolean. """
         return self.sessconfig['torrent_collecting']
+
+    def set_dht_torrent_collecting(self, value):
+        """ Automatically collect torrents from the dht if peers fail to respond
+        @param value Boolean.
+        """
+        self.sessconfig['dht_torrent_collecting'] = value
+
+    def get_dht_torrent_collecting(self):
+        """ Returns whether to automatically collect torrents from the dht if peers fail
+        to respond.
+        @return Boolean. """
+        return self.sessconfig['dht_torrent_collecting']
 
     def set_torrent_collecting_max_torrents(self, value):
         """ Set the maximum number of torrents to collect from other peers.
@@ -275,7 +284,6 @@ class SessionConfigInterface:
         @return An absolute path name. """
         return self.sessconfig['videoanalyserpath']  # strings immutable
 
-
     def set_mainline_dht(self, value):
         """ Enable mainline DHT support (default = True)
         @param value Boolean.
@@ -286,6 +294,20 @@ class SessionConfigInterface:
         """ Returns whether mainline DHT support is enabled.
         @return Boolean. """
         return self.sessconfig['mainline_dht']
+
+    def set_mainline_dht_listen_port(self, port):
+        """ Sets the port that the mainline DHT uses to receive and send UDP
+        datagrams.
+        @param value int
+        """
+        self.sessconfig['mainline_dht_port'] = port
+
+    def get_mainline_dht_listen_port(self):
+        """ Returns the port that the mainline DHT uses to receive and send
+        USP datagrams.
+        @return int
+        """
+        return self.sessconfig['mainline_dht_port']
 
     #
     # Local Peer Discovery using IP Multicast
@@ -387,6 +409,17 @@ class SessionConfigInterface:
         @return Port number. """
         return self.sessconfig['swiftcmdlistenport']
 
+    def set_swift_dht_listen_port(self, port):
+        """ Set the local UDP listen port for dht socket communication to
+        the swift processes. 
+        @param port A port number.
+        """
+        self.sessconfig['swiftdhtport'] = port
+
+    def get_swift_dht_listen_port(self):
+        """ Returns the local dht port for swift communication.
+        @return Port number. """
+        return self.sessconfig['swiftdhtport']
 
     def set_swift_downloads_per_process(self, value):
         """ Number of downloads per swift process. When exceeded, a new swift
@@ -400,7 +433,6 @@ class SessionConfigInterface:
         """ Returns the number of downloads per swift process.
         @return A number of downloads. """
         return self.sessconfig['swiftdlsperproc']
-
 
     #
     # Config for swift tunneling e.g. dispersy traffic
@@ -447,6 +479,7 @@ class SessionConfigInterface:
 
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
+
     """ Class to configure a Session """
 
     def __init__(self, sessconfig=None):

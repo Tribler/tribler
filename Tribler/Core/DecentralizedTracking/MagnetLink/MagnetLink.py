@@ -24,6 +24,7 @@ try:
     from urlparse import parse_qsl
 except ImportError:
     from urllib import unquote_plus
+
     def parse_qsl(query):
         """
         'foo=bar&moo=milk' --> [('foo', 'bar'), ('moo', 'milk')]
@@ -38,6 +39,7 @@ from Tribler.Core.DecentralizedTracking.MagnetLink.MiniBitTorrent import MiniSwa
 import Tribler.Core.DecentralizedTracking.mainlineDHT as mainlineDHT
 
 DEBUG = False
+
 
 class Singleton:
     _singleton_lock = Lock()
@@ -67,8 +69,10 @@ class Singleton:
     def has_instance(cls, *args, **kargs):
         return hasattr(cls, "_singleton_instance")
 
+
 class MagnetHandler(Singleton):
-    def __init__(self, raw_server):
+    def __init__(self, dht, raw_server):
+        self._dht = dht
         self._raw_server = raw_server
         self._magnets = []
 
@@ -86,7 +90,9 @@ class MagnetHandler(Singleton):
     def get_magnets(self):
         return self._magnets
 
+
 class MagnetLink:
+
     def __init__(self, url, callback, timeout, max_connections=30):
         """
         If the URL conforms to a magnet link, the .torrent info is
@@ -134,9 +140,8 @@ class MagnetLink:
             # todo: catch the result from get_peers and call its stop
             # method.  note that this object does not yet contain a
             # stop method...
-            dht = mainlineDHT.dht
-            if dht:
-                dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0)
+            if self.magnet_handler._dht:
+                self.magnet_handler._dht.get_peers(self._info_hash, Id(self._info_hash), self.potential_peers_from_dht, 0, True)
 
             try:
                 if self._trackers and any(tracker.startswith("http") for tracker in self._trackers):
@@ -172,7 +177,7 @@ class MagnetLink:
                 assert isinstance(address[1], int)
 
         # create metadata
-        metadata = {"info":metainfo}
+        metadata = {"info": metainfo}
         if self._trackers:
             if len(self._trackers) > 1:
                 metadata["announce-list"] = [self._trackers]
@@ -201,7 +206,8 @@ class MagnetLink:
         xt = None
         trs = []
 
-        if DEBUG: print >> sys.stderr, "Magnet.parse_url()", url
+        if DEBUG:
+            print >> sys.stderr, "Magnet.parse_url()", url
 
         schema, netloc, path, query, fragment = urlsplit(url)
         if schema == "magnet":
@@ -221,7 +227,7 @@ class MagnetLink:
                     dn = value.decode()
 
                 elif key == "xt" and value.startswith("urn:btih:"):
-                    #vliegendhart: Adding support for base32 in magnet links (BEP 0009)
+                    # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
                     encoded_infohash = value[9:49]
                     if len(encoded_infohash) == 32:
                         xt = b32decode(encoded_infohash)
@@ -231,8 +237,11 @@ class MagnetLink:
                 elif key == "tr":
                     trs.append(value)
 
-            if DEBUG: print >> sys.stderr, "Magnet.parse_url() NAME:", dn
-            if DEBUG: print >> sys.stderr, "Magnet.parse_url() HASH:", xt
-            if DEBUG: print >> sys.stderr, "Magnet.parse_url() TRACS:", trs
+            if DEBUG:
+                print >> sys.stderr, "Magnet.parse_url() NAME:", dn
+            if DEBUG:
+                print >> sys.stderr, "Magnet.parse_url() HASH:", xt
+            if DEBUG:
+                print >> sys.stderr, "Magnet.parse_url() TRACS:", trs
 
         return (dn, xt, trs)

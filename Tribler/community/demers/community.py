@@ -1,4 +1,4 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 from conversion import DemersConversion
 from payload import TextPayload
 
@@ -11,7 +11,12 @@ from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.tool.lencoder import log
 
+
 class DemersTest(Community):
+    def __init__(self, dispersy, master):
+        super(DemersTest, self).__init__(dispersy, master)
+        self._dispersy_sync_skip_enable = False
+
     def initiate_meta_messages(self):
         return [Message(self, u"text", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text)]
 
@@ -44,4 +49,4 @@ class DemersTest(Community):
 
     def on_text(self, messages):
         for message in messages:
-            log("dispersy.log", "handled-record", type = "text", global_time = message._distribution.global_time)
+            log("dispersy.log", "handled-record", type="text", global_time=message._distribution.global_time)

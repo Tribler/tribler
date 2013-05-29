@@ -6,11 +6,13 @@ This module implements the creation and parsing of messages
 required by the SSDP protocol, part of the UPnP architecture.
 """
 
-##############################################
+#
 # UNPN MESSAGE LOADER
-##############################################
+#
 
 # Message Loader
+
+
 def message_loader(data):
     """
     Inflates a python SSDP message object from given string.
@@ -33,23 +35,23 @@ def message_loader(data):
         elif map_['nts'].find("ssdp:byebye") >= 0:
             msg = UnAnnounceMessage()
         else:
-            raise Exception, "Unrecognized Message Type"
+            raise Exception("Unrecognized Message Type")
 
     elif lowercase_firstline.startswith('http/1.1 200 ok'):
         msg = ReplyMessage()
     elif lowercase_firstline.startswith('m-search'):
         msg = SearchMessage()
     else:
-        raise Exception, "Unrecognized Message Type"
+        raise Exception("Unrecognized Message Type")
 
     msg.loads(map_)
 
     return msg
 
 
-##############################################
+#
 # SSDP MESSAGES
-##############################################
+#
 
 class SearchMessage:
 
@@ -82,7 +84,6 @@ ST: %(st)s\r\n\r\n"""
 
     def __str__(self):
         return self.dumps()
-
 
 
 class ReplyMessage:
@@ -137,7 +138,6 @@ USN: %(usn)s\r\n\r\n"""
         return self.dumps()
 
 
-
 class AnnounceMessage:
 
     """This implements a SSDP Announce message."""
@@ -183,14 +183,12 @@ USN: %(usn)s\r\n\r\n"""
         server = hdr_elements['server']
         offset = server.find(delimiter)
         self.osversion = server[:offset]
-        self.productversion = server[offset + len(delimiter) :]
+        self.productversion = server[offset + len(delimiter):]
         self.usn = hdr_elements['usn']
         self.nt = hdr_elements['nt']
 
     def __str__(self):
         return self.dumps()
-
-
 
 
 class UnAnnounceMessage:
@@ -226,11 +224,9 @@ USN: %(usn)s\r\n\r\n"""
         return self.dumps()
 
 
-
-##############################################
+#
 # MAIN
-##############################################
-
+#
 if __name__ == "__main__":
 
     # Test SearchMessage
@@ -240,14 +236,13 @@ if __name__ == "__main__":
     print S
     print message_loader(S)
 
-
     # Test ReplyMessage
     REPLY_MSG = ReplyMessage()
     REPLY_MSG.init(location="http://10.0.0.138:80/IGD.xml",
-                  osversion="SpeedTouch 510 4.0.0.9.0",
+                   osversion="SpeedTouch 510 4.0.0.9.0",
                   productversion="DG233B00011961",
-                  usn="uuid:UPnP-SpeedTouch510::urn:schemas-upnp-org:" \
-                       + "service:WANPPPConnection:1")
+                  usn="uuid:UPnP-SpeedTouch510::urn:schemas-upnp-org:"
+                  + "service:WANPPPConnection:1")
     S = REPLY_MSG.dumps()
     print S
     print message_loader(S)
@@ -257,20 +252,19 @@ if __name__ == "__main__":
     ANNOUNCE_MSG.init(location="http://10.0.0.138:80/IGD.xml",
                      osversion="SpeedTouch 510 4.0.0.9.0",
                      productversion="(DG233B00011961)",
-                     usn="uuid:UPnP-SpeedTouch510::urn:schemas-upnp-org:" \
-                          + "service:WANPPPConnection:1",
+                     usn="uuid:UPnP-SpeedTouch510::urn:schemas-upnp-org:"
+                     + "service:WANPPPConnection:1",
                      nt="urn:schemas-upnp-org:service:WANPPPConnection:1")
     S = ANNOUNCE_MSG.dumps()
     print S
     print message_loader(S)
-
 
     # Test UnAnnounceMessage
     UNANNOUNCE_MSG = UnAnnounceMessage()
     USN = "uuid:UPnP-SpeedTouch510::urn:schemas-upnp-org:" \
         + "service:WANPPPConnection:1"
     NT = "urn:schemas-upnp-org:service:WANPPPConnection:1"
-    UNANNOUNCE_MSG.init( usn=USN, nt=NT)
+    UNANNOUNCE_MSG.init(usn=USN, nt=NT)
 
     S = UNANNOUNCE_MSG.dumps()
     print S

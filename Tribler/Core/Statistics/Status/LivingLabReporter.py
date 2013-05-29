@@ -21,6 +21,7 @@ DEBUG = False
 
 
 class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
+
     """
     This reporter creates an XML report of the status elements
     that are registered and sends them using an HTTP Post at
@@ -28,7 +29,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
     """
 
     host = "p2pnext-statistics.comp.lancs.ac.uk"
-    #path = "/testpost/"
+    # path = "/testpost/"
     path = "/post/"
 
     def __init__(self, name, frequency, id, error_handler=None,
@@ -79,11 +80,10 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         root.appendChild(header)
         header.appendChild(self.new_element(doc, "deviceid", self.device_id))
         header.appendChild(self.new_element(doc, "timestamp",
-                                           long(round(time.time()))))
+                                            long(round(time.time()))))
 
         version = "cs_v2a"
         header.appendChild(self.new_element(doc, "swversion", version))
-
 
         # Now add the status elements
         elements = self.get_elements()
@@ -121,7 +121,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
                     report.appendChild(self.new_element(doc, "value", value))
 
         if len(elements) == 0 and len(events) == 0:
-            return # Was nothing here for us
+            return  # Was nothing here for us
 
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
@@ -138,7 +138,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         This is a bit on the messy side, but it does work
         """
 
-        #print >>sys.stderr, xml_str
+        # print >>sys.stderr, xml_str
 
         self.num_reports += 1
 
@@ -158,7 +158,7 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         body = "\r\n".join(base)
 
         # Arno, 2010-03-09: Make proxy aware and use modern httplib classes
-        wanturl = 'http://'+self.host+self.path
+        wanturl = 'http://' + self.host +self.path
         proxyhost = find_proxy(wanturl)
         if proxyhost is None:
             desthost = self.host
@@ -174,24 +174,24 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         # generated from h.putrequest.  Sending it twice causes
         # invalid HTTP and Virtual Hosts to
         # fail.
-        #h.putheader("Host",self.host)
+        # h.putheader("Host",self.host)
 
-        h.putheader("User-Agent","NextShare status reporter 2010.3")
+        h.putheader("User-Agent", "NextShare status reporter 2010.3")
         h.putheader("Content-Type", "multipart/form-data; boundary=" + boundary)
-        h.putheader("Content-Length",str(len(body)))
+        h.putheader("Content-Length", str(len(body)))
         h.endheaders()
         h.send(body)
 
         resp = h.getresponse()
         if DEBUG:
             # print >>sys.stderr, "LivingLabReporter:\n", xml_str
-            print >>sys.stderr, "LivingLabReporter:", `resp.status`, `resp.reason`, "\n", resp.getheaders(), "\n", resp.read().replace("\\n", "\n")
+            print >>sys.stderr, "LivingLabReporter:", repr(resp.status), repr(resp.reason), "\n", resp.getheaders(), "\n", resp.read().replace("\\n", "\n")
 
         if resp.status != 200:
             if self.error_handler:
                 try:
                     self.error_handler(resp.status, resp.read())
-                except Exception, e:
+                except Exception as e:
                     pass
             else:
                 print >> sys.stderr, "Error posting but no error handler:", resp.status
@@ -204,6 +204,7 @@ if __name__ == "__main__":
     """
 
     status = Status.get_status_holder("UnitTest")
+
     def test_error_handler(code, message):
         """
         Test error-handler
@@ -221,4 +222,4 @@ if __name__ == "__main__":
     print "Stopping reporter"
     reporter.stop()
 
-    print "Sent %d reports"% reporter.num_reports
+    print "Sent %d reports" % reporter.num_reports

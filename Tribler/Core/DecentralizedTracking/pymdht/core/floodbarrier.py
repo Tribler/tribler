@@ -10,14 +10,16 @@ host processing too many messages from a single host.
 
 import ptime as time
 import collections
-import logging, logging_conf
+import logging
+import logging_conf
 
 logger = logging.getLogger('dht')
 
 
-CHECKING_PERIOD = 2 # seconds
+CHECKING_PERIOD = 2  # seconds
 MAX_PACKETS_PER_PERIOD = 10
-BLOCKING_PERIOD = 100 # seconds
+BLOCKING_PERIOD = 100  # seconds
+
 
 class HalfPeriodRegister(object):
 
@@ -31,6 +33,7 @@ class HalfPeriodRegister(object):
 
     def register_ip(self, ip):
         self.ip_dict[ip] = self.ip_dict.get(ip, 0) + 1
+
 
 class FloodBarrier(object):
 
@@ -69,14 +72,14 @@ class FloodBarrier(object):
             self.ip_registers[1].get_num_packets(ip)
         if num_packets > self.max_packets_per_period:
             logger.debug('Got %d packets: blocking %r...' % (
-                    num_packets, ip))
+                num_packets, ip))
             self.blocked_ips[ip] = current_time + self.blocking_period
             return True
         # At this point there are no enough packets to block ip (in current
         # period). Now, we need to check whether the ip is currently blocked
         if ip in self.blocked_ips:
             logger.debug('Ip %r (%d) currently blocked' % (ip,
-                                                            num_packets))
+                                                           num_packets))
             if current_time > self.blocked_ips[ip]:
                 logger.debug(
                     'Block for %r (%d) has expired: unblocking...' %
@@ -88,7 +91,6 @@ class FloodBarrier(object):
                 # IP is currently blocked (block hasn't expired)
                 return True
         else:
-
 
             # IP is not blocked
             return False

@@ -20,6 +20,8 @@ from Tribler.Core.API import *
 from Tribler.Core.__init__ import version, report_email
 
 # Print usage message
+
+
 def usage():
     print "Usage: python cmdlinedl.py [options] torrentfile_or_url"
     print "Options:"
@@ -37,29 +39,34 @@ def usage():
     print "Report bugs to <" + report_email + ">"
 
 # Print version information
+
+
 def print_version():
     print version, "<" + report_email + ">"
 
 # Print torrent statistics
+
+
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
     print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
-            (d.get_def().get_name(), \
-            dlstatus_strings[ds.get_status()], \
-            ds.get_progress() * 100, \
-            ds.get_error(), \
-            ds.get_current_speed(UPLOAD), \
+        (d.get_def().get_name(),
+            dlstatus_strings[ds.get_status()],
+            ds.get_progress() * 100,
+            ds.get_error(),
+            ds.get_current_speed(UPLOAD),
             ds.get_current_speed(DOWNLOAD))
 
     return (1.0, False)
+
 
 def main():
     try:
         # opts = a list of (option, value) pairs
         # args = the list of program arguments left after the option list was stripped
         opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir", "port"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
@@ -109,8 +116,8 @@ def main():
 
     # setup and start download
     dscfg = DownloadStartupConfig()
-    dscfg.set_dest_dir(output_dir);
-    #dscfg.set_max_speed( UPLOAD, 10 )
+    dscfg.set_dest_dir(output_dir)
+    # dscfg.set_max_speed( UPLOAD, 10 )
 
     # SWIFTPROC
     if torrentfile_or_url.startswith("http") or torrentfile_or_url.startswith(P2PURL_SCHEME):
@@ -138,7 +145,7 @@ def main():
     #
     try:
         while True:
-            time.sleep(sys.maxint/2048)
+            time.sleep(sys.maxsize / 2048)
     except:
         print_exc()
 

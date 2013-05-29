@@ -16,6 +16,7 @@ import ptime as time
 
 CACHING_NODE = ('0.0.0.0', 0)
 
+
 class CachedLookup(object):
 
     def __init__(self, info_hash):
@@ -37,9 +38,9 @@ class Cache(object):
     def put_cached_lookup(self, cached_lookup):
         # first remove expired chached lookups
         for i in range(len(self.cached_lookups), 0, -1):
-            if time.time() > (self.cached_lookups[i-1].start_ts +
+            if time.time() > (self.cached_lookups[i - 1].start_ts +
                               self.validity_time):
-                del self.cached_lookups[i-1]
+                del self.cached_lookups[i - 1]
         self.cached_lookups.append(cached_lookup)
 
     def get_cached_lookup(self, info_hash):

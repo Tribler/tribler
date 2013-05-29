@@ -9,7 +9,9 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler,\
     MyPreferenceDBHandler, NetworkBuzzDBHandler
 from Tribler.Test.bak_tribler_sdb import FILES_DIR
 
+
 class TestTorrentChecking(AbstractServer):
+
     def setUp(self):
         self.setUpCleanup()
 
@@ -17,7 +19,7 @@ class TestTorrentChecking(AbstractServer):
         config['state_dir'] = self.getStateDir()
         config['install_dir'] = '.'
         init_db(config)
-        
+
         self.tdb = TorrentDBHandler.getInstance()
         self.tdb.torrent_dir = FILES_DIR
         self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
@@ -42,7 +44,7 @@ class TestTorrentChecking(AbstractServer):
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
             SQLiteCacheDB.delInstance()
-            
+
         TorrentDBHandler.delInstance()
         MyPreferenceDBHandler.delInstance()
         NetworkBuzzDBHandler.delInstance()

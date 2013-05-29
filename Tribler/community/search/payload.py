@@ -1,11 +1,13 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 from Tribler.dispersy.payload import Payload, IntroductionRequestPayload
 from Tribler.dispersy.bloomfilter import BloomFilter
 
+
 class TasteIntroPayload(IntroductionRequestPayload):
+
     class Implementation(IntroductionRequestPayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, num_preferences = 0, taste_bloom_filter = None):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, num_preferences=0, taste_bloom_filter=None):
             IntroductionRequestPayload.Implementation.__init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
 
             self._num_preferences = num_preferences
@@ -25,14 +27,17 @@ class TasteIntroPayload(IntroductionRequestPayload):
         def taste_bloom_filter(self):
             return self._taste_bloom_filter
 
+
 class SearchRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, keywords, bloom_filter = None):
+
+        def __init__(self, meta, identifier, keywords, bloom_filter=None):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(keywords, list), 'keywords should be list'
                 for keyword in keywords:
-                    assert isinstance(keyword, unicode), '%s is type %s'%(keyword, type(keyword))
+                    assert isinstance(keyword, unicode), '%s is type %s' % (keyword, type(keyword))
                     assert len(keyword) > 0
 
                 assert not bloom_filter or isinstance(bloom_filter, BloomFilter), type(bloom_filter)
@@ -54,8 +59,11 @@ class SearchRequestPayload(Payload):
         def bloom_filter(self):
             return self._bloom_filter
 
+
 class SearchResponsePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, results):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
@@ -94,8 +102,11 @@ class SearchResponsePayload(Payload):
         def results(self):
             return self._results
 
+
 class TorrentRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, torrents):
             if __debug__:
                 assert isinstance(torrents, dict), type(torrents)
@@ -114,17 +125,20 @@ class TorrentRequestPayload(Payload):
         def torrents(self):
             return self._torrents
 
+
 class TorrentCollectRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, hashtype, torrents):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(torrents, list), type(torrents)
                 for hash, infohash, seeders, leechers, ago in torrents:
                     assert isinstance(hash, str)
-                    assert len(hash) == 20, "%d, %s"%(len(hash), hash)
+                    assert len(hash) == 20, "%d, %s" % (len(hash), hash)
                     assert isinstance(infohash, str)
-                    assert len(infohash) == 20, "%d, %s"%(len(infohash), infohash)
+                    assert len(infohash) == 20, "%d, %s" % (len(infohash), infohash)
                     assert isinstance(seeders, int)
                     assert 0 <= seeders < 2 ** 16, seeders
                     assert isinstance(leechers, int)
@@ -135,7 +149,7 @@ class TorrentCollectRequestPayload(Payload):
                     assert 0 <= ago < 2 ** 16, ago
 
                 assert isinstance(hashtype, int), type(hashtype)
-                assert 0 <= hashtype < 2**16, hashtype
+                assert 0 <= hashtype < 2 ** 16, hashtype
 
             super(TorrentCollectRequestPayload.Implementation, self).__init__(meta)
 
@@ -154,6 +168,7 @@ class TorrentCollectRequestPayload(Payload):
         @property
         def torrents(self):
             return self._torrents
+
 
 class TorrentCollectResponsePayload(TorrentCollectRequestPayload):
     pass

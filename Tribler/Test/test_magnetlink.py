@@ -20,7 +20,9 @@ import threading
 LISTEN_PORT = 12345
 DEBUG = True
 
+
 class MagnetHelpers:
+
     def __init__(self, tdef):
         # the metadata that we will transfer
         infodata = bencode(tdef.get_metainfo()["info"])
@@ -29,15 +31,15 @@ class MagnetHelpers:
         self.metadata_size = len(infodata)
 
     def create_good_extend_handshake(self):
-        payload = {"m":{"ut_metadata":42}, "metadata_size":self.metadata_size}
+        payload = {"m": {"ut_metadata": 42}, "metadata_size": self.metadata_size}
         return EXTEND + chr(0) + bencode(payload)
 
     def create_good_extend_metadata_request(self, metadata_id, piece):
-        payload = {"msg_type":0, "piece":piece}
+        payload = {"msg_type": 0, "piece": piece}
         return EXTEND + chr(metadata_id) + bencode(payload)
 
     def create_good_extend_metadata_reply(self, metadata_id, piece):
-        payload = {"msg_type":1, "piece":piece, "total_size":len(self.metadata_list[piece])}
+        payload = {"msg_type": 1, "piece": piece, "total_size": len(self.metadata_list[piece])}
         return EXTEND + chr(metadata_id) + bencode(payload) + self.metadata_list[piece]
 
     def metadata_id_from_extend_handshake(self, data):
@@ -135,7 +137,9 @@ class MagnetHelpers:
                 break
             assert not (response[0] == EXTEND and response[1] == 42)
 
+
 class TestMagnet(TestAsServer):
+
     """
     A MiniBitTorrent instance is used to connect to BitTorrent clients
     and download the info part from the metadata.
@@ -183,7 +187,7 @@ class TestMagnet(TestAsServer):
             self.seeder_setup_complete.set()
 
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
+        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
         return (1.0, False)
 
     def create_good_url(self, infohash=None, title=None, tracker=None):
@@ -206,7 +210,7 @@ class TestMagnet(TestAsServer):
             tags["metainfo"] = tdef.get_metainfo()
             tags["retrieved"].set()
 
-        tags = {"retrieved":threading.Event()}
+        tags = {"retrieved": threading.Event()}
         assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved)
 
         # supply fake addresses (regular dht obviously wont work here)
@@ -216,7 +220,9 @@ class TestMagnet(TestAsServer):
         assert tags["retrieved"].wait(60)
         assert tags["metainfo"]["info"] == self.tdef.get_metainfo()["info"]
 
+
 class TestMagnetFakePeer(TestMagnet, MagnetHelpers):
+
     """
     A MiniBitTorrent instance is used to connect to BitTorrent clients
     and download the info part from the metadata.
@@ -236,7 +242,7 @@ class TestMagnetFakePeer(TestMagnet, MagnetHelpers):
             tags["retrieved"].set()
             tags["metainfo"] = tdef.get_metainfo()
 
-        tags = {"retrieved":threading.Event()}
+        tags = {"retrieved": threading.Event()}
 
         assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved)
 
@@ -272,6 +278,7 @@ class TestMagnetFakePeer(TestMagnet, MagnetHelpers):
 
 
 class TestMetadataFakePeer(TestMagnet, MagnetHelpers):
+
     """
     Once we are downloading a torrent, our client should respond to
     the ut_metadata extention message.  This allows other clients to
@@ -314,11 +321,11 @@ class TestMetadataFakePeer(TestMagnet, MagnetHelpers):
                 self.read_extend_metadata_reply(conn, piece)
 
     def test_bad_request(self):
-        self.bad_request_and_disconnect({"msg_type":0, "piece":len(self.metadata_list)})
-        self.bad_request_and_disconnect({"msg_type":0, "piece":-1})
-        self.bad_request_and_disconnect({"msg_type":0, "piece":"1"})
-        self.bad_request_and_disconnect({"msg_type":0, "piece":[1, 2]})
-        self.bad_request_and_disconnect({"msg_type":0, "PIECE":1})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece": len(self.metadata_list)})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece": -1})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece": "1"})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece": [1, 2]})
+        self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})
 
     def bad_request_and_disconnect(self, payload):
         conn = BTConnection("localhost", self.hisport, user_infohash=self.tdef.get_infohash())

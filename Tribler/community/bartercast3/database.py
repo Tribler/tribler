@@ -58,6 +58,7 @@ DELETE FROM record;
 DELETE FROM book;
 """
 
+
 class BarterDatabase(Database):
     if __debug__:
         __doc__ = schema

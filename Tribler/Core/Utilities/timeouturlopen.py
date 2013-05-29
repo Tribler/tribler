@@ -13,8 +13,9 @@ import urlparse
 
 DEBUG = False
 
-def urlOpenTimeout(url,timeout=30,referer='',*data):
+def urlOpenTimeout(url, timeout=30, referer='', *data):
     class TimeoutHTTPConnection(httplib.HTTPConnection):
+
         def connect(self):
             """Connect to the host and port specified in __init__."""
             msg = "getaddrinfo returns an empty list"
@@ -22,12 +23,12 @@ def urlOpenTimeout(url,timeout=30,referer='',*data):
                                           socket.SOCK_STREAM):
                 af, socktype, proto, canonname, sa = res
                 try:
-                    self.sock = socket.socket(af,socktype, proto)
+                    self.sock = socket.socket(af, socktype, proto)
                     self.sock.settimeout(timeout)
                     if self.debuglevel > 0:
                         print "connect: (%s, %s)" % (self.host, self.port)
                     self.sock.connect(sa)
-                except socket.error, msg:
+                except socket.error as msg:
                     if self.debuglevel > 0:
                         print 'connect fail:', (self.host, self.port)
                     if self.sock:
@@ -36,14 +37,16 @@ def urlOpenTimeout(url,timeout=30,referer='',*data):
                     continue
                 break
             if not self.sock:
-                raise socket.error, msg
+                raise socket.error(msg)
 
     class TimeoutHTTPHandler(urllib2.HTTPHandler):
+
         def http_open(self, req):
             return self.do_open(TimeoutHTTPConnection, req)
 
     # Boudewijn, 09/09/10: Now accepting gzip compressed HTTP trafic.
     class GZipProcessor(urllib2.BaseHandler):
+
         def http_request(self, req):
             req.add_header("Accept-Encoding", "gzip")
             return req
@@ -66,7 +69,7 @@ def urlOpenTimeout(url,timeout=30,referer='',*data):
                                   urllib2.HTTPRedirectHandler,)
     if referer:
         opener.addheaders = [('Referer', referer)]
-    return opener.open(url,*data)
+    return opener.open(url, *data)
 
 
 def find_proxy(url):
@@ -76,7 +79,7 @@ def find_proxy(url):
     proxyhost = None
     if scheme in proxies:
         if '@' in netloc:
-            sidx = netloc.find('@')+1
+            sidx = netloc.find('@') + 1
         else:
             sidx = 0
         # IPVSIX TODO: what if host is IPv6 address
@@ -90,7 +93,7 @@ def find_proxy(url):
             proxyhost = proxyelems[1]
 
     if DEBUG:
-        print >>sys.stderr,"find_proxy: Got proxies",proxies,"selected",proxyhost,"URL was",url
+        print >>sys.stderr, "find_proxy: Got proxies", proxies, "selected", proxyhost, "URL was", url
     return proxyhost
 
 

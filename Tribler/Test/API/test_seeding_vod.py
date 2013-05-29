@@ -7,7 +7,9 @@ from Tribler.Test.API.test_seeding import TestSeeding
 from Tribler.Core.simpledefs import dlstatus_strings, VODEVENT_START
 import unittest
 
+
 class TestVODSeeding(TestSeeding):
+
     """
     Testing seeding via new tribler API:
     """
@@ -25,7 +27,7 @@ class TestVODSeeding(TestSeeding):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
+        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
 
         if ds.get_progress() > 0:
             self.downloading_event.set()

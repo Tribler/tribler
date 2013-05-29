@@ -1,6 +1,7 @@
 import unittest
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
+
 class TestSqliteCacheDB(unittest.TestCase):
 
     def setUp(self):

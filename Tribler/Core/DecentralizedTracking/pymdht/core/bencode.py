@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger('dht')
 
+
 class LoggingException(Exception):
 
     def __init__(self, msg):
@@ -14,15 +15,20 @@ class LoggingException(Exception):
 
 
 class EncodeError(LoggingException):
+
     """Raised by encoder when invalid input."""
 
+
 class DecodeError(LoggingException):
+
     """Raised by decoder when invalid bencode input."""
     def __init__(self, msg, bencoded):
         LoggingException.__init__(
             self, '\nBencoded: '.join((msg, repr(bencoded))))
 
+
 class RecursionDepthError(DecodeError):
+
     """Raised when the bencoded recursivity is too deep.
 
     This check prevents from using too much recursivity when an
@@ -39,6 +45,7 @@ def encode(data):
     result = output.getvalue()
     output.close()
     return result
+
 
 def decode(bencoded, max_depth=4):
     if not bencoded:
@@ -68,6 +75,7 @@ def _encode_str(data, output):
     """
     output.write('%d:%s' % (len(data), data))
 
+
 def _encode_int(data, output):
     """Encode an integer (or long) object
 
@@ -76,6 +84,7 @@ def _encode_int(data, output):
 
     """
     output.write('i%de' % data)
+
 
 def _encode_list(data, output):
     """Encode a list object
@@ -90,6 +99,7 @@ def _encode_list(data, output):
         encode_f(item, output)
     output.write('e')
 
+
 def _encode_dict(data, output):
     """Encode a dict object
 
@@ -99,18 +109,15 @@ def _encode_dict(data, output):
 
     """
     output.write('d')
-    keys = data.keys()
-    keys.sort()
+    keys = sorted(data.keys())
     for key in keys:
-        if type(key) != str: # key must be a string)
-            raise EncodeError, 'Found a non-string key. Data: %r' % data
+        if not isinstance(key, str):  # key must be a string)
+            raise EncodeError('Found a non-string key. Data: %r' % data)
         value = data[key]
         _encode_fs[str](key, output)
         encode_f = _get_encode_f(value)
         encode_f(value, output)
     output.write('e')
-
-
 
 
 def _decode_str(bencoded, pos, _):
@@ -122,12 +129,14 @@ def _decode_str(bencoded, pos, _):
     str_end = str_begin + str_len
     return (bencoded[str_begin:str_end], str_end)
 
+
 def _decode_int(bencoded, pos, _):
     """
 
 
     """
-    return  _get_int(bencoded, pos + 1, 'e') # +1 to skip 'i'
+    return _get_int(bencoded, pos + 1, 'e')  # +1 to skip 'i'
+
 
 def _decode_list(bencoded, pos, max_depth):
     """
@@ -139,7 +148,7 @@ def _decode_list(bencoded, pos, max_depth):
             'maximum recursion depth exceeded', bencoded)
 
     result = []
-    next_pos = pos + 1 # skip 'l'
+    next_pos = pos + 1  # skip 'l'
     bencoded_length = len(bencoded)
     while bencoded[next_pos] != 'e':
         decode_f = _get_decode_f(bencoded, next_pos)
@@ -151,7 +160,8 @@ def _decode_list(bencoded, pos, max_depth):
                               bencoded[pos:])
         result.append(item)
 
-    return result, next_pos + 1 # correct for 'e'
+    return result, next_pos + 1  # correct for 'e'
+
 
 def _decode_dict(bencoded, pos, max_depth):
     """
@@ -161,7 +171,7 @@ def _decode_dict(bencoded, pos, max_depth):
         raise RecursionDepthError('maximum recursion depth exceeded',
                                   bencoded)
     result = {}
-    next_pos = pos + 1 # skip 'd'
+    next_pos = pos + 1  # skip 'd'
     bencoded_length = len(bencoded)
     if bencoded_length < 2:
         # The shortest valid bencoded dictionary is "de" (len == 2)
@@ -172,8 +182,8 @@ def _decode_dict(bencoded, pos, max_depth):
         decode_f = _get_decode_f(bencoded, next_pos)
         if decode_f != _decode_str:
             raise DecodeError('Keys must be string. Found: <%s>' % (
-                    bencoded[next_pos]),
-                              bencoded)
+                bencoded[next_pos]),
+                bencoded)
         key, next_pos = decode_f(bencoded,
                                  next_pos, max_depth - 1)
         if next_pos >= bencoded_length:
@@ -189,15 +199,15 @@ def _decode_dict(bencoded, pos, max_depth):
             raise DecodeError('End of string and ending character not found',
                               bencoded[pos:])
         result[key] = value
-    return result, next_pos + 1 # skip 'e'
-
+    return result, next_pos + 1  # skip 'e'
 
 
 def _get_encode_f(value):
     try:
         return _encode_fs[type(value)]
-    except (KeyError), e:
-        raise EncodeError, 'Invalid type: <%r>' % e
+    except (KeyError) as e:
+        raise EncodeError('Invalid type: <%r>' % e)
+
 
 def _get_int(bencoded, pos, char):
     try:
@@ -206,28 +216,29 @@ def _get_int(bencoded, pos, char):
         raise DecodeError('Character %s not found.', bencoded)
     try:
         result = int(bencoded[pos:end])
-    except (ValueError), e:
-        raise DecodeError('Not an integer: %r' %e, bencoded)
-    return (result, end + 1) # +1 to skip final character
+    except (ValueError) as e:
+        raise DecodeError('Not an integer: %r' % e, bencoded)
+    return (result, end + 1)  # +1 to skip final character
+
 
 def _get_decode_f(bencoded, pos):
     try:
         return _decode_fs[bencoded[pos]]
-    except (KeyError), e:
+    except (KeyError) as e:
         raise DecodeError('Caracter in position %d raised %r' % (pos, e),
                           bencoded)
 
 
-_encode_fs = {str : _encode_str,
-              int :  _encode_int,
-              long : _encode_int,
-              tuple : _encode_list,
-              list :  _encode_list,
-              dict : _encode_dict
+_encode_fs = {str: _encode_str,
+              int: _encode_int,
+              long: _encode_int,
+              tuple: _encode_list,
+              list: _encode_list,
+              dict: _encode_dict
               }
 
-_decode_fs = {'i' : _decode_int,
-             'l' : _decode_list,
-             'd' : _decode_dict}
+_decode_fs = {'i': _decode_int,
+              'l': _decode_list,
+             'd': _decode_dict}
 for i in xrange(10):
     _decode_fs[str(i)] = _decode_str

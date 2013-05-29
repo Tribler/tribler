@@ -5,13 +5,14 @@
 This module implements a console interface to a UPnP Client.
 """
 
-##############################################
+#
 # UPNP CLIENT CONSOLE
-##############################################
+#
 
 from upnpclient import UPnPClient
 from Tribler.UPnP.common.objectconsole import ObjectConsole
 from Tribler.UPnP.common.taskrunner import TaskRunner
+
 
 class UPnPClientConsole:
 
@@ -57,11 +58,9 @@ class UPnPClientConsole:
         self._console.run()
 
 
-
-##############################################
+#
 # MAIN
-##############################################
-
+#
 if __name__ == '__main__':
 
     UPnPClientConsole().run()

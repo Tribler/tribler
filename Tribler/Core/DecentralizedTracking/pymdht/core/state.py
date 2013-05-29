@@ -43,8 +43,9 @@ def save(my_id, rnodes, filename):
                 rnode.id, version_repr(rnode.version),
                 rnode.addr[0], rnode.addr[1],
                 rtt * 1000,
-                time.time() -rnode.creation_ts ))
+                time.time() - rnode.creation_ts))
     f.close()
+
 
 def load(filename):
     my_id = None
@@ -63,7 +64,7 @@ def load(filename):
         return None, []
     except:
         logger.exception("Error when loading state, loading default.")
-        #raise # debug only
+        # raise # debug only
         return None, []
     f.close
     return my_id, nodes

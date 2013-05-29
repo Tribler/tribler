@@ -27,7 +27,9 @@ from Tribler.Core.Utilities.Crypto import sha
 
 from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 
+
 class TorrentDef(ContentDefinition, Serializable, Copyable):
+
     """
     Definition of a torrent, that is, all params required for a torrent file,
     plus optional params such as thumbnail, playtime, etc.
@@ -70,12 +72,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         self.metainfo = None  # copy of loaded or last saved torrent dict
         self.infohash = None  # only valid if metainfo_valid
 
-
         # We cannot set a built-in default for a tracker here, as it depends on
         # a Session. Alternatively, the tracker will be set to the internal
         # tracker by default when Session::start_download() is called, if the
         # 'announce' field is the empty string.
-
     #
     # Class methods for creating a TorrentDef from a .torrent file
     #
@@ -145,6 +145,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """
         assert isinstance(url, str), "URL has invalid type: %s" % type(url)
         assert callable(callback), "CALLBACK must be callable"
+
         def metainfo_retrieved(metadata):
             tdef = TorrentDef.load_from_dict(metadata)
             callback(tdef)
@@ -152,7 +153,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         try:
             magnet_link = MagnetLink(url, metainfo_retrieved, timeout, max_connections)
             return magnet_link.retrieve()
-        except Exception, e:
+        except Exception as e:
             print >> sys.stderr, "Exception within magnet link"
             print >> sys.stderr, e
             return False
@@ -254,11 +255,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         s = os.stat(inpath)
-        d = {'inpath':inpath, 'outpath':outpath, 'playtime':playtime, 'length':s.st_size}
+        d = {'inpath': inpath, 'outpath': outpath, 'playtime': playtime, 'length': s.st_size}
         self.input['files'].append(d)
 
         self.metainfo_valid = False
-
 
     def remove_content(self, inpath):
         """ Remove a file or directory from this torrent definition
@@ -316,7 +316,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         self.input['live'] = authparams
 
-        d = {'inpath':name, 'outpath':None, 'playtime':None, 'length':None}
+        d = {'inpath': name, 'outpath': None, 'playtime': None, 'length': None}
         self.input['files'].append(d)
 
     #
@@ -345,7 +345,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         f.close()
         self.input['thumb'] = data
         self.metainfo_valid = False
-
 
     def get_thumbnail(self):
         """ Returns (MIME type,thumbnail data) if present or (None,None)
@@ -387,15 +386,15 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         # TODO: check input, in particular remove / at end
         newhier = []
-        if type(hier) != ListType:
+        if not isinstance(hier, ListType):
             raise ValueError("hierarchy is not a list")
         for tier in hier:
-            if type(tier) != ListType:
+            if not isinstance(tier, ListType):
                 raise ValueError("tier is not a list")
             newtier = []
             for url in tier:
                 if not isValidURL(url):
-                    raise ValueError("Invalid URL: " + `url`)
+                    raise ValueError("Invalid URL: " + repr(url))
 
                 if url.endswith('/'):
                     # Some tracker code can't deal with / at end
@@ -436,16 +435,16 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         # Check input
-        if type(nodes) != ListType:
+        if not isinstance(nodes, ListType):
             raise ValueError("nodes not a list")
         else:
             for node in nodes:
-                if type(node) != ListType or len(node) != 2:
-                    raise ValueError("node in nodes not a 2-item list: " + `node`)
-                if type(node[0]) != StringType:
-                    raise ValueError("host in node is not string:" + `node`)
-                if type(node[1]) != IntType:
-                    raise ValueError("port in node is not int:" + `node`)
+                if not isinstance(node, ListType) or len(node) != 2:
+                    raise ValueError("node in nodes not a 2-item list: " + repr(node))
+                if not isinstance(node[0], StringType):
+                    raise ValueError("host in node is not string:" + repr(node))
+                if not isinstance(node[1], IntType):
+                    raise ValueError("port in node is not int:" + repr(node))
 
         self.input['nodes'] = nodes
         self.metainfo_valid = False
@@ -500,7 +499,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         for url in value:
             if not isValidURL(url):
-                raise ValueError("Invalid URL: " + `url`)
+                raise ValueError("Invalid URL: " + repr(url))
 
         self.input['url-list'] = value
         self.metainfo_valid = False
@@ -520,7 +519,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         for url in value:
             if not isValidURL(url):
-                raise ValueError("Invalid URL: " + `url`)
+                raise ValueError("Invalid URL: " + repr(url))
 
         self.input['httpseeds'] = value
         self.metainfo_valid = False
@@ -541,7 +540,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         if self.readonly:
             raise OperationNotPossibleAtRuntimeException()
 
-        if not (type(value) == IntType or type(value) == LongType):
+        if not (isinstance(value, IntType) or isinstance(value, LongType)):
             raise ValueError("Piece length not an int/long")
 
         self.input['piece length'] = value
@@ -638,7 +637,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return Boolean. """
         return bool('live' in self.input and self.input['live'])
 
-
     def get_live_authmethod(self):
         """ Returns the method for authenticating the source.
         <pre>
@@ -657,7 +655,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return self.input['live']['pubkey']
         else:
             return None
-
 
     def set_url_compat(self, value):
         """ Set the URL compatible value for this definition. Only possible
@@ -678,7 +675,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         if self.get_url_compat():
             raise ValueError("Cannot use P2PURLs for Ogg streams")
         self.input['ogg-headers'] = value
-
 
     def get_live_ogg_headers(self):
         if 'ogg-headers' in self.input:
@@ -712,7 +708,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return self.input['initial peers']
         else:
             return []
-
 
     def finalize(self, userabortflag=None, userprogresscallback=None):
         """ Create BT torrent file by reading the files added with
@@ -750,16 +745,12 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             add = (pl - diff) % pl
             newlen = int(length + add)
 
-
             # print >>sys.stderr,"CHECK INFO LENGTH",secs,newlen
-
             d = self.input['files'][0]
             d['length'] = newlen
 
-
         # Note: reading of all files and calc of hashes is done by calling
         # thread.
-
         (infohash, metainfo) = maketorrent.make_torrent_file(self.input, userabortflag=userabortflag, userprogresscallback=userprogresscallback)
         if infohash is not None:
 
@@ -829,7 +820,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         self.input['name'] = name
         self.metainfo_valid = False
 
-
     def get_name_as_unicode(self):
         """ Returns the info['name'] field as Unicode string.
         @return Unicode string. """
@@ -881,7 +871,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                         if 0 < ord(char) < 128:
                             return char
                         else:
-                            if DEBUG: print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
+                            if DEBUG:
+                                print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
                             return u"?"
                     return u"".join([filter_character(char) for char in name])
                 return unicode(filter_characters(self.metainfo["info"]["name"]))
@@ -900,7 +891,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return Tribler.Core.Overlay.permid.verify_torrent_signature(self.metainfo)
         else:
             raise TorrentDefNotFinalizedException()
-
 
     def save(self, filename):
         """
@@ -924,7 +914,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         f = open(filename, "wb")
         f.write(bdata)
         f.close()
-
 
     def get_bitrate(self, file=None):
         """ Returns the bitrate of the specified file. If no file is specified,
@@ -1019,7 +1008,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                                 if 0 < ord(char) < 128:
                                     return char
                                 else:
-                                    if DEBUG: print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
+                                    if DEBUG:
+                                        print >> sys.stderr, "Bad character filter", ord(char), "isalnum?", char.isalnum()
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]
@@ -1078,8 +1068,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         return 'files' in self.metainfo['info']
 
-
-
     def is_merkle_torrent(self):
         """ Returns whether this TorrentDef is a Merkle torrent. Use
         get_create_merkle_torrent() to determine this before finalization.
@@ -1088,7 +1076,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return 'root hash' in self.metainfo['info']
         else:
             raise TorrentDefNotFinalizedException()
-
 
     def get_url(self):
         """ Returns the URL representation of this TorrentDef. The TorrentDef
@@ -1099,7 +1086,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             return makeurl.metainfo2p2purl(self.metainfo)
         else:
             raise TorrentDefNotFinalizedException()
-
 
     #
     # Internal methods

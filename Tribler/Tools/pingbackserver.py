@@ -35,40 +35,39 @@ def serveclient(message, udpsock, clientaddr):
         if DEBUG:
             print >> sys.stderr, "sending pong back after", data[1], "seconds", "to", clientaddr
 
-        pongMsg = (str("pong:"+data[1]))
+        pongMsg = (str("pong:" + data[1]))
         udpsock.sendto(pongMsg, clientaddr)
 
 
+if __name__ == "__main__":
 
-if __name__=="__main__" :
-
-    if len(sys.argv) != 2 :
+    if len(sys.argv) != 2:
         usage()
         sys.exit(1)
 
     serveraddr = None
-    log = open("log.txt", "a") # logfile
+    log = open("log.txt", "a")  # logfile
 
-
-    try :
+    try:
         serveraddr = (gethostbyname(gethostname()), int(sys.argv[1]))
 
-    except ValueError, strerror :
+    except ValueError as strerror:
         if DEBUG:
             print >> sys.stderr, "ValueError: ", strerror
         usage()
         sys.exit(1)
 
-
     # Set up the sockets
-    try :
+    try:
         udpsock = socket(AF_INET, SOCK_DGRAM)
-        udpsock.setsockopt(SOL_SOCKET,SO_REUSEADDR,1)
+        udpsock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         udpsock.bind(serveraddr)
 
-    except error, (errno, strerror) :
+    except error as xxx_todo_changeme:
 
-        if udpsock :
+        (errno, strerror) = xxx_todo_changeme.args
+
+        if udpsock:
             udpsock.close()
 
         if DEBUG:
@@ -76,7 +75,6 @@ if __name__=="__main__" :
         sys.stdout.flush()
 
         sys.exit(1)
-
 
     if DEBUG:
         print >> sys.stderr, "waiting for connection..."

@@ -1,4 +1,4 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 
 from threading import Thread, RLock, Event
 import os
@@ -18,22 +18,23 @@ from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from urlparse import urlparse
 
-URLHIST_TIMEOUT = 7*24*3600.0   # Don't revisit links for this time
-RSS_RELOAD_FREQUENCY = 30*60    # reload a rss source every n seconds
-RSS_CHECK_FREQUENCY = 2         # test a potential .torrent in a rss source every n seconds
+URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
+RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
+RSS_CHECK_FREQUENCY = 2  # test a potential .torrent in a rss source every n seconds
 
 DEBUG = False
+
 
 class RssParser(Thread):
     __single = None
 
     def __init__(self):
         if RssParser.__single:
-            raise RuntimeError, "RssParser is singleton"
+            raise RuntimeError("RssParser is singleton")
         RssParser.__single = self
 
         Thread.__init__(self)
-        self.setName( "RssParser"+self.getName())
+        self.setName("RssParser" + self.getName())
         self.setDaemon(True)
 
         self.key_url_lock = RLock()
@@ -49,6 +50,10 @@ class RssParser(Thread):
             RssParser(*args, **kw)
         return RssParser.__single
     getInstance = staticmethod(getInstance)
+
+    def delInstance(*args, **kw):
+        RssParser.__single = None
+    delInstance = staticmethod(delInstance)
 
     def register(self, session, defaultkey):
         if not self.isRegistered:
@@ -68,19 +73,19 @@ class RssParser(Thread):
             print >> sys.stderr, "RssParser is already registered, ignoring"
 
     def getdir(self):
-        return os.path.join(self.session.get_state_dir(),"subscriptions")
+        return os.path.join(self.session.get_state_dir(), "subscriptions")
 
     def getfilename(self):
-        return os.path.join(self.getdir(),"subscriptions.txt")
+        return os.path.join(self.getdir(), "subscriptions.txt")
 
     def gethistfilename(self, url, key):
         h = sha.sha(url).hexdigest()
 
-        histfile = os.path.join(self.getdir(),"%s-%s.txt"%(h, key))
-        oldhistfile = os.path.join(self.getdir(),h+'.txt')
+        histfile = os.path.join(self.getdir(), "%s-%s.txt" % (h, key))
+        oldhistfile = os.path.join(self.getdir(), h + '.txt')
 
         if not os.path.exists(histfile):
-            #upgrade...
+            # upgrade...
             if os.path.exists(oldhistfile):
                 copyfile(oldhistfile, histfile)
 
@@ -89,7 +94,7 @@ class RssParser(Thread):
     def readfile(self):
         try:
             filename = self.getfilename()
-            f = open(filename,"rb")
+            f = open(filename, "rb")
             for line in f.readlines():
 
                 parts = line.split()
@@ -105,19 +110,19 @@ class RssParser(Thread):
                     if state == 'active':
                         self.addURL(url, key, dowrite=False)
                 else:
-                    print >> sys.stderr,"RssParser: Ignoring line", line
+                    print >> sys.stderr, "RssParser: Ignoring line", line
             f.close()
         except:
             if DEBUG:
-                print >>sys.stderr, "RssParser: subscriptions.txt does not yet exist"
+                print >> sys.stderr, "RssParser: subscriptions.txt does not yet exist"
 
     def writefile(self):
         filename = self.getfilename()
-        f = open(filename,"wb")
+        f = open(filename, "wb")
 
         for channel_id, urls in self.key_url.iteritems():
             for url in urls:
-                f.write('active %s %d\r\n'%(url, channel_id))
+                f.write('active %s %d\r\n' % (url, channel_id))
         f.close()
 
     def addURL(self, url, key, dowrite=True):
@@ -175,7 +180,7 @@ class RssParser(Thread):
             self.urls_changed.set()
 
     def run(self):
-        self.urls_changed.wait(60) # Let other Tribler components, in particular, Session startup
+        self.urls_changed.wait(60)  # Let other Tribler components, in particular, Session startup
 
         while self.isRegistered and len(self.key_url) and len(self.key_callbacks):
             if DEBUG:
@@ -225,7 +230,7 @@ class RssParser(Thread):
                                         print >> sys.stderr, "RssParser: trying", new_url
 
                                     referer = urlparse(new_url)
-                                    referer = referer.scheme+"://"+referer.netloc+"/"
+                                    referer = referer.scheme + "://" + referer.netloc + "/"
                                     stream = urlOpenTimeout(new_url, referer=referer)
                                     bdata = stream.read()
                                     stream.close()
@@ -236,12 +241,12 @@ class RssParser(Thread):
                                     def processCallbacks(key):
                                         for callback in self.key_callbacks[key]:
                                             try:
-                                                callback(key, torrent, extraInfo = {'title':title, 'description': description, 'thumbnail': thumbnail})
+                                                callback(key, torrent, extraInfo={'title': title, 'description': description, 'thumbnail': thumbnail})
                                             except:
                                                 print_exc()
 
                                     if self.remote_th.is_registered():
-                                        callback = lambda key=key: processCallbacks(key)
+                                        callback = lambda key = key: processCallbacks(key)
                                         self.remote_th.save_torrent(torrent, callback)
                                     else:
                                         processCallbacks(key)
@@ -259,7 +264,7 @@ class RssParser(Thread):
 
         newItems = []
 
-        feedparser._HTMLSanitizer.acceptable_elements = ['p','br']
+        feedparser._HTMLSanitizer.acceptable_elements = ['p', 'br']
         d = feedparser.parse(url)
         for entry in d.entries:
             title = entry.title
@@ -304,6 +309,7 @@ if __name__ == '__main__':
         print >> sys.stderr, "RssParser: Found torrent", key, torrent, extraInfo
 
     class FakeSession:
+
         def get_state_dir(self):
             return os.path.dirname(__file__)
 

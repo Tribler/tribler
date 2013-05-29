@@ -52,6 +52,7 @@ class VODFile(object):
 
 
 class LibtorrentDownloadImpl(DownloadRuntimeConfig):
+
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
@@ -72,10 +73,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         # Libtorrent status
         self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
-        self.length = 0L
+        self.length = 0
         self.progress = 0.0
         self.bufferprogress = 0.0
-        self.curspeeds = {DOWNLOAD:0.0, UPLOAD:0.0}  # bytes/s
+        self.curspeeds = {DOWNLOAD: 0.0, UPLOAD: 0.0}  # bytes/s
         self.all_time_upload = 0.0
         self.all_time_download = 0.0
         self.finished_time = 0.0
@@ -102,8 +103,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None, lm_network_vod_event_callback=None, wrapperDelay=0):
         """
         Create a Download object. Used internally by Session.
-        @param dcfg DownloadStartupConfig or None (in which case 
-        a new DownloadConfig() is created and the result 
+        @param dcfg DownloadStartupConfig or None (in which case
+        a new DownloadConfig() is created and the result
         becomes the runtime config of this Download.
         """
         # Called by any thread, assume sessionlock is held
@@ -134,7 +135,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
             self.pstate_for_restart = pstate
 
-        except Exception, e:
+        except Exception as e:
             with self.dllock:
                 self.error = e
                 print_exc()
@@ -142,7 +143,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus=None, wrapperDelay=0):
         with self.dllock:
             if not self.cew_scheduled:
-                network_create_engine_wrapper_lambda = lambda:self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus)
+                network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, lm_network_vod_event_callback, initialdlstatus)
                 self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda, wrapperDelay)
                 self.cew_scheduled = True
 
@@ -216,7 +217,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.vod_status = ""
 
         # Define which file to DL in VOD mode
-        self.videoinfo = {'live' : self.get_def().get_live()}
+        self.videoinfo = {'live': self.get_def().get_live()}
 
         if self.tdef.is_multifile_torrent():
             if len(self.dlconfig['selected_files']) == 0:
@@ -234,7 +235,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
         self.videoinfo['mimetype'] = self.get_mimetype(filename)
-        self.videoinfo['usercallback'] = lambda event, params : self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
+        self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
         self.videoinfo['userevents'] = self.dlconfig['vod_userevents'][:]
         # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
         self.videoinfo['status'] = None
@@ -286,12 +287,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if not self.vod_status:
             self.vod_status = "started"
             self.lm_network_vod_event_callback(self.videoinfo, VODEVENT_START,
-                                                   {"complete":  complete,
-                                                    "filename":  self.videoinfo["outpath"][0] if complete else None,
-                                                    "mimetype":  self.videoinfo["mimetype"],
-                                                    "stream":    None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
-                                                    "length":    self.videoinfo['outpath'][1],
-                                                    "bitrate":   self.videoinfo["bitrate"]})
+                                              {"complete": complete,
+                                              "filename": self.videoinfo["outpath"][0] if complete else None,
+                                                    "mimetype": self.videoinfo["mimetype"],
+                                                    "stream": None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
+                                                    "length": self.videoinfo['outpath'][1],
+                                                    "bitrate": self.videoinfo["bitrate"]})
 
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD started", self.videoinfo['outpath'][0]
@@ -352,7 +353,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.session.lm.rtorrent_handler:
             self.session.lm.rtorrent_handler.save_torrent(self.tdef)
         elif self.session.lm.torrent_db:
-            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source='', extra_info={'status':'good'}, commit=True)
+            self.session.lm.torrent_db.addExternalTorrent(self.tdef, source='', extra_info={'status': 'good'}, commit=True)
 
         self.checkpoint()
 
@@ -502,7 +503,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             return self.progress
 
     def get_current_speed(self, dir):
-        """ Return last reported speed in KB/s 
+        """ Return last reported speed in KB/s
         @return float
         """
         with self.dllock:
@@ -617,7 +618,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def set_state_callback(self, usercallback, getpeerlist=False, delay=0.0):
         """ Called by any thread """
         with self.dllock:
-            network_get_state_lambda = lambda:self.network_get_state(usercallback, getpeerlist)
+            network_get_state_lambda = lambda: self.network_get_state(usercallback, getpeerlist)
             self.session.lm.rawserver.add_task(network_get_state_lambda, delay)
 
     def network_get_state(self, usercallback, getpeerlist, sessioncalling=False):
@@ -645,7 +646,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         with self.dllock:
             if when > 0.0:
                 # Schedule next invocation, either on general or DL specific
-                network_get_state_lambda = lambda:self.network_get_state(usercallback, newgetpeerlist)
+                network_get_state_lambda = lambda: self.network_get_state(usercallback, newgetpeerlist)
                 self.session.lm.rawserver.add_task(network_get_state_lambda, when)
 
     def stop(self):
@@ -788,7 +789,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def checkpoint(self):
         """ Called by any thread """
         (infohash, pstate) = self.network_checkpoint()
-        checkpoint = lambda : self.session.lm.save_download_pstate(infohash, pstate)
+        checkpoint = lambda: self.session.lm.save_download_pstate(infohash, pstate)
         self.session.lm.rawserver.add_task(checkpoint, 0)
 
     def network_checkpoint(self):
@@ -843,7 +844,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     # External addresses
     #
     def add_peer(self, addr):
-        """ Add a peer address from 3rd source (not tracker, not DHT) to this 
+        """ Add a peer address from 3rd source (not tracker, not DHT) to this
         Download.
         @param (hostname_ip,port) tuple
         """

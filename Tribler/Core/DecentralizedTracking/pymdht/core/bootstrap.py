@@ -41,6 +41,7 @@ BACKUP_NODES_PER_BOOTSTRAP = 7
 SAVED_DELAY = .1
 BOOTSTRAP_DELAY = 5
 
+
 class OverlayBootstrapper(object):
 
     def __init__(self, my_id, saved_bootstrap_nodes, msg_f):
@@ -49,7 +50,7 @@ class OverlayBootstrapper(object):
         self.msg_f = msg_f
         (self.main_bootstrap_nodes,
          self.backup_bootstrap_nodes) = _get_bootstrap_nodes()
-        self.bootstrap_ips = set() #ips of nodes we used to bootstrap.
+        self.bootstrap_ips = set()  # ips of nodes we used to bootstrap.
         # They shouldn't be added to routing table to avoid overload
         # (if possible)
 
@@ -71,7 +72,7 @@ class OverlayBootstrapper(object):
             delay = SAVED_DELAY
 #            print '>> using saved nodes', len(nodes)
         elif num_rnodes > MIN_RNODES_BOOTSTRAP:
-            delay = 0 # bootstrap done
+            delay = 0  # bootstrap done
         else:
             nodes = self._pop_bootstrap_nodes()
             maintenance_lookup = (self.my_id, nodes)
@@ -80,7 +81,7 @@ class OverlayBootstrapper(object):
         return queries_to_send, maintenance_lookup, delay
 
     def bootstrap_done(self):
-        #clean up stuff that will never be used
+        # clean up stuff that will never be used
         self.saved_bootstrap_nodes = []
         self.main_bootstrap_nodes = []
         self.backup_bootstrap_nodes = []
@@ -112,6 +113,7 @@ def _sanitize_bootstrap_node(line):
     addr = ip, int(port_str)
     return node.Node(addr, version=None)
 
+
 def _get_bootstrap_nodes():
     data_path = os.path.dirname(message.__file__)
     mainfile = os.path.join(data_path, BOOTSTRAP_MAIN_FILENAME)
@@ -119,14 +121,14 @@ def _get_bootstrap_nodes():
 
     # Arno, 2012-05-25: py2exe support
     if hasattr(sys, "frozen"):
-        print >>sys.stderr,"pymdht: bootstrap: Frozen mode"
-        installdir = os.path.dirname(unicode(sys.executable,sys.getfilesystemencoding()))
+        print >>sys.stderr, "pymdht: bootstrap: Frozen mode"
+        installdir = os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding()))
         if sys.platform == "darwin":
-            installdir = installdir.replace("MacOS","Resources")
-        mainfile = os.path.join(installdir,"Tribler","Core","DecentralizedTracking","pymdht","core","bootstrap.main")
-        backfile = os.path.join(installdir,"Tribler","Core","DecentralizedTracking","pymdht","core","bootstrap.backup")
-    print >>sys.stderr,"pymdht: bootstrap: mainfile",mainfile
-    print >>sys.stderr,"pymdht: bootstrap: backfile",backfile
+            installdir = installdir.replace("MacOS", "Resources")
+        mainfile = os.path.join(installdir, "Tribler", "Core", "DecentralizedTracking", "pymdht", "core", "bootstrap.main")
+        backfile = os.path.join(installdir, "Tribler", "Core", "DecentralizedTracking", "pymdht", "core", "bootstrap.backup")
+    print >>sys.stderr, "pymdht: bootstrap: mainfile", mainfile
+    print >>sys.stderr, "pymdht: bootstrap: backfile", backfile
     try:
         f = open(mainfile)
         main = [_sanitize_bootstrap_node(n) for n in f]

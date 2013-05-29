@@ -48,7 +48,7 @@ _LOGGER = None
 
 SERVER_PRODUCT_NAME = "NextShare"
 SERVER_ROOT_DEVICE_CONFIG = {
-    'device_type' : "Basic",
+    'device_type': "Basic",
     'device_version': 1,
     'name': "NextShare",
     'device_domain': 'p2p-next.org',
@@ -60,13 +60,15 @@ SERVER_ROOT_DEVICE_CONFIG = {
     'model_url': 'http://p2p-next.org/',
     'serial_number': '123456',
     'upc': '012345678910',
-    }
+}
 
-##############################################
+#
 # UPNP
-##############################################
+#
+
 
 class _UPnP:
+
     """
     UPnP class holds instances of TaskRunner, UPnPServer
     and UPnPClient.
@@ -97,7 +99,7 @@ class _UPnP:
             self._task_runner_thread = threading.Thread(
                 group=None,
                 target=run,
-                name= "TaskRunnerThread")
+                name="TaskRunnerThread")
             self._task_runner_thread.setDaemon(True)
             self._task_runner_thread.start()
 
@@ -164,25 +166,30 @@ class _UPnP:
 
 _INSTANCE = _UPnP()
 
-##############################################
+#
 # PUBLIC API
-##############################################
+#
+
 
 def start(stop_event=None):
     """Starts the UPnPServer and/or UPnPClient."""
     _INSTANCE.start(stop_event)
 
+
 def stop():
     """Stops the UPnPServer and/or UPnPClient."""
     _INSTANCE.stop()
+
 
 def get_server():
     """Get referance to UPnPServer."""
     return _INSTANCE.get_upnp_server()
 
+
 def get_client():
     """Get referance to UPnPClient."""
     return _INSTANCE.get_upnp_client()
+
 
 def is_running():
     """Check if UPnPServer and/or UPnPClient is running."""

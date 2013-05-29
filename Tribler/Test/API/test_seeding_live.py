@@ -22,7 +22,9 @@ from Tribler.Core.Utilities.bitfield import Bitfield
 
 DEBUG = True
 
+
 class TestSeeding(TestAsServer):
+
     """
     Testing seeding via new tribler API:
     """
@@ -61,7 +63,6 @@ class TestSeeding(TestAsServer):
         # self.subtest_connect2downloader()
         self.subtest_download()
 
-
     def setup_seeder(self):
         self.tdef = TorrentDef()
         # semi automatic
@@ -93,7 +94,6 @@ class TestSeeding(TestAsServer):
         d = ds.get_download()
         print >> sys.stderr, "test: seeder:", dlstatus_strings[ds.get_status()], ds.get_progress()
         return (1.0, False)
-
 
     def subtest_download(self):
         """ Now download the file via another Session """
@@ -138,7 +138,6 @@ class TestSeeding(TestAsServer):
                     break
                 time.sleep(1)
 
-
     def subtest_connect2downloader(self):
 
         print >> sys.stderr, "test: verifier: Connecting to seeder to check bitfield"
@@ -158,7 +157,7 @@ class TestSeeding(TestAsServer):
             print >> sys.stderr, "test: verifier: Got 2nd message", getMessageName(resp[0])
             self.assert_(resp[0] == BITFIELD)
             b = Bitfield(self.npieces, resp[1:])
-            print >> sys.stderr, "test: verifier: Bitfield is", `b.toboollist()`
+            print >> sys.stderr, "test: verifier: Bitfield is", repr(b.toboollist())
 
             b2 = Bitfield(self.npieces)
             b2[0] = True
@@ -174,6 +173,7 @@ class TestSeeding(TestAsServer):
 
 
 class InfiniteSource:
+
     def __init__(self, piece_length):
         self.emptypiece = " " * piece_length
 

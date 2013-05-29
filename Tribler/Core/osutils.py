@@ -20,6 +20,7 @@ import subprocess
 if sys.platform == "win32":
     try:
         from win32com.shell import shell
+
         def get_home_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_PROFILE = &H28
@@ -51,7 +52,7 @@ if sys.platform == "win32":
                 # the following will fail on python 2.4, 2.5, 2.x this will
                 # always succeed on python 3.x
                 return os.path.expanduser(u"~")
-            except Exception, unicode_error:
+            except Exception as unicode_error:
                 pass
 
             # non-unicode home
@@ -103,9 +104,9 @@ if sys.platform == "win32":
             winversion = sys.getwindowsversion()
             # pylint: enable-msg=E1101
             if winversion[0] == 6:
-                appdir = os.path.join(homedir,u"AppData",u"Roaming")
+                appdir = os.path.join(homedir, u"AppData", u"Roaming")
             else:
-                appdir = os.path.join(homedir,u"Application Data")
+                appdir = os.path.join(homedir, u"Application Data")
             return appdir
 
         def get_picture_dir():
@@ -113,7 +114,7 @@ if sys.platform == "win32":
 
         def get_desktop_dir():
             home = get_home_dir()
-            return os.path.join(home,u"Desktop")
+            return os.path.join(home, u"Desktop")
 
 else:
     # linux or darwin (mac)
@@ -143,6 +144,7 @@ try:
     # Unix
     from os import statvfs
     import statvfs
+
     def getfreespace(path):
         s = os.statvfs(path.encode("utf-8"))
         size = s[statvfs.F_BAVAIL] * long(s[statvfs.F_BSIZE])
@@ -159,6 +161,7 @@ except:
                 # 2. total space for the user and 3. total free space, so
                 # not a single value.
                 win32file.GetDiskFreeSpaceEx(".")
+
                 def getfreespace(path):
                     # Boudewijn: the win32file module is NOT unicode
                     # safe! We will try directories further up the
@@ -203,16 +206,16 @@ except:
 
                     size = long(sizestring)
 
-                    if size == 0L:
-                        print >>sys.stderr,"getfreespace: can't determine freespace of ",path
+                    if size == 0:
+                        print >>sys.stderr, "getfreespace: can't determine freespace of ", path
                         for line in mystdout:
-                            print >>sys.stderr,line
+                            print >>sys.stderr, line
 
-                        size = 2**80L
+                        size = 2 ** 80
                 except:
                     # If in doubt, just return something really large
                     # (1 yottabyte)
-                    size = 2**80L
+                    size = 2 ** 80
 
                 return size
     else:
@@ -221,7 +224,7 @@ except:
         def getfreespace(path):
             # If in doubt, just return something really large
             # (1 yottabyte)
-            return 2**80L
+            return 2 ** 80
 
 
 invalidwinfilenamechars = ''
@@ -229,6 +232,7 @@ for i in range(32):
     invalidwinfilenamechars += chr(i)
 invalidwinfilenamechars += '"*/:<>?\\|'
 invalidlinuxfilenamechars = '/'
+
 
 def fix_filebasename(name, unit=False, maxlen=255):
     """ Check if str is a valid Windows file name (or unit name if unit is true)
@@ -281,8 +285,9 @@ def fix_filebasename(name, unit=False, maxlen=255):
     else:
         return last_minute_filename_clean(name)
 
+
 def last_minute_filename_clean(name):
-    s = name.strip() # Arno: remove initial or ending space
+    s = name.strip()  # Arno: remove initial or ending space
     if sys.platform == 'win32' and s.endswith('..'):
         s = s[:-2]
     return s
@@ -292,7 +297,7 @@ def get_readable_torrent_name(infohash, raw_filename):
     # return name__infohash.torrent
     hex_infohash = binascii.hexlify(infohash)
     suffix = '__' + hex_infohash + '.torrent'
-    save_name = ' ' + fix_filebasename(raw_filename, maxlen=254-len(suffix)) + suffix
+    save_name = ' ' + fix_filebasename(raw_filename, maxlen=254 - len(suffix)) + suffix
     # use a space ahead to distinguish from previous collected torrents
     return save_name
 
@@ -303,7 +308,7 @@ if sys.platform == "win32":
     def getcpuload():
         """ Returns total CPU usage as fraction (0..1).
         Warning: side-effect: sleeps for 0.1 second to do diff """
-        #mempath = win32pdh.MakeCounterPath((None, "Memory", None, None, -1, "Available MBytes"))
+        # mempath = win32pdh.MakeCounterPath((None, "Memory", None, None, -1, "Available MBytes"))
         cpupath = win32pdh.MakeCounterPath((None, "Processor", "_Total", None, -1, "% Processor Time"))
         query = win32pdh.OpenQuery(None, 0)
         counter = win32pdh.AddCounter(query, cpupath, 0)
@@ -313,40 +318,39 @@ if sys.platform == "win32":
         time.sleep(0.1)
         win32pdh.CollectQueryData(query)
 
-        status, value = win32pdh.GetFormattedCounterValue(counter,win32pdh.PDH_FMT_LONG)
+        status, value = win32pdh.GetFormattedCounterValue(counter, win32pdh.PDH_FMT_LONG)
 
-        return float(value)/100.0
+        return float(value) / 100.0
 
 elif sys.platform == "linux2":
     def read_proc_stat():
         """ Read idle and total CPU time counters from /proc/stat, see
         man proc """
-        f = open("/proc/stat","rb")
+        f = open("/proc/stat", "rb")
         try:
             while True:
                 line = f.readline()
                 if len(line) == 0:
                     break
-                if line.startswith("cpu "): # note space
+                if line.startswith("cpu "):  # note space
                     words = line.split()
                     total = 0
-                    for i in range(1,5):
+                    for i in range(1, 5):
                         total += int(words[i])
                     idle = int(words[4])
-                    return (total,idle)
+                    return (total, idle)
         finally:
             f.close()
-
 
     def getcpuload():
         """ Returns total CPU usage as fraction (0..1).
         Warning: side-effect: sleeps for 0.1 second to do diff """
-        (total1,idle1) = read_proc_stat()
+        (total1, idle1) = read_proc_stat()
         time.sleep(0.1)
-        (total2,idle2) = read_proc_stat()
+        (total2, idle2) = read_proc_stat()
         total = total2 - total1
         idle = idle2 - idle1
-        return 1.0-(float(idle))/float(total)
+        return 1.0 - (float(idle)) /float(total)
 else:
     # Mac
     def getupload():

@@ -13,11 +13,13 @@ import time
 import threading
 import exceptions
 
-##############################################
+#
 # TASK HANDLE
-##############################################
+#
+
 
 class TaskHandle:
+
     """
     A Task Handle is returned to clients after having
     registered a Task with the TaskRunner.
@@ -35,9 +37,9 @@ class TaskHandle:
         self._task_runner.cancel_task(self.tid)
 
 
-##############################################
+#
 # TASK
-##############################################
+#
 
 class _Task:
 
@@ -62,7 +64,7 @@ class _Task:
         self._args = args
         self.name = method.__name__
         self.tid = None
-        self._task_runner.register_task(self) # initialises self.tid
+        self._task_runner.register_task(self)  # initialises self.tid
 
     def cancel(self):
         """Causes the Task to never be executed."""
@@ -81,7 +83,7 @@ class _Task:
 
     def _execute_ok(self):
         """Checks if Task may be executed on more time. Returns bool."""
-        if self._cancelled :
+        if self._cancelled:
             return False
         elif (self._limit == TaskRunner.TASK_NO_LIMIT):
             return True
@@ -92,18 +94,16 @@ class _Task:
     def __str__(self):
         if self._limit == TaskRunner.TASK_NO_LIMIT:
             return "%s [%s] %s[%s/INF]" % (self.__class__.__name__,
-                                             self.tid, self.name, self._counter)
+                       self.tid, self.name, self._counter)
         else:
             return "%s [%d] %s [%d/%d]" % (self.__class__.__name__,
-                                            self.tid, self.name,
+                       self.tid, self.name,
                                             self._counter, self._limit)
 
 
-
-##############################################
+#
 # READ TASK
-##############################################
-
+#
 class _ReadTask(_Task):
 
     """
@@ -114,17 +114,20 @@ class _ReadTask(_Task):
         _Task.__init__(self, task_runner, limit, method, args)
         self._file_descriptor = file_descriptor
         self._task_runner.enter_rd_set(self)
+
     def fileno(self):
         """Return file descriptor of IoTask."""
         return self._file_descriptor
+
     def cancel(self):
         """Cancel ReadTask."""
         self._task_runner.leave_rd_set(self)
         _Task.cancel(self)
 
-##############################################
+#
 # WRITE TASK
-##############################################
+#
+
 
 class _WriteTask(_Task):
 
@@ -136,18 +139,20 @@ class _WriteTask(_Task):
         _Task.__init__(self, task_runner, limit, method, args)
         self._file_descriptor = file_descriptor
         self._task_runner.enter_wr_set(self)
+
     def fileno(self):
         """Return file descriptor of IoTask."""
         return self._file_descriptor
+
     def cancel(self):
         """Cancel WriteTask."""
         self._task_runner.leave_wr_set(self)
         _Task.cancel(self)
 
 
-##############################################
+#
 # DELAY TASK
-##############################################
+#
 
 class _DelayTask(_Task):
 
@@ -176,15 +181,13 @@ class _DelayTask(_Task):
 
     def register_timeout(self):
         """Register a new timeout with task_runner."""
-        expiry = self._created + self._delay + self._counter*self._period
+        expiry = self._created + self._delay + self._counter * self._period
         self._task_runner.register_timeout(expiry, self)
 
 
-
-##############################################
+#
 # TIMEOUT
-##############################################
-
+#
 class _Timeout:
 
     """
@@ -198,24 +201,31 @@ class _Timeout:
     def __init__(self, expiry, task):
         self.expiry = expiry
         self.task = task
+
     def __eq__(self, other):
         return self.expiry == other.expiry
+
     def __lt__(self, other):
         return self.expiry < other.expiry
+
     def __gt__(self, other):
         return self.expiry > other.expiry
+
     def __le__(self, other):
         return self.expiry <= other.expiry
+
     def __ge__(self, other):
         return self.expiry >= other.expiry
+
     def __ne__(self, other):
         return self.expiry != other.expiry
 
-##############################################
+#
 # DELAY TASK HEAP
-##############################################
+#
 
 import heapq
+
 
 class _DelayTaskHeap:
 
@@ -242,18 +252,20 @@ class _DelayTaskHeap:
             task_list.append(timeout.task)
         return task_list
 
-##############################################
+#
 # TASK RUNNER ERROR
-##############################################
+#
+
 
 class TaskRunnerError (exceptions.Exception):
+
     """Error associated with running the TaskRunner. """
     pass
 
 
-##############################################
+#
 # TASK RUNNER
-##############################################
+#
 
 class TaskRunner:
 
@@ -282,7 +294,7 @@ class TaskRunner:
         self._internal_stop_event = threading.Event()
         self._external_stop_event = None
         # Task ID
-        self._task_id = 0L
+        self._task_id = 0
         # Task Map
         self._task_map = {}
         # Task Runner Lock protecting critical sections.
@@ -292,37 +304,41 @@ class TaskRunner:
         # Bad filedescriptor exists in read and/or writeset
         self._bad_fd = False
 
-    ##############################################
+    #
     # UTILITY (Used only by internal Tasks)
-    ##############################################
+    #
 
     def enter_rd_set(self, io_task):
         """Add filedescriptor of IoTask to read set."""
         if not io_task in self._rd_set:
             self._rd_set.append(io_task)
             return True
-        else : return False
+        else:
+            return False
 
     def leave_rd_set(self, io_task):
         """Remove filedescriptor of IoTask from read set."""
         if io_task in self._rd_set:
             self._rd_set.remove(io_task)
             return True
-        else : return False
+        else:
+            return False
 
     def enter_wr_set(self, io_task):
         """Add filedescriptor of IoTask to write set."""
         if not io_task in self._wr_set:
             self._wr_set.append(io_task)
             return True
-        else : return False
+        else:
+            return False
 
     def leave_wr_set(self, io_task):
         """Remove filedescriptor of IoTask from write set."""
         if io_task in self._wr_set:
             self._wr_set.remove(io_task)
             return True
-        else : return False
+        else:
+            return False
 
     def register_timeout(self, expiry, task):
         """Register a Timeout for a Delayed Task."""
@@ -335,11 +351,9 @@ class TaskRunner:
         self._task_map[self._task_id] = task
         return task.tid
 
-
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
-
+    #
     def add_task(self, method, args=()):
         """Add Task. Returns TaskHandle."""
         self._lock.acquire()
@@ -398,11 +412,9 @@ class TaskRunner:
             del self._task_map[task.tid]
         self._lock.release()
 
-
-    ##############################################
+    #
     # EXECUTION API
-    ##############################################
-
+    #
     def run_forever(self, frequency=.1, stop_event=None):
         """Run the TaskRunner until it is stopped."""
         self._external_stop_event = stop_event
@@ -469,13 +481,12 @@ class TaskRunner:
                 # this is an error, and the programmer should be signaled.
                 if self._bad_fd == True:
                     msg = "Read/Write Task with Bad File Descriptor."
-                    raise TaskRunnerError, msg
+                    raise TaskRunnerError(msg)
                 self._bad_fd = True
                 return False
             else:
                 # Reset bad_fd flag is no error occured.
                 self._bad_fd = False
-
 
             r_list, w_list, e_list = lists
             if e_list:
@@ -504,9 +515,9 @@ class TaskRunner:
         self._internal_stop_event.set()
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 

@@ -32,7 +32,7 @@ NEXTSHARE_VERSION = 'NS\1\30'
 # High level keys
 TYPE = 'y'     # Message's type
 ARGS = 'a'     # Query's arguments in a dictionary
-RESPONSE = 'r' # Reply dictionary
+RESPONSE = 'r'  # Reply dictionary
 ERROR = 'e'    # Error message string
 TID = 't'      # Transaction ID
 QUERY = 'q'    # Query command (only for queries)
@@ -40,7 +40,7 @@ VERSION = 'v'  # Client's version
 
 # Valid values for key TYPE
 QUERY = 'q'    # Query
-RESPONSE = 'r' # Response
+RESPONSE = 'r'  # Response
 ERROR = 'e'    # Error
 
 # Valid values for key QUERY
@@ -51,23 +51,24 @@ ANNOUNCE_PEER = 'announce_peer'
 
 # Valid keys for ARGS
 ID = 'id'         # Node's nodeID (all queries)
-TARGET = 'target' # Target's nodeID (find_node)
-INFO_HASH = 'info_hash' # Torrent's info_hash (get_peers and announce)
+TARGET = 'target'  # Target's nodeID (find_node)
+INFO_HASH = 'info_hash'  # Torrent's info_hash (get_peers and announce)
 PORT = 'port'     # BitTorrent port (announce)
 TOKEN = 'token'   # Token (announce)
 
 # Valid keys for RESPONSE
 ID = 'id'         # Node's nodeID (all replies)
 NODES = 'nodes'   # String of nodes in compact format (find_nodes and get_peers)
-NODES2 = 'nodes2' # Same as previous (with IPv6 support)
+NODES2 = 'nodes2'  # Same as previous (with IPv6 support)
 TOKEN = 'token'   # Token (get_peers)
-PEERS = VALUES = 'values' # List of peers in compact format (get_peers)
+PEERS = VALUES = 'values'  # List of peers in compact format (get_peers)
 
 # Valid values for ERROR
 GENERIC_E = [201, 'Generic Error']
 SERVER_E = [202, 'Server Error']
 PROTOCOL_E = [203, 'Protocol Error']
 UNKNOWN_E = [201, 'Method Unknown']
+
 
 def matching_tid(query_tid, response_tid):
     '''It just matches the first byte because other nodes return weird
@@ -76,6 +77,7 @@ def matching_tid(query_tid, response_tid):
 
 
 class MsgError(Exception):
+
     """Raised anytime something goes wrong (specially when
     decoding/sanitizing).
 
@@ -83,6 +85,7 @@ class MsgError(Exception):
 
 
 class OutgoingMsgBase(object):
+
     """Base class for outgoing messages. You shouldn't have instances of it.
 
     """
@@ -90,7 +93,6 @@ class OutgoingMsgBase(object):
     def __init__(self):
         self._dict = {VERSION: NEXTSHARE_VERSION}
         self._lock = threading.RLock()
-
 
     def __str__(self):
         return str(self._dict)
@@ -114,6 +116,7 @@ class OutgoingMsgBase(object):
         self._lock.release()
         return result
 
+
 class OutgoingQueryBase(OutgoingMsgBase):
 
     def __init__(self, sender_id):
@@ -124,6 +127,7 @@ class OutgoingQueryBase(OutgoingMsgBase):
     @property
     def query(self):
         return self._dict[QUERY]
+
 
 class OutgoingPingQuery(OutgoingQueryBase):
 
@@ -157,7 +161,8 @@ class OutgoingAnnouncePeerQuery(OutgoingQueryBase):
         self._dict[ARGS][PORT] = port
         self._dict[ARGS][TOKEN] = token
 
-####################
+#
+
 
 class OutgoingResponseBase(OutgoingMsgBase):
 
@@ -198,7 +203,8 @@ class OutgoingAnnouncePeerResponse(OutgoingResponseBase):
     def __init__(self, sender_id):
         OutgoingResponseBase.__init__(self, sender_id)
 
-###################################
+#
+
 
 class OutgoingErrorMsg(OutgoingMsgBase):
 
@@ -207,7 +213,8 @@ class OutgoingErrorMsg(OutgoingMsgBase):
         self._dict[TYPE] = ERROR
         self._dict[ERROR] = error
 
-############################################
+#
+
 
 class IncomingMsg(object):
 
@@ -224,13 +231,13 @@ class IncomingMsg(object):
             elif self.type == ERROR:
                 self._sanitize_error()
             else:
-                raise MsgError, 'Unknown TYPE value'
+                raise MsgError('Unknown TYPE value')
         except (MsgError):
             raise
         except:
             logger.critical(
                 'This bencoded message crashed:\n%s' % repr(bencoded_msg))
-            raise MsgError, 'Invalid message'
+            raise MsgError('Invalid message')
 
     def __repr__(self):
         return repr(self._msg_dict)
@@ -248,9 +255,9 @@ class IncomingMsg(object):
             if optional:
                 return None
             else:
-                raise MsgError, 'Non-optional key (%s:%s) not found' % (k, kk)
+                raise MsgError('Non-optional key (%s:%s) not found' % (k, kk))
         except (TypeError):
-            raise MsgError, 'Probably k (%r) is not a dictionary' % (k)
+            raise MsgError('Probably k (%r) is not a dictionary' % (k))
         return v
 
     def _get_str(self, k, kk=None, optional=False):
@@ -258,7 +265,7 @@ class IncomingMsg(object):
         if v is None:
             return None
         if not isinstance(v, str):
-            raise MsgError, 'Value (%s:%s,%s) must be a string' % (k, kk, v)
+            raise MsgError('Value (%s:%s,%s) must be a string' % (k, kk, v))
         return v
 
     def _get_id(self, k, kk=None):
@@ -266,15 +273,15 @@ class IncomingMsg(object):
             v = self._get_value(k, kk)
             v = Id(v)
         except (IdError):
-            raise MsgError, 'Value (%s:%s,%s) must be a valid Id' % (k, kk, v)
+            raise MsgError('Value (%s:%s,%s) must be a valid Id' % (k, kk, v))
         return v
 
     def _get_int(self, k, kk=None):
         v = self._get_value(k, kk)
         try:
-            v= int(v)
+            v = int(v)
         except (TypeError, ValueError):
-            raise MsgError, 'Value (%s:%s,%s) must be an int' % (k, kk, v)
+            raise MsgError('Value (%s:%s,%s) must be an int' % (k, kk, v))
         return v
 
     def _sanitize_common(self):
@@ -282,18 +289,18 @@ class IncomingMsg(object):
         try:
             self.tid = self._msg_dict[TID]
         except (TypeError):
-            raise MsgError, 'decoded data is not a dictionary'
+            raise MsgError('decoded data is not a dictionary')
         except (KeyError):
-            raise MsgError, 'key TID not found'
+            raise MsgError('key TID not found')
         # Sanitize TID
         if not (isinstance(self.tid, str) and self.tid):
-            raise MsgError, 'TID must be a non-empty binary string'
+            raise MsgError('TID must be a non-empty binary string')
 
         # Sanitize TYPE
         try:
             self.type = self._msg_dict[TYPE]
         except (KeyError):
-            raise MsgError, 'key TYPE not found'
+            raise MsgError('key TYPE not found')
         # version (optional)
         self.version = self._get_str(VERSION, optional=True)
         self.ns_node = self.version \
@@ -352,4 +359,4 @@ class IncomingMsg(object):
             self.error = [int(self._msg_dict[ERROR][0]),
                           str(self._msg_dict[ERROR][1])]
         except:
-            raise MsgError, 'Invalid error message'
+            raise MsgError('Invalid error message')

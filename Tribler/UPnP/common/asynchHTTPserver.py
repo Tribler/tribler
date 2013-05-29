@@ -8,11 +8,13 @@ This module implements a base class for a non-blocking HTTP Server.
 import BaseHTTPServer
 import socket
 
-##############################################
+#
 # ASYNCH REQUEST HANDLER
-##############################################
+#
+
 
 class AsynchHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
     """Base Request Handler for asynchronous (non-blocking)
     HTTPServer implementation."""
 
@@ -41,14 +43,14 @@ class AsynchHTTPRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.protocol_version = 'HTTP/1.1'
 
 
-
-##############################################
+#
 # ASYNCH HTTP SERVER
-##############################################
-
+#
 _LOG_TAG = "HTTPServer"
 
+
 class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
+
     """Base implementation of asynchronous (non-blocking)
     HTTP Server."""
 
@@ -57,8 +59,8 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
 
         if not issubclass(request_handler_class, AsynchHTTPRequestHandler):
             msg = "Given RequestHandlerClass not" + \
-            "subclass of AsynchHTTPRequestHandler."""
-            raise AssertionError, msg
+                "subclass of AsynchHTTPRequestHandler."""
+            raise AssertionError(msg)
 
         # Task Runner
         self._task_runner = task_runner
@@ -67,7 +69,7 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
         try:
             # Default Port
             BaseHTTPServer.HTTPServer.__init__(self, ('', port),
-                                          request_handler_class)
+                                               request_handler_class)
         except socket.error:
             # Any Port
             BaseHTTPServer.HTTPServer.__init__(self, ('', 0),
@@ -82,15 +84,15 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
         self._log_tag = _LOG_TAG
 
         # Clients
-        self._client_list = [] # [(sock, addr, task)]
+        self._client_list = []  # [(sock, addr, task)]
 
         # Register Tasks with TaskRunner
         self._conn_task = self._task_runner.add_read_task(self.fileno(),
                                                  self.handle_connect)
 
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
+    #
 
     def startup(self):
         """Startup HTTPServer."""
@@ -103,7 +105,7 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
         is assumed to be readable.
         """
         sock, addr = self.socket.accept()
-        handler = lambda:self.handle_request_noblock(sock, addr)
+        handler = lambda: self.handle_request_noblock(sock, addr)
         task = self._task_runner.add_read_task(sock.fileno(), handler)
         self._client_list.append((sock, task))
 
@@ -128,15 +130,14 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
                 task.cancel()
                 self._client_list.remove(tup)
 
-
     def log(self, msg):
         """Logging."""
         if self._logger:
             self._logger.log(self._log_tag, msg)
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
+    #
 
     def get_port(self):
         """Return accept port of HTTPServer."""
@@ -156,15 +157,13 @@ class AsynchHTTPServer(BaseHTTPServer.HTTPServer):
         self.server_close()
 
 
-
-
-##############################################
+#
 # MAIN
-##############################################
-
+#
 if __name__ == "__main__":
 
     class _Mock_Logger:
+
         """Mock Logger object."""
         def log(self, tag, msg):
             """Log to standard out."""
