@@ -16,6 +16,7 @@ from traceback import print_exc
 from Tribler.__init__ import LIBRARYNAME
 from Tribler.Video.defs import *
 from Tribler.Video.VideoFrame import DelayTimer
+from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
 
@@ -144,7 +145,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         if streaminfo is not None:
             self.estduration = streaminfo.get('estduration',None)
-            self.download = streaminfo['stream'].instream._download
+            self.download = VideoPlayer.getInstance().get_vod_download()
 
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         # 26/05/09 Boudewijn: when using the external player we do not have a vlcwrap
