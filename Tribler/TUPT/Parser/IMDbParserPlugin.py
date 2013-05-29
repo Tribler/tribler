@@ -18,6 +18,9 @@ class IMDbParserPlugin(IParserPlugin):
         movieParser = DOMHTMLMovieParser()
         #Parse the website.   
         parseResult = movieParser.parse(html)['data']
+        #If we did not find any movie data, don't return a movie
+        if len(parseResult) == 0:
+            return []
         movie = Movie()
         #Iterate through every interesting metadata item.
         for key in self.__items:
