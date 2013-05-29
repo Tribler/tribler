@@ -37,5 +37,5 @@ for (( i = 0; i < ${#files[*]}; i=i+2 ))
 do
     j=$i+1
     cd ${files[$j]}
-    cp $curdir${files[$i]} "./"
+    cp -u $curdir${files[$i]} "./"
 done  
