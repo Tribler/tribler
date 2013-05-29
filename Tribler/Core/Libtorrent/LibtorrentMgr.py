@@ -250,22 +250,21 @@ class LibtorrentMgr:
                 print >> sys.stderr, 'LibtorrentMgr: got_metainfo', infohash, handle, timeout
 
             if handle and callback and not timeout:
-                metainfo = handle.get_torrent_info().metadata() if handle else None
-                metadata = {"info": lt.bdecode(metainfo)}
+                metainfo = {"info": lt.bdecode(handle.get_torrent_info().metadata())}
                 trackers = [tracker.url for tracker in handle.get_torrent_info().trackers()]
                 peers = [peer.ip for peer in handle.get_peer_info()]
                 if trackers:
                     if len(trackers) > 1:
-                        metadata["announce-list"] = [trackers]
-                    metadata["announce"] = trackers[0]
+                        metainfo["announce-list"] = [trackers]
+                    metainfo["announce"] = trackers[0]
                 else:
-                    metadata["nodes"] = []
+                    metainfo["nodes"] = []
                 if peers:
-                    metadata["initial peers"] = peers
-                callback(metadata)
+                    metainfo["initial peers"] = peers
+                callback(metainfo)
 
                 if DEBUG:
-                    print >> sys.stderr, 'LibtorrentMgr: got_metainfo result', metadata
+                    print >> sys.stderr, 'LibtorrentMgr: got_metainfo result', metainfo
 
             if handle:
                 self.ltsession.remove_torrent(handle, 1)
