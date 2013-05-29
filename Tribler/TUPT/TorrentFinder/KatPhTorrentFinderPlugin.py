@@ -81,7 +81,7 @@ class KatPhTorrentFinderPlugin(ITorrentFinderPlugin):
     def __GetQueryForMovie(self, dict):
         """Return a search query given a movie dictionary
         """
-        return dict['title'] + " " + dict['releaseYear']
+        return dict['title'] + " " + str(dict['releaseYear'])
 
     def GetTorrentDefsForMovie(self, movie):
         """Receive a Movie object and return a list of matching IMovieTorrentDefs
