@@ -5,6 +5,8 @@ from Tribler.TUPT.Parser.ParserControl import NoParserFoundException
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Movie import Movie
 
+from Tribler.Test.TUPT.test_StubPluginManager import PluginManagerStub
+
 class TestParserControl(unittest.TestCase):
     '''Test class to test the ParserControl.'''
     
@@ -52,33 +54,6 @@ class TestParserControl(unittest.TestCase):
         with self.assertRaises(NoParserFoundException):
             result = parserControl.ParseWebsite("url.com", 'NaN')
         
-class PluginManagerStub():
-    
-    def __init__(self, parseResult):
-        self.plugins = [PluginStub(parseResult)]
-            
-    def GetPluginsForCategory(self, category):
-        return self.plugins
-    
-class PluginStub(IParserPlugin):
-    
-    def __init__(self, result):
-        self.result = result
-    
-    def ParseWebSite(self, html):
-        '''Parse a website and return a list of movies.'''
-        if self.result:
-            movie = Movie()
-            movie.dictionary['title'] = 'TestMovie'
-            return movie
-        else:
-            return None
-    
-    def GetParseableSites(self):
-        '''Returns a list of parsable urls'''
-        return ['something.com']
-        
-if __name__ == '__main__':
-    unittest.main()
+
     
     

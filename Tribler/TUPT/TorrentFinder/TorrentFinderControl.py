@@ -46,6 +46,12 @@ class TorrentFinderControl:
         """
         return (self.__hdTorrentDefList.GetList(), self.__sdTorrentDefList.GetList())
     
+    def GetHDTorrentList(self):
+        return self.__hdTorrentDefList.GetList()
+    
+    def GetSDTorrentList(self):
+        return self.__sdTorrentDefList.GetList()
+    
     def HasTorrent(self):
         return self.HasHDTorrent() or self.HasSDTorrent()
     
