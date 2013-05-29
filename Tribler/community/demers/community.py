@@ -13,6 +13,9 @@ from Tribler.dispersy.tool.lencoder import log
 
 
 class DemersTest(Community):
+    def __init__(self, dispersy, master):
+        super(DemersTest, self).__init__(dispersy, master)
+        self._dispersy_sync_skip_enable = False
 
     def initiate_meta_messages(self):
         return [Message(self, u"text", MemberAuthentication(encoding="bin"), PublicResolution(), FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=128), CommunityDestination(node_count=10), TextPayload(), self.check_text, self.on_text)]
