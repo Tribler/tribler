@@ -36,9 +36,6 @@ class TorrentFinderControl:
     def __ProcessTorrentDef(self, definition, trust):
         """Inspect a returned torrent definition and place it in our list if appropriate
         """
-        if not isinstance(definition, IMovieTorrentDef):
-            print sys.stderr, "TorrentFinderControl error: returned torrent definition is not of type IMovieTorrentDef"
-            return
         if definition.IsHighDef():
             self.__hdTorrentDefList.Insert(definition, trust)
         else:
