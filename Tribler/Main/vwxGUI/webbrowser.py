@@ -112,7 +112,6 @@ class WebBrowser(XRCPanel):
                 #Anything can go wrong with custom listeners, not our problem
                 print >> sys.stderr, "WebBrowser: An error occurred in LoadedListener " + str(listener)
                 traceback.print_exc()
-                
     
     def OnInfoBarMouseOver(self, event):
         """When we roll over the InfoBar, set our background to be brighter
