@@ -2,9 +2,12 @@ import wx
 import time
 import urlparse
 
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.PluginManager.PluginManager import PluginManager
+from Tribler.Core.Session import Session
+from Tribler.Core.TorrentDef import TorrentDef
 
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
+from Tribler.PluginManager.PluginManager import PluginManager
 
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Parser.ParserControl import ParserControl
@@ -54,19 +57,26 @@ class TUPTControl:
                     self.__movieTorrentIterator.append(movieTorrent)
                     self.__infoBar = TorrentInfoBar(self.webview, self, movieTorrent)
     
-    def PlayHD(self, movieTorrent):
-        '''P'''
-        pass
-    def PlaySD(self, MovieTorrent):
-        pass
+    def DownloadHDMovie(self):
+        '''Play'''
+        #Download
+        self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+
+    def DownloadSDMovie(self):
+        self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
     
-    def DownloadTorrent(torrentURL):
-        """Download a torrent containing the movie"""
-        #Get the torrentfile from the URL
-        req = urllib2.Request(url, headers={'User-Agent':"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
-        torrent  = urllib2.urlopen(req).read()
+    
+    def __DownloadURL(self, url):
+        """Download the URL using Tribler."""
+        if url.startswith('http://'):            
+            torrent  = TorrentDef.load_from_url(url)
+        elif url.startswith('magnet:?'):
+            torrent  = TorrentDef.retrieve_from_magnet(url, self.__MagnetCallback())
         session = Session.get_instance()
         session.start_download(torrent)
+        
+    def __MagnetCallback(self):
+        pass
     
 class MovieTorrentIterator:
     """Class that can hold movies and a HD torrentlist and a SD torrentlist"""
@@ -88,8 +98,8 @@ class MovieTorrentIterator:
     def HasTorrent(self, n):
         return self.__movies[n].HasTorrent()
     
-    def GetNextMovie(self):
-        return self.__movies.pop(0)
+    def GetMovie(self,n):
+        return self.__movies[n]
     
     def GetNextHDTorrent(self, n):
         return self.__movies[n].GetNextHDTorrent()
@@ -133,11 +143,11 @@ class TorrentInfoBar():
         """Callback for when the user wants to play the movie.
         """
         #Get selection and the corresponding calls.
-        selection = self.__comboCtrl.GetCurrentSelection()
+        selection = self.__comboCtrl.GetValue()
         if selection == self.HDCHOICE:
-            self.__tuptControl.PlayHD()
+            self.__tuptControl.DownloadHDMovie()
         else:
-            self.__tuptControl.PlaySD()
+            self.__tuptControl.DownloadSDMovie()
     
     def __init__(self, webview, __tuptControl, movieTorrent):
        if movieTorrent.HasTorrent():

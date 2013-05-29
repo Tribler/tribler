@@ -76,7 +76,7 @@ class WebBrowser(XRCPanel):
         self.infobaroverlay.Bind(wx.EVT_ENTER_WINDOW, self.OnInfoBarMouseOver, self.infobaroverlay)
         self.infobaroverlay.Bind(wx.EVT_LEAVE_WINDOW, self.OnInfoBarMouseOut, self.infobaroverlay)
         
-        self.webview.LoadURL("http://www.google.com/")       
+        self.webview.LoadURL("http://www.imdb.com/title/tt0458525/")       
         
     def goBackward(self, event):
         if self.webview.CanGoBack():
