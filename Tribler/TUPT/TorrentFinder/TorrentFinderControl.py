@@ -1,7 +1,7 @@
 import sys
 
 from Tribler.PluginManager.PluginManager import PluginManager
-from Tribler.TUPT.SortedTorrentList import SortedTorrentList
+from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
 
 class TorrentFinderControl:
     """TorrentFinderControl
@@ -9,10 +9,12 @@ class TorrentFinderControl:
         movie title and then sorts them.
     """
     
-    __torrentDefList = None
+    __hdTorrentDefList = None
+    __sdTorrentDefList = None
     
     def __init__(self):
-        self.__torrentDefList = SortedTorrentList()
+        self.__hdTorrentDefList = SortedTorrentList()
+        self.__sdTorrentDefList = SortedTorrentList()
     
     def FindTorrents(self, movie):
         """Query plug-ins for a title using a Movie object. The results will be stored in the lists.
@@ -36,9 +38,22 @@ class TorrentFinderControl:
             print sys.stderr, "TorrentFinderControl error: returned torrent definition is not of type IMovieTorrentDef"
             return
         if definition.IsHighDef():
-            self.__torrentDefList.Insert(definition, trust)
+            self.__hdTorrentDefList.Insert(definition, trust)
+        else:
+            self.__sdTorrentDefList.Insert(definition, trust)
 
     def GetTorrentList(self):
-        """Returns the list of found torrents
+        """Returns the list of found torrents (hdList, sdList)
         """
-        return self.__torrentDefList.GetList()
+        return (self.__hdTorrentDefList.GetList(), self.__sdTorrentDefList.GetList())
+    
+    def HasTorrent(self):
+        return self.HasHDTorrent() or self.HasSDTorrent()
+    
+    def HasHDTorrent(self):
+        """Return if a HD torrent was found."""
+        return len(self.__hdTorrentDefList.GetList())
+    
+    def HasSDTorrent(self):
+        """Return if a HD torrent was found."""
+        return len(self.__sdTorrentDefList.GetList())
