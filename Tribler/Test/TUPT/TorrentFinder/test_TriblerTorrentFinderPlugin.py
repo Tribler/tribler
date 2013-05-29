@@ -5,12 +5,12 @@ from Tribler.PluginManager.PluginManager import PluginManager
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 from Tribler.TUPT.Movie import Movie
 
-class TestKatPhTorrentFinderPlugin(unittest.TestCase):
-    '''Test class to test KatPhTorrentFinderPlugin'''
+class TestTriblerTorrentFinderPlugin(unittest.TestCase):
+    '''Test class to test TriblerTorrentFinderPlugin'''
 
-    def getKatPlugin(self, plugins):
+    def getTriblerPlugin(self, plugins):
         for plugin in plugins:
-            if plugin.__class__.__name__ == "KatPhTorrentFinderPlugin":
+            if plugin.__class__.__name__ == "TriblerTorrentFinderPlugin":
                 return plugin
 
     def test_ImportPlugin(self):
@@ -40,7 +40,7 @@ class TestKatPhTorrentFinderPlugin(unittest.TestCase):
         #Load the plugin
         pluginmanager.RegisterCategory("TorrentFinder", ITorrentFinderPlugin)
         pluginmanager.LoadPlugins()
-        plugin = self.getKatPlugin(pluginmanager.GetPluginsForCategory("TorrentFinder"))
+        plugin = self.getTriblerPlugin(pluginmanager.GetPluginsForCategory("TorrentFinder"))
         #Load a torrent
         torrentDefs = plugin.GetTorrentDefsForMovie(movie)
         
@@ -59,7 +59,7 @@ class TestKatPhTorrentFinderPlugin(unittest.TestCase):
         #Load the plugin
         pluginmanager.RegisterCategory("TorrentFinder", ITorrentFinderPlugin)
         pluginmanager.LoadPlugins()
-        plugin = self.getKatPlugin(pluginmanager.GetPluginsForCategory("TorrentFinder"))
+        plugin = self.getTriblerPlugin(pluginmanager.GetPluginsForCategory("TorrentFinder"))
         #Load a torrent
         torrentDefs = plugin.GetTorrentDefsForMovie(movie)
         torrentDef = torrentDefs[0]
