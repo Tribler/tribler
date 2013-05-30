@@ -58,13 +58,20 @@ class TUPTControl:
                     self.__infoBar = TorrentInfoBar(self.webview, self, movieTorrent)
     
     def DownloadHDMovie(self):
-        '''Play'''
-        #Download
+        """Start downliading the selected movie in HD quality"""
+        #Download the torrent.
         self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+        #Update the infobar
+        if not self.__movieTorrentIterator.HasHDTorrent(0):
+            self.__infoBar.RemoveHDQuality()
 
     def DownloadSDMovie(self):
+        """Start downliading the selected movie in SD quality"""
+        #Download the torrent.
         self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
-    
+        #Update the infobar
+        if not self.__movieTorrentIterator.HasSDTorrent(0):
+            self.__infoBar.RemoveSDQuality()    
     
     def __DownloadURL(self, url):
         """Download the URL using Tribler."""
@@ -77,6 +84,91 @@ class TUPTControl:
         
     def __MagnetCallback(self):
         pass
+ 
+class TorrentInfoBar():
+    '''Class that willl create and show the found movies'''
+    
+    HDCHOICE = "HD    Quality"
+    SDCHOICE = "SD    Quality"
+    
+    __webview = None
+    __tuptControl = None
+    __comboBox = None
+    
+    def playButtonPressed(self, event):
+        """Callback for when the user wants to play the movie.
+        """
+        #Get selection and the corresponding calls.
+        selection = self.__comboBox.GetValue()
+        if selection == self.HDCHOICE:
+            self.__tuptControl.DownloadHDMovie()
+        else:
+            self.__tuptControl.DownloadSDMovie()
+
+    def RemoveHDQuality(self):
+        """Remove SDQuality from the choices."""
+        self.__RemoveComboBoxtem(self.HDCHOICE)          
+
+    def RemoveSDQuality(self):
+        """Remove SDQuality from the choices."""
+        self.__RemoveComboBoxtem(self.SDCHOICE)
+      
+    def __RemoveComboBoxtem(self, item):
+        #Find index of item.
+        index =  self.__comboBox.FindString(item)
+        #Remove item.
+        self.__comboBox.Delete(index)
+        #Check if a item exists
+        if self.__comboBox.IsEmpty():        
+            #Remove infobar
+            self.__webview.HideInfoBar()
+        else:        
+            #Set selection to 0
+            self.__comboBox.SetSelection(0)
+    
+    def __init__(self, webview, __tuptControl, movieTorrent):
+       if movieTorrent.HasTorrent():
+            self.__webview = webview
+            self.__tuptControl = __tuptControl
+            #Add movie to the infobar    
+            text = " <b>The following movie was found: " + movieTorrent.movie.dictionary['title'] + ". Do you want to watch this movie in:</b>"
+            label = wx.StaticText(webview.infobaroverlay)
+            label.SetLabelMarkup(text)
+            
+            #Create the quality selection.
+            self.__comboBox = self.__CreateStdComboCtrl()
+            if movieTorrent.HasHDTorrent():
+                self.__comboBox.Append(self.HDCHOICE)
+                #Set default value to HD Quality.
+                self.__comboBox.SetValue(self.HDCHOICE)  
+            if movieTorrent.HasSDTorrent():
+                self.__comboBox.Append(self.SDCHOICE)
+            #Set default value to SD quality if no HD quality    
+            if not movieTorrent.HasHDTorrent():
+                self.__comboBox.SetValue(self.SDCHOICE)
+                       
+            #Create play button.
+            button = wx.Button(self.__webview.infobaroverlay)
+            button.SetLabel("Play!")
+            button.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+            button.SetSizeHints(-1,-1,150,-1)
+            #Register action.
+            self.__webview.Bind(wx.EVT_BUTTON, self.playButtonPressed, button)
+            
+            #Add all elements to the infobar.
+            self.__webview.SetInfoBarContents((label,),(self.__comboBox,), (button,))
+            self.__webview.ShowInfoBar()
+            
+    def __CreateStdComboCtrl(self, width = 150):
+        """Create a dropdown control set (comboBox and popupCtrl) in our theme
+        """
+        comboBox = wx.ComboBox(self.__webview.infobaroverlay)
+        comboBox.SetSizeHints(-1,-1,width,-1)
+        
+        comboBox.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
+        comboBox.SetForegroundColour(self.__webview.infobaroverlay.COLOR_FOREGROUND)
+
+        return comboBox  
     
 class MovieTorrentIterator:
     """Class that can hold movies and a HD torrentlist and a SD torrentlist"""
@@ -129,74 +221,4 @@ class MovieTorrent:
     
     def GetNextSDTorrent(self):  
         return self.sdList.pop(0)
-    
-class TorrentInfoBar():
-    '''Class that willl create and show the found movies'''
-    
-    HDCHOICE = "HD    Quality"
-    SDCHOICE = "SD    Quality"
-    
-    __webview = None
-    __comboCtrl = None
-    
-    def playButtonPressed(self, event):
-        """Callback for when the user wants to play the movie.
-        """
-        #Get selection and the corresponding calls.
-        selection = self.__comboCtrl.GetValue()
-        if selection == self.HDCHOICE:
-            self.__tuptControl.DownloadHDMovie()
-        else:
-            self.__tuptControl.DownloadSDMovie()
-    
-    def __init__(self, webview, __tuptControl, movieTorrent):
-       if movieTorrent.HasTorrent():
-            self.__webview = webview
-            self.__tuptControl = __tuptControl
-            #Add movie to the infobar    
-            text = " <b>The following movie was found: " + movieTorrent.movie.dictionary['title'] + ". Do you want to watch this movie in:</b>"
-            label = wx.StaticText(webview.infobaroverlay)
-            label.SetLabelMarkup(text)
-            
-            #Create the quality selection.
-            comboCtrl, popupCtrl = self.__CreateStdComboCtrl()
-            if movieTorrent.HasHDTorrent():
-                popupCtrl.AddItem(self.HDCHOICE)
-                #Set default value to HD Quality.
-                comboCtrl.SetValue(self.HDCHOICE)  
-            if movieTorrent.HasSDTorrent():
-                popupCtrl.AddItem(self.SDCHOICE)
-            #Set default value to SD quality if no HD quality    
-            if not movieTorrent.HasHDTorrent():
-                comboCtrl.SetValue(self.SDCHOICE)
-            
-            self.__comboCtrl = comboCtrl             
-            #Create play button.
-            button = wx.Button(self.__webview.infobaroverlay)
-            button.SetLabel("Play!")
-            button.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-            button.SetSizeHints(-1,-1,150,-1)
-            #Register action.
-            self.__webview.Bind(wx.EVT_BUTTON, self.playButtonPressed, button)
-            
-            #Add all elements to the infobar.
-            self.__webview.SetInfoBarContents((label,),(comboCtrl,), (button,))
-            self.__webview.ShowInfoBar()
-            
-    def __CreateStdComboCtrl(self, width = 150):
-        """Create a dropdown control set (comboCtrl and popupCtrl) in our theme
-        """
-        comboCtrl = wx.ComboCtrl(self.__webview.infobaroverlay)
-        comboCtrl.SetSizeHints(-1,-1,width,-1)
-        
-        comboCtrl.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
-        comboCtrl.SetForegroundColour(self.__webview.infobaroverlay.COLOR_FOREGROUND)
-
-        popupCtrl = ListViewComboPopup()
-        
-        popupCtrl.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND)
-        popupCtrl.SetForegroundColour(self.__webview.infobaroverlay.COLOR_FOREGROUND)
-        
-        comboCtrl.SetPopupControl(popupCtrl)
-
-        return comboCtrl, popupCtrl  
+   
