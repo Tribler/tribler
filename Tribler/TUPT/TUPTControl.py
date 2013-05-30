@@ -51,17 +51,21 @@ class TUPTControl:
         netloc = urlparse.urlparse(event.GetURL()).netloc   #The url identifier, ex 'www.google.com'   
         #Parse the Website.
         if self.parserControl.HasParser(netloc):
-            movies = self.parserControl.ParseWebsite(netloc, html)
+            movies, trust = self.parserControl.ParseWebsite(netloc, html)
             #Check if there a movies on the website.
             if movies is not None:
                 self.__movieTorrentIterator = MovieTorrentIterator()
                 for movie in movies:     
                     #Correct movie information
-                    cmovie = self.matcherControl.CorrectMovie(movie)
+                    if trust == 1:
+                        #If we fully trust the parser, skip correction
+                        cmovie = movie
+                    else:
+                        cmovie = self.matcherControl.CorrectMovie(movie)
                     #Find torrents corresponding to the movie.
                     torrentFinder = TorrentFinderControl(self.pluginmanager)
-                    torrentFinder.FindTorrents(movie)
-                    movieTorrent = MovieTorrent(movie, torrentFinder.GetHDTorrentList(), torrentFinder.GetSDTorrentList())                    
+                    torrentFinder.FindTorrents(cmovie)
+                    movieTorrent = MovieTorrent(cmovie, torrentFinder.GetHDTorrentList(), torrentFinder.GetSDTorrentList())                    
                     self.__movieTorrentIterator.append(movieTorrent)
                 self.__infoBar = TorrentInfoBar(self.webview, self, self.__movieTorrentIterator)
     

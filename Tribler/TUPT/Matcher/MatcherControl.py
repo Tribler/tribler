@@ -52,7 +52,7 @@ class MatcherControl:
         for plugin_info in plugins:
             trust = 0.5
             try:
-                trust = plugin_info.getfloat("Core","Trust")
+                trust = plugin_info.details.getfloat("Core","Trust")
             except:
                 trust = 0.5 #Not a valid float
             self.__RegisterPluginResults(plugin_info.plugin_object, movie, trust)

@@ -106,7 +106,7 @@ class TorrentFinderControl:
             self.parent = parent
             self.trust = 0.5
             try:
-                self.trust = plugin_info.getfloat("Core","Trust")
+                self.trust = plugin_info.details.getfloat("Core","Trust")
             except:
                 self.trust = 0.5 #Not a valid float
             self.plugin = plugin_info.plugin_object
