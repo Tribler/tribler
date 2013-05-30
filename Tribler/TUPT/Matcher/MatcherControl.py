@@ -47,6 +47,8 @@ class MatcherControl:
         """
         self.__termTable = {}
         plugins = self.__pluginManager.GetPluginDescriptorsForCategory('Matcher')
+        if len(plugins) == 0:
+            return movie
         for plugin_info in plugins:
             trust = 0.5
             try:
