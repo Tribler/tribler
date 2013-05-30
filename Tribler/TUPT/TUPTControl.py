@@ -228,6 +228,7 @@ class TorrentInfoBar():
         """
         comboBox = wx.ComboBox(self.__webview.infobaroverlay)
         comboBox.SetSizeHints(-1,-1,width,-1)
+        comboBox.SetEditable(False)
         
         comboBox.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
         comboBox.SetForegroundColour(self.__webview.infobaroverlay.COLOR_FOREGROUND)
