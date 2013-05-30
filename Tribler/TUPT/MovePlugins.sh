@@ -13,7 +13,10 @@
 # (see below).
 # ==============
 
-files[0]="Parser/IMDbParserPlugin.py"
+files[0]="settings.config"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/"
+
+files[${#files[*]}]="Parser/IMDbParserPlugin.py"
 files[${#files[*]}]="$HOME/.Tribler/plug-ins/Parser/"
 
 files[${#files[*]}]="Parser/IMDbParser.yapsy-plugin"
@@ -37,5 +40,5 @@ for (( i = 0; i < ${#files[*]}; i=i+2 ))
 do
     j=$i+1
     cd ${files[$j]}
-    cp $curdir${files[$i]} "./"
+    cp -u $curdir${files[$i]} "./"
 done  

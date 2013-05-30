@@ -31,8 +31,11 @@ class PluginManager:
         self.__categoryFolders = {}
         self.__categoryInterfaces = {}
     
-    def __CategoryFolder(self, categoryName):    
+    def GetCategoryFolder(self, categoryName):    
         return self.__pluginsFolder + os.sep + categoryName
+    
+    def GetPluginFolder(self):
+        return self.__pluginsFolder
     
     def OverwritePluginsFolder(self, folder):
         """By default we store plug-ins in Triblers profile folder.
@@ -46,8 +49,8 @@ class PluginManager:
             Returns True if a category was created
             Returns False if the plug-in directory could not be found
         """
-        if os.path.exists(self.__CategoryFolder(categoryName)):
-            self.__categoryFolders[categoryName] = self.__CategoryFolder(categoryName)
+        if os.path.exists(self.GetCategoryFolder(categoryName)):
+            self.__categoryFolders[categoryName] = self.GetCategoryFolder(categoryName)
             self.__categoryInterfaces[categoryName] = interface
             return True
         return False

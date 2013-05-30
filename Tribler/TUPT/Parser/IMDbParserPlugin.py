@@ -18,6 +18,9 @@ class IMDbParserPlugin(IParserPlugin):
         movieParser = DOMHTMLMovieParser()
         #Parse the website.   
         parseResult = movieParser.parse(html)['data']
+        #If we did not find any movie data, don't return a movie
+        if len(parseResult) == 0:
+            return []
         movie = Movie()
         #Iterate through every interesting metadata item.
         for key in self.__items:
@@ -25,6 +28,11 @@ class IMDbParserPlugin(IParserPlugin):
             if parseResult.has_key(key):
                 #Call on the found result the corresponding parse function and store this on the proper moviekey in movies.
                 movie.dictionary[self.__items[key][0]] = self.__items[key][1](parseResult[key])
+        #Assert we have the minimum requirements posed by the Movie object
+        if ((not movie.dictionary.has_key('title')) or
+            (not movie.dictionary.has_key('releaseYear'))):
+            # or (not movie.dictionary.has_key('director'))):
+            return []
         #Return the result.                         
         return [movie]
 

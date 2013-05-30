@@ -35,7 +35,20 @@ class TestIMDbParserPlugin(unittest.TestCase):
         #Assert        
         self.__AssertResult(result)
         
-        
+    def test_ParseEmptyWebsite(self):
+        '''Parse a page that has the correct netloc, but no movie.
+        This should result in no movies being returned'''
+        #Arrange
+        html = self.download_webpage('http://www.imdb.com/', 'test_ParseEmptyWebsite.html')
+        if not html:
+            file = open('test_ParseEmptyWebsite.html','r')        
+            html = file.read()
+        parser = IMDbParserPlugin()
+        #Act
+        result = parser.ParseWebSite(html)
+        #Assert
+        assert len(result)==0
+    
     def test_ParseWebsiteMainPage(self):
         '''Test parsing the main details page'''
         #Arrange

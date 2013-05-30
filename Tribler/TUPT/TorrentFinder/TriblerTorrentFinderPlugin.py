@@ -1,8 +1,10 @@
 import threading
 
-from binascii import hexlify
+from binascii import hexlify 
 
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
+from Tribler.Core.Search.SearchManager import SearchManager
+from Tribler.Core.Session import Session
+from Tribler.Core.Session import NTFY_TORRENTS
 
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
@@ -18,10 +20,10 @@ class TriblerMovieTorrentDef(IMovieTorrentDef):
     torrenturl = None       # Set externally
 
     def __init__(self, torrent):
-        self.seeders = torrent.num_seeders
-        self.leechers = torrent.num_leechers
-        self.highdef = str(torrent.channel.name).find('HD') != -1
-        self.torrentname = torrent.torrent_file_name
+        self.seeders = torrent['num_seeders'] or 0
+        self.leechers = torrent['num_leechers'] or 0
+        self.highdef = str(torrent['name']).find('HD') != -1 or str(torrent['name']).find('1080p') != -1
+        self.torrentname = torrent['name']
 
     def GetSeeders(self):
         return self.seeders
@@ -55,33 +57,22 @@ class TriblerTorrentFinderPlugin(ITorrentFinderPlugin):
     def GetTorrentDefsForMovie(self, movie):
         """Receive a Movie object and return a list of matching IMovieTorrentDefs
         """
-        #Define torrent finding callback
-        evt = threading.Event()
-        callReturn = None
-        def callback(infohash, content):
-            callReturn = infohash
-            evt.set()
         #Perform search
-        searchMngr = TorrentManager.getInstance()
-        searchMngr.setSearchKeywords(self.__GetQueryForMovie(movie.dictionary))
-        hits_info = searchMngr.getHitsInCategory()
-        hits = hits_info[4]
+        session = Session.get_instance()
+        torrentdb = session.open_dbhandler(NTFY_TORRENTS)
+        hits = torrentdb.searchNames(self.__GetQueryForMovie(movie.dictionary), keys = ['infohash', 'torrent_file_name', 'category_id', 'num_seeders', 'num_leechers'], doSort = False)
         #Add torrents 
         torrents = []
-        for torrent in hits:
-            # torrent is a GuiDBTuples.Torrent
+        for hit in hits:
+            torrent = torrentdb.getTorrent(hit[0])
             torrentDef = TriblerMovieTorrentDef(torrent)
-            searchMngr.downloadTorrentfileFromPeers(torrent, callback)
             torrentDef.moviedescriptor = movie
-            #Wait for the callback to finish
-            #if the eventcode is False, we didn't manage to get the torrent file 
-            eventcode = callback.wait(5)
-            if eventcode:
-                #Construct a magnetlink from the returned infohash
-                magnetlink = "magnet:?xt=urn:btih:"+hexlify(callReturn)
-                torrentDef.torrenturl = magnetlink
-                #Finally add the torrentDef as a result
-                torrents.append(torrentDef)
-                if len(torrents) == 10:
-                    break
+            #Construct a magnetlink from the returned infohash
+            magnetlink = "magnet:?xt=urn:btih:"+hexlify(hit[0])
+            torrentDef.torrenturl = magnetlink
+            #Finally add the torrentDef as a result
+            torrents.append(torrentDef)
+            if len(torrents) == 10:
+                break 
+        session.close_dbhandler(torrentdb)
         return torrents
