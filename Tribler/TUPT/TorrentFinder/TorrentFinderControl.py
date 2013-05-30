@@ -81,6 +81,8 @@ class TorrentFinderControl:
             parser.read(termFile)
         except:
             return out
+        if not parser.has_section('TorrentFinderTerms'):
+            return out
         #Return a dictionary of all the terms specified in the file
         i = 0
         for term in parser.options('TorrentFinderTerms'):
