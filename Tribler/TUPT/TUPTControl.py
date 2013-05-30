@@ -4,6 +4,7 @@ import urlparse
 
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.exceptions import DuplicateDownloadException
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
@@ -58,20 +59,32 @@ class TUPTControl:
                     self.__infoBar = TorrentInfoBar(self.webview, self, movieTorrent)
     
     def DownloadHDMovie(self):
-        """Start downliading the selected movie in HD quality"""
+        """Start downloading the selected movie in HD quality"""
         #Download the torrent.
-        self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
-        #Update the infobar
-        if not self.__movieTorrentIterator.HasHDTorrent(0):
-            self.__infoBar.RemoveHDQuality()
+        if self.__movieTorrentIterator.HasHDTorrent(0):
+            try:
+                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+            except DuplicateDownloadException:
+                #Download the next torrent.
+                self.DownloadHDMovie()
+        #Update the infobar. This has to be done regardless of if a torrent was added or not.
+        if not self.__movieTorrentIterator.HasSDTorrent(0):
+            self.__infoBar.RemoveSDQuality()
+        
 
     def DownloadSDMovie(self):
         """Start downliading the selected movie in SD quality"""
-        #Download the torrent.
-        self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
-        #Update the infobar
+       #Check if a torrent exists.
+        if self.__movieTorrentIterator.HasSDTorrent(0):
+            try:
+                 #Download the torrent.
+                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+            except DuplicateDownloadException:
+                #Dpwnload the next torrent.
+                self.DownloadSDMovie()
+        #Update the infobar. This has to be done regardless of if a torrent was added or not.
         if not self.__movieTorrentIterator.HasSDTorrent(0):
-            self.__infoBar.RemoveSDQuality()    
+            self.__infoBar.RemoveSDQuality()
     
     def __DownloadURL(self, url):
         """Download the URL using Tribler."""
