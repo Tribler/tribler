@@ -1,5 +1,7 @@
 import threading
 
+from binascii import hexlify 
+
 from Tribler.Core.Search.SearchManager import SearchManager
 from Tribler.Core.Session import Session
 from Tribler.Core.Session import NTFY_TORRENTS
@@ -18,10 +20,10 @@ class TriblerMovieTorrentDef(IMovieTorrentDef):
     torrenturl = None       # Set externally
 
     def __init__(self, torrent):
-        self.seeders = torrent.num_seeders
-        self.leechers = torrent.num_leechers
-        self.highdef = str(torrent.channel.name).find('HD') != -1
-        self.torrentname = torrent.torrent_file_name
+        self.seeders = torrent['num_seeders'] or 0
+        self.leechers = torrent['num_leechers'] or 0
+        self.highdef = str(torrent['name']).find('HD') != -1 or str(torrent['name']).find('1080p') != -1
+        self.torrentname = torrent['name']
 
     def GetSeeders(self):
         return self.seeders
@@ -61,7 +63,16 @@ class TriblerTorrentFinderPlugin(ITorrentFinderPlugin):
         hits = torrentdb.searchNames(self.__GetQueryForMovie(movie.dictionary), keys = ['infohash', 'torrent_file_name', 'category_id', 'num_seeders', 'num_leechers'], doSort = False)
         #Add torrents 
         torrents = []
-        for torrent in hits:
-            print torrent
+        for hit in hits:
+            torrent = torrentdb.getTorrent(hit[0])
+            torrentDef = TriblerMovieTorrentDef(torrent)
+            torrentDef.moviedescriptor = movie
+            #Construct a magnetlink from the returned infohash
+            magnetlink = "magnet:?xt=urn:btih:"+hexlify(hit[0])
+            torrentDef.torrenturl = magnetlink
+            #Finally add the torrentDef as a result
+            torrents.append(torrentDef)
+            if len(torrents) == 10:
+                break 
         session.close_dbhandler(torrentdb)
         return torrents
