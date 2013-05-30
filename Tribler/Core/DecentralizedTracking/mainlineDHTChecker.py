@@ -16,7 +16,7 @@ class mainlineDHTChecker:
     def __init__(self):
 
         if DEBUG:
-            print >>sys.stderr, 'mainlineDHTChecker: initialization'
+            print >> sys.stderr, 'mainlineDHTChecker: initialization'
         if mainlineDHTChecker.__single:
             raise RuntimeError("mainlineDHTChecker is Singleton")
         mainlineDHTChecker.__single = self
@@ -35,26 +35,26 @@ class mainlineDHTChecker:
 
     def lookup(self, infohash):
         if DEBUG:
-            print >>sys.stderr, "mainlineDHTChecker: Lookup", repr(infohash)
+            print >> sys.stderr, "mainlineDHTChecker: Lookup", repr(infohash)
 
         if self.dht is not None:
             from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id, IdError
             try:
                 infohash_id = Id(infohash)
-                self.dht.get_peers(infohash, infohash_id, self.got_peers_callback)
+                self.dht.get_peers(infohash, infohash_id, self.got_peers_callback, use_cache=True)
             except (IdError):
-                print >>sys.stderr, "Rerequester: _dht_rerequest: self.info_hash is not a valid identifier"
+                print >> sys.stderr, "Rerequester: _dht_rerequest: self.info_hash is not a valid identifier"
                 return
         elif DEBUG:
-            print >>sys.stderr, "mainlineDHTChecker: No lookup, no DHT support loaded"
+            print >> sys.stderr, "mainlineDHTChecker: No lookup, no DHT support loaded"
 
     def got_peers_callback(self, infohash, peers, node=None):
         """ Called by network thread """
         if DEBUG:
             if peers:
-                print >>sys.stderr, "mainlineDHTChecker: Got", len(peers), "peers for torrent", repr(infohash), currentThread().getName()
+                print >> sys.stderr, "mainlineDHTChecker: Got", len(peers), "peers for torrent", repr(infohash), currentThread().getName()
             else:
-                print >>sys.stderr, "mainlineDHTChecker: Got no peers for torrent", repr(infohash), currentThread().getName()
+                print >> sys.stderr, "mainlineDHTChecker: Got no peers for torrent", repr(infohash), currentThread().getName()
 
         if peers:
             # Arno, 2010-02-19: this can be called frequently with the new DHT,

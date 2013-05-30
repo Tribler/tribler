@@ -105,7 +105,7 @@ class SwiftProcess:
         self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def read_and_print(socket):
-            prefix = currentThread().getName()
+            prefix = currentThread().getName() + ":"
             while True:
                 line = socket.readline()
                 if not line:
