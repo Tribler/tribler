@@ -56,34 +56,34 @@ class TUPTControl:
                     torrentFinder.FindTorrents(movie)
                     movieTorrent = MovieTorrent(movie, torrentFinder.GetHDTorrentList(), torrentFinder.GetSDTorrentList())                    
                     self.__movieTorrentIterator.append(movieTorrent)
-                    self.__infoBar = TorrentInfoBar(self.webview, self, movieTorrent)
+                self.__infoBar = TorrentInfoBar(self.webview, self, self.__movieTorrentIterator)
     
-    def DownloadHDMovie(self):
+    def DownloadHDMovie(self, n = 0):
         """Start downloading the selected movie in HD quality"""
         #Download the torrent.
-        if self.__movieTorrentIterator.HasHDTorrent(0):
+        if self.__movieTorrentIterator.HasHDTorrent(n):
             try:
-                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(n).GetTorrentURL())
             except DuplicateDownloadException:
                 #Download the next torrent.
                 self.DownloadHDMovie()
         #Update the infobar. This has to be done regardless of if a torrent was added or not.
-        if not self.__movieTorrentIterator.HasSDTorrent(0):
+        if not self.__movieTorrentIterator.HasSDTorrent(n):
             self.__infoBar.RemoveSDQuality()
         
 
-    def DownloadSDMovie(self):
+    def DownloadSDMovie(self, n = 0):
         """Start downliading the selected movie in SD quality"""
        #Check if a torrent exists.
-        if self.__movieTorrentIterator.HasSDTorrent(0):
+        if self.__movieTorrentIterator.HasSDTorrent(n):
             try:
                  #Download the torrent.
-                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(n).GetTorrentURL())
             except DuplicateDownloadException:
                 #Dpwnload the next torrent.
                 self.DownloadSDMovie()
         #Update the infobar. This has to be done regardless of if a torrent was added or not.
-        if not self.__movieTorrentIterator.HasSDTorrent(0):
+        if not self.__movieTorrentIterator.HasSDTorrent(n):
             self.__infoBar.RemoveSDQuality()
     
     def __DownloadURL(self, url):
@@ -107,16 +107,21 @@ class TorrentInfoBar():
     __webview = None
     __tuptControl = None
     __comboBox = None
+    __comboboxMovieTorrent = None
+    __comboboxMovieTorrentMap = None
     
     def playButtonPressed(self, event):
         """Callback for when the user wants to play the movie.
         """
+        #Get selected movie
+        rawMovieSelection = self.__comboboxMovieTorrent.GetSelection()
+        movieSelection = self.__comboboxMovieTorrentMap[rawMovieSelection]
         #Get selection and the corresponding calls.
-        selection = self.__comboBox.GetValue()
-        if selection == self.HDCHOICE:
-            self.__tuptControl.DownloadHDMovie()
+        qualitySelection = self.__comboBox.GetValue()
+        if qualitySelection == self.HDCHOICE:
+            self.__tuptControl.DownloadHDMovie(movieSelection)
         else:
-            self.__tuptControl.DownloadSDMovie()
+            self.__tuptControl.DownloadSDMovie(movieSelection)
 
     def RemoveHDQuality(self):
         """Remove SDQuality from the choices."""
@@ -139,17 +144,62 @@ class TorrentInfoBar():
             #Set selection to 0
             self.__comboBox.SetSelection(0)
     
-    def __init__(self, webview, __tuptControl, movieTorrent):
-       if movieTorrent.HasTorrent():
+    def MovieSelectionUpdated(self, event):
+        #Get selected movie
+        rawMovieSelection = self.__comboboxMovieTorrent.GetSelection()
+        movieSelection = self.__comboboxMovieTorrentMap[rawMovieSelection]
+        #Remove old available definitions
+        self.__RemoveComboBoxtem(self.SDCHOICE)
+        self.__RemoveComboBoxtem(self.HDCHOICE)
+        #We changed our movie selection, update the available definitions
+        movieTorrent = movieTorrentIterator.GetMovie(movieSelection)
+        if movieTorrent.HasHDTorrent():
+            self.__comboBox.Append(self.HDCHOICE)
+            #Set default value to HD Quality.
+            self.__comboBox.SetValue(self.HDCHOICE)  
+        if movieTorrent.HasSDTorrent():
+            self.__comboBox.Append(self.SDCHOICE)
+        #Set default value to SD quality if no HD quality    
+        if not movieTorrent.HasHDTorrent():
+            self.__comboBox.SetValue(self.SDCHOICE)
+        self.__webview.infobaroverlay.Refresh()
+    
+    def __init__(self, webview, __tuptControl, movieTorrentIterator):
+        #Get all the movies with torrents
+        validMovieIndices = []
+        for i in range(movieTorrentIterator.GetSize()):
+            if movieTorrentIterator.GetMovie(i).HasTorrent():
+                validMovieIndices.append(i)
+        #Set movie infobar information
+        if len(validMovieIndices)>0:
             self.__webview = webview
             self.__tuptControl = __tuptControl
-            #Add movie to the infobar    
-            text = " <b>The following movie was found: " + movieTorrent.movie.dictionary['title'] + ". Do you want to watch this movie in:</b>"
-            label = wx.StaticText(webview.infobaroverlay)
-            label.SetLabelMarkup(text)
+            
+            # Label1
+            text = " <b>The following movie was found: </b>"
+            if len(validMovieIndices) > 1:
+                text = " <b>The following movies were found: </b>"
+            label1 = wx.StaticText(webview.infobaroverlay)
+            label1.SetLabelMarkup(text)
+            
+            # ComboboxMovieTorrent
+            self.__comboboxMovieTorrent = self.__CreateStdComboCtrl(200, self.MovieSelectionUpdated)
+            for i in validMovieIndices:
+                self.__comboboxMovieTorrent.Append(movieTorrentIterator.GetMovie(i).movie.dictionary['title'])
+            self.__comboboxMovieTorrent.SetValue(movieTorrentIterator.GetMovie(validMovieIndices[0]).movie.dictionary['title']) 
+            
+            #Register mapping of valid indices
+            self.__comboboxMovieTorrentMap = validMovieIndices
+            
+            # Label2
+            text2 = "<b>. Do you want to watch this movie in:</b>"
+            label2 = wx.StaticText(webview.infobaroverlay)
+            label2.SetLabelMarkup(text2)
+            label2.SetSizeHints(-1,-1,220,-1)
             
             #Create the quality selection.
             self.__comboBox = self.__CreateStdComboCtrl()
+            movieTorrent = movieTorrentIterator.GetMovie(validMovieIndices[0])
             if movieTorrent.HasHDTorrent():
                 self.__comboBox.Append(self.HDCHOICE)
                 #Set default value to HD Quality.
@@ -165,14 +215,15 @@ class TorrentInfoBar():
             button.SetLabel("Play!")
             button.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
             button.SetSizeHints(-1,-1,150,-1)
+            
             #Register action.
             self.__webview.Bind(wx.EVT_BUTTON, self.playButtonPressed, button)
             
             #Add all elements to the infobar.
-            self.__webview.SetInfoBarContents((label,),(self.__comboBox,), (button,))
+            self.__webview.SetInfoBarContents((label1,), (self.__comboboxMovieTorrent,), (label2,), (self.__comboBox,), (button,))
             self.__webview.ShowInfoBar()
             
-    def __CreateStdComboCtrl(self, width = 150):
+    def __CreateStdComboCtrl(self, width = 150, callback = None):
         """Create a dropdown control set (comboBox and popupCtrl) in our theme
         """
         comboBox = wx.ComboBox(self.__webview.infobaroverlay)
@@ -180,6 +231,9 @@ class TorrentInfoBar():
         
         comboBox.SetBackgroundColour(self.__webview.infobaroverlay.COLOR_BACKGROUND_SEL)
         comboBox.SetForegroundColour(self.__webview.infobaroverlay.COLOR_FOREGROUND)
+        
+        if callback is not None:
+            self.__webview.Bind(wx.EVT_CHOICE, callback, comboBox) 
 
         return comboBox  
     
@@ -193,6 +247,9 @@ class MovieTorrentIterator:
     
     def append(self, movieTorrent):
         self.__movies.append(movieTorrent)
+        
+    def GetSize(self):
+        return len(self.__movies)
         
     def HasHDTorrent(self, n):
         return self.__movies[n].HasHDTorrent()
@@ -211,6 +268,7 @@ class MovieTorrentIterator:
     
     def GetNextSDTorrent(self, n):
         return self.__movies[n].GetNextSDTorrent()
+        
         
 class MovieTorrent:
     """ Class that contains a movie and the corresponding HD and SD torrentlists."""
