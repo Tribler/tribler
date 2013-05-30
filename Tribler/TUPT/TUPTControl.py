@@ -10,6 +10,9 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 from Tribler.PluginManager.PluginManager import PluginManager
 
+from Tribler.TUPT.Matcher.IMatcherPlugin import IMatcherPlugin
+from Tribler.TUPT.Matcher.MatcherControl import MatcherControl
+
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Parser.ParserControl import ParserControl
 
@@ -27,10 +30,11 @@ class TUPTControl:
     def __init__(self, pluginManager = PluginManager()):
         self.pluginmanager = pluginManager
         self.parserControl = ParserControl(pluginManager)
+        self.matcherControl = MatcherControl(pluginManager)
         self.__movieTorrentIterator = MovieTorrentIterator()
         
         #Setup the plugins.
-        self.pluginmanager.RegisterCategory("Matcher", object)
+        self.pluginmanager.RegisterCategory("Matcher", IMatcherPlugin)
         self.pluginmanager.RegisterCategory("Parser", IParserPlugin)
         self.pluginmanager.RegisterCategory("TorrentFinder", ITorrentFinderPlugin)
         self.pluginmanager.LoadPlugins()
@@ -51,7 +55,9 @@ class TUPTControl:
             #Check if there a movies on the website.
             if movies is not None:
                 self.__movieTorrentIterator = MovieTorrentIterator()
-                for movie in movies:                    
+                for movie in movies:     
+                    #Correct movie information
+                    cmovie = self.matcherControl.CorrectMovie(movie)
                     #Find torrents corresponding to the movie.
                     torrentFinder = TorrentFinderControl(self.pluginmanager)
                     torrentFinder.FindTorrents(movie)

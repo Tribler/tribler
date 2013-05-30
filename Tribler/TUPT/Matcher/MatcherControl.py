@@ -9,7 +9,6 @@ class MatcherControl:
     __termTable = None
     
     def __init__(self, pluginManager):
-        self.__termTable = {}
         self.__pluginManager = pluginManager
     
     def __RegisterPluginResults(self, plugin, movie, trust):
@@ -33,10 +32,10 @@ class MatcherControl:
             Whichever result for an attribute has the highest trust, wins.
         """            
         finalDict = {}
-        for attribute in terms:
+        for attribute in self.__termTable:
             highestFrequency = ''
-            for value in terms[attribute]:
-                if terms[attribute][value] > terms[attribute][highestFrequency]:
+            for value in self.__termTable[attribute]:
+                if terms[attribute][value] > self.__termTable[attribute][highestFrequency]:
                     highestFrequency = value
             if terms[attribute][highestFrequency] >= mintrust:
                 finalDict[attribute] = value
@@ -46,6 +45,7 @@ class MatcherControl:
         """Run a sparse movie through our matchers to receive a well filled
             movie definition
         """
+        self.__termTable = {}
         plugins = self.__pluginManager.GetPluginDescriptorsForCategory('Matcher')
         for plugin_info in plugins:
             trust = 0.5
