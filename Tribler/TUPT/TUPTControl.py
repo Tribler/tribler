@@ -50,6 +50,7 @@ class TUPTControl:
             movies = self.parserControl.ParseWebsite(netloc, html)
             #Check if there a movies on the website.
             if movies is not None:
+                self.__movieTorrentIterator = MovieTorrentIterator()
                 for movie in movies:                    
                     #Find torrents corresponding to the movie.
                     torrentFinder = TorrentFinderControl(self.pluginmanager)
