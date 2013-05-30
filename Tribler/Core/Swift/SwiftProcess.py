@@ -98,7 +98,7 @@ class SwiftProcess:
             creationflags = 0
 
         # See also SwiftDef::finalize popen
-                # We would really like to get the stdout and stderr without creating a new thread for them.
+        # We would really like to get the stdout and stderr without creating a new thread for them.
         # However, windows does not support non-files in the select command, hence we cannot integrate
         # these streams into the FastI2I thread
         # A proper solution would be to switch to twisted for the communication with the swift binary
