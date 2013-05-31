@@ -397,6 +397,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.on_performance_alert(alert)
                 elif alert_type == 'torrent_checked_alert':
                     self.on_torrent_checked_alert(alert)
+                elif alert_type == "torrent_finished_alert":
+                    self.on_torrent_finished_alert(alert)
                 else:
                     self.update_lt_stats()                 
 
@@ -448,6 +450,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.checkpoint_after_next_hashcheck:
             self.checkpoint_after_next_hashcheck = False
             self.checkpoint()
+
+    def on_torrent_finished_alert(self, alert):
+        if self.get_mode() == DLMODE_VOD:
+            # Reset priority for entire vod file to 1
+            file_priorities = self.handle.file_priorities()
+            file_priorities[self.get_vod_fileindex()] = 1
+            self.handle.prioritize_files(file_priorities)
+        self.update_lt_stats() 
         
     def update_lt_stats(self):
         status = self.handle.status()
