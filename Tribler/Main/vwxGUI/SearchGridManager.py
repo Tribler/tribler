@@ -22,7 +22,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 
 from Tribler.community.channel.community import ChannelCommunity, \
     forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
-from Tribler.dispersy.dispersy import Dispersy
 
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
 from Tribler.Core.Session import Session
@@ -238,7 +237,7 @@ class TorrentManager:
         if "click_position" in torrent:
             clicklog["click_position"] = torrent["click_position"]
 
-        sdef = SwiftDef(torrent.swift_hash, "127.0.0.1:9999") if torrent.swift_hash else None
+        sdef = SwiftDef(torrent.swift_hash, "127.0.0.1:%d" % self.session.get_swift_dht_listen_port()) if torrent.swift_hash else None
         tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) if not isinstance(torrent_filename, basestring) else None
 
         # Api download

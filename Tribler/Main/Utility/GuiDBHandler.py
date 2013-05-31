@@ -3,7 +3,7 @@
 # Additionally DelayedResult is returned, allowing a thread to wait for result
 
 import wx
-from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException,\
+from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException, \
     DelayedResult, SenderNoWx
 
 import threading
@@ -13,7 +13,7 @@ from threading import Event, Lock, RLock
 from thread import get_ident
 from time import time
 import sys
-from traceback import format_stack, extract_stack, format_exc, print_exc,\
+from traceback import format_stack, extract_stack, format_exc, print_exc, \
     print_stack
 import os
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
@@ -32,11 +32,11 @@ class GUIDBProducer():
     __single = None
     __singleton_lock = RLock()
 
-    def __init__(self):
+    def __init__(self, database_thread):
         if GUIDBProducer.__single:
             raise RuntimeError("GuiDBProducer is singleton")
 
-        self.getDatabaseThread()
+        self.database_thread = database_thread
         self.guitaskqueue = GUITaskQueue.getInstance()
 
         # Lets get a reference to utility
@@ -63,14 +63,6 @@ class GUIDBProducer():
     def delInstance(cls, *args, **kw):
         GUIDBProducer.__single = None
 
-    def getDatabaseThread(self):
-        # Lets get the reference to the shared database_thread
-        from Tribler.Core.Session import Session
-        if Session.has_instance():
-            self.database_thread = Session.get_instance().lm.database_thread
-        else:
-            raise RuntimeError('Session not initialized')
-
     def onSameThread(self, type):
         onDBThread = get_ident() == self.database_thread._thread_ident
         if type == "dbThread" or onDBThread:
@@ -78,7 +70,7 @@ class GUIDBProducer():
 
         return threading.currentThread().getName().startswith('GUITaskQueue')
 
-    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay = 0.0, uId=None, retryOnBusy=False, priority=0, workerType = "dbthread"):
+    def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay=0.0, uId=None, retryOnBusy=False, priority=0, workerType="dbthread"):
         """The sender will send the return value of
         workerFn(*args, **kwargs) to the main thread.
         """
@@ -204,8 +196,6 @@ class GUIDBProducer():
             self.guitaskqueue.remove_task(uId)
 
 # Wrapping Senders for new delayedResult impl
-
-
 class MySender():
 
     def __init__(self, delayedResult):
@@ -234,7 +224,6 @@ class MySenderCallAfter(MySender, SenderCallAfter):
         SenderCallAfter.__init__(self, listener, jobID, args, kwargs)
         MySender.__init__(self, delayedResult)
 
-
 class MySenderNoWx(MySender, SenderNoWx):
 
     def __init__(self, listener, delayedResult, jobID=None, args=(), kwargs={}):
@@ -243,8 +232,6 @@ class MySenderNoWx(MySender, SenderNoWx):
 
 # ASyncDelayedResult, allows a get call before result is set
 # This call is blocking, but allows you to specify a timeout
-
-
 class ASyncDelayedResult():
 
     def __init__(self, jobID=None):
@@ -289,8 +276,6 @@ def exceptionConsumer(delayedResult, *args, **kwargs):
 
 # Modified startWorker to use our single thread
 # group and daemon variables have been removed
-
-
 def startWorker(
     consumer, workerFn,
     cargs=(), ckwargs={},

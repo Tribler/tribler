@@ -28,7 +28,6 @@ from random import sample
 from time import time
 from os import path
 from collections import deque
-from Tribler.Main.Utility.GuiDBTuples import RemoteTorrent
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 try:
     prctlimported = True
