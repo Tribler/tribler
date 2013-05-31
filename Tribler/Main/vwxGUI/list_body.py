@@ -13,6 +13,7 @@ from Tribler.Main.vwxGUI.widgets import NativeIcon, BetterText as StaticText,\
     _set_font, ActionButton
 
 from __init__ import *
+from wx._core import PyDeadObjectError
 from _abcoll import Iterable
 
 DEBUG = False
@@ -55,7 +56,7 @@ class ListItem(wx.Panel):
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         if leftSpacer > 0:
-            self.hSizer.Add(leftSpacer, -1, 0)
+            self.hSizer.AddSpacer((leftSpacer, -1))
          
         for i in xrange(len(self.columns)):
             if self.columns[i].get('show', True):
@@ -130,14 +131,14 @@ class ListItem(wx.Panel):
                                 self.hSizer.Add((width, -1), 0, wx.LEFT, 3)
 
         if rightSpacer > 0:
-            self.hSizer.Add(rightSpacer, -1, 0)
+            self.hSizer.AddSpacer((rightSpacer, -1))
         self.hSizer.Layout()
         
         self.AddEvents(self)
         
     def _add_control(self, control, column_index, option, spacing):
         if column_index != 0:
-            self.hSizer.Add(3, -1, 0)
+            self.hSizer.AddSpacer((3, -1))
                     
         if getattr(control, 'icon', None):
             self.hSizer.Add(control.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
@@ -188,7 +189,7 @@ class ListItem(wx.Panel):
                     icon.type = None
                     
                     if tooltip:
-                        icon.SetToolTip(tooltip)
+                        icon.SetToolTipString(tooltip)
         return icon
     
     @warnWxThread
@@ -199,7 +200,7 @@ class ListItem(wx.Panel):
         if getattr(control, 'Bind', False):
             if not isinstance(control, (wx.Button, ActionButton, wx.StaticLine)):
                 control.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-                control.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+                control.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
             else:
                 control.Bind(wx.EVT_ENTER_WINDOW, self.OnMouse)
                 control.Bind(wx.EVT_LEAVE_WINDOW, self.OnMouse)
@@ -304,7 +305,7 @@ class ListItem(wx.Panel):
             control_index = column['controlindex']
             control = self.controls[control_index]
             if control:
-                control.SetToolTip(tooltip)
+                control.SetToolTipString(tooltip)
     
     @warnWxThread
     def Highlight(self, timeout = 3.0, revert = True, colour = LIST_HIGHTLIGHT):
@@ -324,7 +325,7 @@ class ListItem(wx.Panel):
             self.ShowSelected()
             self.highlightTimer = None
             
-        except RuntimeError: #PyDeadError
+        except PyDeadObjectError: #PyDeadError
             pass
          
     def ShowSelected(self):
@@ -461,7 +462,7 @@ class ListItem(wx.Panel):
         self.expandedPanel = panel
         
         if getattr(panel, 'SetCursor', False):
-            panel.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
+            panel.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
             #panel.SetFont(panel.GetDefaultAttributes().font)
         
         panel.Show()
@@ -931,7 +932,7 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "ListBody: __SetData", time()
         
-        if __debug__ and not wx.IsMainThread():
+        if __debug__ and not wx.Thread_IsMain():
             print  >> sys.stderr,"ListBody: __SetData thread",currentThread().getName(),"is NOT MAIN THREAD"
             print_stack()
         
@@ -1061,8 +1062,7 @@ class AbstractListBody():
             #Check if we need to clear vSizer
             self.messagePanel.Show(False)
             self.loadNext.Show(False)
-            
-            #self.vSizer.Remove(self.messagePanel)
+            self.vSizer.Remove(self.messagePanel)
 
             message = ''
             header = None
@@ -1275,8 +1275,6 @@ class AbstractListBody():
             self.curWidth = width
             
             for item in self.items.itervalues():
-                if item == None:
-                    continue
                 if item.OnEventSize(width):
                     doOnChange = True
 
@@ -1309,8 +1307,8 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         
         accelerators = [(wx.ACCEL_NORMAL, wx.WXK_HOME, homeId)]
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_END, endId))
-        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_PAGEUP, pupId))
-        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_PAGEDOWN, pdownId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_PRIOR, pupId))
+        accelerators.append((wx.ACCEL_NORMAL, wx.WXK_NEXT, pdownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_UP, aupId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DELETE, deleteId))
@@ -1339,7 +1337,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
                 self.processingMousewheel = False
                 event.Skip()
                 
-        except RuntimeError:
+        except PyDeadObjectError:
             GUIUtility.getInstance().frame.Unbind(wx.EVT_MOUSEWHEEL)
   
         

@@ -1408,7 +1408,7 @@ class SearchList(GenericSearchList):
         self.inFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","starEnabled.png"), wx.BITMAP_TYPE_ANY)
         self.outFavoriteChannel = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","star.png"), wx.BITMAP_TYPE_ANY)
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
-        self.noSwift = wx.Bitmap(self.hasSwift.GetWidth(), self.hasSwift.GetHeight())
+        self.noSwift = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         GenericSearchList.__init__(self, None, LIST_GREY, [0,0], True, parent=parent)
        
     def _PostInit(self):
@@ -1679,7 +1679,7 @@ class LibraryList(SizeList):
         
         self.hasSwift = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","swift.png"), wx.BITMAP_TYPE_ANY)
         self.hasTorrent = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","bittorrent.png"), wx.BITMAP_TYPE_ANY)
-        self.hasNothing = wx.Bitmap(self.hasSwift.GetWidth(), self.hasSwift.GetHeight())
+        self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0,0], False, parent = parent)
         
     def OnDeleteKey(self, event):
@@ -1836,10 +1836,7 @@ class LibraryList(SizeList):
         self.refreshitems_counter += 1
             
         for item in self.list.items.itervalues():
-            if hasattr(item, "original_data"):
-                ds = item.original_data.ds
-            else:
-                continue
+            ds = item.original_data.ds
             if newFilter or not self.__ds__eq__(ds, oldDS.get(id, None)):
                 if hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
@@ -2098,7 +2095,7 @@ class ChannelList(List):
             control.SetBackgroundColour(DEFAULT_BACKGROUND)
             #control.SetMinSize((50,10))
             control.SetPercentage(ratio)
-            control.SetToolTip('%s users marked this channel as one of their favorites.'%pop)
+            control.SetToolTipString('%s users marked this channel as one of their favorites.'%pop)
             return control
     
     def OnExpand(self, item):

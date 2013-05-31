@@ -159,8 +159,6 @@ class ProgressBar(wx.Panel):
         dc.DrawRoundedRectangle(x, y, maxw, maxh, 2)
 
     def set_pieces(self, blocks):
-        if not self:
-            return
         maxBlocks = max(self.GetClientRect().width, 100)
         haveBlocks = len(blocks)
 
@@ -249,7 +247,7 @@ class ProgressSlider(wx.Panel):
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouse)
-        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         #self.SetSize((-1,self.bgImage.GetSize()[1]))
 
     def AcceptsFocus(self):
@@ -294,7 +292,7 @@ class ProgressSlider(wx.Panel):
 
     def onSlider(self, pos):
         x,y = pos
-        width, height = self.GetClientSize()
+        width, height = self.GetClientSizeTuple()
         return (x > self.margin and x<= self.margin+self.sliderWidth and \
                 abs(y - height/2) < self.rectHeight/2+4)
 
@@ -375,11 +373,11 @@ class ProgressSlider(wx.Panel):
         return longformat
 
     def OnPaint(self, evt):
-        width, height = self.GetClientSize()
-        buffer = wx.Bitmap(width, height)
+        width, height = self.GetClientSizeTuple()
+        buffer = wx.EmptyBitmap(width, height)
         #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)
-        #dc.BeginDrawing()
+        dc.BeginDrawing()
         dc.Clear()
 
         # Draw background
@@ -433,7 +431,7 @@ class ProgressSlider(wx.Panel):
             # Draw times
             dc.DrawText(time, width-self.margin-timeWidth, height/2-dc.GetCharHeight()/2)
 
-        #dc.EndDrawing()
+        dc.EndDrawing()
 
     def EnableDragging(self):
         self.allowDragging = True
@@ -512,7 +510,7 @@ class VolumeSlider(wx.Panel):
 
     def onSlider(self, pos):
         x,y = pos
-        width, height = self.GetClientSize()
+        width, height = self.GetClientSizeTuple()
         return (x > self.margin and x<= self.margin+self.sliderWidth and \
                 abs(y - height/2) < self.rectHeight/2+4)
 
@@ -546,8 +544,8 @@ class VolumeSlider(wx.Panel):
         self.range = (a,b)
 
     def OnPaint(self, evt):
-        width, height = self.GetClientSize()
-        buffer = wx.Bitmap(width, height)
+        width, height = self.GetClientSizeTuple()
+        buffer = wx.EmptyBitmap(width, height)
         #dc = wx.PaintDC(self)
         dc = wx.BufferedPaintDC(self, buffer)
         dc.BeginDrawing()

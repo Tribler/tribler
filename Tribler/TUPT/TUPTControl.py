@@ -106,8 +106,7 @@ class TUPTControl:
         downloadState = self.__FindDownloadStateByInfoHash(torrentDef.infohash)   
         if downloadState == None:
             #Add the torrent if is not already added
-            session.start_download(torrentDef)
-            downloadState = self.__FindDownloadStateByInfoHash(torrentDef.infohash)
+            downloadState = session.start_download(torrentDef).network_get_state(None, False, sessioncalling=True)
          
         libraryManager = LibraryManager.getInstance()
         libraryManager.PlayDownloadState(downloadState)      

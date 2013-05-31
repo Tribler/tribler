@@ -26,7 +26,7 @@ class PlayerButton(wx.Panel):
         self.selected = False
         self.tooltip = None
         self.Bind(wx.EVT_MOUSE_EVENTS, self.mouseAction)
-        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
 
         self.searchBitmaps()
         self.createBackgroundImage()
@@ -76,7 +76,7 @@ class PlayerButton(wx.Panel):
 
     def createBackgroundImage(self):
         if self.bitmaps[0]:
-            self.Bind(wx.EVT_PAINT, self.OnPaint)
+            wx.EVT_PAINT(self, self.OnPaint)
             self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnErase)
 
 
@@ -201,10 +201,10 @@ class PlayerButton(wx.Panel):
     def setEnabled(self, e):
         self.enabled = e
         if not e:
-            self.SetToolTip('')
+            self.SetToolTipString('')
 #        else:
 #            if self.tooltip:
-#                self.SetToolTip(self.tooltip)
+#                self.SetToolTipString(self.tooltip)
         self.Refresh()
 
     def isEnabled(self):
@@ -293,11 +293,11 @@ class PlayerSwitchButton(PlayerButton):
         if b:
             self.bitmaps=self.allBitmaps[3:]
             if self.enabled:
-                self.SetToolTip(tooltip["enabled"])
+                self.SetToolTipString(tooltip["enabled"])
         else:
             self.bitmaps=self.allBitmaps[:3]
             if self.enabled:
-                self.SetToolTip(tooltip["disabled"])
+                self.SetToolTipString(tooltip["disabled"])
 
         #print 'Bitmaps is now: %s' % self.bitmaps
         #should Refresh?
