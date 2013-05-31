@@ -77,7 +77,7 @@ from Tribler.Category.Category import Category
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
-from Tribler.Core.Utilities.utilities import show_permid
+from Tribler.Core.Utilities.utilities import show_permid, parse_magnetlink
 
 DEBUG = False
 
@@ -391,7 +391,7 @@ class MainFrame(wx.Frame):
                 self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
     def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False):
-        name, infohash, _ = MagnetLink.parse_url(url)
+        name, infohash, _ = parse_magnetlink(url)
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
         wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode)
         return True
