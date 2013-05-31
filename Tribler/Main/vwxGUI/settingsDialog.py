@@ -518,7 +518,7 @@ class SettingsDialog(wx.Dialog):
                 self.show_inputerror(self.utility.lang.get('cantopenfile'))
             else:
                 if sys.platform != 'darwin':
-                    bm = wx.Bitmap(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
+                    bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
                     thumbpanel = self.elements['thumb']
                     thumbpanel.setBitmap(bm)
 

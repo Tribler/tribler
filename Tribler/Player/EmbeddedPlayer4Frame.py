@@ -335,7 +335,7 @@ class VLCLogoWindow(wx.Panel):
         print >>sys.stderr,"VLCLogoWindow: logopath is",logopath
 
         if logopath is not None and not animate:
-            self.logo = wx.Bitmap(wx.Image(logopath),-1)
+            self.logo = wx.BitmapFromImage(wx.Image(logopath),-1)
         else:
             self.logo = None
         self.contentname = None
@@ -347,11 +347,9 @@ class VLCLogoWindow(wx.Panel):
             self.vsizer.Add((0,70),0,0,0)
         if animate:
             if sys.platform == 'darwin':
-                self.agVideo = wx.adv.AnimationCtrl(self, 1)
-                self.agVideo.LoadFile(logopath)
+                self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, logopath)
             else:
-                self.agVideo = wx.adv.AnimationCtrl(self, 1, wx.adv.NullAnimation, pos = (110,70))
-                self.agVideo.LoadFile(logopath)
+                self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, logopath, pos = (110,70))
             self.agVideo.Hide()
             if sys.platform == 'darwin':
                 self.vsizer.Add(self.agVideo,0,wx.ALIGN_CENTRE_HORIZONTAL,0)
@@ -402,7 +400,7 @@ class VLCLogoWindow(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"VLCWin: set_content_image"
         if wximg is not None:
-            self.contentbm = wx.Bitmap(wximg,-1)
+            self.contentbm = wx.BitmapFromImage(wximg,-1)
         else:
             self.contentbm = None
 

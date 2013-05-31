@@ -4,7 +4,6 @@ import wx, os, sys, math
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
 from wx.lib.scrolledpanel import ScrolledPanel
 from wx.lib.buttons import GenBitmapButton
-from wx.lib.agw.ultimatelistctrl import UltimateListCtrl
 
 from traceback import print_exc, print_stack
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -72,7 +71,7 @@ class tribler_topButton(wx.Panel):
         self.Bind(wx.EVT_MOVE, self.setParentBitmap)
         self.Bind(wx.EVT_SIZE, self.setParentBitmap)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
 
         self.Refresh()
         self.ready = True
@@ -188,7 +187,7 @@ class tribler_topButton(wx.Panel):
             if rect[0] + rect[2] > bitmapSize[0] and rect[1] + rect[3] > bitmapSize[1]:
                 rects.append(((bitmapSize[0]-rect[0],bitmapSize[1] - rect[1]),[0,0,rect[0],rect[1]]))
 
-            bmp = wx.Bitmap(rect[2], rect[3])
+            bmp = wx.EmptyBitmap(rect[2], rect[3])
             dc = wx.MemoryDC(bmp)
             for location, rect in rects:
                 subbitmap = bitmap.GetSubBitmap(rect)
@@ -357,7 +356,7 @@ class NativeIcon:
             def fixSize(bitmap, width, height):
                 if width != bitmap.GetWidth() or height != bitmap.GetHeight():
 
-                    bmp = wx.Bitmap(width,height)
+                    bmp = wx.EmptyBitmap(width,height)
                     dc = wx.MemoryDC(bmp)
                     dc.SetBackground(wx.Brush(background))
                     dc.Clear()
@@ -398,7 +397,7 @@ class NativeIcon:
 
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
         #Thus we create a larger bmp, allowing for borders
-        bmp = wx.Bitmap(24,24)
+        bmp = wx.EmptyBitmap(24,24)
         dc = wx.MemoryDC(bmp)
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
@@ -445,8 +444,6 @@ class BetterText(wx.StaticText):
         pass
 
     def SetLabel(self, text):
-        if not self:
-            return
         if text != self.GetLabel():
             wx.StaticText.SetLabel(self, text)
 
@@ -548,7 +545,7 @@ class LinkText(GenStaticText):
             self.parentsizer = parent
 
         GenStaticText.__init__(self, parent, -1, label, style = style)
-        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
 
         self.SetFonts(fonts)
         self.SetColours(colours)
@@ -623,7 +620,7 @@ class LinkStaticText(wx.BoxSizer):
 
         if icon:
             self.icon = wx.StaticBitmap(parent, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
-            self.icon.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+            self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
             self.icon = wx.StaticBitmap(parent, bitmap = NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
@@ -648,14 +645,14 @@ class LinkStaticText(wx.BoxSizer):
         if self.icon and text == '':
             self.icon.Hide()
 
-        self.SetCursor(wx.Cursor(wx.CURSOR_HAND))
+        self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         if parent.GetBackgroundStyle() != wx.BG_STYLE_SYSTEM:
             self.SetBackgroundColour(parent.GetBackgroundColour())
 
-    def SetToolTip(self, tip):
-        self.text.SetToolTip(tip)
+    def SetToolTipString(self, tip):
+        self.text.SetToolTipString(tip)
         if self.icon:
-            self.icon.SetToolTip(tip)
+            self.icon.SetToolTipString(tip)
 
     def SetLabel(self, text):
         if text != self.text.GetLabel():
@@ -692,7 +689,7 @@ class LinkStaticText(wx.BoxSizer):
 
     def SetIconToolTipString(self, tip):
         if self.icon:
-            self.icon.SetToolTip(tip)
+            self.icon.SetToolTipString(tip)
 
     def SetMinSize(self, minsize):
         self.text.SetMinSize(minsize)
@@ -995,7 +992,7 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
                     tooltip = tooltip[:-4]
             except:
                 pass
-        self.SetToolTip(tooltip)
+        self.SetToolTipString(tooltip)
 
 class SelectableListCtrl(BetterListCtrl):
     def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
@@ -1110,13 +1107,13 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         #delete, if need, all the previous data
         if self.dropdownlistbox.GetColumnCount() != 0:
-            #self.dropdownlistbox.DeleteAllColumns()
+            self.dropdownlistbox.DeleteAllColumns()
             self.dropdownlistbox.DeleteAllItems()
 
         self.dropdownlistbox.InsertColumn(0, "Select")
 
         for num, it in enumerate(choices):
-            self.dropdownlistbox.InsertItem(num, it)
+            self.dropdownlistbox.InsertStringItem(num, it)
 
         self.dropdownlistbox.SetColumnWidth(0, wx.LIST_AUTOSIZE) #autosize only works after adding rows
 
@@ -1216,9 +1213,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         if show and not self.dropdown.IsShown():
             size = self.dropdown.GetSize()
-            width, height = self.GetSize()
-            x, ty, tw, th = self.GetScreenRect()
-            y = ty + th
+            width, height = self.GetSizeTuple()
+            x, y = self.ClientToScreenXY (0, height)
             if size.GetWidth() <> width :
                 size.SetWidth(width)
                 self.dropdown.SetSize(size)
@@ -1363,7 +1359,7 @@ class SwarmHealth(wx.Panel):
             leechers_str = '%d leechers' % leechers
 
         tooltip = '%s ; %s' % (seeders_str, leechers_str)
-        self.SetToolTip(tooltip)
+        self.SetToolTipString(tooltip)
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
@@ -1424,8 +1420,8 @@ class ActionButton(wx.Panel):
         self.SetBackgroundColour(parent.GetBackgroundColour())
         image = bitmap.ConvertToImage()
         self.bitmaps = [bitmap]
-        self.bitmaps.append(wx.Bitmap(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if hover else bitmap)
-        self.bitmaps.append(wx.Bitmap(image.ConvertToGreyscale().AdjustChannels(1.0, 1.0, 1.0, 0.3)))
+        self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if hover else bitmap)
+        self.bitmaps.append(wx.BitmapFromImage(image.ConvertToGreyscale().AdjustChannels(1.0, 1.0, 1.0, 0.3)))
         self.enabled = True
         self.handler = None
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
@@ -1508,7 +1504,7 @@ class ActionButton(wx.Panel):
 
 class ProgressButton(ActionButton):
     def __init__(self, parent, id=-1, label = 'Search', **kwargs):
-        ActionButton.__init__(self, parent, id = id, bitmap = wx.Bitmap(1,1), **kwargs)
+        ActionButton.__init__(self, parent, id = id, bitmap = wx.EmptyBitmap(1,1), **kwargs)
         self.icon    = None
         self.icon_hl = None
         self.icon_gs = None
@@ -1628,7 +1624,7 @@ class FancyPanel(wx.Panel):
         self.focus = None
         self.colour1 = self.colour2 = None
         self.border_colour = self.border_highlight = None
-        self.bitmap = wx.Bitmap(*self.GetClientSize())
+        self.bitmap = wx.EmptyBitmap(*self.GetClientSizeTuple())
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
@@ -1669,7 +1665,7 @@ class FancyPanel(wx.Panel):
         x, y, width, height = self.GetClientRect()
 
         # Use buffered drawing and save the buffer to a bitmap
-        buffer = wx.Bitmap(width, height)
+        buffer = wx.EmptyBitmap(width, height)
         dc = wx.BufferedPaintDC(self, buffer)
 
         # For rounded panels, paint the background for the corners first
@@ -1797,10 +1793,10 @@ class MinMaxSlider(wx.Panel):
 
     def OnLeftDown(self, event):
         x, y, w, h = self.arrow_down_rect
-        if wx.Rect(x, y-4, w, h+4).Contains(event.GetPosition()):
+        if wx.Rect(x, y-4, w, h+4).Contains(event.GetPositionTuple()):
             self.arrow_down_drag = True
         x, y, w, h = self.arrow_up_rect
-        if wx.Rect(x, y, w, h+4).Contains(event.GetPosition()):
+        if wx.Rect(x, y, w, h+4).Contains(event.GetPositionTuple()):
             self.arrow_up_drag = True
         self.CaptureMouse()
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -1819,7 +1815,7 @@ class MinMaxSlider(wx.Panel):
             self.SetIcon(event)
 
     def SetIcon(self, event):
-        mx = event.GetPosition()[0]-3
+        mx = event.GetPositionTuple()[0]-3
         if self.arrow_up_drag and mx < self.arrow_down_rect[0]:
             self.arrow_up_rect[0] = max(mx, self.range[0])
         elif self.arrow_down_drag and mx > self.arrow_up_rect[0]:
@@ -2008,7 +2004,7 @@ class SimpleNotebook(wx.Panel):
         self.pshown = num_page
         self.Layout()
 
-        event = wx.BookCtrlEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
+        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
         event.SetEventObject(self)
         wx.PostEvent(self.GetEventHandler(), event)
 
@@ -2205,7 +2201,7 @@ class TorrentStatus(wx.Panel):
 
         if self.value != None:
             # Draw a full progress bar and text
-            rect = wx.Bitmap(width, height)
+            rect = wx.EmptyBitmap(width, height)
             rect_dc = wx.MemoryDC(rect)
             rect_dc.SetBackground(wx.Brush(self.prnt_colour))
             rect_dc.Clear()
@@ -2406,7 +2402,7 @@ class StaticBitmaps(wx.Panel):
         dc.DrawBitmap(self.bitmap, 0, 0)
 
         if self.show_buttons:
-            tmpbmp = wx.Bitmap(*self.buttons[0].GetSize(), red=255, green=255, blue=255, alpha=155)
+            tmpbmp = wx.EmptyBitmapRGBA(*self.buttons[0].GetSize(), red=255, green=255, blue=255, alpha=155)
             dc.DrawBitmap(tmpbmp, self.buttons[0].x, self.buttons[0].y)
             dc.DrawBitmap(tmpbmp, self.buttons[1].x, self.buttons[1].y)
 
@@ -2421,7 +2417,7 @@ class StaticBitmaps(wx.Panel):
             dc.DrawBitmap(arrow_left, self.buttons[0].x+5, self.buttons[0].y+4)
             dc.DrawBitmap(arrow_right, self.buttons[1].x+5, self.buttons[1].y+4)
 
-            tmpbmp = wx.Bitmap(*self.pointer.GetSize(), red=255, green=255, blue=255, alpha=155)
+            tmpbmp = wx.EmptyBitmapRGBA(*self.pointer.GetSize(), red=255, green=255, blue=255, alpha=155)
             dc.DrawBitmap(tmpbmp, self.pointer.x, self.pointer.y)
             dc.SetFont(self.GetFont())
             dc.DrawLabel("%d/%d" % (self.bitmaps_index+1, len(self.bitmaps)), self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
@@ -2516,8 +2512,7 @@ class Graph(wx.Panel):
             self.max_range = max([max(column) for column in self.data if column])
         else:
             self.max_range = max(self.max_range, value)
-        if self:
-            self.Refresh()
+        self.Refresh()
 
     def OnEraseBackground(self, event):
         pass

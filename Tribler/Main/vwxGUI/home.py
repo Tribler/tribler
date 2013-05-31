@@ -76,7 +76,7 @@ class Home(XRCPanel):
         scalingSizer.Add(searchButton, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.LEFT, 3)
 
         textSizer.Add(scalingSizer, 0, wx.ALIGN_CENTER_VERTICAL)
-        textSizer.Add(1,1,0)
+        textSizer.AddSpacer((1,1))
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, "Take me to "))
@@ -399,7 +399,7 @@ class NetworkPanel(HomePanel):
         try:
             if self.IsShownOnScreen():
                 self.UpdateStats()
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
 
     def UpdateStats(self):
@@ -540,8 +540,8 @@ class DispersyPanel(HomePanel):
             self.gridSizer.Add(self.textdict[strkey])
 
             if strtooltip:
-                header.SetToolTip(strtooltip)
-                self.textdict[strkey].SetToolTip(strtooltip)
+                header.SetToolTipString(strtooltip)
+                self.textdict[strkey].SetToolTipString(strtooltip)
 
         for title, tooltip, _ in self.mapping:
             addColumn(title, tooltip)
@@ -711,7 +711,7 @@ class NewTorrentPanel(HomePanel):
         try:
             if self.IsShownOnScreen():
                 self.UpdateStats(infohash)
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
 
     def UpdateStats(self, infohash):
@@ -724,7 +724,7 @@ class NewTorrentPanel(HomePanel):
 
     @forceWxThread
     def _UpdateStats(self, torrent):
-        self.list.InsertItem(0, torrent['name'])
+        self.list.InsertStringItem(0, torrent['name'])
         size = self.list.GetItemCount()
         if size > 10:
             self.list.DeleteItem(size-1)
@@ -767,7 +767,7 @@ class PopularTorrentPanel(NewTorrentPanel):
         self.list.DeleteAllItems()
         for item in topTen:
             if item[2] > 0:
-                self.list.InsertItem(sys.maxint, item[1])
+                self.list.InsertStringItem(sys.maxint, item[1])
 
 class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
@@ -776,7 +776,7 @@ class ActivityPanel(NewTorrentPanel):
     @forceWxThread
     def onActivity(self, msg):
         msg = strftime("%H:%M:%S ") + msg
-        self.list.InsertItem(0, msg)
+        self.list.InsertStringItem(0, msg)
         size = self.list.GetItemCount()
         if size > 50:
             self.list.DeleteItem(size-1)
@@ -804,7 +804,7 @@ class BuzzPanel(wx.Panel):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(DetailHeader(self, "Click below to explore what's hot"), 0, wx.EXPAND)
-        vSizer.Add(-1,10,0)
+        vSizer.AddSpacer((-1,10))
 
         self.panel = wx.Panel(self)
         self.panel.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -926,7 +926,7 @@ class BuzzPanel(wx.Panel):
             text = LinkText(self.panel, term, fonts=[font, font], colours = [BuzzPanel.INACTIVE_COLOR, BuzzPanel.ACTIVE_COLOR])
             text.SetBackgroundColour(DEFAULT_BACKGROUND)
             text.Bind(wx.EVT_LEFT_UP, self.OnClick)
-        text.SetToolTip("Click to search for '%s'"%term)
+        text.SetToolTipString("Click to search for '%s'"%term)
         return text
 
     def DisplayTerms(self, rows):

@@ -43,7 +43,7 @@ class DoubleLineListItem(ListItem):
     @warnWxThread
     def AddComponents(self, leftSpacer, rightSpacer):
         if leftSpacer > 0:
-            self.hSizer.Add(leftSpacer, -1,0)
+            self.hSizer.AddSpacer((leftSpacer, -1))
             
         self.icons = self.GetIcons()
         if self.icons:
@@ -53,19 +53,18 @@ class DoubleLineListItem(ListItem):
                     bmp = ActionButton(self, bitmap = icon[0], hover = False)
                     bmp.SetBitmapDisabled(icon[1] or icon[0])
                     bmp.SetBitmapHover(icon[1] or icon[0])
-                    bmp.SetToolTip(icon[2])
-                    if icon[3]:
-                        bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
+                    bmp.SetToolTipString(icon[2])
+                    bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
                     bmp.Show(icon[4] if len(icon) > 4 else True)
                     if index < len(self.icons)-1:
                         iconSizer.Add(bmp, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN|wx.BOTTOM, 7)
                     else:
                         iconSizer.Add(bmp, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
                     self.icons[index] = bmp
-            iconSizer.Add(33, -1,0)
+            iconSizer.AddSpacer((33, -1))
             self.hSizer.Add(iconSizer, 0, wx.ALIGN_CENTER_VERTICAL)
         else:
-            self.hSizer.Add(33, -1,0)
+            self.hSizer.AddSpacer((33, -1))
             
         self.titleSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.descrSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -106,7 +105,7 @@ class DoubleLineListItem(ListItem):
                 self.descrSizer.Add(sline, 0, wx.EXPAND|wx.RIGHT|wx.LEFT, 7)
             
     def _add_columnresizing(self, sline, column_index):
-        sline.SetCursor(wx.Cursor(wx.CURSOR_SIZEWE))
+        sline.SetCursor(wx.StockCursor(wx.CURSOR_SIZEWE))
         # Take hidden columns into account
         control_index = self.columns[column_index]['controlindex']
                     
@@ -186,7 +185,7 @@ class DoubleLineListItem(ListItem):
                 self.icons[index].SetBitmapLabel(new_icon[0])
                 self.icons[index].SetBitmapDisabled(new_icon[1] or new_icon[0])
                 self.icons[index].SetBitmapHover(new_icon[1] or new_icon[0])
-                self.icons[index].SetToolTip(new_icon[2])
+                self.icons[index].SetToolTipString(new_icon[2])
                 self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3] if len(new_icon) > 3 else None)
                 self.icons[index].Enable(True)
                 self.icons[index].Show(True)
@@ -292,7 +291,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         self.dlbutton = None
 
     def AddButtons(self):
-        self.buttonSizer.Clear(True)
+        self.buttonSizer.Clear(deleteWindows = True)
         
         do_add = False
         for column in self.columns:
@@ -333,7 +332,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             # Add icon right after the torrent title, indicating that the torrent has thumbnails
             snapshot_bmp = wx.Bitmap(os.path.join(self.guiutility.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","snapshot.png"), wx.BITMAP_TYPE_ANY)
             self.snapshot = wx.StaticBitmap(self, -1, snapshot_bmp)
-            self.snapshot.SetToolTip("This torrent has thumbnails.")
+            self.snapshot.SetToolTipString("This torrent has thumbnails.")
             self.AddEvents(self.snapshot)
             self.titleSizer.Add(self.snapshot, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALIGN_LEFT|wx.LEFT, 10)
             self.Layout()
@@ -417,7 +416,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         self.titleSizer.Insert(1, (5, -1), 0, 0)
         
     def AddButtons(self):
-        self.buttonSizer.Clear(True)
+        self.buttonSizer.Clear(deleteWindows = True)
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list_header.BaseFilter):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
         if not isinstance(self.parent_list.parent_list, Tribler.Main.vwxGUI.list.GenericSearchList):
@@ -442,7 +441,7 @@ class ChannelListItem(DoubleLineListItemWithButtons):
         
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
-        self.titleSizer.Add(-1,height,0)
+        self.titleSizer.AddSpacer((-1,height))
         
 class ChannelListItemAssociatedTorrents(ChannelListItem):
     def __init__(self, *args, **kwargs):
@@ -455,7 +454,7 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         visible_columns = [column['name'] for column in self.columns if column['show']]
         try:
             self.at_index = visible_columns.index('Associated torrents')
-            self.controls[self.at_index].SetToolTip('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
+            self.controls[self.at_index].SetToolTipString('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
             self.controls[self.at_index].Bind(wx.EVT_MOUSE_EVENTS, self.ShowSelected)
         except:
             pass
@@ -507,7 +506,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
         self.titleSizer.Insert(1, (5, -1), 0, 0)
         
     def AddButtons(self):
-        self.buttonSizer.Clear(True)
+        self.buttonSizer.Clear(deleteWindows = True)
         self.AddButton("Visit playlist", lambda evt: self.guiutility.showPlaylist(self.original_data))
             
     def OnChange(self):
@@ -522,7 +521,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
         
     @warnWxThread        
     def SetTitleSizerHeight(self, height):
-        self.titleSizer.Add(-1,height,0)
+        self.titleSizer.AddSpacer((-1,height))
         
 class PlaylistItemNoButton(PlaylistItem):
     def AddButtons(self):
@@ -726,7 +725,7 @@ class AvantarItem(ListItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         titleRow = wx.BoxSizer(wx.HORIZONTAL)
         if leftSpacer > 0:
-            titleRow.Add(leftSpacer, -1,0)
+            titleRow.AddSpacer((leftSpacer, -1))
         
         if self.avantar:
             titleRow.Add(wx.StaticBitmap(self, bitmap = self.avantar), 0, wx.RIGHT, 7)
@@ -770,7 +769,7 @@ class AvantarItem(ListItem):
         titleRow.Add(vSizer, 1)
         
         if rightSpacer > 0:
-            titleRow.Add(rightSpacer, -1,0)
+            titleRow.AddSpacer((rightSpacer, -1))
         self.vSizer.Add(titleRow, 0, wx.EXPAND|wx.TOP|wx.BOTTOM, 3)
         self.AddEvents(self)
         

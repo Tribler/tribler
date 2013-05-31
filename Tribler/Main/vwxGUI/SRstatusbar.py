@@ -1,6 +1,5 @@
 # Written by Niels Zeilemaker
 import wx
-from wx.core import Rect
 import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -13,12 +12,12 @@ DEBUG = False
 
 class SRstatusbar(wx.StatusBar):
     def __init__(self, parent):
-        wx.StatusBar.__init__(self, parent, style = wx.STB_DEFAULT_STYLE)
+        wx.StatusBar.__init__(self, parent, style = wx.ST_SIZEGRIP)
 
         # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
         # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.       
         self.SetFieldsCount(6)
-        self.SetStatusStyles(6, wx.SB_FLAT)
+        self.SetStatusStyles([wx.SB_FLAT]*6)
         self.SetStatusWidths([-1, 250, 19, 19, 19, 19])
         
         self.guiutility = GUIUtility.getInstance()
@@ -50,8 +49,8 @@ class SRstatusbar(wx.StatusBar):
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1]) 
         self.firewallStatus = settingsButton(self, size = (14,14), name = 'firewallStatus14')
-        self.firewallStatus.SetCursor(wx.Cursor(wx.CURSOR_DEFAULT))
-        self.firewallStatus.SetToolTip('Port status unknown')
+        self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
+        self.firewallStatus.SetToolTipString('Port status unknown')
 
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -131,7 +130,7 @@ class SRstatusbar(wx.StatusBar):
             
     def SetConnections(self, connectionPercentage, totalConnections):
         self.connection.SetPercentage(connectionPercentage)
-        self.connection.SetToolTip('Connected to %d peers'%totalConnections)
+        self.connection.SetToolTipString('Connected to %d peers'%totalConnections)
         
     def GetConnections(self):
         return self.connection.GetPercentage()
@@ -139,7 +138,7 @@ class SRstatusbar(wx.StatusBar):
     def onReachable(self,event=None):
         if not self.guiutility.firewall_restart:
             self.firewallStatus.setSelected(2)
-            self.firewallStatus.SetToolTip('Port is working')
+            self.firewallStatus.SetToolTipString('Port is working')
     
     def IsReachable(self):
         if not self.guiutility.firewall_restart:
@@ -153,7 +152,7 @@ class SRstatusbar(wx.StatusBar):
         
         self.activity.SetBitmap(self.activityImages[0])
         self.activity.Refresh()
-        self.activity.SetToolTip(msg)
+        self.activity.SetToolTipString(msg)
         wx.CallLater(200, revert)
     
     def format_bytes(self, bytes):
@@ -176,12 +175,11 @@ class SRstatusbar(wx.StatusBar):
     
     def Reposition(self):
         
-        rect = Rect()
-        self.GetFieldRect(0, rect)
+        rect = self.GetFieldRect(0)
         self.ff_checkbox.SetPosition((rect.x+2, rect.y+2))
         self.ff_checkbox.SetSize((-1, rect.height-4))
         
-        self.GetFieldRect(1, rect)
+        rect = self.GetFieldRect(1)
         x = rect.x+rect.width-15
         for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
             spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
@@ -189,19 +187,19 @@ class SRstatusbar(wx.StatusBar):
             yAdd = (rect.height - control.GetSize()[1])/2
             control.SetPosition((x, rect.y+yAdd))
         
-        self.GetFieldRect(2, rect)
+        rect = self.GetFieldRect(2)
         size = self.connection.GetSize()
         yAdd = (rect.height - size[1])/2
         xAdd = (rect.width - size[0])/2
         self.connection.SetPosition((rect.x+xAdd, rect.y+yAdd))
 
-        self.GetFieldRect(3, rect)        
+        rect = self.GetFieldRect(3)        
         size = self.activity.GetSize()
         yAdd = (rect.height - size[1])/2
         xAdd = (rect.width - size[0])/2
         self.activity.SetPosition((rect.x+xAdd, rect.y+yAdd))
         
-        self.GetFieldRect(4, rect)
+        rect = self.GetFieldRect(4)
         size = self.firewallStatus.GetSize()
         yAdd = (rect.height - size[1])/2
         xAdd = (rect.width - size[0])/2

@@ -214,7 +214,7 @@ class TorrentDetails(AbstractDetails):
                 self.messagePanel.SetLabel("Loading details, please wait.")
             
             self.Layout()
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
 
     @forceWxThread
@@ -253,7 +253,7 @@ class TorrentDetails(AbstractDetails):
                 
                 self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnChange)
                 
-                self.vSizer.Clear(True)
+                self.vSizer.Clear(deleteWindows = True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
             
                 self._Refresh(ds)
@@ -263,7 +263,7 @@ class TorrentDetails(AbstractDetails):
                 self.Layout()
             
                 
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
     
     @forceWxThread
@@ -284,7 +284,7 @@ class TorrentDetails(AbstractDetails):
                     self.vSizer.Insert(5, self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.TOP, 10)
                 
                 self.Layout()
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
     
     @warnWxThread
@@ -414,16 +414,16 @@ class TorrentDetails(AbstractDetails):
                 
             for filename, size in files:
                 try:
-                    pos = self.listCtrl.InsertItem(sys.maxint, filename)
+                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
                 except:
                     try:
-                        pos = self.listCtrl.InsertItem(sys.maxint, filename.decode('utf-8','ignore'))
+                        pos = self.listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
                     except:
                         print >> sys.stderr, "Could not format filename", self.torrent.name
                 self.listCtrl.SetItemData(pos, pos)
                 
                 size = "%.1f MB"%(size/1048576.0)
-                self.listCtrl.SetItem(pos, 1, size)
+                self.listCtrl.SetStringItem(pos, 1, size)
                 
                 if filename in self.torrent.videofiles:
                     self.listCtrl.SetItemColumnImage(pos, 0, play_img)
@@ -431,7 +431,7 @@ class TorrentDetails(AbstractDetails):
                     self.listCtrl.SetItemColumnImage(pos, 0, file_img)
                     
                 if isinstance(self, LibraryDetails):
-                    self.listCtrl.SetItem(pos, 2, '')
+                    self.listCtrl.SetStringItem(pos, 2, '')
             
             self.listCtrl.setResizeColumn(0)
             self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE) #autosize only works after adding rows
@@ -469,7 +469,7 @@ class TorrentDetails(AbstractDetails):
             
             subtitlePanel, vSizer = self._create_tab(self.notebook, "Subtitles", border = 10)
             subtitlePanel.SetBackgroundColour(wx.WHITE)
-            vSizer.Add(-1, 3, 0)
+            vSizer.AddSpacer((-1, 3))
             
             if not finished:
                 title = 'After you finished downloading this torrent you can select a subtitle'
@@ -532,7 +532,7 @@ class TorrentDetails(AbstractDetails):
     def _addOverview(self, panel, sizer):
 
         status_label = self.status.label.GetLabel() if getattr(self, 'status', None) else ""
-        sizer.Clear(True)
+        sizer.Clear(deleteWindows = True)
         
         categories = self.torrent.categories
         if isinstance(categories, list):
@@ -930,7 +930,7 @@ class TorrentDetails(AbstractDetails):
                     self.ShowHealth(False)
             else:
                 self.ShowHealth(False, ', no trackers found')
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
 
     @forceWxThread
@@ -1171,7 +1171,7 @@ class LibraryDetails(TorrentDetails):
 
                 self.guiutility.frame.top_bg.SetButtonHandler(self.guiutility.frame.top_bg.delete_btn, self.guiutility.frame.top_bg.OnDelete, 'Delete this torrent.')
                         
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
     
     @warnWxThread
@@ -1190,7 +1190,7 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(2, 'State', wx.LIST_FORMAT_RIGHT)
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
-        self.peerList.SetToolTip("States:\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\tOutgoing connection\nR\t\tIncoming connection")
+        self.peerList.SetToolTipString("States:\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\tOutgoing connection\nR\t\tIncoming connection")
         vSizer.Add(self.peerList, 1, wx.EXPAND|wx.LEFT|wx.TOP|wx.BOTTOM, 10)
         
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -1201,7 +1201,7 @@ class LibraryDetails(TorrentDetails):
             self.availability.sizer = hSizer
             
             self._add_row(peersPanel, hSizer, 'Availability', self.availability, spacer = 3)
-            hSizer.Add(4,-1, 0)
+            hSizer.AddSpacer((4,-1))
             self._add_row(peersPanel, hSizer, 'Pieces', self.pieces, spacer = 3)
             
             vSizer.Add(wx.StaticLine(peersPanel, -1, style = wx.LI_HORIZONTAL), 0, wx.EXPAND|wx.ALL, 3)
@@ -1284,17 +1284,15 @@ class LibraryDetails(TorrentDetails):
                 
                 for peer_dict in peers:
                     peer_name = peer_dict['ip'] + ':%d @ %d%%'%(peer_dict['port'], peer_dict.get('completed', 0)*100.0)
-                    if not self.peerList:
-                        return
                     if index < self.peerList.GetItemCount():
-                        self.peerList.SetItem(index, 0, peer_name)
+                        self.peerList.SetStringItem(index, 0, peer_name)
                     else:
-                        self.peerList.InsertItem(index, peer_name)
+                        self.peerList.InsertStringItem(index, peer_name)
                     
                     traffic = ""
                     traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
                     traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
-                    self.peerList.SetItem(index, 1, traffic.strip())
+                    self.peerList.SetStringItem(index, 1, traffic.strip())
                     
                     state = ""
                     if peer_dict.get('optimistic'):
@@ -1316,18 +1314,18 @@ class LibraryDetails(TorrentDetails):
                     if peer_dict.get('snubbed'):
                         state += "S,"
                     state += peer_dict.get('direction', '')
-                    self.peerList.SetItem(index, 2, state)
+                    self.peerList.SetStringItem(index, 2, state)
                     
                     if 'extended_version' in peer_dict:
                         try:
-                            self.peerList.SetItem(index, 3, peer_dict['extended_version'].decode('ascii'))
+                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('ascii'))
                         except:
                             try:
-                                self.peerList.SetItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
+                                self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8','ignore'))
                             except:
                                 print >> sys.stderr, "Could not format peer client version"
                     else:
-                        self.peerList.SetItem(index, 3, '')
+                        self.peerList.SetStringItem(index, 3, '')
                     
                     index += 1
     
@@ -1364,22 +1362,19 @@ class LibraryDetails(TorrentDetails):
                         listfile = self.listCtrl.GetItem(i, 0).GetText()
                         
                         if listfile in selected_files or not selected_files:
-                            self.listCtrl.SetItem(i, 2, 'Included')
+                            self.listCtrl.SetStringItem(i, 2, 'Included')
                         else:
-                            self.listCtrl.SetItem(i, 2, 'Excluded')                            
+                            self.listCtrl.SetStringItem(i, 2, 'Excluded')                            
                         
                         progress = completion.get(listfile, None)
                         if isinstance(progress, float) or isinstance(progress, int):
-                            self.listCtrl.SetItem(i, 3, "%.2f%%"%(progress*100))
+                            self.listCtrl.SetStringItem(i, 3, "%.2f%%"%(progress*100))
                     
                     self.old_progress = dsprogress
-            
-            if not self.peerList:
-                return
                 
             if index == 0:
                 self.peerList.DeleteAllItems()
-                self.peerList.InsertItem(index, "Not connected to any peers")
+                self.peerList.InsertStringItem(index, "Not connected to any peers")
             else:
                 while index < self.peerList.GetItemCount():
                     self.peerList.DeleteItem(index)
@@ -1449,23 +1444,23 @@ class ChannelDetails(AbstractDetails):
                 
                 self._addOverview(self.overview, self.overviewSizer)
 
-                self.vSizer.Clear(True)
+                self.vSizer.Clear(deleteWindows = True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
                 self.isReady = True
                 self.Layout()
             
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass            
                 
     @forceWxThread                
     def _addOverview(self, panel, sizer):
-        sizer.Clear(True)
+        sizer.Clear(deleteWindows = True)
         
         vSizer = wx.FlexGridSizer(0, 2, 3, 10)
         vSizer.AddGrowableCol(1)
-        vSizer.AddGrowableRow(4)#6
+        vSizer.AddGrowableRow(6)
             
         self._add_row(self.overview, vSizer, "Name", self.channel.name)
         if self.channel.description:
@@ -1549,19 +1544,19 @@ class PlaylistDetails(AbstractDetails):
                 
                 self._addOverview(self.overview, self.overviewSizer)
 
-                self.vSizer.Clear(True)
+                self.vSizer.Clear(deleteWindows = True)
                 self.vSizer.Add(self.notebook, 1, wx.EXPAND)
                 self.notebook.SetSelection(0)
                         
                 self.isReady = True
                 self.Layout()
             
-        except RuntimeError:
+        except wx.PyDeadObjectError:
             pass
         
     @forceWxThread                
     def _addOverview(self, panel, sizer):
-        sizer.Clear(True)
+        sizer.Clear(deleteWindows = True)
         
         vSizer = wx.FlexGridSizer(0, 2, 3, 10)
         vSizer.AddGrowableCol(1)
@@ -1627,7 +1622,7 @@ class PlaylistDetails(AbstractDetails):
                 sbmp.SetBitmap(bmp)
                 fgSizer.Add(sbmp, 0, 0)
                 
-            hSizer.Add(5, -1, 0)
+            hSizer.AddSpacer((5, -1))
                 
             sbmp = StaticBitmaps(panel, -1)
             sbmp.SetBitmaps(bmps_large)
@@ -1948,8 +1943,7 @@ class ProgressPanel(wx.BoxSizer):
                 self.pb.setNormalPercentage(progress) # Show as having some
             else:
                 self.pb.reset(colour=0) # Show as having none
-            if self.pb:
-                self.pb.Refresh()
+            self.pb.Refresh()
         
         return return_val
     
@@ -2021,15 +2015,15 @@ class MyChannelDetails(wx.Panel):
             
         for filename, size in torrent.files:
             try:
-                pos = listCtrl.InsertItem(sys.maxint, filename)
+                pos = listCtrl.InsertStringItem(sys.maxint, filename)
             except:
                 try:
-                    pos = listCtrl.InsertItem(sys.maxint, filename.decode('utf-8','ignore'))
+                    pos = listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8','ignore'))
                 except:
                     print >> sys.stderr, "Could not format filename", torrent.name
             listCtrl.SetItemData(pos, pos)
             size = self.guiutility.utility.size_format(size)
-            listCtrl.SetItem(pos, 1, size)
+            listCtrl.SetStringItem(pos, 1, size)
             
             if filename in torrent.videofiles:
                 listCtrl.SetItemColumnImage(pos, 0, play_img)
@@ -2213,12 +2207,7 @@ class ChannelsExpandedPanel(wx.Panel):
         self.Layout()
         
     def OnShow(self, event):
-        shown = False
-        try:
-            shown = self.IsShownOnScreen()
-        except:
-            pass
-        if shown:
+        if self.IsShownOnScreen():
             if self.channel_or_playlist:
                 if isinstance(self.channel_or_playlist, Channel):
                     self.guiutility.showChannel(self.channel_or_playlist)
