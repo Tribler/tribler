@@ -11,7 +11,7 @@ from binascii import hexlify
 from Tribler.Core import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core import NoDispersyRLock
-from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
+from Tribler.Core.Utilities.utilities import parse_magnetlink
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -221,7 +221,7 @@ class LibtorrentMgr:
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout = 30):
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
-        infohash_bin = infohash_or_magnet if not magnet else MagnetLink.parse_url(magnet)[1]
+        infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)
 
         if infohash not in self.metainfo_requests:

@@ -24,10 +24,9 @@ from Tribler.community.channel.community import ChannelCommunity, \
     forceDispersyThread, forceAndReturnDispersyThread, forcePrioDispersyThread
 from Tribler.dispersy.dispersy import Dispersy
 
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
+from Tribler.Core.Utilities.utilities import get_collected_torrent_filename, parse_magnetlink
 from Tribler.Core.Session import Session
 from Tribler.Video.VideoPlayer import VideoPlayer
-from Tribler.Core.DecentralizedTracking.MagnetLink import MagnetLink
 
 from math import sqrt
 from __init__ import *
@@ -275,7 +274,7 @@ class TorrentManager:
                     collectingSources = self.torrent_db.getTorrentCollecting(torrent_id)
                     for source, in collectingSources:
                         if source.startswith('magnet'):
-                            _, _, trs = MagnetLink.MagnetLink.parse_url(source)
+                            _, _, trs = parse_magnetlink(source)
                             trackers.extend(trs)
 
                 if len(files) > 0:

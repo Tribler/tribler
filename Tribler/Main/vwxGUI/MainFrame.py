@@ -37,7 +37,6 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY, forceAndReturnWxThread
 from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 
 try:
     import wxversion
@@ -78,7 +77,7 @@ from Tribler.Category.Category import Category
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.API import *
-from Tribler.Core.Utilities.utilities import show_permid
+from Tribler.Core.Utilities.utilities import show_permid, parse_magnetlink
 
 DEBUG = False
 
@@ -392,7 +391,7 @@ class MainFrame(wx.Frame):
                 self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
     def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False):
-        name, infohash, _ = MagnetLink.parse_url(url)
+        name, infohash, _ = parse_magnetlink(url)
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
         wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode)
         return True
