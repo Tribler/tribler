@@ -44,7 +44,6 @@ sessdefaults['timeout'] = 300.0
 sessdefaults['timeout_check_interval'] = 60.0
 sessdefaults['eckeypairfilename'] = None
 sessdefaults['megacache'] = True
-sessdefaults['magnetlink'] = True
 sessdefaults['torrent_collecting'] = True
 sessdefaults['torrent_collecting_max_torrents'] = 50000
 sessdefaults['torrent_collecting_dir'] = None

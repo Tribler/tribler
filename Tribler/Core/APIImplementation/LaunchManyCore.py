@@ -225,11 +225,6 @@ class TriblerLaunchMany(Thread):
             except:
                 print_exc
 
-        self.magnet_handler = None
-        if config["magnetlink"]:
-            from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetHandler
-            self.magnet_handler = MagnetHandler.get_instance(self.rawserver)
-
         if self.rtorrent_handler:
             self.rtorrent_handler.register(self.dispersy, self.session, int(config['torrent_collecting_max_torrents']))
 
@@ -645,9 +640,6 @@ class TriblerLaunchMany(Thread):
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             mainlineDHT.deinit()
-
-        if self.magnet_handler:
-            self.magnet_handler.del_instance()
 
     def network_shutdown(self):
         try:
