@@ -657,6 +657,7 @@ class DispersyPanel(HomePanel):
                 self.summary_tree.AppendItem(parent, u"acceptable range:   %d" % community.dispersy_acceptable_global_time_range)
                 self.summary_tree.AppendItem(parent, u"sync bloom created: %d" % community.sync_bloom_new)
                 self.summary_tree.AppendItem(parent, u"sync bloom reused:  %d" % community.sync_bloom_reuse)
+                self.summary_tree.AppendItem(parent, u"sync bloom skip: %d" % community.sync_bloom_skip)
                 if community.dispersy_enable_candidate_walker or community.dispersy_enable_candidate_walker_responses:
                     sub_parent = self.summary_tree.AppendItem(parent, u"candidates: %s" % candidates)
                     for candidate in sorted(("@%d %s:%d" % (global_time, wan_address[0], wan_address[1]) if lan_address == wan_address else "@%d %s:%d, %s:%d" % (global_time, wan_address[0], wan_address[1], lan_address[0], lan_address[1]))
