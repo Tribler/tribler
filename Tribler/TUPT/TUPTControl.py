@@ -6,7 +6,11 @@ from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateDownloadException
 
+from Tribler.Main.vwxGUI.SearchGridManager import LibraryManager
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
+from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+
 
 from Tribler.PluginManager.PluginManager import PluginManager
 
@@ -17,6 +21,7 @@ from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 from Tribler.TUPT.TorrentFinder.TorrentFinderControl import TorrentFinderControl
 
 from ListCtrlComboPopup import ListCtrlComboPopup as ListViewComboPopup
+from Tribler.Video.VideoPlayer import VideoPlayer
 
 class TUPTControl:
     '''Class that controls the flow for parsing, matching and finding movies'''
@@ -78,7 +83,7 @@ class TUPTControl:
         if self.__movieTorrentIterator.HasSDTorrent(0):
             try:
                  #Download the torrent.
-                self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(0).GetTorrentURL())
+                self.__DownloadURL(self.__movieTorrentIterator.GetNextSDTorrent(0).GetTorrentURL())
             except DuplicateDownloadException:
                 #Dpwnload the next torrent.
                 self.DownloadSDMovie()
@@ -87,16 +92,33 @@ class TUPTControl:
             self.__infoBar.RemoveSDQuality()
     
     def __DownloadURL(self, url):
-        """Download the URL using Tribler."""
+        """Download the URL using Tribler and start playing."""
+        #Start downloading the torrent.
         if url.startswith('http://'):            
             torrent  = TorrentDef.load_from_url(url)
         elif url.startswith('magnet:?'):
             torrent  = TorrentDef.retrieve_from_magnet(url, self.__MagnetCallback())
         session = Session.get_instance()
         session.start_download(torrent)
+        download = session.get_download(torrent.infohash)
+        
+        #Find the correct downloadstate.
+        downloadStateList = LibraryManager.getInstance().dslist     
+        for dls in downloadStateList:
+            if dls.download.tdef.infohash == download.tdef.infohash:
+                downloadState = dls
+                break       
+                  
+        #Play the torrent.
+        videoplayer = VideoPlayer.getInstance()
+        videoplayer.recreate_videopanel()
+        videoplayer.stop_playback()
+        videoplayer.show_loading()
+        videoplayer.play(downloadState,None) 
+        
         
     def __MagnetCallback(self):
-        pass
+        pass    
  
 class TorrentInfoBar():
     '''Class that willl create and show the found movies'''
