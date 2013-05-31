@@ -16,6 +16,12 @@
 files[0]="settings.config"
 files[${#files[*]}]="$HOME/.Tribler/plug-ins/"
 
+files[${#files[*]}]="Matcher/TheMovieDBMatcherPlugin.py"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/Matcher/"
+
+files[${#files[*]}]="Matcher/TheMovieDBMatcherPlugin.yapsy-plugin"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/Matcher/"
+
 files[${#files[*]}]="Parser/IMDbParserPlugin.py"
 files[${#files[*]}]="$HOME/.Tribler/plug-ins/Parser/"
 

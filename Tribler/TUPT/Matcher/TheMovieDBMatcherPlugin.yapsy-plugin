@@ -1,6 +1,6 @@
 [Core]
-Name = IMDb Parser plugin
-Module = IMDbParserPlugin
+Name = TMDB Matcher plugin
+Module = TheMovieDBMatcherPlugin
 Trust = 1.0
 
 [Documentation]

@@ -71,6 +71,7 @@ class WebBrowser(XRCPanel):
         self.loadlisteners = []
         
         '''Register the action on the event that a URL is being loaded and when finished loading'''
+        self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, self.onURLNavigating, self.webview)
         self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
         
         self.infobaroverlay.Bind(wx.EVT_ENTER_WINDOW, self.OnInfoBarMouseOver, self.infobaroverlay)
@@ -100,6 +101,9 @@ class WebBrowser(XRCPanel):
         
     def RemoveLoadedListener(self, listener):
         self.loadlisteners.remove(listener)
+    
+    def onURLNavigating(self, event):
+        self.HideInfoBar()
     
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''

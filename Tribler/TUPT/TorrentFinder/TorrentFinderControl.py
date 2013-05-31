@@ -2,6 +2,8 @@ import sys
 import os
 import ConfigParser
 
+from threading import Thread
+
 from Tribler.PluginManager.PluginManager import PluginManager
 
 from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
@@ -28,18 +30,16 @@ class TorrentFinderControl:
         """Query plug-ins for a title using a Movie object. The results will be stored in the lists.
         """
         plugins = self.__pluginManager.GetPluginDescriptorsForCategory('TorrentFinder')
+        threads = []
         for plugin_info in plugins:
-            trust = 0.5
-            try:
-                trust = plugin_info.getfloat("Core","Trust")
-            except:
-                trust = 0.5 #Not a valid float
-            list = plugin_info.plugin_object.GetTorrentDefsForMovie(movie)
-            print "Plugin " + plugin_info.name + " returned " + str(len(list)) + " results."
-            for item in list:
-                self.__ProcessTorrentDef(item, trust)    
+            thread = TorrentFinderControl.PluginThread(self, plugin_info, movie)
+            thread.start()
+            threads.append(thread)
+        
+        for thread in threads:
+            thread.join()
     
-    def __ProcessTorrentDef(self, definition, trust):
+    def ProcessTorrentDef(self, definition, trust):
         """Inspect a returned torrent definition and place it in our list if appropriate
         """
         if definition.IsHighDef():
@@ -89,4 +89,36 @@ class TorrentFinderControl:
             out[str(i)] = term
             i += 1
         return out
+    
+    class PluginThread(Thread):
+        """A private class for threading all the raw calls the plugins
+            have to do, to get all their data.
+        """
+        
+        parent = None   #TorrentFinderControl that made us
+        trust = 0.5     #Trust level
+        plugin = None   #Actual plugin
+        name = ""       #Plugin name
+        movie = None    #Movie object we are searching for
+        
+        def __init__(self, parent, plugin_info, movie):
+            Thread.__init__(self)
+            self.parent = parent
+            self.trust = 0.5
+            try:
+                self.trust = plugin_info.details.getfloat("Core","Trust")
+            except:
+                self.trust = 0.5 #Not a valid float
+            self.plugin = plugin_info.plugin_object
+            self.name = plugin_info.name
+            self.movie = movie
+                
+        def run(self):
+            """Collect all the torrents returned by the plugins and feed them
+                to our parent.
+            """
+            list = self.plugin.GetTorrentDefsForMovie(self.movie)
+            print "Plugin " + self.name + " returned " + str(len(list)) + " results."
+            for item in list:
+                self.parent.ProcessTorrentDef(item, self.trust)  
             
