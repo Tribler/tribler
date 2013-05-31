@@ -25,7 +25,7 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.osutils import *
 from Tribler.Core.Utilities.Crypto import sha
 
-from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
 class TorrentDef(ContentDefinition, Serializable, Copyable):
@@ -149,14 +149,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         def metainfo_retrieved(metadata):
             tdef = TorrentDef.load_from_dict(metadata)
             callback(tdef)
-
-        try:
-            magnet_link = MagnetLink(url, metainfo_retrieved, timeout, max_connections)
-            return magnet_link.retrieve()
-        except Exception as e:
-            print >> sys.stderr, "Exception within magnet link"
-            print >> sys.stderr, e
-            return False
+        LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
+        return True
 
     @staticmethod
     def retrieve_from_magnet_infohash(infohash, callback, timeout=30.0, max_connections=30.0):
