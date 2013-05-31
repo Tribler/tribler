@@ -19,8 +19,6 @@ from Tribler.TUPT.Parser.ParserControl import ParserControl
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 from Tribler.TUPT.TorrentFinder.TorrentFinderControl import TorrentFinderControl
 
-from ListCtrlComboPopup import ListCtrlComboPopup as ListViewComboPopup
-
 class TUPTControl:
     '''Class that controls the flow for parsing, matching and finding movies'''
     
