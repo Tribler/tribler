@@ -7,6 +7,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateDownloadException
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 from Tribler.PluginManager.PluginManager import PluginManager
 
@@ -41,6 +42,7 @@ class TUPTControl:
         webview = gui.frame.webbrowser
         webview.AddLoadedListener(self)
         self.webview = webview
+        self.mainFrame = gui.frame
         
     def webpageLoaded(self, event, html):
         """Callback for when a webpage was loaded
@@ -97,12 +99,16 @@ class TUPTControl:
     
     def __DownloadURL(self, url):
         """Download the URL using Tribler."""
-        if url.startswith('http://'):            
-            torrent  = TorrentDef.load_from_url(url)
-        elif url.startswith('magnet:?'):
-            torrent  = TorrentDef.retrieve_from_magnet(url, self.__MagnetCallback())
-        session = Session.get_instance()
-        session.start_download(torrent)
+        try:
+            dscfg = DefaultDownloadStartupConfig.getInstance()
+            destdir = dscfg.get_dest_dir()
+    
+            if url.startswith("http"):
+                self.mainFrame.startDownloadFromUrl(url, destdir, vodmode = True)
+            elif url.startswith("magnet:"):
+                self.mainFrame.startDownloadFromMagnet(url, destdir, vodmode = True)
+        except:
+            pass #Download already exists, no problem
         
     def __MagnetCallback(self):
         pass
