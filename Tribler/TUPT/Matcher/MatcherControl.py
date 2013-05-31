@@ -35,9 +35,9 @@ class MatcherControl:
         for attribute in self.__termTable:
             highestFrequency = ''
             for value in self.__termTable[attribute]:
-                if terms[attribute][value] > self.__termTable[attribute][highestFrequency]:
+                if highestFrequency == '' or self.__termTable[attribute][value] > self.__termTable[attribute][highestFrequency]:
                     highestFrequency = value
-            if terms[attribute][highestFrequency] >= mintrust:
+            if self.__termTable[attribute][highestFrequency] >= mintrust:
                 finalDict[attribute] = value
         return finalDict
     
@@ -47,6 +47,7 @@ class MatcherControl:
         """
         self.__termTable = {}
         plugins = self.__pluginManager.GetPluginDescriptorsForCategory('Matcher')
+        
         if len(plugins) == 0:
             return movie
         for plugin_info in plugins:
