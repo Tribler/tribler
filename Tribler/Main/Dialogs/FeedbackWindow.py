@@ -40,8 +40,8 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             self.sysInfo.InsertColumn(1, 'value')
 
             def add(col, val):
-                pos = self.sysInfo.InsertItem(sys.maxint, col)
-                self.sysInfo.SetItem(pos, 1, val)
+                pos = self.sysInfo.InsertStringItem(sys.maxint, col)
+                self.sysInfo.SetStringItem(pos, 1, val)
 
             # data
             add('os.getcwd', '%s' % os.getcwd())
@@ -70,8 +70,8 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
 #                                             'chandler.log'),
 #                                encoding='utf-8', mode='r', errors='ignore')
 #                for line in f.readlines()[-LOGLINES:]:
-#                    self.frame.sysInfo.InsertItem(index, 'chandler.log')
-#                    self.frame.sysInfo.SetItem(index, 1, '%s' % line.strip())
+#                    self.frame.sysInfo.InsertStringItem(index, 'chandler.log')
+#                    self.frame.sysInfo.SetStringItem(index, 1, '%s' % line.strip())
 #                    index += 1
 #            except:
 #                pass

@@ -51,7 +51,7 @@ class IconsManager:
             img = self.defaults[name][ICON_MAX_DIM].ConvertToImage()
             img.Rescale(dim,dim)
 
-            self.defaults[name][dim] = wx.Bitmap(img,-1)
+            self.defaults[name][dim] = wx.BitmapFromImage(img,-1)
         return self.defaults[name][dim]
 
     def load_wxBitmap(self, permid, dim = ICON_MAX_DIM):
@@ -95,7 +95,7 @@ def data2wxBitmap(type,data,dim=ICON_MAX_DIM):
         if im is None:
             bm = None
         else:
-            bm = wx.Bitmap(im,-1)
+            bm = wx.BitmapFromImage(im,-1)
 
         return bm
     except:

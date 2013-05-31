@@ -569,7 +569,7 @@ class Utility:
 
         ID_BUTTON = wx.NewId()
         button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth()+padx, button_bmp.GetHeight()+pady))
-        button_btn.SetToolTip(tooltiptext)
+        button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
 
@@ -580,7 +580,7 @@ class Utility:
 
         ID_BUTTON = wx.NewId()
         button_btn = wx.BitmapButton(parent, ID_BUTTON, button_bmp, size=wx.Size(button_bmp.GetWidth(), button_bmp.GetHeight()))
-        button_btn.SetToolTip(tooltiptext)
+        button_btn.SetToolTipString(tooltiptext)
         parent.Bind(wx.EVT_BUTTON, event, button_btn)
         return button_btn
 

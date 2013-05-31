@@ -188,12 +188,12 @@ class TrackerInfoPanel(wx.Panel):
         announceurl_box.Add(self.annCtl, 1, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 5)
 
         self.addbutton = wx.Button(self, -1, "+", size = (30, -1))
-        self.addbutton.SetToolTip(self.utility.lang.get('add'))
+        self.addbutton.SetToolTipString(self.utility.lang.get('add'))
         wx.EVT_BUTTON(self, self.addbutton.GetId(), self.addAnnounce)
         announceurl_box.Add(self.addbutton, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
         self.delbutton = wx.Button(self, -1, "-", size = (30, -1))
-        self.delbutton.SetToolTip(self.utility.lang.get('remove'))
+        self.delbutton.SetToolTipString(self.utility.lang.get('remove'))
         wx.EVT_BUTTON(self, self.delbutton.GetId(), self.removeAnnounce)
         announceurl_box.Add(self.delbutton, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 3)
 
@@ -204,7 +204,7 @@ class TrackerInfoPanel(wx.Panel):
         announcesection.Add(self.annListText, 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
         self.annListCtl = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
-        self.annListCtl.SetToolTip(self.utility.lang.get('multiannouncehelp'))
+        self.annListCtl.SetToolTipString(self.utility.lang.get('multiannouncehelp'))
 
         announcesection.Add(self.annListCtl, 1, wx.EXPAND|wx.TOP, 5)
 
@@ -214,7 +214,7 @@ class TrackerInfoPanel(wx.Panel):
         outerbox.Add(wx.StaticText(self, -1, self.utility.lang.get('httpseeds')), 0, wx.EXPAND|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
 
         self.httpSeeds = wx.TextCtrl(self, -1, size = (-1, 75), style = wx.TE_MULTILINE|wx.HSCROLL|wx.TE_DONTWRAP)
-        self.httpSeeds.SetToolTip(self.utility.lang.get('httpseedshelp'))
+        self.httpSeeds.SetToolTipString(self.utility.lang.get('httpseedshelp'))
         outerbox.Add(self.httpSeeds, 1, wx.EXPAND|wx.ALL, 5)
 
         self.SetSizerAndFit(outerbox)

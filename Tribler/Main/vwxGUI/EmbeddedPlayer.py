@@ -85,7 +85,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             if border:
                 player_img = os.path.join(self.utility.getPath(), LIBRARYNAME,"Main","vwxGUI",'images','player.png')
-                self.player_img = wx.StaticBitmap(self, -1, wx.Bitmap(wx.Image(player_img, wx.BITMAP_TYPE_ANY)))
+                self.player_img = wx.StaticBitmap(self, -1, wx.BitmapFromImage(wx.Image(player_img, wx.BITMAP_TYPE_ANY)))
                 mainbox.Add(self.player_img, 0, wx.ALIGN_CENTER|wx.TOP, 5)
             mainbox.Add(self.vlcwin, 1, wx.EXPAND, 0)
 
@@ -608,7 +608,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.show_loading()
 
     def __check_thread(self):
-        if __debug__ and not wx.IsMainThread():
+        if __debug__ and not wx.Thread_IsMain():
             print  >> sys.stderr,"EmbeddedPlayer: __check_thread thread",currentThread().getName(),"is NOT MainThread"
             print_stack()
 
@@ -635,8 +635,7 @@ class VLCLogoWindow(wx.Panel):
 
         if animate:
             animation = os.path.join(self.utility.getPath(),'Tribler','Main','vwxGUI','images','video_grey.gif')
-            self.agVideo = wx.adv.AnimationCtrl(self, 1)
-            self.agVideo.LoadFile(animation)
+            self.agVideo = wx.animate.GIFAnimationCtrl(self, 1, animation)
             self.agVideo.Hide()
 
             self.vsizer.Add(self.agVideo, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
@@ -672,7 +671,7 @@ class VLCLogoWindow(wx.Panel):
         if DEBUG:
             print >>sys.stderr,"VLCWin: set_content_image"
         if wximg is not None:
-            self.contentbm = wx.Bitmap(wximg,-1)
+            self.contentbm = wx.BitmapFromImage(wximg,-1)
         else:
             self.contentbm = None
 
