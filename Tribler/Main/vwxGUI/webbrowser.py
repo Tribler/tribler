@@ -44,7 +44,6 @@ class WebBrowser(XRCPanel):
         
         '''Add the overlay for the info bar'''
         self.infobaroverlay = wx.Panel(self)
-        self.infobaroverlay.SetSizeHints(-1,0,-1,0)
         self.infobaroverlay.SetBackgroundColour(wx.Colour(255,255,153))
         self.infobaroverlay.vSizer = vSizer
         vSizer.Add(self.infobaroverlay, 1, wx.EXPAND | wx.ALL, 1)
@@ -57,26 +56,32 @@ class WebBrowser(XRCPanel):
         self.SetBackgroundColour(wx.Colour(205,190,112))
         
         '''Create the webview'''
-        self.webview = wx.html2.WebView.New(self)
+        self.webviewPanel = wx.Panel(self)
+        wvPanelSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.webviewPanel.SetSizer(wvPanelSizer)
+        self.webview = wx.html2.WebView.New(self.webviewPanel)
+        wvPanelSizer.Add(self.webview, 0, wx.EXPAND)
+        self.webviewPanel.Layout()
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
         
-        vSizer.Add(self.webview, 2, wx.EXPAND) 
+        vSizer.Add(self.webviewPanel, 2, wx.EXPAND) 
         
         '''Add all components'''
         self.SetSizer(vSizer)
         self.Layout()
+        self.HideInfoBar()
         
         '''Add observerlist for checking load events'''
         self.loadlisteners = []
         
         '''Register the action on the event that a URL is being loaded and when finished loading'''
-        self.Bind(wx.html2.EVT_WEBVIEW_NAVIGATING, self.onURLNavigating, self.webview)
-        self.Bind(wx.html2.EVT_WEBVIEW_LOADED, self.onURLLoaded, self.webview)
+        self.Bind(wx.html2.EVT_WEB_VIEW_NAVIGATING, self.onURLNavigating, self.webview)
+        self.Bind(wx.html2.EVT_WEB_VIEW_LOADED, self.onURLLoaded, self.webview)
         
         self.infobaroverlay.Bind(wx.EVT_ENTER_WINDOW, self.OnInfoBarMouseOver, self.infobaroverlay)
         self.infobaroverlay.Bind(wx.EVT_LEAVE_WINDOW, self.OnInfoBarMouseOut, self.infobaroverlay)
-        
+
         self.webview.LoadURL("http://www.imdb.com/title/tt0458525/")       
         
     def goBackward(self, event):
@@ -159,11 +164,31 @@ class WebBrowser(XRCPanel):
         self.infobaroverlay.SetSizer(infobarSizer)
         infobarSizer.Fit(self.infobaroverlay)
     
+    def __fixInfobarHeight(self, height):
+        """In wxPython 2.9.0 SetSizeHints does not function properly,
+            we are only interested in fixing the height of the infobar
+            and the webview here.
+            Call this after laying out the vSizer of the main panel.
+        """
+        width, oHeight = self.infobaroverlay.GetSize()
+        #Fix infobar
+        self.infobaroverlay.SetSize((width, height))
+        diffHeight = oHeight-height
+        self.infobaroverlay.vSizer.SetItemMinSize(self.infobaroverlay, (width, height))
+        self.infobaroverlay.vSizer.Fit(self.infobaroverlay)
+        #Fix webview
+        width, oHeight = self.webviewPanel.GetSize()
+        self.infobaroverlay.vSizer.SetItemMinSize(self.webviewPanel, (width, oHeight + diffHeight))
+        self.infobaroverlay.vSizer.Fit(self.webviewPanel)
+        self.webviewPanel.GetSizer().SetItemMinSize(self.webview, (width, oHeight + diffHeight))
+        self.webviewPanel.GetSizer().Fit(self.webview)
+    
     def HideInfoBar(self):     
         """Hide the InfoBar immediately
         """ 
         self.infobaroverlay.SetSizeHints(-1,0,-1,0)
         self.infobaroverlay.vSizer.Layout()
+        self.__fixInfobarHeight(0)
         self.Refresh()
         
     def ShowInfoBar(self, animtime=0.3, smoothness=10, finalHeight=28.0):      
@@ -174,9 +199,11 @@ class WebBrowser(XRCPanel):
         """
         for i in range(smoothness):
             start = time.time()
-            self.infobaroverlay.SetSizeHints(-1, -1,-1, int(finalHeight/smoothness*(i+1)))
+            height = int(finalHeight/smoothness*(i+1))
+            self.infobaroverlay.SetSizeHints(-1, -1,-1, height)
             self.infobaroverlay.vSizer.Layout()
             self.infobaroverlay.Layout()
+            self.__fixInfobarHeight(height)
             self.Refresh()
             remtime = animtime/smoothness-(time.time() - start)
             time.sleep(remtime if remtime > 0 else 0)

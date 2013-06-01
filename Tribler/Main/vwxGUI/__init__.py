@@ -98,7 +98,7 @@ def showError(textCtrl):
 
 def warnWxThread(func):
     def invoke_func(*args,**kwargs):
-        if not wx.IsMainThread():
+        if not wx.Thread_IsMain():
             caller = inspect.stack()[1]
             callerstr = "%s %s:%s"%(caller[3],caller[1],caller[2])
             print >> sys.stderr, long(time()), "NOT ON GUITHREAD %s %s:%s called by %s"%(func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
@@ -110,7 +110,7 @@ def warnWxThread(func):
 
 def forceWxThread(func):
     def invoke_func(*args,**kwargs):
-        if wx.IsMainThread():
+        if wx.Thread_IsMain():
             func(*args, **kwargs)
         else:
             if TRHEADING_DEBUG:
@@ -124,7 +124,7 @@ def forceWxThread(func):
 
 def forceAndReturnWxThread(func):
     def invoke_func(*args,**kwargs):
-        if wx.IsMainThread():
+        if wx.Thread_IsMain():
             return func(*args, **kwargs)
 
         else:
