@@ -70,7 +70,6 @@ class WebBrowser(XRCPanel):
         '''Add all components'''
         self.SetSizer(vSizer)
         self.Layout()
-        self.HideInfoBar()
         
         '''Add observerlist for checking load events'''
         self.loadlisteners = []
@@ -82,8 +81,14 @@ class WebBrowser(XRCPanel):
         self.infobaroverlay.Bind(wx.EVT_ENTER_WINDOW, self.OnInfoBarMouseOver, self.infobaroverlay)
         self.infobaroverlay.Bind(wx.EVT_LEAVE_WINDOW, self.OnInfoBarMouseOut, self.infobaroverlay)
 
-        self.webview.LoadURL("http://www.imdb.com/title/tt0458525/")       
+        self.HideInfoBar()
         
+        if (True):
+            self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.0 bug
+        else:
+            self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.0 bug
+            wx.CallAfter(self.webview.LoadURL, "http://www.imdb.com/title/tt0458525/")       
+    
     def goBackward(self, event):
         if self.webview.CanGoBack():
             self.webview.GoBack()
@@ -188,6 +193,7 @@ class WebBrowser(XRCPanel):
         """ 
         self.infobaroverlay.SetSizeHints(-1,0,-1,0)
         self.infobaroverlay.vSizer.Layout()
+        self.infobaroverlay.Hide()
         self.__fixInfobarHeight(0)
         self.Refresh()
         
@@ -197,6 +203,7 @@ class WebBrowser(XRCPanel):
             Will chop the animation frames up in 'animtime'/'smoothness' iterations
             Will grow to a maximum of finalHeight if the sizer deems it appropriate
         """
+        self.infobaroverlay.Show()
         for i in range(smoothness):
             start = time.time()
             height = int(finalHeight/smoothness*(i+1))
