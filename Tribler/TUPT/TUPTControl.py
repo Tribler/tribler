@@ -89,7 +89,7 @@ class TUPTControl:
         """Start downliading the selected movie in SD quality"""
        #Check if a torrent exists.
         if self.__movieTorrentIterator.HasSDTorrent(n):
-            self.__DownloadURL(self.__movieTorrentIterator.GetNextDTorrent(n).GetTorrentURL())
+            self.__DownloadURL(self.__movieTorrentIterator.GetNextSDTorrent(n).GetTorrentURL())
         #Update the infobar. This has to be done regardless of if a torrent was added or not.
         if not self.__movieTorrentIterator.HasSDTorrent(n):
             self.__infoBar.RemoveSDQuality()
