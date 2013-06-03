@@ -36,7 +36,6 @@ sessdefaults['install_dir'] = u'.'
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT
-sessdefaults['random_port'] = 1
 sessdefaults['bind'] = []
 sessdefaults['ipv6_enabled'] = 0  # allow the client to connect to peers via IPv6 (currently not supported)
 sessdefaults['ipv6_binds_v4'] = None  # set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
@@ -44,13 +43,12 @@ sessdefaults['timeout'] = 300.0
 sessdefaults['timeout_check_interval'] = 60.0
 sessdefaults['eckeypairfilename'] = None
 sessdefaults['megacache'] = True
-sessdefaults['magnetlink'] = True
 sessdefaults['torrent_collecting'] = True
+sessdefaults['dht_torrent_collecting'] = True
 sessdefaults['torrent_collecting_max_torrents'] = 50000
 sessdefaults['torrent_collecting_dir'] = None
 sessdefaults['torrent_checking'] = 1
 sessdefaults['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
-# sessdefaults['rquery'] = True
 sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['internaltracker'] = True
 sessdefaults['nickname'] = '__default_name__'  # is replaced with hostname in LaunchManyCore.py
@@ -60,10 +58,7 @@ sessdefaults['peer_icon_path'] = None
 sessdefaults['family_filter'] = True
 sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
-sessdefaults['mainline_dht_port'] = 7757
-sessdefaults['dispersy'] = True
-sessdefaults['dispersy-tunnel-over-swift'] = True
-sessdefaults['dispersy_port'] = 7759
+sessdefaults['mainline_dht_port'] = DEFAULTPORT - 3
 sessdefaults['libtorrent'] = True
 
 # SWIFTPROC config
@@ -72,10 +67,17 @@ sessdefaults['swiftpath'] = None
 sessdefaults['swiftworkingdir'] = '.'
 sessdefaults['swiftcmdlistenport'] = DEFAULTPORT + 481
 sessdefaults['swiftdlsperproc'] = 1000
+
 # config for tunneling via swift, e.g. dispersy
-sessdefaults['swifttunnellistenport'] = None
-sessdefaults['swifttunnelcmdgwlistenport'] = None
-sessdefaults['swifttunnelhttpgwlistenport'] = None
+sessdefaults['swifttunnellistenport'] = DEFAULTPORT - 2
+sessdefaults['swifttunnelhttpgwlistenport'] = sessdefaults['swifttunnellistenport'] + 10000
+sessdefaults['swifttunnelcmdgwlistenport'] = sessdefaults['swifttunnellistenport'] + 20000
+sessdefaults['swiftdhtport'] = 9999
+
+# dispersy config
+sessdefaults['dispersy'] = True
+sessdefaults['dispersy-tunnel-over-swift'] = False
+sessdefaults['dispersy_port'] = DEFAULTPORT - 1
 
 #
 # BT per download opts

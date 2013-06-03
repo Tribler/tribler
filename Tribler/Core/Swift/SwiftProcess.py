@@ -90,7 +90,7 @@ class SwiftProcess:
         # args.append("-B")  # Enable debugging on swift
 
         if DEBUG:
-            print >>sys.stderr, "SwiftProcess: __init__: Running", args, "workdir", workdir
+            print >> sys.stderr, "SwiftProcess: __init__: Running", args, "workdir", workdir
 
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -98,7 +98,22 @@ class SwiftProcess:
             creationflags = 0
 
         # See also SwiftDef::finalize popen
-        self.popen = subprocess.Popen(args, close_fds=True, cwd=workdir, creationflags=creationflags)
+        # We would really like to get the stdout and stderr without creating a new thread for them.
+        # However, windows does not support non-files in the select command, hence we cannot integrate
+        # these streams into the FastI2I thread
+        # A proper solution would be to switch to twisted for the communication with the swift binary
+        self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        def read_and_print(socket):
+            prefix = currentThread().getName() + ":"
+            while True:
+                line = socket.readline()
+                if not line:
+                    print >> sys.stderr, prefix, "readline returned nothing quitting"
+                    break
+                print >> sys.stderr, prefix, line.rstrip()
+        self.popen_outputthreads = [Thread(target=read_and_print, args=(self.popen.stdout,), name="SwiftProcess_%d_stdout" % self.listenport), Thread(target=read_and_print, args=(self.popen.stderr,), name="SwiftProcess_%d_stderr" % self.listenport)]
+        [thread.start() for thread in self.popen_outputthreads]
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down

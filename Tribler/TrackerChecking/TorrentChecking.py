@@ -28,7 +28,7 @@ from random import sample
 from time import time
 from os import path
 from collections import deque
-from Tribler.Main.Utility.GuiDBTuples import RemoteTorrent
+from Tribler.Core.Utilities.utilities import parse_magnetlink
 try:
     prctlimported = True
     import prctl
@@ -40,7 +40,6 @@ from Tribler.TrackerChecking.TrackerChecking import multiTrackerChecking
 
 from Tribler.Core.CacheDB.CacheDBHandler import TorrentDBHandler
 from Tribler.Core.DecentralizedTracking.mainlineDHTChecker import mainlineDHTChecker
-from Tribler.Core.DecentralizedTracking.MagnetLink.MagnetLink import MagnetLink
 from Tribler.Core.Session import Session
 from traceback import print_exc
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -313,7 +312,7 @@ class TorrentChecking(Thread):
         sources = self.torrentdb.getTorrentCollecting(torrent['torrent_id'])
         for source, in sources:
             if source.startswith('magnet'):
-                dn, xt, trs = MagnetLink.parse_url(source)
+                dn, xt, trs = parse_magnetlink(source)
 
                 if len(trs) > 0:
                     if 'info' not in torrent:

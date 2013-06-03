@@ -13,8 +13,7 @@ from random import choice
 from binascii import hexlify
 from time import sleep, time
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR, \
-    NTFY_CHANNELCAST
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, DLSTATUS_STOPPED_ON_ERROR
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -22,8 +21,8 @@ import shutil
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.exceptions import DuplicateDownloadException, \
     OperationNotEnabledByConfigurationException
+
 import atexit
-from Tribler.Main.Utility.GuiDBHandler import startWorker
 import urllib
 import binascii
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
@@ -62,9 +61,10 @@ class RemoteTorrentHandler:
         RemoteTorrentHandler.__single = None
     delInstance = staticmethod(delInstance)
 
-    def register(self, dispersy, session, max_num_torrents):
+    def register(self, dispersy, database_thead, session, max_num_torrents):
         self.session = session
         self.dispersy = dispersy
+        self.database_thead = database_thead
         self.max_num_torrents = max_num_torrents
         self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
@@ -75,9 +75,9 @@ class RemoteTorrentHandler:
         self.torrent_db = None
         if self.session.get_megacache():
             self.torrent_db = session.open_dbhandler('torrents')
-            startWorker(None, self.__check_overflow)
+            self.database_thead.register(self.__check_overflow, delay=30.0)
 
-        if session.get_mainline_dht():
+        if session.get_dht_torrent_collecting():
             self.drequesters[0] = MagnetRequester(self, 0)
             self.drequesters[1] = MagnetRequester(self, 1)
         self.tnrequester = ThumbnailRequester(self, self.session)
@@ -191,7 +191,7 @@ class RemoteTorrentHandler:
                 if prio not in requesters:
                     if doSwiftCollect:
                         requesters[prio] = TorrentRequester(self, self.drequesters.get(1, None), self.session, prio)
-                    elif self.session.get_mainline_dht():
+                    elif self.session.get_dht_torrent_collecting():
                         requesters[prio] = MagnetRequester(self, prio)
                 requester = requesters[prio]
 
@@ -229,7 +229,7 @@ class RemoteTorrentHandler:
 
     def has_torrent(self, infohash, callback):
         if self.torrent_db:
-            startWorker(None, self._has_torrent, wargs=(infohash, self.tor_col_dir, callback))
+            self.database_thead.register(self._has_torrent, args=(infohash, self.tor_col_dir, callback))
         else:
             callback(False)
 
@@ -258,7 +258,7 @@ class RemoteTorrentHandler:
                 if not filename:
                     self._save_torrent(tdef, callback)
                 elif callback:
-                    startWorker(None, callback)
+                    self.database_thead.register(callback)
 
             infohash = tdef.get_infohash()
             self.has_torrent(infohash, do_schedule)
@@ -292,7 +292,7 @@ class RemoteTorrentHandler:
                 callback()
 
         if self.torrent_db:
-            startWorker(None, do_db, wargs=(callback,))
+            self.database_thead.register(do_db, args=(callback,))
         elif callback:
             callback()
 
@@ -339,7 +339,7 @@ class RemoteTorrentHandler:
         if os.path.exists(swiftpath) and self.torrent_db:
             try:
                 tdef = TorrentDef.load(swiftpath)
-                startWorker(None, do_db, wargs=(tdef,))
+                self.database_thead.register(do_db, args=(tdef,))
 
             except:
                 # ignore if tdef loading fails
@@ -567,7 +567,7 @@ class TorrentRequester(Requester):
                 download = self.session.start_download(sdef, dcfg, hidden=True)
 
                 state_lambda = lambda ds, infohash = infohash, roothash = roothash, doMagnet = doMagnet: self.check_progress(ds, infohash, roothash, doMagnet)
-                download.set_state_callback(state_lambda, delay=self.SWIFT_CANCEL)
+                download.set_state_callback(state_lambda, delay=self.REQUEST_INTERVAL * (self.prio + 1))
                 download.started_downloading = time()
 
             except DuplicateDownloadException:
@@ -603,22 +603,8 @@ class TorrentRequester(Requester):
     def check_progress(self, ds, infohash, roothash, didMagnet):
         d = ds.get_download()
         cdef = d.get_def()
-        if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR or time() - getattr(d, 'started_downloading', time()) > 45:
-            remove_lambda = lambda d = d: self._remove_download(d)
-            self.scheduletask(remove_lambda)
 
-            if DEBUG:
-                print >> sys.stderr, "rtorrent: swift failed download for", cdef.get_name(), bin2str(infohash)
-
-            if not didMagnet and self.magnet_requester:
-                if DEBUG:
-                    print >> sys.stderr, "rtorrent: switching to magnet for", cdef.get_name(), bin2str(infohash)
-                self.magnet_requester.add_request(infohash, None, timeout=SWIFTFAILED_TIMEOUT)
-
-            self.requests_fail += 1
-            return (0, False)
-
-        elif ds.get_progress() == 1:
+        if ds.get_progress() == 1:
             remove_lambda = lambda d = d: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
 
@@ -628,8 +614,23 @@ class TorrentRequester(Requester):
             self.remote_th.notify_possible_torrent_roothash(roothash)
             self.requests_success += 1
             return (0, False)
+        else:
+            diff = time() - getattr(d, 'started_downloading', time())
+            if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                remove_lambda = lambda d = d: self._remove_download(d)
+                self.scheduletask(remove_lambda)
 
-        return (5.0, True)
+                if DEBUG:
+                    print >> sys.stderr, "rtorrent: swift failed download for", cdef.get_name(), bin2str(infohash)
+
+                if not didMagnet and self.magnet_requester:
+                    if DEBUG:
+                        print >> sys.stderr, "rtorrent: switching to magnet for", cdef.get_name(), bin2str(infohash)
+                    self.magnet_requester.add_request(infohash, None, timeout=SWIFTFAILED_TIMEOUT)
+
+                self.requests_fail += 1
+                return (0, False)
+        return (self.REQUEST_INTERVAL * (self.prio + 1), True)
 
     def _remove_download(self, d, removestate=True):
         # Arno, 2012-05-30: Make sure .mbinmap is written
@@ -734,7 +735,6 @@ class MagnetRequester(Requester):
 
             self.requests_fail += 1
 
-
 class ThumbnailRequester(Requester):
     SWIFT_CANCEL = 30.0
 
@@ -776,7 +776,7 @@ class ThumbnailRequester(Requester):
                 download = self.session.start_download(sdef, dcfg, hidden=True)
 
                 state_lambda = lambda ds, roothash = roothash: self.check_progress(ds, roothash)
-                download.set_state_callback(state_lambda, delay=self.SWIFT_CANCEL)
+                download.set_state_callback(state_lambda, delay=self.REQUEST_INTERVAL * (self.prio + 1))
                 download.started_downloading = time()
 
             except DuplicateDownloadException:
@@ -805,13 +805,8 @@ class ThumbnailRequester(Requester):
     def check_progress(self, ds, roothash):
         d = ds.get_download()
         cdef = d.get_def()
-        if ds.get_progress() == 0 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR or time() - getattr(d, 'started_downloading', time()) > 45:
-            remove_lambda = lambda d = d: self._remove_download(d)
-            self.scheduletask(remove_lambda)
-            self.requests_fail += 1
-            return (0, False)
 
-        elif ds.get_progress() == 1:
+        if ds.get_progress() == 1:
             remove_lambda = lambda d = d: self._remove_download(d, False)
             self.scheduletask(remove_lambda)
 
@@ -821,8 +816,15 @@ class ThumbnailRequester(Requester):
             self.remote_th.notify_possible_thumbnail_roothash(roothash)
             self.requests_success += 1
             return (0, False)
+        else:
+            diff = time() - getattr(d, 'started_downloading', time()) > 45
+            if (diff > self.SWIFT_CANCEL and ds.get_progress() == 0) or diff > 45 or ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                remove_lambda = lambda d = d: self._remove_download(d)
+                self.scheduletask(remove_lambda)
+                self.requests_fail += 1
+                return (0, False)
 
-        return (5.0, True)
+        return (self.REQUEST_INTERVAL * (self.prio + 1), True)
 
     def _remove_download(self, d, removestate=True):
         if not removestate and d.get_def().get_def_type() == 'swift':

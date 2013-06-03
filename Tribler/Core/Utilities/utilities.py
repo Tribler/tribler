@@ -3,7 +3,7 @@
 
 import socket
 from time import time, strftime, gmtime
-from base64 import encodestring, decodestring
+from base64 import encodestring, decodestring, b32decode
 from Tribler.Core.Utilities.Crypto import sha
 import sys
 import os
@@ -11,6 +11,7 @@ import copy
 from types import UnicodeType, StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc, print_stack
+from urlparse import urlsplit, parse_qsl
 import binascii
 
 STRICT_CHECK = True
@@ -498,6 +499,53 @@ def get_collected_torrent_filename(infohash):
     filename = sha(infohash).hexdigest() + '.torrent'    # notice: it's sha1-hash of infohash
     return filename
     # exceptions will be handled by got_metadata()
+
+
+def parse_magnetlink(url):
+    # url must be a magnet link
+    dn = None
+    xt = None
+    trs = []
+
+    if DEBUG:
+        print >> sys.stderr, "parse_magnetlink()", url
+
+    schema, netloc, path, query, fragment = urlsplit(url)
+    if schema == "magnet":
+        # magnet url's do not conform to regular url syntax (they
+        # do not have a netloc.)  This causes path to contain the
+        # query part.
+        if "?" in path:
+            pre, post = path.split("?", 1)
+            if query:
+                query = "&".join((post, query))
+            else:
+                query = post
+
+        for key, value in parse_qsl(query):
+            if key == "dn":
+                # convert to unicode
+                dn = value.decode()
+
+            elif key == "xt" and value.startswith("urn:btih:"):
+                # vliegendhart: Adding support for base32 in magnet links (BEP 0009)
+                encoded_infohash = value[9:49]
+                if len(encoded_infohash) == 32:
+                    xt = b32decode(encoded_infohash)
+                else:
+                    xt = binascii.unhexlify(encoded_infohash)
+
+            elif key == "tr":
+                trs.append(value)
+
+        if DEBUG:
+            print >> sys.stderr, "parse_magnetlink() NAME:", dn
+        if DEBUG:
+            print >> sys.stderr, "parse_magnetlink() HASH:", xt
+        if DEBUG:
+            print >> sys.stderr, "parse_magnetlink() TRACS:", trs
+
+    return (dn, xt, trs)
 
 
 if __name__ == '__main__':

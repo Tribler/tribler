@@ -12,7 +12,6 @@ STATEDIR_DLCONFIG = "dlconfig.pickle"
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.defaults import DLDEFAULTS_VERSION, dldefaults
 
-
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
     __single = None
 
@@ -30,11 +29,15 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         return DefaultDownloadStartupConfig.__single
     getInstance = staticmethod(getInstance)
 
+    def delInstance(*args, **kw):
+        DefaultDownloadStartupConfig.__single = None
+    delInstance = staticmethod(delInstance)
+
     def updateToCurrentVersion(self):
         newKeys = DownloadStartupConfig.updateToCurrentVersion(self)
         if newKeys:
             for key in newKeys:
-                print >>sys.stderr, "DefaultDownloadStartupConfig: Adding field", key
+                print >> sys.stderr, "DefaultDownloadStartupConfig: Adding field", key
     #
     # Class method
     #
