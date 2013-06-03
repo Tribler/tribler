@@ -53,10 +53,13 @@ cp swift ../..
 cd ../..
 cp swift dist/installdir/Tribler.app/Contents/MacOS/
 
-mkdir -p dist/temp 
+#Copy logger.conf
+cp logger.conf dist/installdir/Tribler.app/Contents/MacOS/
+
+mkdir -p dist/temp
 
 # create image
-hdiutil create -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg 
+hdiutil create -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
 
 # open it
 hdiutil attach -readwrite -noverify -noautoopen dist/$APPNAME.dmg -mountpoint dist/temp/mnt
