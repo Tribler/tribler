@@ -1,6 +1,7 @@
 import wx
 import wx.html2
 import urlparse
+import urllib2
 import time
 import thread
 import sys
@@ -112,20 +113,41 @@ class WebBrowser(XRCPanel):
     def RemoveLoadedListener(self, listener):
         self.loadlisteners.remove(listener)
     
+    def __UrlToPageSrc(self, url):
+        try:
+            req = urllib2.Request(url, headers={'User-Agent':"Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11"})
+            opener = urllib2.build_opener()
+            contents = opener.open(req)
+            return contents.read()
+        except urllib2.URLError, e:
+            return ''   # URL unknown, probably about:blank
+    
+    def __notifyLoadedListeners(self, event):
+        for listener in self.loadlisteners:
+            try:
+                listener.webpageLoaded(event, self.__UrlToPageSrc(event.GetURL()))
+            except:
+                #Anything can go wrong with custom listeners, not our problem
+                print >> sys.stderr, "WebBrowser: An error occurred in LoadedListener " + str(listener)
+                traceback.print_exc()
+    
+    class MockEvent(object):
+        
+        def __init__(self, url):
+            self.url = url
+            
+        def GetURL(self):
+            return self.url
+    
     def onURLNavigating(self, event):
         self.HideInfoBar()
+        mockEvent = WebBrowser.MockEvent(event.GetURL())
+        thread.start_new(self.__notifyLoadedListeners, (mockEvent,))
     
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''
         #Update the adressbar
         self.adressBar.SetValue(self.webview.GetCurrentURL())
-        for listener in self.loadlisteners:
-            try:
-                listener.webpageLoaded(event, self.webview.GetPageSource())
-            except:
-                #Anything can go wrong with custom listeners, not our problem
-                print >> sys.stderr, "WebBrowser: An error occurred in LoadedListener " + str(listener)
-                traceback.print_exc()
     
     def OnInfoBarMouseOver(self, event):
         """When we roll over the InfoBar, set our background to be brighter
