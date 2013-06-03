@@ -109,6 +109,9 @@ class AllChannelCommunity(Community):
 
         self._blocklist = {}
         self._searchCallbacks = {}
+        
+        from Tribler.community.channel.community import register_callback
+        register_callback(dispersy.callback)
 
     def initiate_meta_messages(self):
         batch_delay = 1.0
