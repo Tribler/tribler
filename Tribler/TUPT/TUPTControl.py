@@ -2,6 +2,8 @@ import wx
 import time
 import urlparse
 
+from threading import Event
+
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -31,6 +33,8 @@ class TUPTControl:
     
     __infoBar = None
     __movieTorrentIterator = None
+    __callbackTDEvent = Event()
+    __callbackTorrentdef = None
     
     def __init__(self, pluginManager = PluginManager()):
         self.pluginmanager = pluginManager
@@ -100,7 +104,12 @@ class TUPTControl:
         if url.startswith('http://'):            
             torrentDef  = TorrentDef.load_from_url(url)
         elif url.startswith('magnet:?'):
-            torrentDef  = TorrentDef.retrieve_from_magnet(url, self.__MagnetCallback())
+            TorrentDef.retrieve_from_magnet(url, self.__MagnetCallback)
+            self.__callbackTDEvent.wait()
+            torrentDef = self.__callbackTorrentdef
+            self.__callbackTorrentdef = None
+            self.__callbackTDEvent.clear()
+            
         session = Session.get_instance()
         #Check if a torrent is already added.        
         downloadState = self.__FindDownloadStateByInfoHash(torrentDef.infohash)   
@@ -111,8 +120,9 @@ class TUPTControl:
         libraryManager = LibraryManager.getInstance()
         libraryManager.PlayDownloadState(downloadState)      
         
-    def __MagnetCallback(self):
-        pass    
+    def __MagnetCallback(self, torrentdef):
+        self.__callbackTorrentdef = torrentdef
+        self.__callbackTDEvent.set()    
  
     def __FindDownloadStateByInfoHash(self, infohash):
         downloadStateList = LibraryManager.getInstance().dslist  
