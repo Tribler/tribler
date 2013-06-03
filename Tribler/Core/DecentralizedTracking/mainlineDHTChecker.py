@@ -37,19 +37,13 @@ class mainlineDHTChecker:
         if DEBUG:
             print >> sys.stderr, "mainlineDHTChecker: Lookup", repr(infohash)
 
-        if self.dht is not None:
-            from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id, IdError
-            try:
-                infohash_id = Id(infohash)
-                self.dht.get_peers(infohash, infohash_id, self.got_peers_callback, use_cache=True)
-            except (IdError):
-                print >> sys.stderr, "Rerequester: _dht_rerequest: self.info_hash is not a valid identifier"
-                return
-        elif DEBUG:
-            print >> sys.stderr, "mainlineDHTChecker: No lookup, no DHT support loaded"
+        try:
+            from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+            LibtorrentMgr.getInstance().get_peers(infohash, self.got_peers_callback)
+        except:
+            print >> sys.stderr, "mainlineDHTChecker: No lookup, libtorrent not loaded"
 
     def got_peers_callback(self, infohash, peers, node=None):
-        """ Called by network thread """
         if DEBUG:
             if peers:
                 print >> sys.stderr, "mainlineDHTChecker: Got", len(peers), "peers for torrent", repr(infohash), currentThread().getName()
