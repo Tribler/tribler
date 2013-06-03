@@ -54,7 +54,7 @@ cd ../..
 cp swift dist/installdir/Tribler.app/Contents/MacOS/
 
 #Copy logger.conf
-cp logger.conf dist/installdir/Tribler.app/Contents/MacOS/
+cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
 
 mkdir -p dist/temp
 
