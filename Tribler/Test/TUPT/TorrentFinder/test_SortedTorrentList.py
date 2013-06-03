@@ -4,7 +4,7 @@ from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
 from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
 from Tribler.TUPT.Movie import Movie
 
-class testMovieTorrentDef(IMovieTorrentDef):
+class MovieTorrentDefStub(IMovieTorrentDef):
     """Test class with trivial values for testing.
         Allows tester to set return values directly.
         Overwrite by setting variable with lowercase first letter:
@@ -44,10 +44,10 @@ class TestSortedTorrentList(unittest.TestCase):
         '''
         #Arrange
         stList = SortedTorrentList()
-        torrentDef1 = testMovieTorrentDef()
+        torrentDef1 = MovieTorrentDefStub()
         torrentDef1.getSeeders = 10
         torrentDef1.getLeechers = 0 
-        torrentDef2 = testMovieTorrentDef()
+        torrentDef2 = MovieTorrentDefStub()
         torrentDef2.getSeeders = 20
         torrentDef2.getLeechers = 0 
         #Act
@@ -64,10 +64,10 @@ class TestSortedTorrentList(unittest.TestCase):
         '''
         #Arrange
         stList = SortedTorrentList()
-        torrentDef1 = testMovieTorrentDef()
+        torrentDef1 = MovieTorrentDefStub()
         torrentDef1.getSeeders = 10
         torrentDef1.getLeechers = 50 
-        torrentDef2 = testMovieTorrentDef()
+        torrentDef2 = MovieTorrentDefStub()
         torrentDef2.getSeeders = 20
         torrentDef2.getLeechers = 0 
         #Act
@@ -87,10 +87,10 @@ class TestSortedTorrentList(unittest.TestCase):
         wantedMovie = Movie()
         wantedMovie.dictionary = {'Title':'''Barbie's Pretty Pink Ponies'''}
         stList = SortedTorrentList()
-        torrentDef1 = testMovieTorrentDef()
+        torrentDef1 = MovieTorrentDefStub()
         torrentDef1.getMovieDescriptor = wantedMovie
         torrentDef1.getTorrentName = 'barbie pink pony'
-        torrentDef2 = testMovieTorrentDef()
+        torrentDef2 = MovieTorrentDefStub()
         torrentDef2.getMovieDescriptor = wantedMovie
         torrentDef2.getTorrentName = 'barbies pretty pink ponies'
         #Act
@@ -109,9 +109,9 @@ class TestSortedTorrentList(unittest.TestCase):
         userDict = {'RELEASE_GROUP':'BBCRipz'}
         stList = SortedTorrentList()
         stList.SetUserDict(userDict)
-        torrentDef1 = testMovieTorrentDef()
+        torrentDef1 = MovieTorrentDefStub()
         torrentDef1.getTorrentName = '[BBCRipz]Documentary 32'
-        torrentDef2 = testMovieTorrentDef()
+        torrentDef2 = MovieTorrentDefStub()
         torrentDef2.getTorrentName = '[Whatevs]Documentary 32'
         #Act
         stList.Insert(torrentDef1, 1)
@@ -127,10 +127,10 @@ class TestSortedTorrentList(unittest.TestCase):
         '''
         #Arrange
         stList = SortedTorrentList()
-        torrentDef1 = testMovieTorrentDef()
+        torrentDef1 = MovieTorrentDefStub()
         torrentDef1.getSeeders = 25         # 1.25 times as good as the other torrent
         torrentDef1.getLeechers = 0 
-        torrentDef2 = testMovieTorrentDef()
+        torrentDef2 = MovieTorrentDefStub()
         torrentDef2.getSeeders = 20
         torrentDef2.getLeechers = 0 
         #Act
@@ -149,8 +149,8 @@ class TestSortedTorrentList(unittest.TestCase):
         userDict = {'RELEASE_GROUP':'BBCRipz'}
         stList = SortedTorrentList()
         stList.SetUserDict(userDict)
-        torrentDef1 = testMovieTorrentDef()
-        torrentDef2 = testMovieTorrentDef()
+        torrentDef1 = MovieTorrentDefStub()
+        torrentDef2 = MovieTorrentDefStub()
         torrentDef2.getSeeders = 850
         torrentDef2.getLeechers = 500 
         torrentDef2.getTorrentName = '[HorribleRips]Apes in space'
