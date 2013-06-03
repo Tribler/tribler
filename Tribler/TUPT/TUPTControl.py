@@ -102,7 +102,6 @@ class TUPTControl:
         """Download the URL using Tribler and start playing."""
         #Start downloading the torrent.
         if url.startswith('http://'):            
-            print url
             torrentDef  = TorrentDef.load_from_url(url)
         elif url.startswith('magnet:?'):
             TorrentDef.retrieve_from_magnet(url, self.__MagnetCallback)
