@@ -6,6 +6,7 @@ import binascii
 import threading
 import libtorrent as lt
 
+from copy import deepcopy
 from binascii import hexlify
 
 from Tribler.Core import version_id
@@ -62,7 +63,7 @@ class LibtorrentMgr:
         self.torrents = {}
 
         self.metainfo_requests = {}
-        self.metainfo_lock = NoDispersyRLock()
+        self.metainfo_lock = threading.RLock()
         self.metainfo_cache = {}
 
         self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
@@ -223,10 +224,10 @@ class LibtorrentMgr:
 
         self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
 
-    def get_peers(self, infohash_or_magnet, callback, timeout = 30):
-        def on_metainfo_retrieved(metainfo, callback = callback):
-            callback(metainfo['initial peers'])
-        self.get_metainfo(infohash_or_magnet, on_metainfo_retrieved, timeout)
+    def get_peers(self, infohash, callback, timeout = 30):
+        def on_metainfo_retrieved(metainfo, infohash = infohash, callback = callback):
+            callback(infohash, metainfo.get('initial peers', []))
+        self.get_metainfo(infohash, on_metainfo_retrieved, timeout)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout = 30):
         with self.metainfo_lock:
@@ -240,7 +241,7 @@ class LibtorrentMgr:
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                self.trsession.uch.perform_usercallback(lambda cb = callback, mi = cache_result: cb(mi))
+                self.trsession.uch.perform_usercallback(lambda cb = callback, mi = deepcopy(cache_result): cb(mi))
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), prevents libtorrent from creating files
@@ -286,7 +287,7 @@ class LibtorrentMgr:
                     self._add_cached_metainfo(infohash, metainfo)
     
                     for callback in callbacks:
-                        self.trsession.uch.perform_usercallback(lambda cb = callback, mi = metainfo: cb(mi))
+                        self.trsession.uch.perform_usercallback(lambda cb = callback, mi = deepcopy(metainfo): cb(mi))
     
                     if DEBUG:
                         print >> sys.stderr, 'LibtorrentMgr: got_metainfo result', metainfo
