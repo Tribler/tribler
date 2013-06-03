@@ -462,11 +462,9 @@ class ABCApp():
                 dispersy.define_auto_load(BarterCommunity,
                                           (swift_process,),
                                           load=True)
+                
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
-
-            from Tribler.community.channel.community import register_callback
-            register_callback(dispersy.callback)
 
             print >> sys.stderr, "tribler: Dispersy communities are ready"
 
