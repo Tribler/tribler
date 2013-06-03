@@ -28,6 +28,12 @@ files[${#files[*]}]="$HOME/.Tribler/plug-ins/Parser/"
 files[${#files[*]}]="Parser/IMDbParser.yapsy-plugin"
 files[${#files[*]}]="$HOME/.Tribler/plug-ins/Parser/"
 
+files[${#files[*]}]="TorrentFinder/FenopyTorrentFinderPlugin.py"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
+
+files[${#files[*]}]="TorrentFinder/FenopyTorrentFinderPlugin.yapsy-plugin"
+files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
+
 files[${#files[*]}]="TorrentFinder/KatPhTorrentFinderPlugin.py"
 files[${#files[*]}]="$HOME/.Tribler/plug-ins/TorrentFinder/"
 
