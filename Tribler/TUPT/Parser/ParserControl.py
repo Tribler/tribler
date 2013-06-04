@@ -38,7 +38,7 @@ class ParserControl():
         plugin = None
         trust = -1
         for plugin_info in plugins:
-            #Check if you want to use this plugin
+            #Check if you want to use this plugin. This is based on a higher trust and if the plugin can parse the website.
             if self.__GetPluginTrust(plugin_info) > trust and url in plugin_info.plugin_object.GetParseableSites():
                 plugin = plugin_info.plugin_object
                 trust = self.__GetPluginTrust(plugin_info)
