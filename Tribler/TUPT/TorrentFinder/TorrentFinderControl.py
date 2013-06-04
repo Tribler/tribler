@@ -117,7 +117,10 @@ class TorrentFinderControl:
             """Collect all the torrents returned by the plugins and feed them
                 to our parent.
             """
-            list = self.plugin.GetTorrentDefsForMovie(self.movie)
+            try:
+                list = self.plugin.GetTorrentDefsForMovie(self.movie)
+            except Exception:
+                print "Unexpected error in plugin "+ self.name +".\n"+ sys.exc_info()[0]
             print "Plugin " + self.name + " returned " + str(len(list)) + " results."
             for item in list:                
                 if not isinstance(item, IMovieTorrentDef):
@@ -131,5 +134,5 @@ class IllegalTorrentResultException(Exception):
         self.value = value
         
     def __str__(self):
-        return repr(self.value)  
-            
+        return repr(self.value)
+    

@@ -11,17 +11,20 @@ class ParserControl():
         
     def HasParser(self, url):
         '''Return if a parser exists'''
-        plugin, trust = self.__FindPlugin(url)
+        plugin, trust, name = self.__FindPlugin(url)
         return plugin is not None
     
     def ParseWebsite(self,url, html):
         '''Parse a website using the best parser'''
         #Determine parser
-        plugin, trust = self.__FindPlugin(url)
+        plugin, trust, name = self.__FindPlugin(url)
         #Check if we can parse the site
         if plugin:        
             #Run the parse
-            result = plugin.ParseWebSite(html)
+            try:
+                result = plugin.ParseWebSite(html)
+            except Exception:
+                print "Unexpected error in plugin "+ name +"." + sys.exc_info()[0]
             #Return the result
             if result != None:
                 for movie in result:
@@ -39,12 +42,14 @@ class ParserControl():
         plugins =  self.__pluginManager.GetPluginDescriptorsForCategory('Parser')
         plugin = None
         trust = -1
+        name = None
         for plugin_info in plugins:
             #Check if you want to use this plugin. This is based on a higher trust and if the plugin can parse the website.
             if self.__GetPluginTrust(plugin_info) > trust and url in plugin_info.plugin_object.GetParseableSites():
                 plugin = plugin_info.plugin_object
                 trust = self.__GetPluginTrust(plugin_info)
-        return plugin, trust
+                name = plugin_info.name
+        return plugin, trust, name
 
     def __GetPluginTrust(self, plugin_info):
         trust = 0.5
