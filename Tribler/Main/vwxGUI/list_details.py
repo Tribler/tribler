@@ -1464,7 +1464,7 @@ class ChannelDetails(AbstractDetails):
 
         vSizer = wx.FlexGridSizer(0, 2, 3, 10)
         vSizer.AddGrowableCol(1)
-        vSizer.AddGrowableRow(6)
+        vSizer.AddGrowableRow(4 if self.channel.description else 3)
 
         self._add_row(self.overview, vSizer, "Name", self.channel.name)
         if self.channel.description:
