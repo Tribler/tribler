@@ -6,7 +6,9 @@ from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Crypto.Util.number import long_to_bytes, bytes_to_long
 
+
 class SearchConversion(BinaryConversion):
+
     def __init__(self, community):
         super(SearchConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), lambda message: self._encode_decode(self._encode_search_request, self._decode_search_request, message), self._decode_search_request)
@@ -20,29 +22,29 @@ class SearchConversion(BinaryConversion):
         data = BinaryConversion._encode_introduction_request(self, message)
 
         if message.payload.preference_list:
-            fmt = '128s'* (len(message.payload.preference_list) + 1)
+            fmt = '128s' * (len(message.payload.preference_list) + 1)
             if message.payload.key_n:
                 str_n = long_to_bytes(message.payload.key_n, 128)
             else:
-                str_n = long_to_bytes(-1l, 128)
+                str_n = long_to_bytes(-1, 128)
             str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
 
-            data.append(pack('!'+fmt, str_n, *str_prefs))
+            data.append(pack('!' + fmt, str_n, *str_prefs))
 
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
         offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
 
-        #if there's still bytes in this request, treat them as taste_bloom_filter
+        # if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
             length = len(data) - offset
             if length % 128 != 0 or length < 128:
                 raise DropPacket("Invalid number of bytes available (ir)")
 
-            hashpack = '128s' * (length/128)
-            hashes = unpack_from('!'+hashpack, data, offset)
+            hashpack = '128s' * (length / 128)
+            hashes = unpack_from('!' + hashpack, data, offset)
 
             str_n = hashes[0]
             payload.set_key_n(bytes_to_long(str_n))
@@ -55,8 +57,8 @@ class SearchConversion(BinaryConversion):
 
     def _encode_encr_response(self, message):
         str_identifer = pack("!H", message.payload.identifier)
-        str_prefs = pack("!"+"128s"*len(message.payload.preference_list), *[long_to_bytes(preference, 128) for preference in message.payload.preference_list])
-        str_hprefs = pack("!"+"20s"*len(message.payload.his_preference_list), *message.payload.his_preference_list)
+        str_prefs = pack("!" + "128s" *len(message.payload.preference_list), *[long_to_bytes(preference, 128) for preference in message.payload.preference_list])
+        str_hprefs = pack("!" + "20s" *len(message.payload.his_preference_list), *message.payload.his_preference_list)
         return encode([str_identifer, str_prefs, str_hprefs]),
 
     def _decode_encr_response(self, placeholder, offset, data):
@@ -73,16 +75,16 @@ class SearchConversion(BinaryConversion):
         if length % 128 != 0:
             raise DropPacket("Invalid number of bytes available (encr_res)")
         if length:
-            hashpack = '128s' * (length/128)
-            hashes = unpack_from('!'+hashpack, str_prefs)
+            hashpack = '128s' * (length / 128)
+            hashes = unpack_from('!' + hashpack, str_prefs)
             hashes = [bytes_to_long(hash) for hash in hashes]
 
         length = len(str_hprefs)
         if length % 20 != 0:
             raise DropPacket("Invalid number of bytes available (encr_res)")
         if length:
-            hashpack = '20s' * (length/20)
-            his_hashes = list(unpack_from('!'+hashpack, str_hprefs))
+            hashpack = '20s' * (length / 20)
+            his_hashes = list(unpack_from('!' + hashpack, str_hprefs))
         else:
             his_hashes = []
 
@@ -107,7 +109,7 @@ class SearchConversion(BinaryConversion):
         identifier, keywords = payload[:2]
 
         if len(identifier) != 4:
-            raise DropPacket("Unable to decode the search-payload, got %d bytes expected 4"%(len(identifier)))
+            raise DropPacket("Unable to decode the search-payload, got %d bytes expected 4" % (len(identifier)))
         identifier, ttl = unpack_from('!HH', identifier)
 
         if not isinstance(keywords, list):
@@ -157,7 +159,7 @@ class SearchConversion(BinaryConversion):
         identifier, results = payload[:2]
 
         if len(identifier) != 2:
-            raise DropPacket("Unable to decode the search-response-payload, got %d bytes expected 2"%(len(identifier)))
+            raise DropPacket("Unable to decode the search-response-payload, got %d bytes expected 2" % (len(identifier)))
         identifier, = unpack_from('!H', identifier)
 
         if not isinstance(results, list):
@@ -181,7 +183,7 @@ class SearchConversion(BinaryConversion):
                 raise DropPacket("Invalid swarmname type")
 
             if not isinstance(length, long):
-                raise DropPacket("Invalid length type '%s'"%type(length))
+                raise DropPacket("Invalid length type '%s'" % type(length))
 
             if not isinstance(nrfiles, int):
                 raise DropPacket("Invalid nrfiles type")
@@ -196,14 +198,14 @@ class SearchConversion(BinaryConversion):
                 raise DropPacket("Invalid creation_date type")
 
             if not isinstance(seeders, int):
-                raise DropPacket("Invalid seeders type '%s'"%type(seeders))
+                raise DropPacket("Invalid seeders type '%s'" % type(seeders))
 
             if not isinstance(leechers, int):
-                raise DropPacket("Invalid leechers type '%s'"%type(leechers))
+                raise DropPacket("Invalid leechers type '%s'" % type(leechers))
 
             if swift_hash:
                 if not isinstance(swift_hash, str):
-                    raise DropPacket("Invalid swift_hash type '%s'"%type(swift_hash))
+                    raise DropPacket("Invalid swift_hash type '%s'" % type(swift_hash))
 
                 if len(swift_hash) != 20:
                     raise DropPacket("Invalid swift_hash length")
@@ -227,7 +229,7 @@ class SearchConversion(BinaryConversion):
     def _encode_ping(self, message):
         hashpack = '20s20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]
-        return pack('!H'+hashpack, message.payload.identifier, *torrents),
+        return pack('!H' + hashpack, message.payload.identifier, *torrents),
 
     def _decode_ping(self, placeholder, offset, data):
         if len(data) < offset + 2:
@@ -241,13 +243,13 @@ class SearchConversion(BinaryConversion):
             raise DropPacket("Invalid number of bytes available")
 
         if length:
-            hashpack = '20s20sHHH' * (length/46)
-            hashes = unpack_from('!'+hashpack, data, offset)
+            hashpack = '20s20sHHH' * (length / 46)
+            hashes = unpack_from('!' + hashpack, data, offset)
             offset += length
 
             torrents = []
             for i in range(0, len(hashes), 5):
-                torrents.append([hashes[i], hashes[i+1], hashes[i+2], hashes[i+3], hashes[i+4]])
+                torrents.append([hashes[i], hashes[i + 1], hashes[i +2], hashes[i+3], hashes[i+4]])
         else:
             torrents = []
 
@@ -255,11 +257,12 @@ class SearchConversion(BinaryConversion):
 
     def _encode_pong(self, message):
         return self._encode_ping(message)
+
     def _decode_pong(self, placeholder, offset, data):
         return self._decode_ping(placeholder, offset, data)
 
     def _encode_torrent_request(self, message):
-        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
 
         def create_msg():
             return encode(message.payload.torrents)
@@ -271,7 +274,7 @@ class SearchConversion(BinaryConversion):
             if nrTorrents == 1:
                 del message.payload.torrents[community]
             else:
-                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents-1))
+                message.payload.torrents[community] = set(sample(message.payload.torrents[community], nrTorrents - 1))
 
             packet = create_msg()
         return packet,
@@ -305,7 +308,9 @@ class SearchConversion(BinaryConversion):
             pass
         return result
 
+
 class PSearchConversion(SearchConversion):
+
     def __init__(self, community):
         SearchConversion.__init__(self, community)
         self.define_meta_message(chr(8), community.get_meta_message(u"sum-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
@@ -318,7 +323,7 @@ class PSearchConversion(SearchConversion):
         str_n = long_to_bytes(message.payload.key_n, 128)
         str_prefs = [long_to_bytes(preference, 256) for preference in message.payload.preference_list]
 
-        fmt = "!H128s" + "256s"*len(str_prefs)
+        fmt = "!H128s" + "256s" * len(str_prefs)
         packet = pack(fmt, message.payload.identifier, str_n, *str_prefs)
         return packet,
 
@@ -331,8 +336,8 @@ class PSearchConversion(SearchConversion):
             raise DropPacket("Invalid number of bytes available (encr_res)")
 
         if length:
-            hashpack = '256s' * (length/256)
-            str_prefs = unpack_from('!'+hashpack, data, offset)
+            hashpack = '256s' * (length / 256)
+            str_prefs = unpack_from('!' + hashpack, data, offset)
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
 
@@ -341,7 +346,7 @@ class PSearchConversion(SearchConversion):
     def _encode_global_vector(self, message):
         str_prefs = [long_to_bytes(preference, 256) for preference in message.payload.preference_list]
 
-        fmt = "!H" + "256s"*len(str_prefs)
+        fmt = "!H" + "256s" * len(str_prefs)
         packet = pack(fmt, message.payload.identifier, *str_prefs)
         return packet,
 
@@ -354,8 +359,8 @@ class PSearchConversion(SearchConversion):
             raise DropPacket("Invalid number of bytes available (global_vector)")
 
         if length:
-            hashpack = '256s' * (length/256)
-            str_prefs = unpack_from('!'+hashpack, data, offset)
+            hashpack = '256s' * (length / 256)
+            str_prefs = unpack_from('!' + hashpack, data, offset)
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
 
@@ -393,11 +398,11 @@ class PSearchConversion(SearchConversion):
 
         _sums = []
         if length:
-            hashpack = '20s256s' * (length/276)
-            raw_values = unpack_from('!'+hashpack, data, offset)
-            for i in range(len(raw_values)/2):
-                candidate_mid = raw_values[i*2]
-                _sums.append([candidate_mid, bytes_to_long(raw_values[(i*2)+1])])
+            hashpack = '20s256s' * (length / 276)
+            raw_values = unpack_from('!' + hashpack, data, offset)
+            for i in range(len(raw_values) / 2):
+                candidate_mid = raw_values[i * 2]
+                _sums.append([candidate_mid, bytes_to_long(raw_values[(i * 2) +1])])
 
             offset += length
 
@@ -413,7 +418,7 @@ class PSearchConversion(SearchConversion):
     def _decode_introduction_request(self, placeholder, offset, data):
         offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
 
-        #if there's still bytes in this request, treat them as taste_bloom_filter
+        # if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
             length = len(data) - offset
@@ -425,6 +430,7 @@ class PSearchConversion(SearchConversion):
 
             offset += length
         return offset, payload
+
 
 class HSearchConversion(SearchConversion):
 
@@ -438,7 +444,7 @@ class HSearchConversion(SearchConversion):
         str_n = long_to_bytes(message.payload.key_n, 128)
         str_prefs = [long_to_bytes(preference, 128) for preference in message.payload.preference_list]
 
-        fmt = "!H128s" + "128s"*len(str_prefs)
+        fmt = "!H128s" + "128s" * len(str_prefs)
         packet = pack(fmt, message.payload.identifier, str_n, *str_prefs)
         return packet,
 
@@ -451,8 +457,8 @@ class HSearchConversion(SearchConversion):
             raise DropPacket("Invalid number of bytes available (simi_request)")
 
         if length:
-            hashpack = '128s' * (length/128)
-            str_prefs = unpack_from('!'+hashpack, data, offset)
+            hashpack = '128s' * (length / 128)
+            str_prefs = unpack_from('!' + hashpack, data, offset)
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
             offset += length
         else:
@@ -463,8 +469,8 @@ class HSearchConversion(SearchConversion):
     def _encode_simi_response(self, message):
         def _encode_response(mid, preference_list, his_preference_list):
             str_mid = pack("!20s", mid) if mid else ''
-            str_prefs = pack("!"+"128s"*len(preference_list), *[long_to_bytes(preference, 128) for preference in preference_list])
-            str_hprefs = pack("!"+"20s"*len(his_preference_list), *his_preference_list)
+            str_prefs = pack("!" + "128s" *len(preference_list), *[long_to_bytes(preference, 128) for preference in preference_list])
+            str_hprefs = pack("!" + "20s" *len(his_preference_list), *his_preference_list)
             return (str_mid, str_prefs, str_hprefs)
 
         responses = []
@@ -484,7 +490,7 @@ class HSearchConversion(SearchConversion):
         identifier, responses = payload[:2]
 
         if len(identifier) != 2:
-            raise DropPacket("Unable to decode the search-response-payload, got %d bytes expected 2"%(len(identifier)))
+            raise DropPacket("Unable to decode the search-response-payload, got %d bytes expected 2" % (len(identifier)))
         identifier, = unpack_from('!H', identifier)
 
         prefs = hprefs = None
@@ -494,21 +500,21 @@ class HSearchConversion(SearchConversion):
             if length % 128 != 0:
                 raise DropPacket("Invalid number of bytes available (encr_res)")
             if length:
-                hashpack = '128s' * (length/128)
-                hashes = unpack_from('!'+hashpack, str_prefs)
+                hashpack = '128s' * (length / 128)
+                hashes = unpack_from('!' + hashpack, str_prefs)
                 hashes = [bytes_to_long(hash) for hash in hashes]
 
             length = len(str_hprefs)
             if length % 20 != 0:
                 raise DropPacket("Invalid number of bytes available (encr_res)")
             if length:
-                hashpack = '20s' * (length/20)
-                his_hashes = list(unpack_from('!'+hashpack, str_hprefs))
+                hashpack = '20s' * (length / 20)
+                his_hashes = list(unpack_from('!' + hashpack, str_hprefs))
             else:
                 his_hashes = []
 
             if str_mid:
-                str_mid, = unpack_from("!20s",str_mid)
+                str_mid, = unpack_from("!20s", str_mid)
                 bundled_responses.append((str_mid, (hashes, his_hashes)))
             else:
                 prefs = hashes
@@ -526,7 +532,7 @@ class HSearchConversion(SearchConversion):
     def _decode_introduction_request(self, placeholder, offset, data):
         offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
 
-        #if there's still bytes in this request, treat them as taste_bloom_filter
+        # if there's still bytes in this request, treat them as taste_bloom_filter
         has_stuff = len(data) > offset
         if has_stuff:
             length = len(data) - offset

@@ -17,8 +17,8 @@ FORMAT = '%(asctime)s %(levelname)s %(filename)s:%(lineno)s - %(funcName)s()\n\
 #                    stream=devnullstream)
 
 
-LOG_SIZE_LIMIT_NORMAL = 10 * 2**20 # 10 MB
-LOG_SIZE_LIMIT_DEBUG = 2**30 # 1 GB
+LOG_SIZE_LIMIT_NORMAL = 10 * 2 ** 20  # 10 MB
+LOG_SIZE_LIMIT_DEBUG = 2 ** 30  # 1 GB
 
 
 def testing_setup(module_name):
@@ -36,6 +36,7 @@ def testing_setup(module_name):
     logger_conf.setFormatter(logging.Formatter(FORMAT))
     logger.addHandler(logger_conf)
 
+
 def setup(logs_path, logs_level):
     logger = logging.getLogger('dht')
     logger.setLevel(logs_level)
@@ -50,3 +51,14 @@ def setup(logs_path, logs_level):
     logger_conf.setLevel(logs_level)
     logger_conf.setFormatter(logging.Formatter(FORMAT))
     logger.addHandler(logger_conf)
+
+
+def close():
+    logger = logging.getLogger('dht')
+    for i in list(logger.handlers):
+        logger.removeHandler(i)
+        try:
+            i.flush()
+            i.close()
+        except:
+            pass

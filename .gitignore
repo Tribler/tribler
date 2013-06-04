@@ -1,9 +1,10 @@
 *.pyc
 *.pyo
-swift
-/.Tribler/
-/.noseids
-.#*
-\#*\#
 *~
 .html
+\#*\#
+/.Tribler
+/.noseids
+/output
+/swift
+/swift.exe

@@ -4,7 +4,8 @@
 import wx
 import wx.xrc as xrc
 import wx.lib.imagebrowser as ib
-import sys, os
+import sys
+import os
 import cStringIO
 import tempfile
 import atexit
@@ -13,7 +14,7 @@ import atexit
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.IconsManager import IconsManager, data2wxImage, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.Dialogs.socnetmyinfo import MyInfoWizard
-from Tribler.Main.globals import DefaultDownloadStartupConfig,get_default_dscfg_filename
+from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING
 from Tribler.Core.API import *
@@ -24,32 +25,34 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
 
+
 class SettingsDialog(wx.Dialog):
+
     def __init__(self):
-        self.elementsName = ['myNameField', \
-                             'thumb', \
-                             'edit', \
-                             'browse', \
-                             'firewallValue', \
-                             'firewallStatusText', \
-                             'firewallStatus', \
-                             'uploadCtrl', \
-                             'downloadCtrl', \
-                             'zeroUp', \
-                             'fiftyUp', \
-                             'hundredUp', \
-                             'unlimitedUp', \
-                             'seventyfiveDown', \
-                             'threehundredDown', \
-                             'sixhundreddDown', \
-                             'unlimitedDown', \
-                             'diskLocationCtrl', \
-                             'diskLocationChoice', \
-                             'portChange', \
-                             'minimize_to_tray',\
-                             't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',\
-                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',\
-                             'use_webui', \
+        self.elementsName = ['myNameField',
+                             'thumb',
+                             'edit',
+                             'browse',
+                             'firewallValue',
+                             'firewallStatusText',
+                             'firewallStatus',
+                             'uploadCtrl',
+                             'downloadCtrl',
+                             'zeroUp',
+                             'fiftyUp',
+                             'hundredUp',
+                             'unlimitedUp',
+                             'seventyfiveDown',
+                             'threehundredDown',
+                             'sixhundreddDown',
+                             'unlimitedDown',
+                             'diskLocationCtrl',
+                             'diskLocationChoice',
+                             'portChange',
+                             'minimize_to_tray',
+                             't4t0', 't4t0choice', 't4t1', 't4t2', 't4t2text', 't4t3',
+                             'g2g0', 'g2g0choice', 'g2g1', 'g2g2', 'g2g2text', 'g2g3',
+                             'use_webui',
                              'webui_port']
 
         self.myname = None
@@ -82,20 +85,20 @@ class SettingsDialog(wx.Dialog):
         for element in self.elementsName:
             xrcElement = xrc.XRCCTRL(dialog, element)
             if not xrcElement:
-                print 'settingsOverviewPanel: Error: Could not identify xrc element:',element
+                print 'settingsOverviewPanel: Error: Could not identify xrc element:', element
             self.elements[element] = xrcElement
 
-        #Building tree
-        self.tree = xrc.XRCCTRL(self,"settings_tree")
+        # Building tree
+        self.tree = xrc.XRCCTRL(self, "settings_tree")
         root = self.tree.AddRoot('Root')
-        self.tree.SelectItem(self.tree.AppendItem(root,'General',data=wx.TreeItemData(xrc.XRCCTRL(self,"general_panel"))),True)
-        self.tree.AppendItem(root,'Connection',data=wx.TreeItemData(xrc.XRCCTRL(self,"connection_panel")))
-        self.tree.AppendItem(root,'Limits',data=wx.TreeItemData(xrc.XRCCTRL(self,"bandwidth_panel")))
-        self.tree.AppendItem(root,'Seeding',data=wx.TreeItemData(xrc.XRCCTRL(self,"seeding_panel")))
-        self.tree.AppendItem(root,'Experimental',data=wx.TreeItemData(xrc.XRCCTRL(self,"exp_panel")))
+        self.tree.SelectItem(self.tree.AppendItem(root, 'General', data=wx.TreeItemData(xrc.XRCCTRL(self, "general_panel"))), True)
+        self.tree.AppendItem(root, 'Connection', data=wx.TreeItemData(xrc.XRCCTRL(self, "connection_panel")))
+        self.tree.AppendItem(root, 'Limits', data=wx.TreeItemData(xrc.XRCCTRL(self, "bandwidth_panel")))
+        self.tree.AppendItem(root, 'Seeding', data=wx.TreeItemData(xrc.XRCCTRL(self, "seeding_panel")))
+        self.tree.AppendItem(root, 'Experimental', data=wx.TreeItemData(xrc.XRCCTRL(self, "exp_panel")))
         self.tree.Bind(wx.EVT_TREE_SEL_CHANGING, self.OnSelectionChanging)
 
-        #Bind event listeners
+        # Bind event listeners
         self.elements['zeroUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(0, event))
         self.elements['fiftyUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(50, event))
         self.elements['hundredUp'].Bind(wx.EVT_BUTTON, lambda event: self.setUp(100, event))
@@ -112,10 +115,10 @@ class SettingsDialog(wx.Dialog):
         self.elements['edit'].Bind(wx.EVT_BUTTON, self.EditClicked)
         self.elements['browse'].Bind(wx.EVT_BUTTON, self.BrowseClicked)
 
-        self.Bind(wx.EVT_BUTTON, self.saveAll, id = xrc.XRCID("wxID_OK"))
-        self.Bind(wx.EVT_BUTTON, self.cancelAll, id = xrc.XRCID("wxID_CANCEL"))
+        self.Bind(wx.EVT_BUTTON, self.saveAll, id=xrc.XRCID("wxID_OK"))
+        self.Bind(wx.EVT_BUTTON, self.cancelAll, id=xrc.XRCID("wxID_CANCEL"))
 
-        #Loading settings
+        # Loading settings
         self.myname = self.utility.session.get_nickname()
         mime, data = self.utility.session.get_mugshot()
         if data is None:
@@ -131,7 +134,7 @@ class SettingsDialog(wx.Dialog):
             self.elements['firewallStatus'].setSelected(2)
             self.elements['firewallStatusText'].SetLabel('Port is working')
 
-        self.currentPortValue = str(self.guiUtility.get_port_number())
+        self.currentPortValue = str(self.utility.session.get_listen_port())
         self.elements['firewallValue'].SetValue(self.currentPortValue)
 
         self.elements['downloadCtrl'].SetValue(self.utility.getMaxDown())
@@ -142,7 +145,7 @@ class SettingsDialog(wx.Dialog):
         self.elements['diskLocationChoice'].SetValue(self.defaultDLConfig.get_show_saveas())
 
         if sys.platform != "darwin":
-            min_to_tray =  self.utility.config.Read('mintray', "int") == 1
+            min_to_tray = self.utility.config.Read('mintray', "int") == 1
             self.elements['minimize_to_tray'].SetValue(min_to_tray)
         else:
             self.elements['minimize_to_tray'].Enable(False)
@@ -159,26 +162,26 @@ class SettingsDialog(wx.Dialog):
         self.elements['g2g3'].SetLabel(self.utility.lang.get('no_seeding'))
 
         t4t_option = self.utility.config.Read('t4t_option', 'int')
-        self.elements['t4t%d'%t4t_option].SetValue(True)
-        t4t_ratio = self.utility.config.Read('t4t_ratio', 'int')/100.0
+        self.elements['t4t%d' % t4t_option].SetValue(True)
+        t4t_ratio = self.utility.config.Read('t4t_ratio', 'int') / 100.0
         index = self.elements['t4t0choice'].FindString(str(t4t_ratio))
         if index != wx.NOT_FOUND:
             self.elements['t4t0choice'].Select(index)
 
         t4t_hours = self.utility.config.Read('t4t_hours', 'int')
         t4t_minutes = self.utility.config.Read('t4t_mins', 'int')
-        self.elements['t4t2text'].SetLabel("%d:%d"%(t4t_hours, t4t_minutes))
+        self.elements['t4t2text'].SetLabel("%d:%d" % (t4t_hours, t4t_minutes))
 
         g2g_option = self.utility.config.Read('g2g_option', 'int')
-        self.elements['g2g%d'%g2g_option].SetValue(True)
-        g2g_ratio = self.utility.config.Read('g2g_ratio', 'int')/100.0
+        self.elements['g2g%d' % g2g_option].SetValue(True)
+        g2g_ratio = self.utility.config.Read('g2g_ratio', 'int') / 100.0
         index = self.elements['g2g0choice'].FindString(str(g2g_ratio))
         if index != wx.NOT_FOUND:
             self.elements['g2g0choice'].Select(index)
 
         g2g_hours = self.utility.config.Read('g2g_hours', 'int')
         g2g_mins = self.utility.config.Read('g2g_mins', 'int')
-        self.elements['g2g2text'].SetLabel("%d:%d"%(g2g_hours, g2g_mins))
+        self.elements['g2g2text'].SetLabel("%d:%d" % (g2g_hours, g2g_mins))
 
         self.elements['use_webui'].SetValue(self.utility.config.Read('use_webui', "boolean"))
         self.elements['webui_port'].SetValue(str(self.utility.config.Read('webui_port', "int")))
@@ -206,14 +209,14 @@ class SettingsDialog(wx.Dialog):
         self.Layout()
         self.Refresh()
 
-    def setUp(self, value, event = None):
+    def setUp(self, value, event=None):
         self.resetUploadDownloadCtrlColour()
         self.elements['uploadCtrl'].SetValue(str(value))
 
         if event:
             event.Skip()
 
-    def setDown(self, value, event = None):
+    def setDown(self, value, event=None):
         self.resetUploadDownloadCtrlColour()
         self.elements['downloadCtrl'].SetValue(str(value))
 
@@ -267,7 +270,6 @@ class SettingsDialog(wx.Dialog):
                     else:
                         self.elements['t4t2text'].SetValue('')
 
-
         hours_min = self.elements['g2g2text'].GetValue()
         if len(hours_min) == 0:
             if self.elements['g2g2'].GetValue():
@@ -285,7 +287,7 @@ class SettingsDialog(wx.Dialog):
         if not valwebuiport.isdigit():
             errors['webui_port'] = 'Value must be a digit'
 
-        if len(errors) == 0: #No errors found, continue saving
+        if len(errors) == 0:  # No errors found, continue saving
             restart = False
 
             state_dir = self.utility.session.get_state_dir()
@@ -302,7 +304,6 @@ class SettingsDialog(wx.Dialog):
                 scfg.set_dispersy_port(int(valport) - 1)
                 self.saveDefaultDownloadConfig(scfg)
 
-                self.guiUtility.set_port_number(valport)
                 self.guiUtility.set_firewall_restart(True)
                 restart = True
 
@@ -327,12 +328,12 @@ class SettingsDialog(wx.Dialog):
                 self.utility.config.Write('webui_port', valwebuiport, "int")
                 restart = True
 
-            curMintray =  self.utility.config.Read('mintray', "int")
+            curMintray = self.utility.config.Read('mintray', "int")
             minimizeToTray = 1 if self.elements['minimize_to_tray'].IsChecked() else 0
             if minimizeToTray != curMintray:
                 self.utility.config.Write('mintray', minimizeToTray, "int")
 
-            for target in [scfg,self.utility.session]:
+            for target in [scfg, self.utility.session]:
                 try:
                     target.set_nickname(self.elements['myNameField'].GetValue())
                     if getattr(self, 'icondata', False):
@@ -344,21 +345,21 @@ class SettingsDialog(wx.Dialog):
 
             # tit-4-tat
             t4t_option = self.utility.config.Read('t4t_option', 'int')
-            for i in range (4):
-                if self.elements['t4t%d'%i].GetValue():
+            for i in range(4):
+                if self.elements['t4t%d' % i].GetValue():
                     self.utility.config.Write('t4t_option', i)
 
                     if i != t4t_option:
                         restart = True
 
                     break
-            t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection())*100)
+            t4t_ratio = int(float(self.elements['t4t0choice'].GetStringSelection()) * 100)
             self.utility.config.Write("t4t_ratio", t4t_ratio)
 
             hours_min = self.elements['t4t2text'].GetValue()
             hours_min = hours_min.split(':')
             if len(hours_min) > 0:
-                if len(hours_min)>1:
+                if len(hours_min) > 1:
                     self.utility.config.Write("t4t_hours", hours_min[0])
                     self.utility.config.Write("t4t_mins", hours_min[1])
                 else:
@@ -367,20 +368,20 @@ class SettingsDialog(wx.Dialog):
 
             # give-2-get
             g2g_option = self.utility.config.Read('g2g_option', 'int')
-            for i in range (4):
-                if self.elements['g2g%d'%i].GetValue():
+            for i in range(4):
+                if self.elements['g2g%d' % i].GetValue():
                     self.utility.config.Write("g2g_option", i)
 
                     if i != g2g_option:
                         restart = True
                     break
-            g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection())*100)
+            g2g_ratio = int(float(self.elements['g2g0choice'].GetStringSelection()) * 100)
             self.utility.config.Write("g2g_ratio", g2g_ratio)
 
             hours_min = self.elements['g2g2text'].GetValue()
             hours_min = hours_min.split(':')
             if len(hours_min) > 0:
-                if len(hours_min)>1:
+                if len(hours_min) > 1:
                     self.utility.config.Write("g2g_hours", hours_min[0])
                     self.utility.config.Write("g2g_mins", hours_min[1])
                 else:
@@ -390,7 +391,7 @@ class SettingsDialog(wx.Dialog):
             self.utility.config.Flush()
 
             if restart:
-                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?","Restart required", wx.ICON_QUESTION|wx.YES_NO|wx.YES_DEFAULT)
+                dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO |wx.YES_DEFAULT)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.guiUtility.frame.Restart()
                 dlg.Destroy()
@@ -408,7 +409,7 @@ class SettingsDialog(wx.Dialog):
     def cancelAll(self, event):
         self.EndModal(1)
 
-    def EditClicked(self, event = None):
+    def EditClicked(self, event=None):
         dlg = ib.ImageDialog(self, get_picture_dir())
         dlg.Centre()
         if dlg.ShowModal() == wx.ID_OK:
@@ -418,8 +419,8 @@ class SettingsDialog(wx.Dialog):
             pass
         dlg.Destroy()
 
-    def BrowseClicked(self, event = None):
-        dlg = wx.DirDialog(self,"Choose download directory", style = wx.DEFAULT_DIALOG_STYLE)
+    def BrowseClicked(self, event=None):
+        dlg = wx.DirDialog(self, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath(self.defaultDLConfig.get_dest_dir())
         if dlg.ShowModal() == wx.ID_OK:
             self.elements['diskLocationCtrl'].SetForegroundColour(wx.BLACK)
@@ -429,7 +430,7 @@ class SettingsDialog(wx.Dialog):
 
     def _SelectAll(self, dlg, event, nrchoices):
         if event.ControlDown():
-            if event.GetKeyCode() == 65: #ctrl + a
+            if event.GetKeyCode() == 65:  # ctrl + a
                 if dlg.allselected:
                     dlg.SetSelections([])
                 else:
@@ -438,18 +439,18 @@ class SettingsDialog(wx.Dialog):
                 dlg.allselected = not dlg.allselected
 
     def saveDefaultDownloadConfig(self, scfg):
+        state_dir = self.utility.session.get_state_dir()
+
         # Save DownloadStartupConfig
-        dlcfgfilename = get_default_dscfg_filename(self.utility.session)
+        dlcfgfilename = get_default_dscfg_filename(state_dir)
         self.defaultDLConfig.save(dlcfgfilename)
 
         # Arno, 2010-03-08: Apparently not copied correctly from abcoptions.py
         # Save SessionStartupConfig
         # Also change torrent collecting dir, which is by default in the default destdir
-
-        state_dir = self.utility.session.get_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
         defaultdestdir = self.defaultDLConfig.get_dest_dir()
-        for target in [scfg,self.utility.session]:
+        for target in [scfg, self.utility.session]:
             try:
                 target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
             except:
@@ -461,7 +462,7 @@ class SettingsDialog(wx.Dialog):
         scfg.save(cfgfilename)
 
     def moveCollectedTorrents(self, old_dir, new_dir):
-        def rename_or_merge(old, new, ignore = True):
+        def rename_or_merge(old, new, ignore=True):
             if os.path.exists(old):
                 if os.path.exists(new):
                     files = os.listdir(old)
@@ -482,7 +483,7 @@ class SettingsDialog(wx.Dialog):
                     os.renames(old, new)
 
         def move(old_dir, new_dir):
-            #physical move
+            # physical move
             old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
             new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
             rename_or_merge(old_dirtf, new_dirtf, False)
@@ -506,7 +507,7 @@ class SettingsDialog(wx.Dialog):
         except:
             pass
 
-        #update db
+        # update db
         self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir, 'collected_torrent_files'))
 
         busyDlg.Destroy()
@@ -518,17 +519,17 @@ class SettingsDialog(wx.Dialog):
                 self.show_inputerror(self.utility.lang.get('cantopenfile'))
             else:
                 if sys.platform != 'darwin':
-                    bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM,ICON_MAX_DIM),-1)
+                    bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM, ICON_MAX_DIM), -1)
                     thumbpanel = self.elements['thumb']
                     thumbpanel.setBitmap(bm)
 
                 # Arno, 2008-10-21: scale image!
-                sim = im.Scale(ICON_MAX_DIM,ICON_MAX_DIM)
-                [thumbhandle,thumbfilename] = tempfile.mkstemp("user-thumb")
+                sim = im.Scale(ICON_MAX_DIM, ICON_MAX_DIM)
+                [thumbhandle, thumbfilename] = tempfile.mkstemp("user-thumb")
                 os.close(thumbhandle)
-                sim.SaveFile(thumbfilename,wx.BITMAP_TYPE_JPEG)
+                sim.SaveFile(thumbfilename, wx.BITMAP_TYPE_JPEG)
 
-                f = open(thumbfilename,"rb")
+                f = open(thumbfilename, "rb")
                 self.icondata = f.read()
                 f.close()
                 os.remove(thumbfilename)
@@ -536,7 +537,7 @@ class SettingsDialog(wx.Dialog):
             print_exc()
             self.show_inputerror(self.utility.lang.get('iconbadformat'))
 
-    def show_inputerror(self,txt):
+    def show_inputerror(self, txt):
         dlg = wx.MessageDialog(self, txt, self.utility.lang.get('invalidinput'), wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()

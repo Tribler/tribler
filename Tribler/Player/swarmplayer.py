@@ -80,6 +80,7 @@ START_TIME = 0
 
 
 class PlayerApp(BaseApp):
+
     def __init__(self, redirectstderrout, appname, appversion, params, single_instance_checker, installdir, i2iport, sport):
         self.videoFrame = None
         BaseApp.__init__(self, redirectstderrout, appname, appversion, params, single_instance_checker, installdir, i2iport, sport)
@@ -87,16 +88,15 @@ class PlayerApp(BaseApp):
         self.said_start_playback = False
         self.decodeprogress = 0
 
-
     def OnInit(self):
         try:
             # If already running, and user starts a new instance without a URL
             # on the cmd line
             if not ALLOW_MULTIPLE and self.single_instance_checker.IsAnotherRunning():
-                print >> sys.stderr,"main: Another instance running, no URL on CMD, asking user"
+                print >> sys.stderr, "main: Another instance running, no URL on CMD, asking user"
                 torrentfilename = self.select_torrent_from_disk()
                 if torrentfilename is not None:
-                    i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
+                    i2ic = Instance2InstanceClient(I2I_LISTENPORT, 'START', torrentfilename)
                     return False
 
             # Do common initialization
@@ -106,7 +106,7 @@ class PlayerApp(BaseApp):
             # an internal or external video player.
             self.videoplayer = VideoPlayer.getInstance(httpport=VIDEOHTTP_LISTENPORT)
             playbackmode = PLAYBACKMODE_INTERNAL
-            self.videoplayer.register(self.utility,preferredplaybackmode=playbackmode)
+            self.videoplayer.register(self.utility, preferredplaybackmode=playbackmode)
 
             # Open video window
             self.start_video_frame()
@@ -116,16 +116,15 @@ class PlayerApp(BaseApp):
                 torrentfilename = self.params[0]
 
                 # TEST: just play video file
-                #self.videoplayer.play_url(torrentfilename)
-                #return True
+                # self.videoplayer.play_url(torrentfilename)
+                # return True
 
             else:
                 torrentfilename = self.select_torrent_from_disk()
                 if torrentfilename is None:
-                    print >>sys.stderr,"main: User selected no file"
+                    print >>sys.stderr, "main: User selected no file"
                     self.OnExit()
                     return False
-
 
             # Start download
             if not self.select_file_start_download(torrentfilename):
@@ -135,15 +134,14 @@ class PlayerApp(BaseApp):
 
             return True
 
-        except Exception,e:
+        except Exception as e:
             print_exc()
             self.show_error(str(e))
             self.OnExit()
             return False
 
-
     def start_video_frame(self):
-        self.videoFrame = PlayerFrame(self,self.appname)
+        self.videoFrame = PlayerFrame(self, self.appname)
         self.Bind(wx.EVT_CLOSE, self.videoFrame.OnCloseWindow)
         self.Bind(wx.EVT_QUERY_END_SESSION, self.videoFrame.OnCloseWindow)
         self.Bind(wx.EVT_END_SESSION, self.videoFrame.OnCloseWindow)
@@ -153,14 +151,13 @@ class PlayerApp(BaseApp):
             self.videoplayer.set_videoframe(self.videoFrame)
         self.said_start_playback = False
 
-
     def select_torrent_from_disk(self):
         dlg = wx.FileDialog(None,
-                            self.appname+': Select torrent to play',
-                            '', # default dir
-                            '', # default file
+                            self.appname + ': Select torrent to play',
+                            '',  # default dir
+                            '',  # default file
                             'TSTREAM and TORRENT files (*.tstream;*.torrent)|*.tstream;*.torrent',
-                            wx.OPEN|wx.FD_FILE_MUST_EXIST)
+                            wx.OPEN | wx.FD_FILE_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
         else:
@@ -168,14 +165,13 @@ class PlayerApp(BaseApp):
         dlg.Destroy()
         return filename
 
-
-    def select_file_start_download(self,torrentfilename):
+    def select_file_start_download(self, torrentfilename):
 
         if torrentfilename.startswith("http") or torrentfilename.startswith(P2PURL_SCHEME):
             tdef = TorrentDef.load_from_url(torrentfilename)
         else:
             tdef = TorrentDef.load(torrentfilename)
-        print >>sys.stderr,"main: Starting download, infohash is",`tdef.get_infohash()`
+        print >>sys.stderr, "main: Starting download, infohash is", repr(tdef.get_infohash())
         poa = None
         if tdef.get_cs_keys():
             # This is a closed swarm, try to get a POA
@@ -183,22 +179,21 @@ class PlayerApp(BaseApp):
 
         # Select which video to play (if multiple)
         videofiles = tdef.get_files(exts=videoextdefaults)
-        print >>sys.stderr,"main: Found video files",videofiles
+        print >>sys.stderr, "main: Found video files", videofiles
 
         if len(videofiles) == 0:
-            print >>sys.stderr,"main: No video files found! Let user select"
+            print >>sys.stderr, "main: No video files found! Let user select"
             # Let user choose any file
             videofiles = tdef.get_files(exts=None)
 
         if len(videofiles) > 1:
             selectedvideofile = self.ask_user_which_video_from_torrent(videofiles)
             if selectedvideofile is None:
-                print >>sys.stderr,"main: User selected no video"
+                print >>sys.stderr, "main: User selected no video"
                 return False
             dlfile = selectedvideofile
         else:
             dlfile = videofiles[0]
-
 
         # Start video window if not open
         if self.videoFrame is None:
@@ -212,30 +207,27 @@ class PlayerApp(BaseApp):
         # Display name and thumbnail
         cname = tdef.get_name_as_unicode()
         if len(videofiles) > 1:
-            cname += u' - '+bin2unicode(dlfile)
-        self.videoplayer.set_content_name(u'Loading: '+cname)
+            cname += u' - ' + bin2unicode(dlfile)
+        self.videoplayer.set_content_name(u'Loading: ' + cname)
 
         try:
-            [mime,imgdata] = tdef.get_thumbnail()
+            [mime, imgdata] = tdef.get_thumbnail()
             if mime is not None:
                 f = StringIO(imgdata)
-                img = wx.EmptyImage(-1,-1)
-                img.LoadMimeStream(f,mime,-1)
+                img = wx.EmptyImage(-1, -1)
+                img.LoadMimeStream(f, mime, -1)
                 self.videoplayer.set_content_image(img)
             else:
                 self.videoplayer.set_content_image(None)
         except:
             print_exc()
 
-
         # Start actual download
-        self.start_download(tdef,dlfile, poa)
+        self.start_download(tdef, dlfile, poa)
         return True
 
-
-
-    def ask_user_which_video_from_torrent(self,videofiles):
-        dlg = VideoChooser(self.videoFrame,self.utility,videofiles,title=self.appname,expl='Select which file to play')
+    def ask_user_which_video_from_torrent(self, videofiles):
+        dlg = VideoChooser(self.videoFrame, self.utility, videofiles, title=self.appname, expl='Select which file to play')
         result = dlg.ShowModal()
         if result == wx.ID_OK:
             index = dlg.getChosenIndex()
@@ -245,24 +237,20 @@ class PlayerApp(BaseApp):
         dlg.Destroy()
         return filename
 
-
     # ARNOTODO: see how VideoPlayer manages stopping downloads
-
-    def sesscb_vod_event_callback(self,d,event,params):
-        self.videoplayer.sesscb_vod_event_callback(d,event,params)
-
+    def sesscb_vod_event_callback(self, d, event, params):
+        self.videoplayer.sesscb_vod_event_callback(d, event, params)
 
     def get_supported_vod_events(self):
         return self.videoplayer.get_supported_vod_events()
 
-
     #
     # Remote start of new torrents
     #
-    def i2ithread_readlinecallback(self,ic,cmd):
+    def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
 
-        print >>sys.stderr,"main: Another instance called us with cmd",cmd
+        print >>sys.stderr, "main: Another instance called us with cmd", cmd
         ic.close()
 
         if cmd.startswith('START '):
@@ -281,56 +269,53 @@ class PlayerApp(BaseApp):
                 torrentfilename = param
 
             # Switch to GUI thread
-            wx.CallAfter(self.remote_start_download,torrentfilename)
+            wx.CallAfter(self.remote_start_download, torrentfilename)
 
-    def remote_start_download(self,torrentfilename):
+    def remote_start_download(self, torrentfilename):
         """ Called by GUI thread """
         self.videoplayer.stop_playback(reset=True)
 
         self.remove_downloads_in_vodmode_if_not_complete()
         self.select_file_start_download(torrentfilename)
 
-
     #
     # Display stats in videoframe
     #
-    def gui_states_callback(self,dslist,haspeerlist):
+    def gui_states_callback(self, dslist, haspeerlist):
         """ Override BaseApp """
 
-        (playing_dslist,totalhelping,totalspeed) = BaseApp.gui_states_callback(self,dslist,haspeerlist)
+        (playing_dslist, totalhelping, totalspeed) = BaseApp.gui_states_callback(self, dslist, haspeerlist)
 
         # Don't display stats if there is no video frame to show them on.
         if self.videoFrame is None:
             return
         elif len(playing_dslist) > 0:
-            ds = playing_dslist[0] # only single playing Download at the moment in swarmplayer
-            self.display_stats_in_videoframe(ds,totalhelping,totalspeed)
+            ds = playing_dslist[0]  # only single playing Download at the moment in swarmplayer
+            self.display_stats_in_videoframe(ds, totalhelping, totalspeed)
 
-
-    def display_stats_in_videoframe(self,ds,totalhelping,totalspeed):
+    def display_stats_in_videoframe(self, ds, totalhelping, totalspeed):
         # Display stats for currently playing Download
 
         videoplayer_mediastate = self.videoplayer.get_state()
-        #print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
+        # print >>sys.stderr,"main: Stats: VideoPlayer state",videoplayer_mediastate
 
-        [topmsg,msg,self.said_start_playback,self.decodeprogress] = get_status_msgs(ds,videoplayer_mediastate,self.appname,self.said_start_playback,self.decodeprogress,totalhelping,totalspeed)
+        [topmsg, msg, self.said_start_playback, self.decodeprogress] = get_status_msgs(ds, videoplayer_mediastate, self.appname, self.said_start_playback, self.decodeprogress, totalhelping, totalspeed)
         # Display helping info on "content name" line.
         self.videoplayer.set_content_name(topmsg)
 
         # Update status msg and progress bar
-        self.videoplayer.set_player_status_and_progress(msg,ds.get_pieces_complete())
+        self.videoplayer.set_player_status_and_progress(msg, ds.get_pieces_complete())
 
         # Toggle save button
         self.videoplayer.set_save_button(ds.get_status() == DLSTATUS_SEEDING, self.save_video_copy)
 
-        if False: # Only works if the sesscb_states_callback() method returns (x,True)
+        if False:  # Only works if the sesscb_states_callback() method returns (x,True)
             peerlist = ds.get_peerlist()
-            print >>sys.stderr,"main: Connected to",len(peerlist),"peers"
+            print >>sys.stderr, "main: Connected to", len(peerlist), "peers"
             for peer in peerlist:
-                print >>sys.stderr,"main: Connected to",peer['ip'],peer['uprate'],peer['downrate']
+                print >>sys.stderr, "main: Connected to", peer['ip'], peer['uprate'], peer['downrate']
 
-
-    def videoserver_set_status_guicallback(self,status):
+    def videoserver_set_status_guicallback(self, status):
         """ Override BaseApp """
         if self.videoFrame is not None:
             self.videoFrame.set_player_status(status)
@@ -344,15 +329,15 @@ class PlayerApp(BaseApp):
             # only single playing Download at the moment in swarmplayer
             d = d2
         dest_files = d.get_dest_files()
-        dest_file = dest_files[0] # only single file at the moment in swarmplayer
-        savethread_callback_lambda = lambda:self.savethread_callback(dest_file)
+        dest_file = dest_files[0]  # only single file at the moment in swarmplayer
+        savethread_callback_lambda = lambda: self.savethread_callback(dest_file)
 
-        t = Thread(target = savethread_callback_lambda)
-        t.setName( self.appname+"Save"+t.getName() )
+        t = Thread(target=savethread_callback_lambda)
+        t.setName(self.appname +"Save"+t.getName())
         t.setDaemon(True)
         t.start()
 
-    def savethread_callback(self,dest_file):
+    def savethread_callback(self, dest_file):
 
         # Save a copy of playing download to other location
         # called by new thread from self.save_video_copy
@@ -361,11 +346,11 @@ class PlayerApp(BaseApp):
                 # Jelle also goes win32, find location of "My Documents"
                 # see http://www.mvps.org/access/api/api0054.htm
                 from win32com.shell import shell
-                pidl = shell.SHGetSpecialFolderLocation(0,0x05)
+                pidl = shell.SHGetSpecialFolderLocation(0, 0x05)
                 defaultpath = shell.SHGetPathFromIDList(pidl)
             else:
                 defaultpath = os.path.expandvars('$HOME')
-        except Exception, msg:
+        except Exception as msg:
             defaultpath = ''
             print_exc()
 
@@ -373,11 +358,11 @@ class PlayerApp(BaseApp):
 
         print >> sys.stderr, 'Defaultpath:', defaultpath, 'Dest:', dest_file
         dlg = wx.FileDialog(self.videoFrame,
-                            message = self.utility.lang.get('savemedia'),
-                            defaultDir = defaultpath,
-                            defaultFile = dest_file_only,
-                            wildcard = self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*',
-                            style = wx.SAVE)
+                            message=self.utility.lang.get('savemedia'),
+                            defaultDir=defaultpath,
+                            defaultFile=dest_file_only,
+                            wildcard=self.utility.lang.get('allfileswildcard') + ' (*.*)|*.*',
+                            style=wx.SAVE)
         dlg.Raise()
         result = dlg.ShowModal()
         dlg.Destroy()
@@ -389,7 +374,7 @@ class PlayerApp(BaseApp):
             if sys.platform == 'win32':
                 try:
                     import win32file
-                    win32file.CopyFile(dest_file[1], path, 0) # do succeed on collision
+                    win32file.CopyFile(dest_file[1], path, 0)  # do succeed on collision
                 except:
                     shutil.copyfile(dest_file[1], path)
             else:
@@ -405,7 +390,8 @@ class PlayerApp(BaseApp):
             print_exc()
         BaseApp.clear_session_state(self)
 
-def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decodeprogress,totalhelping,totalspeed):
+
+def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, decodeprogress, totalhelping, totalspeed):
 
     intime = "Not playing for quite some time."
     ETA = ((60 * 15, "Playing in less than 15 minutes."),
@@ -419,7 +405,7 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     logmsgs = ds.get_log_messages()
     logmsg = None
     if len(logmsgs) > 0:
-        print >>sys.stderr,"main: Log",logmsgs[0]
+        print >>sys.stderr, "main: Log", logmsgs[0]
         logmsg = logmsgs[-1][1]
 
     preprogress = ds.get_vod_prebuffering_progress()
@@ -462,8 +448,8 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             break
         intime = eta_msg
 
-    #print >>sys.stderr,"main: playble",playable,"preprog",preprogress
-    #print >>sys.stderr,"main: ETA is",t,"secs"
+    # print >>sys.stderr,"main: playble",playable,"preprog",preprogress
+    # print >>sys.stderr,"main: ETA is",t,"secs"
     # if t > float(2 ** 30):
     #     intime = "inf"
     # elif t == 0.0:
@@ -479,14 +465,14 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
     #     else:
     #         intime = "%dh:%02dm:%02ds" % (h,m,s)
 
-    #print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+    # print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
 
     if ds.get_status() == DLSTATUS_HASHCHECKING:
         genprogress = ds.get_progress()
-        pstr = str(int(genprogress*100))
-        msg = "Checking already downloaded parts "+pstr+"% done"
+        pstr = str(int(genprogress * 100))
+        msg = "Checking already downloaded parts " + pstr +"% done"
     elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-        msg = 'Error playing: '+str(ds.get_error())
+        msg = 'Error playing: ' + str(ds.get_error())
     elif ds.get_progress() == 1.0:
         msg = ''
     elif playable:
@@ -495,9 +481,9 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
 
         if videoplayer_mediastate == MEDIASTATE_STOPPED and said_start_playback:
             if totalhelping == 0:
-                topmsg = u"Please leave the "+appname+" running, this will help other "+appname+" users to download faster."
+                topmsg = u"Please leave the " + appname +" running, this will help other "+appname+" users to download faster."
             else:
-                topmsg = u"Helping "+str(totalhelping)+" "+appname+" users to download. Please leave it running in the background."
+                topmsg = u"Helping " + str(totalhelping) +" "+appname+" users to download. Please leave it running in the background."
 
             # Display this on status line
             # TODO: Show balloon in systray when closing window to indicate things continue there
@@ -510,25 +496,25 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
             # I-Frame). Display some info to show that:
             #
             cname = ds.get_download().get_def().get_name_as_unicode()
-            topmsg = u'Decoding: '+cname+' '+str(decodeprogress)+' s'
+            topmsg = u'Decoding: ' + cname +' '+str(decodeprogress)+' s'
             decodeprogress += 1
             msg = ''
         elif videoplayer_mediastate == MEDIASTATE_PAUSED:
             # msg = "Buffering... " + str(int(100.0*preprogress))+"%"
-            msg = "Buffering... " + str(int(100.0*preprogress))+"%. " + intime
+            msg = "Buffering... " + str(int(100.0 * preprogress)) +"%. " + intime
         else:
             msg = ''
 
     elif preprogress != 1.0:
-        pstr = str(int(preprogress*100))
+        pstr = str(int(preprogress * 100))
         npeers = ds.get_num_peers()
         npeerstr = str(npeers)
         if npeers == 0 and logmsg is not None:
             msg = logmsg
         elif npeers == 1:
-            msg = "Prebuffering "+pstr+"% done (connected to 1 person). " + intime
+            msg = "Prebuffering " + pstr +"% done (connected to 1 person). " + intime
         else:
-            msg = "Prebuffering "+pstr+"% done (connected to "+npeerstr+" people). " + intime
+            msg = "Prebuffering " + pstr +"% done (connected to "+npeerstr+" people). " + intime
 
         try:
             d = ds.get_download()
@@ -553,13 +539,13 @@ def get_status_msgs(ds,videoplayer_mediastate,appname,said_start_playback,decode
         peertxt = " peer %d" % (totalhelping)
         msg = uptxt + downtxt + peertxt
 
-    return [topmsg,msg,said_start_playback,decodeprogress]
-
+    return [topmsg, msg, said_start_playback, decodeprogress]
 
 
 class PlayerFrame(VideoFrame):
-    def __init__(self,parent,appname):
-        VideoFrame.__init__(self,parent,parent.utility,appname+' '+PLAYER_VERSION,parent.iconpath,parent.videoplayer.get_vlcwrap(),parent.logopath)
+
+    def __init__(self, parent, appname):
+        VideoFrame.__init__(self, parent, parent.utility, appname + ' ' +PLAYER_VERSION, parent.iconpath, parent.videoplayer.get_vlcwrap(), parent.logopath)
         self.parent = parent
         self.closed = False
 
@@ -568,9 +554,9 @@ class PlayerFrame(VideoFrame):
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
 
-    def OnCloseWindow(self, event = None):
+    def OnCloseWindow(self, event=None):
 
-        print >>sys.stderr,"main: ON CLOSE WINDOW"
+        print >>sys.stderr, "main: ON CLOSE WINDOW"
 
         # TODO: first event.Skip does not close window, second apparently does
         # Check how event differs
@@ -586,25 +572,26 @@ class PlayerFrame(VideoFrame):
 
         if event is not None:
             nr = event.GetEventType()
-            lookup = { wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION" }
+            lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION"}
             if nr in lookup:
                 nr = lookup[nr]
-            print >>sys.stderr,"main: Closing due to event ",nr
+            print >>sys.stderr, "main: Closing due to event ", nr
             event.Skip()
         else:
-            print >>sys.stderr,"main: Closing untriggered by event"
+            print >>sys.stderr, "main: Closing untriggered by event"
 
-        print >>sys.stderr,"main: Closing done"
+        print >>sys.stderr, "main: Closing done"
         # TODO: Show balloon in systray when closing window to indicate things continue there
 
-    def set_player_status(self,s):
+    def set_player_status(self, s):
         pass
 
 
 class FileDropTarget(wx.FileDropTarget):
+
     """ To enable drag and drop of .tstream to window """
 
-    def __init__(self,app):
+    def __init__(self, app):
         wx.FileDropTarget.__init__(self)
         self.app = app
 
@@ -614,14 +601,12 @@ class FileDropTarget(wx.FileDropTarget):
         return True
 
 
-
-
-##############################################################
+#
 #
 # Main Program Start Here
 #
-##############################################################
-def run_playerapp(appname,appversion,params = None):
+#
+def run_playerapp(appname, appversion, params= None):
     global START_TIME
     START_TIME = time.time()
 
@@ -633,7 +618,7 @@ def run_playerapp(appname,appversion,params = None):
 
     if 'debug' in params:
         global ONSCREENDEBUG
-        ONSCREENDEBUG=True
+        ONSCREENDEBUG = True
     if 'raw' in params:
         Tribler.Video.VideoPlayer.USE_VLC_RAW_INTERFACE = True
 
@@ -641,17 +626,17 @@ def run_playerapp(appname,appversion,params = None):
     # Arno: On Linux and wxPython-2.8.1.1 the SingleInstanceChecker appears
     # to mess up stderr, i.e., I get IOErrors when writing to it via print_exc()
     #
-    siappname = appname.lower() # For backwards compatibility
+    siappname = appname.lower()  # For backwards compatibility
     if sys.platform != 'linux2':
-        single_instance_checker = wx.SingleInstanceChecker(siappname+"-"+ wx.GetUserId())
+        single_instance_checker = wx.SingleInstanceChecker(siappname + "-" + wx.GetUserId())
     else:
         single_instance_checker = LinuxSingleInstanceChecker(siappname)
 
-    #print "[StartUpDebug]---------------- 1", time()-start_time
+    # print "[StartUpDebug]---------------- 1", time()-start_time
     if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
         if params[0] != "":
             torrentfilename = params[0]
-            i2ic = Instance2InstanceClient(I2I_LISTENPORT,'START',torrentfilename)
+            i2ic = Instance2InstanceClient(I2I_LISTENPORT, 'START', torrentfilename)
             time.sleep(1)
             return
 
@@ -667,16 +652,16 @@ def run_playerapp(appname,appversion,params = None):
     # Setup the statistic reporter while waiting for proper integration
     status = Status.get_status_holder("LivingLab")
     s = Session.get_instance()
-    id = encodestring(s.get_permid()).replace("\n","")
-    #reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
-    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 30, id) # Report every 30 seconds - ONLY FOR TESTING
+    id = encodestring(s.get_permid()).replace("\n", "")
+    # reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
+    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 30, id)  # Report every 30 seconds - ONLY FOR TESTING
     status.add_reporter(reporter)
 
     app.MainLoop()
 
     reporter.stop()
 
-    print >>sys.stderr,"Sleeping seconds to let other threads finish"
+    print >>sys.stderr, "Sleeping seconds to let other threads finish"
     time.sleep(2)
 
     if not ALLOW_MULTIPLE:
@@ -684,4 +669,4 @@ def run_playerapp(appname,appversion,params = None):
 
 
 if __name__ == '__main__':
-    run_playerapp("SwarmPlayer","1.1.0")
+    run_playerapp("SwarmPlayer", "1.1.0")

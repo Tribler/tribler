@@ -19,11 +19,13 @@ SEQ: %(key)s\r\n\r\n"""
 
 _LOG_TAG = "HTTPClient"
 
-##############################################
+#
 # EVENT DISPATCHER
-##############################################
+#
+
 
 class EventDispatcher:
+
     """
     Event Dispatcher wraps non-blocking httpClient to
     provide a non-blocking event mechanism for the UPnP server.
@@ -36,18 +38,18 @@ class EventDispatcher:
         # Logging
         self._logger = logger
 
-    ##############################################
+    #
     # PRIVATE UTILITY
-    ##############################################
+    #
 
     def _log(self, msg):
         """Logging."""
         if self._logger:
             self._logger.log(_LOG_TAG, msg)
 
-    ##############################################
+    #
     # PUBLIC API
-    ##############################################
+    #
 
     def dispatch(self, sid, event_key, callback_url, variables):
         """Dispatch a new UPnP event message."""
@@ -63,21 +65,21 @@ class EventDispatcher:
             'sid': sid,
             'length': len(body),
             'key': event_key,
-            }
+        }
         header = HTTP_NOTIFY_HEADER % dict_
         # Dispatch Event Message
         rid = self._httpclient.get_request_id()
         self._httpclient.request(rid, url.hostname, url.port, header + body)
-        self._log("NOTIFY %s [%d]" %(url.hostname, event_key))
+        self._log("NOTIFY %s [%d]" % (url.hostname, event_key))
 
     def close(self):
         """Closes Event Dispacter along with its internal HTTP client."""
         self._log('CLOSE')
         self._httpclient.close()
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 
@@ -93,6 +95,7 @@ if __name__ == '__main__':
     VARIABLES = [(u'arg1', u'data1'), (u'arg2', u'data2')]
 
     class MockLogger:
+
         """MockLogger."""
         def log(self, log_tag, msg):
             """Log to std out."""

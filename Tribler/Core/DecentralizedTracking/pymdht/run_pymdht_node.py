@@ -5,7 +5,8 @@
 # See LICENSE.txt for more information
 
 import core.ptime as time
-import sys, os
+import sys
+import os
 from optparse import OptionParser
 
 import logging
@@ -31,7 +32,7 @@ def main(options, args):
         stdout_file = os.path.join(options.path, 'pymdht.stdout')
         stderr_file = os.path.join(options.path, 'pymdht.stderr')
         print >>sys.stderr, 'Redirecting output to %s and %s' % (
-                    stdout_file, stderr_file)
+            stdout_file, stderr_file)
         sys.stdout = open(stdout_file, 'w')
         sys.stderr = open(stderr_file, 'w')
 
@@ -43,12 +44,10 @@ def main(options, args):
     my_node = node.Node(my_addr, my_id, version=pymdht.VERSION_LABEL)
 
     if options.debug:
-        logs_level = logging.DEBUG # This generates HUGE (and useful) logs
+        logs_level = logging.DEBUG  # This generates HUGE (and useful) logs
     else:
-        #logs_level = logging.INFO # This generates some (useful) logs
-        logs_level = logging.WARNING # This generates warning and error logs
-
-
+        # logs_level = logging.INFO # This generates some (useful) logs
+        logs_level = logging.WARNING  # This generates warning and error logs
 
     print 'Using the following plug-ins:'
     print '*', options.routing_m_file
@@ -65,7 +64,6 @@ def main(options, args):
     lookup_m_mod = __import__(lookup_m_name, fromlist=[''])
     experimental_m_name = '.'.join(os.path.split(options.experimental_m_file))[:-3]
     experimental_m_mod = __import__(experimental_m_name, fromlist=[''])
-
 
     dht = pymdht.Pymdht(my_node, logs_path,
                         routing_m_mod,
@@ -96,14 +94,14 @@ def main(options, args):
         dht.stop()
     elif options.daemon:
         # Just loop for ever
-        while 1:
+        while True:
             time.sleep(10)
     elif options.gui:
         import wx
         import ui.gui
         app = wx.PySimpleApp()
         frame = ui.gui.Interactive_GUI(
-            None, "Interactive Look@MDHT", None,(1440,900),
+            None, "Interactive Look@MDHT", None, (1440, 900),
             dht, logs_path)
         frame.Show(True)
         app.MainLoop()
@@ -136,22 +134,22 @@ if __name__ == '__main__':
 #    parser.add_option("-z", "--logs-level", dest="logs_level",
 #                      metavar='INT', default=0
 #                      help="logging level")
-    parser.add_option("-e", "--experimental-plug-in",dest="experimental_m_file",
+    parser.add_option("-e", "--experimental-plug-in", dest="experimental_m_file",
                       metavar='FILE', default='core/exp_plugin_template.py',
                       help="file containing ping-manager code")
     parser.add_option("-d", "--private-dht", dest="private_dht_name",
                       metavar='STRING', default=None,
                       help="private DHT name")
-    parser.add_option("--debug",dest="debug",
+    parser.add_option("--debug", dest="debug",
                       action='store_true', default=False,
                       help="DEBUG mode")
-    parser.add_option("--gui",dest="gui",
+    parser.add_option("--gui", dest="gui",
                       action='store_true', default=False,
                       help="Graphical user interface")
-    parser.add_option("--cli",dest="cli",
+    parser.add_option("--cli", dest="cli",
                       action='store_true', default=True,
                       help="Command line interface (no GUI) <- default")
-    parser.add_option("--telnet-port",dest="telnet_port",
+    parser.add_option("--telnet-port", dest="telnet_port",
                       metavar='INT', default=0,
                       help="Telnet interface on given TCP port (see ui/telnet_api.txt).")
     parser.add_option("--daemon", dest="daemon",
@@ -164,50 +162,49 @@ if __name__ == '__main__':
 #    parser.add_option("--telnet",dest="telnet",
 #                      action='store_true', default=False,
 #                      help="Telnet interface (only on DAEMON mode)")
-    parser.add_option("--lookup-delay",dest="lookup_delay",
+    parser.add_option("--lookup-delay", dest="lookup_delay",
                       metavar='INT', default=0,
                       help="Perform a lookup every x seconds (it will switch\
     to DAEMON mode). The lookup-target option determines the lookup target")
-    parser.add_option("--lookup-target",dest="lookup_target",
+    parser.add_option("--lookup-target", dest="lookup_target",
                       metavar='STRING', default='',
                       help="Hexadecimal (40 characters) representation of the\
     identifier (info_hash) to be looked up. Default is different random\
     targets each lookup (use in combination with lookup-delay")
-    parser.add_option("--number-lookups",dest="num_lookups",
+    parser.add_option("--number-lookups", dest="num_lookups",
                       metavar='INT', default=0,
                       help="Exit after x lookups + stop_delay. Default\
     infinite (run forever) (use in combination with lookup-delay)")
-    parser.add_option("--stop-delay",dest="stop_delay",
+    parser.add_option("--stop-delay", dest="stop_delay",
                       metavar='INT', default=60,
                       help="Sleep for x seconds before exiting (use in\
     combination with number-lookups). Default 60 seconds.")
-    parser.add_option("--announce-port",dest="announce_port",
+    parser.add_option("--announce-port", dest="announce_port",
                       metavar='INT', default=0,
                       help="(only with lookup-delay) Announce after each\
     lookup. No announcement by default")
-    parser.add_option("--node-id",dest="node_id",
+    parser.add_option("--node-id", dest="node_id",
                       metavar='STRING', default=None,
                       help="Hexadecimal (40 characters) representation of the\
     identifier (node id) to be used. This option overrides the node id saved\
     into pymdht.state. (option log-distance can modify the final node id)")
-    parser.add_option("--log-distance",dest="log_distance",
+    parser.add_option("--log-distance", dest="log_distance",
                       metavar='INT', default=-1,
                       help="(only when option node-id is used) Modifies the\
     node id to be close to the node-id specified. This is useful to place\
     nodes close to a particular identifier. For instance, to collect get_peers\
     messages for a given info_hash")
-    parser.add_option("--bootstrap-mode",dest="bootstrap_mode",
+    parser.add_option("--bootstrap-mode", dest="bootstrap_mode",
                       action='store_true', default=False,
                       help="Only for well-known bootsrap nodes. It will ignore\
     some incoming queries to avoid being added to too many routing tables.")
-    parser.add_option("--swift-port",dest="swift_port",
+    parser.add_option("--swift-port", dest="swift_port",
                       metavar='INT', default=0,
                       help="Open a Swift tracker interface on the indicated\
     UDP port. Default 0, means do not run a swift tracker.")
-    parser.add_option("--version",dest="version",
+    parser.add_option("--version", dest="version",
                       action='store_true', default=False,
                       help="Print Pymdhtversion and exit.")
-
 
     (options, args) = parser.parse_args()
 

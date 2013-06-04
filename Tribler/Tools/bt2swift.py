@@ -1,4 +1,4 @@
-# Written by Arno Bakker, Razvan Deaconescu, George Milescu 
+# Written by Arno Bakker, Razvan Deaconescu, George Milescu
 # see LICENSE.txt for license information
 #
 
@@ -21,6 +21,8 @@ STATUS_REPORT_INTERVAL = 3.0
 cond = Condition()
 
 # Print usage message
+
+
 def usage():
     print "Usage: python cmdlinedl.py [options] torrentfile_or_url"
     print "Options:"
@@ -38,6 +40,8 @@ def usage():
     print "Report bugs to <" + report_email + ">"
 
 # Print version information
+
+
 def print_version():
     print version, "<" + report_email + ">"
 
@@ -48,17 +52,18 @@ def states_callback(dslist):
     return (STATUS_REPORT_INTERVAL, False)
 
 # Print torrent statistics
+
+
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
     print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
-            (d.get_def().get_name(), \
-            dlstatus_strings[ds.get_status()], \
-            ds.get_progress() * 100, \
-            ds.get_error(), \
-            ds.get_current_speed(UPLOAD), \
+        (d.get_def().get_name(),
+            dlstatus_strings[ds.get_status()],
+            ds.get_progress() * 100,
+            ds.get_error(),
+            ds.get_current_speed(UPLOAD),
             ds.get_current_speed(DOWNLOAD))
-
 
     if ds.get_status() == DLSTATUS_SEEDING:
         global cond
@@ -75,35 +80,34 @@ def url2cdef(torrentfile_or_url):
         cdef = TorrentDef.load_from_url(torrentfile_or_url)
     elif torrentfile_or_url.startswith(SWIFT_URL_SCHEME):
         cdef = SwiftDef.load_from_url(torrentfile_or_url)
-    else: 
+    else:
         cdef = TorrentDef.load(torrentfile_or_url)
-        
+
     if cdef.get_def_type() == "torrent" and cdef.get_live():
         raise ValueError("cmdlinedl does not support live torrents")
 
     return cdef
 
 
-def start_download(s,cdef,output_dir,listenport):
+def start_download(s, cdef, output_dir, listenport):
     # setup and start download
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(output_dir);
     dscfg.set_swift_listen_port(listenport)
-    #dscfg.set_max_speed( UPLOAD, 10 )
-    #dscfg.set_max_speed( DOWNLOAD, 512 )
+    # dscfg.set_max_speed( UPLOAD, 10 )
+    # dscfg.set_max_speed( DOWNLOAD, 512 )
 
-        
     d = s.start_download(cdef, dscfg)
     d.set_state_callback(state_callback, getpeerlist=[])
     return d
-    
+
 
 def main():
     try:
         # opts = a list of (option, value) pairs
         # args = the list of program arguments left after the option list was stripped
         opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir", "port"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
@@ -149,57 +153,56 @@ def main():
     sscfg.set_dialback(True)
     sscfg.set_internal_tracker(False)
     sscfg.set_swift_path(".\\Tribler\\SwiftEngine\\swift.exe")
-    
+
     s = Session(sscfg)
 
-    #url = "http://www.vodo.net/media/torrents/Exhibit.A.2007.SD.x264-VODO.torrent"
+    # url = "http://www.vodo.net/media/torrents/Exhibit.A.2007.SD.x264-VODO.torrent"
     url = "http://www.clearbits.net/get/394-the-future-of-ideas.torrent"
     tdef = url2cdef(url)
 
     output_dir = 'D:\\Build\\bt2swift-m48stb-r25811\\orig'
-    td = start_download(s,tdef,output_dir,None)
+    td = start_download(s, tdef, output_dir, None)
 
     # Wait till seeding
-    print >>sys.stderr,"python: Waiting till BT download is seeding..."
+    print >>sys.stderr, "python: Waiting till BT download is seeding..."
     global cond
     cond.acquire()
     cond.wait()
     cond.release()
-    print >>sys.stderr,"python: Reseeding BT via swift"
+    print >>sys.stderr, "python: Reseeding BT via swift"
 
     sdef = SwiftDef()
-    sdef.set_tracker("127.0.0.1:23000") # set DownloadConfig.set_swift_listen_port() for local tracking
+    sdef.set_tracker("127.0.0.1:23000")  # set DownloadConfig.set_swift_listen_port() for local tracking
     iotuples = td.get_dest_files()
-    for i,o in iotuples:
-        print >>sys.stderr,"python: add_content",i,o
+    for i, o in iotuples:
+        print >>sys.stderr, "python: add_content", i, o
         if len(iotuples) == 1:
-            sdef.add_content(o) # single file .torrent
+            sdef.add_content(o)  # single file .torrent
         else:
-            xi = os.path.join(tdef.get_name_as_unicode(),i)
+            xi = os.path.join(tdef.get_name_as_unicode(), i)
             if sys.platform == "win32":
-                xi = xi.replace("\\","/")
-            si = xi.encode("UTF-8") # spec format
-            sdef.add_content(o,si) # multi-file .torrent
-        
-    sdef.finalize(sscfg.get_swift_path(),destdir=output_dir)
-            
+                xi = xi.replace("\\", "/")
+            si = xi.encode("UTF-8")  # spec format
+            sdef.add_content(o, si)  # multi-file .torrent
+
+    sdef.finalize(sscfg.get_swift_path(), destdir=output_dir)
+
     if len(iotuples) == 1:
-        storagepath = iotuples[0][1] # Point to file on disk
+        storagepath = iotuples[0][1]  # Point to file on disk
     else:
         # Store multi-file spec as <roothashhex> alongside files
-        mfpath = os.path.join(output_dir,"."+sdef.get_roothash_as_hex() )
+        mfpath = os.path.join(output_dir, "." + sdef.get_roothash_as_hex())
         sdef.save_multifilespec(mfpath)
-        storagepath = mfpath # Point to spec file
-        
-    sd = start_download(s,sdef,storagepath,23000)
-        
+        storagepath = mfpath  # Point to spec file
+
+    sd = start_download(s, sdef, storagepath, 23000)
+
     time.sleep(3600)
 
     s.shutdown()
     time.sleep(30)
-    #shutil.rmtree(statedir)
+    # shutil.rmtree(statedir)
 
 
 if __name__ == "__main__":
     main()
-
