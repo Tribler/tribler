@@ -6,7 +6,7 @@ from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 class PluginManagerStub():
     
     def __init__(self, parseResult = True):
-        self.parserPlugins = [ParserPluginStub(parseResult), ParserPluginStubIllegalResult()]
+        self.parserPlugins = [ParserPluginStub(parseResult), ParserPluginStubIllegalResult(None), ParserPluginStubParserException(None)]
         self.torrentFinderPlugins = [TorrentFinderPluginStub()]
             
     def GetPluginDescriptorsForCategory(self, category):
@@ -26,6 +26,7 @@ class ParserPluginStub(IParserPlugin):
         self.plugin_object = self
         self.details = PluginDetailsStub()
         self.result = result
+        self.name = "ParserPluginStub"
     
     def ParseWebSite(self, html):
         '''Parse a website and return a list of movies.'''
@@ -40,13 +41,8 @@ class ParserPluginStub(IParserPlugin):
         '''Returns a list of parsable urls'''
         return ['something.com']
 
-class ParserPluginStubIllegalResult(IParserPlugin):
-    
-    def __init__(self):
-        #This will create a plugin following Yapsi standards.
-        self.plugin_object = self
-        self.details = PluginDetailsStub()
-        
+class ParserPluginStubIllegalResult(ParserPluginStub):
+
     def ParseWebSite(self, html):
         '''Parse a website and return a list of movies.'''
         return ['IllegalType']
@@ -54,6 +50,16 @@ class ParserPluginStubIllegalResult(IParserPlugin):
     def GetParseableSites(self):
         '''Returns a list of parsable urls'''
         return ['illegalparseresultException.com']
+    
+class ParserPluginStubParserException(ParserPluginStub):
+
+    def ParseWebSite(self, html):
+        '''Parse a website and return a list of movies.'''
+        raise Exception()
+        
+    def GetParseableSites(self):
+        '''Returns a list of parsable urls'''
+        return ['ParserException.com']
 
 class PluginDetailsStub():
 
