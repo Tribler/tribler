@@ -1,4 +1,4 @@
-# Tribler
+# Tribler           [![Build Status](http://jenkins.tribler.org/jenkins/job/Test_tribler_devel/badge/icon)](http://jenkins.tribler.org/jenkins/job/Test_tribler_devel/)
 
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 

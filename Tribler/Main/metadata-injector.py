@@ -26,8 +26,8 @@ from Tribler.Core.Overlay.permid import permid_for_user
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.community.channel.community import forceDispersyThread
+
 
 def main():
     command_line_parser = optparse.OptionParser()
@@ -50,9 +50,12 @@ def main():
     print "Type 'Q' to stop the metadata-injector"
 
     sscfg = SessionStartupConfig()
-    if opt.statedir: sscfg.set_state_dir(unicode(os.path.realpath(opt.statedir)))
-    if opt.port: sscfg.set_dispersy_port(opt.port)
-    if opt.nickname: sscfg.set_nickname(opt.nickname)
+    if opt.statedir:
+        sscfg.set_state_dir(unicode(os.path.realpath(opt.statedir)))
+    if opt.port:
+        sscfg.set_dispersy_port(opt.port)
+    if opt.nickname:
+        sscfg.set_nickname(opt.nickname)
 
     sscfg.set_megacache(True)
     sscfg.set_overlay(True)
@@ -62,14 +65,7 @@ def main():
     sscfg.set_internal_tracker(False)
 
     session = Session(sscfg)
-
-    #Wait for Dispersy
-    if Dispersy.has_instance():
-        dispersy_started(session, opt)
-    else:
-        def notify(*args):
-            dispersy_started(session, opt)
-        session.add_observer(notify,NTFY_DISPERSY,[NTFY_STARTED])
+    session.start()
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
@@ -82,7 +78,6 @@ def main():
     except:
         print_exc()
 
-
     torrentfeed = RssParser.getInstance()
     torrentfeed.shutdown()
 
@@ -93,9 +88,10 @@ def main():
     print "Shutting down..."
     time.sleep(5)
 
+
 def dispersy_started(session, opt):
     myPermid = permid_for_user(session.get_permid())
-    print >>sys.stderr, "permid: ", myPermid
+    print >> sys.stderr, "permid: ", myPermid
 
     from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
     torrentManager = TorrentManager(None)
@@ -120,10 +116,10 @@ def dispersy_started(session, opt):
         print >> sys.stderr, "reusing previously created channel"
         myChannel = channelManager.getChannel(myChannelId)
         if myChannel.name != myChannelName:
-            print >> sys.stderr, "renaming channel to",myChannelName
+            print >> sys.stderr, "renaming channel to", myChannelName
             channelManager.modifyChannel(myChannelId, {'name': myChannelName})
 
-    #use dispersythread, this way we know our channel has been created
+    # use dispersythread, this way we know our channel has been created
     @forceDispersyThread
     def createTorrentFeed():
         myChannelId = channelManager.channelcast_db.getMyChannelId()
@@ -138,7 +134,7 @@ def dispersy_started(session, opt):
     if opt.rss:
         createTorrentFeed()
 
-    #same here, using dispersythread to make sure channel has been created
+    # same here, using dispersythread to make sure channel has been created
     @forceDispersyThread
     def createDirFeed():
         myChannelId = channelManager.channelcast_db.getMyChannelId()
@@ -147,19 +143,19 @@ def dispersy_started(session, opt):
             torrentdef = TorrentDef.load_from_dict(torrent_data)
             channelsearch_manager.createTorrentFromDef(myChannelId, torrentdef)
 
-            #save torrent to collectedtorrents
+            # save torrent to collectedtorrents
             filename = torrentManager.getCollectedFilenameFromDef(torrentdef)
             if not os.path.isfile(filename):
                 torrentdef.save(filename)
 
         dirfeed = DirectoryFeedThread.getInstance()
         for dirpath in opt.dir.split(";"):
-            dirfeed.addDir(dirpath, callback = on_torrent_callback)
+            dirfeed.addDir(dirpath, callback=on_torrent_callback)
 
     if opt.dir:
         createDirFeed()
 
-    #same here, using dispersythread to make sure channel has been created
+    # same here, using dispersythread to make sure channel has been created
     @forceDispersyThread
     def createFileFeed():
         myChannelId = channelManager.channelcast_db.getMyChannelId()
@@ -173,18 +169,18 @@ def dispersy_started(session, opt):
                 infohash = sha1(item['name']).digest()
             except:
                 infohash = sha1(str(random.randint(0, 1000000))).digest()
-            message = community._disp_create_torrent(infohash, long(time.time()), unicode(item['name']), ((u'fake.file', 10),), tuple(), update = False, forward = False)
+            message = community._disp_create_torrent(infohash, long(time.time()), unicode(item['name']), ((u'fake.file', 10),), tuple(), update=False, forward=False)
 
             print >> sys.stderr, "Created a new torrent"
 
             latest_review = None
             for modification in item['modifications']:
-                reviewmessage = community._disp_create_modification('description', unicode(modification['text']), long(time.time()), message, latest_review, update = False, forward = False)
+                reviewmessage = community._disp_create_modification('description', unicode(modification['text']), long(time.time()), message, latest_review, update=False, forward=False)
 
                 print >> sys.stderr, "Created a new modification"
 
                 if modification['revert']:
-                    community._disp_create_moderation('reverted', long(time.time()), 0, reviewmessage.packet_id, update = False, forward = False)
+                    community._disp_create_moderation('reverted', long(time.time()), 0, reviewmessage.packet_id, update=False, forward=False)
 
                     print >> sys.stderr, "Reverted the last modification"
                 else:

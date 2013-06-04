@@ -11,6 +11,7 @@ from Tribler.Core.Utilities.utilities import show_permid_short
 
 from LivingLabReporter import LivingLabPeriodicReporter
 
+
 class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
     host = "proxytestreporter.tribler.org"
     path = "/postV2.py"
@@ -56,7 +57,6 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
         version = "cs_v2a"
         header.appendChild(self.new_element(doc, "swversion", version))
 
-
         elements = self.get_elements()
         if len(elements) > 0:
 
@@ -66,9 +66,9 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
                 root.appendChild(report)
 
                 report.appendChild(self.new_element(doc, "attribute",
-                                                   "statusreport"))
+                                                    "statusreport"))
                 report.appendChild(self.new_element(doc, "timestamp",
-                                                   long(round(time.time()))))
+                                                    long(round(time.time()))))
                 for element in elements:
                     print element.__class__
                     report.appendChild(self.new_element(doc,
@@ -95,7 +95,7 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
                     report.appendChild(self.new_element(doc, "value", value))
 
         if len(elements) == 0 and len(events) == 0:
-            return # Was nothing here for us
+            return  # Was nothing here for us
 
         # all done
         xml_printer = XmlPrinter.XmlPrinter(root)
@@ -106,7 +106,7 @@ class ProxyTestPeriodicReporter(LivingLabPeriodicReporter):
         # Now we send this to the service using a HTTP POST
         self.post(xml_str)
 
-#if __name__ == "__main__":
+# if __name__ == "__main__":
 #    from Tribler.Core.Statistics.Status.Status import get_status_holder
 
 #    status = get_status_holder("ProxyTest")

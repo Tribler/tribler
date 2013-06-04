@@ -31,24 +31,25 @@ TIMEOUT_DELAY = 2
 
 
 class Querier(object):
+
     """
     A Querier object keeps a registry of sent queries while waiting for
     responses.
 
     """
-    def __init__(self):#, my_id):
+    def __init__(self):  # , my_id):
 #        self.my_id = my_id
         self._pending = {}
         self._timeouts = []
         self._tid = [0, 0]
 
     def _next_tid(self):
-        #TODO: move to message?
+        # TODO: move to message?
         current_tid_str = ''.join([chr(c) for c in self._tid])
         self._tid[0] = (self._tid[0] + 1) % 256
         if self._tid[0] == 0:
             self._tid[1] = (self._tid[1] + 1) % 256
-        return current_tid_str # raul: yield created trouble
+        return current_tid_str  # raul: yield created trouble
 
     def register_queries(self, queries):
         """
@@ -70,8 +71,8 @@ class Querier(object):
             # if node is not in the dictionary, it will create an empty list
             self._pending.setdefault(query.dst_node.addr, []).append(msg)
             datagrams.append(message.Datagram(
-                    msg.stamp(tid),
-                    query.dst_node.addr))
+                msg.stamp(tid),
+                query.dst_node.addr))
         return timeout_ts, datagrams
 
     def get_related_query(self, response_msg):
@@ -85,14 +86,14 @@ class Querier(object):
             logger.debug('response received: %s' % repr(response_msg))
         elif response_msg.type == message.ERROR:
             logger.warning('Error message received:\n%s\nSource: %s',
-                           `response_msg`,
-                           `response_msg.src_addr`)
+                           repr(response_msg),
+                           repr(response_msg.src_addr))
         else:
-            raise Exception, 'response_msg must be response or error'
+            raise Exception('response_msg must be response or error')
         related_query = self._find_related_query(response_msg)
         if not related_query:
             logger.warning('No query for this response\n%s\nsource: %s' % (
-                    response_msg, response_msg.src_addr))
+                response_msg, response_msg.src_addr))
         return related_query
 
     def get_timeout_queries(self):
@@ -128,13 +129,13 @@ class Querier(object):
             addr_query_list = self._pending[addr]
         except (KeyError):
             logger.warning('No pending queries for %s', addr)
-            return # Ignore response
+            return  # Ignore response
         for related_query in addr_query_list:
             if related_query.match_response(msg):
                 logger.debug(
                     'response node: %s, related query: (%s), delay %f s. %r' % (
-                        `addr`,
-                        `related_query.query`,
+                        repr(addr),
+                        repr(related_query.query),
                         time.time() - related_query.sending_ts,
                         related_query.lookup_obj))
                 # Do not delete this query (the timeout will delete it)

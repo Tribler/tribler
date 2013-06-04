@@ -9,9 +9,9 @@ from Tribler.UPnP.upnpserver import UPnPService
 DEFAULT_URL = "http://vg.no"
 
 
-##############################################
+#
 # URL SERVICE
-##############################################
+#
 
 class URLService(UPnPService):
 
@@ -22,15 +22,15 @@ class URLService(UPnPService):
                              service_version=1)
 
         # Define Evented Variable
-        self._url = self.define_evented_variable("URL", types.StringType,
+        self._url = self.define_evented_variable("URL", bytes,
                                                  DEFAULT_URL)
 
         # Define Actions
         self.define_action(self.get_url,
-                           out_args=[("URL", types.StringType)],
+                           out_args=[("URL", bytes)],
                            name="GetURL")
         self.define_action(self.set_url,
-                           in_args=[("URL", types.StringType)],
+                           in_args=[("URL", bytes)],
                            name="SetURL")
 
     def get_url(self):

@@ -14,9 +14,10 @@ _MCAST_PORT = 1900
 _MCAST_TTL = 4
 _LOG_TAG = "SSDP"
 
-##############################################
+#
 # SSDP DAEMON
-##############################################
+#
+
 
 class SSDPDaemon:
 
@@ -56,7 +57,7 @@ class SSDPDaemon:
             self._mcast_recv_sock.setsockopt(socket.SOL_SOCKET,
                                              socket.SO_REUSEPORT, 1)
         except AttributeError:
-            pass # Some systems don't support SO_REUSEPORT
+            pass  # Some systems don't support SO_REUSEPORT
 
         mreq = struct.pack("4sl", socket.inet_aton(_MCAST_HOST),
                            socket.INADDR_ANY)
@@ -75,22 +76,21 @@ class SSDPDaemon:
         self._host = socket.gethostbyname(socket.gethostname())
         self._port = self._sock.getsockname()[1]
 
-
         # Register Tasks for Execution
         self._rd_task_1 = self.task_runner.add_read_task(self._sock.fileno(),
-                                                 self._handle_unicast)
+                                                         self._handle_unicast)
         self._rd_task_2 = self.task_runner.add_read_task(
             self._mcast_recv_sock.fileno(),
             self._handle_multicast)
 
-    ##############################################
+    #
     # PUBLIC PROTOCOL OPERATIONS
-    ##############################################
+    #
 
     def startup(self):
         """Startup"""
         fmt = "START Port %d and Port %d (Recv Local Multicast)"
-        self.log( fmt % (self._port, _MCAST_PORT))
+        self.log(fmt % (self._port, _MCAST_PORT))
 
     def log(self, msg):
         """Logger object."""
@@ -137,9 +137,9 @@ class SSDPDaemon:
             self._sock = None
         self.log("CLOSE")
 
-    ##############################################
+    #
     # MESSAGE HANDLERS
-    ##############################################
+    #
 
     def _handle_multicast(self):
         """Handles the receipt of a multicast SSDP message."""
@@ -162,7 +162,7 @@ class SSDPDaemon:
         messages."""
         try:
             msg = ssdpmessage.message_loader(data)
-        except Exception, error:
+        except Exception as error:
             print "Exception Handle Message %s\n%s\n" % (error, data)
             raise
 
@@ -197,9 +197,9 @@ class SSDPDaemon:
         pass
 
 
-##############################################
+#
 # MAIN
-##############################################
+#
 
 if __name__ == '__main__':
 
@@ -207,6 +207,7 @@ if __name__ == '__main__':
     TR = taskrunner.TaskRunner()
 
     class _MockLogger:
+
         """Mock Logger object."""
         def log(self, log_tag, msg):
             """Log to std out. """

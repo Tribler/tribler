@@ -8,26 +8,30 @@ import socket
 from threading import Event, Semaphore
 from time import sleep
 from traceback import print_exc
-#from cStringIO import StringIO
+# from cStringIO import StringIO
 
 DEBUG = False
-################################################################
+#
 #
 # Helper methods
 #
 # Contains commonly used helper functions
 #
-################################################################
+#
 
 #
 # Check to see if a file both exists and is readable
 #
+
+
 def existsAndIsReadable(filename):
     return os.access(filename, os.F_OK) and os.access(filename, os.R_OK)
 
 #
 # Intersection of two lists (or dictionaries)
 #
+
+
 def intersection(list1, list2):
     if list1 is None or list2 is None:
         return []
@@ -55,6 +59,8 @@ def intersection(list1, list2):
 #
 # Union of two lists (or dictionaries)
 #
+
+
 def union(list1, list2):
     if list1 is None:
         list1 = {}
@@ -83,6 +89,8 @@ def union(list1, list2):
 # Difference of two dictionaries
 # (A - B)
 #
+
+
 def difference(list1, list2):
     if list2 is None:
         return list1
@@ -98,6 +106,8 @@ def difference(list1, list2):
 #
 # Get a socket to send on
 #
+
+
 def getClientSocket(host, port):
     s = None
     if DEBUG:
@@ -124,6 +134,8 @@ def getClientSocket(host, port):
 #
 # Get a socket to listen on
 #
+
+
 def getServerSocket(host, port):
     s = None
 
@@ -152,7 +164,9 @@ def getServerSocket(host, port):
 # Get a socket (either client or server)
 # Will make up to 5 attempts to get the socket
 #
-def getSocket(host, port, sockettype = "client", attempt = 5):
+
+
+def getSocket(host, port, sockettype="client", attempt = 5):
     s = None
 
     tries = 0

@@ -15,26 +15,28 @@ class VideoBaseFrame:
 
     def show_videoframe(self):
         pass
-    
+
     def hide_videoframe(self):
         pass
 
     def get_videopanel(self):
         pass
-    
+
     def delete_videopanel(self):
         pass
 
-    def OnCloseWindow(self, event = None):
+    def OnCloseWindow(self, event=None):
         pass
 
     def get_window(self):
         pass
-    
+
     def ShowLoading(self):
         pass
+
     def Stop(self):
         pass
+
     def Destroy(self):
         pass
 
@@ -44,20 +46,20 @@ class VideoBaseFrame:
 
 
 class DelayTimer(wx.Timer):
+
     """ vlc.MediaCtrl needs some time to stop after we give it a stop command.
         Wait until it is and then tell it to play the new item
     """
-    def __init__(self,embedplay):
+    def __init__(self, embedplay):
         wx.Timer.__init__(self)
         self.embedplay = embedplay
         self.Start(100)
-        
+
     def Notify(self):
         if self.embedplay.GetState() != MEDIASTATE_PLAYING:
             if DEBUG:
-                print >>sys.stderr,"embedplay: VLC has stopped playing previous video, starting it on new"
+                print >>sys.stderr, "embedplay: VLC has stopped playing previous video, starting it on new"
             self.Stop()
             self.embedplay.Play()
         elif DEBUG:
-            print >>sys.stderr,"embedplay: VLC is still playing old video"
-
+            print >>sys.stderr, "embedplay: VLC is still playing old video"

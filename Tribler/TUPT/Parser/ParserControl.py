@@ -23,9 +23,11 @@ class ParserControl():
             #Run the parse
             result = plugin.ParseWebSite(html)
             #Return the result
-            if not isinstance(result, Movie) and not result == None:
-                #Should return a Movie object.
-                raise IllegalParseResultException('Parser returned a result not of Type Movie.')
+            if result != None:
+                for movie in result:
+                    if not isinstance(movie, Movie):
+                        #Should return a Movie object.
+                        raise IllegalParseResultException('Parser returned a result not of Type Movie.')
             return result, trust
         else:
             raise NoParserFoundException('No parser found for:' + url + '. Use HasParser before using ParseWebsite.')

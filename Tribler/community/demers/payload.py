@@ -1,8 +1,11 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 from Tribler.dispersy.payload import Payload
 
+
 class TextPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, text):
             assert isinstance(text, unicode)
             assert len(text.encode("UTF-8")) <= 255

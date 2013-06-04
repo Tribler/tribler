@@ -5,7 +5,9 @@
 
 import sys
 
+
 class _UPnPLogger:
+
     """UPnPLogger takes two tags and a msg.
     First tag denotes the origin - UPnPServer or UPnPClient.
     Second tag denotes the particular module within the given origin."""
@@ -18,6 +20,7 @@ class _UPnPLogger:
         sys.stderr.flush()
 
 _INSTANCE = _UPnPLogger()
+
 
 def get_logger():
     """Get reference to logger intance."""

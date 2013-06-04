@@ -15,18 +15,19 @@ def splitLine(line, COLS=80, indent=10):
     i = 0
     for word in line.split():
         if i == 0:
-            s.write(indent+word)
+            s.write(indent + word)
             i = len(word)
             continue
         if i + len(word) >= width:
-            s.write('\n'+indent+word)
+            s.write('\n' + indent +word)
             i = len(word)
             continue
-        s.write(' '+word)
+        s.write(' ' + word)
         i += len(word) + 1
     return s.getvalue()
 
-def formatDefinitions(options, COLS, presets = {}):
+
+def formatDefinitions(options, COLS, presets={}):
     s = StringIO()
     for (longname, default, doc) in options:
         s.write('--' + longname + ' <arg>\n')
@@ -53,9 +54,9 @@ def defaultargs(options):
         if default is not None:
             l[longname] = default
     return l
-        
 
-def parseargs(argv, options, minargs = None, maxargs = None, presets = {}):
+
+def parseargs(argv, options, minargs=None, maxargs= None, presets = {}):
     config = {}
     longkeyed = {}
     for option in options:
@@ -74,9 +75,9 @@ def parseargs(argv, options, minargs = None, maxargs = None, presets = {}):
         else:
             if pos == len(argv) - 1:
                 usage('parameter passed in at end with no value')
-            key, value = argv[pos][2:], argv[pos+1]
+            key, value = argv[pos][2:], argv[pos + 1]
             pos += 2
-            if not longkeyed.has_key(key):
+            if key not in longkeyed:
                 usage('unknown key --' + key)
             longname, default, doc = longkeyed[key]
             try:
@@ -92,9 +93,9 @@ def parseargs(argv, options, minargs = None, maxargs = None, presets = {}):
                 elif t is BooleanType:
                     config[longname] = bool(value)
                 else:
-                    print 'parseargs: unknown type is',t
+                    print 'parseargs: unknown type is', t
                     assert 0
-            except ValueError, e:
+            except ValueError as e:
                 usage('wrong format of --%s - %s' % (key, str(e)))
     for key, value in config.items():
         if value is None:
@@ -104,6 +105,7 @@ def parseargs(argv, options, minargs = None, maxargs = None, presets = {}):
     if maxargs is not None and len(args) > maxargs:
         usage("Too many args - %d max." % maxargs)
     return (config, args)
+
 
 def test_parseargs():
     assert parseargs(('d', '--a', 'pq', 'e', '--b', '3', '--c', '4.5', 'f'), (('a', 'x', ''), ('b', 1, ''), ('c', 2.3, ''))) == ({'a': 'pq', 'b': 3, 'c': 4.5}, ['d', 'e', 'f'])
@@ -139,4 +141,3 @@ def test_parseargs():
         parseargs(['--a', 'z'], [('a', 2.1, '')])
     except ValueError:
         pass
-

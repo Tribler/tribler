@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 
 import sys
@@ -12,12 +12,12 @@ from cStringIO import StringIO
 # sha() object instance (hard to do here centrally with multiple threads)
 #
 
-# Arno, 2009-06-23: The OpenSSL calls used by M2Crypto's MessageDigest have 
+# Arno, 2009-06-23: The OpenSSL calls used by M2Crypto's MessageDigest have
 # different behaviour than the Python sha class ones. In particular, OpenSSL
 # needs to make special calls to incrementally digest data (i.e., update();
-# digest();update();digest(). M2Crypto's MessageDigest doesn't make these 
+# digest();update();digest(). M2Crypto's MessageDigest doesn't make these
 # special calls. Due to bad programming, it will actually Segmentation
-# Fault when this usage occurs. And this usage occurs during hashchecking 
+# Fault when this usage occurs. And this usage occurs during hashchecking
 # (so when using VOD repeatedly, not during live), see StorageWrapper.
 #
 # We'll need to patch M2Crypto to work around this. In the meanwhile, I
@@ -30,22 +30,23 @@ if USE_M2CRYPTO_SHA:
     from M2Crypto import EVP
 
     class sha:
-        def __init__(self,data=None):
+
+        def __init__(self, data=None):
             self.hash = None
             self.md = EVP.MessageDigest('sha1')
             if data is not None:
                 self.md.update(data)
-            
-        def update(self,data):
+
+        def update(self, data):
             if self.hash:
                 raise ValueError("sha: Cannot update after calling digest (OpenSSL limitation)")
             self.md.update(data)
 
         def digest(self):
             if not self.hash:
-                self.hash = self.md.final() 
-            return self.hash 
-        
+                self.hash = self.md.final()
+            return self.hash
+
         def hexdigest(self):
             d = self.digest()
             return binascii.hexlify(d)
@@ -57,29 +58,30 @@ else:
 # M2Crypto has no functions to read a pubkey in DER
 #
 def RSA_pub_key_from_der(der):
-    from M2Crypto import RSA,BIO
+    from M2Crypto import RSA, BIO
 
     s = '-----BEGIN PUBLIC KEY-----\n'
     b = base64.standard_b64encode(der)
-    s += textwrap.fill(b,64)
+    s += textwrap.fill(b, 64)
     s += '\n'
     s += '-----END PUBLIC KEY-----\n'
     bio = BIO.MemoryBuffer(s)
     return RSA.load_pub_key_bio(bio)
 
+
 def RSA_keypair_to_pub_key_in_der(keypair):
     # Cannot use rsapubkey.save_key_der_bio(bio). It calls
     # i2d_RSAPrivateKey_bio() and appears to write just the
-    # three RSA parameters, and not the extra ASN.1 stuff that 
+    # three RSA parameters, and not the extra ASN.1 stuff that
     # says "rsaEncryption". In detail:
     #
     # * pubkey.save_key_der("orig.der") gives:
     #  0:d=0  hl=3 l= 138 cons: SEQUENCE
     #  3:d=1  hl=2 l=   1 prim: INTEGER           :00
     #  6:d=1  hl=3 l= 129 prim: INTEGER           :A8D3A10FF772E1D5CEA86D88B2B09CE48A8DB2E563008372F4EF02BCB4E498B8BE974F8A7CD1398C7D408DF3B85D58FF0E3835AE96AB003898511D4914DE80008962C46E199276C35E4ABB7F1507F7E9A336CED3AFDC04F4DDA7B6941E8F15C1AD071599007C1F486C1560CBB96B8E07830F8E1849612E532833B55675E1D84B
-    #138:d=1  hl=2 l=   1 prim: INTEGER           :03
+    # 138:d=1  hl=2 l=   1 prim: INTEGER           :03
     #
-    # when run through 
+    # when run through
     #   $ openssl asn1parse -in origpub.der -inform DER
     #
     # * keypair.save_pub_key("origpub.pem"). If we pass this file through asn1parse
@@ -98,12 +100,12 @@ def RSA_keypair_to_pub_key_in_der(keypair):
     # HOWEVER: The following code, when used inside a function as here, crashes
     # Python, so we can't use it:
     #
-    #pkey = EVP.PKey()
-    #pkey.assign_rsa(keypair)
-    #return pkey.as_der()
+    # pkey = EVP.PKey()
+    # pkey.assign_rsa(keypair)
+    # return pkey.as_der()
     #
     #
-    from M2Crypto import RSA,BIO
+    from M2Crypto import RSA, BIO
 
     bio = BIO.MemoryBuffer()
     keypair.save_pub_key_bio(bio)
@@ -111,7 +113,6 @@ def RSA_keypair_to_pub_key_in_der(keypair):
     stream = StringIO(pem)
     lines = stream.readlines()
     s = ''
-    for i in range(1,len(lines)-1):
+    for i in range(1, len(lines) - 1):
         s += lines[i]
     return base64.standard_b64decode(s)
-    
