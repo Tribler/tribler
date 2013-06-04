@@ -25,7 +25,7 @@ class TestKatPhTorrentFinderPlugin(unittest.TestCase):
         pluginmanager.LoadPlugins()
         plugins = pluginmanager.GetPluginsForCategory("TorrentFinder")
         #Assert
-        assert len(plugins) > 0
+        self.assertTrue( len(plugins) > 0)
 
     def test_LoadTorrentList(self):
         '''Test if a list of torrent definitions can be retrieved.'''
