@@ -6,7 +6,7 @@ from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 class PluginManagerStub():
     
     def __init__(self, parseResult = True):
-        self.parserPlugins = [ParserPluginStub(parseResult), ParserPluginStubIllegalResult(None), ParserPluginStubParserException(None)]
+        self.parserPlugins = [ParserPluginStub(parseResult), ParserPluginStubIllegalResult(None)]
         self.torrentFinderPlugins = [TorrentFinderPluginStub()]
             
     def GetPluginDescriptorsForCategory(self, category):
@@ -50,16 +50,6 @@ class ParserPluginStubIllegalResult(ParserPluginStub):
     def GetParseableSites(self):
         '''Returns a list of parsable urls'''
         return ['illegalparseresultException.com']
-    
-class ParserPluginStubParserException(ParserPluginStub):
-
-    def ParseWebSite(self, html):
-        '''Parse a website and return a list of movies.'''
-        raise Exception()
-        
-    def GetParseableSites(self):
-        '''Returns a list of parsable urls'''
-        return ['ParserException.com']
 
 class PluginDetailsStub():
 

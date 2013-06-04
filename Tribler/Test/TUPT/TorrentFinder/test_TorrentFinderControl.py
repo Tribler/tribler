@@ -39,7 +39,7 @@ class TestTorrentFinderControl(unittest.TestCase):
          #Assert
          self.assertTrue(len(self.__torrentFinderControl.GetSDTorrentList()) > 0)
          self.assertEqual(0, len(self.__torrentFinderControl.GetHDTorrentList()))
-         
+    
 if __name__ == '__main__':
     unittest.main()
     

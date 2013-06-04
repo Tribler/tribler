@@ -2,7 +2,6 @@ import unittest
 
 from Tribler.TUPT.Parser.ParserControl import ParserControl
 from Tribler.TUPT.Parser.ParserControl import IllegalParseResultException
-from Tribler.TUPT.Parser.ParserControl import ParserRuntimeException
 from Tribler.TUPT.Parser.ParserControl import NoParserFoundException
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Movie import Movie
@@ -64,15 +63,6 @@ class TestParserControl(unittest.TestCase):
         #Act and Assert
         with self.assertRaises(NoParserFoundException):
             parserControl.ParseWebsite("url.com", 'NaN')
-    
-    def test_ParseWebsite_ParserException(self):
-        """Test ParseWebsite with a plugin that will throw an exception."""
-        #Arrange
-        parserControl = ParserControl(PluginManagerStub())
-        #Act
-        with self.assertRaises(ParserRuntimeException):
-            parserControl.ParseWebsite('ParserException.com', 'NaN')
-    
     
 if __name__ == '__main__':
     unittest.main()

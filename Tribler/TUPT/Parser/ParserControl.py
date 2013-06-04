@@ -24,8 +24,7 @@ class ParserControl():
             try:
                 result = plugin.ParseWebSite(html)
             except Exception:
-                print sys.exc_info()[0]
-                raise ParserRuntimeException("Unexpected error in plugin "+ name +".")
+                print "Unexpected error in plugin "+ name +"." + sys.exc_info()[0]
             #Return the result
             if result != None:
                 for movie in result:
@@ -73,15 +72,6 @@ class NoParserFoundException(Exception):
 class IllegalParseResultException(Exception):
     '''Exception that should be thrown when no parser was found on for page.'''
     
-    def __init__(self, value):
-        self.value = value
-        
-    def __str__(self):
-        return repr(self.value)
-    
-class ParserRuntimeException(Exception):
-    '''Exception that should be thrown when a parser raises an exception when run.'''
-      
     def __init__(self, value):
         self.value = value
         
