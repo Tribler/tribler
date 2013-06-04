@@ -86,8 +86,7 @@ class TUPTControl:
            self.__DownloadURL(self.__movieTorrentIterator.GetNextHDTorrent(n).GetTorrentURL())
         #Update the infobar. This has to be done regardless of if a torrent was added or not.
         if not self.__movieTorrentIterator.HasSDTorrent(n):
-            self.__infoBar.RemoveSDQuality()
-        
+            self.__infoBar.RemoveSDQuality() 
 
     def DownloadSDMovie(self, n = 0):
         """Start downliading the selected movie in SD quality"""

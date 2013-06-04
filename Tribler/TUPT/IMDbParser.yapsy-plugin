@@ -1,0 +1,8 @@
+[Core]
+Name = IMDb Parser plugin
+Module = IMDbParserPlugin
+Trust = 1.0
+
+[Documentation]
+Version = 0.1
+Website = https://github.com/norberhuis/tribler

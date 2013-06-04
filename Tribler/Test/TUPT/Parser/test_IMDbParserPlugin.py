@@ -67,7 +67,7 @@ class TestIMDbParserPlugin(unittest.TestCase):
         #Act
         pluginmanager = PluginManager()
         #Overwrite the path to the sourcefolder of the plugin.        
-        path = os.path.realpath(os.getcwd() + os.sep + '..' + os.sep + '..' + os.sep + '..' + os.sep + 'TUPT')
+        path = os.path.realpath(os.getcwd() + os.sep + '..' + os.sep + '..' + os.sep + 'TUPT')
         pluginmanager.OverwritePluginsFolder(path)
         #Load the plugin
         pluginmanager.RegisterCategory("Parser", IParserPlugin)
@@ -84,8 +84,6 @@ class TestIMDbParserPlugin(unittest.TestCase):
        '''Asserts the result for the parser'''
        for key in self.__result:
            self.assertEqual(self.__result[key], result.dictionary[key])
-           
-if __name__ == '__main__':
-    unittest.main()
+
     
     

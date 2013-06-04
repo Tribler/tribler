@@ -15,7 +15,7 @@ class TestMovieTorrentIterator(unittest.TestCase):
         #Act        
         movies.append(movieTorrent)
         #Assert
-        self.assertEqual(movieTorrent, movies.GetNextMovie())
+        self.assertEqual(movieTorrent, movies.GetMovie(0))
         
     def test_HasHDTorrent_HasHDTorrent(self):
          #Arrange
