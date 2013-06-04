@@ -118,10 +118,11 @@ class TorrentFinderControl:
                 to our parent.
             """
             #Defensivly execute the plugin.
+            list = []
             try:
                 list = self.plugin.GetTorrentDefsForMovie(self.movie)
             except Exception:
-                print "Unexpected error in plugin "+ self.name +".\n"+ sys.exc_info()[0]
+                print "Unexpected error in plugin "+ self.name +".\n", sys.exc_info()[0]
             print "Plugin " + self.name + " returned " + str(len(list)) + " results."
             for item in list:                
                 if not isinstance(item, IMovieTorrentDef):

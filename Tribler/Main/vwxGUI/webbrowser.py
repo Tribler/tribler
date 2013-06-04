@@ -180,7 +180,9 @@ class WebBrowser(XRCPanel):
             for window in windows:
                 if window:
                     self.infobaroverlay.RemoveChild(window)
+                    window.Destroy()
             self.infobaroverlay.Layout()
+        self.infobaroverlay.ClearBackground()
         #Overwrite with new sizer and contents
         infobarSizer = wx.BoxSizer(wx.HORIZONTAL)
         width = 0
