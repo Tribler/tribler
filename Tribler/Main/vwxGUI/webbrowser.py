@@ -189,7 +189,6 @@ class WebBrowser(XRCPanel):
             width += contentTuple[0].GetMaxWidth() if contentTuple[0].GetMaxWidth() != -1 else 0
             infobarSizer.Add(contentTuple[0], 0, flags)
         width = self.GetSize().width - width
-        print "WIDTH:", width
         infobarSizer.Add((width,1))
         self.infobaroverlay.SetSizer(infobarSizer)
         infobarSizer.FitInside(self.infobaroverlay)
