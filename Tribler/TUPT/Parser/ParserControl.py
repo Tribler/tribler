@@ -20,7 +20,7 @@ class ParserControl():
         plugin, trust, name = self.__FindPlugin(url)
         #Check if we can parse the site
         if plugin:        
-            #Run the parse
+             #Defensivly execute the plugin.
             try:
                 result = plugin.ParseWebSite(html)
             except Exception:

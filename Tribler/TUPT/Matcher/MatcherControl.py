@@ -56,7 +56,11 @@ class MatcherControl:
                 trust = plugin_info.details.getfloat("Core","Trust")
             except:
                 trust = 0.5 #Not a valid float
-            self.__RegisterPluginResults(plugin_info.plugin_object, movie, trust)
+            #Defensivly execute the plugin.
+            try:
+                self.__RegisterPluginResults(plugin_info.plugin_object, movie, trust)
+            except Exception:
+                print "Unexpected error in plugin "+ plugin_info.name +".\n"+ sys.exc_info()[0]
         out = Movie()
         out.dictionary = self.__GetFinalDict()
         return out
