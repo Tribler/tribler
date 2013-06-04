@@ -84,7 +84,7 @@ class WebBrowser(XRCPanel):
 
         self.HideInfoBar()
         
-        if (True):
+        if (False):
             self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.0 bug
         else:
             self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.0 bug
@@ -183,13 +183,16 @@ class WebBrowser(XRCPanel):
             self.infobaroverlay.Layout()
         #Overwrite with new sizer and contents
         infobarSizer = wx.BoxSizer(wx.HORIZONTAL)
-        i = 0
+        width = 0
         for contentTuple in orderedContents:
             flags = wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_LEFT if len(contentTuple)==1 else contentTuple[1]
-            infobarSizer.Add(contentTuple[0], i, flags)
-            i += 1
+            width += contentTuple[0].GetMaxWidth() if contentTuple[0].GetMaxWidth() != -1 else 0
+            infobarSizer.Add(contentTuple[0], 0, flags)
+        width = self.GetSize().width - width
+        print "WIDTH:", width
+        infobarSizer.Add((width,1))
         self.infobaroverlay.SetSizer(infobarSizer)
-        infobarSizer.Fit(self.infobaroverlay)
+        infobarSizer.FitInside(self.infobaroverlay)
     
     def __fixInfobarHeight(self, height):
         """In wxPython 2.9.0 SetSizeHints does not function properly,
