@@ -4,37 +4,6 @@ from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
 from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
 from Tribler.TUPT.Movie import Movie
 
-class MovieTorrentDefStub(IMovieTorrentDef):
-    """Test class with trivial values for testing.
-        Allows tester to set return values directly.
-        Overwrite by setting variable with lowercase first letter:
-         MethodName returns methodName
-    """
-
-    def GetSeeders(self):
-        return self.getSeeders if hasattr(self, 'getSeeders') else 800
-
-    def GetLeechers(self):
-        return self.getLeechers if hasattr(self, 'getLeechers') else 400
-
-    def IsHighDef(self):
-        return self.isHighDef if hasattr(self, 'isHighDef') else True
-
-    def GetMovieDescriptor(self):
-        stdMovie = Movie()
-        stdMovie.dictionary = {'Title':'Apes in Space', 'Director':'Bob Robson', 'Actors':'Sly Schwarzenegger, Brad Stallone'}
-        return self.getMovieDescriptor if hasattr(self, 'getMovieDescriptor') else stdMovie
-
-    def GetTorrentName(self):
-        return self.getTorrentName if hasattr(self, 'getTorrentName') else '[DVDRip,BBCRipz]Apes.in.space:.odyssey1080p' 
-
-    def GetTorrentURL(self):
-        return self.getTorrentURL if hasattr(self, 'getTorrentURL') else 'http://www.google.com/[DVDRip,BBCRipz]Apes.in.space:.odyssey1080p.torrent'
-
-    def GetTorrentProviderName(self):
-        return self.getTorrentProviderName if hasattr(self, 'getTorrentProviderName') else 'www.google.com'
-
-
 class TestSortedTorrentList(unittest.TestCase):
     '''Test class to test PluginManager'''
 
@@ -160,7 +129,37 @@ class TestSortedTorrentList(unittest.TestCase):
         #Assert     
         assert stList.GetList()[0] == torrentDef1
         assert stList.GetList()[1] == torrentDef2
-           
+
+class MovieTorrentDefStub(IMovieTorrentDef):
+    """Test class with trivial values for testing.
+        Allows tester to set return values directly.
+        Overwrite by setting variable with lowercase first letter:
+         MethodName returns methodName
+    """
+
+    def GetSeeders(self):
+        return self.getSeeders if hasattr(self, 'getSeeders') else 800
+
+    def GetLeechers(self):
+        return self.getLeechers if hasattr(self, 'getLeechers') else 400
+
+    def IsHighDef(self):
+        return self.isHighDef if hasattr(self, 'isHighDef') else True
+
+    def GetMovieDescriptor(self):
+        stdMovie = Movie()
+        stdMovie.dictionary = {'Title':'Apes in Space', 'Director':'Bob Robson', 'Actors':'Sly Schwarzenegger, Brad Stallone'}
+        return self.getMovieDescriptor if hasattr(self, 'getMovieDescriptor') else stdMovie
+
+    def GetTorrentName(self):
+        return self.getTorrentName if hasattr(self, 'getTorrentName') else '[DVDRip,BBCRipz]Apes.in.space:.odyssey1080p' 
+
+    def GetTorrentURL(self):
+        return self.getTorrentURL if hasattr(self, 'getTorrentURL') else 'http://www.google.com/[DVDRip,BBCRipz]Apes.in.space:.odyssey1080p.torrent'
+
+    def GetTorrentProviderName(self):
+        return self.getTorrentProviderName if hasattr(self, 'getTorrentProviderName') else 'www.google.com'
+        
 if __name__ == '__main__':
     unittest.main()
     

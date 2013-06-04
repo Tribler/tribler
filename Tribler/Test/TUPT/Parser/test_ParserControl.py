@@ -45,7 +45,7 @@ class TestParserControl(unittest.TestCase):
         #Act
         result = parserControl.ParseWebsite("something.com", 'NaN')
         #Assert
-        self.assertEqual('TestMovie', result[0].dictionary['title'])
+        self.assertEqual('TestMovie', result[0][0].dictionary['title'])
         
     def test_ParseWebsite_IllegalParseResult(self):
         """Test ParseWebsite returning a result not of type movie."""
