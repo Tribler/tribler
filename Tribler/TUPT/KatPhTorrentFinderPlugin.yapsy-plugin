@@ -1,8 +1,0 @@
-[Core]
-Name = Kat.ph torrent finder plugin
-Module = KatPhTorrentFinderPlugin
-Trust = 1
-
-[Documentation]
-Version = 0.1
-Website = https://github.com/norberhuis/tribler
