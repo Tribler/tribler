@@ -230,6 +230,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
+            self.ppbtn.Enable(False)
             position = self.slider.GetValue()
             self.update = False
     
@@ -244,6 +245,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                     self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000) 
 
                     self.update = True
+                    self.ppbtn.Enable(True)
                 except:
                     print_exc()
                     if DEBUG:
@@ -419,7 +421,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.GetState() != MEDIASTATE_STOPPED:
     
                 length = self.vlcwrap.get_stream_information_length()
-                length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
+                length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
                 cur = self.vlcwrap.get_media_position() / 1000
                 if length and self.timeoffset:
                     cur += self.timeoffset
