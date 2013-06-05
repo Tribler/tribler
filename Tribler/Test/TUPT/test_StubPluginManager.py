@@ -28,7 +28,7 @@ class ParserPluginStub(IParserPlugin):
         self.result = result
         self.name = "ParserPluginStub"
     
-    def ParseWebSite(self, html):
+    def ParseWebSite(self, url, html):
         '''Parse a website and return a list of movies.'''
         if self.result:
             movie = Movie()
@@ -43,7 +43,7 @@ class ParserPluginStub(IParserPlugin):
 
 class ParserPluginStubIllegalResult(ParserPluginStub):
 
-    def ParseWebSite(self, html):
+    def ParseWebSite(self, url, html):
         '''Parse a website and return a list of movies.'''
         return ['IllegalType']
         

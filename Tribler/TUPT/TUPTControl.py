@@ -61,7 +61,7 @@ class TUPTControl:
         netloc = urlparse.urlparse(event.GetURL()).netloc   #The url identifier, ex 'www.google.com'   
         #Parse the Website.
         if self.parserControl.HasParser(netloc):
-            movies, trust = self.parserControl.ParseWebsite(netloc, html)
+            movies, trust = self.parserControl.ParseWebsite(event.GetURL, html)
             #Check if there a movies on the website.
             if movies is not None:
                 self.__movieTorrentIterator = MovieTorrentIterator()

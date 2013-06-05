@@ -25,13 +25,14 @@ class TestIMDbParserPlugin(unittest.TestCase):
     def test_ParseWebsiteCombinedDetails(self):
         '''Test parsing the combined details page'''
         #Arrange
-        html = self.download_webpage('http://www.imdb.com/title/tt0133093/fullcredits?ref_=tt_cl_sm#cast', 'test_ParseWebsiteCombinedDetails.html')
+        url = 'http://www.imdb.com/title/tt0133093/fullcredits?ref_=tt_cl_sm#cast'
+        html = self.download_webpage(url, 'test_ParseWebsiteCombinedDetails.html')
         if not html:
             file = open('test_ParseWebsiteCombinedDetails.html','r')
             html = file.read()
         parser = IMDbParserPlugin()
         #Act
-        result = parser.ParseWebSite(html)[0]
+        result = parser.ParseWebSite(url,html)[0]
         #Assert        
         self.__AssertResult(result)
         
@@ -39,26 +40,28 @@ class TestIMDbParserPlugin(unittest.TestCase):
         '''Parse a page that has the correct netloc, but no movie.
         This should result in no movies being returned'''
         #Arrange
-        html = self.download_webpage('http://www.imdb.com/', 'test_ParseEmptyWebsite.html')
+        url = 'http://www.imdb.com/'
+        html = self.download_webpage(url, 'test_ParseEmptyWebsite.html')
         if not html:
             file = open('test_ParseEmptyWebsite.html','r')        
             html = file.read()
         parser = IMDbParserPlugin()
         #Act
-        result = parser.ParseWebSite(html)
+        result = parser.ParseWebSite(url,html)
         #Assert
         assert len(result)==0
     
     def test_ParseWebsiteMainPage(self):
         '''Test parsing the main details page'''
         #Arrange
-        html = self.download_webpage('http://www.imdb.com/title/tt0133093/', 'test_ParseWebsiteMainPage.html')
+        url = 'http://www.imdb.com/title/tt0133093/'
+        html = self.download_webpage(url, 'test_ParseWebsiteMainPage.html')
         if not html:
             file = open('test_ParseWebsiteMainPage.html','r')        
             html = file.read()
         parser = IMDbParserPlugin()
         #Act
-        result = parser.ParseWebSite(html)[0]
+        result = parser.ParseWebSite(url, html)[0]
         #Assert
         self.__AssertResult(result)
         
@@ -79,6 +82,48 @@ class TestIMDbParserPlugin(unittest.TestCase):
             if plugin.__class__.__name__ == 'IMDbParserPlugin':
                 result = True
         self.assertTrue(result)
+
+    def test_ParseTop250(self):
+        '''Test parsing the top 250 page on IMDB'''
+        #Arrange
+        url = 'http://www.imdb.com/chart/top'
+        html = self.download_webpage(url, 'test_ParseWebsiteTop250.html')
+        if not html:
+            file = open('test_ParseWebsiteTop250.html','r')        
+            html = file.read()
+        parser = IMDbParserPlugin()
+        #Act
+        result = parser.ParseWebSite(url, html)
+        #Assert
+        self.assertEqual(250, len(result))
+        
+    def test_ParseTop250_Homepage(self):
+        '''Test parsing the top 250 homepage on IMDB'''
+        #Arrange
+        url = 'http://www.imdb.com/chart/top?ref_=nb_mv_3_chttp'
+        html = self.download_webpage(url, 'test_ParseWebsiteTop250_Homepage.html')
+        if not html:
+            file = open('test_ParseWebsiteTop250_Homepage.html','r')        
+            html = file.read()
+        parser = IMDbParserPlugin()
+        #Act
+        result = parser.ParseWebSite(url, html)
+        #Assert
+        self.assertEqual(250, len(result))
+        
+    def test_ParseBottom100(self):
+        '''Test parsing the bottom 100 page on IMDB'''
+        #Arrange
+        url = 'http://www.imdb.com/chart/bottom'
+        html = self.download_webpage(url, 'test_ParseWebsiteBottom100.html')
+        if not html:
+            file = open('test_ParseWebsiteBottom100.html','r')        
+            html = file.read()
+        parser = IMDbParserPlugin()
+        #Act
+        result = parser.ParseWebSite(url, html)
+        #Assert
+        self.assertEqual(100, len(result))
 
     def __AssertResult(self, result):
        '''Asserts the result for the parser'''
