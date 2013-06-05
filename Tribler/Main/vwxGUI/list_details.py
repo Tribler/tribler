@@ -361,7 +361,7 @@ class TorrentDetails(AbstractDetails):
                         self.notebook.SetPageText(i, "Modifications(%d)" % nrmodifications)
             self.modificationList.SetNrResults = updateTitle
 
-            self.notebook.AddPage(self.modificationList, 'Modifications')
+            self.notebook.AddPage(self.modificationList, 'Modifications', tab_colour = wx.WHITE)
             modificationManager.refresh()
 
         # Create filelist

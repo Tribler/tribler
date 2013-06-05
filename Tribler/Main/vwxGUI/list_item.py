@@ -13,6 +13,7 @@ from _abcoll import Iterable
 from datetime import timedelta
 import urllib
 from Tribler.Main.Utility.GuiDBTuples import MergedDs
+from Tribler import LIBRARYNAME
 
 
 class ColumnsManager:
