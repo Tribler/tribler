@@ -79,7 +79,7 @@ class TestMyChannel(TestGuiAsServer):
         def do_create_playlist():
             self.screenshot('Files have been added created')
 
-            infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')  # pioneer one
+            infohash = binascii.unhexlify('45a647b1120ed9fe7f793e17585efb4b0efdf1a5')  # prebloc
 
             manageplaylist = self.managechannel.playlistlist
             manager = manageplaylist.GetManager()
