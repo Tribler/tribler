@@ -1,9 +1,7 @@
 class IParserPlugin(object):
     
-    def ParseWebSite(self, html):
+    def ParseWebSite(self,url, html):
         '''Parse a website and return a list of movies.
-        Throws:
-            NoResultFound : if no result was found.
         '''
         pass
     

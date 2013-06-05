@@ -22,7 +22,7 @@ class ParserControl():
         if plugin:        
              #Defensivly execute the plugin.
             try:
-                result = plugin.ParseWebSite(html)
+                result = plugin.ParseWebSite(url, html)
             except Exception:
                 print "Unexpected error in plugin "+ name +"." + sys.exc_info()[0]
             #Return the result
