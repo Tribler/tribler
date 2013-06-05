@@ -84,10 +84,10 @@ class WebBrowser(XRCPanel):
 
         self.HideInfoBar()
         
-        if (False):
-            self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.0 bug
-        else:
-            self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.0 bug
+        self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.4.0 bug
+        
+        if (True):
+            self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.4.0 bug
             wx.CallAfter(self.webview.LoadURL, "http://www.imdb.com/title/tt0458525/")       
     
     def goBackward(self, event):
