@@ -3,10 +3,13 @@
 
 import os
 import sys
-
+import time
+import binascii
+import threading
 
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
-import binascii
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 
 DEBUG = True
 class TestMyChannel(TestGuiAsServer):
@@ -62,10 +65,21 @@ class TestMyChannel(TestGuiAsServer):
 
             do_quit()
 
+        def do_thumbnails():
+            thumb_dir = os.path.join(self.guiUtility.utility.session.get_torrent_collecting_dir(), 'thumbs-45a647b1120ed9fe7f793e17585efb4b0efdf1a5')
+
+            self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, do_overview, 'No thumbnails were created')
+
+        def do_download_torrent():
+            torrentfilename = os.path.join(BASE_DIR, "data", 'Prebloc.2010.Xvid-VODO.torrent')
+            download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())            
+
+            self.CallConditional(300, lambda: download.get_progress() == 1.0, do_thumbnails, 'Failed to download torrent in time')
+
         def do_create_playlist():
             self.screenshot('Files have been added created')
 
-            infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')  # pioneer one
+            infohash = binascii.unhexlify('45a647b1120ed9fe7f793e17585efb4b0efdf1a5')  # prebloc
 
             manageplaylist = self.managechannel.playlistlist
             manager = manageplaylist.GetManager()
@@ -75,14 +89,14 @@ class TestMyChannel(TestGuiAsServer):
             mp_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage playlists")
             self.managechannel.notebook.SetSelection(mp_index)
 
-            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, do_overview, 'Channel did not have a playlist')
+            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, do_download_torrent, 'Channel did not have a playlist')
 
         def do_add_torrent():
             self.screenshot('Channel is created')
 
             managefiles = self.managechannel.fileslist
             manager = managefiles.GetManager()
-            manager.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), fixtorrent=True)
+            manager.startDownload(os.path.join(BASE_DIR, "data", 'Prebloc.2010.Xvid-VODO.torrent'), fixtorrent=True)
             manager.startDownloadFromUrl(r'http://www.clearbits.net/get/1678-zenith-part-1.torrent', fixtorrent=True)
             manager.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
 
