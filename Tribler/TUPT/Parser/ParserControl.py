@@ -1,4 +1,6 @@
 import sys
+import urlparse
+
 from Tribler.TUPT.Movie import Movie
 
 class ParserControl():
@@ -8,7 +10,7 @@ class ParserControl():
     
     def __init__(self, pluginManager):
         self.__pluginManager = pluginManager
-        
+
     def HasParser(self, url):
         '''Return if a parser exists'''
         plugin, trust, name = self.__FindPlugin(url)
@@ -38,6 +40,8 @@ class ParserControl():
     
     def __FindPlugin(self, url):
         '''Find a parser that will be able to parse the website.'''
+        url = urlparse.urlparse(url).netloc    
+    
          #Determine parser
         plugins =  self.__pluginManager.GetPluginDescriptorsForCategory('Parser')
         plugin = None

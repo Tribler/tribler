@@ -16,7 +16,7 @@ class TestParserControl(unittest.TestCase):
         #Arrange        
         parserControl = ParserControl(PluginManagerStub(parseResult = False))
         #Act
-        result = parserControl.HasParser("url.com")
+        result = parserControl.HasParser("http://www.url.com/blabla")
         #Assert
         self.assertFalse(result)
         
@@ -25,7 +25,7 @@ class TestParserControl(unittest.TestCase):
         #Arrange        
         parserControl = ParserControl(PluginManagerStub(parseResult = False))
         #Act
-        result = parserControl.HasParser("something.com")
+        result = parserControl.HasParser("http://www.something.com/blabla/")
         #Assert
         self.assertTrue(result)       
         
@@ -34,7 +34,7 @@ class TestParserControl(unittest.TestCase):
         #Arrange
         parserControl = ParserControl(PluginManagerStub(parseResult = False))
         #Act
-        result = parserControl.ParseWebsite("something.com", 'NaN')
+        result = parserControl.ParseWebsite("http://www.something.com", 'NaN')
         #Assert
         self.assertEqual(None, result[0])
     
@@ -43,7 +43,7 @@ class TestParserControl(unittest.TestCase):
         #Arrange
         parserControl = ParserControl(PluginManagerStub(parseResult = True))
         #Act
-        result = parserControl.ParseWebsite("something.com", 'NaN')
+        result = parserControl.ParseWebsite("http://www.something.com", 'NaN')
         #Assert
         self.assertEqual('TestMovie', result[0][0].dictionary['title'])
         
@@ -53,7 +53,7 @@ class TestParserControl(unittest.TestCase):
         parserControl = ParserControl(PluginManagerStub(parseResult = True))
         #Act
         with self.assertRaises(IllegalParseResultException):
-            result = parserControl.ParseWebsite("illegalparseresultException.com", 'NaN')
+            result = parserControl.ParseWebsite("http://www.illegalparseresultException.com/blabla", 'NaN')
         #Assert        
     
     def test_ParseWebsite_NoParserFoundException(self):
@@ -62,7 +62,7 @@ class TestParserControl(unittest.TestCase):
         parserControl = ParserControl(PluginManagerStub(parseResult = True))
         #Act and Assert
         with self.assertRaises(NoParserFoundException):
-            parserControl.ParseWebsite("url.com", 'NaN')
+            parserControl.ParseWebsite("http://www.url.com/blabla", 'NaN')
     
 if __name__ == '__main__':
     unittest.main()

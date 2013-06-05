@@ -39,7 +39,7 @@ class ParserPluginStub(IParserPlugin):
     
     def GetParseableSites(self):
         '''Returns a list of parsable urls'''
-        return ['something.com']
+        return ['www.something.com']
 
 class ParserPluginStubIllegalResult(ParserPluginStub):
 
@@ -49,7 +49,7 @@ class ParserPluginStubIllegalResult(ParserPluginStub):
         
     def GetParseableSites(self):
         '''Returns a list of parsable urls'''
-        return ['illegalparseresultException.com']
+        return ['www.illegalparseresultException.com']
 
 class PluginDetailsStub():
 
