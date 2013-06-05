@@ -1922,101 +1922,90 @@ class SimpleNotebook(wx.Panel):
     def __init__(self, *args, **kwargs):
         self.show_single_tab = kwargs.pop('show_single_tab', True)
         wx.Panel.__init__(self, *args, **kwargs)
-        self.ad = None
         self.labels = []
         self.panels = []
-        self.pshown = None
+        self.pshown = 0
         self.lspace = 10
         self.hSizer_labels = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer_panels = wx.BoxSizer(wx.HORIZONTAL)
-        self.hSizer_panel = wx.Panel(self, -1)
-        self.hSizer_panel.SetSizer(self.hSizer_labels)
-        self.hSizer_panel.SetBackgroundColour(FILTER_GREY)
-        self.hSizer_panel.SetMinSize((-1, 25))
+        self.tab_colours = {}
+        self.tab_panel = wx.Panel(self, -1)
+        self.tab_panel.SetSizer(self.hSizer_labels)
+        self.tab_panel.SetBackgroundColour(FILTER_GREY)
+        self.tab_panel.SetMinSize((-1, 25))
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.top_separator = wx.Panel(self, size=(-1, 1))
-        self.top_separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Add(self.top_separator, 0, wx.EXPAND)
-        vSizer.Add(self.hSizer_panel, 0, wx.EXPAND)
-        separator = wx.Panel(self, size=(-1, 1))
-        separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Add(separator, 0, wx.EXPAND)
+        vSizer.Add(self.tab_panel, 0, wx.EXPAND)
         vSizer.Add(self.hSizer_panels, 1, wx.EXPAND)
         self.SetSizer(vSizer)
+        self.tab_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def OnLeftUp(self, event):
         obj = event.GetEventObject()
-        for index, control in enumerate(self.hSizer_labels.GetChildren()):
-            if getattr(control, 'IsSizer', False) and control.GetSizer() == obj:
-                self.SetSelection(index / 2)
-                self.hSizer_panel.Refresh()
-                break
+        if obj in self.labels:
+            self.SetSelection(self.labels.index(obj))
+            self.tab_panel.Refresh()
 
     def GetPage(self, num_page):
         if num_page >= 0 and num_page < self.GetPageCount():
             return self.panels[num_page]
         return None
 
-    def AddPage(self, page, text, select=False):
-        label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
-        label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
-        self.hSizer_labels.Add(label, 0, wx.RIGHT | wx.LEFT |wx.CENTER, self.lspace)
-        self.hSizer_labels.Add(sline, 0, wx.EXPAND | wx.ALL |wx.CENTER|wx.TOP|wx.BOTTOM, 5)
-        self.hSizer_labels.Layout()
-        page.Show(False)
-        index = len(self.hSizer_panels.GetChildren()) - 1 if self.ad else len(self.hSizer_panels.GetChildren())
-        self.hSizer_panels.Insert(index, page, 100, wx.EXPAND)
-        self.labels.append(label)
-        self.panels.append(page)
-        if select or not self.GetCurrentPage():
-            self.SetSelection(self.GetPageCount() - 1)
-        else:
-            self.Layout()
-        if not self.show_single_tab:
-            self.ShowTabs(self.GetPageCount() > 1)
+    def AddPage(self, page, text, tab_colour=None):
+        self.InsertPage(self.GetPageCount(), page, text, tab_colour)
 
-    def InsertPage(self, index, page, text, select=False):
-        if not (index >= 0 and index < self.GetPageCount()):
+    def InsertPage(self, index, page, text, tab_colour=None):
+        if not (index >= 0 and index <= self.GetPageCount()):
             return
-        label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
+
+        if tab_colour:
+            self.tab_colours[index] = tab_colour
+
+        label = LinkStaticText(self.tab_panel, text, None, font_colour=self.tab_panel.GetForegroundColour())
         label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
-        self.hSizer_labels.Insert(index * 2, label, 0, wx.RIGHT |wx.LEFT|wx.CENTER, self.lspace)
-        self.hSizer_labels.Insert(index * 2 +1, sline, 0, wx.EXPAND|wx.CENTER|wx.TOP|wx.BOTTOM, 5)
+        self.hSizer_labels.Insert(index, label, 0, wx.RIGHT | wx.LEFT | wx.CENTER, self.lspace)
         self.hSizer_labels.Layout()
-        page.Show(False)
-        szr_index = index - 1 if self.ad else index
-        self.hSizer_panels.Insert(szr_index, page, 100, wx.EXPAND)
+        page.Show(index == 0)
+        self.hSizer_panels.Insert(index, page, 100, wx.EXPAND)
         self.labels.insert(index, label)
         self.panels.insert(index, page)
-        if select or not self.GetCurrentPage():
-            self.SetSelection(self.GetPageCount() - 1)
-        else:
-            self.Layout()
+
         if not self.show_single_tab:
-            self.ShowTabs(self.GetPageCount() > 1)
+            show_tab_panel = self.GetPageCount() > 1
+            self.tab_panel.SetMinSize((-1, 25 if show_tab_panel else 1))
+            self.hSizer_labels.ShowItems(show_tab_panel)
+        self.Layout()
+
+        if index <= self.pshown:
+            if self.GetPageCount() > 1:
+                self.pshown += 1
+            wx.CallAfter(self.ResetTabs)
+
+    def ResetTabs(self):
+        for index, label in enumerate(self.labels):
+            selected_tab = self.GetSelection()
+            is_current = index == selected_tab
+            fg_colour = TRIBLER_RED if is_current else self.tab_panel.GetForegroundColour()
+            bg_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour()) if is_current else self.tab_panel.GetBackgroundColour()
+            label.SetForegroundColour(fg_colour)
+            label.SetBackgroundColour(bg_colour)
+        self.tab_panel.Refresh()
 
     def RemovePage(self, index):
-        remove_current = self.GetCurrentPage() == index
-        remove_last = self.GetPageCount() == index
         page = self.labels.pop(index)
         page.Show(False)
         label = self.panels.pop(index)
         label.Show(False)
-        self.hSizer_labels.Remove(index * 2)
-        if not remove_last:
-            sline = self.hSizer_labels.GetItem(index * 2)
-            sline = sline.GetWindow() if getattr(sline, 'IsWindow', False) and sline.IsWindow() else sline
-            sline.Show(False)
-            self.hSizer_labels.Remove(index * 2)
+        self.hSizer_labels.Remove(index)
         self.hSizer_panels.Remove(index)
-        if remove_current:
-            self.SetSelection(self.GetPageCount() - 1)
+
+        if self.GetSelection() == index:
+            self.SetSelection(index - 1 if index > 0 else 0)
+
         if not self.show_single_tab:
-            self.ShowTabs(self.GetPageCount() > 1)
-        else:
-            self.Layout()
+            show_tab_panel = self.GetPageCount() > 1
+            self.tab_panel.SetMinSize((-1, 25 if show_tab_panel else 1))
+            self.hSizer_labels.ShowItems(show_tab_panel)
+        self.Layout()
 
     def GetPageText(self, num_page):
         if num_page >= 0 and num_page < self.GetPageCount():
@@ -2032,29 +2021,33 @@ class SimpleNotebook(wx.Panel):
         return len(self.labels)
 
     def GetCurrentPage(self):
-        if self.pshown != None:
-            return self.GetPage(self.pshown)
-        return None
+        return self.GetPage(self.GetSelection())
 
     def SetSelection(self, num_page):
         if not (num_page >= 0 and num_page < self.GetPageCount()) or self.pshown == num_page:
             return
-        old_page_index = self.pshown
+
         old_page = self.GetCurrentPage()
         if old_page:
             old_page.Show(False)
-            self.labels[self.pshown].SetForegroundColour(self.GetForegroundColour())
-        self.labels[num_page].SetForegroundColour(TRIBLER_RED)
-        self.panels[num_page].Show(True)
-        self.pshown = num_page
+            old_label = self.labels[self.pshown]
+            old_label.SetForegroundColour(self.tab_panel.GetForegroundColour())
+            old_label.SetBackgroundColour(self.tab_panel.GetBackgroundColour())
+
+        new_page = self.panels[num_page]
+        new_page.Show(True)
+        new_label = self.labels[num_page]
+        new_label.SetForegroundColour(TRIBLER_RED)
+        new_label.SetBackgroundColour(self.tab_colours.get(num_page, new_page.GetBackgroundColour()))
         self.Layout()
 
-        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
+        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, self.GetSelection())
         event.SetEventObject(self)
+        self.pshown = num_page
         wx.PostEvent(self.GetEventHandler(), event)
 
     def GetSelection(self):
-        return self.pshown or 0
+        return self.pshown
 
     def ChangeSelection(self, num_page):
         self.SetSelection(num_page)
@@ -2065,21 +2058,55 @@ class SimpleNotebook(wx.Panel):
     def GetThemeBackgroundColour(self):
         return self.GetBackgroundColour()
 
-    def SetAdSpace(self, panel):
-        if self.ad:
-            self.ad.Show(False)
-            self.hSizer_panels.Replace(self.ad, panel)
-            self.ad.Destroy()
-        else:
-            self.hSizer_panels.Add(panel, 0, wx.EXPAND)
-        self.ad = panel
-        panel.Show(True)
-        self.Layout()
+    def OnEraseBackground(self, evt):
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
 
-    def ShowTabs(self, show=True):
-        self.hSizer_panel.Show(show)
-        self.top_separator.Show(show)
-        self.Layout()
+        width, height = self.tab_panel.GetClientSize()
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+
+        # Draw bottom separator
+        dc.SetPen(wx.Pen(SEPARATOR_GREY))
+        dc.DrawLine(0, height - 1, width, height - 1)
+
+        # If we're not showing the full tab_panel, stop here
+        if not self.show_single_tab and self.GetPageCount() < 2:
+            return
+
+        # Calculate separator positions
+        separator_positions = []
+        for i in range(0, len(self.labels) - 1):
+            l1, l2 = self.labels[i:i + 2]
+            x1, x2 = l1.GetPosition().x + l1.GetSize().x, l2.GetPosition().x
+            x_avg = (x1 + x2) / 2
+            separator_positions.append(x_avg)
+        if self.labels:
+            l = self.labels[-1]
+            separator_positions.append(l.GetPosition().x + l.GetSize().x + self.lspace)
+
+        # Draw tab highlighting
+        selected_tab = self.GetSelection()
+        x1 = separator_positions[selected_tab]
+        x2 = separator_positions[selected_tab - 1] if selected_tab > 0 else 0
+        tab_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour())
+        dc.SetBrush(wx.Brush(tab_colour))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.DrawRectangle(x2, 0, x1 - x2, self.GetSize().y)
+
+        # Draw top separator
+        dc.SetPen(wx.Pen(SEPARATOR_GREY))
+        dc.DrawLine(0, 0, width, 0)
+
+        # Draw separators between labels
+        for i, x in enumerate(separator_positions):
+            if i == selected_tab or i == selected_tab - 1:
+                dc.DrawLine(x, 0, x, height)
+            else:
+                dc.DrawLine(x, self.lspace / 2, x, height - self.lspace / 2)
 
 
 class TagText(wx.Panel):
