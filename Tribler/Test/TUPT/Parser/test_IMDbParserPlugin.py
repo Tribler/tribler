@@ -83,6 +83,34 @@ class TestIMDbParserPlugin(unittest.TestCase):
                 result = True
         self.assertTrue(result)
 
+    def test_ParseTop250(self):
+        '''Test parsing the top 250 page on IMDB'''
+        #Arrange
+        url = 'http://www.imdb.com/chart/top'
+        html = self.download_webpage(url, 'test_ParseWebsiteTop250.html')
+        if not html:
+            file = open('test_ParseWebsiteTop250.html','r')        
+            html = file.read()
+        parser = IMDbParserPlugin()
+        #Act
+        result = parser.ParseWebSite(url, html)
+        #Assert
+        self.assertEqual(250, len(result))
+        
+    def test_ParseBottom100(self):
+        '''Test parsing the bottom 100 page on IMDB'''
+        #Arrange
+        url = 'http://www.imdb.com/chart/bottom'
+        html = self.download_webpage(url, 'test_ParseWebsiteBottom100.html')
+        if not html:
+            file = open('test_ParseWebsiteBottom100.html','r')        
+            html = file.read()
+        parser = IMDbParserPlugin()
+        #Act
+        result = parser.ParseWebSite(url, html)
+        #Assert
+        self.assertEqual(100, len(result))
+
     def __AssertResult(self, result):
        '''Asserts the result for the parser'''
        for key in self.__result:
