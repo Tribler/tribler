@@ -218,7 +218,7 @@ class TopSearchPanel(FancyPanel):
         self.collectedTorrents[coltorrent.infohash] = coltorrent
         self.TorrentsChanged()
 
-    def __getTorrents(self):
+    def GetSelectedTorrents(self):
         torrents = None
 
         page = self.guiutility.guiPage
@@ -229,7 +229,7 @@ class TopSearchPanel(FancyPanel):
         return torrents
 
     def TorrentsChanged(self):
-        self.RefreshTorrents(self.__getTorrents())
+        self.RefreshTorrents(self.GetSelectedTorrents())
 
     def RefreshTorrents(self, torrents):
         inDownloads = self.guiutility.guiPage == 'my_files'
@@ -335,7 +335,7 @@ class TopSearchPanel(FancyPanel):
 
     def OnDownload(self, event=None, torrents= None):
         refresh_library = False
-        torrents = torrents if torrents != None else self.__getTorrents()
+        torrents = torrents if torrents != None else self.GetSelectedTorrents()
         for torrent in torrents:
             if 'stopped' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
@@ -356,7 +356,7 @@ class TopSearchPanel(FancyPanel):
             wx.CallLater(1000, self.guiutility.frame.librarylist.do_or_schedule_refresh, True)
 
     def OnUpload(self, event):
-        for torrent in self.__getTorrents():
+        for torrent in self.GetSelectedTorrents():
             if 'completed' in torrent.state:
                 self.guiutility.library_manager.resumeTorrent(torrent)
         if event:
@@ -366,7 +366,7 @@ class TopSearchPanel(FancyPanel):
     def OnPlay(self, event):
         # Select the first playable torrent. Return if none can be found
         torrent = None
-        for t in self.__getTorrents():
+        for t in self.GetSelectedTorrents():
             if t.infohash in self.collectedTorrents:
                 coltor = self.collectedTorrents[t.infohash]
                 if coltor.isPlayable():
@@ -413,26 +413,26 @@ class TopSearchPanel(FancyPanel):
         button.Enable(False)
 
     def OnResume(self, event=None):
-        for torrent in self.__getTorrents():
+        for torrent in self.GetSelectedTorrents():
             self.guiutility.library_manager.resumeTorrent(torrent)
         if event:
             button = event.GetEventObject()
             button.Enable(False)
 
     def OnStop(self, event=None):
-        for torrent in self.__getTorrents():
+        for torrent in self.GetSelectedTorrents():
             self.guiutility.library_manager.stopTorrent(torrent)
         if event:
             button = event.GetEventObject()
             button.Enable(False)
 
-    def OnDelete(self, event=None, silent= False):
-        for torrent in self.__getTorrents():
+    def OnDelete(self, event=None, silent=False, delete=False):
+        for torrent in self.GetSelectedTorrents():
             if not silent:
                 dlg = RemoveTorrent(None, torrent)
                 buttonId = dlg.ShowModal()
             else:
-                buttonId = wx.ID_DELETE
+                buttonId = wx.ID_DELETE if delete else wx.ID_DEFAULT
 
             if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
                 self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
