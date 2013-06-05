@@ -143,15 +143,33 @@ class LibtorrentMgr:
             d.queue_position = d.handle.queue_position()
 
     def add_torrent(self, torrentdl, atp):
-        handle = self.ltsession.add_torrent(atp)
-        infohash = str(handle.info_hash())
-        with self.torlock:
-            if infohash in self.torrents:
-                raise DuplicateDownloadException()
-            self.torrents[infohash] = torrentdl
-        if DEBUG:
-            print >> sys.stderr, "LibtorrentMgr: added torrent", infohash
-        return handle
+        # If we are collecting the torrent for this infohash, abort this first.
+        with self.metainfo_lock:
+
+            if atp.has_key('ti'):
+                infohash = str(atp['ti'].info_hash())
+            elif atp.has_key('url'):
+                infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
+            else:
+                infohash = str(atp["info_hash"]) 
+            
+            if infohash in self.metainfo_requests:
+                print >> sys.stderr, "LibtorrentMgr: killing get_metainfo request for", infohash
+                handle, _ = self.metainfo_requests.pop(infohash)
+                if handle:
+                    self.ltsession.remove_torrent(handle, 0)
+
+            handle = self.ltsession.add_torrent(atp)
+            infohash = str(handle.info_hash())
+            with self.torlock:
+                if infohash in self.torrents:
+                    raise DuplicateDownloadException()
+                self.torrents[infohash] = torrentdl
+
+            if DEBUG:
+                print >> sys.stderr, "LibtorrentMgr: added torrent", infohash
+
+            return handle
 
     def remove_torrent(self, torrentdl, removecontent=False):
         handle = torrentdl.handle
@@ -230,11 +248,15 @@ class LibtorrentMgr:
         self.get_metainfo(infohash, on_metainfo_retrieved, timeout)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout = 30):
-        with self.metainfo_lock:
+        magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
+        infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
+        infohash = binascii.hexlify(infohash_bin)
 
-            magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
-            infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
-            infohash = binascii.hexlify(infohash_bin)
+        with self.torlock:
+            if infohash in self.torrents:
+                return
+
+        with self.metainfo_lock:
     
             if DEBUG:
                 print >> sys.stderr, 'LibtorrentMgr: get_metainfo', infohash_or_magnet, callback, timeout
@@ -293,7 +315,7 @@ class LibtorrentMgr:
                         print >> sys.stderr, 'LibtorrentMgr: got_metainfo result', metainfo
     
                 if handle:
-                    self.ltsession.remove_torrent(handle, 1)
+                    self.ltsession.remove_torrent(handle, 0)
 
     def _clean_metainfo_cache(self):
         oldest_valid_ts = time.time() - METAINFO_CACHE_PERIOD
