@@ -23,10 +23,11 @@ class ParserControl():
         #Check if we can parse the site
         if plugin:        
              #Defensivly execute the plugin.
+            result = None
             try:
                 result = plugin.ParseWebSite(url, html)
             except Exception:
-                print "Unexpected error in plugin "+ name +"." + sys.exc_info()[0]
+                print "Unexpected error in plugin ", name ,"." , sys.exc_info()
             #Return the result
             if result != None:
                 for movie in result:

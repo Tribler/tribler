@@ -16,7 +16,7 @@ class IMDbParserPlugin(IParserPlugin):
         self.__items = {'title' : ('title', IMDbParserPlugin.__ParseNothing), 'year' : ('releaseYear', IMDbParserPlugin.__ParseNothing),
                         'director' : ('director', IMDbParserPlugin.__ParseDirector), 'cast' : ('cast', IMDbParserPlugin.__ParseDirector)}
     
-    def ParseWebSite(self,url, html):
+    def ParseWebSite(self, url, html):
         '''Parse a IMDB website
         Args:
             url (str): url to the webpage.

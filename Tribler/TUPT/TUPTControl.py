@@ -59,7 +59,7 @@ class TUPTControl:
         """
         #Parse the Website
         if self.parserControl.HasParser(event.GetURL()):
-            movies, trust = self.parserControl.ParseWebsite(event.GetURL, html)
+            movies, trust = self.parserControl.ParseWebsite(event.GetURL(), html)
             #Check if there a movies on the website.
             if movies is not None:
                 self.__movieTorrentIterator = MovieTorrentIterator()
