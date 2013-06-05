@@ -201,10 +201,13 @@ class DoubleLineListItem(ListItem):
         mousepos = wx.GetMousePosition()
         if not self.expanded:
             self.OnClick(event)
-        menu = self.GetContextMenu()
-        if menu:
-            self.PopupMenu(menu, self.ScreenToClient(mousepos))
-            menu.Destroy()
+        
+        def do_menu():
+            menu = self.GetContextMenu()
+            if menu:
+                self.PopupMenu(menu, self.ScreenToClient(mousepos))
+                menu.Destroy()
+        wx.CallLater(200, do_menu)
 
     @warnWxThread
     def OnShowColumn(self, event, index):
