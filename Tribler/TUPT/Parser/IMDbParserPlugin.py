@@ -2,9 +2,10 @@ from imdb.parser.http.movieParser import DOMHTMLMovieParser
 from imdb.parser.http.topBottomParser import DOMHTMLTop250Parser
 from imdb.parser.http.topBottomParser import DOMHTMLBottom100Parser
 
-
 from Tribler.TUPT.Movie import Movie
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
+
+import re
     
 class IMDbParserPlugin(IParserPlugin):    
     '''Dictionary containing keys that can be parsed and a tuple. The tuple contains the corresponding moviedictionarykey and the corresponding parsefunction'''
@@ -20,7 +21,8 @@ class IMDbParserPlugin(IParserPlugin):
         Args:
             url (str): url to the webpage.
             html(str): htmlsource for the webpage.'''
-        url = url.split('/')
+        #Split on ? and /.
+        url = re.split('\?|/',url)
         if 'title' in url:
             return self.__ParseMovie(html)
         elif 'chart' in url: 
