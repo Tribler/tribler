@@ -72,13 +72,8 @@ class UserCallbackHandler:
         self.perform_usercallback(session_removestate_callback_target)
 
     def perform_usercallback(self, target):
-        self.sesslock.acquire()
-        try:
-            # TODO: thread pool, etc.
-            self.threadpool.queueTask(target)
-
-        finally:
-            self.sesslock.release()
+        # TODO: thread pool, etc.
+        self.threadpool.queueTask(target)
 
     def sesscb_removestate(self, infohash, contentdests, removecontent):
         """  See DownloadImpl.setup().
