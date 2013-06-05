@@ -117,6 +117,7 @@ class TorrentFinderControl:
             """Collect all the torrents returned by the plugins and feed them
                 to our parent.
             """
+            #Defensivly execute the plugin.
             list = []
             try:
                 list = self.plugin.GetTorrentDefsForMovie(self.movie)
