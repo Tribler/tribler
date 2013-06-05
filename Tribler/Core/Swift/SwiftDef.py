@@ -282,6 +282,9 @@ class SwiftDef(ContentDefinition):
 
         if DEBUG:
             print >>sys.stderr, "SwiftDef: finalize: Running", args
+            
+        if not DEBUG and sys.platform != "win32":
+            args.append("-D /dev/null")
 
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
