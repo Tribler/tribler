@@ -90,7 +90,7 @@ class WebBrowser(XRCPanel):
         
         self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.4.0 bug
         
-        if (DEBUG):
+        if (self.DEBUG):
             self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.4.0 bug
             wx.CallAfter(self.webview.LoadURL, "http://www.imdb.com/title/tt0458525/")       
     
