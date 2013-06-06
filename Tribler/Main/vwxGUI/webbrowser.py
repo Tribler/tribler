@@ -66,6 +66,8 @@ class WebBrowser(XRCPanel):
         #Clear the blank page loaded on startup.        
         self.webview.ClearHistory()
         
+        self.currentURL = ''
+        
         vSizer.Add(self.webviewPanel, 2, wx.EXPAND) 
         
         '''Add all components'''
@@ -86,7 +88,7 @@ class WebBrowser(XRCPanel):
         
         self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.4.0 bug
         
-        if (True):
+        if (False):
             self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.4.0 bug
             wx.CallAfter(self.webview.LoadURL, "http://www.imdb.com/title/tt0458525/")       
     
@@ -140,9 +142,12 @@ class WebBrowser(XRCPanel):
             return self.url
     
     def onURLNavigating(self, event):
-        self.HideInfoBar()
-        mockEvent = WebBrowser.MockEvent(event.GetURL())
-        thread.start_new(self.__notifyLoadedListeners, (mockEvent,))
+        mainUrl = self.webview.GetCurrentURL()
+        if self.currentURL != mainUrl:
+            self.currentURL = mainUrl
+            self.HideInfoBar()
+            mockEvent = WebBrowser.MockEvent(mainUrl)
+            thread.start_new(self.__notifyLoadedListeners, (mockEvent,))
     
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''

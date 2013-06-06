@@ -4,7 +4,7 @@ import difflib
 import time
 import thread
 
-from Tribler.TUPT.Channels.ChannelControl import ChannelControl
+from Tribler.TUPT.Channels.MovieChannelControl import MovieChannelControl
 from Tribler.Main.Utility.GuiDBTuples import Channel
 
 class ChannelManagerStub(object):
@@ -60,7 +60,7 @@ class TestChannelControl(unittest.TestCase):
     
     def setUp(self):
         #Arrange
-        self.__channelControl = ChannelControl(True)
+        self.__channelControl = MovieChannelControl(True)
         self.__fakeManager = ChannelManagerStub()
         self.__channelControl.initWithChannelSearchManager(self.__fakeManager)
     

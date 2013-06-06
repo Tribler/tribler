@@ -2,19 +2,35 @@ import time
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
-class ChannelControl(object):
+class MovieChannelControl(object):
     
     __channelManager = None
     
     def __init__(self, initLater = False):
         if not initLater:
             self.initAuto()
+            
+    def getInstance(*args, **kw):
+        if MovieChannelControl.__single is None:
+            MovieChannelControl(*args, **kw)
+        return MovieChannelControl.__single
+    getInstance = staticmethod(getInstance)
+
+    def hasInstance():
+        return MovieChannelControl.__single != None
+        hasInstance = staticmethod(hasInstance)
+
+    def delInstance():
+        MovieChannelControl.__single = None
+    delInstance = staticmethod(delInstance)
     
     def initAuto(self):
         self.__channelManager = GUIUtility.getInstance().channelsearch_manager
+        MovieChannelControl.__single = self
         
     def initWithChannelSearchManager(self, manager):
         self.__channelManager = manager
+        MovieChannelControl.__single = self
 
     def GetChannelNameForYear(self, year):
         """Return the pretty name for a channel of a certain year
