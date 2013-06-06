@@ -13,7 +13,6 @@ from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
-
 from Tribler.PluginManager.PluginManager import PluginManager
 
 from Tribler.TUPT.Matcher.IMatcherPlugin import IMatcherPlugin
@@ -25,12 +24,12 @@ from Tribler.TUPT.Parser.ParserControl import ParserControl
 from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 from Tribler.TUPT.TorrentFinder.TorrentFinderControl import TorrentFinderControl
 
-from Tribler.Video.VideoPlayer import VideoPlayer
 
 class TUPTControl:
     '''Class that controls the flow for parsing, matching and finding movies'''
     
     __infoBar = None
+    __torrentFinder = None
     __movieTorrentIterator = None
     __callbackTDEvent = Event()
     __callbackTorrentdef = None
@@ -55,7 +54,7 @@ class TUPTControl:
         
     def webpageLoaded(self, event, html):
         """Callback for when a webpage was loaded
-            We can now start feeding our parser controller
+            We can now start feeding our parser controller.
         """
         #Parse the Website
         if self.parserControl.HasParser(event.GetURL()):
@@ -71,9 +70,9 @@ class TUPTControl:
                     else:
                         cmovie = self.matcherControl.CorrectMovie(movie)
                     #Find torrents corresponding to the movie.
-                    torrentFinder = TorrentFinderControl(self.pluginmanager)
-                    torrentFinder.FindTorrents(cmovie)
-                    movieTorrent = MovieTorrent(cmovie, torrentFinder.GetHDTorrentList(), torrentFinder.GetSDTorrentList())                    
+                    self.__torrentFinder = TorrentFinderControl(self.pluginmanager)
+                    self.__torrentFinder.FindTorrents(cmovie)
+                    movieTorrent = MovieTorrent(cmovie, self.__torrentFinder)                    
                     self.__movieTorrentIterator.append(movieTorrent)
                 self.__infoBar = TorrentInfoBar(self.webview, self, self.__movieTorrentIterator)
     
@@ -140,59 +139,6 @@ class TorrentInfoBar():
     __comboboxMovieTorrent = None
     __comboboxMovieTorrentMap = None
     
-    def playButtonPressed(self, event):
-        """Callback for when the user wants to play the movie.
-        """
-        #Get selected movie
-        rawMovieSelection = self.__comboboxMovieTorrent.GetSelection()
-        movieSelection = self.__comboboxMovieTorrentMap[rawMovieSelection]
-        #Get selection and the corresponding calls.
-        qualitySelection = self.__comboBox.GetValue()
-        if qualitySelection == self.HDCHOICE:
-            self.__tuptControl.DownloadHDMovie(movieSelection)
-        else:
-            self.__tuptControl.DownloadSDMovie(movieSelection)
-
-    def RemoveHDQuality(self):
-        """Remove SDQuality from the choices."""
-        self.__RemoveComboBoxtem(self.HDCHOICE)          
-
-    def RemoveSDQuality(self):
-        """Remove SDQuality from the choices."""
-        self.__RemoveComboBoxtem(self.SDCHOICE)
-      
-    def __RemoveComboBoxtem(self, item):
-        #Find index of item.
-        index =  self.__comboBox.FindString(item)
-        #Remove item.
-        self.__comboBox.Delete(index)
-        #Check if a item exists
-        if self.__comboBox.IsEmpty():        
-            #Remove infobar
-            self.__webview.HideInfoBar()
-        else:        
-            #Set selection to 0
-            self.__comboBox.SetSelection(0)
-    
-    def MovieSelectionUpdated(self, event):
-        #Get selected movie
-        rawMovieSelection = self.__comboboxMovieTorrent.GetSelection()
-        movieSelection = self.__comboboxMovieTorrentMap[rawMovieSelection]
-        #Remove old available definitions
-        self.__RemoveComboBoxtem(self.SDCHOICE)
-        self.__RemoveComboBoxtem(self.HDCHOICE)
-        #We changed our movie selection, update the available definitions
-        movieTorrent = movieTorrentIterator.GetMovie(movieSelection)
-        if movieTorrent.HasHDTorrent():
-            self.__comboBox.Append(self.HDCHOICE)
-            #Set default value to HD Quality.
-            self.__comboBox.SetValue(self.HDCHOICE)  
-        if movieTorrent.HasSDTorrent():
-            self.__comboBox.Append(self.SDCHOICE)
-        #Set default value to SD quality if no HD quality    
-        if not movieTorrent.HasHDTorrent():
-            self.__comboBox.SetValue(self.SDCHOICE)
-        self.__webview.infobaroverlay.Refresh()
     
     def __init__(self, webview, __tuptControl, movieTorrentIterator):
         #Get all the movies with torrents
@@ -252,6 +198,60 @@ class TorrentInfoBar():
             #Add all elements to the infobar.
             self.__webview.SetInfoBarContents((label1,), (self.__comboboxMovieTorrent,), (label2,), (self.__comboBox,), (button,))
             self.__webview.ShowInfoBar()
+    
+    def playButtonPressed(self, event):
+        """Callback for when the user wants to play the movie.
+        """
+        #Get selected movie
+        rawMovieSelection = self.__comboboxMovieTorrent.GetSelection()
+        movieSelection = self.__comboboxMovieTorrentMap[rawMovieSelection]
+        #Get selection and the corresponding calls.
+        qualitySelection = self.__comboBox.GetValue()
+        if qualitySelection == self.HDCHOICE:
+            self.__tuptControl.DownloadHDMovie(movieSelection)
+        else:
+            self.__tuptControl.DownloadSDMovie(movieSelection)
+
+    def RemoveHDQuality(self):
+        """Remove SDQuality from the choices."""
+        self.__RemoveComboBoxtem(self.HDCHOICE)          
+
+    def RemoveSDQuality(self):
+        """Remove SDQuality from the choices."""
+        self.__RemoveComboBoxtem(self.SDCHOICE)
+      
+    def __RemoveComboBoxtem(self, item):
+        #Find index of item.
+        index =  self.__comboBox.FindString(item)
+        #Remove item.
+        self.__comboBox.Delete(index)
+        #Check if a item exists
+        if self.__comboBox.IsEmpty():        
+            #Remove infobar
+            self.__webview.HideInfoBar()
+        else:        
+            #Set selection to 0
+            self.__comboBox.SetSelection(0)
+    
+    def MovieSelectionUpdated(self, event):
+        #Get selected movie
+        rawMovieSelection = self.__comboboxMovieTorrent.GetSelection()
+        movieSelection = self.__comboboxMovieTorrentMap[rawMovieSelection]
+        #Remove old available definitions
+        self.__RemoveComboBoxtem(self.SDCHOICE)
+        self.__RemoveComboBoxtem(self.HDCHOICE)
+        #We changed our movie selection, update the available definitions
+        movieTorrent = movieTorrentIterator.GetMovie(movieSelection)
+        if movieTorrent.HasHDTorrent():
+            self.__comboBox.Append(self.HDCHOICE)
+            #Set default value to HD Quality.
+            self.__comboBox.SetValue(self.HDCHOICE)  
+        if movieTorrent.HasSDTorrent():
+            self.__comboBox.Append(self.SDCHOICE)
+        #Set default value to SD quality if no HD quality    
+        if not movieTorrent.HasHDTorrent():
+            self.__comboBox.SetValue(self.SDCHOICE)
+        self.__webview.infobaroverlay.Refresh()
             
     def __CreateStdComboCtrl(self, width = 150, callback = None):
         """Create a dropdown control set (comboBox and popupCtrl) in our theme
@@ -304,23 +304,22 @@ class MovieTorrentIterator:
 class MovieTorrent:
     """ Class that contains a movie and the corresponding HD and SD torrentlists."""
     
-    def __init__(self, movie, hdList, sdList):
+    def __init__(self, movie, torrentFinder):
         self.movie = movie
-        self.hdList = hdList
-        self.sdList = sdList
+        self.torrentFinder = torrentFinder
     
     def HasHDTorrent(self):
-        return len(self.hdList) > 0    
+        return len(self.torrentFinder.GetHDTorrentList()) > 0    
     
     def HasSDTorrent(self):
-        return len(self.sdList) > 0
+        return len(self.torrentFinder.GetSDTorrentList()) > 0
     
     def HasTorrent(self):
         return self.HasHDTorrent() or self.HasSDTorrent()
     
     def GetNextHDTorrent(self):  
-        return self.hdList.pop(0)
+        return self.torrentFinder.GetHDTorrentList().pop(0)
     
     def GetNextSDTorrent(self):  
-        return self.sdList.pop(0)
+        return self.torrentFinder.GetSDTorrentList().pop(0)
    

@@ -2,132 +2,129 @@ import unittest
 
 from Tribler.TUPT.TUPTControl import MovieTorrent
 from Tribler.TUPT.TUPTControl import MovieTorrentIterator
+from Tribler.TUPT.TorrentFinder.TorrentFinderControl import TorrentFinderControl
+
+from Tribler.TUPT.Movie import Movie
 
 from Tribler.Test.TUPT.test_StubPluginManager import PluginManagerStub
+from Tribler.Test.TUPT.test_StubPluginManager import TorrentDefStub
   
 
 class TestMovieTorrentIterator(unittest.TestCase):
     
+    def setUp(self):
+        self.__movies = MovieTorrentIterator()
+        self.__torrentFinderControl = TorrentFinderControl(PluginManagerStub())
+        self.__movie = MovieTorrent('Title', self.__torrentFinderControl)
+        self.__hdTorrentDef = TorrentDefStub(True, Movie())
+        self.__sdTorrentDef = TorrentDefStub(False, Movie())
+    
     def test_append(self):
-        #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',['HD'],['SD'])
         #Act        
-        movies.append(movieTorrent)
+        self.__movies.append(self.__movie)
         #Assert
-        self.assertEqual(movieTorrent, movies.GetMovie(0))
+        self.assertEqual(self.__movie, self.__movies.GetMovie(0))
         
     def test_HasHDTorrent_HasHDTorrent(self):
-         #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',['HD'],['SD'])
-        movies.append(movieTorrent)
+        #Arrange
+        self.__torrentFinderControl.ProcessTorrentDef(self.__hdTorrentDef, 0.5)
+        self.__movies.append(self.__movie)
         #Act        
-        result = movies.HasHDTorrent(0)
+        result = self.__movies.HasHDTorrent(0)
         #Assert
         self.assertTrue(result)
     
-    def test_HasHDTorrent_HasHDTorrent(self):
+    def test_HasHDTorrent_HasNoHDTorrent(self):
          #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',[],['SD'])
-        movies.append(movieTorrent)
+        self.__movies.append(self.__movie)
         #Act        
-        result = movies.HasHDTorrent(0)
+        result = self.__movies.HasHDTorrent(0)
         #Assert
         self.assertFalse(result)
   
     def test_HasSDTorrent_HasSDTorrent(self):
          #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',['HD'],['SD'])
-        movies.append(movieTorrent)
+        self.__torrentFinderControl.ProcessTorrentDef(self.__sdTorrentDef, 0.5)
+        self.__movies.append(self.__movie)
         #Act        
-        result = movies.HasSDTorrent(0)
+        result = self.__movies.HasSDTorrent(0)
         #Assert
         self.assertTrue(result)
     
     def test_HasSDTorrent_HasNoSDTorrent(self):
          #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',['HD'],[])
-        movies.append(movieTorrent)
+        self.__movies.append(self.__movie)
         #Act        
-        result = movies.HasSDTorrent(0)
+        result = self.__movies.HasSDTorrent(0)
         #Assert
         self.assertFalse(result)
         
     def test_GetNextHDTorrent(self):
          #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',[1,2],[])
-        movies.append(movieTorrent)
+        self.__torrentFinderControl.ProcessTorrentDef(self.__hdTorrentDef, 0.5)
+        self.__movies.append(self.__movie)
         #Act        
-        result = movies.GetNextHDTorrent(0)
+        result = self.__movies.GetNextHDTorrent(0)
         #Assert
-        self.assertEqual(1, result)
+        self.assertEqual(self.__hdTorrentDef, result)
         
     def test_GetNextSDTorrent(self):
-         #Arrange
-        movies =  MovieTorrentIterator()
-        movieTorrent = MovieTorrent('Title',[1,2],[1,2])
-        movies.append(movieTorrent)
+         #Arrange         
+        self.__torrentFinderControl.ProcessTorrentDef(self.__sdTorrentDef, 0.5)
+        self.__movies.append(self.__movie)
         #Act        
-        result = movies.GetNextSDTorrent(0)
+        result = self.__movies.GetNextSDTorrent(0)
         #Assert
-        self.assertEqual(1, result)
+        self.assertEqual(self.__sdTorrentDef, result)
         
 
 
 class TestMovieTorrent(unittest.TestCase):
+    '''Class to test MovieTorrent'''
     
-    def test_HasHDTorrent_HasTorrents(self):
-        
-     def test_HasHDTorrent_HasHDTorrents(self):
+    def setUp(self):
+        self.__torrentFinder = TorrentFinderControl(PluginManagerStub())
+        self.__movie =  MovieTorrent('NaN',self.__torrentFinder)
+    
+    def test_HasHDTorrent_HasHDTorrents(self):
         #Arrange
-        movieTorrent = MovieTorrent('NaN',['NaN'],['NaN'])
+        self.__torrentFinder.ProcessTorrentDef(TorrentDefStub(True, Movie()), 0.5)
         #Act
-        result = movieTorrent.HasHDTorrent()
+        result = self.__movie.HasHDTorrent()
         #Assert
         self.assertTrue(result)
         
     def test_HasHDTorrent_HasNoHDTorrents(self):
-        #Arrange
-        movieTorrent = MovieTorrent('NaN',[],['NaN'])
         #Act
-        result = movieTorrent.HasHDTorrent()
+        result = self.__movie.HasHDTorrent()
         #Assert
         self.assertFalse(result)
         
     def test_HasSDTorrent_HasSDTorrents(self):
         #Arrange
-        movieTorrent = MovieTorrent('NaN',['NaN'],['NaN'])
+        self.__torrentFinder.ProcessTorrentDef(TorrentDefStub(False, Movie()), 0.5)
         #Act
-        result = movieTorrent.HasSDTorrent()
+        result = self.__movie.HasSDTorrent()
         #Assert
         self.assertTrue(result)
         
     def test_HasSDTorrent_HasNoSDTorrents(self):
-        #Arrange
-        movieTorrent = MovieTorrent('NaN',['NaN'],[])
         #Act
-        result = movieTorrent.HasSDTorrent()
+        result = self.__movie.HasSDTorrent()
         #Assert
         self.assertFalse(result)
         
     def test_HasTorrents_HasTorrent(self):
          #Arrange
-        movieTorrent = MovieTorrent('NaN',['NaN'],[])
+        self.__torrentFinder.ProcessTorrentDef(TorrentDefStub(True, Movie()), 0.5)
         #Act
-        result = movieTorrent.HasTorrent()
+        result = self.__movie.HasTorrent()
         #Assert
         self.assertTrue(result)
     
     def test_HasTorrents_HasNoTorrent(self):
-         #Arrange
-        movieTorrent = MovieTorrent('NaN',[],[])
         #Act
-        result = movieTorrent.HasTorrent()
+        result = self.__movie.HasTorrent()
         #Assert
         self.assertFalse(result)
 
