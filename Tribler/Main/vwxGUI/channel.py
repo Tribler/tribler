@@ -349,14 +349,10 @@ class SelectedChannelList(GenericSearchList):
     @warnWxThread
     def SetChannel(self, channel):
         self.channel = channel
-
-        self.Freeze()
         self.SetIds(channel)
 
         if channel:
             self.SetTitle(channel)
-
-        self.Thaw()
 
     def SetIds(self, channel):
         if channel:
@@ -1167,8 +1163,9 @@ class ManageChannel(XRCPanel, AbstractDetails):
 
         self.name = EditText(self.overviewpage, '')
         self.name.SetMaxLength(40)
+        
+        self.description = EditText(self.overviewpage, '', multiLine=False)
 
-        self.description = EditText(self.overviewpage, '', multiLine=True)
         self.description.SetMaxLength(2000)
         self.description.SetMinSize((-1, 50))
 

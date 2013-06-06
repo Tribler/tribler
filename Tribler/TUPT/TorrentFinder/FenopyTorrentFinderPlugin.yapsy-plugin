@@ -1,0 +1,8 @@
+[Core]
+Name = Fenopy torrent finder plugin
+Module = FenopyTorrentFinderPlugin
+Trust = 0.9
+
+[Documentation]
+Version = 0.1
+Website = https://github.com/norberhuis/tribler

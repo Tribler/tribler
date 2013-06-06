@@ -32,6 +32,8 @@ from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
     LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
     ManageChannel
+    
+from Tribler.Main.vwxGUI.webbrowser import WebBrowser
 
 
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
@@ -40,7 +42,7 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select('2.9')
 except:
     pass
 import wx
@@ -71,6 +73,7 @@ from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 from Tribler.Video.defs import *
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Video.utils import videoextdefaults
+
 
 from Tribler.Category.Category import Category
 
@@ -168,7 +171,6 @@ class MainFrame(wx.Frame):
                 font.SetPointSize(9)
                 self.SetFont(font)
 
-        self.Freeze()
         self.SetDoubleBuffered(True)
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
@@ -225,6 +227,10 @@ class MainFrame(wx.Frame):
             self.selectedchannellist.Show(False)
             self.playlist = Playlist(self.splitter_top_window)
             self.playlist.Show(False)
+            
+            #Create the webbrowser panel.
+            self.webbrowser = WebBrowser(self)
+            self.webbrowser.Show(False)
         else:
             self.actlist = None
             self.top_bg = None
@@ -239,6 +245,8 @@ class MainFrame(wx.Frame):
             self.selectedchannellist.Show(True)
             self.playlist = Playlist(self)
             self.playlist.Show(False)
+            
+            self.webbrowser = None
 
         self.stats = Stats(self)
         self.stats.Show(False)
@@ -263,6 +271,7 @@ class MainFrame(wx.Frame):
             hSizer.Add(self.home, 1, wx.EXPAND)
             hSizer.Add(self.stats, 1, wx.EXPAND)
             hSizer.Add(self.splitter, 1, wx.EXPAND)
+            hSizer.Add(self.webbrowser,1,wx.EXPAND)
         else:
             vSizer = wx.BoxSizer(wx.VERTICAL)
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -353,7 +362,6 @@ class MainFrame(wx.Frame):
 
         # Init video player
         sys.stdout.write('GUI Complete.\n')
-        self.Thaw()
         self.ready = True
 
         def post():

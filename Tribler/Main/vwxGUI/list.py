@@ -776,13 +776,8 @@ class List(wx.BoxSizer):
     def IsShownOnScreen(self):
         return self.IsShown(0)
 
-    def Freeze(self):
-        self.parent.Freeze()
-
-    def Thaw(self):
-        self.parent.Thaw()
-
     def Show(self, show=True, isShown= False):
+
         self.ShowItems(show)
 
         if show and (isShown or self.IsShownOnScreen()):
@@ -1581,12 +1576,11 @@ class SearchList(GenericSearchList):
 
     @forceWxThread
     def SetMaxResults(self, max, keywords):
-        self.Freeze()
         self.guiutility.frame.top_bg.go.SetRange(max + 16)
         self.guiutility.frame.top_bg.go.SetValue(0)
         self.guiutility.frame.top_bg.ag.Play()
         self.guiutility.frame.top_bg.ag.Show()
-        self.Thaw()
+
         wx.CallLater(10000, self.SetFinished, keywords)
         wx.CallLater(250, self.FakeResult)
 
@@ -1610,12 +1604,10 @@ class SearchList(GenericSearchList):
     def SetFinished(self, keywords):
         curkeywords, hits, filtered = self.guiutility.torrentsearch_manager.getSearchKeywords()
         if not keywords or curkeywords == keywords:
-            self.Freeze()
             self.guiutility.frame.top_bg.ag.Stop()
             self.guiutility.frame.top_bg.ag.Hide()
             self.guiutility.frame.top_bg.go.SetValue(self.guiutility.frame.top_bg.go.GetRange())
             self.Layout()
-            self.Thaw()
 
             def db_callback(keywords):
                 self.uelog.addEvent(message="Search: nothing found for query: " + " ".join(keywords), type= 2)
@@ -2241,8 +2233,8 @@ class ActivitiesList(List):
         wx.CallAfter(self.__SetData)
 
     def __SetData(self):
-        self.list.SetData([(1, ['Home'], None, ActivityListItem), (2, ['Results'], None, ActivityListItem), (3, ['Channels'], None, ActivityListItem),
-                           (4, ['Downloads'], None, ActivityListItem), (5, ['Videoplayer'], None, ActivityListItem)])
+        self.list.SetData([(1,['Home'],None,ActivityListItem), (2,['Results'],None,ActivityListItem), (3,['Channels'],None,ActivityListItem), \
+                           (4,['Downloads'],None,ActivityListItem), (5,['Videoplayer'],None,ActivityListItem), (6,['Webbrowser'],None,ActivityListItem)])
         self.ResizeListItems()
         self.DisableItem(2)
         if not self.guiutility.frame.videoparentpanel:
@@ -2321,6 +2313,8 @@ class ActivitiesList(List):
             self.guiutility.ShowPage('my_files')
         elif item.data[0] == 'Videoplayer':
             self.guiutility.ShowPlayer()
+        elif item.data[0] == 'Webbrowser':
+            self.guiutility.ShowPage('webbrowser')
         return True
 
     def OnCollapse(self, item, panel):
@@ -2354,13 +2348,11 @@ class ActivitiesList(List):
         cdc.SetFont(self.notify.GetFont())
         wrapped_msg = wordwrap(msg, self.notify.GetSize()[0], cdc, breakLongWords=True, margin= 0)
         self.notify.SetLabel(wrapped_msg)
-        self.notify.SetSize(self.notify.GetBestSize())
+        self.notify.SetSize(self.notify.GetBestSize())        
 
-        self.Freeze()
         self.notifyPanel.Show()
         # NotifyLabel size changed, thus call Layout
         self.Layout()
-        self.Thaw()
 
         self.notifyTimer = wx.CallLater(5000, self.HideNotify)
 
@@ -2384,6 +2376,8 @@ class ActivitiesList(List):
             itemKey = 4
         elif tab == 'videoplayer':
             itemKey = 5
+        elif tab == 'webbrowser':
+            itemKey = 6
         if itemKey:
             wx.CallAfter(self.Select, itemKey, True)
         return

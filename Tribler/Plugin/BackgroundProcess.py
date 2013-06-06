@@ -67,7 +67,7 @@ if sys.platform == "win32":
 
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select('2.9')
 except:
     pass
 import wx

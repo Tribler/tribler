@@ -928,6 +928,20 @@ class LibraryManager:
                 torrent.magnetstatus = self.magnetlist[torrent.infohash]
         return torrentlist
 
+
+    @forceWxThread
+    def PlayDownloadState(self, downloadstate, selectedinfilename = None):
+        '''Play a download state'''
+        print >> sys.stderr, "PLAY CLICKED", selectedinfilename
+
+        #videoplayer calls should be on gui thread, hence forceWxThread
+        videoplayer = self._get_videoplayer(downloadstate)
+        videoplayer.recreate_videopanel()
+        videoplayer.stop_playback()
+        videoplayer.show_loading()
+        
+        videoplayer.play(downloadstate, selectedinfilename)
+
     @forceWxThread
     def playTorrent(self, torrent, selectedinfilename=None):
         print >> sys.stderr, "PLAY CLICKED", selectedinfilename

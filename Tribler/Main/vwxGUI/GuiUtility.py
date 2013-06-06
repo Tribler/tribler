@@ -48,7 +48,7 @@ class GUIUtility:
 
         # videoplayer
         self.videoplayer = VideoPlayer.getInstance()
-
+        
         # current GUI page
         self.guiPage = 'home'
         # previous pages
@@ -125,7 +125,6 @@ class GUIUtility:
             if len(self.oldpage) > 3:
                 self.oldpage.pop(0)
 
-            self.frame.Freeze()
 
             if page not in ['search_results', 'my_files', 'selectedchannel', 'playlist', 'channels']:
                 self.frame.splitter.Show(False)
@@ -236,12 +235,13 @@ class GUIUtility:
                     self.frame.videoparentpanel.Show(True)
                 elif self.guiPage == 'videoplayer':
                     self.frame.videoparentpanel.Show(False)
+                    
+            if self.guiPage == 'webbrowser':
+                self.frame.webbrowser.Show(False)
 
             self.guiPage = page
-            self.frame.Layout()
-            self.frame.Thaw()
-
-        # Set focus to page
+            
+        #Set focus to page
         if page == 'search_results':
             self.frame.searchlist.Focus()
 
@@ -255,6 +255,11 @@ class GUIUtility:
             self.frame.selectedchannellist.Focus()
         elif page == 'my_files':
             self.frame.librarylist.Focus()
+        elif page == 'webbrowser':
+            self.frame.webbrowser.Show()
+        
+        #Redraw the frame.
+        self.frame.Layout()
 
     def GetSelectedPage(self):
         if self.guiPage == 'home':
@@ -409,7 +414,6 @@ class GUIUtility:
                 if DEBUG:
                     print >>sys.stderr, "GUIUtil: searchFiles:", keywords, time()
 
-                self.frame.searchlist.Freeze()
 
                 self.torrentsearch_manager.setSearchKeywords(keywords)
                 self.channelsearch_manager.setSearchKeywords(keywords)
@@ -420,8 +424,7 @@ class GUIUtility:
                 self.frame.searchlist.Reset()
                 self.ShowPage('search_results', keywords)
 
-                # We now have to call thaw, otherwise loading message will not be shown.
-                self.frame.searchlist.Thaw()
+                #We now have to call thaw, otherwise loading message will not be shown.
 
                 # Peform local search
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())

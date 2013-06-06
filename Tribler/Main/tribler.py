@@ -62,7 +62,7 @@ except ImportError as e:
 # would prefer 2.8.
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select('2.9')
 except:
     pass
 
@@ -95,6 +95,8 @@ from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOve
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import *
 from Tribler.Utilities.LinuxSingleInstanceChecker import *
+
+from Tribler.TUPT.TUPTControl import TUPTControl
 
 from Tribler.Core.API import *
 from Tribler.Core.simpledefs import NTFY_MODIFIED
@@ -174,7 +176,7 @@ class ABCApp():
         try:
             bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Images', 'splash.png'), wx.BITMAP_TYPE_ANY)
             self.splash = GaugeSplash(bm)
-            self.splash.setTicks(10)
+            self.splash.setTicks(11)
             self.splash.Show()
 
             print >> sys.stderr, 'Client Starting Up.'
@@ -296,10 +298,10 @@ class ABCApp():
                 bmphand = None
                 hands = wx.Image.GetHandlers()
                 for hand in hands:
-                    # print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
-                    if hand.GetMimeType() == 'image/x-bmp':
-                        bmphand = hand
-                        break
+                       # print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
+                       if hand.GetMimeType() == 'image/x-bmp':
+                           bmphand = hand
+                           break
                 # wx.Image.AddHandler()
                 if bmphand is not None:
                     bmphand.SetMimeType('image/bmp')
@@ -363,6 +365,9 @@ class ABCApp():
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet, NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
+
+        #Add TUPT GUI observer
+        self.tuptcontroller.CoupleGUI(self.guiUtility)
 
         self.dispersy.attach_progress_handler(self.frame.progressHandler)
         self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
@@ -442,6 +447,9 @@ class ABCApp():
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
         s.start()
+        
+        progress('Loading TUPT plug-ins')
+        self.tuptcontroller = TUPTControl()
 
         def define_communities():
             from Tribler.community.search.community import SearchCommunity
@@ -1275,7 +1283,7 @@ def run(params=None):
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
-                app = wx.PySimpleApp(redirect=False)
+                app = wx.PySimpleApp(redirect=False)    
             abc = ABCApp(params, single_instance_checker, installdir)
             if abc.frame:
                 app.SetTopWindow(abc.frame)

@@ -1505,9 +1505,9 @@ class ActionButton(wx.Panel):
             dc.Clear()
         else:
             # Draw the background using the bitmap from the parent (TopSearchPanel)
-            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect)
-            dc.DrawBitmap(sub, 0, 0)
+            #rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            #sub = self.GetParent().bitmap.GetSubBitmap(rect)
+            dc.DrawBitmap(self.GetParent().bitmap, 0, 0)
         # Draw the button using a gc (dc doesn't do transparency very well)
         bitmap = self.GetBitmap()
         gc = wx.GraphicsContext.Create(dc)

@@ -1,0 +1,8 @@
+[Core]
+Name = TMDB Matcher plugin
+Module = TheMovieDBMatcherPlugin
+Trust = 1.0
+
+[Documentation]
+Version = 0.1
+Website = https://github.com/norberhuis/tribler

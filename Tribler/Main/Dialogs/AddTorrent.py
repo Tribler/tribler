@@ -26,6 +26,7 @@ class AddTorrent(wx.Dialog):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         firstLine = wx.StaticText(self, -1, 'Please use one of the provided methods to import an external .torrent')
+
         vSizer.Add(firstLine, 0, wx.EXPAND | wx.BOTTOM, 3)
         vSizer.AddSpacer((-1, 25))
 

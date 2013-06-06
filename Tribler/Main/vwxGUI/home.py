@@ -343,10 +343,8 @@ class HomePanel(wx.Panel):
         return ListFooter(self)
 
     def DoLayout(self):
-        self.Freeze()
         self.Layout()
         self.GetParent().Layout()
-        self.Thaw()
 
 
 class NetworkPanel(HomePanel):
@@ -791,12 +789,10 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     @forceWxThread
     def _RefreshList(self, topTen):
-        self.list.Freeze()
         self.list.DeleteAllItems()
         for item in topTen:
             if item[2] > 0:
                 self.list.InsertStringItem(sys.maxsize, item[1])
-        self.list.Thaw()
 
 
 class ActivityPanel(NewTorrentPanel):
@@ -963,7 +959,6 @@ class BuzzPanel(wx.Panel):
 
     def DisplayTerms(self, rows):
         if rows:
-            self.Freeze()
             self.vSizer.ShowItems(False)
             self.vSizer.Clear()
             self.vSizer.AddStretchSpacer()
@@ -997,7 +992,6 @@ class BuzzPanel(wx.Panel):
 
             self.Layout()
             self.GetParent().Layout()
-            self.Thaw()
 
     def DoPauseResume(self):
         def IsEnter(control):
