@@ -12,6 +12,8 @@ from Tribler.Main.vwxGUI.list import XRCPanel
 class WebBrowser(XRCPanel):
     '''WebView is a class that allows you to browse the worldwideweb.'''    
    
+    DEBUG = False
+   
     def __init__(self, parent=None):
         XRCPanel.__init__(self, parent)
         
@@ -88,7 +90,7 @@ class WebBrowser(XRCPanel):
         
         self.webview.SetMinSize((2000, -1))   #Fix initial expansion, 2.9.4.0 bug
         
-        if (False):
+        if (DEBUG):
             self.webviewPanel.SetBackgroundColour(wx.Colour(255,255,255)) #Hide inital expansion, 2.9.4.0 bug
             wx.CallAfter(self.webview.LoadURL, "http://www.imdb.com/title/tt0458525/")       
     
@@ -133,21 +135,15 @@ class WebBrowser(XRCPanel):
                 print >> sys.stderr, "WebBrowser: An error occurred in LoadedListener " + str(listener)
                 traceback.print_exc()
     
-    class MockEvent(object):
-        
-        def __init__(self, url):
-            self.url = url
-            
-        def GetURL(self):
-            return self.url
-    
     def onURLNavigating(self, event):
+        """Actions to be taken when an URL is navigated to"""
         mainUrl = self.webview.GetCurrentURL()
+        #Only take action when navigating to a new page. This event is also thrown for loading resources.
         if self.currentURL != mainUrl:
             self.currentURL = mainUrl
             self.HideInfoBar()
-            mockEvent = WebBrowser.MockEvent(mainUrl)
-            thread.start_new(self.__notifyLoadedListeners, (mockEvent,))
+            navigatingNewPageEvent = WebBrowser.NavigatingNewPageEvent(mainUrl)
+            thread.start_new(self.__notifyLoadedListeners, (navigatingNewPageEvent,))
     
     def onURLLoaded(self, event):
         '''Actions to be taken when an URL is loaded.'''
@@ -245,4 +241,12 @@ class WebBrowser(XRCPanel):
             self.Refresh()
             remtime = animtime/smoothness-(time.time() - start)
             time.sleep(remtime if remtime > 0 else 0)
+            
+    class NavigatingNewPageEvent(object):
+        
+        def __init__(self, url):
+            self.url = url
+            
+        def GetURL(self):
+            return self.url
         
