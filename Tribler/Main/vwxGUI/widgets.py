@@ -1931,7 +1931,7 @@ class SimpleNotebook(wx.Panel):
         self.tab_colours = {}
         self.tab_panel = wx.Panel(self, -1)
         self.tab_panel.SetSizer(self.hSizer_labels)
-        self.tab_panel.SetBackgroundColour(FILTER_GREY)
+        self.tab_panel.SetBackgroundColour(self.GetBackgroundColour())
         self.tab_panel.SetMinSize((-1, 25))
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.Add(self.tab_panel, 0, wx.EXPAND)
