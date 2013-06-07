@@ -66,13 +66,14 @@ class TUPTControl:
                     #Correct movie information
                     if trust == 1:
                         #If we fully trust the parser, skip correction
-                        cmovie = movie
+                        movie = movie
                     else:
-                        cmovie = self.matcherControl.CorrectMovie(movie)
+                        movie = self.matcherControl.CorrectMovie(movie)
                     #Find torrents corresponding to the movie.
-                    self.__torrentFinder = TorrentFinderControl(self.pluginmanager)
-                    self.__torrentFinder.FindTorrents(cmovie)
-                    movieTorrent = MovieTorrent(cmovie, self.__torrentFinder)                    
+                    self.__torrentFinder = TorrentFinderControl(self.pluginmanager, movie)
+                    self.__torrentFinder.start()
+                    self.__torrentFinder.join()
+                    movieTorrent = MovieTorrent(movie, self.__torrentFinder)                    
                     self.__movieTorrentIterator.append(movieTorrent)
                 self.__infoBar = TorrentInfoBar(self.webview, self, self.__movieTorrentIterator)
     

@@ -9,16 +9,19 @@ from Tribler.PluginManager.PluginManager import PluginManager
 from Tribler.TUPT.TorrentFinder.SortedTorrentList import SortedTorrentList
 from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
 
-class TorrentFinderControl:
+class TorrentFinderControl(Thread):
     """TorrentFinderControl
         Queries installed plugins for torrents with a specific
         movie title and then sorts them.
     """
-    
+    __movie = None
     __hdTorrentDefList = None
     __sdTorrentDefList = None
+    __threads = None
     
-    def __init__(self, pluginManager):
+    def __init__(self, pluginManager, movie):
+        Thread.__init__(self)
+        self.__movie =  movie
         self.__hdTorrentDefList = SortedTorrentList()
         self.__sdTorrentDefList = SortedTorrentList()
         self.__pluginManager = pluginManager
@@ -26,18 +29,24 @@ class TorrentFinderControl:
         self.__hdTorrentDefList.SetUserDict(userDict)
         self.__sdTorrentDefList.SetUserDict(userDict)
     
-    def FindTorrents(self, movie):
+    def FindTorrents(self):
         """Query plug-ins for a title using a Movie object. The results will be stored in the lists.
         """
         plugins = self.__pluginManager.GetPluginDescriptorsForCategory('TorrentFinder')
-        threads = []
+        self.__threads = []
         for plugin_info in plugins:
-            thread = TorrentFinderControl.PluginThread(self, plugin_info, movie)
+            thread = TorrentFinderControl.PluginThread(self, plugin_info, self.__movie)
             thread.start()
-            threads.append(thread)
+            self.__threads.append(thread)
         
-        for thread in threads:
+        for thread in self.__threads:
             thread.join()
+            
+    def ProcessTorrentDefList(self, torrentDefList, trust):
+        for item in torrentDefList:                
+                if not isinstance(item, IMovieTorrentDef):
+                    raise IllegalTorrentResultException("TorrentFinder plugin should return results of IMovieTorrentDef.")
+                self.ProcessTorrentDef(item, trust)     
     
     def ProcessTorrentDef(self, definition, trust):
         """Inspect a returned torrent definition and place it in our list if appropriate
@@ -90,6 +99,10 @@ class TorrentFinderControl:
             i += 1
         return out
     
+    def run(self):
+        """Start finding threads"""
+        self.FindTorrents()
+    
     class PluginThread(Thread):
         """A private class for threading all the raw calls the plugins
             have to do, to get all their data.
@@ -122,12 +135,9 @@ class TorrentFinderControl:
             try:
                 list = self.plugin.GetTorrentDefsForMovie(self.movie)
             except Exception:
-                print "Unexpected error in plugin "+ self.name +".\n", sys.exc_info()[0]
+                print "Unexpected error in plugin "+ self.name +".\n", sys.exc_info()
             print "Plugin " + self.name + " returned " + str(len(list)) + " results."
-            for item in list:                
-                if not isinstance(item, IMovieTorrentDef):
-                    raise IllegalTorrentResultException("TorrentFinder plugin should return results of IMovieTorrentDef.")
-                self.parent.ProcessTorrentDef(item, self.trust)
+            self.parent.ProcessTorrentDefList(list, self.trust)             
 
 class IllegalTorrentResultException(Exception):
     '''Exception that should be thrown when a illegal torrentresult was found on for a movie.'''

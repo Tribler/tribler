@@ -11,13 +11,13 @@ class TestTorrentFinderControl(unittest.TestCase):
     
     def setUp(self):
         #Arrange
-        self.__torrentFinderControl = TorrentFinderControl(PluginManagerStub())
         self.__movie = Movie()
         self.__movie.dictionary['title'] = 'TestMovie'
+        self.__torrentFinderControl = TorrentFinderControl(PluginManagerStub(), self.__movie)       
      
     def test_FindTorrent_GetResults(self):      
         #Act
-        self.__torrentFinderControl.FindTorrents(self.__movie)
+        self.__torrentFinderControl.FindTorrents()
         #Assert
         self.assertTrue(len(self.__torrentFinderControl.GetHDTorrentList()) > 0)
         self.assertTrue(len(self.__torrentFinderControl.GetSDTorrentList()) > 0)

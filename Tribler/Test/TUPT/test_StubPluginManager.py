@@ -1,3 +1,5 @@
+import time
+
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Movie import Movie
 from Tribler.TUPT.TorrentFinder.IMovieTorrentDef import IMovieTorrentDef
@@ -5,9 +7,11 @@ from Tribler.TUPT.TorrentFinder.ITorrentFinderPlugin import ITorrentFinderPlugin
 
 class PluginManagerStub():
     
-    def __init__(self, parseResult = True):
+    def __init__(self, parseResult = True, loopTorrentFinder = False):
         self.parserPlugins = [ParserPluginStub(parseResult), ParserPluginStubIllegalResult(None)]
         self.torrentFinderPlugins = [TorrentFinderPluginStub()]
+        if loopTorrentFinder:
+            self.torrentFinderPlugins.append(LoopingTorrentFinderPlugin())
             
     def GetPluginDescriptorsForCategory(self, category):
         if category == 'Parser':
@@ -67,6 +71,13 @@ class TorrentFinderPluginStub(ITorrentFinderPlugin):
         
     def GetTorrentDefsForMovie(self, movie):
         return [TorrentDefStub(True, movie), TorrentDefStub(False, movie)]
+
+class LoopingTorrentFinderPlugin(TorrentFinderPluginStub):
+    """A test TorrentFinderPlugin that will loop for ever when trying to find torrents."""
+    
+    def GetTorrentDefsForMovie(self, movie):
+        while(True):
+            time.sleep(100)    
         
 class TorrentDefStub(IMovieTorrentDef):
 
