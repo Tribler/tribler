@@ -31,7 +31,7 @@ from Tribler.Video.VideoServer import AbstractPathMapper
 
 try:
     import wxversion
-    wxversion.select('2.8')
+    wxversion.select('2.9')
 except:
     pass
 import wx

@@ -85,7 +85,7 @@ class ListItem(wx.Panel):
                         prefix = self.columns[i]['name'] + ": " if addColumnname else ''
                         str_data = prefix + str_data
 
-                        control = StaticText(self, style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE |wx.ST_DOTS_END, size=size)
+                        control = StaticText(self, style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE , size=size)
 
                         fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
                         fontSize = self.columns[i].get('fontSize', 0)
@@ -99,7 +99,7 @@ class ListItem(wx.Panel):
                     method_control = self.columns[i]['method'](self, self) if type == 'method' else None
                     if method_control or self.columns[i].get('showEmpty', True):
                         if addColumnname:
-                            control = StaticText(self, -1, self.columns[i]['name'] + ": ", style = self.columns[i].get('style', 0) |wx.ST_NO_AUTORESIZE|wx.ST_DOTS_END)
+                            control = StaticText(self, -1, self.columns[i]['name'] + ": ", style = self.columns[i].get('style', 0) |wx.ST_NO_AUTORESIZE)
                             self._add_control(control, -1, 0, 0)
                             remaining_width -= control.GetSize()[0]
                     control = method_control or control
@@ -229,7 +229,6 @@ class ListItem(wx.Panel):
         new_controls = False
         has_changed = False
 
-        self.Freeze()
         for i in xrange(len(self.columns)):
             if self.columns[i].get('autoRefresh', True):
                 i_new_controls, i_has_changed = self.RefreshColumn(i, data[1][i])
@@ -247,8 +246,6 @@ class ListItem(wx.Panel):
 
         elif new_controls:
             self.ShowSelected()
-
-        self.Thaw()
 
     def RefreshColumn(self, columnindex, data):
         new_controls = has_changed = False
@@ -367,7 +364,6 @@ class ListItem(wx.Panel):
     @warnWxThread
     def BackgroundColor(self, color):
         if self.GetBackgroundColour() != color:
-            self.Freeze()
 
             self.SetBackgroundColour(color)
             for child in self.GetChildren():
@@ -381,8 +377,7 @@ class ListItem(wx.Panel):
                     control.icon.SetBitmap(self.GetIcon(control.icon.type, self.GetBackgroundColour(), state))
                     control.icon.Refresh()
 
-            # self.Refresh()
-            self.Thaw()
+            #self.Refresh()
             return True
 
         return False
@@ -670,8 +665,6 @@ class AbstractListBody():
 
     @warnWxThread
     def OnExpand(self, item, raise_event=False):
-        self.Freeze()
-
         if not self.singleExpanded and wx.GetKeyState(wx.WXK_SHIFT):
             pos_from = self.GetItemPos(self.GetItemKey(self.cur_expanded))
             pos_to = self.GetItemPos(self.GetItemKey(item))
@@ -693,13 +686,10 @@ class AbstractListBody():
             self.OnChange()
 
         self.cur_expanded = item
-        self.Thaw()
         return panel
 
     @warnWxThread
     def OnCollapse(self, item=None, raise_events= True, from_expand = False):
-        self.Freeze()
-
         if not item:
             item = self.cur_expanded
 
@@ -730,13 +720,10 @@ class AbstractListBody():
             toBeSelected[1].expanded = False
             wx.CallAfter(self.Select, toBeSelected[0])
 
-        self.Thaw()
-
     @warnWxThread
     def OnChange(self, scrollToTop=False):
         if DEBUG:
             print >> sys.stderr, "ListBody: OnChange"
-        self.Freeze()
 
         self.vSizer.Layout()
         self.listpanel.Layout()
@@ -760,16 +747,13 @@ class AbstractListBody():
         else:
             if DEBUG:
                 print >> sys.stderr, "ListBody: using scrollrate", self.rate
-            self.SetupScrolling(scrollToTop=scrollToTop, rate_y= self.rate)
 
-        self.Thaw()
+            self.SetupScrolling(scrollToTop=scrollToTop, rate_y= self.rate)
 
     @warnWxThread
     def Reset(self):
         if DEBUG:
             print >> sys.stderr, "ListBody: Reset"
-
-        self.Freeze()
 
         self.filter = None
         self.filterMessage = None
@@ -794,7 +778,6 @@ class AbstractListBody():
         self.raw_data = None
         self.ShowLoading()
         self.OnChange()
-        self.Thaw()
 
     def Rebuild(self):
         _rawdata = self.raw_data
@@ -839,8 +822,6 @@ class AbstractListBody():
         if DEBUG:
             print >> sys.stderr, "ListBody: ShowMessage", message, header
 
-        self.Freeze()
-
         if header:
             self.headerText.SetLabel(header)
             self.headerText.Show()
@@ -872,7 +853,6 @@ class AbstractListBody():
             self.messagePanel.Show()
 
         self.OnChange()
-        self.Thaw()
 
     def GetMessage(self):
         header = message = None
@@ -1074,9 +1054,8 @@ class AbstractListBody():
 
         if len(self.data) > 0:
             t1 = time()
-            self.Freeze()
 
-            # Check if we need to clear vSizer
+            #Check if we need to clear vSizer
             self.messagePanel.Show(False)
             self.loadNext.Show(False)
             self.vSizer.Remove(self.messagePanel)
@@ -1148,8 +1127,6 @@ class AbstractListBody():
 
             if didAdd:
                 self.OnChange()
-
-            self.Thaw()
 
             if len(revertList) > 0:
                 wx.CallLater(1000, self.Revert, revertList)
@@ -1290,7 +1267,6 @@ class AbstractListBody():
         if width != self.curWidth:
             doOnChange = False
 
-            self.Freeze()
             self.curWidth = width
 
             for item in self.items.itervalues():
@@ -1300,7 +1276,6 @@ class AbstractListBody():
             if doOnChange:
                 self.OnChange()
 
-            self.Thaw()
         event.Skip()
 
 

@@ -339,14 +339,12 @@ class TitleHeader(ListHeader):
     @warnWxThread
     def SetTitle(self, title):
         if title != self.title.GetLabel():
-            self.Freeze()
-
+            
             self.title.SetLabel(title)
             self.title.Refresh()
             self.Layout()
-            self.Thaw()
-
-    @warnWxThread
+        
+    @warnWxThread   
     def SetToolTip(self, tooltip):
         self.title.SetToolTipString(tooltip)
 
@@ -412,13 +410,10 @@ class SubTitleHeader(TitleHeader):
     @warnWxThread
     def SetSubTitle(self, subtitle):
         if subtitle != self.subtitle.GetLabel():
-            self.Freeze()
-
+            
             self.subtitle.SetLabel(subtitle)
             self.subtitle.Refresh()
-
-            self.Thaw()
-
+            
 
 class ManageChannelHeader(SubTitleHeader):
 

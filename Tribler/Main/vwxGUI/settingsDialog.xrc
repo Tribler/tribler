@@ -521,7 +521,7 @@
                                         </object>
 		                                <object class="sizeritem">
 		                                	<object class="wxFlexGridSizer">
-		                                		<rows>2</rows>
+		                                		<rows>3</rows>
 												<cols>2</cols>
 												<vgap>3</vgap>
 												<object class="sizeritem">

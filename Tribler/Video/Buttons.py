@@ -39,6 +39,7 @@ class PlayerButton(wx.Panel):
         # if self.bitmaps[0] and self.GetSize()==(0,0):
         if self.bitmaps[0]:
             self.SetSize(self.bitmaps[0].GetSize())
+            self.SetMinSize(self.bitmaps[0].GetSize())
 #        print self.Name
 #        print 'size'
 #        print self.Size

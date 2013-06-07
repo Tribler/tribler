@@ -1,0 +1,6 @@
+[Core]
+Name = Plugin 2
+Module = plugin2
+
+[Documentation]
+Description = Unit-test plug-in, 

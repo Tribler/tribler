@@ -16,7 +16,8 @@ class RemoveTorrent(wx.Dialog):
             state = torrents[0].channel.getState()
             canEdit = state >= ChannelCommunity.CHANNEL_OPEN
 
-        height = 125
+        height = 145
+
         if canEdit:
             height = 200
 

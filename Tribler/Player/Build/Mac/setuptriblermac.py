@@ -29,7 +29,7 @@ if sys.platform != "darwin":
 
 import wxversion
 
-wxversion.select('2.8-unicode')
+wxversion.select('2.9-unicode')
 
 import wx
 

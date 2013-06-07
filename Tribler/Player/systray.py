@@ -11,7 +11,6 @@ import wx
 from Tribler.Core.API import *
 from Tribler.Plugin.defs import *
 
-
 class PlayerTaskBarIcon(wx.TaskBarIcon):
 
     def __init__(self, wxapp, iconfilename):
