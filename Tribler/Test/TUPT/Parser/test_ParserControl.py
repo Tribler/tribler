@@ -6,7 +6,7 @@ from Tribler.TUPT.Parser.ParserControl import NoParserFoundException
 from Tribler.TUPT.Parser.IParserPlugin import IParserPlugin
 from Tribler.TUPT.Movie import Movie
 
-from Tribler.Test.TUPT.test_StubPluginManager import PluginManagerStub
+from Tribler.Test.TUPT.Parser.ParserStubs import ParserPluginManagerStub
 
 class TestParserControl(unittest.TestCase):
     '''Test class to test the ParserControl.'''
@@ -14,7 +14,7 @@ class TestParserControl(unittest.TestCase):
     def test_HasParser_NoPlugin(self):
         '''Test to HasParser when it has No Plugin. Should return false'''
         #Arrange        
-        parserControl = ParserControl(PluginManagerStub(parseResult = False))
+        parserControl = ParserControl(ParserPluginManagerStub(parseResult = False))
         #Act
         result = parserControl.HasParser("http://www.url.com/blabla")
         #Assert
@@ -23,7 +23,7 @@ class TestParserControl(unittest.TestCase):
     def test_HasParser_HasPlugin(self):
         '''Test to HasParser when it has No Plugin. Should return false'''
         #Arrange        
-        parserControl = ParserControl(PluginManagerStub(parseResult = False))
+        parserControl = ParserControl(ParserPluginManagerStub(parseResult = False))
         #Act
         result = parserControl.HasParser("http://www.something.com/blabla/")
         #Assert
@@ -32,7 +32,7 @@ class TestParserControl(unittest.TestCase):
     def test_ParseWebsite_NoResult(self):
         '''Test ParseWebsite and no result is found'''
         #Arrange
-        parserControl = ParserControl(PluginManagerStub(parseResult = False))
+        parserControl = ParserControl(ParserPluginManagerStub(parseResult = False))
         #Act
         result = parserControl.ParseWebsite("http://www.something.com", 'NaN')
         #Assert
@@ -41,7 +41,7 @@ class TestParserControl(unittest.TestCase):
     def test_ParseWebsite_Result(self):
         '''Test ParseWebsite and a result is found'''
         #Arrange
-        parserControl = ParserControl(PluginManagerStub(parseResult = True))
+        parserControl = ParserControl(ParserPluginManagerStub(parseResult = True))
         #Act
         result = parserControl.ParseWebsite("http://www.something.com", 'NaN')
         #Assert
@@ -50,7 +50,7 @@ class TestParserControl(unittest.TestCase):
     def test_ParseWebsite_IllegalParseResult(self):
         """Test ParseWebsite returning a result not of type movie."""
         #Arrange
-        parserControl = ParserControl(PluginManagerStub(parseResult = True))
+        parserControl = ParserControl(ParserPluginManagerStub(parseResult = True))
         #Act
         with self.assertRaises(IllegalParseResultException):
             result = parserControl.ParseWebsite("http://www.illegalparseresultException.com/blabla", 'NaN')
@@ -59,7 +59,7 @@ class TestParserControl(unittest.TestCase):
     def test_ParseWebsite_NoParserFoundException(self):
         '''Test ParseWebsite to throw an exception when no parser is available'''
         #Arrange
-        parserControl = ParserControl(PluginManagerStub(parseResult = True))
+        parserControl = ParserControl(ParserPluginManagerStub(parseResult = True))
         #Act and Assert
         with self.assertRaises(NoParserFoundException):
             parserControl.ParseWebsite("http://www.url.com/blabla", 'NaN')

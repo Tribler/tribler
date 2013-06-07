@@ -13,6 +13,7 @@ class TorrentFinderControl(Thread):
     """TorrentFinderControl
         Queries installed plugins for torrents with a specific
         movie title and then sorts them.
+        Can be run threaded or nonthreaded.
     """
     __movie = None
     __hdTorrentDefList = None
