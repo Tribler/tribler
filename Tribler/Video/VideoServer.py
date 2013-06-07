@@ -372,7 +372,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 if self.request_version == 'HTTP/1.1':
                     self.send_header("Connection", "Keep-Alive")
                     # test.. to be adjusted depending on the request
-                    self.send_header("Keep-Alive", "timeout=15, max=100")
+                    self.send_header("Keep-Alive", "timeout=300, max=1")
 
                 # 5. Send headers
                 self.send_header("Content-Type", mimetype)

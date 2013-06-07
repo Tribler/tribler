@@ -2,6 +2,7 @@
 
 import sys
 import copy
+import time
 import libtorrent as lt
 
 from binascii import hexlify
@@ -32,34 +33,38 @@ DEBUG = False
 
 
 class VODFile(object):
-    __slots__ = ['_file', '_download'] 
 
-    def __init__(self, f, d): 
-        object.__setattr__(self, '_file', f)
-        object.__setattr__(self, '_download', d)
-
-    def __getattr__(self, name):
-        return getattr(self._file, name) 
-
-    def __setattr__(self, name, value): 
-        setattr(self._file, name, value) 
+    def __init__(self, f, d):
+        self._file = f
+        self._download = d
+        self._position = 0
 
     def read(self, *args):
+        print >> sys.stderr, 'VODFile, get bytes', self._position, '-', self._position + args[0]
+        while self._download.get_byte_progress([(self._download.get_vod_fileindex(), self._position, self._position + args[0])]) < 1:
+            time.sleep(1)
         result = self._file.read(*args)
-        # Workaround for streaming issues in parse storage mode.
-        if len(result) < args[0]:
-            result += '\0' * (args[0] - len(result))
-        self._download.vod_readpos += len(result)
+        result_len = len(result)
+        self._position += result_len
+        print >> sys.stderr, 'VODFile, got bytes', self._position, '-', self._position + result_len
         return result
 
     def seek(self, *args):
         self._file.seek(*args)
         if args[1] == 1:
             # Relative seek
-            self._download.vod_readpos += args[0]
+            self._position += args[0]
         else:
             # Absolute seek
-            self._download.vod_readpos = args[0]
+            self._position = args[0]
+        print >> sys.stderr, 'VODFile, seek', self._position, args
+        self._download.vod_seekpos = self._download.vod_seekpos or self._position
+        self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, self._position)], 0)
+        self._download.set_byte_priority([(self._download.get_vod_fileindex(), self._position, -1)], 1)
+        print >> sys.stderr, self._download.handle.piece_priorities()
+
+    def close(self, *args):
+        self._file.close(*args)
         
 
 class LibtorrentDownloadImpl(DownloadRuntimeConfig): 
@@ -96,8 +101,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.queue_position = -1
 
         self.prebuffsize = 5*1024*1024
-        self.endbuffsize = 1*1024*1024
-        self.vod_readpos = 0
+        self.vod_seekpos = 0
         self.vod_status = ""
         self.vod_seek_callback = None
 
@@ -250,10 +254,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.handle.set_sequential_download(True)
 
         self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5*1024*1024)
-        self.endbuffsize = max(int(self.videoinfo['outpath'][1] * 0.01), 1*1024*1024)
-
-        # For the vod file, set all piece priorities to 0, except for pieces within 0-prebuffsize and endbuffsize-EOF 
-        self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -self.endbuffsize)], 0, exclude_borders = True)
+        self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -1)], 0, exclude_borders = True)
 
         if self.handle.status().progress == 1.0:
             if DEBUG:
@@ -264,33 +265,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
             self.set_state_callback(self.monitor_vod, delay = 5.0)
 
-    def set_vod_position(self, position, callback):
-        videoindex = self.get_vod_fileindex()
-        videofile = self.handle.get_torrent_info().file_at(videoindex)
-        videopos = int(position * videofile.size)
-        self.set_byte_priority([(videoindex, 0, videopos)], 0)
-        self.set_byte_priority([(videoindex, videopos, -1)], 1)
-        self.vod_readpos = videopos
-        self.vod_seek_callback = callback
-        self.pause_vod()
-
     def monitor_vod(self, ds):
-        prebufferprogress = self.get_byte_progress([(self.get_vod_fileindex(), self.vod_readpos, self.vod_readpos + self.prebuffsize)])
-        endbufferprogress = self.get_byte_progress([(self.get_vod_fileindex(), - self.endbuffsize - 1, - 1)])
+        if self.vod_seekpos != None:
+            prebufferprogress = self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
+            self.bufferprogress = prebufferprogress
 
-        if endbufferprogress < 1:
-            totalbuffersize = self.prebuffsize + self.endbuffsize
-            self.bufferprogress = (prebufferprogress * self.prebuffsize) / totalbuffersize + (endbufferprogress * self.endbuffsize) / totalbuffersize
-            return (1, False)
-
-        self.bufferprogress = prebufferprogress
         print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % self.bufferprogress
 
         if self.bufferprogress >= 1:
-            if self.vod_seek_callback:
-                self.session.uch.perform_usercallback(self.vod_seek_callback)
-                self.vod_seek_callback = None
-
             if not self.vod_status:
                 self.start_vod(complete = False)
             else:

@@ -209,6 +209,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
+                self.ppbtn.Enable(True)
                 self.vlcwin.stop_animation()
                 self.vlcwrap.resume()
                 self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate = True)
@@ -233,28 +234,23 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ppbtn.Enable(False)
             position = self.slider.GetValue()
             self.update = False
-    
-            @forceWxThread
-            def set_position():
-                try:
-                    self.vlcwrap.set_media_position_relative(position, self.GetState() == MEDIASTATE_STOPPED)
 
-                    length = self.vlcwrap.get_stream_information_length()
-                    length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
-                    time_position = length * position
-                    self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000) 
+            try:
+                if self.download:
+                    self.download.pause_vod()
+                    self.download.vod_seekpos = None
+                self.vlcwrap.set_media_position_relative(position, self.GetState() == MEDIASTATE_STOPPED)
 
-                    self.update = True
-                    self.ppbtn.Enable(True)
-                except:
-                    print_exc()
-                    if DEBUG:
-                        print >> sys.stderr, 'embedplay: Could not seek'
-    
-            if self.download:
-                self.download.set_vod_position(position, set_position)
-            else:
-                set_position()
+                length = self.vlcwrap.get_stream_information_length()
+                length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
+                time_position = length * position
+                self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000) 
+
+                self.update = True
+            except:
+                print_exc()
+                if DEBUG:
+                    print >> sys.stderr, 'embedplay: Could not seek'
 
     def FullScreen(self, evt=None):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
@@ -427,7 +423,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                     cur += self.timeoffset
 
                 if cur >= 0 and length:
-                    self.slider.SetValue(cur / length)
+                    self.slider.SetValue(float(cur) / length)
 
                 cur_str = self.FormatTime(float(cur)) if cur >= 0 else '--:--'
                 length_str = self.FormatTime(length) if length else '--:--'
