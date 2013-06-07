@@ -1686,7 +1686,7 @@ class LibraryList(SizeList):
         self.prevStates = {}
 
         self.bw_history = {}
-        self.refreshitems_counter = 0
+        self.bw_history_counter = 0
 
         self.initnumitems = False
 
@@ -1709,6 +1709,8 @@ class LibraryList(SizeList):
         self.hasTorrent = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "bittorrent.png"), wx.BITMAP_TYPE_ANY)
         self.hasNothing = wx.EmptyBitmapRGBA(self.hasSwift.GetWidth(), self.hasSwift.GetHeight(), alpha=1)
         SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
+
+        self.library_manager.add_download_state_callback(self.RefreshBandwidthHistory)
 
     def OnDeleteKey(self, event):
         if self.list.GetExpandedItems():
@@ -1861,10 +1863,9 @@ class LibraryList(SizeList):
             if self.statefilter != None:
                 self.list.SetData()  # basically this means execute filter again
 
-        self.refreshitems_counter += 1
-
         for item in self.list.items.itervalues():
             ds = item.original_data.ds
+            id = ds.get_download().get_def().get_id()
             if newFilter or not self.__ds__eq__(ds, oldDS.get(id, None)):
                 if hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
@@ -1939,12 +1940,6 @@ class LibraryList(SizeList):
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
-                # Store bandwidth history
-                if self.refreshitems_counter % 5 == 0:
-                    self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
-                    self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
-                    self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
-
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
@@ -1956,6 +1951,18 @@ class LibraryList(SizeList):
 
         if newFilter:
             self.newfilter = False
+
+    @warnWxThread
+    def RefreshBandwidthHistory(self, dslist, magnetlist):
+        for item in self.list.items.itervalues():
+            # Store bandwidth history in self.bw_history
+            self.bw_history_counter += 1
+            if self.bw_history_counter % 5 == 0:                
+                ds = item.original_data.ds
+                self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
+                self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') if ds else 0, ds.get_current_speed('down') if ds else 0))
+                self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
+
 
     @warnWxThread
     def SetData(self, data):
