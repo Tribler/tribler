@@ -3,6 +3,7 @@
 
 import os
 import sys
+import json
 import time
 import binascii
 import threading
@@ -65,10 +66,30 @@ class TestMyChannel(TestGuiAsServer):
 
             do_quit()
 
+        def do_modifications():
+            self.guiUtility.ShowPage('my_files')
+            time.sleep(1)
+            self.frame.librarylist.Select(binascii.unhexlify('45a647b1120ed9fe7f793e17585efb4b0efdf1a5'))
+            torrent = self.frame.top_bg.GetSelectedTorrents()[0]
+            time.sleep(10)
+            modifications = self.guiUtility.channelsearch_manager.getTorrentModifications(torrent)
+
+            videoinfo_valid = False
+            swiftthumbnails_valid = False
+            for modification in modifications:
+                if modification.name == 'swift-thumbnails' and modification.value:
+                    swiftthumbnails_valid = True
+                if modification.name == 'video-info' and modification.value:
+                    videoinfo_dict = json.loads(modification.value)
+                    if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
+                        videoinfo_valid = True
+
+            self.CallConditional(1, lambda: videoinfo_valid and swiftthumbnails_valid, do_overview, 'No valid channel modifications received')            
+
         def do_thumbnails():
             thumb_dir = os.path.join(self.guiUtility.utility.session.get_torrent_collecting_dir(), 'thumbs-45a647b1120ed9fe7f793e17585efb4b0efdf1a5')
 
-            self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, do_overview, 'No thumbnails were created')
+            self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, do_modifications, 'No thumbnails were created')
 
         def do_download_torrent():
             torrentfilename = os.path.join(BASE_DIR, "data", 'Prebloc.2010.Xvid-VODO.torrent')
