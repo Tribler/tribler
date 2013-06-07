@@ -101,8 +101,6 @@ copy Tribler\Core\Statistics\*.sql dist\installdir\Tribler\Core\Statistics
 mkdir dist\installdir\Tribler\Core\Tag
 copy Tribler\Core\Tag\*.filter dist\installdir\Tribler\Core\Tag
 
-mkdir dist\installdir\Tribler\Images
-copy Tribler\Images\*.* dist\installdir\Tribler\Images
 copy Tribler\Main\Build\Win32\heading.bmp dist\installdir
 mkdir dist\installdir\Tribler\Video
 mkdir dist\installdir\Tribler\Video\Images

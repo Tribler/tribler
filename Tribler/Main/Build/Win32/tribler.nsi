@@ -122,9 +122,6 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler\Core\Tag"
  SetOutPath "$INSTDIR\Tribler\Core\Tag"
  File Tribler\Core\Tag\*.filter
- CreateDirectory "$INSTDIR\Tribler\Images"
- SetOutPath "$INSTDIR\Tribler\Images"
- File Tribler\Images\*.*
  CreateDirectory "$INSTDIR\Tribler\Video"
  CreateDirectory "$INSTDIR\Tribler\Video\Images"
  SetOutPath "$INSTDIR\Tribler\Video\Images"

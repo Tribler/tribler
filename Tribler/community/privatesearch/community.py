@@ -941,15 +941,14 @@ class ForwardCommunity(SearchCommunity):
 
         return candidate, None
 
-    def dispersy_yield_introduce_candidates(self, exclude_candidate=None, exclude_tunnel=False):
-        if candidate:
-            if candidate in self.requested_introductions:
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        if exclude_candidate:
+            if exclude_candidate in self.requested_introductions:
                 intro_me_candidate = self.requested_introductions[exclude_candidate]
                 del self.requested_introductions[exclude_candidate]
-                yield intro_me_candidate
+                return intro_me_candidate
 
-        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, exclude_candidate, exclude_tunnel):
-            yield random_candidate
+        return SearchCommunity.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class ForwardAttempt(Cache):
         timeout_delay = 10.5
