@@ -283,7 +283,7 @@ class SelectedChannelList(GenericSearchList):
         vSizer.Add(self.list, 1, wx.EXPAND)
         contentList.SetSizer(vSizer)
 
-        self.notebook.AddPage(contentList, "Contents")
+        self.notebook.AddPage(contentList, "Contents", tab_colour = wx.WHITE)
 
         self.commentList = NotebookPanel(self.notebook)
         self.commentList.SetList(CommentList(self.commentList, self, canReply=True))

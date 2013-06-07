@@ -912,6 +912,7 @@ class SelectedChannelFilter(TorrentFilter):
                 break
 
     def AddComponents(self, spacers):
+        self.SetBackgroundColour(wx.WHITE)
         TorrentFilter.AddComponents(self, spacers)
         self.search.SetDescriptiveText('Filter channel content')
 
