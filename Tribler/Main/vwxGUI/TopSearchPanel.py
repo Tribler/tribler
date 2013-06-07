@@ -427,29 +427,31 @@ class TopSearchPanel(FancyPanel):
             button.Enable(False)
 
     def OnDelete(self, event=None, silent=False, delete=False):
-        for torrent in self.GetSelectedTorrents():
-            if not silent:
-                dlg = RemoveTorrent(None, torrent)
-                buttonId = dlg.ShowModal()
-            else:
-                buttonId = wx.ID_DELETE if delete else wx.ID_DEFAULT
+        torrents = self.GetSelectedTorrents()
+        if not silent:
+            dlg = RemoveTorrent(None, torrents)
+            buttonId = dlg.ShowModal()
+        else:
+            buttonId = wx.ID_DELETE if delete else wx.ID_DEFAULT
 
-            if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
+        if buttonId in [wx.ID_DEFAULT, wx.ID_DELETE]:
+            for torrent in torrents:
                 self.guiutility.library_manager.deleteTorrent(torrent, buttonId == wx.ID_DELETE)
                 self.guiutility.frame.librarylist.RemoveItem(torrent.infohash)
-                self.guiutility.frame.librarylist.GetManager().refresh()
-                if self.guiutility.frame.librarylist.IsShownOnScreen():
-                    self.ClearButtonHandlers()
-                    self.guiutility.frame.librarylist.ResetBottomWindow()
 
-            if self.guiutility.frame.librarylist.list.IsEmpty():
-                self.guiutility.frame.librarylist.SetData([])
+            self.guiutility.frame.librarylist.GetManager().refresh()
+            if self.guiutility.frame.librarylist.IsShownOnScreen():
+                self.ClearButtonHandlers()
+                self.guiutility.frame.librarylist.ResetBottomWindow()
 
-            if not silent:
-                if dlg.newName:
-                    if dlg.newName.IsChanged():
-                        dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
-                        if dlg2.ShowModal() == wx.ID_YES:
-                            self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name': self.newName.GetValue()})
-                        dlg2.Destroy()
-                dlg.Destroy()
+        if self.guiutility.frame.librarylist.list.IsEmpty():
+            self.guiutility.frame.librarylist.SetData([])
+
+        if not silent:
+            if dlg.newName:
+                if dlg.newName.IsChanged():
+                    dlg2 = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                    if dlg2.ShowModal() == wx.ID_YES:
+                        self.guiutility.channelsearch_manager.modifyTorrent(torrent.channel.id, torrent.channeltorrent_id, {'name':self.newName.GetValue()})
+                    dlg2.Destroy()
+            dlg.Destroy()
