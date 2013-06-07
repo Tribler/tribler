@@ -287,14 +287,17 @@ class SelectedChannelList(GenericSearchList):
 
         self.commentList = NotebookPanel(self.notebook)
         self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
+        self.commentList.header.SetBackgroundColour(wx.WHITE)
         self.commentList.Show(False)
 
         self.activityList = NotebookPanel(self.notebook)
         self.activityList.SetList(ActivityList(self.activityList, self))
+        self.activityList.header.SetBackgroundColour(wx.WHITE)
         self.activityList.Show(False)
 
         self.moderationList = NotebookPanel(self.notebook)
         self.moderationList.SetList(ModerationList(self.moderationList, self))
+        self.moderationList.header.SetBackgroundColour(wx.WHITE)
         self.moderationList.Show(False)
 
         self.leftLine = wx.Panel(self.parent, size=(1, -1))
@@ -379,12 +382,12 @@ class SelectedChannelList(GenericSearchList):
                 self.commentList.Show(True)
                 self.activityList.Show(True)
 
-                self.notebook.AddPage(self.commentList, "Comments")
-                self.notebook.AddPage(self.activityList, "Activity")
+                self.notebook.AddPage(self.commentList, "Comments", tab_colour = wx.WHITE)
+                self.notebook.AddPage(self.activityList, "Activity", tab_colour = wx.WHITE)
 
             if state >= ChannelCommunity.CHANNEL_OPEN and self.notebook.GetPageCount() == 3:
                 self.moderationList.Show(True)
-                self.notebook.AddPage(self.moderationList, "Moderations")
+                self.notebook.AddPage(self.moderationList, "Moderations", tab_colour = wx.WHITE)
         else:
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 page = self.notebook.GetPage(i - 1)
@@ -2053,7 +2056,7 @@ class CommentList(List):
         self.horizontal = horizontal
         self.noheader = noheader
 
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
+        List.__init__(self, [], LIST_GREY, [10, 10], parent=parent, singleSelect=True, borders=False)
         self.parent_list = parent_list
         self.canReply = canReply
 
@@ -2083,7 +2086,7 @@ class CommentList(List):
         self.list.Bind(wx.EVT_SIZE, self.OnSize)
 
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius=0, spacers=[4, 7])
+        return TitleHeader(parent, self, [], 0, radius=0, spacers=[10, 10])
 
     def CreateFooter(self, parent):
         return CommentFooter(parent, self.OnNew, self.quickPost, self.horizontal)
@@ -2224,12 +2227,12 @@ class ActivityManager(BaseManager):
 class ActivityList(List):
 
     def __init__(self, parent, parent_list):
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
+        List.__init__(self, [], LIST_GREY, [10, 10], parent=parent, singleSelect=True, borders=False)
         self.parent_list = parent_list
         self.channelsearch_manager = GUIUtility.getInstance().channelsearch_manager
 
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius=0, spacers=[4, 7])
+        return TitleHeader(parent, self, [], 0, radius=0, spacers=[10, 10])
 
     def CreateFooter(self, parent):
         return None
@@ -2450,11 +2453,11 @@ class ModerationManager(BaseManager):
 class ModerationList(List):
 
     def __init__(self, parent, parent_list):
-        List.__init__(self, [], LIST_GREY, [7, 7], parent=parent, singleSelect=True, borders=False)
+        List.__init__(self, [], LIST_GREY, [10, 10], parent=parent, singleSelect=True, borders=False)
         self.parent_list = parent_list
 
     def CreateHeader(self, parent):
-        return TitleHeader(parent, self, [], 0, radius=0)
+        return TitleHeader(parent, self, [], 0, radius=0, spacers=[10, 10])
 
     def CreateFooter(self, parent):
         return None
