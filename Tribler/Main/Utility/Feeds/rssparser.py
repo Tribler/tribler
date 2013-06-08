@@ -1,18 +1,17 @@
 # Written by Niels Zeilemaker
 
-from threading import Thread, RLock, Event
 import os
 import sha
 import sys
+import time
+import re
 from copy import deepcopy
 from shutil import copyfile
-from Tribler.Subscriptions.rss_client import URLHistory
 from Tribler.Main.Utility.Feeds import feedparser
 from Tribler.Core.TorrentDef import TorrentDef
 from traceback import print_exc
-import time
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
-import re
+from threading import Thread, RLock, Event
+
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
@@ -300,6 +299,85 @@ class RssParser(Thread):
                 newItems.append((title, new_urls, description, thumbnail))
 
         return newItems
+
+# Written by Freek Zindel, Arno Bakker
+class URLHistory:
+
+    read_history_expression = re.compile("(\d+(?:[.]\d+)?)\s+(\w+)", re.IGNORECASE)
+
+    def __init__(self, filename):
+        self.urls = {}
+        self.filename = filename
+        self.readed = False
+
+    def add(self, dirtyurl):
+        url = self.clean_link(dirtyurl)
+        self.urls[url] = time.time()
+
+    def contains(self, dirtyurl):
+        url = self.clean_link(dirtyurl)
+
+        # Poor man's filter
+        if url.endswith(".jpg") or url.endswith(".JPG"):
+            return True
+
+        t = self.urls.get(url, None)
+        if t is None:
+            return False
+        else:
+            now = time.time()
+            return not self.timedout(t, now)  # no need to delete
+
+    def timedout(self, t, now):
+        return (t + URLHIST_TIMEOUT) < now
+
+    def read(self):
+        if DEBUG:
+            print >> sys.stderr, "subscrip: Reading cached", self.filename
+        try:
+            file_handle = open(self.filename, "rb")
+        except IOError:
+            # file not found...
+            # there is no cache available
+            pass
+        else:
+            re_line = re.compile("^\s*(\d+(?:[.]\d+)?)\s+(.+?)\s*$")
+            now = time.time()
+            for line in file_handle.readlines():
+                match = re_line.match(line)
+                if match:
+                    timestamp, url = match.groups()
+                    timestamp = float(timestamp)
+                    if not self.timedout(timestamp, now):
+                        if DEBUG:
+                            print >> sys.stderr, "subscrip: Cached url is", url
+                        self.urls[url] = timestamp
+                    elif DEBUG:
+                        print >> sys.stderr, "subscrip: Timed out cached url is %s" % url
+
+            file_handle.close()
+
+    def write(self):
+        try:
+            file_handle = open(self.filename, "wb")
+        except IOError:
+            # can't write file
+            print_exc()
+        else:
+            for url, timestamp in self.urls.iteritems():
+                file_handle.write("%f %s\r\n" % (timestamp, url))
+            file_handle.close()
+
+    def copy(self):
+        return self.urls.copy()
+
+    def clean_link(self, link):
+        """ Special vuze case """
+        idx = link.find(';jsessionid')
+        if idx == -1:
+            return link
+        else:
+            return link[:idx]
 
 
 if __name__ == '__main__':

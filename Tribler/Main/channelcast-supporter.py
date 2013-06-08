@@ -18,8 +18,6 @@ import time
 
 from Tribler.Core.API import *
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Subscriptions.rss_client import TorrentFeedThread
-from Tribler.Core.BuddyCast.buddycast import BuddyCastFactory
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 
 from Tribler.Core.Overlay.permid import permid_for_user
@@ -58,10 +56,10 @@ def main():
     session = Session(sscfg)
 
     def on_incoming_torrent(subject, type_, infohash):
-        print >>sys.stdout, "Incoming torrent:", infohash.encode("HEX")
+        print >> sys.stdout, "Incoming torrent:", infohash.encode("HEX")
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
 
-    print >>sys.stderr, "permid: ", permid_for_user(session.get_permid())
+    print >> sys.stderr, "permid: ", permid_for_user(session.get_permid())
 
     try:
         while True:

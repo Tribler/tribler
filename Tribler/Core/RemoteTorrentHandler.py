@@ -272,7 +272,6 @@ class RemoteTorrentHandler:
 
         tdef.save(tmp_filename)
         sdef, swiftpath = self._write_to_collected(tmp_filename)
-
         try:
             os.remove(tmp_filename)
         except:

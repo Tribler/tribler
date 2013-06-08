@@ -72,7 +72,7 @@ except:
 from plistlib import Plist
 
 
-def includedir(srcpath, dstpath = None):
+def includedir(srcpath, dstpath=None):
     """ Recursive directory listing, filtering out svn files. """
 
     total = []
@@ -116,27 +116,26 @@ setup(
         'plist': Plist.fromFile(LIBRARYNAME + '/Main/Build/Mac/Info.plist'),
         'optimize': 0 if __debug__ else 2,
         'resources':
-            [(LIBRARYNAME + "/Lang", [LIBRARYNAME +"/Lang/english.lang"]),
-             (LIBRARYNAME + "/Category", [LIBRARYNAME +"/Category/category.conf"]),
-             (LIBRARYNAME + "/Core/Tag", [LIBRARYNAME +"/Core/Tag/stop_snowball.filter"]),
-             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME +"/Core/DecentralizedTracking/pymdht/core/bootstrap.main"]),
-             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME +"/Core/DecentralizedTracking/pymdht/core/bootstrap.backup"]),
+            [(LIBRARYNAME + "/Lang", [LIBRARYNAME + "/Lang/english.lang"]),
+             (LIBRARYNAME + "/Category", [LIBRARYNAME + "/Category/category.conf"]),
+             (LIBRARYNAME + "/Core/Tag", [LIBRARYNAME + "/Core/Tag/stop_snowball.filter"]),
+             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap.main"]),
+             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap.backup"]),
              LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
            ]
            # add images
-           + includedir(LIBRARYNAME +"/Images")
-           + includedir(LIBRARYNAME +"/Video/Images")
-           + includedir(LIBRARYNAME +"/Main/vwxGUI/images")
-           + includedir(LIBRARYNAME +"/Main/webUI/static")
+           + includedir(LIBRARYNAME + "/Video/Images")
+           + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
+           + includedir(LIBRARYNAME + "/Main/webUI/static")
 
            # add GUI elements
-           + filterincludes(includedir(LIBRARYNAME+"/Main/vwxGUI"), lambda x: x.endswith(".xrc") )
+           + filterincludes(includedir(LIBRARYNAME + "/Main/vwxGUI"), lambda x: x.endswith(".xrc"))
 
            # add crawler info and SQL statements
-           + filterincludes(includedir(LIBRARYNAME+"/Core/Statistics"), lambda x: x.endswith(".txt") )
-           + filterincludes(includedir(LIBRARYNAME+"/Core/Statistics"), lambda x: x.endswith(".sql") )
-           + filterincludes(includedir(LIBRARYNAME+"/"), lambda x: x.endswith(".sql") )
+           + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".txt"))
+           + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".sql"))
+           + filterincludes(includedir(LIBRARYNAME + "/"), lambda x: x.endswith(".sql"))
 
            # add VLC plugins
            + includedir("vlc")
