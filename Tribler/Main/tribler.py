@@ -172,7 +172,7 @@ class ABCApp():
         self.videoplayer = None
 
         try:
-            bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Images', 'splash.png'), wx.BITMAP_TYPE_ANY)
+            bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'splash.png'), wx.BITMAP_TYPE_ANY)
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()
@@ -244,7 +244,7 @@ class ABCApp():
             # crashes.
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
 
-            self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Images', 'tribler.ico'))
+            self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'))
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
@@ -462,7 +462,7 @@ class ABCApp():
                 dispersy.define_auto_load(BarterCommunity,
                                           (swift_process,),
                                           load=True)
-                
+
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 

@@ -32,7 +32,7 @@ import py2exe
 #
 
 mainfile = os.path.join('Tribler', 'Main', 'tribler.py')
-progicofile = os.path.join('Tribler', 'Images', 'tribler.ico')
+progicofile = os.path.join('Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico')
 
 target = {
     "script": mainfile,
