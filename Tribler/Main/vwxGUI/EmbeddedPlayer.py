@@ -24,11 +24,11 @@ DEBUG = True
 
 class EmbeddedPlayerPanel(wx.Panel):
     """
-    The Embedded Player consists of a VLCLogoWindow and the media controls such
+    The Embedded Player consists of a VLCWindow and the media controls such
     as Play/Pause buttons and Volume Control.
     """
 
-    VIDEO_SIZE = (320,240)
+    VIDEO_SIZE = (320, 240)
 
     def __init__(self, parent, utility, vlcwrap, bg):
         wx.Panel.__init__(self, parent, -1)
@@ -50,65 +50,68 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.vlcwrap = vlcwrap
 
         if vlcwrap:
-            self.vlcwin = VLCLogoWindow(self, utility, vlcwrap, bg, animate = True)
+            self.vlcwin = VLCWindow(self, vlcwrap)
             self.vlcwin.SetMinSize(EmbeddedPlayerPanel.VIDEO_SIZE)
-    
             vSizer.Add(self.vlcwin, 1, wx.EXPAND, 0)
-    
-            self.ctrlpanel = FancyPanel(self, border = wx.TOP)
+
+            self.logowin = LogoWindow(self)
+            self.logowin.SetMinSize(EmbeddedPlayerPanel.VIDEO_SIZE)
+            vSizer.Add(self.logowin, 1, wx.EXPAND, 0)
+
+            self.ctrlpanel = FancyPanel(self, border=wx.TOP)
             self.ctrlpanel.SetMinSize((-1, 30))
             self.ctrlpanel.SetBorderColour(SEPARATOR_GREY)
             self.ctrlpanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
-    
+
             self.ctrlsizer = wx.BoxSizer(wx.HORIZONTAL)
-    
+
             self.slider = VideoSlider(self.ctrlpanel)
             self.slider.Enable(False)
             self.timeposition = TransparentText(self.ctrlpanel, -1, "--:-- / --:--")
-    
-            self.bmp_muted = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","video_muted.png"))
-            self.bmp_unmuted = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","video_unmuted.png"))
+
+            self.bmp_muted = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_muted.png"))
+            self.bmp_unmuted = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_unmuted.png"))
             self.mute = ActionButton(self.ctrlpanel, -1, self.bmp_unmuted)
             self.mute.Bind(wx.EVT_LEFT_UP, self.MuteClicked)
-    
-            self.bmp_pause = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","video_pause.png"))
-            self.bmp_play = wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","video_play.png"))
+
+            self.bmp_pause = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_pause.png"))
+            self.bmp_play = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_play.png"))
             self.ppbtn = ActionButton(self.ctrlpanel, -1, self.bmp_pause)
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
             self.ppbtn.Enable(False)
-    
-            self.sbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","video_stop.png")))
+
+            self.sbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_stop.png")))
             self.sbtn.Bind(wx.EVT_LEFT_UP, self.OnStop)
             self.sbtn.Enable(False)
-    
+
             self.volctrl = VideoVolume(self.ctrlpanel, -1)
             self.volctrl.SetVolumeHandler(self.OnVolumeChanged)
             self.volctrl.SetValue(self.volume)
             self.volctrl.SetMinSize((30, 17))
-    
-            self.fsbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","video_fullscreen.png")))
+
+            self.fsbtn = ActionButton(self.ctrlpanel, -1, wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_fullscreen.png")))
             self.fsbtn.Bind(wx.EVT_LEFT_UP, self.FullScreen)
             self.fsbtn.Enable(False)
 
             self.ctrlsizer.AddSpacer((10, -1))
-            self.ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 1)
+            self.ctrlsizer.Add(self.ppbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 1)
             self.ctrlsizer.AddSpacer((10, -1))
-            self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 1)
+            self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 1)
             self.ctrlsizer.AddSpacer((10, -1))
             self.ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL)
             self.ctrlsizer.Add(self.timeposition, 0, wx.ALIGN_CENTER_VERTICAL)
             self.ctrlsizer.AddSpacer((10, -1))
-    
-            self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 1)
+
+            self.ctrlsizer.Add(self.mute, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 1)
             self.ctrlsizer.AddSpacer((5, -1))
-            self.ctrlsizer.Add(self.volctrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 1)
+            self.ctrlsizer.Add(self.volctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 1)
             self.ctrlsizer.AddSpacer((10, -1))
-            self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL|wx.TOP, 1)
+            self.ctrlsizer.Add(self.fsbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 1)
             self.ctrlsizer.AddSpacer((10, -1))
-            
+
             self.ctrlpanel.SetSizer(self.ctrlsizer)
-    
-            vSizer.Add(self.ctrlpanel, 0, wx.ALIGN_BOTTOM|wx.EXPAND)
+
+            vSizer.Add(self.ctrlpanel, 0, wx.ALIGN_BOTTOM | wx.EXPAND)
 
         self.SetSizer(vSizer)
 
@@ -116,14 +119,15 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.timer = None
 
         if self.vlcwrap:
-            self.SetMinSize((EmbeddedPlayerPanel.VIDEO_SIZE[0],-1))
+            self.SetMinSize((EmbeddedPlayerPanel.VIDEO_SIZE[0], -1))
             self.vlcwin.Show(True)
+            self.logowin.Show(False)
             self.ctrlsizer.ShowItems(True)
             self.utility.guiUtility.frame.Layout()
 
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted: # unmute
-            self.mute.SetBitmapLabel(self.bmp_unmuted, recreate = True)
+            self.mute.SetBitmapLabel(self.bmp_unmuted, recreate=True)
         self.volume = volume
         self.oldvolume = self.volume
         self.SetVolume(self.volume)
@@ -136,15 +140,15 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         self.volctrl.SetValue(self.volume)
         self.SetVolume(self.volume)
-        self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate = True)
+        self.mute.SetBitmapLabel(self.bmp_unmuted if self.mute.GetBitmapLabel() == self.bmp_muted else self.bmp_muted, recreate=True)
 
     @warnWxThread
-    def Load(self, url, streaminfo = None):
+    def Load(self, url, streaminfo=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: Load:", url, streaminfo, currentThread().getName()
 
         if streaminfo is not None:
-            self.estduration = streaminfo.get('estduration',None)
+            self.estduration = streaminfo.get('estduration', None)
             self.download = VideoPlayer.getInstance().get_vod_download()
 
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
@@ -155,8 +159,8 @@ class EmbeddedPlayerPanel(wx.Panel):
             # Arno, 2009-02-17: If we don't do this VLC gets the wrong playlist somehow
             self.vlcwrap.stop()
             self.vlcwrap.playlist_clear()
-            self.vlcwrap.load(url,streaminfo=streaminfo)
-    
+            self.vlcwrap.load(url, streaminfo=streaminfo)
+
             # Enable update of progress slider
             wx.CallAfter(self.slider.SetValue, 0)
             if self.timer is None:
@@ -171,26 +175,26 @@ class EmbeddedPlayerPanel(wx.Panel):
     def StartPlay(self):
         """ Start playing the new item after VLC has stopped playing the old one """
         if DEBUG:
-            print >>sys.stderr,"embedplay: PlayWhenStopped"
+            print >> sys.stderr, "embedplay: PlayWhenStopped"
 
         self.playtimer = DelayTimer(self)
 
     @warnWxThread
-    def Play(self, evt = None):
+    def Play(self, evt=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: Play pressed"
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
-                self.vlcwin.stop_animation()
+                self.HideLoading()
                 self.vlcwrap.start()
-                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate = True)
+                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
             elif DEBUG:
                 print >> sys.stderr, "embedplay: Play pressed, already playing"
 
     @warnWxThread
-    def Pause(self, evt = None):
+    def Pause(self, evt=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: Pause pressed"
 
@@ -198,31 +202,31 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap:
             if self.GetState() == MEDIASTATE_PLAYING:
                 self.vlcwrap.pause()
-                self.ppbtn.SetBitmapLabel(self.bmp_play, recreate = True)
+                self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
             elif DEBUG:
                 print >> sys.stderr, "embedplay: Pause pressed, not playing"
 
     @warnWxThread
-    def Resume(self, evt = None):
+    def Resume(self, evt=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: Resume pressed"
 
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
                 self.ppbtn.Enable(True)
-                self.vlcwin.stop_animation()
+                self.HideLoading()
                 self.vlcwrap.resume()
-                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate = True)
+                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
 
     @warnWxThread
-    def PlayPause(self, evt = None):
+    def PlayPause(self, evt=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: PlayPause pressed"
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.vlcwrap.resume()
-            self.ppbtn.SetBitmapLabel(self.bmp_play if self.ppbtn.GetBitmapLabel() == self.bmp_pause else self.bmp_pause, recreate = True)
+            self.ppbtn.SetBitmapLabel(self.bmp_play if self.ppbtn.GetBitmapLabel() == self.bmp_pause else self.bmp_pause, recreate=True)
 
     @warnWxThread
     def Seek(self, evt=None):
@@ -239,12 +243,13 @@ class EmbeddedPlayerPanel(wx.Panel):
                 if self.download:
                     self.download.pause_vod()
                     self.download.vod_seekpos = None
+                    self.ShowLoading()
                 self.vlcwrap.set_media_position_relative(position, self.GetState() == MEDIASTATE_STOPPED)
 
                 length = self.vlcwrap.get_stream_information_length()
                 length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
                 time_position = length * position
-                self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000) 
+                self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000)
 
                 self.update = True
             except:
@@ -281,8 +286,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 #Niels: 07-03-2012, only evt_close seems to work :(
                 quitId = wx.NewId()
                 pauseId = wx.NewId()
-                self.parent.Bind(wx.EVT_MENU, lambda event: self._ToggleFullScreen(), id = quitId)
-                self.parent.Bind(wx.EVT_MENU, lambda event: self._TogglePause(), id = pauseId)
+                self.parent.Bind(wx.EVT_MENU, lambda event: self._ToggleFullScreen(), id=quitId)
+                self.parent.Bind(wx.EVT_MENU, lambda event: self._TogglePause(), id=pauseId)
 
                 self.parent.Bind(wx.EVT_CLOSE, lambda event: self._ToggleFullScreen())
                 self.parent.Bind(wx.EVT_LEFT_DCLICK, lambda event: self._ToggleFullScreen())
@@ -332,12 +337,12 @@ class EmbeddedPlayerPanel(wx.Panel):
                     self.vlcwrap.set_media_position(cur_time)
                 wx.CallLater(500, doPause, cur_time)
 
-    def Save(self, evt = None):
+    def Save(self, evt=None):
         # save media content in different directory
         if self.save_button.isToggled():
             self.save_callback()
 
-    def SetVolume(self, volume, evt = None):
+    def SetVolume(self, volume, evt=None):
         if DEBUG:
             print >> sys.stderr, "embedplay: SetVolume:", self.volume
 
@@ -364,7 +369,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn.Enable(False)
             self.ppbtn.Enable(False)
             self.slider.Enable(False)
-    
+
             if self.timer is not None:
                 self.timer.Stop()
 
@@ -377,7 +382,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             status = self.vlcwrap.get_our_state()
             if DEBUG:
                 print >> sys.stderr, "embedplay: GetState", status
-    
+
             return status
 
         # catchall
@@ -385,37 +390,20 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def Reset(self):
         self.Stop()
-        self.UpdateProgressSlider([])
+        self.slider.SetBufferFromPieces([])
 
     @forceWxThread
-    def UpdateStatus(self, playerstatus, pieces_complete, vod_progress):
-        self.SetPlayerStatus(playerstatus, vod_progress)
+    def UpdateStatus(self, pieces_complete, vod_progress):
+        self.logowin.loading.SetValue(vod_progress)
         if self.vlcwrap:
-            self.UpdateProgressSlider(pieces_complete)
-
-    def SetPlayerStatus(self, text, progress = None):
-        if progress:
-            self.SetProgress(progress)
-
-    def SetContentName(self, s):
-        self.vlcwin.set_content_name(s)
-
-    def SetContentImage(self, wximg):
-        self.vlcwin.set_content_image(wximg)
-
-    def SetProgress(self, progress):
-        self.vlcwin.loading.SetValue(progress)
-
-    def UpdateProgressSlider(self, pieces):
-        if self.vlcwrap:
-            self.slider.SetBufferFromPieces(pieces)
+            self.slider.SetBufferFromPieces(pieces_complete)
 
     @warnWxThread
     def UpdateSlider(self, evt):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap and self.update:
             if self.GetState() != MEDIASTATE_STOPPED:
-    
+
                 length = self.vlcwrap.get_stream_information_length()
                 length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
                 cur = self.vlcwrap.get_media_position() / 1000
@@ -444,38 +432,31 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def ShowLoading(self):
         if self.vlcwrap:
-            self.vlcwin.show_loading()
+            self.logowin.loading.SetValue(0.0)
+            self.logowin.show_loading()
+            self.logowin.Show(True)
+            self.vlcwin.Show(False)
+            self.Layout()
+
+    def HideLoading(self):
+        if self.vlcwrap:
+            self.logowin.hide_loading()
+            self.logowin.Show(False)
+            self.vlcwin.Show(True)
+            self.Layout()
 
 
-class VLCLogoWindow(wx.Panel):
-    """ A wx.Window to be passed to the vlc.MediaControl to draw the video
-    in (normally). In addition, the class can display a logo, a thumbnail and a
-    "Loading: bla.video" message when VLC is not playing.
-    """
+class VLCWindow(wx.Panel):
+    """ A wx.Window to be passed to the vlc.MediaControl to draw the video in (normally). """
 
-    def __init__(self, parent, utility, vlcwrap, bg=wx.BLACK, animate = False, position = (300,300)):
+    def __init__(self, parent, vlcwrap, position=(300, 300)):
         wx.Panel.__init__(self, parent)
-        self.parent = parent ##
-
-        self.utility = utility
-        self.SetBackgroundColour(bg)
-        self.bg = bg
+        self.parent = parent
+        self.SetBackgroundColour(wx.BLACK)
         self.vlcwrap = vlcwrap
 
-        self.contentname = None
-        self.contentbm = None
         self.hsizermain = wx.BoxSizer(wx.HORIZONTAL)
         self.vsizer = wx.BoxSizer(wx.VERTICAL)
-
-        if animate:
-            self.loading = VideoProgress(self, -1)
-            self.loading.Hide()
-            self.loading.SetMinSize((300, 300))
-
-            self.vsizer.Add(self.loading, 0, wx.CENTER|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
-        else:
-            self.loading = None
-
         self.hsizermain.Add(self.vsizer, 1, wx.CENTER)
         self.SetSizer(self.hsizermain)
         self.SetAutoLayout(1)
@@ -486,7 +467,7 @@ class VLCLogoWindow(wx.Panel):
         self.Refresh()
 
     def tell_vclwrap_window_for_playback(self):
-        """ This method must be called after the VLCLogoWindow has been
+        """ This method must be called after the VLCWindow has been
         realized, otherwise the self.GetHandle() call that vlcwrap.set_window()
         does, doesn't return a correct XID.
         """
@@ -495,19 +476,28 @@ class VLCLogoWindow(wx.Panel):
     def get_vlcwrap(self):
         return self.vlcwrap
 
-    def set_content_name(self,s):
-        if DEBUG:
-            print >>sys.stderr,"VLCWin: set_content_name"
-        self.contentname = s
-        self.Refresh()
 
-    def set_content_image(self,wximg):
-        if DEBUG:
-            print >>sys.stderr,"VLCWin: set_content_image"
-        if wximg is not None:
-            self.contentbm = wx.BitmapFromImage(wximg,-1)
-        else:
-            self.contentbm = None
+class LogoWindow(wx.Panel):
+    """ A wx.Window that can display the buffering progress when VLC is not playing. """
+
+    def __init__(self, parent, position=(300, 300)):
+        wx.Panel.__init__(self, parent)
+        self.parent = parent
+        self.SetBackgroundColour(wx.BLACK)
+
+        self.hsizermain = wx.BoxSizer(wx.HORIZONTAL)
+        self.vsizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.loading = VideoProgress(self, -1)
+        self.loading.Hide()
+        self.loading.SetMinSize((300, 300))
+        self.vsizer.Add(self.loading, 0, wx.CENTER | wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+
+        self.hsizermain.Add(self.vsizer, 1, wx.CENTER)
+        self.SetSizer(self.hsizermain)
+        self.SetAutoLayout(1)
+        self.Layout()
+        self.Refresh()
 
     def show_loading(self):
         if self.loading:
@@ -515,40 +505,7 @@ class VLCLogoWindow(wx.Panel):
             self.loading.Show()
             self.Refresh()
 
-    def stop_animation(self):
+    def hide_loading(self):
         if self.loading:
             self.loading.Hide()
             self.Refresh()
-
-    def OnPaint(self,evt):
-        dc = wx.PaintDC(self)
-        dc.Clear()
-        dc.BeginDrawing()
-
-        x,y,maxw,maxh = self.GetClientRect()
-        halfx = (maxw-x)/2
-        halfy = (maxh-y)/2
-        halfx = 10
-        halfy = 10
-        lheight = 20
-
-        dc.SetPen(wx.Pen(self.bg,0))
-        dc.SetBrush(wx.Brush(self.bg))
-        if sys.platform == 'linux2':
-            dc.DrawRectangle(x,y,maxw,maxh)
-
-        dc.SetTextForeground(wx.WHITE)
-        dc.SetTextBackground(wx.BLACK)
-
-        lineoffset = 120
-        txty = halfy+lheight+lineoffset
-        if txty > maxh:
-            txty = 0
-
-        if self.contentbm is not None:
-            bmy = max(20,txty-20-self.contentbm.GetHeight())
-            dc.DrawBitmap(self.contentbm,30,bmy,True)
-
-        dc.EndDrawing()
-        if evt is not None:
-            evt.Skip(True)

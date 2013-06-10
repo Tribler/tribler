@@ -13,7 +13,7 @@ from wx.lib.stattext import GenStaticText
 from wx.lib.stattext import GenStaticText
 from wx.lib.colourutils import AdjustColour
 from wx.lib.wordwrap import wordwrap
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR,\
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, COMPLETED_COLOUR, \
     SEEDING_COLOUR, DOWNLOADING_COLOUR, STOPPED_COLOUR
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from wx.lib.embeddedimage import PyEmbeddedImage
@@ -36,7 +36,7 @@ class NativeIcon:
     getInstance = staticmethod(getInstance)
 
     def getBitmap(self, parent, type, background, state):
-        assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s"%type(background)
+        assert isinstance(background, wx.Colour), "we require a wx.colour object here, got %s" % type(background)
         if isinstance(background, wx.Colour):
             background = background.Get()
         else:
@@ -49,13 +49,13 @@ class NativeIcon:
             def fixSize(bitmap, width, height):
                 if width != bitmap.GetWidth() or height != bitmap.GetHeight():
 
-                    bmp = wx.EmptyBitmap(width,height)
+                    bmp = wx.EmptyBitmap(width, height)
                     dc = wx.MemoryDC(bmp)
                     dc.SetBackground(wx.Brush(background))
                     dc.Clear()
 
-                    offset_x = (width - bitmap.GetWidth())/2
-                    offset_y = (height - bitmap.GetHeight())/2
+                    offset_x = (width - bitmap.GetWidth()) / 2
+                    offset_y = (height - bitmap.GetHeight()) / 2
 
                     dc.DrawBitmap(bitmap, offset_x, offset_y)
                     dc.SelectObject(wx.NullBitmap)
@@ -90,7 +90,7 @@ class NativeIcon:
 
         #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
         #Thus we create a larger bmp, allowing for borders
-        bmp = wx.EmptyBitmap(24,24)
+        bmp = wx.EmptyBitmap(24, 24)
         dc = wx.MemoryDC(bmp)
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
@@ -142,7 +142,7 @@ class BetterText(wx.StaticText):
 
 class MaxBetterText(wx.BoxSizer):
 
-    def __init__(self, parent, label, maxLines = 6, maxCharacters = 600, name = None, button = None):
+    def __init__(self, parent, label, maxLines=6, maxCharacters=600, name=None, button=None):
         wx.BoxSizer.__init__(self, wx.VERTICAL)
 
         self.fullLabel = ''
@@ -173,7 +173,7 @@ class MaxBetterText(wx.BoxSizer):
                 self.hasMore = True
 
                 if not self.expand:
-                    self.expand = LinkText(self.parent, "See more >>", colours = [None, TRIBLER_RED], parentsizer = self)
+                    self.expand = LinkText(self.parent, "See more >>", colours=[None, TRIBLER_RED], parentsizer=self)
                     self.expand.Bind(wx.EVT_LEFT_UP, self.OnFull)
                     self.Add(self.expand, 0, wx.ALIGN_LEFT)
                 else:
@@ -202,7 +202,7 @@ class MaxBetterText(wx.BoxSizer):
         if width > 1 and bestwidth != width:
             dc = wx.ClientDC(self.label)
             dc.SetFont(self.label.GetFont())
-            label = wordwrap(self.fullLabel, width, dc, breakLongWords = True, margin = 0)
+            label = wordwrap(self.fullLabel, width, dc, breakLongWords=True, margin=0)
             if not self.IsExpanded():
                 self.shortLabel = label = self._limitLabel(label)
             self.label.SetLabel(label)
@@ -214,7 +214,7 @@ class MaxBetterText(wx.BoxSizer):
     def find_nth(self, haystack, needle, n):
         start = haystack.find(needle)
         while start >= 0 and n > 1:
-            start = haystack.find(needle, start+len(needle))
+            start = haystack.find(needle, start + len(needle))
             n -= 1
         return start
 
@@ -231,13 +231,13 @@ class MaxBetterText(wx.BoxSizer):
 
 #Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
 class LinkText(GenStaticText):
-    def __init__(self, parent, label, fonts = [None, None], colours = [None, None], style = 0, parentsizer = None):
+    def __init__(self, parent, label, fonts=[None, None], colours=[None, None], style=0, parentsizer=None):
         if parentsizer:
             self.parentsizer = parentsizer
         else:
             self.parentsizer = parent
 
-        GenStaticText.__init__(self, parent, -1, label, style = style)
+        GenStaticText.__init__(self, parent, -1, label, style=style)
         self.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
 
         self.SetFonts(fonts)
@@ -304,7 +304,7 @@ class LinkText(GenStaticText):
         self.Refresh()
 
 class LinkStaticText(wx.BoxSizer):
-    def __init__(self, parent, text, icon = "bullet_go.png", icon_type = None, icon_align = wx.ALIGN_RIGHT, font_increment = 0, font_colour = '#0473BB'):
+    def __init__(self, parent, text, icon="bullet_go.png", icon_type=None, icon_align=wx.ALIGN_RIGHT, font_increment=0, font_colour='#0473BB'):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         self.parent = parent
 
@@ -312,15 +312,15 @@ class LinkStaticText(wx.BoxSizer):
         self.icon_align = icon_align
 
         if icon:
-            self.icon = wx.StaticBitmap(parent, bitmap = wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
+            self.icon = wx.StaticBitmap(parent, bitmap=wx.Bitmap(os.path.join(GUIUtility.getInstance().vwxGUI_path, 'images', icon), wx.BITMAP_TYPE_ANY))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
-            self.icon = wx.StaticBitmap(parent, bitmap = NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
+            self.icon = wx.StaticBitmap(parent, bitmap=NativeIcon.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
             self.icon = None
 
         if self.icon and icon_align == wx.ALIGN_LEFT:
-            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.RIGHT, 3)
+            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 3)
 
         normalfont = parent.GetFont()
         normalfont.SetPointSize(normalfont.GetPointSize() + font_increment)
@@ -329,11 +329,11 @@ class LinkStaticText(wx.BoxSizer):
         selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
         selectedfont.SetUnderlined(True)
 
-        self.text = LinkText(parent, text, fonts = [normalfont, selectedfont], colours = [font_colour, (255, 0, 0, 255)], parentsizer = self)
+        self.text = LinkText(parent, text, fonts=[normalfont, selectedfont], colours=[font_colour, (255, 0, 0, 255)], parentsizer=self)
         self.Add(self.text, 1, wx.ALIGN_CENTER_VERTICAL)
 
         if self.icon and icon_align == wx.ALIGN_RIGHT:
-            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL|wx.LEFT|wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
+            self.Add(self.icon, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 3)
 
         if self.icon and text == '':
             self.icon.Hide()
@@ -371,7 +371,7 @@ class LinkStaticText(wx.BoxSizer):
         if self.icon: self.icon.Show(show)
         if self.text: self.text.Show(show)
 
-    def ShowIcon(self, show = True):
+    def ShowIcon(self, show=True):
         if self.icon and self.icon.IsShown() != show:
             self.icon.Show(show)
 
@@ -388,7 +388,7 @@ class LinkStaticText(wx.BoxSizer):
         self.text.SetMinSize(minsize)
         self.Layout()
 
-    def HighLight(self, timeout = 2.0):
+    def HighLight(self, timeout=2.0):
         self.SetBackgroundColour(LIST_HIGHTLIGHT, blink=True)
         wx.CallLater(timeout * 1000, self.Revert)
 
@@ -408,7 +408,7 @@ class LinkStaticText(wx.BoxSizer):
             return self.icon.ClientToScreen(pt)
         return self.text.ClientToScreen(pt)
 
-    def Bind(self, event, handler, source=None, id=-1, id2=-1):
+    def Bind(self, event, handler, source=None, id= -1, id2= -1):
         def modified_handler(actual_event, handler=handler):
             actual_event.SetEventObject(self)
             handler(actual_event)
@@ -422,7 +422,7 @@ class LinkStaticText(wx.BoxSizer):
         if self.icon:
             self.icon.Unbind(event)
 
-    def SetBackgroundColour(self, colour, blink = False):
+    def SetBackgroundColour(self, colour, blink=False):
         if not blink:
             self.originalColor = colour
         self.text.SetBackgroundColour(colour)
@@ -444,7 +444,7 @@ class LinkStaticText(wx.BoxSizer):
 
 class ProgressStaticText(wx.Panel):
     def __init__(self, parent, text, progress):
-        wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -464,8 +464,8 @@ class ProgressStaticText(wx.Panel):
         self.gauge.SetProgress(progress)
 
 class VerticalGauge(wx.Panel):
-    def __init__(self, parent, progress, size = wx.DefaultSize):
-        wx.Panel.__init__(self, parent, size = size, style = wx.NO_BORDER)
+    def __init__(self, parent, progress, size=wx.DefaultSize):
+        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
 
         self.progress = progress
@@ -498,8 +498,8 @@ class VerticalGauge(wx.Panel):
         pass
 
 class HorizontalGauge(wx.Control):
-    def __init__(self, parent, background, bitmap, repeat = 1, bordersize = 0, size = wx.DefaultSize):
-        wx.Control.__init__(self, parent, size = size, style = wx.NO_BORDER)
+    def __init__(self, parent, background, bitmap, repeat=1, bordersize=0, size=wx.DefaultSize):
+        wx.Control.__init__(self, parent, size=size, style=wx.NO_BORDER)
 
         self.background = background
         self.bitmap = bitmap
@@ -560,12 +560,12 @@ class HorizontalGauge(wx.Control):
         pass
 
 class EditText(wx.TextCtrl):
-    def __init__(self, parent, text, multiLine = False):
+    def __init__(self, parent, text, multiLine=False):
         style = 0
         if multiLine:
             style = style | wx.TE_MULTILINE
 
-        wx.TextCtrl.__init__(self, parent, -1, text, style = style)
+        wx.TextCtrl.__init__(self, parent, -1, text, style=style)
         self.original_text = text
 
     def SetValue(self, value):
@@ -583,8 +583,8 @@ class EditText(wx.TextCtrl):
             return self.GetValue()
 
 class EditStaticText(wx.Panel):
-    def __init__(self, parent, text, multiLine = False):
-        wx.Panel.__init__(self, parent, style = wx.NO_BORDER)
+    def __init__(self, parent, text, multiLine=False):
+        wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
         self.original_text = text
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -598,7 +598,7 @@ class EditStaticText(wx.Panel):
         vSizer.Add(self.edit, 0, wx.EXPAND)
         self.SetSizer(vSizer)
 
-    def ShowEdit(self, show = True):
+    def ShowEdit(self, show=True):
         if not show:
             self.text.SetLabel(self.edit.GetValue())
 
@@ -626,10 +626,10 @@ class NotebookPanel(wx.Panel):
         self.sizer = wx.BoxSizer()
         self.SetSizer(self.sizer)
 
-    def SetList(self, list, spacer = 0):
+    def SetList(self, list, spacer=0):
         self.list = list
         self.list.IsShownOnScreen = self.IsShownOnScreen
-        self.sizer.Add(list, 1, wx.EXPAND|wx.ALL, spacer)
+        self.sizer.Add(list, 1, wx.EXPAND | wx.ALL, spacer)
 
     def IsShownOnScreen(self):
         notebook = self.GetParent()
@@ -642,7 +642,7 @@ class NotebookPanel(wx.Panel):
         except:
             return getattr(self.list, name)
 
-    def Show(self, show=True,isSelected=False):
+    def Show(self, show=True, isSelected=False):
         wx.Panel.Show(self, show)
         self.list.Show(show, isShown=isSelected)
         if show:
@@ -664,7 +664,7 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         ListCtrlAutoWidthMixin.__init__(self)
 
 class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
-    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
+    def __init__(self, parent, style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.NO_BORDER, tooltip=True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         ListCtrlAutoWidthMixin.__init__(self)
         if tooltip:
@@ -688,7 +688,7 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         self.SetToolTipString(tooltip)
 
 class SelectableListCtrl(BetterListCtrl):
-    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
+    def __init__(self, parent, style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.NO_BORDER, tooltip=True):
         BetterListCtrl.__init__(self, parent, style, tooltip)
         self.allselected = False
         self.Bind(wx.EVT_KEY_DOWN, self._CopyToClipboard)
@@ -724,7 +724,7 @@ class SelectableListCtrl(BetterListCtrl):
         self.allselected = not self.allselected
 
 class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
-    def __init__(self, parent, style = wx.LC_REPORT|wx.LC_NO_HEADER|wx.NO_BORDER, tooltip = True):
+    def __init__(self, parent, style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.NO_BORDER, tooltip=True):
         SelectableListCtrl.__init__(self, parent, style, tooltip)
         CheckListCtrlMixin.__init__(self)
         self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
@@ -752,14 +752,14 @@ class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
         self.allselected = not self.allselected
 
 class TextCtrlAutoComplete(wx.TextCtrl):
-    def __init__ (self, parent, entrycallback = None, selectcallback = None, **therest):
+    def __init__ (self, parent, entrycallback=None, selectcallback=None, **therest):
         '''
             Constructor works just like wx.TextCtrl
         '''
         if therest.has_key('style'):
-            therest['style']=wx.TE_PROCESS_ENTER|therest['style']
+            therest['style'] = wx.TE_PROCESS_ENTER | therest['style']
         else:
-            therest['style']= wx.TE_PROCESS_ENTER
+            therest['style'] = wx.TE_PROCESS_ENTER
 
         wx.TextCtrl.__init__(self , parent , **therest)
 
@@ -774,7 +774,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdownlistbox = AutoWidthListCtrl(self.dropdown, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER)
         self.dropdownlistbox.Bind(wx.EVT_LEFT_DOWN, self.ListClick)
         self.dropdownlistbox.Bind(wx.EVT_LEFT_DCLICK, self.ListClick)
-        sizer.Add(self.dropdownlistbox, 1, wx.EXPAND|wx.ALL, 3)
+        sizer.Add(self.dropdownlistbox, 1, wx.EXPAND | wx.ALL, 3)
         self.dropdown.SetSizer(sizer)
 
         self.entrycallback = entrycallback
@@ -794,7 +794,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdownlistbox.Select(toSel)
         self.SetValueFromSelected()
 
-    def SetChoices (self, choices = [""]) :
+    def SetChoices (self, choices=[""]) :
         ''' Sets the choices available in the popup wx.ListBox. '''
         self.choices = choices
 
@@ -814,7 +814,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         itemcount = min(len(choices), 7) + 2
         charheight = self.dropdownlistbox.GetCharHeight()
 
-        self.popupsize = wx.Size(self.GetClientSize()[0], (charheight*itemcount) + 6)
+        self.popupsize = wx.Size(self.GetClientSize()[0], (charheight * itemcount) + 6)
         self.dropdown.SetClientSize(self.popupsize)
         self.dropdown.Layout()
 
@@ -840,7 +840,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
                 def db_callback(text):
                     if text == self.text:
                         return self.entrycallback(text)
-                startWorker(wx_callback, db_callback, cargs = (text,), wargs = (text, ))
+                startWorker(wx_callback, db_callback, cargs=(text,), wargs=(text,))
 
     def KeyDown(self, event):
         skip = True
@@ -866,7 +866,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
             if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_SPACE:
                 if sel > -1: #we select the current item if enter or space is pressed
                     skip = event.GetKeyCode() == wx.WXK_RETURN
-                    self.SetValueFromSelected(addSpace = (event.GetKeyCode() == wx.WXK_SPACE))
+                    self.SetValueFromSelected(addSpace=(event.GetKeyCode() == wx.WXK_SPACE))
                     self.ShowDropDown(False)
 
             if event.GetKeyCode() == wx.WXK_ESCAPE :
@@ -876,7 +876,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         if skip:
             event.Skip()
 
-    def SetValueFromSelected(self, addSpace = False) :
+    def SetValueFromSelected(self, addSpace=False) :
         '''
             Sets the wx.TextCtrl value from the selected wx.ListBox item.
             Will do nothing if no item is selected in the wx.ListBox.
@@ -895,7 +895,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
                 self.selectcallback()
 
-    def ShowDropDown(self, show = True) :
+    def ShowDropDown(self, show=True) :
         ''' Either display the drop down list (show = True) or hide it (show = False). '''
         if show:
             show = len(self.choices) > 0
@@ -926,7 +926,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.SetValueFromSelected()
 
 class ImageScrollablePanel(ScrolledPanel):
-    def __init__(self, parent, id=-1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL|wx.VSCROLL):
+    def __init__(self, parent, id= -1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL | wx.VSCROLL):
         ScrolledPanel.__init__(self, parent, id, pos, size, style)
 
         self.bitmap = None
@@ -950,7 +950,7 @@ class ImageScrollablePanel(ScrolledPanel):
 
 
 class ChannelPopularity(wx.Panel):
-    def __init__(self, parent, background, bitmap, bordersize = 0, size = wx.DefaultSize):
+    def __init__(self, parent, background, bitmap, bordersize=0, size=wx.DefaultSize):
         self.background = background
         self.bitmap = bitmap
         self.bordersize = bordersize
@@ -959,7 +959,7 @@ class ChannelPopularity(wx.Panel):
             size = self.bitmap.GetSize()
             size = size[0] * 5, size[1]
 
-        wx.Panel.__init__(self, parent, size = size, style = wx.NO_BORDER)
+        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
 
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -995,8 +995,8 @@ class ChannelPopularity(wx.Panel):
 
 
 class SwarmHealth(wx.Panel):
-    def __init__(self, parent, bordersize = 0, size = wx.DefaultSize, align = wx.ALIGN_LEFT):
-        wx.Panel.__init__(self, parent, size = size, style = wx.NO_BORDER)
+    def __init__(self, parent, bordersize=0, size=wx.DefaultSize, align=wx.ALIGN_LEFT):
+        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
         self.bordersize = bordersize
         self.align = align
 
@@ -1019,7 +1019,7 @@ class SwarmHealth(wx.Panel):
             elif seeders == 0:
                 ratio = 0
             else:
-                ratio = seeders/(leechers*1.0)
+                ratio = seeders / (leechers * 1.0)
 
             if ratio == 0:
                 self.barwidth = 1
@@ -1029,7 +1029,7 @@ class SwarmHealth(wx.Panel):
                 pop = seeders + leechers
                 if pop > 0:
 
-                    self.barwidth = min(max(math.log(pop*4,10) * 2, 1.1) / 10.0, 1) #let it max at 25k population
+                    self.barwidth = min(max(math.log(pop * 4, 10) * 2, 1.1) / 10.0, 1) #let it max at 25k population
                 else:
                     self.barwidth = 1
 
@@ -1082,12 +1082,12 @@ class SwarmHealth(wx.Panel):
         dc.SetBrush(wx.Brush((self.red, self.green, self.blue), wx.SOLID))
 
         if self.barwidth > 0:
-            dc.DrawRectangle(xpos + 1, 1,  self.barwidth * (width - 2), height-2)
+            dc.DrawRectangle(xpos + 1, 1, self.barwidth * (width - 2), height - 2)
 
         if self.green > 0 or self.red > 0:
             dc.SetPen(wx.WHITE_PEN)
-            for i in range(1,10):
-                x = xpos + (width/10) * i
+            for i in range(1, 10):
+                x = xpos + (width / 10) * i
                 dc.DrawLine(x, 1, x, height - 1)
 
         dc.SetPen(wx.BLACK_PEN)
@@ -1098,7 +1098,7 @@ class SwarmHealth(wx.Panel):
         pass
 
 
-def _set_font(control, size_increment = 0, fontweight = wx.FONTWEIGHT_NORMAL, fontcolour = None):
+def _set_font(control, size_increment=0, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour=None):
     font = control.GetFont()
     font.SetPointSize(font.GetPointSize() + size_increment)
     font.SetWeight(fontweight)
@@ -1108,13 +1108,13 @@ def _set_font(control, size_increment = 0, fontweight = wx.FONTWEIGHT_NORMAL, fo
 
 
 class ActionButton(wx.Panel):
-    def __init__(self, parent, id=-1, bitmap=wx.NullBitmap, hover = True, **kwargs):
-        wx.Panel.__init__(self, parent, id, size = bitmap.GetSize(), **kwargs)
+    def __init__(self, parent, id= -1, bitmap=wx.NullBitmap, hover=True, **kwargs):
+        wx.Panel.__init__(self, parent, id, size=bitmap.GetSize(), **kwargs)
         self.SetBackgroundColour(parent.GetBackgroundColour())
-        self.hover   = hover
+        self.hover = hover
         self.enabled = True
         self.handler = None
-        self.SetBitmapLabel(bitmap, recreate = True)
+        self.SetBitmapLabel(bitmap, recreate=True)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -1123,7 +1123,7 @@ class ActionButton(wx.Panel):
     def GetBitmapLabel(self):
         return self.bitmaps[0]
 
-    def SetBitmapLabel(self, bitmap, recreate = False):
+    def SetBitmapLabel(self, bitmap, recreate=False):
         if bitmap:
             if recreate:
                 image = bitmap.ConvertToImage()
@@ -1201,14 +1201,14 @@ class ActionButton(wx.Panel):
 
 
 class ProgressButton(ActionButton):
-    def __init__(self, parent, id=-1, label = 'Search', **kwargs):
-        ActionButton.__init__(self, parent, id = id, bitmap = wx.EmptyBitmap(1,1), **kwargs)
-        self.icon    = None
+    def __init__(self, parent, id= -1, label='Search', **kwargs):
+        ActionButton.__init__(self, parent, id=id, bitmap=wx.EmptyBitmap(1, 1), **kwargs)
+        self.icon = None
         self.icon_hl = None
         self.icon_gs = None
-        self.label   = label
-        self.maxval  = 25
-        self.curval  = 25
+        self.label = label
+        self.maxval = 25
+        self.curval = 25
         self.ResetSize()
 
     def GetRange(self):
@@ -1237,7 +1237,7 @@ class ProgressButton(ActionButton):
         w += 30
         h += 10
         if self.icon:
-            w = w+self.icon.GetSize()[0]+5
+            w = w + self.icon.GetSize()[0] + 5
             h = max(h, self.icon.GetSize()[1])
         self.SetMinSize((w, h))
 
@@ -1260,33 +1260,33 @@ class ProgressButton(ActionButton):
         x, y, width, height = self.GetClientRect()
         # If there is currently something in progress, first paint a black&white background
         if self.curval != self.maxval:
-            col1 = wx.Colour(199,199,199)
-            col2 = wx.Colour(162,162,162)
-            br = gc.CreateLinearGradientBrush(x, y, x, y+height, col1, col2)
+            col1 = wx.Colour(199, 199, 199)
+            col2 = wx.Colour(162, 162, 162)
+            br = gc.CreateLinearGradientBrush(x, y, x, y + height, col1, col2)
             gc.SetBrush(br)
             gc.SetPen(wx.TRANSPARENT_PEN)
             path = gc.CreatePath()
-            path.AddRoundedRectangle(x, y, width-1, height-1, 5)
+            path.AddRoundedRectangle(x, y, width - 1, height - 1, 5)
             path.CloseSubpath()
             gc.DrawPath(path)
         # Depending on the state of the button, paint the progress made thus far
         highlight = self.GetScreenRect().Contains(wx.GetMousePosition())
         if not self.IsEnabled():
-            col1 = wx.Colour(199,199,199)
-            col2 = wx.Colour(162,162,162)
+            col1 = wx.Colour(199, 199, 199)
+            col2 = wx.Colour(162, 162, 162)
         elif highlight:
-            col1 = wx.Colour(255,169,148)
-            col2 = wx.Colour(255,150,127)
+            col1 = wx.Colour(255, 169, 148)
+            col2 = wx.Colour(255, 150, 127)
         else:
             col1 = GRADIENT_LRED
             col2 = GRADIENT_DRED
-        br = gc.CreateLinearGradientBrush(x, y, x, y+height, col1, col2)
+        br = gc.CreateLinearGradientBrush(x, y, x, y + height, col1, col2)
         gc.SetBrush(br)
         gc.SetPen(wx.TRANSPARENT_PEN)
         path = gc.CreatePath()
         if self.curval > 1:
-            progress = max(self.curval*1.0/self.maxval, 0.15)
-            path.AddRoundedRectangle(x, y, progress*width-1, height-1, 5)
+            progress = max(self.curval * 1.0 / self.maxval, 0.15)
+            path.AddRoundedRectangle(x, y, progress * width - 1, height - 1, 5)
             path.CloseSubpath()
             gc.DrawPath(path)
         # Draw the button label and icon (if any)
@@ -1296,20 +1296,20 @@ class ProgressButton(ActionButton):
         dc.SetTextForeground(wx.WHITE)
         textWidth, textHeight = dc.GetFullTextExtent(self.label)[:2]
         if self.icon:
-            x_icon = ( width-textWidth-self.icon.GetSize()[0]-5 ) / 2
-            y_icon = ( height-self.icon.GetSize()[1] ) / 2
+            x_icon = (width - textWidth - self.icon.GetSize()[0] - 5) / 2
+            y_icon = (height - self.icon.GetSize()[1]) / 2
             if highlight:
                 dc.DrawBitmap(self.icon_hl, x_icon, y_icon)
             elif not self.IsEnabled():
                 dc.DrawBitmap(self.icon_gs, x_icon, y_icon)
             else:
                 dc.DrawBitmap(self.icon, x_icon, y_icon)
-            x = x_icon+5+self.icon.GetSize()[0]
-            y = (height-textHeight)/2
+            x = x_icon + 5 + self.icon.GetSize()[0]
+            y = (height - textHeight) / 2
             dc.DrawText(self.label, x, y)
         else:
-            x = (width-textWidth)/2
-            y = (height-textHeight)/2
+            x = (width - textWidth) / 2
+            y = (height - textHeight) / 2
             dc.DrawText(self.label, x, y)
 
 
@@ -1326,7 +1326,7 @@ class FancyPanel(wx.Panel):
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
-    def SetBorderColour(self, colour, highlight = None):
+    def SetBorderColour(self, colour, highlight=None):
         self.border_colour = colour
         if highlight:
             self.border_highlight = highlight
@@ -1337,7 +1337,7 @@ class FancyPanel(wx.Panel):
             self.Bind(wx.EVT_MOUSE_EVENTS, self.OnMouseAction)
         self.Refresh()
 
-    def SetBackgroundColour(self, colour1, colour2 = None):
+    def SetBackgroundColour(self, colour1, colour2=None):
         self.colour1 = colour1
         self.colour2 = colour2 if colour2 else colour1
         wx.Panel.SetBackgroundColour(self, self.colour1)
@@ -1380,7 +1380,7 @@ class FancyPanel(wx.Panel):
         gc = wx.GraphicsContext.Create(dc)
         gc.SetPen(wx.TRANSPARENT_PEN)
         if self.colour1 != self.colour2:
-            gc.SetBrush(gc.CreateLinearGradientBrush(x, y, x, y+height, self.colour1, self.colour2))
+            gc.SetBrush(gc.CreateLinearGradientBrush(x, y, x, y + height, self.colour1, self.colour2))
             gc.DrawRoundedRectangle(x, y, width, height, self.radius)
         else:
             gc.SetBrush(wx.Brush(self.colour1 if self.colour1 else self.GetBackgroundColour()))
@@ -1397,16 +1397,16 @@ class FancyPanel(wx.Panel):
         # Draw border
         if self.radius > 0:
             if self.border > 0:
-                gc.DrawRoundedRectangle(x, y, width-1, height-1, self.radius)
+                gc.DrawRoundedRectangle(x, y, width - 1, height - 1, self.radius)
         else:
             if bool(self.border & wx.RIGHT):
-                gc.DrawLines([(x+width-1, y), (x+width-1, y+height-1)])
+                gc.DrawLines([(x + width - 1, y), (x + width - 1, y + height - 1)])
             if bool(self.border & wx.LEFT):
-                gc.DrawLines([(x, y), (x, y+height-1)])
+                gc.DrawLines([(x, y), (x, y + height - 1)])
             if bool(self.border & wx.TOP):
-                gc.DrawLines([(x, y), (x+width-1, y)])
+                gc.DrawLines([(x, y), (x + width - 1, y)])
             if bool(self.border & wx.BOTTOM):
-                gc.DrawLines([(x, y+height-1), (x+width-1, y+height-1)])
+                gc.DrawLines([(x, y + height - 1), (x + width - 1, y + height - 1)])
 
         self.bitmap = buffer
 
@@ -1442,8 +1442,8 @@ class MinMaxSlider(wx.Panel):
         self.base = 1.7
         self.LoadIcons()
         self.SetMinMax(0, 0)
-        self.text_spacers = [self.GetTextExtent('T'*11)[0]]*2
-        self.SetSize((sum(self.text_spacers)+self.slider_size[0], -1))
+        self.text_spacers = [self.GetTextExtent('T' * 11)[0]] * 2
+        self.SetSize((sum(self.text_spacers) + self.slider_size[0], -1))
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -1463,38 +1463,38 @@ class MinMaxSlider(wx.Panel):
     def SetCurrentValues(self, min_val, max_val):
         if self.max - self.min == 0 or min_val == 0:
             w, h = self.arrow_up.GetSize()
-            self.arrow_up_rect = [self.range[0], self.GetClientRect()[3]/2+1, w, h]
+            self.arrow_up_rect = [self.range[0], self.GetClientRect()[3] / 2 + 1, w, h]
         else:
             length = self.range[1] - self.range[0]
-            min_val = (min_val-self.min) / float(self.max-self.min)
-            min_val = min_val*math.pow(length, self.base)
+            min_val = (min_val - self.min) / float(self.max - self.min)
+            min_val = min_val * math.pow(length, self.base)
             self.arrow_up_rect[0] = math.exp((math.log(min_val) / self.base)) + self.range[0]
 
         if self.max - self.min == 0 or max_val == 0:
             w, h = self.arrow_down.GetSize()
-            self.arrow_down_rect = [self.range[1], self.GetClientRect()[3]/2-h-1, w, h]
+            self.arrow_down_rect = [self.range[1], self.GetClientRect()[3] / 2 - h - 1, w, h]
         else:
             length = self.range[1] - self.range[0]
-            max_val = (max_val-self.min) / float(self.max-self.min)
-            max_val = max_val*math.pow(length, self.base)
+            max_val = (max_val - self.min) / float(self.max - self.min)
+            max_val = max_val * math.pow(length, self.base)
             self.arrow_down_rect[0] = math.exp((math.log(max_val) / self.base)) + self.range[0]
 
         self.Refresh()
 
     def GetCurrentValues(self):
         length = self.range[1] - self.range[0]
-        min_val = math.pow(self.arrow_up_rect[0]-self.range[0], self.base) / math.pow(length, self.base)
-        max_val = math.pow(self.arrow_down_rect[0]-self.range[0], self.base) / math.pow(length, self.base)
-        min_val = self.min + min_val*(self.max-self.min)
-        max_val = self.min + max_val*(self.max-self.min)
+        min_val = math.pow(self.arrow_up_rect[0] - self.range[0], self.base) / math.pow(length, self.base)
+        max_val = math.pow(self.arrow_down_rect[0] - self.range[0], self.base) / math.pow(length, self.base)
+        min_val = self.min + min_val * (self.max - self.min)
+        max_val = self.min + max_val * (self.max - self.min)
         return (min_val, max_val)
 
     def OnLeftDown(self, event):
         x, y, w, h = self.arrow_down_rect
-        if wx.Rect(x, y-4, w, h+4).Contains(event.GetPositionTuple()):
+        if wx.Rect(x, y - 4, w, h + 4).Contains(event.GetPositionTuple()):
             self.arrow_down_drag = True
         x, y, w, h = self.arrow_up_rect
-        if wx.Rect(x, y, w, h+4).Contains(event.GetPositionTuple()):
+        if wx.Rect(x, y, w, h + 4).Contains(event.GetPositionTuple()):
             self.arrow_up_drag = True
         self.CaptureMouse()
         self.Bind(wx.EVT_MOTION, self.OnMotion)
@@ -1513,7 +1513,7 @@ class MinMaxSlider(wx.Panel):
             self.SetIcon(event)
 
     def SetIcon(self, event):
-        mx = event.GetPositionTuple()[0]-3
+        mx = event.GetPositionTuple()[0] - 3
         if self.arrow_up_drag and mx < self.arrow_down_rect[0]:
             self.arrow_up_rect[0] = max(mx, self.range[0])
         elif self.arrow_down_drag and mx > self.arrow_up_rect[0]:
@@ -1527,13 +1527,13 @@ class MinMaxSlider(wx.Panel):
 
     def Reset(self):
         w, h = self.arrow_down.GetSize()
-        self.range = [self.text_spacers[0], self.GetSize()[0]-w-self.text_spacers[1]]
-        self.arrow_down_rect = [self.range[1], self.GetClientRect()[3]/2-h-1, w, h]
+        self.range = [self.text_spacers[0], self.GetSize()[0] - w - self.text_spacers[1]]
+        self.arrow_down_rect = [self.range[1], self.GetClientRect()[3] / 2 - h - 1, w, h]
         self.arrow_down_drag = False
-        self.arrow_up_rect = [self.range[0], self.GetClientRect()[3]/2+1, w, h]
+        self.arrow_up_rect = [self.range[0], self.GetClientRect()[3] / 2 + 1, w, h]
         self.arrow_up_drag = False
 
-        self.SetMinMax(0,0)
+        self.SetMinMax(0, 0)
 
     def SetFormatter(self, formatter):
         self.formatter = formatter
@@ -1558,12 +1558,12 @@ class MinMaxSlider(wx.Panel):
         max_val = self.Format(max_val)
         dc.SetFont(self.GetFont())
         text_width, text_height = dc.GetTextExtent(min_val)
-        dc.DrawText(min_val, (self.text_spacers[0]-text_width)/2, (height-text_height+1)/2)
+        dc.DrawText(min_val, (self.text_spacers[0] - text_width) / 2, (height - text_height + 1) / 2)
         text_width, text_height = dc.GetTextExtent(max_val)
-        dc.DrawText(max_val, width-text_width-(self.text_spacers[0]-text_width)/2, (height-text_height+1)/2)
+        dc.DrawText(max_val, width - text_width - (self.text_spacers[0] - text_width) / 2, (height - text_height + 1) / 2)
 
         dc.SetPen(wx.Pen(fg_colour, 2, wx.SOLID))
-        dc.DrawLine(self.range[0], height/2, self.range[1]+self.arrow_down.GetSize()[0], height/2)
+        dc.DrawLine(self.range[0], height / 2, self.range[1] + self.arrow_down.GetSize()[0], height / 2)
 
         gc = wx.GraphicsContext.Create(dc)
         gc.DrawBitmap(self.arrow_down, *self.arrow_down_rect)
@@ -1575,7 +1575,7 @@ class SimpleNotebook(wx.Panel):
     def __init__(self, *args, **kwargs):
         self.show_single_tab = kwargs.pop('show_single_tab', True)
         wx.Panel.__init__(self, *args, **kwargs)
-        self.ad     = None
+        self.ad = None
         self.labels = []
         self.panels = []
         self.pshown = None
@@ -1585,13 +1585,13 @@ class SimpleNotebook(wx.Panel):
         self.hSizer_panel = wx.Panel(self, -1)
         self.hSizer_panel.SetSizer(self.hSizer_labels)
         self.hSizer_panel.SetBackgroundColour(FILTER_GREY)
-        self.hSizer_panel.SetMinSize((-1,25))
+        self.hSizer_panel.SetMinSize((-1, 25))
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.top_separator = wx.Panel(self, size = (-1, 1))
+        self.top_separator = wx.Panel(self, size=(-1, 1))
         self.top_separator.SetBackgroundColour(SEPARATOR_GREY)
         vSizer.Add(self.top_separator, 0, wx.EXPAND)
         vSizer.Add(self.hSizer_panel, 0, wx.EXPAND)
-        separator = wx.Panel(self, size = (-1, 1))
+        separator = wx.Panel(self, size=(-1, 1))
         separator.SetBackgroundColour(SEPARATOR_GREY)
         vSizer.Add(separator, 0, wx.EXPAND)
         vSizer.Add(self.hSizer_panels, 1, wx.EXPAND)
@@ -1601,7 +1601,7 @@ class SimpleNotebook(wx.Panel):
         obj = event.GetEventObject()
         for index, control in enumerate(self.hSizer_labels.GetChildren()):
             if getattr(control, 'IsSizer', False) and control.GetSizer() == obj:
-                self.SetSelection(index/2)
+                self.SetSelection(index / 2)
                 self.hSizer_panel.Refresh()
                 break
 
@@ -1610,41 +1610,41 @@ class SimpleNotebook(wx.Panel):
             return self.panels[num_page]
         return None
 
-    def AddPage(self, page, text, select = False):
+    def AddPage(self, page, text, select=False):
         label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
         label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
-        self.hSizer_labels.Add(label, 0, wx.RIGHT|wx.LEFT|wx.CENTER, self.lspace)
-        self.hSizer_labels.Add(sline, 0, wx.EXPAND|wx.ALL|wx.CENTER|wx.TOP|wx.BOTTOM, 5)
+        self.hSizer_labels.Add(label, 0, wx.RIGHT | wx.LEFT | wx.CENTER, self.lspace)
+        self.hSizer_labels.Add(sline, 0, wx.EXPAND | wx.ALL | wx.CENTER | wx.TOP | wx.BOTTOM, 5)
         self.hSizer_labels.Layout()
         page.Show(False)
-        index = len(self.hSizer_panels.GetChildren())-1 if self.ad else len(self.hSizer_panels.GetChildren())
+        index = len(self.hSizer_panels.GetChildren()) - 1 if self.ad else len(self.hSizer_panels.GetChildren())
         self.hSizer_panels.Insert(index, page, 100, wx.EXPAND)
         self.labels.append(label)
         self.panels.append(page)
         if select or not self.GetCurrentPage():
-            self.SetSelection(self.GetPageCount()-1)
+            self.SetSelection(self.GetPageCount() - 1)
         else:
             self.Layout()
         if not self.show_single_tab:
             self.ShowTabs(self.GetPageCount() > 1)
 
-    def InsertPage(self, index, page, text, select = False):
-        if not ( index >= 0 and index < self.GetPageCount() ):
+    def InsertPage(self, index, page, text, select=False):
+        if not (index >= 0 and index < self.GetPageCount()):
             return
         label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
         label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
-        self.hSizer_labels.Insert(index*2, label, 0, wx.RIGHT|wx.LEFT|wx.CENTER, self.lspace)
-        self.hSizer_labels.Insert(index*2+1, sline, 0, wx.EXPAND|wx.CENTER|wx.TOP|wx.BOTTOM, 5)
+        self.hSizer_labels.Insert(index * 2, label, 0, wx.RIGHT | wx.LEFT | wx.CENTER, self.lspace)
+        self.hSizer_labels.Insert(index * 2 + 1, sline, 0, wx.EXPAND | wx.CENTER | wx.TOP | wx.BOTTOM, 5)
         self.hSizer_labels.Layout()
         page.Show(False)
-        szr_index = index-1 if self.ad else index
+        szr_index = index - 1 if self.ad else index
         self.hSizer_panels.Insert(szr_index, page, 100, wx.EXPAND)
         self.labels.insert(index, label)
         self.panels.insert(index, page)
         if select or not self.GetCurrentPage():
-            self.SetSelection(self.GetPageCount()-1)
+            self.SetSelection(self.GetPageCount() - 1)
         else:
             self.Layout()
         if not self.show_single_tab:
@@ -1657,15 +1657,15 @@ class SimpleNotebook(wx.Panel):
         page.Show(False)
         label = self.panels.pop(index)
         label.Show(False)
-        self.hSizer_labels.Remove(index*2)
+        self.hSizer_labels.Remove(index * 2)
         if not remove_last:
-            sline = self.hSizer_labels.GetItem(index*2)
+            sline = self.hSizer_labels.GetItem(index * 2)
             sline = sline.GetWindow() if getattr(sline, 'IsWindow', False) and sline.IsWindow() else sline
             sline.Show(False)
-            self.hSizer_labels.Remove(index*2)
+            self.hSizer_labels.Remove(index * 2)
         self.hSizer_panels.Remove(index)
         if remove_current:
-            self.SetSelection(self.GetPageCount()-1)
+            self.SetSelection(self.GetPageCount() - 1)
         if not self.show_single_tab:
             self.ShowTabs(self.GetPageCount() > 1)
         else:
@@ -1690,7 +1690,7 @@ class SimpleNotebook(wx.Panel):
         return None
 
     def SetSelection(self, num_page):
-        if not ( num_page >= 0 and num_page < self.GetPageCount() ) or self.pshown == num_page:
+        if not (num_page >= 0 and num_page < self.GetPageCount()) or self.pshown == num_page:
             return
         old_page_index = self.pshown
         old_page = self.GetCurrentPage()
@@ -1729,7 +1729,7 @@ class SimpleNotebook(wx.Panel):
         panel.Show(True)
         self.Layout()
 
-    def ShowTabs(self, show = True):
+    def ShowTabs(self, show=True):
         self.hSizer_panel.Show(show)
         self.top_separator.Show(show)
         self.Layout()
@@ -1737,7 +1737,7 @@ class SimpleNotebook(wx.Panel):
 
 class TagText(wx.Panel):
 
-    def __init__(self, parent, id=-1, label='', fill_colour = wx.Colour(240,255,204), edge_colour = wx.Colour(200,200,200), text_colour = wx.BLACK, **kwargs):
+    def __init__(self, parent, id= -1, label='', fill_colour=wx.Colour(240, 255, 204), edge_colour=wx.Colour(200, 200, 200), text_colour=wx.BLACK, **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.fill_colour = fill_colour
         self.edge_colour = edge_colour
@@ -1780,12 +1780,12 @@ class TagText(wx.Panel):
         gc.SetBrush(wx.Brush(self.fill_colour))
         gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
         path = gc.CreatePath()
-        path.AddRoundedRectangle(x, y, width-1, height-1, 5)
+        path.AddRoundedRectangle(x, y, width - 1, height - 1, 5)
         path.CloseSubpath()
         gc.DrawPath(path)
 
         # Draw the text
-        font =  self.GetFont()
+        font = self.GetFont()
         dc.SetFont(font)
         dc.SetTextForeground(self.text_colour)
         dc.DrawText(self.label, 5, 0)
@@ -1793,10 +1793,10 @@ class TagText(wx.Panel):
 
 class TorrentStatus(wx.Panel):
 
-    def __init__(self, parent, id=-1, status='Initializing', fill_colour = wx.Colour(132,194,255), back_colour = wx.Colour(235,235,235), **kwargs):
+    def __init__(self, parent, id= -1, status='Initializing', fill_colour=wx.Colour(132, 194, 255), back_colour=wx.Colour(235, 235, 235), **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
-        self.status      = status
-        self.value       = None
+        self.status = status
+        self.value = None
         self.fill_colour = fill_colour
         self.back_colour = back_colour
         self.prnt_colour = parent.GetBackgroundColour()
@@ -1870,7 +1870,7 @@ class TorrentStatus(wx.Panel):
         self.SetStatus(status)
         self.Refresh()
         if self.value != None:
-            return int(self.value*self.GetSize().width)
+            return int(self.value * self.GetSize().width)
         return 0
 
     def OnEraseBackground(self, event):
@@ -1914,28 +1914,28 @@ class TorrentStatus(wx.Panel):
             self.TextToDC(rect_dc, self.TextColour(self.fill_colour))
 
             # Combine the two dc's
-            dc.Blit(0, 0, int(self.value*width), height, rect_dc, 0, 0)
+            dc.Blit(0, 0, int(self.value * width), height, rect_dc, 0, 0)
             rect_dc.SelectObject(wx.NullBitmap)
 
     def TextToDC(self, dc, colour):
-        font =  self.GetFont()
+        font = self.GetFont()
         dc.SetFont(font)
         dc.SetTextForeground(colour)
         if self.value == None or len(self.status) > 11:
             todraw = self.status
         else:
-            todraw = "%s %.1f%%" % (self.status, self.value*100)
-        dc.DrawLabel(todraw, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
+            todraw = "%s %.1f%%" % (self.status, self.value * 100)
+        dc.DrawLabel(todraw, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
     def TextColour(self, bg):
         rgb = bg.Get()
         brightness = (rgb[0] + rgb[1] + rgb[2]) / 3
-        return wx.Colour(80,80,80) if brightness > 150 else wx.WHITE
+        return wx.Colour(80, 80, 80) if brightness > 150 else wx.WHITE
 
 
 class TransparentText(wx.StaticText):
 
-    def __init__(self, parent, id = wx.ID_ANY, label = '', pos = wx.DefaultPosition, size = wx.DefaultSize, style = wx.TRANSPARENT_WINDOW):
+    def __init__(self, parent, id=wx.ID_ANY, label='', pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.TRANSPARENT_WINDOW):
         wx.StaticText.__init__(self, parent, id, label, pos, size, style)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, lambda event: None)
@@ -1992,9 +1992,9 @@ class TextCtrl(wx.TextCtrl):
 
     def __init__(self, *args, **kwargs):
         wx.TextCtrl.__init__(self, *args, **kwargs)
-        self.descr_label  = ''
-        self.descr_shown  = False
-        self.descr_colour = wx.Colour(80,80,80)
+        self.descr_label = ''
+        self.descr_shown = False
+        self.descr_colour = wx.Colour(80, 80, 80)
         self.Bind(wx.EVT_CHILD_FOCUS, self.OnGetFocus)
         self.Bind(wx.EVT_SET_FOCUS, self.OnGetFocus)
         self.Bind(wx.EVT_KILL_FOCUS, self.OnKillFocus)
@@ -2041,9 +2041,9 @@ class StaticBitmaps(wx.Panel):
 
     def SetPositions(self):
         width, height = self.GetSize()
-        self.buttons = [wx.Rect(width-27, height-15, 14, 15),
-                        wx.Rect(width-14, height-15, 14, 15)]
-        self.pointer = wx.Rect(width-26, 1, 25, 14)
+        self.buttons = [wx.Rect(width - 27, height - 15, 14, 15),
+                        wx.Rect(width - 14, height - 15, 14, 15)]
+        self.pointer = wx.Rect(width - 26, 1, 25, 14)
 
     def OnEraseBackground(self, event):
         pass
@@ -2063,13 +2063,13 @@ class StaticBitmaps(wx.Panel):
 
     def OnLeftButton(self):
         if self.bitmaps_index >= 0:
-            self.bitmaps_index = self.bitmaps_index-1 if self.bitmaps_index > 0 else len(self.bitmaps) - 1
+            self.bitmaps_index = self.bitmaps_index - 1 if self.bitmaps_index > 0 else len(self.bitmaps) - 1
             self.bitmap = self.bitmaps[self.bitmaps_index]
             self.Refresh()
 
     def OnRightButton(self):
         if self.bitmaps_index >= 0:
-            self.bitmaps_index = self.bitmaps_index+1 if self.bitmaps_index < len(self.bitmaps)-1 else 0
+            self.bitmaps_index = self.bitmaps_index + 1 if self.bitmaps_index < len(self.bitmaps) - 1 else 0
             self.bitmap = self.bitmaps[self.bitmaps_index]
             self.Refresh()
 
@@ -2112,13 +2112,13 @@ class StaticBitmaps(wx.Panel):
             arrow = NativeIcon.getInstance().getBitmap(self, 'arrow', wx.WHITE, state=0)
             arrow_left = arrow.ConvertToImage().Rotate90(True).ConvertToBitmap()
             arrow_right = arrow.ConvertToImage().Rotate90(False).ConvertToBitmap()
-            dc.DrawBitmap(arrow_left, self.buttons[0].x+5, self.buttons[0].y+4)
-            dc.DrawBitmap(arrow_right, self.buttons[1].x+5, self.buttons[1].y+4)
+            dc.DrawBitmap(arrow_left, self.buttons[0].x + 5, self.buttons[0].y + 4)
+            dc.DrawBitmap(arrow_right, self.buttons[1].x + 5, self.buttons[1].y + 4)
 
             tmpbmp = wx.EmptyBitmapRGBA(*self.pointer.GetSize(), red=255, green=255, blue=255, alpha=155)
             dc.DrawBitmap(tmpbmp, self.pointer.x, self.pointer.y)
             dc.SetFont(self.GetFont())
-            dc.DrawLabel("%d/%d" % (self.bitmaps_index+1, len(self.bitmaps)), self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
+            dc.DrawLabel("%d/%d" % (self.bitmaps_index + 1, len(self.bitmaps)), self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
 
 class HorizontalGradientGauge(wx.Panel):
@@ -2144,33 +2144,33 @@ class HorizontalGradientGauge(wx.Panel):
         gc = wx.GraphicsContext.Create(dc)
 
         gc.SetPen(wx.TRANSPARENT_PEN)
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w/2.0, 0, wx.Colour(255, 0, 0), wx.Colour(255, 216, 0)))
-        gc.DrawRectangle(0, 0, w/2.0, h)
+        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w / 2.0, 0, wx.Colour(255, 0, 0), wx.Colour(255, 216, 0)))
+        gc.DrawRectangle(0, 0, w / 2.0, h)
 
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w/2.0, 0, wx.Colour(255, 216, 0), wx.Colour(0, 255, 33)))
-        gc.DrawRectangle(w/2.0, 0, w/2.0, h)
+        gc.SetBrush(gc.CreateLinearGradientBrush(0, 0, w / 2.0, 0, wx.Colour(255, 216, 0), wx.Colour(0, 255, 33)))
+        gc.DrawRectangle(w / 2.0, 0, w / 2.0, h)
 
         gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
         gc.SetBrush(wx.TRANSPARENT_BRUSH)
-        gc.DrawRectangle(0, 0, w-1, h-1)
+        gc.DrawRectangle(0, 0, w - 1, h - 1)
 
         gc.SetPen(wx.Pen(wx.BLACK, 1, wx.SOLID))
         x = (self.value / 100.0) * w
-        gc.DrawLines([(x-1, 0), (x-1, h)])
-        gc.DrawLines([(x+1, 0), (x+1, h)])
+        gc.DrawLines([(x - 1, 0), (x - 1, h)])
+        gc.DrawLines([(x + 1, 0), (x + 1, h)])
 
 
 class Graph(wx.Panel):
-    def __init__(self, parent, grid_size = 4, max_points = 120, *args, **kwargs):
+    def __init__(self, parent, grid_size=4, max_points=120, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
-        self.x_margins = (30,10)
-        self.y_margins = (10,20)
+        self.x_margins = (30, 10)
+        self.y_margins = (10, 20)
         self.max_range = 0
         self.grid_size = grid_size
         self.config = []
         self.data = []
         self.font = self.GetFont()
-        self.font.SetPointSize(self.font.GetPointSize()-1)
+        self.font.SetPointSize(self.font.GetPointSize() - 1)
         self.SetAxisLabels("", "")
         self.SetMaxPoints(max_points)
         self.SetBackgroundColour(wx.WHITE)
@@ -2185,7 +2185,7 @@ class Graph(wx.Panel):
     def SetMaxPoints(self, max_points):
         self.max_points = max_points
 
-    def AddGraph(self, colour, data = [], label = ""):
+    def AddGraph(self, colour, data=[], label=""):
         self.data.append(data)
         self.data[-1] = self.data[-1][-self.max_points:]
         self.config.append((colour, label))
@@ -2200,7 +2200,7 @@ class Graph(wx.Panel):
 
     def AppendData(self, graph_id, value):
         self.data[graph_id].append(value)
-        
+
         dropped_value = None
         if len(self.data[graph_id]) > self.max_points:
             dropped_value = self.data[graph_id][0]
@@ -2239,7 +2239,7 @@ class Graph(wx.Panel):
         dashed_pen.SetDashes([4, 4])
         dc.SetPen(dashed_pen)
         grid_height = (height - self.y_margins[0] - self.y_margins[1]) / self.grid_size
-        for i in range(1, self.grid_size+1):
+        for i in range(1, self.grid_size + 1):
             dc.DrawLine(self.x_margins[0], height - self.y_margins[1] - i * grid_height, width - self.x_margins[1], height - self.y_margins[1] - i * grid_height)
 
     def DrawText(self, dc, width, height):
@@ -2254,11 +2254,11 @@ class Graph(wx.Panel):
 
         # Draw min/max values along the y axis
         miny = "0"
-        maxy = str(int(self.max_range+1))
+        maxy = str(int(self.max_range + 1))
         miny_width, miny_height = self.GetTextExtent(miny)
         maxy_width, maxy_height = self.GetTextExtent(maxy)
-        dc.DrawText(miny, max(0, self.x_margins[0] - miny_width), height - self.y_margins[1] - miny_height/2)
-        dc.DrawText(maxy, max(0, self.x_margins[0] - maxy_width), self.y_margins[0] - maxy_height/2)
+        dc.DrawText(miny, max(0, self.x_margins[0] - miny_width), height - self.y_margins[1] - miny_height / 2)
+        dc.DrawText(maxy, max(0, self.x_margins[0] - maxy_width), self.y_margins[0] - maxy_height / 2)
 
     def DrawGraphs(self, gc, width, height):
         for graph_id, column in enumerate(self.data):
@@ -2299,12 +2299,13 @@ class Graph(wx.Panel):
 
 class VideoProgress(wx.Panel):
 
-    def __init__(self, parent, id=-1, label='Loading\n 0%', value = 0.0, fill_colour = wx.Colour(220,220,220), edge_colour = wx.Colour(210,210,210), text_colour = wx.Colour(210,210,210), **kwargs):
+    def __init__(self, parent, id= -1, label='Loading\n 0%', value=0.0, fill_colour=wx.Colour(220, 220, 220), edge_colour=wx.Colour(210, 210, 210), text_colour=wx.Colour(210, 210, 210), **kwargs):
         wx.Panel.__init__(self, parent, id, **kwargs)
         self.fill_colour = fill_colour
         self.edge_colour = edge_colour
         self.text_colour = text_colour
         self.prnt_colour = parent.GetBackgroundColour()
+        self.value = 0.0
         self.error = ''
         self.SetValue(value)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -2336,7 +2337,7 @@ class VideoProgress(wx.Panel):
 
         gc = wx.GraphicsContext.Create(dc)
         width, height = self.GetClientSize()
-        radius = min(width-5, height-5) / 2
+        radius = min(width - 5, height - 5) / 2
         pi = math.pi
 
         path = gc.CreatePath()
@@ -2344,50 +2345,50 @@ class VideoProgress(wx.Panel):
         path.AddCircle(0, 0, radius / 1.5)
         gc.PushState()
         gc.Translate(width / 2, height / 2)
-        gc.SetBrush(wx.Brush(wx.Colour(180,180,180)))
+        gc.SetBrush(wx.Brush(wx.Colour(180, 180, 180)))
         gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
         gc.DrawPath(path)
-        
+
         if not self.error:
             path = gc.CreatePath()
-            path.AddArc(0, 0, radius, -pi/2, -pi/2 + self.value*2*pi, True)
-            x = self.value*2*pi - (pi/2)
-            path.AddLineToPoint(math.cos(x)*radius/1.5, math.sin(x)*radius/1.5)
-            path.AddArc(0, 0, radius / 1.5, -pi/2 + self.value*2*pi, -pi/2, False)
+            path.AddArc(0, 0, radius, -pi / 2, -pi / 2 + self.value * 2 * pi, True)
+            x = self.value * 2 * pi - (pi / 2)
+            path.AddLineToPoint(math.cos(x) * radius / 1.5, math.sin(x) * radius / 1.5)
+            path.AddArc(0, 0, radius / 1.5, -pi / 2 + self.value * 2 * pi, -pi / 2, False)
             path.CloseSubpath()
             gc.PopState()
             gc.PushState()
             gc.Translate(width / 2, height / 2)
-            gc.SetBrush(gc.CreateRadialGradientBrush(0, 0, 0, 0, radius, wx.Colour(255,255,255), self.fill_colour))
+            gc.SetBrush(gc.CreateRadialGradientBrush(0, 0, 0, 0, radius, wx.Colour(255, 255, 255), self.fill_colour))
             gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
             gc.DrawPath(path)
 
-        font =  self.GetFont()
+        font = self.GetFont()
         font.SetPixelSize((0, radius / 3.5))
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         dc.SetFont(font)
         dc.SetTextForeground(self.text_colour)
-        dc.DrawLabel(self.error or self.label, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL)
+        dc.DrawLabel(self.error or self.label, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
 
 class VideoSlider(wx.Panel):
 
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
-        self.slider_range    = [0, 0]
-        self.slider_radius   = 9
+        self.slider_range = [0, 0]
+        self.slider_radius = 9
         self.slider_position = [10, 0]
-        self.buffersize      = 0.0
+        self.buffersize = 0.0
         # Colours for enabled slider
-        self.colour1  = wx.Colour(241, 93, 63)
-        self.colour2  = wx.Colour(246, 144, 119)
+        self.colour1 = wx.Colour(241, 93, 63)
+        self.colour2 = wx.Colour(246, 144, 119)
         # Colours for disabled slider
-        self.colour3  = wx.Colour(200, 200, 200)
-        self.colour4  = wx.Colour(220, 220, 220)
+        self.colour3 = wx.Colour(200, 200, 200)
+        self.colour4 = wx.Colour(220, 220, 220)
         self.dragging = False
-        self.enabled  = True
+        self.enabled = True
         self.hovering = False
-        self.value    = 0.0
+        self.value = 0.0
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -2420,12 +2421,12 @@ class VideoSlider(wx.Panel):
         else:
             self.SetBufferSize(0.0)
 
-    def PositionOnSlider(self, position = None):
+    def PositionOnSlider(self, position=None):
         x, y = position or self.ScreenToClient(wx.GetMousePosition())
-        return (x - self.slider_position[0])**2 + (y - self.slider_position[1])**2 < self.slider_radius**2
+        return (x - self.slider_position[0]) ** 2 + (y - self.slider_position[1]) ** 2 < self.slider_radius ** 2
 
     def OnLeftDown(self, event):
-        self.SetSlider(event)        
+        self.SetSlider(event)
         if self.PositionOnSlider(event.GetPositionTuple()):
             self.dragging = True
             self.CaptureMouse()
@@ -2463,13 +2464,13 @@ class VideoSlider(wx.Panel):
             rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
             sub = self.GetParent().bitmap.GetSubBitmap(rect)
             dc.DrawBitmap(sub, 0, 0)
-        
+
         width, height = self.GetClientSize()
         gc = wx.GraphicsContext.Create(dc)
         self.slider_range = [10, width - 10]
         self.slider_position[1] = height / 2
         rect_height = height / 4
-        
+
         # Draw background rectangle
         gc.SetPen(wx.TRANSPARENT_PEN)
         gc.SetBrush(wx.Brush(self.colour4))
@@ -2481,7 +2482,7 @@ class VideoSlider(wx.Panel):
         curbuffer = slider_width * self.buffersize
         curbuffer = min(curbuffer, (self.slider_range[1] - self.slider_position[0]))
         gc.DrawRectangle(self.slider_range[0] + (slider_width * self.value), height / 2 - rect_height / 2, curbuffer, rect_height)
-        
+
         # Draw position rectangle
         gc.SetBrush(wx.Brush(self.colour1))
         gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_position[0] - self.slider_range[0], rect_height)
@@ -2533,13 +2534,13 @@ class VideoVolume(wx.Panel):
         self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
         self.Bind(wx.EVT_MOTION, self.OnMotion)
 
-    def PositionOnTriangle(self, position = None):
+    def PositionOnTriangle(self, position=None):
         x, y = position or self.ScreenToClient(wx.GetMousePosition())
         w, h = self.GetClientSize()
         return y > h - (x * h / w)
 
     def OnLeftDown(self, event):
-        self.SetPosition(event)        
+        self.SetPosition(event)
         if self.PositionOnTriangle(event.GetPositionTuple()):
             self.dragging = True
             self.CaptureMouse()
@@ -2580,7 +2581,7 @@ class VideoVolume(wx.Panel):
             rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
             sub = self.GetParent().bitmap.GetSubBitmap(rect)
             dc.DrawBitmap(sub, 0, 0)
-        
+
         w, h = self.GetClientSize()
 
         gc = wx.GraphicsContext.Create(dc)

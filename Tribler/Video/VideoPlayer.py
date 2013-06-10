@@ -87,7 +87,6 @@ class VideoPlayer:
             # Start HTTP server for serving video to external player
             self.videohttpserv = VideoHTTPServer.getInstance(self.videohttpservport)  # create
             self.videohttpserv.background_serve()
-            self.videohttpserv.register(self.videohttpserver_error_callback, self.videohttpserver_set_status_callback)
 
         if closeextplayercallback is not None:
             self.closeextplayercallback = closeextplayercallback
@@ -595,11 +594,9 @@ class VideoPlayer:
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None:
                 self.videoframe.get_videopanel().Pause()
-            self.set_player_status("Buffering...")
         elif event == VODEVENT_RESUME:
             if self.videoframe is not None:
                 self.videoframe.get_videopanel().Resume()
-            self.set_player_status("")
 
     def ask_user_to_select_video(self, videofiles):
         dlg = VideoChooser(self.videoframe.get_window(), self.utility, videofiles, title='Tribler', expl='Select which file to play')
@@ -621,19 +618,6 @@ class VideoPlayer:
         except:
             print_exc()
             return False
-
-    def warn_user(self, ds, infilename):
-
-        islive = ds.get_download().get_def().get_live()
-        if islive and not self.other_downloads:
-            # If it's the only download and live, don't warn.
-            return
-
-        dlg = VODWarningDialog(self.videoframe.get_window(), self.utility, ds, infilename, self.other_downloads, islive)
-        result = dlg.ShowModal()
-        othertorrentspolicy = dlg.get_othertorrents_policy()
-        dlg.Destroy()
-        return [result == wx.ID_OK, othertorrentspolicy]
 
     def create_url(self, videoserver, upath):
         schemeserv = 'http://127.0.0.1:' + str(videoserver.get_port())
@@ -761,24 +745,9 @@ class VideoPlayer:
     # to the user.
     #
     @forceWxThread
-    def set_content_name(self, name):
+    def set_player_status_and_progress(self, pieces_complete, vod_progress):
         if self.videoframe is not None:
-            self.videoframe.get_videopanel().SetContentName(name)
-
-    @forceWxThread
-    def set_content_image(self, wximg):
-        if self.videoframe is not None:
-            self.videoframe.get_videopanel().SetContentImage(wximg)
-
-    @forceWxThread
-    def set_player_status(self, msg):
-        if self.videoframe is not None:
-            self.videoframe.get_videopanel().SetPlayerStatus(msg)
-
-    @forceWxThread
-    def set_player_status_and_progress(self, msg, pieces_complete, vod_progress):
-        if self.videoframe is not None:
-            self.videoframe.get_videopanel().UpdateStatus(msg, pieces_complete, vod_progress)
+            self.videoframe.get_videopanel().UpdateStatus(pieces_complete, vod_progress)
 
     @forceWxThread
     def set_save_button(self, enable, savebutteneventhandler):
@@ -806,28 +775,6 @@ class VideoPlayer:
     #    the VideoFrame to contain some minimal info. Would have to dynamically
     #    change that back if we allow dynamic switching of video player.
     #    self.preferredplaybackmode = mode
-
-    #
-    # Internal methods
-    #
-    def videohttpserver_error_callback(self, e, url):
-        """ Called by HTTP serving thread """
-        wx.CallAfter(self.videohttpserver_error_guicallback, e, url)
-
-    def videohttpserver_error_guicallback(self, e, url):
-        print >> sys.stderr, "videoplay: Video HTTP server reported error", str(e)
-        # if e[0] == ECONNRESET and self.closeextplayercallback is not None:
-        if self.closeextplayercallback is not None:
-            self.closeextplayercallback()
-
-    def videohttpserver_set_status_callback(self, status):
-        """ Called by HTTP serving thread """
-        wx.CallAfter(self.videohttpserver_set_status_guicallback, status)
-
-    def videohttpserver_set_status_guicallback(self, status):
-        self.videoframe.get_videopanel().SetPlayerStatus(status)
-
-
 
 
 class VideoChooser(wx.Dialog):
@@ -872,110 +819,6 @@ class VideoChooser(wx.Dialog):
 
     def getChosenIndex(self):
         return self.file_chooser.GetSelection()
-
-
-
-class VODWarningDialog(wx.Dialog):
-
-    def __init__(self, parent, utility, ds, infilename, other_downloads, islive):
-        self.parent = parent
-        self.utility = utility
-
-        style = wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER
-        if islive:
-            title = self.utility.lang.get('livewarntitle')
-        else:
-            title = self.utility.lang.get('vodwarntitle')
-
-        wx.Dialog.__init__(self, parent, -1, title, style=style)
-
-        if islive:
-            msg = self.utility.lang.get('livewarngeneral')
-        else:
-            msg = self.utility.lang.get('vodwarngeneral')
-
-        """
-        if bitrate is None:
-            msg += self.utility.lang.get('vodwarnbitrateunknown')
-            msg += self.is_mov_file(videoinfo)
-            msg += self.utility.lang.get('vodwarnconclusionno')
-        elif bitrate > maxuploadrate and maxuploadrate != 0:
-            s = self.utility.lang.get('vodwarnbitrateinsufficient') % (str(bitrate/1024),str(maxuploadrate)+" KB/s")
-            msg += s
-            msg += self.is_mov_file(videoinfo)
-            msg += self.utility.lang.get('vodwarnconclusionno')
-        elif bitrate > maxmeasureduploadrate and maxuploadrate == 0:
-            s = self.utility.lang.get('vodwarnbitrateinsufficientmeasured') % (str(bitrate/1024),str(maxuploadrate)+" KB/s")
-            msg += s
-            msg += self.is_mov_file(videoinfo)
-            msg += self.utility.lang.get('vodwarnconclusionno')
-
-        else:
-            if maxuploadrate == 0:
-                rate = self.utility.lang.get('unlimited')
-            else:
-                rate = str(maxuploadrate)+" KB/s"
-            s = self.utility.lang.get('vodwarnbitratesufficient') % (str(bitrate/1024),rate)
-            msg += s
-            extra = self.is_mov_file(videoinfo)
-            if extra  == '':
-                msg += self.utility.lang.get('vodwarnconclusionyes')
-            else:
-                msg += extra
-                msg += self.utility.lang.get('vodwarnconclusionno')
-
-        """
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        text = wx.StaticText(self, -1, msg)
-        text.Wrap(500)
-        sizer.Add(text, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL | wx.EXPAND, 5)
-
-        # 22/08/08 boudewijn: only show the selectbox when there are
-        # torrents that are actively downloading
-        if other_downloads:
-            otherslist = [self.utility.lang.get('vodrestartothertorrents'),
-                          self.utility.lang.get('vodstopothertorrents'),
-                          self.utility.lang.get('vodleaveothertorrents')]
-
-            othersbox = wx.BoxSizer(wx.VERTICAL)
-            self.others_chooser = wx.Choice(self, -1, wx.Point(-1, -1), wx.Size(-1, -1), otherslist)
-            self.others_chooser.SetSelection(OTHERTORRENTS_STOP_RESTART)
-
-            othersbox.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwhataboutothertorrentspolicy')), 1, wx.ALIGN_CENTER_VERTICAL)
-            othersbox.Add(self.others_chooser)
-            sizer.Add(othersbox, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        else:
-            self.others_chooser = None
-
-        sizer.Add(wx.StaticText(self, -1, self.utility.lang.get('vodwarnprompt')), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-
-
-        buttonbox = wx.BoxSizer(wx.HORIZONTAL)
-        okbtn = wx.Button(self, wx.ID_OK, label=self.utility.lang.get('yes'), style=wx.BU_EXACTFIT)
-        buttonbox.Add(okbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
-        cancelbtn = wx.Button(self, wx.ID_CANCEL, label=self.utility.lang.get('no'), style=wx.BU_EXACTFIT)
-        buttonbox.Add(cancelbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
-        sizer.Add(buttonbox, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-
-        self.SetSizerAndFit(sizer)
-
-    def get_othertorrents_policy(self):
-        if self.others_chooser:
-            idx = self.others_chooser.GetSelection()
-        else:
-            idx = OTHERTORRENTS_STOP_RESTART
-        if DEBUG:
-            print >> sys.stderr, "videoplay: Other-torrents-policy is", idx
-        return idx
-
-    def is_mov_file(self, videoinfo):
-        orig = videoinfo['inpath']
-        (prefix, ext) = os.path.splitext(orig)
-        low = ext.lower()
-        if low == '.mov':
-            return self.utility.lang.get('vodwarnmov')
-        else:
-            return ''
 
 
 def parse_playtime_to_secs(hhmmss):
