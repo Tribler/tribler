@@ -430,11 +430,8 @@ class ABCApp():
         if not self.sconfig.get_torrent_collecting_dir():
             torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
             self.sconfig.set_torrent_collecting_dir(torrcolldir)
-
-        if not defaultDLConfig.get_swift_meta_dir():
-            defaultDLConfig.set_swift_meta_dir(os.path.join(self.sconfig.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
-        if not os.path.isdir(defaultDLConfig.get_swift_meta_dir()):
-            os.makedirs(defaultDLConfig.get_swift_meta_dir())
+        if not self.sconfig.get_swift_meta_dir():
+            self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
         # 15/05/12 niels: fixing swift port
         defaultDLConfig.set_swift_listen_port(7758)

@@ -477,6 +477,9 @@ class MainFrame(wx.Frame):
                 if correctedFilename:
                     dscfg.set_corrected_filename(correctedFilename)
 
+                if sdef:
+                    dscfg.set_swift_meta_dir(self.utility.session.get_swift_meta_dir())
+
                 if selectedFiles and len(selectedFiles) == 1:
                     # we should filter files to see if they are all playable
                     videofiles = selectedFiles

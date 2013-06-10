@@ -395,6 +395,18 @@ class SessionConfigInterface:
         @return A path name. """
         return self.sessconfig['swiftworkingdir']  # strings immutable
 
+    def set_swift_meta_dir(self, value):
+        """ Set the metadir for storing .m* files of downloads.
+        @param value An absolutepath.
+        """
+        self.sessconfig['swiftmetadir'] = value
+
+    def get_swift_meta_dir(self):
+        """ Return the metadir for storing .m* files of downloads.
+        @return An absolutepath.
+        """
+        return self.sessconfig['swiftmetadir']
+
     def set_swift_cmd_listen_port(self, port):
         """ Set the local TCP listen port for cmd socket communication to
         the swift processes (unused). CMD listen port of swift process itself

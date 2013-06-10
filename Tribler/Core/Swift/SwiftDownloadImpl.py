@@ -157,14 +157,17 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         if self.get_mode() == DLMODE_VOD:
             self.lm_network_vod_event_callback = lm_network_vod_event_callback
 
-        if 'swiftmetadir' not in self.dlconfig and not os.path.isdir(self.get_dest_dir()):
-            # We must be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
-            self.set_swift_meta_dir(metadir)
-            if not os.path.exists(metadir):
-                os.makedirs(metadir)
+        move_files = ('swiftmetadir' not in self.dlconfig) and not os.path.isdir(self.get_dest_dir())
 
+        if not self.get_swift_meta_dir():
+            metadir = self.session.get_swift_meta_dir()
+            self.set_swift_meta_dir(metadir)
+
+        if not os.path.exists(metadir):
+            os.makedirs(metadir)
+
+        if move_files:
+            # We must be dealing with a checkpoint from a previous release (<6.1.0). Move the swift metadata to the right directory.
             is_multifile = self.get_dest_dir().endswith("." + self.get_def().get_roothash_as_hex())
             path_old = self.get_dest_dir()
             path_new = os.path.join(metadir, self.get_def().get_roothash_as_hex() if is_multifile else os.path.split(self.get_dest_dir())[1])
@@ -176,9 +179,6 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
                 shutil.move(path_old + '.mbinmap', path_new + '.mbinmap')
             except:
                 print_exc()
-
-        if not os.path.isdir(self.get_swift_meta_dir()):
-            os.makedirs(self.get_swift_meta_dir())
 
         # Synchronous: starts process if needed
         self.sp = self.session.lm.spm.get_or_create_sp(self.session.get_swift_working_dir(), self.session.get_torrent_collecting_dir(), self.get_swift_listen_port(), self.get_swift_httpgw_listen_port(), self.get_swift_cmdgw_listen_port())
