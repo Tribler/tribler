@@ -4,10 +4,10 @@ from Tribler.Core.RawServer.SocketHandler import SingleSocket
 logger = logging.getLogger(__name__)
 
 
-class TcpRelayConnection:
+class TcpRelayConnection(object):
     def __init__(self, source_socket, destination_socket, connection_handler):
         self.source_socket = source_socket
-        self.destination_socket = destination_socket;
+        self.destination_socket = destination_socket
         self.connection_handler = connection_handler
         self.buffer = ''
 
@@ -17,7 +17,8 @@ class TcpRelayConnection:
         destination_socket = self.destination_socket
         assert isinstance(destination_socket, SingleSocket)
 
-        logger.info("Relaying %d bytes over TCP to %s:%d", len(data), destination_socket.get_ip(), destination_socket.get_port())
+        logger.info("Relaying %d bytes over TCP to %s:%d", len(data), destination_socket.get_ip(),
+                    destination_socket.get_port())
         destination_socket.write(data)
 
 

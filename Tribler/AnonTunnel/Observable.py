@@ -1,8 +1,8 @@
-'''
+"""
 Created on 21 mei 2013
 
 @author: Chris
-'''
+"""
 
 from collections import defaultdict
 
@@ -20,7 +20,7 @@ class Observable(object):
         self.callbacks[event].append(callback)
 
     def fire(self, event_name, **attrs):
-        if self.callbacks.has_key(event_name) == False:
+        if not event_name in self.callbacks:
             return
 
         event_parameter = Event()

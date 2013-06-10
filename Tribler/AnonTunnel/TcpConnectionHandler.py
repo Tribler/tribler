@@ -1,40 +1,24 @@
-'''
+"""
 Created on 3 jun. 2013
 
 @author: Chris
-'''
-import socket
-import sys
+"""
 from traceback import print_exc
-from Socks5Connection import Socks5Connection
-
 import logging
+
+from Socks5Connection import Socks5Connection
 from Tribler.Core.RawServer.SocketHandler import SingleSocket
 from TcpRelayConnection import TcpRelayConnection
-from UdpRelayHandler import UdpRelayHandler
-from UdpReturnHandler import UdpReturnHandler
+
 
 logger = logging.getLogger(__name__)
 
 
-class TcpConnectionHandler:
-
-    @property
-    def server(self):
-        """
-
-
-        :rtype : Socks5AnonTunnel
-        """
-        return self._server
-
-    @server.setter
-    def set_server(self, server):
-        self._server = server
-
+class TcpConnectionHandler(object):
     def __init__(self):
         self.socket2connection = {}
-        self._server = None
+        self.server = None
+        """ :type : Socks5AnonTunnel """
 
     def external_connection_made(self, s):
         # Extra check in case bind() no work

@@ -4,9 +4,9 @@ import socket
 # Some constants used in the RFC 1928 specification
 SOCKS_VERSION = 0x05
 
-ATYP_IPV4 = 0x01
-ATYP_DOMAINNAME = 0x03
-ATYP_IPV6 = 0x04
+ADDRESS_TYPE_IPV4 = 0x01
+ADDRESS_TYPE_DOMAIN_NAME = 0x03
+ADDRESS_TYP_IPV6 = 0x04
 
 REQ_CMD_CONNECT = 0x01
 REQ_CMD_BIND = 0x02
@@ -14,7 +14,7 @@ REQ_CMD_UDP_ASSOCIATE = 0x03
 
 REP_SUCCEEDED = 0x00
 REP_GENERAL_SOCKS_SERVER_FAIL = 0x01
-REP_CONNECTION_NOT_ALLOWED_BY_RULESET = 0x02
+REP_CONNECTION_NOT_ALLOWED_BY_RULE_SET = 0x02
 REP_NETWORK_UNREACHABLE = 0x03
 REP_HOST_UNREACHABLE = 0x04
 REP_CONNECTION_REFUSED = 0x05
@@ -22,13 +22,15 @@ REP_TTL_EXPIRED = 0x06
 REP_COMMAND_NOT_SUPPORTED = 0x07
 REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
 
-class MethodRequest:
+
+class MethodRequest(object):
     def __init__(self, version, methods):
         self.version = version
         self.methods = methods
 
-class Request:
-    def __init__(self,version, cmd, rsv, atyp, destination_address, destination_port):
+
+class Request(object):
+    def __init__(self, version, cmd, rsv, atyp, destination_address, destination_port):
         self.version = version
         self.cmd = cmd
         self.rsv = rsv
@@ -36,8 +38,9 @@ class Request:
         self.destination_address = destination_address
         self.destination_port = destination_port
 
-class UdpRequest:
-    def __init__(self,rsv, frag, atyp, destination_address, destination_port, payload ):
+
+class UdpRequest(object):
+    def __init__(self, rsv, frag, atyp, destination_address, destination_port, payload):
         self.rsv = rsv
         self.frag = frag
         self.atyp = atyp
@@ -69,11 +72,11 @@ def encode_method_selection_message(version, method):
     return struct.pack("BB", version, method)
 
 def encode_address(atyp, address):
-    if atyp == ATYP_IPV4:
+    if atyp == ADDRESS_TYPE_IPV4:
         data = socket.inet_aton(address)
-    elif atyp == ATYP_IPV6:
+    elif atyp == ADDRESS_TYP_IPV6:
         raise ValueError("IPv6 not implemented")
-    elif atyp == ATYP_DOMAINNAME:
+    elif atyp == ADDRESS_TYPE_DOMAIN_NAME:
         data = struct.pack("B", len(address))
         data += address
     else:
@@ -82,16 +85,18 @@ def encode_address(atyp, address):
     return data
 
 def decode_address(atyp, offset, data):
-    if atyp == ATYP_IPV4:
+    if atyp == ADDRESS_TYPE_IPV4:
         destination_address = socket.inet_ntoa(data[offset:offset + 4])
         offset += 4
-    elif atyp == ATYP_DOMAINNAME:
+    elif atyp == ADDRESS_TYPE_DOMAIN_NAME:
         domain_length, = struct.unpack_from("B", data, offset)
         offset += 1
         destination_address = data[offset:offset + domain_length]
         offset += domain_length
-    elif atyp == ATYP_IPV6:
+    elif atyp == ADDRESS_TYP_IPV6:
         return offset, None
+    else:
+        raise ValueError("Unsupported address type")
     
     return offset, destination_address
 

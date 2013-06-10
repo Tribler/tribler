@@ -11,7 +11,6 @@ import random
 import sys
 import time
 from Circuit import Circuit
-from TunnelProxy import logger
 from ProxyCommunity import ProxyCommunity
 from ProxyConversion import DataPayload, ExtendPayload
 from Relay import Relay
@@ -24,13 +23,12 @@ __author__ = 'Chris'
 class TunnelProxy(Observable):
     @property
     def local_addresses(self):
-        return set([self.dispersy.lan_address, self.dispersy.wan_address])
+        return {self.dispersy.lan_address, self.dispersy.wan_address}
 
     def __init__(self):
-        Observable.__init__(self)
-
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
+        Observable.__init__(self)
 
         self._exit_sockets = {}
 
@@ -48,8 +46,7 @@ class TunnelProxy(Observable):
 
         self.callback = Callback()
         self.endpoint = StandaloneEndpoint(10000)
-        self.dispersy = Dispersy(self.callback, self.endpoint
-            , u".", u":memory:")
+        self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
         self.dispersy.start()
         logger.info("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
 
@@ -70,12 +67,12 @@ class TunnelProxy(Observable):
         address = event.message.candidate.sock_addr
         msg = event.message.payload
 
-        logger.info('We joined circuit %d with origin %s', msg.circ_id, address)
+        logger.info('We joined circuit %d with origin %s', msg.circuit_id, address)
 
         community = self.community
         assert isinstance(community, ProxyCommunity)
 
-        community.send_created(address, msg.circ_id)
+        community.send_created(address, msg.circuit_id)
 
     def on_created(self, event):
         """ Handle incoming CREATED messages relay them backwards towards the originator if necessary """
@@ -83,20 +80,20 @@ class TunnelProxy(Observable):
         address = event.message.candidate.sock_addr
         msg = event.message.payload
 
-        if (self.circuits.has_key(msg.circ_id)):
-            circuit = self.circuits[msg.circ_id]
+        if self.circuits.has_key(msg.circuit_id):
+            circuit = self.circuits[msg.circuit_id]
             circuit.created = True
-            logger.info('Circuit %d has been created', msg.circ_id)
+            logger.info('Circuit %d has been created', msg.circuit_id)
             self._perform_extension(circuit)
         else:
-            created_for = self.relay_to_from[(address, msg.circ_id)]
+            created_for = self.relay_to_from[(address, msg.circuit_id)]
             extended_with = address
 
             community = self.community
             assert isinstance(community, ProxyCommunity)
-            community.send_extended(created_for.from_address, msg.circ_id, extended_with)
+            community.send_extended(created_for.from_address, msg.circuit_id, extended_with)
 
-            logger.info('We have extended circuit %d for %s with %s', msg.circ_id, created_for.from_address,
+            logger.info('We have extended circuit %d for %s with %s', msg.circuit_id, created_for.from_address,
                         extended_with)
 
     def on_data(self, event):
@@ -106,7 +103,7 @@ class TunnelProxy(Observable):
         msg = event.message.payload
         assert isinstance(msg, DataPayload.Implementation)
 
-        relay_key = (address, msg.circ_id)
+        relay_key = (address, msg.circuit_id)
         community = self.community
         assert isinstance(community, ProxyCommunity)
 
@@ -114,7 +111,7 @@ class TunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send_data(relay.to_address, msg.circ_id, msg.destination, msg.data)
+            community.send_data(relay.to_address, msg.circuit_id, msg.destination, msg.data)
             logger.info("Forwarding DATA packet from %s to %s", address, relay.to_address)
 
         # If message is meant for us, write it to output
@@ -125,18 +122,18 @@ class TunnelProxy(Observable):
         else:
             logger.info("EXIT DATA packet to %s", msg.destination)
 
-            self.get_exit_socket(msg.circ_id, address).sendto(msg.data, msg.destination)
+            self.get_exit_socket(msg.circuit_id, address).sendto(msg.data, msg.destination)
 
-    def get_exit_socket(self, circ_id, address):
-        if not (circ_id in self._exit_sockets):
-            self._exit_sockets[circ_id] = self.socket_server.create_udp_socket()
+    def get_exit_socket(self, circuit_id, address):
+        if not (circuit_id in self._exit_sockets):
+            self._exit_sockets[circuit_id] = self.socket_server.create_udp_socket()
 
-            return_handler = CircuitReturnHandler(self._exit_sockets[circ_id], self, circ_id, address)
+            return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)
 
-            self.socket_server.start_listening_udp(self._exit_sockets[circ_id], return_handler)
+            self.socket_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
 
 
-        return self._exit_sockets[circ_id]
+        return self._exit_sockets[circuit_id]
 
     def on_extend(self, event):
         """ Upon reception of a EXTEND message the message
@@ -149,7 +146,7 @@ class TunnelProxy(Observable):
         msg = event.message.payload
         assert isinstance(msg, ExtendPayload.Implementation)
 
-        relay_key = (from_address, msg.circ_id)
+        relay_key = (from_address, msg.circuit_id)
         community = self.community
         assert isinstance(community, ProxyCommunity)
 
@@ -157,21 +154,21 @@ class TunnelProxy(Observable):
         if self.relay_from_to.has_key(relay_key):
             relay = self.relay_from_to[relay_key]
 
-            community.send_extend(relay.to_address, msg.circ_id
+            community.send_extend(relay.to_address, msg.circuit_id
                 , msg.extend_with)
             return
         else: # We are responsible for EXTENDING the circuit
 
-            circ_id = msg.circ_id
+            circuit_id = msg.circuit_id
 
             # Payload contains the address we want to invite to the circuit
             to_address = msg.extend_with
 
-            relay = Relay(circ_id, from_address, to_address)
-            self.relay_from_to[(from_address, circ_id)] = relay
-            self.relay_to_from[(to_address, circ_id)] = relay
+            relay = Relay(circuit_id, from_address, to_address)
+            self.relay_from_to[(from_address, circuit_id)] = relay
+            self.relay_to_from[(to_address, circuit_id)] = relay
 
-            community.send_create(to_address, circ_id)
+            community.send_create(to_address, circuit_id)
 
     def on_extended(self, event):
         """ A circuit has been extended, forward the acknowledgment back
@@ -181,46 +178,46 @@ class TunnelProxy(Observable):
         address = event.message.candidate.sock_addr
         msg = event.message.payload
 
-        relay_key = (address, msg.circ_id)
+        relay_key = (address, msg.circuit_id)
         community = self.community
         assert isinstance(community, ProxyCommunity)
 
         # If we can forward it along the chain, do so!
         if self.relay_to_from.has_key(relay_key):
             relay = self.relay_to_from[relay_key]
-            community.send_extended(relay.from_address, msg.circ_id
+            community.send_extended(relay.from_address, msg.circuit_id
                 , msg.extended_with)
 
         # If it is ours, update our records
-        elif self.circuits.has_key(msg.circ_id):
-            circ_id = msg.circ_id
+        elif self.circuits.has_key(msg.circuit_id):
+            circuit_id = msg.circuit_id
             extended_with = msg.extended_with
 
-            self.circuits[circ_id].hops.append(extended_with)
-            self.circuit_membership[extended_with].add(circ_id)
-            logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circ_id,
-                        extended_with, len(self.circuits[circ_id].hops))
-            self._perform_extension(self.circuits[circ_id])
+            self.circuits[circuit_id].hops.append(extended_with)
+            self.circuit_membership[extended_with].add(circuit_id)
+            logger.info('Circuit %d has been extended with node at address %s and contains now %d hops', circuit_id,
+                        extended_with, len(self.circuits[circuit_id].hops))
+            self._perform_extension(self.circuits[circuit_id])
 
-    def create_circuit(self, first_hop, circ_id=None):
+    def create_circuit(self, first_hop, circuit_id=None):
         """ Create a new circuit, with one initial hop """
 
         address = first_hop.sock_addr
 
-        if circ_id == None:
-            circ_id = random.randint(0, 255)
+        if circuit_id is None:
+            circuit_id = random.randint(0, 255)
 
-        logger.info('Circuit %d is to be created', circ_id)
+        logger.info('Circuit %d is to be created', circuit_id)
 
-        circuit = Circuit(circ_id, address)
-        self.circuits[circ_id] = circuit
-        self.circuit_membership[address].add(circ_id)
+        circuit = Circuit(circuit_id, address)
+        self.circuits[circuit_id] = circuit
+        self.circuit_membership[address].add(circuit_id)
 
         community = self.community
         assert isinstance(community, ProxyCommunity)
-        community.send_create(address, circ_id)
+        community.send_create(address, circuit_id)
 
-        return self.circuits[circ_id]
+        return self.circuits[circuit_id]
 
     def _perform_extension(self, circuit):
         queue = self.extension_queue[circuit]
@@ -252,8 +249,8 @@ class TunnelProxy(Observable):
 
         circuits = set(self.circuits).difference(self.circuit_membership[candidate.sock_addr])
 
-        for circ_id in circuits:
-            self.extend_circuit(self.circuits[circ_id], candidate.sock_addr)
+        for circuit_id in circuits:
+            self.extend_circuit(self.circuits[circuit_id], candidate.sock_addr)
 
     def send_stdin_to_destination(self, destination):
         while 1:
@@ -264,8 +261,6 @@ class TunnelProxy(Observable):
 
             if not buff:
                 break
-
-            circuit = None
 
             while len(self.circuits) == 0:
                 logger.info("Waiting for circuits to be made before sending data")

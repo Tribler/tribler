@@ -1,39 +1,39 @@
-import sys
+import struct
+
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.payload import Payload
 
-import struct
 
 class CreatePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circ_id):
+        def __init__(self, meta, circuit_id):
             super(CreatePayload.Implementation, self).__init__(meta)
             
-            self.circ_id = circ_id
+            self.circuit_id = circuit_id
 
 class ExtendPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circ_id, extend_with):
+        def __init__(self, meta, circuit_id, extend_with):
             super(ExtendPayload.Implementation, self).__init__(meta)
              
-            self.circ_id = circ_id
+            self.circuit_id = circuit_id
             self.extend_with = extend_with
 
 class ExtendedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circ_id, extended_with):
+        def __init__(self, meta, circuit_id, extended_with):
             super(ExtendedPayload.Implementation, self).__init__(meta)
              
-            self.circ_id = circ_id
+            self.circuit_id = circuit_id
             self.extended_with = extended_with
             
 class DataPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circ_id, destination, data, origin = None):
+        def __init__(self, meta, circuit_id, destination, data, origin = None):
             super(DataPayload.Implementation, self).__init__(meta)
              
-            self.circ_id = circ_id
+            self.circuit_id = circuit_id
             self.destination = destination
             self.data = data
             self.origin = origin
@@ -74,21 +74,21 @@ class ProxyConversion(BinaryConversion):
              , self._decode_data)
          
     def _encode_createOrCreated(self, message):
-        return (struct.pack("!L", message.payload.circ_id),)
+        return struct.pack("!L", message.payload.circuit_id),
 
     def _decode_createOrCreated(self, placeholder, offset, data):
         if len(data) < offset + 4:
-            raise DropPacket("Cannot unpack circ_id, insufficient packet size")
+            raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
         
-        circ_id ,= struct.unpack_from("!L", data, offset)
+        circuit_id ,= struct.unpack_from("!L", data, offset)
         offset += 4
     
-        return offset, placeholder.meta.payload.implement(circ_id)
+        return offset, placeholder.meta.payload.implement(circuit_id)
     
     def _encode_extended(self, message):
         (host, port) = message.payload.extended_with
         return (
-                struct.pack("!LL", message.payload.circ_id, len(host))
+                struct.pack("!LL", message.payload.circuit_id, len(host))
                 , host
                 , struct.pack("!L", port)
                 )
@@ -96,7 +96,7 @@ class ProxyConversion(BinaryConversion):
     def _encode_extend(self, message):
         (host, port) = message.payload.extend_with
         return (
-                struct.pack("!LL", message.payload.circ_id, len(host))
+                struct.pack("!LL", message.payload.circuit_id, len(host))
                 , host
                 , struct.pack("!L", port)
                 )
@@ -114,7 +114,7 @@ class ProxyConversion(BinaryConversion):
         else: origin = message.payload.origin
 
         return (
-                struct.pack("!LL", message.payload.circ_id, len(host))
+                struct.pack("!LL", message.payload.circuit_id, len(host))
                 , host
                 , struct.pack("!LL", port, len(origin[0]))
                 , origin[0]
@@ -125,8 +125,8 @@ class ProxyConversion(BinaryConversion):
     
     def _decode_extend(self, placeholder, offset, data):
         if len(data) < offset + 8:
-            raise DropPacket("Cannot unpack circ_id/HostLength, insufficient packet size")
-        circ_id , host_length = struct.unpack_from("!LL", data, offset)
+            raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
+        circuit_id , host_length = struct.unpack_from("!LL", data, offset)
         offset += 8
         
         if len(data) < offset + host_length:
@@ -141,12 +141,12 @@ class ProxyConversion(BinaryConversion):
         
         ExtendWith = (host, port)
         
-        return offset, placeholder.meta.payload.implement(circ_id, ExtendWith)
+        return offset, placeholder.meta.payload.implement(circuit_id, ExtendWith)
     
     def _decode_extended(self, placeholder, offset, data):
         if len(data) < offset + 8:
-            raise DropPacket("Cannot unpack circ_id/HostLength, insufficient packet size")
-        circ_id , host_length = struct.unpack_from("!LL", data, offset)
+            raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
+        circuit_id , host_length = struct.unpack_from("!LL", data, offset)
         offset += 8
         
         if len(data) < offset + host_length:
@@ -161,12 +161,12 @@ class ProxyConversion(BinaryConversion):
         
         ExtendedWith = (host, port)
         
-        return offset, placeholder.meta.payload.implement(circ_id, ExtendedWith)
+        return offset, placeholder.meta.payload.implement(circuit_id, ExtendedWith)
     
     def _decode_data(self, placeholder, offset, data):
         if len(data) < offset + 8:
-            raise DropPacket("Cannot unpack circ_id/HostLength, insufficient packet size")
-        circ_id , host_length = struct.unpack_from("!LL", data, offset)
+            raise DropPacket("Cannot unpack circuit_id/HostLength, insufficient packet size")
+        circuit_id , host_length = struct.unpack_from("!LL", data, offset)
         offset += 8
         
         if len(data) < offset + host_length:
@@ -209,4 +209,4 @@ class ProxyConversion(BinaryConversion):
             payload = data[offset:offset + payload_length]
             offset += payload_length
         
-        return offset, placeholder.meta.payload.implement(circ_id, destination, payload, origin)
+        return offset, placeholder.meta.payload.implement(circuit_id, destination, payload, origin)

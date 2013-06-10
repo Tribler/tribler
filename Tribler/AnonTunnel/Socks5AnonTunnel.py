@@ -4,21 +4,18 @@ Created on 3 jun. 2013
 @author: Chris
 """
 
-import sys
 from traceback import print_exc
 from threading import Thread, Event
-from Tribler.Core.RawServer.RawServer import RawServer
-
-from TcpConnectionHandler import TcpConnectionHandler
-
 import logging
-from TunnelProxy import TunnelProxy
-from UdpRelayHandler import UdpRelayHandler
+
+from Tribler.Core.RawServer.RawServer import RawServer
+from TcpConnectionHandler import TcpConnectionHandler
 from UdpRelayTunnelHandler import UdpRelayTunnelHandler
+
 
 logger = logging.getLogger(__name__)
 
-import Socks5
+import Socks5.structs
 
 class Socks5AnonTunnel(Thread):
     def __init__(self, tunnel, Socks5_port=1080, timeout=300.0):
@@ -42,8 +39,8 @@ class Socks5AnonTunnel(Thread):
                                     errorfunc=self.rawserver_nonfatalerrorfunc)
 
         try:
-            port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'])
-            logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", self.Socks5_port)
+            port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'], reuse=True)
+            logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
         except:
             print_exc()
 
@@ -59,6 +56,7 @@ class Socks5AnonTunnel(Thread):
     #
     # Following methods are called by Instance2Instance thread
     #
+    # noinspection PyUnusedLocal
     def rawserver_fatalerrorfunc(self, event):
         """ Called by network thread """
         print_exc()
@@ -109,11 +107,11 @@ class Socks5AnonTunnel(Thread):
         return self.raw_server.create_udpsocket(0, "0.0.0.0")
 
     def create_udp_relay(self):
+        """
+        Initializes an UDP relay by listening to a newly created socket and attaching a UdpRelayHandler
+        :rtype : socket
+        """
         if self.udp_relay_socket is None:
-            """
-            Initializes an UDP relay by listening to a newly created socket and attaching a UdpRelayHandler
-            :rtype : socket
-            """
             self.udp_relay_socket = self.create_udp_socket()
             handler = UdpRelayTunnelHandler(self.udp_relay_socket, self)
             self.start_listening_udp(self.udp_relay_socket, handler)
@@ -130,7 +128,7 @@ class Socks5AnonTunnel(Thread):
 
         destination_address = self.destination_address
 
-        encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ATYP_IPV4, source_address[0],source_address[1], packet.data)
+        encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],source_address[1], packet.data)
         self.udp_relay_socket.sendto(encapsulated, destination_address)
         logger.info("Returning UDP packets from %s to %s using proxy port %d",source_address, destination_address, self.udp_relay_socket.getsockname()[1])
 

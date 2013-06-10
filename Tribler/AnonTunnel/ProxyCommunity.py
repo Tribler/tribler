@@ -103,35 +103,35 @@ class ProxyCommunity(Community, Observable):
         self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
 
-    def send_create(self, destination, circ_id):
+    def send_create(self, destination, circuit_id):
         candidate = self.dispersy.get_candidate(destination)
         
         meta = self.get_meta_message(u"create")
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
-                              payload=(circ_id,))
+                              payload=(circuit_id,))
         self.dispersy.endpoint.send([candidate], [message.packet])
         
-    def send_created(self, destination, circ_id):
+    def send_created(self, destination, circuit_id):
         candidate = self.dispersy.get_candidate(destination)
             
         meta = self.get_meta_message(u"created")
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
-                              payload=(circ_id,))
+                              payload=(circuit_id,))
         self.dispersy.endpoint.send([candidate], [message.packet])
         
-    def send_data(self, destination, circ_id, ultimate_destination, data = None, origin = None):
+    def send_data(self, destination, circuit_id, ultimate_destination, data = None, origin = None):
         candidate = self.dispersy.get_candidate(destination)      
             
         meta = self.get_meta_message(u"data")
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
-                              payload=(circ_id, ultimate_destination, data,origin))
+                              payload=(circuit_id, ultimate_destination, data,origin))
         
         self.dispersy.endpoint.send([candidate], [message.packet])
         
-    def send_extend(self, destination, circ_id, extend_with):
+    def send_extend(self, destination, circuit_id, extend_with):
         candidate = self.dispersy.get_candidate(destination) 
         
         if not isinstance(candidate, Candidate):
@@ -140,17 +140,17 @@ class ProxyCommunity(Community, Observable):
         meta = self.get_meta_message(u"extend")
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
-                              payload=(circ_id, extend_with,))
+                              payload=(circuit_id, extend_with,))
         
         self.dispersy.endpoint.send([candidate], [message.packet])
         
-    def send_extended(self, destination, circ_id, extended_with):
+    def send_extended(self, destination, circuit_id, extended_with):
         candidate = self.dispersy.get_candidate(destination)      
             
         meta = self.get_meta_message(u"extended")
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
-                              payload=(circ_id, extended_with,))
+                              payload=(circuit_id, extended_with,))
         
         self.dispersy.endpoint.send([candidate], [message.packet])
 

@@ -1,5 +1,6 @@
+import os
 import logging.config
-logging.config.fileConfig("logger.conf")
+logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger.conf")
 logger = logging.getLogger(__name__)
 
 import time
