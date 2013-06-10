@@ -408,7 +408,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     # 6. Send body (completely, a Range: or an infinite stream in chunked encoding
                     done = False
                     while True:
-                        data = stream.read(blocksize * 10)
+                        data = stream.read(blocksize)
                         if len(data) == 0:
                             done = True
 
