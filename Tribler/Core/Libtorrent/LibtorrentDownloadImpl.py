@@ -679,8 +679,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        if self.progress * self.length >= self.prebuffsize:
-            return 1.0
         return self.bufferprogress if self.vod_seekpos != None else 0.0
 
     def network_calc_prebuf_eta(self):
