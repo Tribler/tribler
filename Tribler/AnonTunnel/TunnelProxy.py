@@ -1,4 +1,6 @@
 import logging
+from Tribler.AnonTunnel.Socks5AnonTunnel import Socks5AnonTunnel
+
 logger = logging.getLogger(__name__)
 
 
@@ -18,6 +20,8 @@ from Tribler.dispersy.callback import Callback
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import StandaloneEndpoint
 
+from Socks5AnonTunnel import Socks5AnonTunnel
+
 __author__ = 'Chris'
 
 class TunnelProxy(Observable):
@@ -29,6 +33,8 @@ class TunnelProxy(Observable):
         """ Initialises the Proxy by starting Dispersy and joining
             the Proxy Overlay. """
         Observable.__init__(self)
+
+        self.socket_server = None
 
         self._exit_sockets = {}
 
@@ -126,6 +132,7 @@ class TunnelProxy(Observable):
 
     def get_exit_socket(self, circuit_id, address):
         if not (circuit_id in self._exit_sockets):
+            assert isinstance(self.socket_server, Socks5AnonTunnel)
             self._exit_sockets[circuit_id] = self.socket_server.create_udp_socket()
 
             return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)

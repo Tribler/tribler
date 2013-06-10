@@ -29,14 +29,16 @@ class Socks5AnonTunnel(Thread):
         self.connection_handler = TcpConnectionHandler()
         self.connection_handler.server = self
 
+        self.destination_address = None
+
 
         self.server_done_flag = Event()
         self.raw_server = RawServer(self.server_done_flag,
                                     timeout / 5.0,
                                     timeout,
                                     ipv6_enable=False,
-                                    failfunc=self.rawserver_fatalerrorfunc,
-                                    errorfunc=self.rawserver_nonfatalerrorfunc)
+                                    failfunc=self.raw_server_fatal_error_func,
+                                    errorfunc=self.raw_server_non_fatal_error_func)
 
         try:
             port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'], reuse=True)
@@ -57,11 +59,11 @@ class Socks5AnonTunnel(Thread):
     # Following methods are called by Instance2Instance thread
     #
     # noinspection PyUnusedLocal
-    def rawserver_fatalerrorfunc(self, event):
+    def raw_server_fatal_error_func(self, event):
         """ Called by network thread """
         print_exc()
 
-    def rawserver_nonfatalerrorfunc(self, event):
+    def raw_server_non_fatal_error_func(self, event):
         """ Called by network thread """
 
     def run(self):

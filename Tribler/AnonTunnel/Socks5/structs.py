@@ -30,20 +30,20 @@ class MethodRequest(object):
 
 
 class Request(object):
-    def __init__(self, version, cmd, rsv, atyp, destination_address, destination_port):
+    def __init__(self, version, cmd, rsv, address_type, destination_address, destination_port):
         self.version = version
         self.cmd = cmd
         self.rsv = rsv
-        self.atyp = atyp
+        self.address_type = address_type
         self.destination_address = destination_address
         self.destination_port = destination_port
 
 
 class UdpRequest(object):
-    def __init__(self, rsv, frag, atyp, destination_address, destination_port, payload):
+    def __init__(self, rsv, frag, address_type, destination_address, destination_port, payload):
         self.rsv = rsv
         self.frag = frag
-        self.atyp = atyp
+        self.address_type = address_type
         self.destination_address = destination_address
         self.destination_port = destination_port
         self.payload = payload 
@@ -71,29 +71,29 @@ def decode_methods_request(offset, data):
 def encode_method_selection_message(version, method):
     return struct.pack("BB", version, method)
 
-def encode_address(atyp, address):
-    if atyp == ADDRESS_TYPE_IPV4:
+def encode_address(address_type, address):
+    if address_type == ADDRESS_TYPE_IPV4:
         data = socket.inet_aton(address)
-    elif atyp == ADDRESS_TYP_IPV6:
+    elif address_type == ADDRESS_TYP_IPV6:
         raise ValueError("IPv6 not implemented")
-    elif atyp == ADDRESS_TYPE_DOMAIN_NAME:
+    elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         data = struct.pack("B", len(address))
         data += address
     else:
-        raise ValueError("ATYP must be either IPv4, IPv6 or domainname")
+        raise ValueError("address_type must be either IPv4, IPv6 or a domain name")
 
     return data
 
-def decode_address(atyp, offset, data):
-    if atyp == ADDRESS_TYPE_IPV4:
+def decode_address(address_type, offset, data):
+    if address_type == ADDRESS_TYPE_IPV4:
         destination_address = socket.inet_ntoa(data[offset:offset + 4])
         offset += 4
-    elif atyp == ADDRESS_TYPE_DOMAIN_NAME:
+    elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         domain_length, = struct.unpack_from("B", data, offset)
         offset += 1
         destination_address = data[offset:offset + domain_length]
         offset += domain_length
-    elif atyp == ADDRESS_TYP_IPV6:
+    elif address_type == ADDRESS_TYP_IPV6:
         return offset, None
     else:
         raise ValueError("Unsupported address type")
@@ -107,13 +107,13 @@ def decode_request(orig_offset, data):
     if len(data) - offset < 4:
         return orig_offset, None 
     
-    (version, cmd, rsv, atyp) = struct.unpack_from("BBBB", data, offset)
+    (version, cmd, rsv, address_type) = struct.unpack_from("BBBB", data, offset)
     offset += 4
     
     assert version == SOCKS_VERSION
     assert rsv == 0
     
-    offset, destination_address = decode_address(atyp, offset, data)
+    offset, destination_address = decode_address(address_type, offset, data)
     
     # Check if we could decode address, if not bail out
     if not destination_address:
@@ -126,12 +126,12 @@ def decode_request(orig_offset, data):
     destination_port, = struct.unpack_from("!H", data, offset)
     offset += 2
     
-    return offset, Request(version, cmd, rsv, atyp, destination_address, destination_port)
+    return offset, Request(version, cmd, rsv, address_type, destination_address, destination_port)
     
-def encode_reply(version, rep, rsv, atyp, bind_address, bind_port):
-    data = struct.pack("BBBB", version, rep, rsv, atyp)
+def encode_reply(version, rep, rsv, address_type, bind_address, bind_port):
+    data = struct.pack("BBBB", version, rep, rsv, address_type)
     
-    data += encode_address(atyp, bind_address)
+    data += encode_address(address_type, bind_address)
         
     data += struct.pack("!H", bind_port)
     return data
@@ -140,23 +140,23 @@ def decode_udp_packet(data):
     """:rtype : UdpRequest"""
 
     offset = 0
-    (rsv, frag, atyp) = struct.unpack_from("!HBB", data, offset)
+    (rsv, frag, address_type) = struct.unpack_from("!HBB", data, offset)
     offset += 4
     
-    offset, destination_address = decode_address(atyp, offset, data)
+    offset, destination_address = decode_address(address_type, offset, data)
     
     destination_port, = struct.unpack_from("!H", data, offset)
     offset += 2
     
     payload = data[offset:]
     
-    return UdpRequest(rsv, frag, atyp, destination_address, destination_port, payload )
+    return UdpRequest(rsv, frag, address_type, destination_address, destination_port, payload )
 
 
-def encode_udp_packet(rsv, frag, atyp, address, port, payload):
-    data = struct.pack("!HBB",rsv, frag, atyp)
+def encode_udp_packet(rsv, frag, address_type, address, port, payload):
+    data = struct.pack("!HBB",rsv, frag, address_type)
 
-    data += encode_address(atyp, address)
+    data += encode_address(address_type, address)
     data += struct.pack("!H", port)
     data += payload
 

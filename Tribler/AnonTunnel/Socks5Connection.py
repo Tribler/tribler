@@ -37,8 +37,6 @@ class Socks5Connection(object):
         else:
             self.buffer = self.buffer + data
 
-        logger.info("data_came_in %d bytes", len(data))
-
         self._process_buffer()
 
     def _try_handshake(self):
@@ -98,9 +96,9 @@ class Socks5Connection(object):
             self.write(response)
         elif request.cmd == Socks5.structs.REQ_CMD_UDP_ASSOCIATE:
             socket = self.connection_handler.server.create_udp_relay()
-            ip, port = socket.getsockname()
 
-            ip = "127.0.0.1"
+            # We use same IP as the single socket, but the port number comes from the newly created UDP listening socket
+            ip, port = self.single_socket.get_myip(), socket.getsockname()[1]
 
             logger.info("Accepting UDP ASSOCIATE request, direct client to %s:%d", ip, port)
 
