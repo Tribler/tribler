@@ -428,8 +428,7 @@ class ABCApp():
 
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
-            torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
-            self.sconfig.set_torrent_collecting_dir(torrcolldir)
+            self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
         if not self.sconfig.get_swift_meta_dir():
             self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
