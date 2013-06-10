@@ -7,3 +7,6 @@
 /output
 /swift
 /swift.exe
+.project
+.pydevproject
+Tribler/.idea/
