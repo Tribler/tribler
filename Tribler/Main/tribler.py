@@ -1058,8 +1058,7 @@ class ABCApp():
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 
             # 3. Save swift files to metadata dir
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            metadir = defaultDLConfig.get_swift_meta_dir()
+            metadir = self.sconfig.get_swift_meta_dir()
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1]  # Point to file on disk
                 metapath = os.path.join(metadir, os.path.split(storagepath)[1])
