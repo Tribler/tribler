@@ -357,6 +357,8 @@ class VideoPlayer:
             d.set_video_events(self.get_supported_vod_events())
             if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
                 d.set_selected_files([infilename])
+            if cdef.get_def_type() == "torrent":
+                d.set_vod_mode()
 
             print >> sys.stderr, "videoplay: play_vod: Restarting existing Download", cdef.get_id()
             self.set_vod_download(d)

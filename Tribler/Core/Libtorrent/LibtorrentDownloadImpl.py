@@ -695,7 +695,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['stats'] = self.network_create_statistics_reponse()
         stats['time'] = self.network_calc_eta()
         stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
-        stats['vod'] = True
+        stats['vod'] = self.get_mode()
         stats['vod_playable'] = self.progress == 1.0 or (stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
