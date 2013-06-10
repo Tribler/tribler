@@ -38,14 +38,12 @@ class SessionConfigInterface:
         to make this a copy constructor.
         """
 
-        if sessconfig is not None:  # copy constructor
-            self.sessconfig = sessconfig
-            return
-
         self.sessconfig = {}
-
-        # Define the built-in default here
         self.sessconfig.update(sessdefaults)
+
+        if sessconfig is not None:  # copy constructor
+            self.sessconfig.update(sessconfig)
+            return
 
         # Set video_analyser_path
         if sys.platform == 'win32':

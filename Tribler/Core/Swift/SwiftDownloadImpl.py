@@ -159,7 +159,8 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
 
         move_files = ('swiftmetadir' not in self.dlconfig) and not os.path.isdir(self.get_dest_dir())
 
-        if not self.get_swift_meta_dir():
+        metadir = self.get_swift_meta_dir()
+        if not metadir:
             metadir = self.session.get_swift_meta_dir()
             self.set_swift_meta_dir(metadir)
 
