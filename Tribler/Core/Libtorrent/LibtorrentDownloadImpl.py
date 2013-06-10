@@ -5,7 +5,6 @@ import copy
 import time
 import libtorrent as lt
 
-from math import ceil, floor
 from binascii import hexlify
 from traceback import print_exc
 
@@ -50,11 +49,11 @@ class VODFile(object):
     def read(self, *args):
         oldpos = self._file.tell()
 
-        print >> sys.stderr, 'VODFile, get bytes', oldpos, '-', oldpos + args[0]
+        print >> sys.stderr, 'VODFile: get bytes', oldpos, '-', oldpos + args[0]
         while self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
             time.sleep(1)
         result = self._file.read(*args)
-        print >> sys.stderr, 'VODFile, got bytes', oldpos, '-', self._file.tell()
+        print >> sys.stderr, 'VODFile: got bytes', oldpos, '-', self._file.tell()
         assert self.verify_pieces(result, oldpos, self._file.tell())
 
         return result
@@ -63,12 +62,10 @@ class VODFile(object):
         self._file.seek(*args)
         newpos = self._file.tell()
 
-        print >> sys.stderr, 'VODFile, seek', newpos, args
+        print >> sys.stderr, 'VODFile: seek', newpos, args
         self._download.vod_seekpos = self._download.vod_seekpos or newpos
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, newpos)], 0)
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), newpos, -1)], 1)
-
-        print >> sys.stderr, self._download.handle.piece_priorities()
 
     def verify_pieces(self, original_data, frompos, topos):
         allpiecesok = True
@@ -77,11 +74,11 @@ class VODFile(object):
 
         frompiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), frompos, 0)
         topiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), topos, 0)
-        print >> sys.stderr, "LibTorrent says we read pieces", frompiece.piece, topiece.piece
+        print >> sys.stderr, "VODFile: Libtorrent says we read pieces", frompiece.piece, topiece.piece
 
         if frompiece.start:
             if frompos - frompiece.start < 0:
-                print >> sys.stderr, "Cannot verify ", frompos, "-", frompos + self.piecesize - frompiece.start
+                print >> sys.stderr, "VODFile: Cannot verify ", frompos, "-", frompos + self.piecesize - frompiece.start
 
                 # cannot read partial piece, skipping first X bytes
                 frompos += self.piecesize - frompiece.start
@@ -92,7 +89,7 @@ class VODFile(object):
                 frompiece = frompiece.piece
 
         if topiece.piece == self.endpiece.piece:
-            print >> sys.stderr, "Cannot verify ", topos - topiece.start, "-", topos
+            print >> sys.stderr, "VODFile: Cannot verify ", topos - topiece.start, "-", topos
 
             # cannot read partial piece, truncating last X bytes
             topos -= topiece.start
@@ -133,9 +130,9 @@ class VODFile(object):
                 piecehash = sha(read_data[startindex:startindex + self.piecesize]).digest()
 
                 if piecehash == self.pieces[piece]:
-                    print >> sys.stderr, "Correct piece read", piece
+                    print >> sys.stderr, "VODFile: Correct piece read", piece
                 else:
-                    print >> sys.stderr, "Incorrect piece read", piece, piecehash, self.pieces[piece]
+                    print >> sys.stderr, "VODFile: Incorrect piece read", piece, piecehash, self.pieces[piece]
                     allpiecesok = False
                 startindex += self.piecesize
 
@@ -143,6 +140,7 @@ class VODFile(object):
 
     def close(self, *args):
         self._file.close(*args)
+
 
 class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     """ Download subclass that represents a libtorrent download."""
@@ -305,6 +303,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def set_vod_mode(self):
         self.vod_status = ""
+        self.vod_seekpos = 0
 
         # Define which file to DL in VOD mode
         self.videoinfo = {'live' : self.get_def().get_live()}
@@ -333,7 +332,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
         self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -1)], 0, exclude_borders=True)
 
-        if self.handle.status().progress == 1.0:
+        if self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)]) == 1.0:
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
             self.start_vod(complete=True)
@@ -443,6 +442,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if pieces:
                     pieces = list(set(pieces))
                     self.set_piece_priority(pieces, priority)
+
+    def set_mode(self, mode):
+        if self.get_mode() == DLMODE_VOD and mode != DLMODE_VOD:
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+        DownloadRuntimeConfig.set_mode(self, mode)
 
     def start_vod(self, complete=False):
         if not self.vod_status:

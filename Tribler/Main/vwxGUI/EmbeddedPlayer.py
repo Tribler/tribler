@@ -247,7 +247,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.vlcwrap.set_media_position_relative(position, self.GetState() == MEDIASTATE_STOPPED)
 
                 length = self.vlcwrap.get_stream_information_length()
-                length = length / 1000 if length > 0 else (self.estduration or self.download.get_vod_duration())
+                length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
                 time_position = length * position
                 self.timeoffset = time_position - (self.vlcwrap.get_media_position() / 1000)
 
