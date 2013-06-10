@@ -178,7 +178,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.prebuffsize = 5 * 1024 * 1024
         self.vod_seekpos = 0
         self.vod_status = ""
-        self.vod_seek_callback = None
 
         self.lm_network_vod_event_callback = None
         self.pstate_for_restart = None
