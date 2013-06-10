@@ -36,15 +36,16 @@ DEBUG = False
 
 class VODFile(object):
 
-    def __init__(self, f, d, filepiecerange):
+    def __init__(self, f, d):
         self._file = f
         self._download = d
 
         pieces = self._download.tdef.get_pieces()
         self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
         self.piecesize = self._download.tdef.get_piece_length()
-        self.startpiece = filepiecerange[0]
-        self.startoffset = filepiecerange[2]
+
+        self.startpiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), 0, 0)
+        self.endpiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), self._download.get_vod_filesize(), 0)
 
     def read(self, *args):
         oldpos = self._file.tell()
@@ -54,7 +55,8 @@ class VODFile(object):
             time.sleep(1)
         result = self._file.read(*args)
         print >> sys.stderr, 'VODFile, got bytes', oldpos, '-', self._file.tell()
-        self.verify_pieces(result, oldpos, self._file.tell())
+        assert self.verify_pieces(result, oldpos, self._file.tell())
+
         return result
 
     def seek(self, *args):
@@ -68,28 +70,76 @@ class VODFile(object):
 
         print >> sys.stderr, self._download.handle.piece_priorities()
 
-    def verify_pieces(self, data, frompos, topos):
-        # let's see if we read a complete piece
-        frompos += self.startoffset
-        topos += self.startoffset
+    def verify_pieces(self, original_data, frompos, topos):
+        allpiecesok = True
+        _frompos = frompos
+        _topos = topos
 
-        startpos = int(ceil(frompos / float(self.piecesize)) * self.piecesize)
-        endpos = int(floor(topos / float(self.piecesize)) * self.piecesize)
+        frompiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), frompos, 0)
+        topiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), topos, 0)
+        print >> sys.stderr, "LibTorrent says we read pieces", frompiece.piece, topiece.piece
 
-        while startpos != endpos:
-            startindex = startpos - frompos
-            endindex = startindex + self.piecesize
-            pieceindex = (startpos / self.piecesize) + self.startpiece
+        if frompiece.start:
+            if frompos - frompiece.start < 0:
+                print >> sys.stderr, "Cannot verify ", frompos, "-", frompos + self.piecesize - frompiece.start
 
-            piecehash = sha(data[startindex:endindex]).digest()
-            if piecehash != self.pieces[pieceindex]:
-                print >> sys.stderr, "Incorrect piece read", pieceindex, piecehash, self.pieces[pieceindex]
+                # cannot read partial piece, skipping first X bytes
+                frompos += self.piecesize - frompiece.start
+                frompiece = frompiece.piece + 1
             else:
-                print >> sys.stderr, "Correct piece read", pieceindex
+                # need to read more than this partial piece, extending with X bytes
+                frompos -= frompiece.start
+                frompiece = frompiece.piece
 
-            startpos += self.piecesize
+        if topiece.piece == self.endpiece.piece:
+            print >> sys.stderr, "Cannot verify ", topos - topiece.start, "-", topos
 
-        print >> sys.stderr, "Cannot verify", frompos - self.startoffset, startpos, endpos, topos - self.startoffset
+            # cannot read partial piece, truncating last X bytes
+            topos -= topiece.start
+            topiece = topiece.piece - 1
+
+        else:
+            if topiece.start:
+                topos += self.piecesize - topiece.start
+            topiece = topiece.piece
+
+        if topiece >= frompiece:
+            oldpos = self._file.tell()
+            self._file.seek(frompos)
+            read_data = self._file.read(topos - frompos)
+            self._file.seek(oldpos)
+
+            assert len(read_data) == topos - frompos
+
+            # align two arrays
+            data_offsets = [0, len(read_data)]
+            original_data_offsets = [0, (len(original_data))]
+
+            if frompos > _frompos:
+                original_data_offsets[0] = frompos - _frompos
+            elif frompos < _frompos:
+                data_offsets[0] = _frompos - frompos
+
+            if topos > _topos:
+                data_offsets[1] -= topos - _topos
+            elif topos < _topos:
+                original_data_offsets[1] -= _topos - topos
+
+            assert data_offsets[1] - data_offsets[0] == original_data_offsets[1] - original_data_offsets[0], (data_offsets[1] - data_offsets[0], original_data_offsets[1] - original_data_offsets[0])
+            assert read_data[data_offsets[0]:data_offsets[1]] == original_data[original_data_offsets[0]:original_data_offsets[1]]
+
+            startindex = 0
+            for piece in range(frompiece, topiece + 1):
+                piecehash = sha(read_data[startindex:startindex + self.piecesize]).digest()
+
+                if piecehash == self.pieces[piece]:
+                    print >> sys.stderr, "Correct piece read", piece
+                else:
+                    print >> sys.stderr, "Incorrect piece read", piece, piecehash, self.pieces[piece]
+                    allpiecesok = False
+                startindex += self.piecesize
+
+        return allpiecesok
 
     def close(self, *args):
         self._file.close(*args)
@@ -277,9 +327,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.videoinfo['mimetype'] = self.get_mimetype(filename)
         self.videoinfo['usercallback'] = lambda event, params : self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
         self.videoinfo['userevents'] = self.dlconfig['vod_userevents'][:]
-        for t, tl, o, f in self.filepieceranges:
-            if f == self.videoinfo['inpath']:
-                self.videoinfo['filepieceranges'] = [t, tl, o]
 
         self.handle.set_sequential_download(True)
 
@@ -327,6 +374,11 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def get_vod_fileindex(self):
         return self.handle.file_priorities().index(1)
+
+    def get_vod_filesize(self):
+        fileindex = self.get_vod_fileindex()
+        file_entry = self.handle.get_torrent_info().file_at(fileindex)
+        return file_entry.size
 
     def get_piece_progress(self, pieces):
         with self.dllock:
@@ -399,7 +451,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                                                    {"complete":  complete,
                                                     "filename":  self.videoinfo["outpath"][0] if complete else None,
                                                     "mimetype":  self.videoinfo["mimetype"],
-                                                    "stream":    None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self, self.videoinfo['filepieceranges']),
+                                                    "stream":    None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
                                                     "length":    self.videoinfo['outpath'][1],
                                                     "bitrate":   self.videoinfo["bitrate"]})
 
