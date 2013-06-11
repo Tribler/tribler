@@ -331,7 +331,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
         self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -1)], 0, exclude_borders=True)
 
-        if self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)]) == 1.0:
+        if self.progress == 1.0:
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
             self.start_vod(complete=True)
@@ -559,9 +559,13 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         status = self.handle.status()
         self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
+        if self.get_mode() == DLMODE_VOD:
+            self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
+            self.dlstate = DLSTATUS_SEEDING if self.progress == 1.0 else self.dlstate
+        else:
+            self.progress = status.progress
         self.error = unicode(status.error) if status.error else None
         self.length = float(status.total_wanted)
-        self.progress = status.progress
         self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
         self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
         self.all_time_upload = status.all_time_upload
