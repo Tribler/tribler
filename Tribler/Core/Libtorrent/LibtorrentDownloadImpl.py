@@ -766,13 +766,13 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        if self.vod_seekpos != None:
+        if self.get_mode() == DLMODE_VOD and self.vod_seekpos != None:
             return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
         else:
             return 0.0
 
     def network_calc_prebuf_frac_consec(self):
-        if self.vod_seekpos != None:
+        if self.get_mode() == DLMODE_VOD and self.vod_seekpos != None:
             return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)], consecutive=True)
         else:
             return 0.0
