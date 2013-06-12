@@ -14,7 +14,9 @@ from Tribler.Core.Base import *
 
 DEBUG = False
 
+
 class DownloadState(Serializable):
+
     """
     Contains a snapshot of the state of the Download at a specific
     point in time. Using a snapshot instead of providing live data and
@@ -45,7 +47,8 @@ class DownloadState(Serializable):
 
         if stats is None:
             # No info available yet from download engine
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: stats is None"
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: stats is None"
             self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
@@ -54,14 +57,16 @@ class DownloadState(Serializable):
                 self.status = status
 
         elif error is not None:
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: error is not None"
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: error is not None"
             self.error = error  # readonly access
             self.progress = 0.0  # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
 
         elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: we have status and it is not downloading or seeding"
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: we have status and it is not downloading or seeding"
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -73,7 +78,8 @@ class DownloadState(Serializable):
 
         else:
             # Copy info from stats
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: copy from stats"
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: copy from stats"
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
@@ -170,7 +176,7 @@ class DownloadState(Serializable):
         @return The amount in bytes.
         """
         if self.stats is None:
-            return 0L
+            return 0
         if direct == UPLOAD:
             return self.stats['stats'].upTotal
         else:
@@ -445,8 +451,6 @@ class DownloadState(Serializable):
             return {}
         else:
             return self.stats['vod_stats']
-
-
 
     def get_log_messages(self):
         """ Returns the last 10 logged non-fatal error messages.

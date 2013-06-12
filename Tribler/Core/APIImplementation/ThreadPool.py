@@ -9,8 +9,11 @@ from Queue import Queue
 try:
     prctlimported = True
     import prctl
-except ImportError,e:
+except ImportError as e:
     prctlimported = False
+
+DEBUG = False
+
 
 class ThreadPool:
 
@@ -19,7 +22,6 @@ class ThreadPool:
     thread."""
 
     def __init__(self, numThreads):
-
         """Initialize the thread pool with numThreads workers."""
 
         self.__threads = []
@@ -31,7 +33,6 @@ class ThreadPool:
         self.setThreadCount(numThreads)
 
     def setThreadCount(self, newNumThreads):
-
         """ External method to set the current pool size.  Acquires
         the resizing lock, then calls the internal version to do real
         work."""
@@ -48,7 +49,6 @@ class ThreadPool:
         return True
 
     def __setThreadCountNolock(self, newNumThreads):
-
         """Set the current pool size, spawning or terminating threads
         if necessary.  Internal use only; assumes the resizing lock is
         held."""
@@ -58,13 +58,13 @@ class ThreadPool:
             newThread = ThreadPoolThread(self)
             self.__threads.append(newThread)
             newThread.start()
+
         # If we need to shrink the pool, do so
         while newNumThreads < len(self.__threads):
             self.__threads[0].goAway()
             del self.__threads[0]
 
     def getThreadCount(self):
-
         """Return the number of threads in the pool."""
 
         self.__resizeLock.acquire()
@@ -74,7 +74,6 @@ class ThreadPool:
             self.__resizeLock.release()
 
     def queueTask(self, task, args=(), taskCallback=None):
-
         """Insert a task into the queue.  task must be callable;
         args and taskCallback can be None."""
 
@@ -93,11 +92,10 @@ class ThreadPool:
             self.__taskCond.release()
 
     def getNextTask(self):
-
         """ Retrieve the next task from the task queue.  For use
         only by ThreadPoolThread objects contained in the pool."""
-
-        print >> sys.stderr, len(self.__tasks)
+        if DEBUG:
+            print >> sys.stderr, len(self.__tasks)
 
         self.__taskCond.acquire()
         try:
@@ -110,8 +108,7 @@ class ThreadPool:
         finally:
             self.__taskCond.release()
 
-    def joinAll(self, waitForTasks = True, waitForThreads = True):
-
+    def joinAll(self, waitForTasks=True, waitForThreads=True):
         """ Clear the task queue and terminate all pooled threads,
         optionally allowing the tasks and threads to finish."""
 
@@ -129,12 +126,17 @@ class ThreadPool:
         # Tell all the threads to quit
         self.__resizeLock.acquire()
         try:
+            currentThreads = self.__threads[:]
             self.__setThreadCountNolock(0)
-            self.__isJoining = True
+
+            # notify all waiting threads that we are quitting
+            self.__taskCond.acquire()
+            self.__taskCond.notifyAll()
+            self.__taskCond.release()
 
             # Wait until all threads have exited
             if waitForThreads:
-                for t in self.__threads:
+                for t in currentThreads:
                     t.join()
                     del t
 
@@ -142,6 +144,7 @@ class ThreadPool:
             self.__isJoining = False
         finally:
             self.__resizeLock.release()
+
 
 class ThreadNoPool:
 
@@ -165,34 +168,33 @@ class ThreadNoPool:
             self.queue.task_done()
         return self.queue.get()
 
-    def joinAll(self, waitForTasks = False, waitForThreads = True):
+    def joinAll(self, waitForTasks=False, waitForThreads=True):
         self.__isJoiningStopQueuing = True
         self.queue.put((None, (), None))
 
         if waitForTasks:
             self.thread.join()
 
+
 class ThreadPoolThread(threading.Thread):
 
     """ Pooled thread class. """
 
     def __init__(self, pool):
-
         """ Initialize the thread and remember the pool. """
 
         threading.Thread.__init__(self)
-        self.setName('SessionPool'+self.getName())
+        self.setName('SessionPool' + self.getName())
         self.setDaemon(True)
         self.__pool = pool
         self.__isDying = False
 
     def run(self):
-
         """ Until told to quit, retrieve the next task and execute
         it, calling the callback if any.  """
 
         if prctlimported:
-            prctl.set_name("Tribler"+threading.currentThread().getName())
+            prctl.set_name("Tribler" + threading.currentThread().getName())
 
         # Arno, 2010-04-07: Dying only used when shrinking pool now.
         while self.__isDying == False:
@@ -209,9 +211,7 @@ class ThreadPoolThread(threading.Thread):
             except:
                 print_exc()
 
-
     def goAway(self):
-
         """ Exit the run loop next time through."""
 
         self.__isDying = True

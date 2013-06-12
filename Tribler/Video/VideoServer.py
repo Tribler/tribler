@@ -22,6 +22,7 @@ DEBUGWEBUI = False
 DEBUGLOCK = False
 DEBUGBASESERV = False
 
+
 def bytestr2int(b):
     if b == "":
         return None
@@ -37,12 +38,13 @@ class AbstractPathMapper:
     def get(self, path):
         msg = 'AbstractPathMapper: Unknown path ' + path
         stream = StringIO(msg)
-        streaminfo = {'mimetype':'text/plain', 'stream':stream, 'length':len(msg)}
+        streaminfo = {'mimetype': 'text/plain', 'stream': stream, 'length': len(msg)}
         return streaminfo
 
 
 class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 # class VideoHTTPServer(BaseHTTPServer.HTTPServer):
+
     """
     Arno: not using ThreadingMixIn makes it a single-threaded server.
 
@@ -63,7 +65,7 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
     def __init__(self, port):
         if VideoHTTPServer.__single:
-            raise RuntimeError, "HTTPServer is Singleton"
+            raise RuntimeError("HTTPServer is Singleton")
         VideoHTTPServer.__single = self
 
         self.port = port
@@ -85,6 +87,10 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             VideoHTTPServer(*args, **kw)
         return VideoHTTPServer.__single
     getInstance = staticmethod(getInstance)
+
+    def delInstance(*args, **kw):
+        VideoHTTPServer.__single = None
+    delInstance = staticmethod(delInstance)
 
     def background_serve(self):
         name = "VideoHTTPServerThread-1"
@@ -134,7 +140,6 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             streaminfo['lock'].acquire()
         return streaminfo
 
-
     def release_inputstream(self, urlpath):
         if DEBUGLOCK:
             print >> sys.stderr, "vs: rel_input: lock", urlpath, currentThread().getName()
@@ -150,7 +155,6 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             if DEBUGLOCK:
                 print >> sys.stderr, "vs: rel_input: stream: unlock", urlpath, currentThread().getName()
             streaminfo['lock'].release()
-
 
     def del_inputstream(self, urlpath):
         if DEBUGLOCK:
@@ -171,7 +175,6 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             if DEBUGLOCK:
                 print >> sys.stderr, "vs: del_input: stream: unlock", urlpath, currentThread().getName()
             streaminfo['lock'].release()
-
 
     def get_port(self):
         return self.port
@@ -194,6 +197,7 @@ class VideoHTTPServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
         if DEBUGBASESERV:
             print >> sys.stderr, "VideoHTTPServer: handle_error", request, client_address
             print_exc()
+
 
 class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -245,7 +249,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 if streaminfo is None or ('statuscode' in streaminfo and streaminfo['statuscode'] != 200):
                     # 2. Send error response
                     if streaminfo is None:
-                        streaminfo = {'statuscode':500, 'statusmsg':"Internal Server Error, couldn't find resource"}
+                        streaminfo = {'statuscode': 500, 'statusmsg': "Internal Server Error, couldn't find resource"}
                     if DEBUG:
                         print >> sys.stderr, "videoserv: do_GET: Cannot serve request", streaminfo['statuscode'], currentThread().getName()
 
@@ -275,7 +279,6 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         svc = streaminfo['svc']
                     else:
                         svc = False
-
 
                 # mimetype = 'application/x-mms-framed'
                 # mimetype = 'video/H264'
@@ -381,9 +384,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_header("Content-Type", mimetype)
                 self.send_header("Accept-Ranges", "bytes")
 
-
                 # Ric: bitrate needs to be detected even if the file is already completed
-                if streaminfo.has_key('bitrate') and length is not None:
+                if 'bitrate' in streaminfo and length is not None:
                     bitrate = streaminfo['bitrate']
                     estduration = float(length) / float(bitrate)
                     self.send_header("X-Content-Duration", estduration)
@@ -393,7 +395,6 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 else:
                     self.send_header("Transfer-Encoding", "chunked")
                 self.end_headers()
-
 
                 if svc:
                     # 6. Send body: For SVC we send all we currently have, not blocking.
@@ -476,13 +477,12 @@ class VideoRawVLCServer:
 
     def __init__(self):
         if VideoRawVLCServer.__single:
-            raise RuntimeError, "VideoRawVLCServer is Singleton"
+            raise RuntimeError("VideoRawVLCServer is Singleton")
         VideoRawVLCServer.__single = self
 
         self.lock = RLock()
         self.oldsid = None
         self.sid2streaminfo = {}
-
 
         # self.lastsid = None # workaround bug? in raw inf
 
@@ -569,15 +569,15 @@ class VideoRawVLCServer:
             return -1
 
 
-
 class MultiHTTPServer(ThreadingMixIn, VideoHTTPServer):
+
     """ MuliThreaded HTTP Server """
 
     __single = None
 
     def __init__(self, port):
         if MultiHTTPServer.__single:
-            raise RuntimeError, "MultiHTTPServer is Singleton"
+            raise RuntimeError("MultiHTTPServer is Singleton")
         MultiHTTPServer.__single = self
 
         self.port = port

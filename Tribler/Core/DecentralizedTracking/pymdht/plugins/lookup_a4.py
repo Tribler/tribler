@@ -7,7 +7,8 @@ import threading
 import logging
 from operator import attrgetter
 
-import os, sys
+import os
+import sys
 this_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.join(this_dir, '..')
 sys.path.append(root_dir)
@@ -23,6 +24,7 @@ logger = logging.getLogger('dht')
 MARK_INDEX = 2
 
 ANNOUNCE_REDUNDANCY = 3
+
 
 class _QueuedNode(object):
 
@@ -45,7 +47,7 @@ class _LookupQueue(object):
     def __init__(self, info_hash, queue_size):
         self.info_hash = info_hash
         self.queue_size = queue_size
-        self.queue = [_QueuedNode(None, identifier.ID_SIZE_BITS+1, None)]
+        self.queue = [_QueuedNode(None, identifier.ID_SIZE_BITS + 1, None)]
         # *_ips is used to prevent that many Ids are
         # claimed from a single IP address.
         self.queued_ips = set()
@@ -78,8 +80,8 @@ class _LookupQueue(object):
                             token)
         self._add_responded_qnode(qnode)
         qnodes = [_QueuedNode(n, n.id.distance(
-                    self.info_hash), None)
-                  for n in nodes]
+            self.info_hash), None)
+            for n in nodes]
         self._add_queued_qnodes(qnodes)
         return self._pop_nodes_to_query(max_nodes)
 
@@ -126,7 +128,7 @@ class _LookupQueue(object):
             try:
                 qnode = self.queued_qnodes[0]
             except (IndexError):
-                break # no more queued nodes left
+                break  # no more queued nodes left
             if qnode.distance is None or qnode.distance.log < mark:
                 self.queried_ips.add(qnode.node.ip)
                 nodes_to_query.append(qnode.node)
@@ -137,6 +139,7 @@ class _LookupQueue(object):
 
 
 class GetPeersLookup(object):
+
     """DO NOT use underscored variables, they are thread-unsafe.
     Variables without leading underscore are thread-safe.
 
@@ -193,7 +196,7 @@ class GetPeersLookup(object):
 
     def on_response_received(self, response_msg, node_):
         logger.debug('response from %r\n%r' % (node_,
-                                                response_msg))
+                    response_msg))
         self._num_parallel_queries -= 1
         self.num_responses += 1
         token = getattr(response_msg, 'token', None)
@@ -251,9 +254,9 @@ class GetPeersLookup(object):
             return [], False
         nodes_to_announce = self._lookup_queue.get_closest_responded_qnodes()
         announce_to_myself = False
-        #TODO: is is worth it to announce to self? The problem is that I don't
-        #know my own IP number. Maybe if 127.0.0.1 translates into "I (the
-        #node returning 127.0.0.1) am in the swarm".
+        # TODO: is is worth it to announce to self? The problem is that I don't
+        # know my own IP number. Maybe if 127.0.0.1 translates into "I (the
+        # node returning 127.0.0.1) am in the swarm".
         '''
         if len(nodes_to_announce) < ANNOUNCE_REDUNDANCY:
             announce_to_myself = True

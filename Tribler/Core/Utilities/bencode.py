@@ -11,10 +11,11 @@ try:
 except ImportError:
     UnicodeType = None
 
-from traceback import print_exc,print_stack
+from traceback import print_exc, print_stack
 import sys
 
 DEBUG = False
+
 
 def decode_int(x, f):
     f += 1
@@ -26,42 +27,46 @@ def decode_int(x, f):
     if x[f] == '-':
         if x[f + 1] == '0':
             raise ValueError
-    elif x[f] == '0' and newf != f+1:
+    elif x[f] == '0' and newf != f + 1:
         raise ValueError
-    return (n, newf+1)
-  
+    return (n, newf + 1)
+
+
 def decode_string(x, f):
     colon = x.index(':', f)
     try:
         n = int(x[f:colon])
     except (OverflowError, ValueError):
         n = long(x[f:colon])
-    if x[f] == '0' and colon != f+1:
+    if x[f] == '0' and colon != f + 1:
         raise ValueError
     colon += 1
-    return (x[colon:colon+n], colon+n)
+    return (x[colon:colon + n], colon +n)
+
 
 def decode_unicode(x, f):
-    s, f = decode_string(x, f+1)
+    s, f = decode_string(x, f + 1)
     return (s.decode('UTF-8'), f)
 
+
 def decode_list(x, f):
-    r, f = [], f+1
+    r, f = [], f + 1
     while x[f] != 'e':
         v, f = decode_func[x[f]](x, f)
         r.append(v)
     return (r, f + 1)
 
+
 def decode_dict(x, f):
-    r, f = {}, f+1
+    r, f = {}, f + 1
     lastkey = None
     while x[f] != 'e':
         k, f = decode_string(x, f)
         # Arno, 2008-09-12: uTorrent 1.8 violates the bencoding spec, its keys
-        # in an EXTEND handshake message are not sorted. Be liberal in what we 
+        # in an EXTEND handshake message are not sorted. Be liberal in what we
         # receive:
-        ##if lastkey >= k:
-        ##    raise ValueError
+        # if lastkey >= k:
+        # raise ValueError
         lastkey = k
         r[k], f = decode_func[x[f]](x, f)
     return (r, f + 1)
@@ -80,19 +85,29 @@ decode_func['6'] = decode_string
 decode_func['7'] = decode_string
 decode_func['8'] = decode_string
 decode_func['9'] = decode_string
-#decode_func['u'] = decode_unicode
-  
-def bdecode(x, sloppy = 0):
+# decode_func['u'] = decode_unicode
+
+
+def bdecode(x, sloppy=0):
+    r, l = sloppy_bdecode(x)
+    if not sloppy and l != len(x):
+        raise ValueError("bad bencoded data")
+    return r
+
+
+def sloppy_bdecode(x):
+    """
+    Same as bdecode, except that it returns the decoded data AND the number of bytes read from X.
+    """
     try:
         r, l = decode_func[x[0]](x, 0)
 #    except (IndexError, KeyError):
     except (IndexError, KeyError, ValueError):
         if DEBUG:
             print_exc()
-        raise ValueError, "bad bencoded data"
-    if not sloppy and l != len(x):
-        raise ValueError, "bad bencoded data"
-    return r
+        raise ValueError("bad bencoded data")
+    return r, l
+
 
 def test_bdecode():
     try:
@@ -110,10 +125,10 @@ def test_bdecode():
         assert 0
     except ValueError:
         pass
-    assert bdecode('i4e') == 4L
-    assert bdecode('i0e') == 0L
-    assert bdecode('i123456789e') == 123456789L
-    assert bdecode('i-10e') == -10L
+    assert bdecode('i4e') == 4
+    assert bdecode('i0e') == 0
+    assert bdecode('i123456789e') == 123456789
+    assert bdecode('i-10e') == -10
     try:
         bdecode('i-0e')
         assert 0
@@ -238,29 +253,37 @@ def test_bdecode():
 
 bencached_marker = []
 
+
 class Bencached:
+
     def __init__(self, s):
         self.marker = bencached_marker
         self.bencoded = s
 
-BencachedType = type(Bencached('')) # insufficient, but good as a filter
+BencachedType = type(Bencached(''))  # insufficient, but good as a filter
+
 
 def encode_bencached(x, r):
     assert x.marker == bencached_marker
     r.append(x.bencoded)
 
+
 def encode_int(x, r):
     r.extend(('i', str(x), 'e'))
+
 
 def encode_bool(x, r):
     encode_int(int(x), r)
 
-def encode_string(x, r):    
+
+def encode_string(x, r):
     r.extend((str(len(x)), ':', x))
 
+
 def encode_unicode(x, r):
-    #r.append('u')
+    # r.append('u')
     encode_string(x.encode('UTF-8'), r)
+
 
 def encode_list(x, r):
     r.append('l')
@@ -268,21 +291,22 @@ def encode_list(x, r):
         encode_func[type(e)](e, r)
     r.append('e')
 
+
 def encode_dict(x, r):
     r.append('d')
     ilist = x.items()
     ilist.sort()
     for k, v in ilist:
-        
+
         if DEBUG:
-            print >>sys.stderr,"bencode: Encoding",`k`,`v`
-        
+            print >>sys.stderr, "bencode: Encoding", repr(k), repr(v)
+
         try:
             r.extend((str(len(k)), ':', k))
         except:
             print >> sys.stderr, "k: %s" % k
             raise
-            
+
         encode_func[type(v)](v, r)
     r.append('e')
 
@@ -298,35 +322,37 @@ if BooleanType:
     encode_func[BooleanType] = encode_bool
 # Arno, 2010-01-27: No more implicit Unicode support.
 # We should disable this now and then to see if the higher layers properly
-# UTF-8 encode their fields before calling bencode    
+# UTF-8 encode their fields before calling bencode
 if UnicodeType:
     encode_func[UnicodeType] = encode_unicode
-    
+
+
 def bencode(x):
     r = []
     try:
         encode_func[type(x)](x, r)
     except:
-        print >>sys.stderr,"bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
+        print >>sys.stderr, "bencode: *** error *** could not encode type %s (value: %s)" % (type(x), x)
         print_stack()
-        
+
         print_exc()
         assert 0
     try:
         return ''.join(r)
     except:
         if DEBUG:
-            print >>sys.stderr,"bencode: join error",x
+            print >>sys.stderr, "bencode: join error", x
             for elem in r:
-                print >>sys.stderr,"elem",elem,"has type",type(elem)
+                print >>sys.stderr, "elem", elem, "has type", type(elem)
             print_exc()
         return ''
+
 
 def test_bencode():
     assert bencode(4) == 'i4e'
     assert bencode(0) == 'i0e'
     assert bencode(-10) == 'i-10e'
-    assert bencode(12345678901234567890L) == 'i12345678901234567890e'
+    assert bencode(12345678901234567890) == 'i12345678901234567890e'
     assert bencode('') == '0:'
     assert bencode('abc') == '3:abc'
     assert bencode('1234567890') == '10:1234567890'
@@ -342,7 +368,7 @@ def test_bencode():
     except AssertionError:
         pass
 
-  
+
 try:
     import psyco
     psyco.bind(bdecode)

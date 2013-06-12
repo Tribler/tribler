@@ -1,8 +1,9 @@
 *.pyc
 *.pyo
-swift
-/.Tribler/
-/.noseids
-.#*
-\#*\#
 *~
+\#*\#
+/.Tribler
+/.noseids
+/output
+/swift
+/swift.exe

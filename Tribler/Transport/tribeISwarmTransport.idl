@@ -1,8 +1,0 @@
-#include "nsISupports.idl"
-
-[scriptable, uuid(946ef9dc-af29-466d-89a7-541f62d914a1)]
-interface tribeISwarmTransport : nsISupports
-{
-  readonly attribute string version;
-};
-

@@ -8,12 +8,14 @@ from time import time
 _MAXFORWARD = 100
 _FUDGE = 1
 
+
 class RelativeTime:
+
     def __init__(self):
         self.time = time()
         self.offset = 0
 
-    def get_time(self):        
+    def get_time(self):
         t = time() + self.offset
         if t < self.time or t > self.time + _MAXFORWARD:
             self.time += _FUDGE
@@ -24,6 +26,7 @@ class RelativeTime:
 
 if sys.platform != 'win32':
     _RTIME = RelativeTime()
+
     def clock():
         return _RTIME.get_time()
 else:

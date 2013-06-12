@@ -1,5 +1,8 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-import wx, os, sys, math
+import wx
+import os
+import sys
+import math
 
 from wx.lib.mixins.listctrl import CheckListCtrlMixin, ColumnSorterMixin, ListCtrlAutoWidthMixin
 from wx.lib.scrolledpanel import ScrolledPanel
@@ -23,9 +26,10 @@ DEBUG = False
 
 class NativeIcon:
     __single = None
+
     def __init__(self):
         if NativeIcon.__single:
-            raise RuntimeError, "NativeIcon is singleton"
+            raise RuntimeError("NativeIcon is singleton")
         NativeIcon.__single = self
         self.icons = {}
 
@@ -64,7 +68,7 @@ class NativeIcon:
                     return bmp
                 return bitmap
 
-            #create both icons
+            # create both icons
             icons[background][0] = self.__createBitmap(parent, background, type, 0)
             icons[background][1] = self.__createBitmap(parent, background, type, 1)
 
@@ -73,7 +77,6 @@ class NativeIcon:
 
             icons[background][0] = fixSize(icons[background][0], width, height)
             icons[background][1] = fixSize(icons[background][1], width, height)
-
 
         if state not in icons[background]:
             icons[background][state] = self.__createBitmap(parent, background, type, state)
@@ -88,14 +91,14 @@ class NativeIcon:
             else:
                 state = wx.CONTROL_PRESSED
 
-        #There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
-        #Thus we create a larger bmp, allowing for borders
+        # There are some strange bugs in RendererNative, the alignment is incorrect of the drawn images
+        # Thus we create a larger bmp, allowing for borders
         bmp = wx.EmptyBitmap(24, 24)
         dc = wx.MemoryDC(bmp)
         dc.SetBackground(wx.Brush(background))
         dc.Clear()
 
-        #max size is 16x16, using 4px as a border
+        # max size is 16x16, using 4px as a border
         if type == 'checkbox':
             wx.RendererNative.Get().DrawCheckBox(parent, dc, (4, 4, 16, 16), state)
 
@@ -124,11 +127,13 @@ class NativeIcon:
         dc.SelectObject(wx.NullBitmap)
         del dc
 
-        #determine actual size of drawn icon, and return this subbitmap
+        # determine actual size of drawn icon, and return this subbitmap
         bb = wx.RegionFromBitmapColour(bmp, background).GetBox()
         return bmp.GetSubBitmap(bb)
 
+
 class BetterText(wx.StaticText):
+
     def __init__(self, *args, **kwargs):
         wx.StaticText.__init__(self, *args, **kwargs)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackGround)
@@ -139,6 +144,7 @@ class BetterText(wx.StaticText):
     def SetLabel(self, text):
         if text != self.GetLabel():
             wx.StaticText.SetLabel(self, text)
+
 
 class MaxBetterText(wx.BoxSizer):
 
@@ -159,7 +165,7 @@ class MaxBetterText(wx.BoxSizer):
 
         self.SetLabel(label)
 
-        if sys.platform == 'win32': #lets do manual word wrapping
+        if sys.platform == 'win32':  # lets do manual word wrapping
             self.label.Bind(wx.EVT_SIZE, self.OnSize)
 
     def SetLabel(self, label):
@@ -219,7 +225,7 @@ class MaxBetterText(wx.BoxSizer):
         return start
 
     def _limitLabel(self, label):
-        #find 6th line or break at 600 characters
+        # find 6th line or break at 600 characters
         breakAt = self.find_nth(label, '\n', self.maxLines)
         if breakAt != -1:
             breakAt = min(breakAt, self.maxCharacters)
@@ -229,8 +235,9 @@ class MaxBetterText(wx.BoxSizer):
         return label[:breakAt]
 
 
-#Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
+# Stripped down version of wx.lib.agw.HyperTextCtrl, thank you andrea.gavana@gmail.com
 class LinkText(GenStaticText):
+
     def __init__(self, parent, label, fonts=[None, None], colours=[None, None], style=0, parentsizer=None):
         if parentsizer:
             self.parentsizer = parentsizer
@@ -303,7 +310,9 @@ class LinkText(GenStaticText):
         GenStaticText.SetBackgroundColour(self, colour)
         self.Refresh()
 
+
 class LinkStaticText(wx.BoxSizer):
+
     def __init__(self, parent, text, icon="bullet_go.png", icon_type=None, icon_align=wx.ALIGN_RIGHT, font_increment=0, font_colour='#0473BB'):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         self.parent = parent
@@ -368,8 +377,10 @@ class LinkStaticText(wx.BoxSizer):
         return self.text.GetFont()
 
     def Show(self, show):
-        if self.icon: self.icon.Show(show)
-        if self.text: self.text.Show(show)
+        if self.icon:
+            self.icon.Show(show)
+        if self.text:
+            self.text.Show(show)
 
     def ShowIcon(self, show=True):
         if self.icon and self.icon.IsShown() != show:
@@ -443,6 +454,7 @@ class LinkStaticText(wx.BoxSizer):
 
 
 class ProgressStaticText(wx.Panel):
+
     def __init__(self, parent, text, progress):
         wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
@@ -463,7 +475,9 @@ class ProgressStaticText(wx.Panel):
     def SetProgress(self, progress):
         self.gauge.SetProgress(progress)
 
+
 class VerticalGauge(wx.Panel):
+
     def __init__(self, parent, progress, size=wx.DefaultSize):
         wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
         self.SetBackgroundColour(parent.GetBackgroundColour())
@@ -497,7 +511,9 @@ class VerticalGauge(wx.Panel):
     def OnEraseBackground(self, event):
         pass
 
+
 class HorizontalGauge(wx.Control):
+
     def __init__(self, parent, background, bitmap, repeat=1, bordersize=0, size=wx.DefaultSize):
         wx.Control.__init__(self, parent, size=size, style=wx.NO_BORDER)
 
@@ -559,7 +575,9 @@ class HorizontalGauge(wx.Control):
     def OnEraseBackground(self, event):
         pass
 
+
 class EditText(wx.TextCtrl):
+
     def __init__(self, parent, text, multiLine=False):
         style = 0
         if multiLine:
@@ -582,7 +600,9 @@ class EditText(wx.TextCtrl):
         if self.IsChanged():
             return self.GetValue()
 
+
 class EditStaticText(wx.Panel):
+
     def __init__(self, parent, text, multiLine=False):
         wx.Panel.__init__(self, parent, style=wx.NO_BORDER)
         self.original_text = text
@@ -618,7 +638,9 @@ class EditStaticText(wx.Panel):
     def GetChanged(self):
         return self.edit.GetChanged()
 
+
 class NotebookPanel(wx.Panel):
+
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
         self.SetForegroundColour(self.GetParent().GetForegroundColour())
@@ -658,12 +680,16 @@ class NotebookPanel(wx.Panel):
         if hasattr(self.list, 'SetupScrolling'):
             self.list.SetupScrolling(*args, **kwargs)
 
+
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
+
     def __init__(self, parent, style):
         wx.ListCtrl.__init__(self, parent, style=style)
         ListCtrlAutoWidthMixin.__init__(self)
 
+
 class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
+
     def __init__(self, parent, style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.NO_BORDER, tooltip=True):
         wx.ListCtrl.__init__(self, parent, -1, style=style)
         ListCtrlAutoWidthMixin.__init__(self)
@@ -687,7 +713,9 @@ class BetterListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
                 pass
         self.SetToolTipString(tooltip)
 
+
 class SelectableListCtrl(BetterListCtrl):
+
     def __init__(self, parent, style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.NO_BORDER, tooltip=True):
         BetterListCtrl.__init__(self, parent, style, tooltip)
         self.allselected = False
@@ -695,7 +723,7 @@ class SelectableListCtrl(BetterListCtrl):
 
     def _CopyToClipboard(self, event):
         if event.ControlDown():
-            if event.GetKeyCode() == 67: #ctrl + c
+            if event.GetKeyCode() == 67:  # ctrl + c
                 data = ""
 
                 selected = self.GetFirstSelected()
@@ -711,7 +739,7 @@ class SelectableListCtrl(BetterListCtrl):
                 wx.TheClipboard.SetData(do)
                 wx.TheClipboard.Close()
 
-            elif event.GetKeyCode() == 65: #ctrl + a
+            elif event.GetKeyCode() == 65:  # ctrl + a
                 self.doSelectAll()
         event.Skip()
 
@@ -723,7 +751,9 @@ class SelectableListCtrl(BetterListCtrl):
                 self.Select(index, 1)
         self.allselected = not self.allselected
 
+
 class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
+
     def __init__(self, parent, style=wx.LC_REPORT | wx.LC_NO_HEADER | wx.NO_BORDER, tooltip=True):
         SelectableListCtrl.__init__(self, parent, style, tooltip)
         CheckListCtrlMixin.__init__(self)
@@ -751,17 +781,19 @@ class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
                 self.CheckItem(index, True)
         self.allselected = not self.allselected
 
+
 class TextCtrlAutoComplete(wx.TextCtrl):
+
     def __init__ (self, parent, entrycallback=None, selectcallback=None, **therest):
         '''
             Constructor works just like wx.TextCtrl
         '''
-        if therest.has_key('style'):
+        if 'style' in therest:
             therest['style'] = wx.TE_PROCESS_ENTER | therest['style']
         else:
             therest['style'] = wx.TE_PROCESS_ENTER
 
-        wx.TextCtrl.__init__(self , parent , **therest)
+        wx.TextCtrl.__init__(self, parent, **therest)
 
         self.text = ""
         self.choices = []
@@ -780,9 +812,9 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.entrycallback = entrycallback
         self.selectcallback = selectcallback
 
-        self.Bind (wx.EVT_KILL_FOCUS, self.ControlChanged, self)
-        self.Bind (wx.EVT_TEXT , self.EnteredText, self)
-        self.Bind (wx.EVT_KEY_DOWN , self.KeyDown, self)
+        self.Bind(wx.EVT_KILL_FOCUS, self.ControlChanged, self)
+        self.Bind(wx.EVT_TEXT, self.EnteredText, self)
+        self.Bind(wx.EVT_KEY_DOWN, self.KeyDown, self)
 
         self.dropdown.Bind(wx.EVT_LISTBOX, self.ListItemSelected, self.dropdownlistbox)
 
@@ -794,11 +826,11 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdownlistbox.Select(toSel)
         self.SetValueFromSelected()
 
-    def SetChoices (self, choices=[""]) :
+    def SetChoices (self, choices=[""]):
         ''' Sets the choices available in the popup wx.ListBox. '''
         self.choices = choices
 
-        #delete, if need, all the previous data
+        # delete, if need, all the previous data
         if self.dropdownlistbox.GetColumnCount() != 0:
             self.dropdownlistbox.DeleteAllColumns()
             self.dropdownlistbox.DeleteAllItems()
@@ -808,8 +840,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         for num, it in enumerate(choices):
             self.dropdownlistbox.InsertStringItem(num, it)
 
-        self.dropdownlistbox.SetColumnWidth(0, wx.LIST_AUTOSIZE) #autosize only works after adding rows
-
+        self.dropdownlistbox.SetColumnWidth(0, wx.LIST_AUTOSIZE)  # autosize only works after adding rows
 
         itemcount = min(len(choices), 7) + 2
         charheight = self.dropdownlistbox.GetCharHeight()
@@ -818,7 +849,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdown.SetClientSize(self.popupsize)
         self.dropdown.Layout()
 
-    def ControlChanged (self, event) :
+    def ControlChanged(self, event):
         self.ShowDropDown(False)
         event.Skip()
 
@@ -847,42 +878,42 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
         sel = self.dropdownlistbox.GetFirstSelected()
         visible = self.dropdown.IsShown()
-        if event.GetKeyCode() == wx.WXK_DOWN :
-            if sel < (self.dropdownlistbox.GetItemCount () - 1) :
+        if event.GetKeyCode() == wx.WXK_DOWN:
+            if sel < (self.dropdownlistbox.GetItemCount() - 1):
                 self.dropdownlistbox.Select(sel + 1)
                 self.ListItemVisible()
 
             self.ShowDropDown()
             skip = False
 
-        if event.GetKeyCode() == wx.WXK_UP :
-            if sel > 0 :
-                self.dropdownlistbox.Select (sel - 1)
+        if event.GetKeyCode() == wx.WXK_UP:
+            if sel > 0:
+                self.dropdownlistbox.Select(sel - 1)
                 self.ListItemVisible()
-            self.ShowDropDown ()
+            self.ShowDropDown()
             skip = False
 
-        if visible :
+        if visible:
             if event.GetKeyCode() == wx.WXK_RETURN or event.GetKeyCode() == wx.WXK_SPACE:
-                if sel > -1: #we select the current item if enter or space is pressed
+                if sel > -1:  # we select the current item if enter or space is pressed
                     skip = event.GetKeyCode() == wx.WXK_RETURN
                     self.SetValueFromSelected(addSpace=(event.GetKeyCode() == wx.WXK_SPACE))
                     self.ShowDropDown(False)
 
-            if event.GetKeyCode() == wx.WXK_ESCAPE :
+            if event.GetKeyCode() == wx.WXK_ESCAPE:
                 self.ShowDropDown(False)
                 skip = False
 
         if skip:
             event.Skip()
 
-    def SetValueFromSelected(self, addSpace=False) :
+    def SetValueFromSelected(self, addSpace=False):
         '''
             Sets the wx.TextCtrl value from the selected wx.ListBox item.
             Will do nothing if no item is selected in the wx.ListBox.
         '''
         sel = self.dropdownlistbox.GetFirstSelected()
-        if sel > -1 :
+        if sel > -1:
             newval = self.dropdownlistbox.GetItemText(sel)
             if addSpace:
                 newval += " "
@@ -895,7 +926,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
 
                 self.selectcallback()
 
-    def ShowDropDown(self, show=True) :
+    def ShowDropDown(self, show=True):
         ''' Either display the drop down list (show = True) or hide it (show = False). '''
         if show:
             show = len(self.choices) > 0
@@ -907,25 +938,27 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         if show and not self.dropdown.IsShown():
             size = self.dropdown.GetSize()
             width, height = self.GetSizeTuple()
-            x, y = self.ClientToScreenXY (0, height)
-            if size.GetWidth() <> width :
+            x, y = self.ClientToScreenXY(0, height)
+            if size.GetWidth() != width:
                 size.SetWidth(width)
                 self.dropdown.SetSize(size)
 
-            if (y + size.GetHeight()) < self.screenheight :
-                self.dropdown.SetPosition (wx.Point(x, y))
+            if (y + size.GetHeight()) < self.screenheight:
+                self.dropdown.SetPosition(wx.Point(x, y))
             else:
-                self.dropdown.SetPosition (wx.Point(x, y - height - size.GetHeight()))
+                self.dropdown.SetPosition(wx.Point(x, y - height - size.GetHeight()))
         self.dropdown.Show(show)
 
-    def ListItemVisible(self) :
+    def ListItemVisible(self):
         ''' Moves the selected item to the top of the list ensuring it is always visible. '''
         self.dropdownlistbox.EnsureVisible(self.dropdownlistbox.GetFirstSelected())
 
     def ListItemSelected(self, event):
         self.SetValueFromSelected()
 
+
 class ImageScrollablePanel(ScrolledPanel):
+
     def __init__(self, parent, id= -1, pos=wx.DefaultPosition, size=wx.DefaultSize, style=wx.HSCROLL | wx.VSCROLL):
         ScrolledPanel.__init__(self, parent, id, pos, size, style)
 
@@ -950,6 +983,7 @@ class ImageScrollablePanel(ScrolledPanel):
 
 
 class ChannelPopularity(wx.Panel):
+
     def __init__(self, parent, background, bitmap, bordersize=0, size=wx.DefaultSize):
         self.background = background
         self.bitmap = bitmap
@@ -995,6 +1029,7 @@ class ChannelPopularity(wx.Panel):
 
 
 class SwarmHealth(wx.Panel):
+
     def __init__(self, parent, bordersize=0, size=wx.DefaultSize, align=wx.ALIGN_LEFT):
         wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
         self.bordersize = bordersize
@@ -1015,7 +1050,7 @@ class SwarmHealth(wx.Panel):
             self.red = 0
         else:
             if leechers == 0:
-                ratio = sys.maxint
+                ratio = sys.maxsize
             elif seeders == 0:
                 ratio = 0
             else:
@@ -1029,7 +1064,7 @@ class SwarmHealth(wx.Panel):
                 pop = seeders + leechers
                 if pop > 0:
 
-                    self.barwidth = min(max(math.log(pop * 4, 10) * 2, 1.1) / 10.0, 1) #let it max at 25k population
+                    self.barwidth = min(max(math.log(pop * 4, 10) * 2, 1.1) / 10.0, 1)  # let it max at 25k population
                 else:
                     self.barwidth = 1
 
@@ -1108,6 +1143,7 @@ def _set_font(control, size_increment=0, fontweight=wx.FONTWEIGHT_NORMAL, fontco
 
 
 class ActionButton(wx.Panel):
+
     def __init__(self, parent, id= -1, bitmap=wx.NullBitmap, hover=True, **kwargs):
         wx.Panel.__init__(self, parent, id, size=bitmap.GetSize(), **kwargs)
         self.SetBackgroundColour(parent.GetBackgroundColour())
@@ -1201,6 +1237,7 @@ class ActionButton(wx.Panel):
 
 
 class ProgressButton(ActionButton):
+
     def __init__(self, parent, id= -1, label='Search', **kwargs):
         ActionButton.__init__(self, parent, id=id, bitmap=wx.EmptyBitmap(1, 1), **kwargs)
         self.icon = None
@@ -1412,6 +1449,7 @@ class FancyPanel(wx.Panel):
 
 
 class DottedBetterText(BetterText):
+
     def __init__(self, parent, id, label, *args, **kwargs):
         wx.StaticText.__init__(self, parent, id, label, *args, **kwargs)
         if label:
@@ -1504,7 +1542,7 @@ class MinMaxSlider(wx.Panel):
         self.arrow_up_drag = False
         self.ReleaseMouse()
         self.Unbind(wx.EVT_MOTION)
-        #Call parent
+        # Call parent
         min_val, max_val = self.GetCurrentValues()
         self.GetParent().GetParent().OnSlider(min_val, max_val)
 
@@ -1575,101 +1613,90 @@ class SimpleNotebook(wx.Panel):
     def __init__(self, *args, **kwargs):
         self.show_single_tab = kwargs.pop('show_single_tab', True)
         wx.Panel.__init__(self, *args, **kwargs)
-        self.ad = None
         self.labels = []
         self.panels = []
-        self.pshown = None
+        self.pshown = 0
         self.lspace = 10
         self.hSizer_labels = wx.BoxSizer(wx.HORIZONTAL)
         self.hSizer_panels = wx.BoxSizer(wx.HORIZONTAL)
-        self.hSizer_panel = wx.Panel(self, -1)
-        self.hSizer_panel.SetSizer(self.hSizer_labels)
-        self.hSizer_panel.SetBackgroundColour(FILTER_GREY)
-        self.hSizer_panel.SetMinSize((-1, 25))
+        self.tab_colours = {}
+        self.tab_panel = wx.Panel(self, -1)
+        self.tab_panel.SetSizer(self.hSizer_labels)
+        self.tab_panel.SetBackgroundColour(self.GetBackgroundColour())
+        self.tab_panel.SetMinSize((-1, 25))
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        self.top_separator = wx.Panel(self, size=(-1, 1))
-        self.top_separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Add(self.top_separator, 0, wx.EXPAND)
-        vSizer.Add(self.hSizer_panel, 0, wx.EXPAND)
-        separator = wx.Panel(self, size=(-1, 1))
-        separator.SetBackgroundColour(SEPARATOR_GREY)
-        vSizer.Add(separator, 0, wx.EXPAND)
+        vSizer.Add(self.tab_panel, 0, wx.EXPAND)
         vSizer.Add(self.hSizer_panels, 1, wx.EXPAND)
         self.SetSizer(vSizer)
+        self.tab_panel.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def OnLeftUp(self, event):
         obj = event.GetEventObject()
-        for index, control in enumerate(self.hSizer_labels.GetChildren()):
-            if getattr(control, 'IsSizer', False) and control.GetSizer() == obj:
-                self.SetSelection(index / 2)
-                self.hSizer_panel.Refresh()
-                break
+        if obj in self.labels:
+            self.SetSelection(self.labels.index(obj))
+            self.tab_panel.Refresh()
 
     def GetPage(self, num_page):
         if num_page >= 0 and num_page < self.GetPageCount():
             return self.panels[num_page]
         return None
 
-    def AddPage(self, page, text, select=False):
-        label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
-        label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
-        self.hSizer_labels.Add(label, 0, wx.RIGHT | wx.LEFT | wx.CENTER, self.lspace)
-        self.hSizer_labels.Add(sline, 0, wx.EXPAND | wx.ALL | wx.CENTER | wx.TOP | wx.BOTTOM, 5)
-        self.hSizer_labels.Layout()
-        page.Show(False)
-        index = len(self.hSizer_panels.GetChildren()) - 1 if self.ad else len(self.hSizer_panels.GetChildren())
-        self.hSizer_panels.Insert(index, page, 100, wx.EXPAND)
-        self.labels.append(label)
-        self.panels.append(page)
-        if select or not self.GetCurrentPage():
-            self.SetSelection(self.GetPageCount() - 1)
-        else:
-            self.Layout()
-        if not self.show_single_tab:
-            self.ShowTabs(self.GetPageCount() > 1)
+    def AddPage(self, page, text, tab_colour=None):
+        self.InsertPage(self.GetPageCount(), page, text, tab_colour)
 
-    def InsertPage(self, index, page, text, select=False):
-        if not (index >= 0 and index < self.GetPageCount()):
+    def InsertPage(self, index, page, text, tab_colour=None):
+        if not (index >= 0 and index <= self.GetPageCount()):
             return
-        label = LinkStaticText(self.hSizer_panel, text, None, font_colour=wx.BLACK)
+
+        if tab_colour:
+            self.tab_colours[index] = tab_colour
+
+        label = LinkStaticText(self.tab_panel, text, None, font_colour=self.tab_panel.GetForegroundColour())
         label.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        sline = wx.StaticLine(self.hSizer_panel, -1, style=wx.LI_VERTICAL)
-        self.hSizer_labels.Insert(index * 2, label, 0, wx.RIGHT | wx.LEFT | wx.CENTER, self.lspace)
-        self.hSizer_labels.Insert(index * 2 + 1, sline, 0, wx.EXPAND | wx.CENTER | wx.TOP | wx.BOTTOM, 5)
+        self.hSizer_labels.Insert(index, label, 0, wx.RIGHT | wx.LEFT | wx.CENTER, self.lspace)
         self.hSizer_labels.Layout()
-        page.Show(False)
-        szr_index = index - 1 if self.ad else index
-        self.hSizer_panels.Insert(szr_index, page, 100, wx.EXPAND)
+        page.Show(index == 0)
+        self.hSizer_panels.Insert(index, page, 100, wx.EXPAND)
         self.labels.insert(index, label)
         self.panels.insert(index, page)
-        if select or not self.GetCurrentPage():
-            self.SetSelection(self.GetPageCount() - 1)
-        else:
-            self.Layout()
+
         if not self.show_single_tab:
-            self.ShowTabs(self.GetPageCount() > 1)
+            show_tab_panel = self.GetPageCount() > 1
+            self.tab_panel.SetMinSize((-1, 25 if show_tab_panel else 1))
+            self.hSizer_labels.ShowItems(show_tab_panel)
+        self.Layout()
+
+        if index <= self.pshown:
+            if self.GetPageCount() > 1:
+                self.pshown += 1
+            wx.CallAfter(self.ResetTabs)
+
+    def ResetTabs(self):
+        for index, label in enumerate(self.labels):
+            selected_tab = self.GetSelection()
+            is_current = index == selected_tab
+            fg_colour = TRIBLER_RED if is_current else self.tab_panel.GetForegroundColour()
+            bg_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour()) if is_current else self.tab_panel.GetBackgroundColour()
+            label.SetForegroundColour(fg_colour)
+            label.SetBackgroundColour(bg_colour)
+        self.tab_panel.Refresh()
 
     def RemovePage(self, index):
-        remove_current = self.GetCurrentPage() == index
-        remove_last = self.GetPageCount() == index
         page = self.labels.pop(index)
         page.Show(False)
         label = self.panels.pop(index)
         label.Show(False)
-        self.hSizer_labels.Remove(index * 2)
-        if not remove_last:
-            sline = self.hSizer_labels.GetItem(index * 2)
-            sline = sline.GetWindow() if getattr(sline, 'IsWindow', False) and sline.IsWindow() else sline
-            sline.Show(False)
-            self.hSizer_labels.Remove(index * 2)
+        self.hSizer_labels.Remove(index)
         self.hSizer_panels.Remove(index)
-        if remove_current:
-            self.SetSelection(self.GetPageCount() - 1)
+
+        if self.GetSelection() == index:
+            self.SetSelection(index - 1 if index > 0 else 0)
+
         if not self.show_single_tab:
-            self.ShowTabs(self.GetPageCount() > 1)
-        else:
-            self.Layout()
+            show_tab_panel = self.GetPageCount() > 1
+            self.tab_panel.SetMinSize((-1, 25 if show_tab_panel else 1))
+            self.hSizer_labels.ShowItems(show_tab_panel)
+        self.Layout()
 
     def GetPageText(self, num_page):
         if num_page >= 0 and num_page < self.GetPageCount():
@@ -1685,29 +1712,33 @@ class SimpleNotebook(wx.Panel):
         return len(self.labels)
 
     def GetCurrentPage(self):
-        if self.pshown != None:
-            return self.GetPage(self.pshown)
-        return None
+        return self.GetPage(self.GetSelection())
 
     def SetSelection(self, num_page):
         if not (num_page >= 0 and num_page < self.GetPageCount()) or self.pshown == num_page:
             return
-        old_page_index = self.pshown
+
         old_page = self.GetCurrentPage()
         if old_page:
             old_page.Show(False)
-            self.labels[self.pshown].SetForegroundColour(self.GetForegroundColour())
-        self.labels[num_page].SetForegroundColour(TRIBLER_RED)
-        self.panels[num_page].Show(True)
-        self.pshown = num_page
+            old_label = self.labels[self.pshown]
+            old_label.SetForegroundColour(self.tab_panel.GetForegroundColour())
+            old_label.SetBackgroundColour(self.tab_panel.GetBackgroundColour())
+
+        new_page = self.panels[num_page]
+        new_page.Show(True)
+        new_label = self.labels[num_page]
+        new_label.SetForegroundColour(TRIBLER_RED)
+        new_label.SetBackgroundColour(self.tab_colours.get(num_page, new_page.GetBackgroundColour()))
         self.Layout()
 
-        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, old_page_index if old_page_index else 0)
+        event = wx.NotebookEvent(wx.EVT_NOTEBOOK_PAGE_CHANGED.typeId, 0, num_page, self.GetSelection())
         event.SetEventObject(self)
+        self.pshown = num_page
         wx.PostEvent(self.GetEventHandler(), event)
 
     def GetSelection(self):
-        return self.pshown or 0
+        return self.pshown
 
     def ChangeSelection(self, num_page):
         self.SetSelection(num_page)
@@ -1718,21 +1749,55 @@ class SimpleNotebook(wx.Panel):
     def GetThemeBackgroundColour(self):
         return self.GetBackgroundColour()
 
-    def SetAdSpace(self, panel):
-        if self.ad:
-            self.ad.Show(False)
-            self.hSizer_panels.Replace(self.ad, panel)
-            self.ad.Destroy()
-        else:
-            self.hSizer_panels.Add(panel, 0, wx.EXPAND)
-        self.ad = panel
-        panel.Show(True)
-        self.Layout()
+    def OnEraseBackground(self, evt):
+        dc = evt.GetDC()
+        if not dc:
+            dc = wx.ClientDC(self)
+            rect = self.GetUpdateRegion().GetBox()
+            dc.SetClippingRect(rect)
 
-    def ShowTabs(self, show=True):
-        self.hSizer_panel.Show(show)
-        self.top_separator.Show(show)
-        self.Layout()
+        width, height = self.tab_panel.GetClientSize()
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+
+        # Draw bottom separator
+        dc.SetPen(wx.Pen(SEPARATOR_GREY))
+        dc.DrawLine(0, height - 1, width, height - 1)
+
+        # If we're not showing the full tab_panel, stop here
+        if not self.show_single_tab and self.GetPageCount() < 2:
+            return
+
+        # Calculate separator positions
+        separator_positions = []
+        for i in range(0, len(self.labels) - 1):
+            l1, l2 = self.labels[i:i + 2]
+            x1, x2 = l1.GetPosition().x + l1.GetSize().x, l2.GetPosition().x
+            x_avg = (x1 + x2) / 2
+            separator_positions.append(x_avg)
+        if self.labels:
+            l = self.labels[-1]
+            separator_positions.append(l.GetPosition().x + l.GetSize().x + self.lspace)
+
+        # Draw tab highlighting
+        selected_tab = self.GetSelection()
+        x1 = separator_positions[selected_tab]
+        x2 = separator_positions[selected_tab - 1] if selected_tab > 0 else 0
+        tab_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour())
+        dc.SetBrush(wx.Brush(tab_colour))
+        dc.SetPen(wx.TRANSPARENT_PEN)
+        dc.DrawRectangle(x2, 0, x1 - x2, self.GetSize().y)
+
+        # Draw top separator
+        dc.SetPen(wx.Pen(SEPARATOR_GREY))
+        dc.DrawLine(0, 0, width, 0)
+
+        # Draw separators between labels
+        for i, x in enumerate(separator_positions):
+            if i == selected_tab or i == selected_tab - 1:
+                dc.DrawLine(x, 0, x, height)
+            else:
+                dc.DrawLine(x, self.lspace / 2, x, height - self.lspace / 2)
 
 
 class TagText(wx.Panel):
@@ -1982,7 +2047,6 @@ class TransparentStaticBitmap(wx.StaticBitmap):
         gc = wx.GraphicsContext.Create(dc)
         gc.DrawBitmap(bitmap, 0, 0, *bitmap.GetSize())
 
-
     def OnSize(self, event):
         self.Refresh()
         event.Skip()
@@ -2132,7 +2196,7 @@ class HorizontalGradientGauge(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
     def SetValue(self, value):
-        self.value = min(max(0, value), 100)
+        self.value = min(max(0.0, value), 1.0)
 
     def OnEraseBackground(self, event):
         pass
@@ -2161,6 +2225,7 @@ class HorizontalGradientGauge(wx.Panel):
 
 
 class Graph(wx.Panel):
+
     def __init__(self, parent, grid_size=4, max_points=120, *args, **kwargs):
         wx.Panel.__init__(self, parent, *args, **kwargs)
         self.x_margins = (30, 10)

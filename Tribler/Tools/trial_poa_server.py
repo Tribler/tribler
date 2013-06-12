@@ -4,20 +4,23 @@
 import os.path
 
 import sys
-import socket # For IPv6 override
+import socket  # For IPv6 override
 import select
 import threading
 
 import BaseHTTPServer
 
-import random # Do not allow all nodes access
+import random  # Do not allow all nodes access
 
 
-from Tribler.Core.ClosedSwarm import ClosedSwarm,Tools
+from Tribler.Core.ClosedSwarm import ClosedSwarm, Tools
 from Tribler.Core.Statistics.Status import *
 
 # Add SocketServer.ThreadingMixIn to get multithreaded
+
+
 class MyWebServer(BaseHTTPServer.HTTPServer):
+
     """
     Non-blocking, multi-threaded IPv6 enabled web server
     """
@@ -32,12 +35,13 @@ class MyWebServer(BaseHTTPServer.HTTPServer):
                                                server_address,
                                                RequestHandlerClass)
         except:
-            print >>sys.stderr,"Failed to use IPv6, using IPv4 instead"
+            print >>sys.stderr, "Failed to use IPv6, using IPv4 instead"
             self.address_family = socket.AF_INET
             BaseHTTPServer.HTTPServer.__init__(self,
                                                server_address,
                                                RequestHandlerClass)
     # Override that blasted blocking thing!
+
     def get_request(self):
         """Get the request and client address from the socket.
         Override to allow non-blocking requests.
@@ -53,9 +57,8 @@ class MyWebServer(BaseHTTPServer.HTTPServer):
             return (None, None)
 
 
-
-
 class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
     """
     Handle requests
     """
@@ -78,62 +81,57 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         """
 
-        print format%args
+        print format % args
 
-    def failed(self, code, message = None):
+    def failed(self, code, message=None):
         """
         Request failed, return error
         """
 
         try:
             if message:
-                print "Sending %d (%s)"%(code, message)
+                print "Sending %d (%s)" % (code, message)
                 self.send_error(code, message)
             else:
-                print "Sending %d "%code
+                print "Sending %d " % code
                 self.send_error(code)
 
-            try: # Should this be here?
+            try:  # Should this be here?
                 self.end_headers()
-            except Exception,e:
+            except Exception as e:
                 print >>sys.stderr, "Error sending end_headers - I guess I shouldn't do  it then"
 
-            #self.wfile.close()
-        except Exception,e:
+            # self.wfile.close()
+        except Exception as e:
 
             # Error sending error...  Log and ingnore
-            print >>sys.stderr, "Error sending error %s, ignoring (%s)"%(code, e)
+            print >>sys.stderr, "Error sending error %s, ignoring (%s)" % (code, e)
 
             # TODO: Remove this error thingy
             raise Exception("Could not send error")
 
         return False
 
-
-
-
     def prepareSend(self, type, size=None, response=200):
 
         # We're ready!
         try:
             self.send_response(response)
-        except Exception, e:
-            print >>sys.stderr, "Error sending response: %s"%e
+        except Exception as e:
+            print >>sys.stderr, "Error sending response: %s" % e
             return
 
-        #self.send_header("date", makeRFC1123time(time.time()))
+        # self.send_header("date", makeRFC1123time(time.time()))
         self.send_header("server", self.server_version)
         self.send_header("Content-Type", type)
         if size:
-            self.send_header("Content-Length",size)
+            self.send_header("Content-Length", size)
         self.end_headers()
-
 
     def do_POST(self):
         """
         Handle a POST request for a POA for the trial
         """
-
 
         # Don't block forever here
         self.rfile._sock.settimeout(5.0)
@@ -159,8 +157,8 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         try:
             poa = self.generate_poa(swarm_id, perm_id)
-        except Exception,e:
-            print >>sys.stderr, "Missing key for swarm '%s'"%swarm_id,e
+        except Exception as e:
+            print >>sys.stderr, "Missing key for swarm '%s'" % swarm_id, e
             return self.failed(404)
 
         self.prepareSend("application/octet-stream", len(poa))
@@ -175,7 +173,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         status = Status.get_status_holder("LivingLab")
 
         # Randomly allow 80% to be authorized...
-        if random.randint(0,100) > 80:
+        if random.randint(0, 100) > 80:
             status.create_and_add_event("denied", [swarm_id, perm_id])
             status.get_status_element("poas_failed").inc()
             raise Exception("Randomly denied...")
@@ -187,7 +185,7 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Load keys
         try:
             torrent_keypair = ClosedSwarm.read_cs_keypair(key_file)
-        except Exception,e:
+        except Exception as e:
             raise Exception("Bad torrent key file")
 
         # TODO? Sanity - check that this key matches the torrent
@@ -199,11 +197,12 @@ class WebHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         return poa.serialize()
 
+
 class WebServer(threading.Thread):
 
     def __init__(self, port):
         threading.Thread.__init__(self)
-        print "Starting WebServer on port %s"%port
+        print "Starting WebServer on port %s" % port
         self.server = MyWebServer(('', int(port)), WebHandler)
         self.port = port
         self.running = False
@@ -212,15 +211,15 @@ class WebServer(threading.Thread):
 
         self.running = True
 
-        print "WebServer Running on port %s"%self.port
+        print "WebServer Running on port %s" % self.port
 
         while self.running:
             try:
                 print "Waiting..."
                 self.server.handle_request()
-            except Exception,e:
+            except Exception as e:
                 if e.args[0] != "unpack non-sequence":
-                    print >>sys.stderr, "Error handling request",e
+                    print >>sys.stderr, "Error handling request", e
 
                 # Ignore these, Just means that there was no request
                 # waiting for us
@@ -242,12 +241,11 @@ if __name__ == "__main__":
 
     status = Status.get_status_holder("LivingLab")
     id = "poa_generator"
-    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id) # Report every 5 minutes
+    reporter = LivingLabReporter.LivingLabPeriodicReporter("Living lab CS reporter", 300, id)  # Report every 5 minutes
     status.add_reporter(reporter)
 
     status.create_status_element("poas_generated", 0)
     status.create_status_element("poas_failed", 0)
-
 
     ws = WebServer(8080)
     ws.start()

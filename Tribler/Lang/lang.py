@@ -11,7 +11,7 @@ from Tribler.__init__ import LIBRARYNAME
 from Tribler.Utilities.configreader import ConfigReader
 from Tribler.Core.__init__ import version_id
 
-################################################################
+#
 #
 # Class: Lang
 #
@@ -22,13 +22,16 @@ from Tribler.Core.__init__ import version_id
 # 2. See if the string is in the local language file
 # 3. See if the string is in english.lang
 #
-################################################################
+#
+
+
 class Lang:
+
     def __init__(self, utility):
         self.utility = utility
 
         filename = self.utility.config.Read('language_file')
-        langpath = os.path.join(self.utility.getPath(), LIBRARYNAME,  "Lang")
+        langpath = os.path.join(self.utility.getPath(), LIBRARYNAME, "Lang")
 
         sys.stdout.write("Setting up languages\n")
         print >> sys.stderr, "Language file:", langpath, filename
@@ -46,9 +49,9 @@ class Lang:
         if filename != 'english.lang' and existsAndIsReadable(local_filepath):
             self.local_lang_filename = filename
             # Modified
-            self.local_lang = wx.FileConfig(localFilename = local_filepath)
+            self.local_lang = wx.FileConfig(localFilename=local_filepath)
             self.local_lang.SetPath("ABC/language")
-            #self.local_lang = ConfigReader(local_filepath, "ABC/language")
+            # self.local_lang = ConfigReader(local_filepath, "ABC/language")
 
         # Set up english language file
         self.english_lang = None
@@ -70,7 +73,7 @@ class Lang:
         self.cache = {}
 
     # Retrieve a text string
-    def get(self, label, tryuser = True, trylocal = True, tryenglish = True, giveerror = True):
+    def get(self, label, tryuser=True, trylocal= True, tryenglish = True, giveerror = True):
         if tryuser and trylocal and tryenglish:
             tryall = True
         else:
@@ -95,7 +98,7 @@ class Lang:
 
         # see if it exists in local language
         if trylocal and self.local_lang is not None:
-            text, found = self.getFromLanguage(label, self.local_lang, giveerror = True)
+            text, found = self.getFromLanguage(label, self.local_lang, giveerror=True)
             if found:
                 if tryall:
                     self.cache[label] = text
@@ -116,11 +119,11 @@ class Lang:
         return ""
 
     def expandEnter(self, text):
-        text = text.replace("\\r","\n")
-        text = text.replace("\\n","\n")
+        text = text.replace("\\r", "\n")
+        text = text.replace("\\n", "\n")
         return text
 
-    def getFromLanguage(self, label, langfile, giveerror = False):
+    def getFromLanguage(self, label, langfile, giveerror=False):
         try:
             if langfile is not None:
                 if langfile.Exists(label):
@@ -129,19 +132,19 @@ class Lang:
                     return self.getMultiline(label, langfile), True
 
                 if giveerror:
-                    self.error(label, silent = True)
+                    self.error(label, silent=True)
         except:
             fileused = ""
-            langfilenames = { "user.lang": self.user_lang,
-                              self.local_lang_filename: self.local_lang,
-                              "english.lang": self.english_lang }
+            langfilenames = {"user.lang": self.user_lang,
+                            self.local_lang_filename: self.local_lang,
+                            "english.lang": self.english_lang}
             for name in langfilenames:
                 if langfilenames[name] == langfile:
                     fileused = name
                     break
             sys.stderr.write("Error reading language file: (" + fileused + "), label: (" + label + ")\n")
             data = StringIO()
-            print_exc(file = data)
+            print_exc(file=data)
             sys.stderr.write(data.getvalue())
 
         return "", False
@@ -154,7 +157,7 @@ class Lang:
         text = ""
         while (langfile.Exists(label + "_line" + str(i))):
             if (i != 1):
-                text+= "\n"
+                text += "\n"
             text += langfile.Read(label + "_line" + str(i))
             i += 1
         if not text:
@@ -165,8 +168,8 @@ class Lang:
     def writeUser(self, label, text):
         change = False
 
-        text_user = self.get(label, trylocal = False, tryenglish = False, giveerror = False)
-        text_nonuser = self.get(label, tryuser = False, giveerror = False)
+        text_user = self.get(label, trylocal=False, tryenglish= False, giveerror = False)
+        text_nonuser = self.get(label, tryuser=False, giveerror= False)
 
         user_lang = self.user_lang
 
@@ -186,7 +189,7 @@ class Lang:
 
         return change
 
-    def error(self, label, silent = False):
+    def error(self, label, silent=False):
         # Display a warning once that the language file doesn't contain all the values
         if (not self.langwarning):
             self.langwarning = True
@@ -202,6 +205,7 @@ class Lang:
                 dlg.Destroy()
         sys.stderr.write("\nError reading language file!\n")
         sys.stderr.write("  Cannot find value for variable: " + label + "\n")
+
 
 def existsAndIsReadable(filename):
     return os.access(filename, os.F_OK) and os.access(filename, os.R_OK)

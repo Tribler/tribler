@@ -35,7 +35,7 @@ class VideoPlayer:
 
     def __init__(self, httpport=6880):
         if VideoPlayer.__single:
-            raise RuntimeError, "VideoPlayer is singleton"
+            raise RuntimeError("VideoPlayer is singleton")
         VideoPlayer.__single = self
         self.videoframe = None
         self.extprogress = None
@@ -58,6 +58,12 @@ class VideoPlayer:
             VideoPlayer(*args, **kw)
         return VideoPlayer.__single
     getInstance = staticmethod(getInstance)
+
+    def delInstance(*args, **kw):
+        if VideoPlayer.__single and VideoPlayer.__single.videohttpserv:
+            VideoPlayer.__single.videohttpserv.delInstance()
+            VideoPlayer.__single = None
+    delInstance = staticmethod(delInstance)
 
     def hasInstance():
         return VideoPlayer.__single and VideoPlayer.__single.vlcwrap and VideoPlayer.__single.vlcwrap.initialized
@@ -94,6 +100,7 @@ class VideoPlayer:
     def shutdown(self):
         if self.videohttpserv:
             self.videohttpserv.shutdown()
+            self.videohttpserv.server_close()
 
     def set_other_downloads(self, other_downloads):
         """A boolean indicating whether there are other downloads running at this time"""
@@ -136,8 +143,8 @@ class VideoPlayer:
         stream = open(dest, "rb")
         stats = os.stat(dest)
         length = stats.st_size
-        streaminfo = {'mimetype':mimetype, 'stream':stream, 'length':length}
-        self.videohttpserv.set_inputstream(streaminfo, '/')
+        streaminfo = {'mimetype': mimetype, 'stream': stream, 'length':length}
+        self.videohttpserv.set_inputstream(streaminfo)
 
         self.launch_video_player(cmd)
 
@@ -178,7 +185,6 @@ class VideoPlayer:
 
         self.launch_video_player(cmd)
 
-
     def play_stream(self, streaminfo):
         if DEBUG:
             print >> sys.stderr, "videoplay: play_stream"
@@ -208,7 +214,6 @@ class VideoPlayer:
             [mimetype, cmd] = self.get_video_player(None, url, mimetype=streaminfo['mimetype'])
             self.launch_video_player(cmd)
 
-
     def launch_video_player(self, cmd, streaminfo=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
 
@@ -225,7 +230,6 @@ class VideoPlayer:
             # Launch an external player
             # Play URL from network or disk
             self.exec_video_player(cmd)
-
 
     def stop_playback(self, reset=False):
         """ Stop playback in current video window """
@@ -283,7 +287,7 @@ class VideoPlayer:
                     infilenames.append(infilename)
 
                 selectedinfilename = self.ask_user_to_select_video(infilenames)
-                print >> sys.stderr , "selectedinfilename == None" , selectedinfilename , len(selectedinfilename)
+                print >> sys.stderr, "selectedinfilename == None", selectedinfilename, len(selectedinfilename)
 
                 if selectedinfilename is None:
                     print >> sys.stderr, "videoplay: play: User selected no video"
@@ -376,14 +380,15 @@ class VideoPlayer:
             # resume when there is no VOD download
             if self.vod_download is None:
                 self.resume_by_system += 1
-                if DEBUG: print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because vod_download is None", "(%d)" % self.resume_by_system
+                if DEBUG:
+                    print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because vod_download is None", "(%d)" % self.resume_by_system
 
             # resume when the VOD download is not part of download_state_list
             elif not self.vod_download in [download_state.get_download() for download_state in download_state_list]:
                 self.resume_by_system += 1
                 if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because", `self.vod_download.get_def().get_name()`, "not in list", "(%d)" % self.resume_by_system
-                    print >> sys.stderr, "VideoPlayer: list:", `[download_state.get_download().get_def().get_name() for download_state in download_state_list]`
+                    print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because", repr(self.vod_download.get_def().get_name()), "not in list", "(%d)" % self.resume_by_system
+                    print >> sys.stderr, "VideoPlayer: list:", repr([download_state.get_download().get_def().get_name() for download_state in download_state_list])
 
             # resume when the VOD download has finished downloading
             elif not get_vod_download_status(DLSTATUS_ALLOCATING_DISKSPACE) in (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING):
@@ -418,13 +423,15 @@ class VideoPlayer:
                     # resume a download unless the user explisitly
                     # stopped the download
                     if not user_state == "stop":
-                        if DEBUG: print >> sys.stderr, "VideoPlayer: restart_other_downloads: Restarting", `download.get_def().get_name()`
+                        if DEBUG:
+                            print >> sys.stderr, "VideoPlayer: restart_other_downloads: Restarting", repr(download.get_def().get_name())
                         download.set_mode(DLMODE_NORMAL)
                         download.restart()
 
     def manage_other_downloads(self, othertorrentspolicy, targetd=None):
         self.resume_by_system = 1
-        if DEBUG: print >> sys.stderr, "VideoPlayer: manage_other_downloads"
+        if DEBUG:
+            print >> sys.stderr, "VideoPlayer: manage_other_downloads"
 
         policy_stop = othertorrentspolicy == OTHERTORRENTS_STOP or \
                       othertorrentspolicy == OTHERTORRENTS_STOP_RESTART
@@ -434,19 +441,23 @@ class VideoPlayer:
                 # Filter out live torrents, they are always
                 # removed. They stay in myPreferenceDB so can be
                 # restarted.
-                if DEBUG: print >> sys.stderr, "VideoPlayer: manage_other_downloads: Remove live", `download.get_def().get_name()`
+                if DEBUG:
+                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Remove live", repr(download.get_def().get_name())
                 self.utility.session.remove_download(download)
 
             elif download == targetd:
-                if DEBUG: print >> sys.stderr, "VideoPlayer: manage_other_downloads: Leave", `download.get_def().get_name()`
+                if DEBUG:
+                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Leave", repr(download.get_def().get_name())
                 download.stop()
 
             elif policy_stop:
-                if DEBUG: print >> sys.stderr, "VideoPlayer: manage_other_downloads: Stop", `download.get_def().get_name()`
+                if DEBUG:
+                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Stop", repr(download.get_def().get_name())
                 download.stop()
 
             else:
-                if DEBUG: print >> sys.stderr, "VideoPlayer: manage_other_downloads: Ignore", `download.get_def().get_name()`
+                if DEBUG:
+                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Ignore", repr(download.get_def().get_name())
 
     def manage_others_when_playing_from_file(self, targetd):
         """ When playing from file, make sure all other Downloads are no
@@ -463,9 +474,6 @@ class VideoPlayer:
                     d.stop()
                     d.set_mode(DLMODE_NORMAL)
                     d.restart()
-
-
-
 
     def start_and_play(self, cdef, dscfg, selectedinfilename=None):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
@@ -490,7 +498,7 @@ class VideoPlayer:
             # Restart download
             dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
             dscfg.set_video_events(self.get_supported_vod_events())
-            print >> sys.stderr, "videoplay: Starting new VOD/live Download", `cdef.get_name()`
+            print >> sys.stderr, "videoplay: Starting new VOD/live Download", repr(cdef.get_name())
 
             download = self.utility.session.start_download(cdef, dscfg)
 
@@ -499,7 +507,6 @@ class VideoPlayer:
 
         else:
             return None
-
 
     def sesscb_vod_event_callback(self, d, event, params):
         """ Called by the Session when the content of the Download is ready
@@ -558,7 +565,6 @@ class VideoPlayer:
                     # 2. Find first Ogg page in stream.
                     cachestream = OggMagicLiveStream(d.get_def(), stream)
 
-
                 # Estimate duration. Video player (e.g. VLC) often can't tell
                 # when streaming.
                 estduration = None
@@ -584,7 +590,7 @@ class VideoPlayer:
                                 mimetype = 'application/ogg'
 
 
-                streaminfo = {'mimetype':mimetype, 'stream':cachestream, 'length':length, 'blocksize':blocksize, 'estduration':estduration}
+                streaminfo = {'mimetype': mimetype, 'stream': cachestream, 'length':length, 'blocksize':blocksize, 'estduration':estduration}
 
                 if d.get_def().get_def_type() == "swift":
                     streaminfo['url'] = params['url']
@@ -678,8 +684,6 @@ class VideoPlayer:
             print >> sys.stderr, "videoplay: using external user-defined player by executing ", cmd
         return [mimetype, cmd]
 
-
-
     def exec_video_player(self, cmd):
         if DEBUG:
             print >> sys.stderr, "videoplay: Command is @" + cmd + "@"
@@ -699,11 +703,9 @@ class VideoPlayer:
                 (self.player_out, self.player_in) = os.popen2(cmd, 'b')
             else:
                 (self.player_out, self.player_in) = os.popen2(cmd, 'b')
-        except Exception, e:
+        except Exception as e:
             print_exc()
             self.onError(self.utility.lang.get('videoplayerstartfailure'), cmd, str(e.__class__) + ':' + str(e))
-
-
 
     def escape_path(self, path):
         if path[0] != '"' and path[0] != "'" and path.find(' ') != -1:
@@ -838,6 +840,7 @@ def parse_playtime_to_secs(hhmmss):
             # seconds
             t = int(occ[0])
     return t
+
 
 def return_feasible_playback_modes(syspath):
     l = []

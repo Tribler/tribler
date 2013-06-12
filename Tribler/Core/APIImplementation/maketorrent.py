@@ -112,10 +112,8 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
     if 'ogg-headers' in input:
         metainfo['ogg-headers'] = input['ogg-headers']
 
-
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
-
     infohash = sha(bencode(info)).digest()
     return (infohash, metainfo)
 
@@ -130,6 +128,7 @@ def uniconvertl(l, e):
     except UnicodeError:
         raise UnicodeError('bad filename: ' + os.path.join(l))
     return r
+
 
 def uniconvert(s, enc):
     """ Convert 's' to a string containing a Unicode sequence encoded using
@@ -149,10 +148,10 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
     pieces = []
     sh = sha()
-    done = 0L
+    done = 0
     fs = []
-    totalsize = 0L
-    totalhashed = 0L
+    totalsize = 0
+    totalhashed = 0
 
     # 1. Determine which files should go into the torrent (=expand any dirs
     # specified by user in input['files']
@@ -200,14 +199,14 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
             while totalsize / piece_length > 2000:
                 # too many piece, double piece_size
-                piece_length *= 2L
+                piece_length *= 2
     else:
         piece_length = input['piece length']
 
     # 4. Read files and calc hashes, if not live
     if 'live' not in input:
         for p, f, size in subs:
-            pos = 0L
+            pos = 0
 
             h = open(f, 'rb')
 
@@ -259,7 +258,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
             newdict = {'length': num2num(size),
                        'path': uniconvertl(p, encoding),
-                       'path.utf-8': uniconvertl(p, 'utf-8') }
+                       'path.utf-8': uniconvertl(p, 'utf-8')}
 
             # Find and add playtime
             for file in input['files']:
@@ -298,7 +297,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
             l = filename2pathlist(outpath)
             name = l[0]
 
-    infodict = { 'piece length':num2num(piece_length), flkey: flval,
+    infodict = {'piece length': num2num(piece_length), flkey: flval,
             'name': uniconvert(name, encoding),
             'name.utf-8': uniconvert(name, 'utf-8')}
 
@@ -307,9 +306,9 @@ def makeinfo(input, userabortflag, userprogresscallback):
         if input['createmerkletorrent']:
             merkletree = MerkleTree(piece_length, totalsize, None, pieces)
             root_hash = merkletree.get_root_hash()
-            infodict.update({'root hash': root_hash })
+            infodict.update({'root hash': root_hash})
         else:
-            infodict.update({'pieces': ''.join(pieces) })
+            infodict.update({'pieces': ''.join(pieces)})
     else:
         # With source auth, live is a dict
         infodict['live'] = input['live']
@@ -417,7 +416,7 @@ def savefilenames2finaldest(fn1, fn2):
 
 def num2num(num):
     """ Converts long to int if small enough to fit """
-    if type(num) == LongType and num < sys.maxint:
+    if isinstance(num, LongType) and num < sys.maxsize:
         return int(num)
     else:
         return num
@@ -439,13 +438,14 @@ def get_torrentfilerec_from_metainfo(filename, metainfo):
     else:
         raise ValueError("File not found in single-file torrent")
 
+
 def get_bitrate_from_metainfo(file, metainfo):
     info = metainfo['info']
     if file is None or 'files' not in info:  # if no file is specified or this is a single file torrent
         bitrate = None
         try:
             playtime = None
-            if info.has_key('playtime'):
+            if 'playtime' in info:
                 # print >>sys.stderr,"TorrentDef: get_bitrate: Bitrate in info field"
                 playtime = parse_playtime_to_secs(info['playtime'])
             elif 'playtime' in metainfo:  # HACK: encode playtime in non-info part of existing torrent
@@ -477,7 +477,7 @@ def get_bitrate_from_metainfo(file, metainfo):
             bitrate = None
             try:
                 playtime = None
-                if x.has_key('playtime'):
+                if 'playtime' in x:
                     playtime = parse_playtime_to_secs(x['playtime'])
                 elif 'playtime' in metainfo:  # HACK: encode playtime in non-info part of existing torrent
                     playtime = parse_playtime_to_secs(metainfo['playtime'])
@@ -499,6 +499,7 @@ def get_bitrate_from_metainfo(file, metainfo):
 
         raise ValueError("File not found in torrent")
 
+
 def get_length_from_metainfo(metainfo, selectedfiles):
     if 'files' not in metainfo['info']:
         # single-file torrent
@@ -507,13 +508,14 @@ def get_length_from_metainfo(metainfo, selectedfiles):
         # multi-file torrent
         files = metainfo['info']['files']
 
-        total = 0L
+        total = 0
         for i in xrange(len(files)):
             path = files[i]['path']
             length = files[i]['length']
             if length > 0 and (not selectedfiles or pathlist2filename(path) in selectedfiles):
                 total += length
         return total
+
 
 def get_length_priority_from_metainfo(metainfo, selectedfiles):
     if 'files' not in metainfo['info']:
@@ -523,7 +525,7 @@ def get_length_priority_from_metainfo(metainfo, selectedfiles):
         # multi-file torrent
         files = metainfo['info']['files']
 
-        total = 0L
+        total = 0
         priorities = []
         for i in xrange(len(files)):
             path = files[i]['path']
@@ -546,8 +548,8 @@ def get_length_filepieceranges_from_metainfo(metainfo, selectedfiles):
         files = metainfo['info']['files']
         piecesize = metainfo['info']['piece length']
 
-        offset = 0L
-        total = 0L
+        offset = 0
+        total = 0
         filepieceranges = []
         for i in xrange(len(files)):
             path = files[i]['path']
@@ -584,7 +586,7 @@ def copy_metainfo_to_input(metainfo, input):
         else:
             playtime = None
         length = metainfo['info']['length']
-        d = {'inpath':outpath, 'outpath':outpath, 'playtime':playtime, 'length':length}
+        d = {'inpath': outpath, 'outpath': outpath, 'playtime':playtime, 'length':length}
         input['files'].append(d)
     else:  # multi-file torrent
         files = metainfo['info']['files']
@@ -595,7 +597,7 @@ def copy_metainfo_to_input(metainfo, input):
             else:
                 playtime = None
             length = file['length']
-            d = {'inpath':outpath, 'outpath':outpath, 'playtime':playtime, 'length':length}
+            d = {'inpath': outpath, 'outpath': outpath, 'playtime':playtime, 'length':length}
             input['files'].append(d)
 
     if 'azureus_properties' in metainfo:

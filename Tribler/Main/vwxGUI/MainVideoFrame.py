@@ -12,8 +12,9 @@ from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 DEBUG = False
 
-        
+
 class VideoMacFrame(wx.Frame, VideoBaseFrame):
+
     """ Provides a wx.Frame around an EmbeddedPlayerPanel so the embedded player
     is shown as a separate window. The Embedded Player consists of a VLCLogoWindow
     and the media controls such as Play/Pause buttons and Volume Control.
@@ -25,16 +26,16 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         self.utility = utility
         self.vlcwrap = vlcwrap
         self.videopanel = None
-        
+
         if title is None:
             title = self.utility.lang.get('tb_video_short')
-        
+
         wx.Frame.__init__(self, None, -1, title)
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
-        
+
         # Set icons for Frame
         self.icons = wx.IconBundle()
-        self.icons.AddIconFromFile(iconpath,wx.BITMAP_TYPE_ICO)
+        self.icons.AddIconFromFile(iconpath, wx.BITMAP_TYPE_ICO)
         self.SetIcons(self.icons)
 
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -42,8 +43,8 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
 
     def show_videoframe(self):
         if DEBUG:
-            print >>sys.stderr,"videoframe: Swap IN videopanel"
-        
+            print >> sys.stderr, "videoframe: Swap IN videopanel"
+
         if not self.videopanel:
             self.get_videopanel()
 
@@ -51,18 +52,18 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
         self.CenterOnScreen()
         self.Raise()
         self.SetFocus()
-                       
+
         # H4x0r: We need to tell the VLC wrapper a XID of a
         # window to paint in. Apparently on win32 the XID is only
         # known when the window is shown. We give it the command
         # to show here, so shortly after it should be shown.
         #
         wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
-    
+
     def hide_videoframe(self):
         if DEBUG:
-            print >>sys.stderr,"videoframe: Swap OUT videopanel"
-        
+            print >> sys.stderr, "videoframe: Swap OUT videopanel"
+
         if self.videopanel is not None:
             self.videopanel.Reset()
             self.Hide()
@@ -70,8 +71,8 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
     def get_videopanel(self):
         if self.videopanel is None:
             self.videopanel = EmbeddedPlayerPanel(self, self.utility, self.vlcwrap, wx.BLACK)
-            self.videopanel.SetMinSize((320,300)) # vliegendhart: why 320x280? -> Niels: we need space for ctrlsizer
-            
+            self.videopanel.SetMinSize((320, 300)) # vliegendhart: why 320x280? -> Niels: we need space for ctrlsizer
+
             mainbox = wx.BoxSizer()
             mainbox.Add(self.videopanel, 1, wx.EXPAND)
             self.SetSizerAndFit(mainbox)
@@ -80,27 +81,29 @@ class VideoMacFrame(wx.Frame, VideoBaseFrame):
     def get_window(self):
         return self
 
-    def OnCloseWindow(self, event = None):
+    def OnCloseWindow(self, event=None):
         self.hide_videoframe()
 
+
 class VideoDummyFrame(VideoBaseFrame):
+
     """ Provides a fake Frame around an EmbeddedPlayerPanel so the embedded player
-    can be shown inside another window. 
+    can be shown inside another window.
     """
-    
-    def __init__(self,parent,utility,vlcwrap):
+
+    def __init__(self, parent, utility, vlcwrap):
         self.videopanel = EmbeddedPlayerPanel(parent, utility, vlcwrap, wx.BLACK)
-        self.parent  = parent
+        self.parent = parent
         self.utility = utility
         self.vlcwrap = vlcwrap
-        
+
         if vlcwrap:
             sizer = wx.BoxSizer()
             sizer.Add(self.videopanel, 1, wx.EXPAND)
             parent.SetSizer(sizer)
         else:
             self.videopanel.Hide()
-            
+
     def recreate_videopanel(self):
         old_videopanel = self.videopanel
         new_videopanel = EmbeddedPlayerPanel(self.parent, self.utility, self.vlcwrap, wx.BLACK)
@@ -110,7 +113,7 @@ class VideoDummyFrame(VideoBaseFrame):
         old_videopanel.Destroy()
         self.videopanel = new_videopanel
         self.videopanel.TellLVCWrapWindow4Playback()
-        
+
     def show_videoframe(self):
         if self.videopanel:
             pass
@@ -120,7 +123,7 @@ class VideoDummyFrame(VideoBaseFrame):
         # to show here, so shortly after it should be shown.
         #
         wx.CallAfter(self.videopanel.TellLVCWrapWindow4Playback)
-    
+
     def hide_videoframe(self):
         if self.videopanel:
             pass

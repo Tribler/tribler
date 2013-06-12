@@ -3,7 +3,8 @@
 
 import sys
 
-def bin2unicode(bin,possible_encoding='utf_8'):
+
+def bin2unicode(bin, possible_encoding='utf_8'):
     sysenc = sys.getfilesystemencoding()
     if possible_encoding is None:
         possible_encoding = sysenc
@@ -24,7 +25,7 @@ def bin2unicode(bin,possible_encoding='utf_8'):
                     try:
                         return bin.decode(sys.getfilesystemencoding())
                     except:
-                        return bin.decode(sys.getdefaultencoding(), errors = 'replace')
+                        return bin.decode(sys.getdefaultencoding(), errors='replace')
 
 
 def str2unicode(s):
@@ -32,7 +33,7 @@ def str2unicode(s):
         s = unicode(s)
     except:
         flag = 0
-        for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1', 'unicode-escape' ]:
+        for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1', 'unicode-escape']:
             try:
                 s = unicode(s, encoding)
                 flag = 1
@@ -41,14 +42,15 @@ def str2unicode(s):
                 pass
         if flag == 0:
             try:
-                s = unicode(s,sys.getdefaultencoding(), errors = 'replace')
+                s = unicode(s, sys.getdefaultencoding(), errors='replace')
             except:
                 pass
     return s
 
+
 def dunno2unicode(dunno):
     newdunno = None
-    if isinstance(dunno,unicode):
+    if isinstance(dunno, unicode):
         newdunno = dunno
     else:
         try:
@@ -59,25 +61,25 @@ def dunno2unicode(dunno):
 
 
 def name2unicode(metadata):
-    if metadata['info'].has_key('name.utf-8'):
+    if 'name.utf-8' in metadata['info']:
         namekey = 'name.utf-8'
     else:
         namekey = 'name'
-    if metadata.has_key('encoding'):
+    if 'encoding' in metadata:
         encoding = metadata['encoding']
-        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey],encoding)
+        metadata['info'][namekey] = bin2unicode(metadata['info'][namekey], encoding)
     else:
         metadata['info'][namekey] = bin2unicode(metadata['info'][namekey])
 
     # change metainfo['info']['name'] to metainfo['info'][namekey], just in case...
     # roer888 TODO: Never tested the following 2 lines
     if namekey != 'name':
-        metadata['info']['name'] = metadata['info'][namekey ]
+        metadata['info']['name'] = metadata['info'][namekey]
 
     return namekey
 
 
 def unicode2str(s):
-    if not isinstance(s,unicode):
+    if not isinstance(s, unicode):
         return s
     return s.encode(sys.getfilesystemencoding())
