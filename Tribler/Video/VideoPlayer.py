@@ -593,7 +593,7 @@ class VideoPlayer:
 
         elif event == VODEVENT_PAUSE:
             if self.videoframe is not None:
-                self.videoframe.get_videopanel().Pause()
+                self.videoframe.get_videopanel().Pause(gui_vod_event=True)
         elif event == VODEVENT_RESUME:
             if self.videoframe is not None:
                 self.videoframe.get_videopanel().Resume()

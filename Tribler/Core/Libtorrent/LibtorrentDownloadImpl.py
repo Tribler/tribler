@@ -68,7 +68,8 @@ class VODFile(object):
         newpos = self._file.tell()
 
         print >> sys.stderr, 'VODFile: seek', newpos, args
-        self._download.vod_seekpos = self._download.vod_seekpos if self._download.vod_seekpos != None else newpos
+        if self._download.vod_seekpos == None or abs(newpos - self._download.vod_seekpos) < 1024 * 1024:
+            self._download.vod_seekpos = newpos
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, newpos)], 0)
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), newpos, -1)], 1)
         print >> sys.stderr, 'VODFile: seek, get pieces', self._download.handle.piece_priorities()

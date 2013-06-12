@@ -194,7 +194,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 print >> sys.stderr, "embedplay: Play pressed, already playing"
 
     @warnWxThread
-    def Pause(self, evt=None):
+    def Pause(self, evt=None, gui_vod_event=False):
         if DEBUG:
             print >> sys.stderr, "embedplay: Pause pressed"
 
@@ -203,6 +203,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             if self.GetState() == MEDIASTATE_PLAYING:
                 self.vlcwrap.pause()
                 self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
+                if gui_vod_event:
+                    self.ppbtn.Enable(False)
+                    self.ShowLoading()
             elif DEBUG:
                 print >> sys.stderr, "embedplay: Pause pressed, not playing"
 
