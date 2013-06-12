@@ -357,6 +357,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap and self.sbtn.IsEnabled():
             self.Stop()
             self.sbtn.Enable(False)
+            self.ppbtn.Enable(True)
 
     @forceWxThread
     def Stop(self):
@@ -372,6 +373,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.fsbtn.Enable(False)
             self.ppbtn.Enable(False)
             self.slider.Enable(False)
+            self.HideLoading()
 
             if self.timer is not None:
                 self.timer.Stop()
