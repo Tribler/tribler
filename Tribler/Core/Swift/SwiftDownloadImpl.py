@@ -60,6 +60,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         self.dllock = NoDispersyRLock()
         self.session = session
         self.sdef = sdef
+        self.old_metadir = self.session.get_swift_meta_dir()
 
         # just enough so error saving and get_state() works
         self.error = None
@@ -600,7 +601,7 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         dlconfig['mode'] = DLMODE_NORMAL  # no callback, no VOD
 
         # Reset default metadatadir
-        if self.get_swift_meta_dir() == self.session.get_swift_meta_dir():
+        if self.get_swift_meta_dir() == self.old_metadir:
             dlconfig['swiftmetadir'] = None
 
         pstate['dlconfig'] = dlconfig
