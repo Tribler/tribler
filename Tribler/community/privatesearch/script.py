@@ -48,9 +48,6 @@ class SearchScript(ScenarioScriptBase):
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
         self.community_kargs['use_megacache'] = str2bool(kargs.get('use_megacache', 'true'))
 
-        if self.late_join == 0:
-            self.manual_connect = True
-
         if self.random_connect:
             self.manual_connect = True
             self.bootstrap_percentage = 0
