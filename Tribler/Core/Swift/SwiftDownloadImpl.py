@@ -598,6 +598,11 @@ class SwiftDownloadImpl(SwiftDownloadRuntimeConfig):
         # Reset unpicklable params
         dlconfig['vod_usercallback'] = None
         dlconfig['mode'] = DLMODE_NORMAL  # no callback, no VOD
+
+        # Reset default metadatadir
+        if self.get_swift_meta_dir() == self.session.get_swift_meta_dir():
+            dlconfig['swiftmetadir'] = None
+
         pstate['dlconfig'] = dlconfig
 
         pstate['dlstate'] = {}
