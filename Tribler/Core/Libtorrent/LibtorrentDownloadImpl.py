@@ -2,6 +2,7 @@
 
 import sys
 import copy
+import time
 import libtorrent as lt
 
 from binascii import hexlify
@@ -17,6 +18,9 @@ from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilename, savefilenames2finaldest
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
+from Tribler.Core.Utilities.Crypto import sha
+
+from Tribler.Video.VideoUtility import get_videoinfo
 
 if sys.platform == "win32":
     try:
@@ -29,30 +33,123 @@ DEBUG = False
 
 
 class VODFile(object):
-    __slots__ = ['_file', '_download']
 
     def __init__(self, f, d):
-        object.__setattr__(self, '_file', f)
-        object.__setattr__(self, '_download', d)
+        self._file = f
+        self._download = d
 
-    def __getattr__(self, name):
-        return getattr(self._file, name)
+        pieces = self._download.tdef.get_pieces()
+        self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
+        self.piecesize = self._download.tdef.get_piece_length()
 
-    def __setattr__(self, name, value):
-        setattr(self._file, name, value)
+        self.startpiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), 0, 0)
+        self.endpiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), self._download.get_vod_filesize(), 0)
 
     def read(self, *args):
+        oldpos = self._file.tell()
+
+        print >> sys.stderr, 'VODFile: get bytes', oldpos, '-', oldpos + args[0]
+        while self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
+            time.sleep(1)
         result = self._file.read(*args)
-        self._download.vod_readpos += len(result)
+
+        newpos = self._file.tell()
+        if self._download.vod_seekpos == oldpos:
+            self._download.vod_seekpos = newpos
+
+        print >> sys.stderr, 'VODFile: got bytes', oldpos, '-', newpos
+        # assert self.verify_pieces(result, oldpos, newpos)
+
         return result
 
     def seek(self, *args):
         self._file.seek(*args)
-        self._download.vod_readpos += args[0]
+        newpos = self._file.tell()
+
+        print >> sys.stderr, 'VODFile: seek', newpos, args
+        if self._download.vod_seekpos == None or abs(newpos - self._download.vod_seekpos) < 1024 * 1024:
+            self._download.vod_seekpos = newpos
+        self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, newpos)], 0)
+        self._download.set_byte_priority([(self._download.get_vod_fileindex(), newpos, -1)], 1)
+        print >> sys.stderr, 'VODFile: seek, get pieces', self._download.handle.piece_priorities()
+        print >> sys.stderr, 'VODFile: seek, got pieces', [int(piece) for piece in self._download.handle.status().pieces]
+
+    def verify_pieces(self, original_data, frompos, topos):
+        allpiecesok = True
+        _frompos = frompos
+        _topos = topos
+
+        frompiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), frompos, 0)
+        topiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), topos, 0)
+        print >> sys.stderr, "VODFile: Libtorrent says we read pieces", frompiece.piece, topiece.piece
+
+        if frompiece.start:
+            if frompos - frompiece.start < 0:
+                print >> sys.stderr, "VODFile: Cannot verify ", frompos, "-", frompos + self.piecesize - frompiece.start
+
+                # cannot read partial piece, skipping first X bytes
+                frompos += self.piecesize - frompiece.start
+                frompiece = frompiece.piece + 1
+            else:
+                # need to read more than this partial piece, extending with X bytes
+                frompos -= frompiece.start
+                frompiece = frompiece.piece
+
+        if topiece.piece == self.endpiece.piece:
+            print >> sys.stderr, "VODFile: Cannot verify ", topos - topiece.start, "-", topos
+
+            # cannot read partial piece, truncating last X bytes
+            topos -= topiece.start
+            topiece = topiece.piece - 1
+
+        else:
+            if topiece.start:
+                topos += self.piecesize - topiece.start
+            topiece = topiece.piece
+
+        if topiece >= frompiece:
+            oldpos = self._file.tell()
+            self._file.seek(frompos)
+            read_data = self._file.read(topos - frompos)
+            self._file.seek(oldpos)
+
+            assert len(read_data) == topos - frompos
+
+            # align two arrays
+            data_offsets = [0, len(read_data)]
+            original_data_offsets = [0, (len(original_data))]
+
+            if frompos > _frompos:
+                original_data_offsets[0] = frompos - _frompos
+            elif frompos < _frompos:
+                data_offsets[0] = _frompos - frompos
+
+            if topos > _topos:
+                data_offsets[1] -= topos - _topos
+            elif topos < _topos:
+                original_data_offsets[1] -= _topos - topos
+
+            assert data_offsets[1] - data_offsets[0] == original_data_offsets[1] - original_data_offsets[0], (data_offsets[1] - data_offsets[0], original_data_offsets[1] - original_data_offsets[0])
+            assert read_data[data_offsets[0]:data_offsets[1]] == original_data[original_data_offsets[0]:original_data_offsets[1]]
+
+            startindex = 0
+            for piece in range(frompiece, topiece + 1):
+                piecehash = sha(read_data[startindex:startindex + self.piecesize]).digest()
+
+                if piecehash == self.pieces[piece]:
+                    print >> sys.stderr, "VODFile: Correct piece read", piece
+                else:
+                    print >> sys.stderr, "VODFile: Incorrect piece read", piece, piecehash, self.pieces[piece]
+                    allpiecesok = False
+                startindex += self.piecesize
+
+        return allpiecesok
+
+    def close(self, *args):
+        self._file.close(*args)
 
 
 class LibtorrentDownloadImpl(DownloadRuntimeConfig):
-
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
@@ -83,11 +180,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.done = False
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
-        self.prebuffsize = 5 * 1024 * 1024
         self.queue_position = -1
 
-        self.vod_readpos = 0
-        self.vod_pausepos = 0
+        self.prebuffsize = 5 * 1024 * 1024
+        self.vod_seekpos = 0
         self.vod_status = ""
         self.videoinfo = None
 
@@ -154,8 +250,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         atp = {}
         atp["save_path"] = str(self.dlconfig['saveas'])
-        # Using full allocation seems to fix issues with streaming certain files.
-        atp["storage_mode"] = lt.storage_mode_t.storage_mode_allocate if self.get_mode() == DLMODE_VOD else lt.storage_mode_t.storage_mode_sparse
+        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = True
         atp["auto_managed"] = False
         atp["duplicate_is_error"] = True
@@ -215,6 +310,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def set_vod_mode(self):
         self.vod_status = ""
+        self.vod_seekpos = 0
 
         # Define which file to DL in VOD mode
         self.videoinfo = {'live': self.get_def().get_live()}
@@ -243,8 +339,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.handle.set_sequential_download(True)
 
         self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
+        self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -1)], 0, exclude_borders=True)
 
-        if self.handle.status().progress == 1.0:
+        if self.progress == 1.0:
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
             self.start_vod(complete=True)
@@ -254,45 +351,136 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.set_state_callback(self.monitor_vod, delay=5.0)
 
     def monitor_vod(self, ds):
-        status = self.handle.status()
-        pieces = status.pieces if status else []
+        bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        startofbuffer = 0
-        if not self.vod_status and self.tdef.is_multifile_torrent():
-            selected_files = self.get_selected_files()
-            startofbuffer = [t for t, _, f in self.filepieceranges if not selected_files or f == selected_files[0]][0]
-        else:
-            startofbuffer = int(self.vod_readpos / self.handle.get_torrent_info().piece_length())
-        endofbuffer = startofbuffer + int(self.prebuffsize / self.handle.get_torrent_info().piece_length() + 1)
-        buffer = pieces[startofbuffer:endofbuffer]
-        self.bufferprogress = float(buffer.count(True)) / len(buffer) if len(buffer) > 0 else 1
+        print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
 
-        if DEBUG:
-            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % self.bufferprogress
-
-        if self.bufferprogress >= 1:
+        if bufferprogress >= 1:
             if not self.vod_status:
-                self.vod_pausepos = startofbuffer * self.handle.get_torrent_info().piece_length()
                 self.start_vod(complete=False)
             else:
                 self.resume_vod()
 
-        elif self.bufferprogress <= 0.1 and self.vod_status:
+        elif bufferprogress <= 0.1 and self.vod_status:
             self.pause_vod()
+
+        if not self.videoinfo.get('bitrate', None):
+            # Attempt to estimate the bitrate of the videofile with ffmpeg
+            videofile = self.videoinfo["outpath"][0]
+            videoanalyser = self.session.get_video_analyser_path()
+            duration, bitrate, _ = get_videoinfo(videofile, videoanalyser)
+            self.videoinfo['bitrate'] = bitrate
+            self.videoinfo['duration'] = duration
 
         delay = 1.0 if self.handle and not self.handle.is_paused() else 0.0
         return (delay, False)
+
+    def get_vod_duration(self):
+        return self.videoinfo.get('duration', None)
+
+    def get_vod_fileindex(self):
+        return self.handle.file_priorities().index(1)
+
+    def get_vod_filesize(self):
+        fileindex = self.get_vod_fileindex()
+        file_entry = self.handle.get_torrent_info().file_at(fileindex)
+        return file_entry.size
+
+    def get_piece_progress(self, pieces, consecutive=False):
+        if not pieces:
+            return 1.0
+        elif consecutive:
+            pieces.sort()
+
+        with self.dllock:
+            if self.handle:
+                status = self.handle.status()
+                if status:
+                    pieces_have = 0
+                    pieces_all = len(pieces)
+                    bitfield = status.pieces
+                    for pieceindex in pieces:
+                        if pieceindex < len(bitfield) and bitfield[pieceindex]:
+                            pieces_have += 1
+                        elif consecutive:
+                            break
+                    return float(pieces_have) / pieces_all
+                return 0.0
+
+    def get_byte_progress(self, byteranges, consecutive=False):
+        with self.dllock:
+            if self.handle:
+                pieces = []
+                for fileindex, bytes_begin, bytes_end in byteranges:
+                    # Ensure the we remain within the file's boundaries
+                    file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                    bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                    bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+
+                    startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                    endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                    startpiece = max(startpiece, 0)
+                    endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+
+                    pieces += range(startpiece, endpiece)
+
+                pieces = list(set(pieces))
+                return self.get_piece_progress(pieces, consecutive)
+
+    def set_piece_priority(self, pieces, priority):
+        with self.dllock:
+            if self.handle:
+                piecepriorities = self.handle.piece_priorities()
+                for piece in pieces:
+                    if piece < len(piecepriorities):
+                        piecepriorities[piece] = priority
+                    else:
+                        print >> sys.stderr, "LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d" % (piece, len(piecepriorities))
+                self.handle.prioritize_pieces(piecepriorities)
+
+    def set_byte_priority(self, byteranges, priority, exclude_borders=False):
+        with self.dllock:
+            if self.handle:
+                pieces = []
+                for fileindex, bytes_begin, bytes_end in byteranges:
+                    if bytes_begin == 0 and bytes_end == -1 and not exclude_borders:
+                        # Set priority for entire file
+                        filepriorities = self.handle.file_priorities()
+                        filepriorities[fileindex] = priority
+                        self.handle.prioritize_files(filepriorities)
+                    else:
+                        # Ensure the we remain within the file's boundaries
+                        file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                        bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                        bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+
+                        i = int(exclude_borders)
+                        startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece + i
+                        endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1 - i
+                        startpiece = max(startpiece, 0)
+                        endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+
+                        pieces += range(startpiece, endpiece)
+
+                if pieces:
+                    pieces = list(set(pieces))
+                    self.set_piece_priority(pieces, priority)
+
+    def set_mode(self, mode):
+        if self.get_mode() == DLMODE_VOD and mode != DLMODE_VOD:
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+        DownloadRuntimeConfig.set_mode(self, mode)
 
     def start_vod(self, complete=False):
         if not self.vod_status:
             self.vod_status = "started"
             self.lm_network_vod_event_callback(self.videoinfo, VODEVENT_START,
                                               {"complete": complete,
-                                              "filename": self.videoinfo["outpath"][0] if complete else None,
-                                                    "mimetype": self.videoinfo["mimetype"],
-                                                    "stream": None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
-                                                    "length": self.videoinfo['outpath'][1],
-                                                    "bitrate": self.videoinfo["bitrate"]})
+                                               "filename": self.videoinfo["outpath"][0] if complete else None,
+                                               "mimetype": self.videoinfo["mimetype"],
+                                               "stream": None if complete else VODFile(open(self.videoinfo['outpath'][0], 'rb'), self),
+                                               "length": self.videoinfo['outpath'][1],
+                                               "bitrate": self.videoinfo["bitrate"]})
 
             if DEBUG:
                 print >> sys.stderr, "LibtorrentDownloadImpl: VOD started", self.videoinfo['outpath'][0]
@@ -308,7 +496,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def pause_vod(self):
         if self.vod_status != "paused":
             self.vod_status = "paused"
-            self.vod_pausepos = self.vod_readpos
             self.videoinfo["usercallback"](VODEVENT_PAUSE, {})
 
             if DEBUG:
@@ -333,6 +520,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.on_performance_alert(alert)
                 elif alert_type == 'torrent_checked_alert':
                     self.on_torrent_checked_alert(alert)
+                elif alert_type == "torrent_finished_alert":
+                    self.on_torrent_finished_alert(alert)
                 else:
                     self.update_lt_stats()
 
@@ -385,13 +574,25 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.checkpoint_after_next_hashcheck = False
             self.checkpoint()
 
+    def on_torrent_finished_alert(self, alert):
+        if self.get_mode() == DLMODE_VOD and self.progress == 1.0:
+            # Reset priority for entire vod file to 1
+            file_priorities = self.handle.file_priorities()
+            file_priorities[self.get_vod_fileindex()] = 1
+            self.handle.prioritize_files(file_priorities)
+        self.update_lt_stats()
+
     def update_lt_stats(self):
         status = self.handle.status()
         self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
+        if self.get_mode() == DLMODE_VOD:
+            self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
+            self.dlstate = DLSTATUS_SEEDING if self.progress == 1.0 else self.dlstate
+        else:
+            self.progress = status.progress
         self.error = unicode(status.error) if status.error else None
         self.length = float(status.total_wanted)
-        self.progress = status.progress
         self.curspeeds[DOWNLOAD] = float(status.download_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
         self.curspeeds[UPLOAD] = float(status.upload_payload_rate) if self.dlstate not in [DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
         self.all_time_upload = status.all_time_upload
@@ -528,7 +729,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         stats['stats'] = self.network_create_statistics_reponse()
         stats['time'] = self.network_calc_eta()
         stats['vod_prebuf_frac'] = self.network_calc_prebuf_frac()
-        stats['vod'] = True
+        stats['vod_prebuf_frac_consec'] = self.network_calc_prebuf_frac_consec()
+        stats['vod'] = self.get_mode()
         stats['vod_playable'] = self.progress == 1.0 or (stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
         stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
@@ -564,9 +766,16 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        if self.progress * self.length >= self.prebuffsize:
-            return 1.0
-        return self.bufferprogress
+        if self.get_mode() == DLMODE_VOD and self.vod_seekpos != None:
+            return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
+        else:
+            return 0.0
+
+    def network_calc_prebuf_frac_consec(self):
+        if self.get_mode() == DLMODE_VOD and self.vod_seekpos != None:
+            return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)], consecutive=True)
+        else:
+            return 0.0
 
     def network_calc_prebuf_eta(self):
         bytestogof = (1.0 - self.network_calc_prebuf_frac()) * float(self.prebuffsize)

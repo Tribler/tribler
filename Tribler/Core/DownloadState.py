@@ -24,7 +24,7 @@ class DownloadState(Serializable):
 
     cf. libtorrent torrent_status
     """
-    def __init__(self, download, status, error,progress,stats=None,seeding_stats=None,filepieceranges=None,logmsgs=None,peerid=None,videoinfo=None):
+    def __init__(self, download, status, error, progress, stats=None, seeding_stats=None, filepieceranges=None, logmsgs=None, peerid=None, videoinfo=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -104,7 +104,7 @@ class DownloadState(Serializable):
                     selected_files = self.download.get_selected_files()
                     # Show only pieces complete for the selected ranges of files
                     totalpieces = 0
-                    for t, tl, f in self.filepieceranges:
+                    for t, tl, o, f in self.filepieceranges:
                         if f in selected_files or not selected_files:
                             diff = tl - t
                             totalpieces += diff
@@ -113,7 +113,7 @@ class DownloadState(Serializable):
                     haveslice = [False] * totalpieces
                     have = 0
                     index = 0
-                    for t, tl, f in self.filepieceranges:
+                    for t, tl, o, f in self.filepieceranges:
                         if f in selected_files or not selected_files:
                             for piece in range(t, tl):
                                 haveslice[index] = statsobj.have[piece]
@@ -308,7 +308,7 @@ class DownloadState(Serializable):
 
         completion = []
         if self.filepieceranges:
-            for t, tl, f in self.filepieceranges:
+            for t, tl, o, f in self.filepieceranges:
                 if f in files and self.progress == 1.0:
                     completion.append((f, 1.0))
                 else:
@@ -320,7 +320,7 @@ class DownloadState(Serializable):
                             if self.haveslice_total[index]:
                                 completed += 1
 
-                        completion.append((f, completed / (total_pieces *1.0)))
+                        completion.append((f, completed / (total_pieces * 1.0)))
                     elif f in files:
                         completion.append((f, 0.0))
         return completion
@@ -389,6 +389,18 @@ class DownloadState(Serializable):
                 return 0.0
         else:
             return self.stats['vod_prebuf_frac']
+
+    def get_vod_prebuffering_progress_consec(self):
+        """ Returns the percentage of consecutive prebuffering for Video-On-Demand already
+        completed.
+        @return A float (0..1) """
+        if self.stats is None:
+            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+                return 1.0
+            else:
+                return 0.0
+        else:
+            return self.stats.get('vod_prebuf_frac_consec', -1)
 
     def is_vod(self):
         """ Returns if this download is currently in vod mode

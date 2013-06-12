@@ -69,13 +69,13 @@ class BufferInfo:
             if fill >= int(total):
                 return self.ALLFILL
 
-            index = int(float(fill * len(self.SOMEFILL)) /total)
+            index = int(float(fill * len(self.SOMEFILL)) / total)
             if index >= len(self.SOMEFILL):
                 index = len(self.SOMEFILL) - 1
             return self.SOMEFILL[index]
 
-        chars = [chr(self.buckets[i], self.bucketsize) for i in xrange(0, self.numbuckets -1)]
-        chars.append(chr(self.buckets[-1], self.lastbucketsize) )
+        chars = [chr(self.buckets[i], self.bucketsize) for i in xrange(0, self.numbuckets - 1)]
+        chars.append(chr(self.buckets[-1], self.lastbucketsize))
         return "".join(chars)
 
     def set_playable(self):
@@ -116,8 +116,8 @@ class ProgressInf:
 
 class ProgressBar(wx.Panel):
 
-    def __init__(self, parent, colours=["#ffffff", "#92cddf", "#006dc0"], size= wx.DefaultSize):
-        wx.Panel.__init__(self, parent, size=size, style= wx.NO_BORDER)
+    def __init__(self, parent, colours=["#ffffff", "#92cddf", "#006dc0"], size=wx.DefaultSize):
+        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
         self.pens = [wx.Pen(c) for c in colours]
         self.brushes = [wx.Brush(c) for c in colours]
 
@@ -149,8 +149,8 @@ class ProgressBar(wx.Panel):
             numrect = float(len(self.blocks))
             w = max(1, maxw / numrect)
 
-            lines = [(x + i, y, x +i, maxh) for i in xrange(maxw) if self.blocks[int(i/w)]]
-            pens = [self.pens[self.blocks[int(i / w)]] for i in xrange(maxw) if self.blocks[int(i /w)]]
+            lines = [(x + i, y, x + i, maxh) for i in xrange(maxw) if self.blocks[int(i / w)]]
+            pens = [self.pens[self.blocks[int(i / w)]] for i in xrange(maxw) if self.blocks[int(i / w)]]
             dc.DrawLineList(lines, pens)
 
         if self.completed:
@@ -216,7 +216,7 @@ class ProgressBar(wx.Panel):
 
 class ProgressSlider(wx.Panel):
 
-    def __init__(self, parent, utility, colours=["#ffffff", "#CBCBCB", "#ff3300"], imgprefix= '', *args, **kwargs):
+    def __init__(self, parent, utility, colours=["#ffffff", "#CBCBCB", "#ff3300"], imgprefix='', *args, **kwargs):
 
         self.colours = colours
         # self.backgroundImage = wx.Image('')
@@ -292,17 +292,17 @@ class ProgressSlider(wx.Panel):
         x, y = pos
         bx, by = self.sliderPosition
         dotSize = self.dotImage.GetSize()
-        return abs(x - bx) < dotSize[0]/2 and abs(y-by) < dotSize[1]/2
+        return abs(x - bx) < dotSize[0] / 2 and abs(y - by) < dotSize[1] / 2
 
     def onSlider(self, pos):
         x, y = pos
         width, height = self.GetClientSizeTuple()
         return (x > self.margin and x <= self.margin + self.sliderWidth and
-                abs(y - height / 2) < self.rectHeight /2+4)
+                abs(y - height / 2) < self.rectHeight / 2 + 4)
 
     def setSliderPosition(self, pos, ready):
         x, y = pos
-        tmp_progress = (x - self.margin) /float(self.sliderWidth)
+        tmp_progress = (x - self.margin) / float(self.sliderWidth)
         self.progress = min(1.0, max(0.0, tmp_progress))
         self.videoPosition = self
         self.Refresh()
@@ -314,7 +314,7 @@ class ProgressSlider(wx.Panel):
             self.sliderChangedAction()
 
     def sliderChangedAction(self):
-        self.GetParent().Seek()
+        self.GetParent().GetParent().Seek()
 
     def setSelected(self, sel):
         self.selected = sel
@@ -376,10 +376,14 @@ class ProgressSlider(wx.Panel):
         dc = wx.BufferedPaintDC(self, buffer)
         dc.BeginDrawing()
         dc.Clear()
+        if getattr(self.GetParent(), 'bitmap', None):
+            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+            sub = self.GetParent().bitmap.GetSubBitmap(rect)
+            dc.DrawBitmap(sub, 0, 0)
 
         # Draw background
         bgSize = self.bgImage.GetSize()
-        for i in xrange(width / bgSize[0] +1):
+        for i in xrange(width / bgSize[0] + 1):
             dc.DrawBitmap(self.bgImage, i * bgSize[0], 0)
 
         # Time strings
@@ -399,33 +403,33 @@ class ProgressSlider(wx.Panel):
         dc.SetFont(font)
         timeWidth = dc.GetTextExtent(time)[0]
 
-        self.sliderWidth = width - (3 *self.margin+timeWidth)
+        self.sliderWidth = width - (3 * self.margin + timeWidth)
         position = self.sliderWidth * self.progress
-        self.sliderPosition = position + self.margin, height /2
+        self.sliderPosition = position + self.margin, height / 2
         self.bufferlength = (self.videobuffer - self.progress) * self.sliderWidth
         self.bufferlength = min(self.bufferlength, self.sliderWidth - position)
 
-        if width > 3 * self.margin +timeWidth:
+        if width > 3 * self.margin + timeWidth:
             # Draw slider rect
             dc.SetPen(wx.Pen(self.rectBorderColour, 2))
-            dc.DrawRectangle(self.margin, height / 2 -self.rectHeight/2, self.sliderWidth, self.rectHeight)
+            dc.DrawRectangle(self.margin, height / 2 - self.rectHeight / 2, self.sliderWidth, self.rectHeight)
             # Draw slider rect inside
             dc.SetPen(wx.Pen(self.doneColor, 0))
             dc.SetBrush(wx.Brush(self.doneColor))
             smallRectHeight = self.rectHeight - 2
-            dc.DrawRectangle(self.margin, height / 2 -smallRectHeight/2, position, smallRectHeight)
+            dc.DrawRectangle(self.margin, height / 2 - smallRectHeight / 2, position, smallRectHeight)
             dc.SetBrush(wx.Brush(self.bufferColor))
             dc.SetPen(wx.Pen(self.bufferColor, 0))
-            dc.DrawRectangle(position + self.margin, height /2-smallRectHeight/2, self.bufferlength, smallRectHeight)
+            dc.DrawRectangle(position + self.margin, height / 2 - smallRectHeight / 2, self.bufferlength, smallRectHeight)
             # draw circle
             dotSize = self.dotImage.GetSize()
             if self.selected == 2:
-                dc.DrawBitmap(self.dotImage_dis, position + self.margin -dotSize[0]/2, height/2-dotSize[1]/2, True)
+                dc.DrawBitmap(self.dotImage_dis, position + self.margin - dotSize[0] / 2, height / 2 - dotSize[1] / 2, True)
             else:
-                dc.DrawBitmap(self.dotImage, position + self.margin -dotSize[0]/2, height/2-dotSize[1]/2, True)
-        if width > 2 * self.margin +timeWidth:
+                dc.DrawBitmap(self.dotImage, position + self.margin - dotSize[0] / 2, height / 2 - dotSize[1] / 2, True)
+        if width > 2 * self.margin + timeWidth:
             # Draw times
-            dc.DrawText(time, width - self.margin -timeWidth, height/2-dc.GetCharHeight()/2)
+            dc.DrawText(time, width - self.margin - timeWidth, height / 2 - dc.GetCharHeight() / 2)
 
         dc.EndDrawing()
 
@@ -502,17 +506,17 @@ class VolumeSlider(wx.Panel):
         x, y = pos
         bx, by = self.sliderPosition
         extraGrip = 3  # 3px extra grip on sliderButton
-        return abs(x - bx) < self.cursorsize[0]/2+extraGrip and abs(y-by) < self.cursorsize[1]/2
+        return abs(x - bx) < self.cursorsize[0] / 2 + extraGrip and abs(y - by) < self.cursorsize[1] / 2
 
     def onSlider(self, pos):
         x, y = pos
         width, height = self.GetClientSizeTuple()
         return (x > self.margin and x <= self.margin + self.sliderWidth and
-                abs(y - height / 2) < self.rectHeight /2+4)
+                abs(y - height / 2) < self.rectHeight / 2 + 4)
 
     def setSliderPosition(self, pos, ready):
         x, y = pos
-        tmp_progress = (x - self.margin) /float(self.sliderWidth)
+        tmp_progress = (x - self.margin) / float(self.sliderWidth)
         self.progress = min(1.0, max(0.0, tmp_progress))
         self.videoPosition = self
         self.Refresh()
@@ -532,7 +536,7 @@ class VolumeSlider(wx.Panel):
             self.Refresh()
 
     def GetValue(self):
-        print >>sys.stderr, 'VolumeSlider: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
+        print >> sys.stderr, 'VolumeSlider: %f, Range (%f, %f)' % (self.progress, self.range[0], self.range[1])
         return self.progress * (self.range[1] - self.range[0]) + self.range[0]
 
     def SetRange(self, a, b):
@@ -548,23 +552,23 @@ class VolumeSlider(wx.Panel):
 
         # Draw background
         bgSize = self.bgImage.GetSize()
-        for i in xrange(width / bgSize[0] +1):
+        for i in xrange(width / bgSize[0] + 1):
             dc.DrawBitmap(self.bgImage, i * bgSize[0], 0)
 
-        self.sliderWidth = width - (2 *self.margin)
+        self.sliderWidth = width - (2 * self.margin)
         position = self.sliderWidth * self.progress
-        self.sliderPosition = position + self.margin, height /2
+        self.sliderPosition = position + self.margin, height / 2
 
         if width > 2 * self.margin:
             # Draw slider rect
             dc.SetPen(wx.Pen(self.rectBorderColour, 2))
-            dc.DrawRectangle(self.margin, height / 2 -self.rectHeight/2, self.sliderWidth, self.rectHeight)
+            dc.DrawRectangle(self.margin, height / 2 - self.rectHeight / 2, self.sliderWidth, self.rectHeight)
             # Draw slider rect inside
             dc.SetPen(wx.Pen(self.doneColor, 0))
             dc.SetBrush(wx.Brush(self.doneColor))
             smallRectHeight = self.rectHeight - 2
-            dc.DrawRectangle(self.margin, height / 2 -smallRectHeight/2, position, smallRectHeight)
+            dc.DrawRectangle(self.margin, height / 2 - smallRectHeight / 2, position, smallRectHeight)
             # draw slider button
             dotSize = self.dotImage.GetSize()
-            dc.DrawBitmap(self.dotImage, position + self.margin -dotSize[0]/2, height/2-dotSize[1]/2, True)
+            dc.DrawBitmap(self.dotImage, position + self.margin - dotSize[0] / 2, height / 2 - dotSize[1] / 2, True)
         dc.EndDrawing()
