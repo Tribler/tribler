@@ -628,8 +628,12 @@ class ABCApp():
             # Apply status displaying from SwarmPlayer
             if playds:
                 def do_video():
-                    vod_progress = playds.get_progress() if playds.get_status() == DLSTATUS_HASHCHECKING else playds.get_vod_prebuffering_progress()
-                    self.videoplayer.set_player_status_and_progress(playds.get_pieces_complete(), vod_progress)
+                    if playds.get_status() == DLSTATUS_HASHCHECKING:
+                        progress = progress_consec = playds.get_progress()
+                    else:
+                        progress = playds.get_vod_prebuffering_progress()
+                        progress_consec = playds.get_vod_prebuffering_progress_consec()
+                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, playds.get_pieces_complete())
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished

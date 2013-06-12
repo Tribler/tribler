@@ -384,6 +384,18 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod_prebuf_frac']
 
+    def get_vod_prebuffering_progress_consec(self):
+        """ Returns the percentage of consecutive prebuffering for Video-On-Demand already
+        completed.
+        @return A float (0..1) """
+        if self.stats is None:
+            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+                return 1.0
+            else:
+                return 0.0
+        else:
+            return self.stats.get('vod_prebuf_frac_consec', -1)
+
     def is_vod(self):
         """ Returns if this download is currently in vod mode
 

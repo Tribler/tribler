@@ -390,13 +390,13 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def Reset(self):
         self.Stop()
-        self.slider.SetBufferFromPieces([])
+        self.slider.SetPieces([])
 
     @forceWxThread
-    def UpdateStatus(self, pieces_complete, vod_progress):
-        self.logowin.loading.SetValue(vod_progress)
+    def UpdateStatus(self, progress, progress_consec, pieces_complete):
+        self.logowin.loading.SetValue(progress)
         if self.vlcwrap:
-            self.slider.SetBufferFromPieces(pieces_complete)
+            self.slider.SetPieces(pieces_complete)
 
     @warnWxThread
     def UpdateSlider(self, evt):

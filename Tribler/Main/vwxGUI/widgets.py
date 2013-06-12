@@ -2378,17 +2378,17 @@ class VideoSlider(wx.Panel):
         self.slider_range = [0, 0]
         self.slider_radius = 9
         self.slider_position = [10, 0]
-        self.buffersize = 0.0
         # Colours for enabled slider
         self.colour1 = wx.Colour(241, 93, 63)
         self.colour2 = wx.Colour(246, 144, 119)
         # Colours for disabled slider
-        self.colour3 = wx.Colour(200, 200, 200)
+        self.colour3 = wx.Colour(170, 170, 170)
         self.colour4 = wx.Colour(220, 220, 220)
         self.dragging = False
         self.enabled = True
         self.hovering = False
         self.value = 0.0
+        self.pieces = []
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
@@ -2405,21 +2405,9 @@ class VideoSlider(wx.Panel):
             self.slider_position[0] = (slider_width * self.value) + self.slider_range[0] if slider_width else self.slider_range[0]
             self.Refresh()
 
-    def GetBufferSize(self):
-        return self.buffersize
-
-    def SetBufferSize(self, buffersize):
-        self.buffersize = buffersize
+    def SetPieces(self, pieces):
+        self.pieces = pieces
         self.Refresh()
-
-    def SetBufferFromPieces(self, pieces):
-        if pieces:
-            frompiece = topiece = int(len(pieces) * self.GetValue())
-            while topiece < len(pieces) and pieces[topiece]:
-                topiece += 1
-            self.SetBufferSize(float(topiece - frompiece) / len(pieces))
-        else:
-            self.SetBufferSize(0.0)
 
     def PositionOnSlider(self, position=None):
         x, y = position or self.ScreenToClient(wx.GetMousePosition())
@@ -2477,11 +2465,16 @@ class VideoSlider(wx.Panel):
         gc.DrawRectangle(self.slider_range[0], height / 2 - rect_height / 2, self.slider_range[1] - self.slider_range[0], rect_height)
 
         # Draw buffer rectangle
-        gc.SetBrush(wx.Brush(self.colour3))
-        slider_width = self.slider_range[1] - self.slider_range[0]
-        curbuffer = slider_width * self.buffersize
-        curbuffer = min(curbuffer, (self.slider_range[1] - self.slider_position[0]))
-        gc.DrawRectangle(self.slider_range[0] + (slider_width * self.value), height / 2 - rect_height / 2, curbuffer, rect_height)
+        if self.pieces:
+            gc.SetBrush(wx.Brush(self.colour3))
+            slider_width = self.slider_range[1] - self.slider_range[0]
+            piece_with = slider_width / float(len(self.pieces))
+            for index, piece in enumerate(self.pieces):
+                piece_position = self.slider_range[0] + (index * piece_with)
+                if piece:
+                    gc.DrawRectangle(piece_position, height / 2 - rect_height / 2, piece_with, rect_height)
+                elif self.slider_position[0] < piece_position:
+                    break
 
         # Draw position rectangle
         gc.SetBrush(wx.Brush(self.colour1))
