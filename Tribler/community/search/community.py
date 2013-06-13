@@ -106,17 +106,31 @@ class SearchCommunity(Community):
 
     def fast_walker(self):
         for cycle in xrange(10):
-            if cycle < 2:
-                # poke bootstrap peers
-                for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    logger.debug("extra walk to %s", candidate)
-                    self.create_introduction_request(candidate, allow_sync=False)
+            now = time()
+
+            # count -everyone- that is active (i.e. walk or stumble)
+            active_canidates = [candidate
+                                for candidate
+                                in self._candidates.itervalues()
+                                if candidate.is_active(self, now)]
+            if len(active_canidates) > 20:
+                logger.debug("there are %d active non-bootstrap candidates available, prematurely quitting fast walker", len(active_canidates))
+                break
 
             # request -everyone- that is eligible
-            candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once=True) if candidate]
-            for candidate in candidates:
+            eligible_candidates = [candidate
+                                   for candidate
+                                   in self._candidates.itervalues()
+                                   if candidate.is_eligible_for_walk(self, now)]
+            for candidate in eligible_candidates:
                 logger.debug("extra walk to %s", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
+
+            # poke bootstrap peers
+            if cycle < 2:
+                for candidate in self._dispersy.bootstrap_candidates:
+                    logger.debug("extra walk to %s", candidate)
+                    self.create_introduction_request(candidate, allow_sync=False)
 
             # wait for NAT hole punching
             yield 1.0
@@ -204,10 +218,6 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: sending introduction request to", destination
 
-        self._dispersy.statistics.walk_attempt += 1
-        if isinstance(destination, BootstrapCandidate):
-            self._dispersy.statistics.walk_bootstrap_attempt += 1
-
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
@@ -239,6 +249,14 @@ class SearchCommunity(Community):
                                    distribution=(self.global_time,),
                                 destination=(destination,),
                                 payload=payload)
+
+        logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
+
+        self._dispersy.statistics.walk_attempt += 1
+        if isinstance(destination, BootstrapCandidate):
+            self._dispersy.statistics.walk_bootstrap_attempt += 1
+        if request.payload.advice:
+            self._dispersy.statistics.walk_advice_outgoing_request += 1
 
         self._dispersy._forward([request])
         return request
