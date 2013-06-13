@@ -13,7 +13,6 @@
 #
 
 import logging.config
-logging.config.fileConfig("logger.conf")  # , disable_existing_loggers = False)
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -1078,6 +1077,8 @@ class ABCApp():
 #
 @attach_profiler
 def run(params=None):
+    logging.config.fileConfig("logger.conf")
+
     if params is None:
         params = [""]
 
