@@ -3,10 +3,11 @@ import wx
 import os
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.widgets import settingsButton, NativeIcon, TransparentText as StaticText, HorizontalGauge
+from Tribler.Main.vwxGUI.widgets import NativeIcon, TransparentText as StaticText, HorizontalGauge, ActionButton
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
+from Tribler import LIBRARYNAME
 
 DEBUG = False
 
@@ -50,9 +51,16 @@ class SRstatusbar(wx.StatusBar):
 
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
-        self.firewallStatus = settingsButton(self, size=(14, 14), name = 'firewallStatus14')
+
+        self.bmp_firewall_state1 = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "firewallStatus14_state1.png"))
+        self.bmp_firewall_state2 = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "firewallStatus14_state2.png"))
+        self.bmp_firewall_state3 = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "firewallStatus14_state3.png"))
+        self.firewallStatus = ActionButton(self, -1, self.bmp_firewall_state2)
+        self.firewallStatus.SetSize((14, 14))
         self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
         self.firewallStatus.SetToolTipString('Port status unknown')
+        self.firewallStatus.Enable(False)
+        self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_state2)
 
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -64,7 +72,7 @@ class SRstatusbar(wx.StatusBar):
         for ds in dslist:
             total_down += ds.get_current_speed(DOWNLOAD)
             total_up += ds.get_current_speed(UPLOAD)
-        self.SetTransferSpeeds(total_down * 1024, total_up *1024)
+        self.SetTransferSpeeds(total_down * 1024, total_up * 1024)
 
     def SetTransferSpeeds(self, down, up):
         self.speed_down.SetLabel(self.utility.speed_format_new(down))
@@ -139,12 +147,13 @@ class SRstatusbar(wx.StatusBar):
 
     def onReachable(self, event=None):
         if not self.guiutility.firewall_restart:
-            self.firewallStatus.setSelected(2)
+            self.firewallStatus.SetBitmapLabel(self.bmp_firewall_state3)
+            self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_state3)
             self.firewallStatus.SetToolTipString('Port is working')
 
     def IsReachable(self):
         if not self.guiutility.firewall_restart:
-            return self.firewallStatus.getSelected() == 2
+            return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_state3
         return False
 
     def onActivity(self, msg):
@@ -179,11 +188,11 @@ class SRstatusbar(wx.StatusBar):
         self.Freeze()
 
         rect = self.GetFieldRect(0)
-        self.ff_checkbox.SetPosition((rect.x + 2, rect.y +2))
+        self.ff_checkbox.SetPosition((rect.x + 2, rect.y + 2))
         self.ff_checkbox.SetSize((-1, rect.height - 4))
 
         rect = self.GetFieldRect(1)
-        x = rect.x + rect.width -15
+        x = rect.x + rect.width - 15
         for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
             spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
             x -= control.GetSize()[0] + spacer
@@ -194,19 +203,19 @@ class SRstatusbar(wx.StatusBar):
         size = self.connection.GetSize()
         yAdd = (rect.height - size[1]) / 2
         xAdd = (rect.width - size[0]) / 2
-        self.connection.SetPosition((rect.x + xAdd, rect.y +yAdd))
+        self.connection.SetPosition((rect.x + xAdd, rect.y + yAdd))
 
         rect = self.GetFieldRect(3)
         size = self.activity.GetSize()
         yAdd = (rect.height - size[1]) / 2
         xAdd = (rect.width - size[0]) / 2
-        self.activity.SetPosition((rect.x + xAdd, rect.y +yAdd))
+        self.activity.SetPosition((rect.x + xAdd, rect.y + yAdd))
 
         rect = self.GetFieldRect(4)
         size = self.firewallStatus.GetSize()
         yAdd = (rect.height - size[1]) / 2
         xAdd = (rect.width - size[0]) / 2
-        self.firewallStatus.SetPosition((rect.x + xAdd, rect.y +yAdd))
+        self.firewallStatus.SetPosition((rect.x + xAdd, rect.y + yAdd))
 
         self.sizeChanged = False
         self.Thaw()

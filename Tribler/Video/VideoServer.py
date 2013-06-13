@@ -16,7 +16,7 @@ import os
 import Tribler.Core.osutils
 
 # NOTE: DEBUG is set dynamically depending from DEBUGWEBUI and DEBUGCONTENT
-DEBUG = False
+DEBUG = True
 DEBUGCONTENT = False
 DEBUGWEBUI = False
 DEBUGLOCK = False
@@ -225,7 +225,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             else:
                 DEBUG = DEBUGCONTENT
 
-            if DEBUG:
+            if True or DEBUG:
                 print >> sys.stderr, "videoserv: do_GET: Got request", self.path, self.headers.getheader('range'), currentThread().getName()
                 # print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
 
@@ -236,12 +236,15 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 streaminfo = self.server.acquire_inputstream(self.path)
             except:
                 streaminfo = None
-            # print >>sys.stderr,"videoserv: do_GET: Got streaminfo",`streaminfo`
+
+            if True or DEBUG:
+                print >> sys.stderr, "videoserv: do_GET: Got streaminfo", self.path, self.headers.getheader('range'), currentThread().getName()
 
             # Ric: modified to create a persistent connection in case it's requested (HTML5)
             if self.request_version == 'HTTP/1.1':
                 self.protocol_version = 'HTTP/1.1'
 
+            data = ""
             try:
                 if streaminfo is None or ('statuscode' in streaminfo and streaminfo['statuscode'] != 200):
                     # 2. Send error response
@@ -279,7 +282,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
                 # mimetype = 'application/x-mms-framed'
                 # mimetype = 'video/H264'
-                if DEBUG:
+                if True or DEBUG:
                     print >> sys.stderr, "videoserv: do_GET: MIME type is", mimetype, "length", length, "blocksize", blocksize, currentThread().getName()
 
                 # 3. Support for HTTP range queries:
@@ -355,8 +358,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     nbytes2send = length
                     self.send_response(200)
 
-                if DEBUG:
+
+                if True or DEBUG:
                     print >> sys.stderr, "videoserv: do_GET: final range", firstbyte, lastbyte, nbytes2send, currentThread().getName()
+
 
                 # 4. Seek in stream to desired offset, unless svc
                 if not svc:
@@ -373,7 +378,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 if self.request_version == 'HTTP/1.1':
                     self.send_header("Connection", "Keep-Alive")
                     # test.. to be adjusted depending on the request
-                    self.send_header("Keep-Alive", "timeout=15, max=100")
+                    self.send_header("Keep-Alive", "timeout=300, max=1")
 
                 # 5. Send headers
                 self.send_header("Content-Type", mimetype)
@@ -408,7 +413,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         if len(data) == 0:
                             done = True
 
-                        # print >>sys.stderr,"videoserv: HTTP: read",len(data),"bytes",currentThread().getName()
+                        print >> sys.stderr, "videoserv: HTTP: read", len(data), "bytes", currentThread().getName()
 
                         if length is None:
                             # If length unknown, use chunked encoding
@@ -449,11 +454,10 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             finally:
                 self.server.release_inputstream(self.path)
 
-        except socket.error as e2:
-            # if DEBUG:
-            #    print >>sys.stderr,"videoserv: SocketError occured while serving",currentThread().getName()
-            pass
-        except Exception as e:
+        except socket.error, e2:
+            print_exc()
+
+        except Exception, e:
             if DEBUG:
                 print >> sys.stderr, "videoserv: Error occured while serving", currentThread().getName()
             print_exc()
@@ -481,6 +485,7 @@ class VideoRawVLCServer:
         self.sid2streaminfo = {}
 
         # self.lastsid = None # workaround bug? in raw inf
+
     def getInstance(*args, **kw):
         if VideoRawVLCServer.__single is None:
             VideoRawVLCServer(*args, **kw)

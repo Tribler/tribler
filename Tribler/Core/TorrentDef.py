@@ -550,6 +550,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return A number of pieces. """
         return len(self.metainfo['info']['pieces']) / 20
 
+    def get_pieces(self):
+        """ Returns the pieces"""
+        return self.metainfo['info']['pieces'][:]
+
     def set_add_md5hash(self, value):
         """ Whether to add an end-to-end MD5 checksum to the def.
         @param value Boolean.

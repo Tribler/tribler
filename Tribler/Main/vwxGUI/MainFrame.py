@@ -1182,11 +1182,6 @@ class MainFrame(wx.Frame):
         except wx.PyDeadObjectError:
             pass
 
-    def set_player_status(self, s):
-        """ Called by VideoServer when using an external player """
-        if self.videoframe is not None:
-            self.videoframe.set_player_status(s)
-
     def set_wxapp(self, wxapp):
         self.wxapp = wxapp
 
