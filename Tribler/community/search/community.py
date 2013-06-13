@@ -218,10 +218,6 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: sending introduction request to", destination
 
-        self._dispersy.statistics.walk_attempt += 1
-        if isinstance(destination, BootstrapCandidate):
-            self._dispersy.statistics.walk_bootstrap_attempt += 1
-
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
@@ -254,6 +250,11 @@ class SearchCommunity(Community):
                                 destination=(destination,),
                                 payload=payload)
 
+        logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
+
+        self._dispersy.statistics.walk_attempt += 1
+        if isinstance(destination, BootstrapCandidate):
+            self._dispersy.statistics.walk_bootstrap_attempt += 1
         if request.payload.advice:
             self._dispersy.statistics.walk_advice_outgoing_request += 1
 
