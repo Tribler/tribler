@@ -225,7 +225,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             else:
                 DEBUG = DEBUGCONTENT
 
-            if True or DEBUG:
+            if DEBUG:
                 print >> sys.stderr, "videoserv: do_GET: Got request", self.path, self.headers.getheader('range'), currentThread().getName()
                 # print >>sys.stderr,"videoserv: do_GET: Range",self.headers.getrawheader('Range'),currentThread().getName()
 
@@ -237,7 +237,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
             except:
                 streaminfo = None
 
-            if True or DEBUG:
+            if DEBUG:
                 print >> sys.stderr, "videoserv: do_GET: Got streaminfo", self.path, self.headers.getheader('range'), currentThread().getName()
 
             # Ric: modified to create a persistent connection in case it's requested (HTML5)
@@ -282,7 +282,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
 
                 # mimetype = 'application/x-mms-framed'
                 # mimetype = 'video/H264'
-                if True or DEBUG:
+                if DEBUG:
                     print >> sys.stderr, "videoserv: do_GET: MIME type is", mimetype, "length", length, "blocksize", blocksize, currentThread().getName()
 
                 # 3. Support for HTTP range queries:
@@ -359,7 +359,7 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                     self.send_response(200)
 
 
-                if True or DEBUG:
+                if DEBUG:
                     print >> sys.stderr, "videoserv: do_GET: final range", firstbyte, lastbyte, nbytes2send, currentThread().getName()
 
 
@@ -413,7 +413,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                         if len(data) == 0:
                             done = True
 
-                        print >> sys.stderr, "videoserv: HTTP: read", len(data), "bytes", currentThread().getName()
+                        if DEBUG:
+                            print >> sys.stderr, "videoserv: HTTP: read", len(data), "bytes", currentThread().getName()
 
                         if length is None:
                             # If length unknown, use chunked encoding
@@ -455,7 +456,8 @@ class SimpleServer(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.server.release_inputstream(self.path)
 
         except socket.error, e2:
-            print_exc()
+            pass
+            # print_exc()
 
         except Exception, e:
             if DEBUG:

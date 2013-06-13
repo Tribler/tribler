@@ -20,7 +20,7 @@ from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
 
-DEBUG = True
+DEBUG = False
 
 class EmbeddedPlayerPanel(wx.Panel):
     """
@@ -126,7 +126,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.utility.guiUtility.frame.Layout()
 
     def OnVolumeChanged(self, volume):
-        if self.mute.GetBitmapLabel() == self.bmp_muted: # unmute
+        if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
             self.mute.SetBitmapLabel(self.bmp_unmuted, recreate=True)
         self.volume = volume
         self.oldvolume = self.volume
@@ -280,13 +280,13 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     @warnWxThread
     def _ToggleFullScreen(self):
-        if isinstance(self.parent, wx.Frame): #are we shown in popup frame
-            if self.ctrlsizer.IsShown(0): #we are not in fullscreen -> ctrlsizer is showing
+        if isinstance(self.parent, wx.Frame):  # are we shown in popup frame
+            if self.ctrlsizer.IsShown(0):  # we are not in fullscreen -> ctrlsizer is showing
                 self.parent.ShowFullScreen(True)
                 self.ctrlsizer.ShowItems(False)
                 self.Layout()
 
-                #Niels: 07-03-2012, only evt_close seems to work :(
+                # Niels: 07-03-2012, only evt_close seems to work :(
                 quitId = wx.NewId()
                 pauseId = wx.NewId()
                 self.parent.Bind(wx.EVT_MENU, lambda event: self._ToggleFullScreen(), id=quitId)
@@ -305,7 +305,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.parent.SetAcceleratorTable(wx.NullAcceleratorTable)
                 self.parent.Unbind(wx.EVT_CLOSE)
         else:
-            #saving media player state
+            # saving media player state
             cur_time = self.vlcwrap.get_media_position()
             cur_state = self.vlcwrap.get_our_state()
 
@@ -328,7 +328,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.fullscreenwindow.Destroy()
                 self.fullscreenwindow = None
 
-            #restoring state
+            # restoring state
             if cur_state == MEDIASTATE_PLAYING:
                 self.vlcwrap.start(cur_time)
 

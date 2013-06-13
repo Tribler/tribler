@@ -48,7 +48,9 @@ class VODFile(object):
     def read(self, *args):
         oldpos = self._file.tell()
 
-        print >> sys.stderr, 'VODFile: get bytes', oldpos, '-', oldpos + args[0]
+        if DEBUG:
+            print >> sys.stderr, 'VODFile: get bytes', oldpos, '-', oldpos + args[0]
+
         while self._download.get_byte_progress([(self._download.get_vod_fileindex(), oldpos, oldpos + args[0])]) < 1:
             time.sleep(1)
         result = self._file.read(*args)
@@ -57,7 +59,8 @@ class VODFile(object):
         if self._download.vod_seekpos == oldpos:
             self._download.vod_seekpos = newpos
 
-        print >> sys.stderr, 'VODFile: got bytes', oldpos, '-', newpos
+        if DEBUG:
+            print >> sys.stderr, 'VODFile: got bytes', oldpos, '-', newpos
         # assert self.verify_pieces(result, oldpos, newpos)
 
         return result
@@ -66,13 +69,17 @@ class VODFile(object):
         self._file.seek(*args)
         newpos = self._file.tell()
 
-        print >> sys.stderr, 'VODFile: seek', newpos, args
+        if DEBUG:
+            print >> sys.stderr, 'VODFile: seek', newpos, args
+
         if self._download.vod_seekpos == None or abs(newpos - self._download.vod_seekpos) < 1024 * 1024:
             self._download.vod_seekpos = newpos
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), 0, newpos)], 0)
         self._download.set_byte_priority([(self._download.get_vod_fileindex(), newpos, -1)], 1)
-        print >> sys.stderr, 'VODFile: seek, get pieces', self._download.handle.piece_priorities()
-        print >> sys.stderr, 'VODFile: seek, got pieces', [int(piece) for piece in self._download.handle.status().pieces]
+
+        if DEBUG:
+            print >> sys.stderr, 'VODFile: seek, get pieces', self._download.handle.piece_priorities()
+            print >> sys.stderr, 'VODFile: seek, got pieces', [int(piece) for piece in self._download.handle.status().pieces]
 
     def verify_pieces(self, original_data, frompos, topos):
         allpiecesok = True
@@ -353,7 +360,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
     def monitor_vod(self, ds):
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
+        if DEBUG:
+            print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
 
         if bufferprogress >= 1:
             if not self.vod_status:

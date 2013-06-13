@@ -21,7 +21,7 @@ from Tribler.Video.CachingStream import SmartCachingStream
 from Tribler.Video.Ogg import is_ogg, OggMagicLiveStream
 from Tribler.Main.vwxGUI import forceWxThread
 
-DEBUG = True
+DEBUG = False
 
 if sys.platform == "linux2" or sys.platform == "darwin":
     USE_VLC_RAW_INTERFACE = False
