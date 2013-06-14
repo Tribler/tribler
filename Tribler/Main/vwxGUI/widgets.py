@@ -1188,17 +1188,17 @@ class ActionButton(wx.Panel):
         pass
 
     def OnPaint(self, event):
-        # Use double duffered drawing to prevent flickering
+        # Draw the background
         dc = wx.BufferedPaintDC(self)
-        if not getattr(self.GetParent(), 'bitmap', None):
-            # Draw the background using the backgroundcolour
-            dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
-            dc.Clear()
-        else:
-            # Draw the background using the bitmap from the parent (TopSearchPanel)
-            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect)
-            dc.DrawBitmap(sub, 0, 0)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+        if hasattr(self.GetParent(), 'bitmap'):
+            if not self.GetParent().bitmap:
+                wx.CallLater(100, self.Refresh)
+            else:
+                rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+                sub = self.GetParent().bitmap.GetSubBitmap(rect)
+                dc.DrawBitmap(sub, 0, 0)
         # Draw the button using a gc (dc doesn't do transparency very well)
         bitmap = self.GetBitmap()
         gc = wx.GraphicsContext.Create(dc)
@@ -1359,7 +1359,7 @@ class FancyPanel(wx.Panel):
         self.focus = None
         self.colour1 = self.colour2 = None
         self.border_colour = self.border_highlight = None
-        self.bitmap = wx.EmptyBitmap(*self.GetClientSizeTuple())
+        self.bitmap = None
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
@@ -2489,8 +2489,7 @@ class VideoSlider(wx.Panel):
         self.SetValue(float(self.slider_position[0] - self.slider_range[0]) / (self.slider_range[1] - self.slider_range[0]))
         if self.HasCapture():
             self.ReleaseMouse()
-        self.buffersize = 0
-        #Call parent
+        # Call parent
         self.GetParent().GetParent().Seek()
 
     def OnMotion(self, event):
@@ -2513,10 +2512,13 @@ class VideoSlider(wx.Panel):
         dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
-        if getattr(self.GetParent(), 'bitmap', None):
-            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect)
-            dc.DrawBitmap(sub, 0, 0)
+        if hasattr(self.GetParent(), 'bitmap'):
+            if not self.GetParent().bitmap:
+                wx.CallLater(100, self.Refresh)
+            else:
+                rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+                sub = self.GetParent().bitmap.GetSubBitmap(rect)
+                dc.DrawBitmap(sub, 0, 0)
 
         width, height = self.GetClientSize()
         gc = wx.GraphicsContext.Create(dc)
