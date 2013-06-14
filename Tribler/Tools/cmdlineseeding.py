@@ -1,4 +1,5 @@
 # Written by Arno Bakker
+# Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:
@@ -22,18 +23,21 @@ from Tribler.Core.__init__ import version, report_email
 
 
 def usage():
-    print "Usage: python cmdlinedl.py [options] torrentfile_or_url"
+    print "Usage: python cmdlineseeding.py [options] file"
     print "Options:"
     print "\t--port <port>"
     print "\t-p <port>\t\tuse <port> to listen for connections"
     print "\t\t\t\t(default is random value)"
-    print "\t--output <output-dir>"
-    print "\t-o <output-dir>\t\tuse <output-dir> for storing downloaded data"
-    print "\t\t\t\t(default is current directory)"
+    print "\t--type <type>"
+    print "\t-t <type>\t\tdefine type to start seeding"
+    print "\t\t\t\t(can be either swift or bittorrent)"
     print "\t--version"
     print "\t-v\t\t\tprint version and exit"
     print "\t--help"
     print "\t-h\t\t\tprint this help screen"
+    print
+    print "Example:"
+    print "\t python cmdlineseeding.py --port=20000 --type=swift ffmpeg.exe"
     print
     print "Report bugs to <" + report_email + ">"
 
@@ -64,24 +68,23 @@ def main():
     try:
         # opts = a list of (option, value) pairs
         # args = the list of program arguments left after the option list was stripped
-        opts, args = getopt.getopt(sys.argv[1:], "hvo:p:", ["help", "version", "output-dir=", "port="])
+        opts, args = getopt.getopt(sys.argv[1:], "hvt:p:", ["help", "version", "type=", "port="])
     except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
 
     # init to default values
-    output_dir = os.getcwd()
     port = random.randint(10000, 65535)
-
+    seedertype = "swift"
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit(0)
-        elif o in ("-o", "--output-dir"):
-            output_dir = a
         elif o in ("-p", "--port"):
             port = int(a)
+        elif o in ("-t", "--type"):
+            seedertype = a
         elif o in ("-v", "--version"):
             print_version()
             sys.exit(0)
@@ -96,7 +99,11 @@ def main():
         print "Too many arguments"
         usage()
         sys.exit(2)
-    torrentfile_or_url = args[0]
+
+    assert os.path.isfile(args[0])
+    filename = os.path.abspath(args[0])
+    destdir = os.path.dirname(filename)
+
 
     print "Press Ctrl-C to stop the download"
 
@@ -106,29 +113,28 @@ def main():
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
-    sscfg.set_overlay(False)
-    sscfg.set_dialback(True)
-    sscfg.set_internal_tracker(False)
     sscfg.set_dispersy(False)
+
+    sscfg.set_swift_proc(seedertype == "swift")
+    sscfg.set_libtorrent(seedertype == "bittorrent")
 
     s = Session(sscfg)
     s.start()
 
-    # setup and start download
-    dscfg = DownloadStartupConfig()
-    dscfg.set_dest_dir(output_dir)
-    # dscfg.set_max_speed( UPLOAD, 10 )
+    if seedertype == "swift":
+        sdef = SwiftDef()
+        sdef.set_tracker("127.0.0.1:%d" % s.get_swift_dht_listen_port())
+        sdef.add_content(filename)
 
-    # SWIFTPROC
-    if torrentfile_or_url.startswith("http") or torrentfile_or_url.startswith(P2PURL_SCHEME):
-        cdef = TorrentDef.load_from_url(torrentfile_or_url)
-    elif torrentfile_or_url.startswith(SWIFT_URL_SCHEME):
-        cdef = SwiftDef.load_from_url(torrentfile_or_url)
+        sdef.finalize(s.get_swift_path(), destdir=destdir)
+
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(filename)
+        dscfg.set_swift_meta_dir(destdir)
+
+        cdef = sdef
     else:
-        cdef = TorrentDef.load(torrentfile_or_url)
-
-    if cdef.get_def_type() == "torrent" and cdef.get_live():
-        raise ValueError("cmdlinedl does not support live torrents")
+        raise NotImplementedError()
 
     d = s.start_download(cdef, dscfg)
     d.set_state_callback(state_callback, getpeerlist=[])
