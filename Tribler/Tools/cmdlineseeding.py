@@ -112,6 +112,7 @@ def main():
     statedir = tempfile.mkdtemp()
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
+    sscfg.set_swift_tunnel_listen_port(port)
     sscfg.set_megacache(False)
     sscfg.set_dispersy(False)
 
