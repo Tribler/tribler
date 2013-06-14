@@ -504,11 +504,13 @@ class DispersyPanel(HomePanel):
     def CreatePanel(self):
         panel = wx.Panel(self)
         panel.SetBackgroundColour(DEFAULT_BACKGROUND)
-        vSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
+        self.gridpanel = wx.lib.scrolledpanel.ScrolledPanel(panel)
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
-        vSizer.Add(self.gridSizer, 0, wx.EXPAND | wx.LEFT, 7)
+        self.gridpanel.SetSizer(self.gridSizer)
+        hSizer.Add(self.gridpanel, 1, wx.EXPAND | wx.LEFT, 7)
 
         vSumSizer = wx.BoxSizer(wx.VERTICAL)
         self.summary_tree = wx.TreeCtrl(panel, style=wx.TR_DEFAULT_STYLE | wx.TR_HIDE_ROOT | wx.NO_BORDER)
@@ -535,9 +537,9 @@ class DispersyPanel(HomePanel):
         self.includeDebug.SetValue(self.dispersy.statistics.are_debug_statistics_enabled())
         self.vTreeSizer.Add(self.includeDebug, 0, wx.TOP | wx.BOTTOM, 3)
 
-        vSizer.Add(vSumSizer, 2, wx.EXPAND | wx.LEFT, 10)
-        vSizer.Add(self.vTreeSizer, 1, wx.EXPAND | wx.LEFT, 10)
-        panel.SetSizer(vSizer)
+        hSizer.Add(vSumSizer, 2, wx.EXPAND | wx.LEFT, 10)
+        hSizer.Add(self.vTreeSizer, 1, wx.EXPAND | wx.LEFT, 10)
+        panel.SetSizer(hSizer)
         return panel
 
     def ExpandTree(self, expand=True):
@@ -555,10 +557,10 @@ class DispersyPanel(HomePanel):
 
         def addColumn(strkey, strtooltip):
             # strkey = key.replace("_", " ").capitalize()
-            header = StaticText(self.panel, -1, strkey)
+            header = StaticText(self.gridpanel, -1, strkey)
             _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
             self.gridSizer.Add(header)
-            self.textdict[strkey] = StaticText(self.panel, -1, '')
+            self.textdict[strkey] = StaticText(self.gridpanel, -1, '')
             self.textdict[strkey].SetMinSize((200, -1))
             self.gridSizer.Add(self.textdict[strkey])
 
@@ -569,6 +571,8 @@ class DispersyPanel(HomePanel):
         for title, tooltip, _ in self.mapping:
             addColumn(title, tooltip)
 
+        self.gridpanel.Layout()
+        self.gridpanel.SetupScrolling()
         self.buildColumns = True
 
     def OnMouseEvent(self, event):
