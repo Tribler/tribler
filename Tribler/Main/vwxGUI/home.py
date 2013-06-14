@@ -507,6 +507,7 @@ class DispersyPanel(HomePanel):
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.gridpanel = wx.lib.scrolledpanel.ScrolledPanel(panel)
+        self.gridpanel.SetBackgroundColour(DEFAULT_BACKGROUND)
         self.gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
         self.gridSizer.AddGrowableCol(1)
         self.gridpanel.SetSizer(self.gridSizer)
