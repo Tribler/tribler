@@ -504,7 +504,8 @@ class TriblerLaunchMany(Thread):
             dlconfig = pstate['dlconfig']
             if isinstance(dlconfig['saveas'], tuple):
                 dlconfig['saveas'] = dlconfig['saveas'][-1]
-            if 'name' in dlconfig and isinstance(dlconfig['name'], basestring) and sdef:
+
+            if sdef and 'name' in dlconfig and isinstance(dlconfig['name'], basestring):
                 sdef.set_name(dlconfig['name'])
             if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
                 current_port = int(sdef.get_tracker().split(":")[1])

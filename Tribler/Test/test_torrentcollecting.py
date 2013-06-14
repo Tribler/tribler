@@ -102,13 +102,7 @@ class TestTorrentCollecting(TestAsServer):
         sdef.finalize(session.get_swift_path(), destdir=self.getDestDir())
 
         # 3. Save swift files to metadata dir
-        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-        if not defaultDLConfig.get_swift_meta_dir():
-            defaultDLConfig.set_swift_meta_dir(os.path.join(session.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
-        if not os.path.isdir(defaultDLConfig.get_swift_meta_dir()):
-            os.makedirs(defaultDLConfig.get_swift_meta_dir())
-
-        metadir = defaultDLConfig.get_swift_meta_dir()
+        metadir = session.get_swift_meta_dir()
         metapath = os.path.join(metadir, "output_file")
         try:
             move(storagepath + '.mhash', metapath + '.mhash')
@@ -117,6 +111,7 @@ class TestTorrentCollecting(TestAsServer):
             print_exc()
 
         # 4. Start seeding this file
+        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
         dscfg.set_dest_dir(storagepath)
         d = session.start_download(sdef, dscfg)

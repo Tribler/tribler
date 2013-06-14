@@ -67,6 +67,7 @@ sessdefaults['swiftpath'] = None
 sessdefaults['swiftworkingdir'] = '.'
 sessdefaults['swiftcmdlistenport'] = DEFAULTPORT + 481
 sessdefaults['swiftdlsperproc'] = 1000
+sessdefaults['swiftmetadir'] = None
 
 # config for tunneling via swift, e.g. dispersy
 sessdefaults['swifttunnellistenport'] = DEFAULTPORT - 2
