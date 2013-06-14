@@ -346,7 +346,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.handle.set_sequential_download(True)
 
         self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
-        self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -1)], 0, exclude_borders=True)
+        self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
         if self.progress == 1.0:
             if DEBUG:
@@ -446,12 +446,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                         print >> sys.stderr, "LibtorrentDownloadImpl: could not set priority for non-existing piece %d / %d" % (piece, len(piecepriorities))
                 self.handle.prioritize_pieces(piecepriorities)
 
-    def set_byte_priority(self, byteranges, priority, exclude_borders=False):
+    def set_byte_priority(self, byteranges, priority):
         with self.dllock:
             if self.handle:
                 pieces = []
                 for fileindex, bytes_begin, bytes_end in byteranges:
-                    if bytes_begin == 0 and bytes_end == -1 and not exclude_borders:
+                    if bytes_begin == 0 and bytes_end == -1:
                         # Set priority for entire file
                         filepriorities = self.handle.file_priorities()
                         filepriorities[fileindex] = priority
@@ -462,9 +462,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                         bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
                         bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                        i = int(exclude_borders)
-                        startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece + i
-                        endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1 - i
+                        startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                        endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
                         startpiece = max(startpiece, 0)
                         endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
 
