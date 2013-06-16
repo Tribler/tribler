@@ -113,7 +113,7 @@ class DownloadConfigInterface:
         """
         self.dlconfig['correctedfilename'] = correctedfilename
 
-    def set_video_event_callback(self, usercallback, dlmode=DLMODE_VOD):
+    def set_video_event_callback(self, usercallback):
         """ Download the torrent in Video-On-Demand mode or as live stream.
         When a playback event occurs, the usercallback function will be
         called, with the following list of arguments:
@@ -168,9 +168,7 @@ class DownloadConfigInterface:
         indefinitely (within reason) by the higher level code.
 
         @param usercallback  A function with the above signature.
-        @param dlmode        The download mode to start in (_VOD or _SVC)
         """
-        self.dlconfig['mode'] = dlmode
         self.dlconfig['vod_usercallback'] = usercallback
 
     def set_video_events(self, events=[]):

@@ -815,22 +815,12 @@ class LibraryManager:
         LibraryManager.__single = None
     delInstance = staticmethod(delInstance)
 
-    def _get_videoplayer(self, exclude=None):
+    def _get_videoplayer(self):
         """
-        Returns the VideoPlayer instance and ensures that it knows if
-        there are other downloads running.
+        Returns the VideoPlayer instance.
         """
-        other_downloads = False
-        for ds in self.dslist:
-            if ds is not exclude and ds.get_status() not in (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR):
-                other_downloads = True
-                break
-
-        videoplayer = VideoPlayer.getInstance()
-        videoplayer.set_other_downloads(other_downloads)
-
         self.guiUtility.ShowPlayer()
-        return videoplayer
+        return VideoPlayer.getInstance()
 
     def download_state_callback(self, dslist):
         """
@@ -935,7 +925,7 @@ class LibraryManager:
         ds = torrent.get('ds')
 
         # videoplayer calls should be on gui thread, hence forceWxThread
-        videoplayer = self._get_videoplayer(ds)
+        videoplayer = self._get_videoplayer()
         videoplayer.recreate_videopanel()
         videoplayer.stop_playback()
         videoplayer.show_loading()
@@ -1038,7 +1028,7 @@ class LibraryManager:
             playd = videoplayer.get_vod_download()
 
             if playd == ds.download:
-                self._get_videoplayer(ds).stop_playback()
+                self._get_videoplayer().stop_playback()
 
             self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
 
