@@ -144,7 +144,7 @@ class Utility:
             # AdvancedNetworkPanel
             # AdvancedDiskPanel
             # TriblerPanel
-            'torrentcollectsleep': '15',  # for RSS Subscriptions
+            'torrentcollectsleep': '15', # for RSS Subscriptions
             # VideoPanel
             'videoplaybackmode': '0',
             # Misc
@@ -159,8 +159,8 @@ class Utility:
             'prefwindow_height': '480',
             'prefwindow_split': '400',
             'sash_position': '-185',
-            't4t_option': 0,  # Seeding items added by Boxun
-            't4t_ratio': 100,  # T4T seeding ratio added by Niels
+            't4t_option': 0, # Seeding items added by Boxun
+            't4t_ratio': 100, # T4T seeding ratio added by Niels
             't4t_hours': 0,
             't4t_mins': 30,
             'g2g_option': 1,
@@ -241,7 +241,7 @@ class Utility:
     def setupTorrentMakerConfig(self):
         # Arno, 2008-03-27: To keep fileformat compatible
         defaults = {
-            'piece_size': '0',  # An index into TorrentMaker.FileInfoPanel.piece_choices
+            'piece_size': '0', # An index into TorrentMaker.FileInfoPanel.piece_choices
             'comment': TorrentDefDefaults['comment'],
             'created_by': TorrentDefDefaults['created by'],
             'announcedefault': TorrentDefDefaults['announce'],
@@ -297,20 +297,24 @@ class Utility:
 
     def getMaxDown(self):
         maxdownloadrate = self.config.Read('maxdownloadrate', 'int')
-        if maxdownloadrate == 0:
+        if maxdownloadrate == -1:
+            return '0'
+        elif maxdownloadrate == 0:
             return 'unlimited'
         return str(maxdownloadrate)
 
     def setMaxDown(self, valdown):
         if valdown == 'unlimited':
             self.config.Write('maxdownloadrate', '0')
+        elif valdown == '0':
+            self.config.Write('maxdownloadrate', '-1')
         else:
             self.config.Write('maxdownloadrate', valdown)
 
     def getMaxUp(self):
         maxuploadrate = self.config.Read('maxuploadrate', 'int')
         if maxuploadrate == -1:
-            return 0
+            return '0'
         elif maxuploadrate == 0:
             return 'unlimited'
         return str(maxuploadrate)

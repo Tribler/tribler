@@ -79,6 +79,15 @@ class SRstatusbar(wx.StatusBar):
         self.speed_up.SetLabel(self.utility.speed_format_new(up))
         self.Reposition()
 
+    def SetGlobalMaxSpeed(self, direction, value):
+        if direction in [UPLOAD, DOWNLOAD]:
+            if direction == UPLOAD:
+                self.utility.setMaxUp(value)
+            else:
+                self.utility.setMaxDown(value)
+            value = 0 if value == 'unlimited' else (-1 if int(value) == 0 else int(value))
+            self.guiutility.app.ratelimiter.set_global_max_speed(direction, value)
+
     def OnDownloadPopup(self, event):
         menu = wx.Menu()
         curr_valdown = self.utility.getMaxDown()
@@ -94,7 +103,7 @@ class SRstatusbar(wx.StatusBar):
         for valdown in values:
             itemid = wx.NewId()
             menu.AppendRadioItem(itemid, str(valdown))
-            menu.Bind(wx.EVT_MENU, lambda x, valdown=valdown: self.utility.setMaxDown(valdown), id=itemid)
+            menu.Bind(wx.EVT_MENU, lambda x, valdown=valdown: self.SetGlobalMaxSpeed(DOWNLOAD, valdown), id=itemid)
             menu.Check(itemid, curr_valdown == str(valdown))
 
         self.speed_down.PopupMenu(menu, event.GetPosition())
@@ -116,7 +125,7 @@ class SRstatusbar(wx.StatusBar):
         for valup in values:
             itemid = wx.NewId()
             menu.AppendRadioItem(itemid, str(valup))
-            menu.Bind(wx.EVT_MENU, lambda x, valup=valup: self.utility.setMaxUp(valup), id=itemid)
+            menu.Bind(wx.EVT_MENU, lambda x, valup=valup: self.SetGlobalMaxSpeed(UPLOAD, valup), id=itemid)
             menu.Check(itemid, curr_valup == str(valup))
 
         self.speed_up.PopupMenu(menu, event.GetPosition())
