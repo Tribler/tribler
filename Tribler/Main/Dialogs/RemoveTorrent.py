@@ -29,7 +29,7 @@ class RemoveTorrent(wx.Dialog):
             firstLineMsg = "Delete '%s' from disk, or just remove it from your downloads?" % torrents[0].name
         else:
             firstLineMsg = "Delete %s torrents from disk, or just remove them from your downloads?" % len(torrents)
-        firstLineMsg = wordwrap(firstLineMsg, self.GetSize()[0] - bitmap.GetSize()[0] - 10, wx.ClientDC(firstLine), breakLongWords=True, margin=0)
+        firstLineMsg = wordwrap(firstLineMsg, self.GetSize()[0] - bitmap.GetSize()[0] - 50, wx.ClientDC(firstLine), breakLongWords=True, margin=0)
         firstLine.SetLabel(firstLineMsg)
         firstLine.SetMinSize((1, -1))
         vSizer.Add(firstLine, 0, wx.EXPAND | wx.BOTTOM, 3)
