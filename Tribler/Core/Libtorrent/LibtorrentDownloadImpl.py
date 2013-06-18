@@ -297,7 +297,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.handle:
             self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
-                self.set_vod_mode()
+                self.set_vod_mode(True)
 
             # If we lost resume_data always resume download in order to force checking
             if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
@@ -316,6 +316,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             lm_network_engine_wrapper_created_callback(self, pstate)
 
     def set_vod_mode(self, enable=True):
+        if DEBUG:
+            print >> sys.stderr, "LibtorrentDownloadImpl: set_vod_mode for", self.handle.name(), 'to', enable
+
         self.vod_status = ""
         self.vod_seekpos = 0
 
@@ -358,7 +361,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
                 self.set_state_callback(self.monitor_vod, delay=1.0)
-        else:
+        elif self.get_mode() == DLMODE_VOD:
             self.handle.set_sequential_download(False)
             self.handle.set_priority(0)
             self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
@@ -886,6 +889,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
+                    self.set_vod_mode(False)
                     self.handle.pause()
                     pstate['engineresumedata'] = self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None
                 self.pstate_for_restart = pstate

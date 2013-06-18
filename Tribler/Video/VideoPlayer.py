@@ -327,11 +327,9 @@ class VideoPlayer:
 
     def play_vod(self, ds, infilename):
         """ Called by GUI thread when clicking "Play ASAP" button """
+
         d = ds.get_download()
         cdef = d.get_def()
-
-        if self.playbackmode == PLAYBACKMODE_INTERNAL:
-            self.videoframe.get_videopanel().Reset()
 
         if DEBUG:
             print >> sys.stderr, "videoplay: play_vod: Enabling VOD on torrent", cdef.get_name()
@@ -607,7 +605,11 @@ class VideoPlayer:
         dlg.Destroy()
 
     def set_vod_download(self, d):
-        self.vod_download = d
+        if d != self.vod_download:
+            if self.vod_download:
+                self.vod_download.set_mode(DLMODE_NORMAL)
+                self.vod_download.restart()
+            self.vod_download = d
 
     def get_vod_download(self):
         return self.vod_download
