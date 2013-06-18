@@ -317,7 +317,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def set_vod_mode(self, enable=True):
         if DEBUG:
-            print >> sys.stderr, "LibtorrentDownloadImpl: set_vod_mode for", self.handle.name(), 'to', enable
+            print >> sys.stderr, "LibtorrentDownloadImpl: set_vod_mode for", self.handle.name(), '( enable =', enable, ')'
 
         self.vod_status = ""
         self.vod_seekpos = 0
@@ -361,15 +361,18 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
                 self.set_state_callback(self.monitor_vod, delay=1.0)
-        elif self.get_mode() == DLMODE_VOD:
+        else:
             self.handle.set_sequential_download(False)
             self.handle.set_priority(0)
             self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
     def monitor_vod(self, ds):
+        if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
+            return (0, False)
+
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        if DEBUG:
+        if True or DEBUG:
             print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
 
         if bufferprogress >= 1:
@@ -389,8 +392,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.videoinfo['bitrate'] = bitrate
             self.videoinfo['duration'] = duration
 
-        delay = 1.0 if self.handle and not self.handle.is_paused() and self.get_mode() == DLMODE_VOD else 0.0
-        return (delay, False)
+        return (1.0, False)
 
     def get_vod_duration(self):
         return self.videoinfo.get('duration', None)
