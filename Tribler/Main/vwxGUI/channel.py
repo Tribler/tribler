@@ -258,11 +258,7 @@ class SelectedChannelList(GenericSearchList):
 
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, borders=False, showChange=True, parent=parent)
 
-        newId = wx.NewId()
-        self.accelerators = [(wx.ACCEL_NORMAL, wx.WXK_BACK, newId)]
-        self.list.Bind(wx.EVT_MENU, self.OnBack, id=newId)
-        self.list.SetAcceleratorTable(wx.AcceleratorTable(self.accelerators))
-
+        self.list.OnBack = self.OnBack
         self.list.Bind(wx.EVT_SHOW, lambda evt: self.notebook.SetSelection(0))
 
     @warnWxThread
@@ -283,7 +279,7 @@ class SelectedChannelList(GenericSearchList):
         vSizer.Add(self.list, 1, wx.EXPAND)
         contentList.SetSizer(vSizer)
 
-        self.notebook.AddPage(contentList, "Contents", tab_colour = wx.WHITE)
+        self.notebook.AddPage(contentList, "Contents", tab_colour=wx.WHITE)
 
         self.commentList = NotebookPanel(self.notebook)
         self.commentList.SetList(CommentList(self.commentList, self, canReply=True))
@@ -382,12 +378,12 @@ class SelectedChannelList(GenericSearchList):
                 self.commentList.Show(True)
                 self.activityList.Show(True)
 
-                self.notebook.AddPage(self.commentList, "Comments", tab_colour = wx.WHITE)
-                self.notebook.AddPage(self.activityList, "Activity", tab_colour = wx.WHITE)
+                self.notebook.AddPage(self.commentList, "Comments", tab_colour=wx.WHITE)
+                self.notebook.AddPage(self.activityList, "Activity", tab_colour=wx.WHITE)
 
             if state >= ChannelCommunity.CHANNEL_OPEN and self.notebook.GetPageCount() == 3:
                 self.moderationList.Show(True)
-                self.notebook.AddPage(self.moderationList, "Moderations", tab_colour = wx.WHITE)
+                self.notebook.AddPage(self.moderationList, "Moderations", tab_colour=wx.WHITE)
         else:
             for i in range(self.notebook.GetPageCount(), 1, -1):
                 page = self.notebook.GetPage(i - 1)
