@@ -29,7 +29,7 @@ class TestTorrentChecking(AbstractServer):
         sleep(5)
 
     def test_torrent_checking(self):
-        tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
+        tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "big_buck_bunny.torrent"))
         self.tdb.addExternalTorrent(tdef)
         self.torrentChecking.addToQueue(tdef.get_infohash())
         sleep(30)
