@@ -10,16 +10,14 @@ from threading import currentThread
 from Tribler.Core.API import *
 from Tribler.Core.osutils import startfile
 from Tribler.TrackerChecking.TorrentChecking import *
-from Tribler.Video.Progress import ProgressBar
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText, \
-    ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps, \
-    TransparentStaticBitmap, Graph
+    MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText, ProgressButton, FancyPanel, TransparentText, LinkText, \
+    StaticBitmaps, TransparentStaticBitmap, Graph, ProgressBar
 
 from list_body import ListBody
 from widgets import _set_font
@@ -440,7 +438,7 @@ class TorrentDetails(AbstractDetails):
 
             self.listCtrl.setResizeColumn(0)
             # Calling SetColumnWidth seems to cause Refresh issues in list_body
-            #self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)  # autosize only works after adding rows
+            # self.listCtrl.SetColumnWidth(1, wx.LIST_AUTOSIZE)  # autosize only works after adding rows
             self.listCtrl.SetMinSize((1, -1))
 
             vSizer = wx.BoxSizer(wx.VERTICAL)

@@ -42,7 +42,6 @@ class VideoPlayer:
         self.vod_download = None
         self.playbackmode = None
         self.preferredplaybackmode = None
-        self.other_downloads = None
         self.closeextplayercallback = None
 
         self.videohttpservport = httpport
@@ -101,10 +100,6 @@ class VideoPlayer:
         if self.videohttpserv:
             self.videohttpserv.shutdown()
             self.videohttpserv.server_close()
-
-    def set_other_downloads(self, other_downloads):
-        """A boolean indicating whether there are other downloads running at this time"""
-        self.other_downloads = other_downloads
 
     def get_vlcwrap(self):
         return self.vlcwrap
@@ -328,152 +323,27 @@ class VideoPlayer:
             else:
                 self.play_file(selectedoutfilename)
 
-            self.manage_others_when_playing_from_file(d)
             self.set_vod_download(d)
 
     def play_vod(self, ds, infilename):
         """ Called by GUI thread when clicking "Play ASAP" button """
+
         d = ds.get_download()
         cdef = d.get_def()
 
-        # For multi-file torrent: when the user selects a different file, play that
-        oldselectedfile = None
-        if not cdef.get_live() and ds.is_vod() and (cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent()):
-            oldselectedfiles = d.get_selected_files()
-            if oldselectedfiles:
-                oldselectedfile = oldselectedfiles[0]
-
-        # 1. (Re)Start torrent in VOD mode
-        switchfile = (oldselectedfile is not None and oldselectedfile != infilename)
-        if not ds.is_vod() or switchfile or cdef.get_live():
-            if switchfile:
-                if self.playbackmode == PLAYBACKMODE_INTERNAL:
-                    self.videoframe.get_videopanel().Reset()
-
-            if DEBUG:
-                print >> sys.stderr, "videoplay: play_vod: Enabling VOD on torrent", cdef.get_name()
-
-            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
-            self.manage_other_downloads(othertorrentspolicy, targetd=d)
-
-            # Restart download
-            d.set_video_event_callback(self.sesscb_vod_event_callback)
-            d.set_video_events(self.get_supported_vod_events())
-            if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
-                d.set_selected_files([infilename])
-
-            print >> sys.stderr, "videoplay: play_vod: Restarting existing Download", cdef.get_id()
-            self.set_vod_download(d)
-            d.restart()
-
-    def restart_other_downloads(self, download_state_list):
-        if len(download_state_list) == 0:
-            return
-
-        def get_vod_download_status(default):
-            for download_state in download_state_list:
-                if self.vod_download == download_state.get_download():
-                    return download_state.get_status()
-            return default
-
-        if self.resume_by_system:
-            # resume when there is no VOD download
-            if self.vod_download is None:
-                self.resume_by_system += 1
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because vod_download is None", "(%d)" % self.resume_by_system
-
-            # resume when the VOD download is not part of download_state_list
-            elif not self.vod_download in [download_state.get_download() for download_state in download_state_list]:
-                self.resume_by_system += 1
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because", repr(self.vod_download.get_def().get_name()), "not in list", "(%d)" % self.resume_by_system
-                    print >> sys.stderr, "VideoPlayer: list:", repr([download_state.get_download().get_def().get_name() for download_state in download_state_list])
-
-            # resume when the VOD download has finished downloading
-            elif not get_vod_download_status(DLSTATUS_ALLOCATING_DISKSPACE) in (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING):
-                self.resume_by_system += 1
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: restart_other_downloads: Resume because vod_download_status is inactive", "(%d)" % self.resume_by_system
-                    print >> sys.stderr, "VideoPlayer: status:", dlstatus_strings[get_vod_download_status(DLSTATUS_ALLOCATING_DISKSPACE)]
-
-            # otherwise we do not resume
-            else:
-                self.resume_by_system = 1
-
-            # because of threading issues it is possible that we have
-            # false positives. therefore we will only resume torrents
-            # after we checked 2 times (once every second)
-            if self.resume_by_system > 2:
-                self.resume_by_system = 0
-
-                # sometimes the self.vod_download stays set to a
-                # download class that is no longer downloading
-                self.set_vod_download(None)
-
-                for download_state in download_state_list:
-                    download = download_state.get_download()
-                    content_def = download.get_def()
-                    infohash = content_def.get_id()
-
-                    from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-                    self.user_download_choice = UserDownloadChoice.get_singleton()
-                    user_state = self.user_download_choice.get_download_state(infohash)
-
-                    # resume a download unless the user explisitly
-                    # stopped the download
-                    if not user_state == "stop":
-                        if DEBUG:
-                            print >> sys.stderr, "VideoPlayer: restart_other_downloads: Restarting", repr(download.get_def().get_name())
-                        download.set_mode(DLMODE_NORMAL)
-                        download.restart()
-
-    def manage_other_downloads(self, othertorrentspolicy, targetd=None):
-        self.resume_by_system = 1
         if DEBUG:
-            print >> sys.stderr, "VideoPlayer: manage_other_downloads"
+            print >> sys.stderr, "videoplay: play_vod: Enabling VOD on torrent", cdef.get_name()
 
-        policy_stop = othertorrentspolicy == OTHERTORRENTS_STOP or \
-                      othertorrentspolicy == OTHERTORRENTS_STOP_RESTART
+        # Restart download
+        d.set_video_event_callback(self.sesscb_vod_event_callback)
+        d.set_video_events(self.get_supported_vod_events())
+        if cdef.get_def_type() != "torrent" or d.get_def().is_multifile_torrent():
+            d.set_selected_files([infilename])
 
-        for download in self.utility.session.get_downloads():
-            if download.get_def().get_live():
-                # Filter out live torrents, they are always
-                # removed. They stay in myPreferenceDB so can be
-                # restarted.
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Remove live", repr(download.get_def().get_name())
-                self.utility.session.remove_download(download)
-
-            elif download == targetd:
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Leave", repr(download.get_def().get_name())
-                download.stop()
-
-            elif policy_stop:
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Stop", repr(download.get_def().get_name())
-                download.stop()
-
-            else:
-                if DEBUG:
-                    print >> sys.stderr, "VideoPlayer: manage_other_downloads: Ignore", repr(download.get_def().get_name())
-
-    def manage_others_when_playing_from_file(self, targetd):
-        """ When playing from file, make sure all other Downloads are no
-        longer in VOD mode, so they won't interrupt the playback.
-        """
-        activetorrents = self.utility.session.get_downloads()
-        for d in activetorrents:
-            if d.get_mode() == DLMODE_VOD:
-                if d.get_def().get_live():
-                    # print >>sys.stderr,"videoplay: manage_when_file_play: Removing live",`d.get_def().get_name()`
-                    self.utility.session.remove_download(d)
-                else:
-                    # print >>sys.stderr,"videoplay: manage_when_file_play: Restarting in NORMAL mode",`d.get_def().get_name()`
-                    d.stop()
-                    d.set_mode(DLMODE_NORMAL)
-                    d.restart()
+        print >> sys.stderr, "videoplay: play_vod: Restarting existing Download", cdef.get_id()
+        self.set_vod_download(d)
+        d.set_mode(DLMODE_VOD)
+        d.restart()
 
     def start_and_play(self, cdef, dscfg, selectedinfilename=None):
         """ Called by GUI thread when Tribler started with live or video torrent on cmdline """
@@ -492,12 +362,10 @@ class VideoPlayer:
             if cdef.get_def_type() != "torrent" or cdef.is_multifile_torrent():
                 dscfg.set_selected_files([selectedinfilename])
 
-            othertorrentspolicy = OTHERTORRENTS_STOP_RESTART
-            self.manage_other_downloads(othertorrentspolicy, targetd=None)
-
             # Restart download
             dscfg.set_video_event_callback(self.sesscb_vod_event_callback)
             dscfg.set_video_events(self.get_supported_vod_events())
+            dscfg.set_mode(DLMODE_VOD)
             print >> sys.stderr, "videoplay: Starting new VOD/live Download", repr(cdef.get_name())
 
             download = self.utility.session.start_download(cdef, dscfg)
@@ -737,7 +605,11 @@ class VideoPlayer:
         dlg.Destroy()
 
     def set_vod_download(self, d):
-        self.vod_download = d
+        if d != self.vod_download:
+            if self.vod_download:
+                self.vod_download.set_mode(DLMODE_NORMAL)
+                self.vod_download.restart()
+            self.vod_download = d
 
     def get_vod_download(self):
         return self.vod_download

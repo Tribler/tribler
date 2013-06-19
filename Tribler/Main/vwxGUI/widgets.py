@@ -1133,6 +1133,106 @@ class SwarmHealth(wx.Panel):
         pass
 
 
+class ProgressBar(wx.Panel):
+
+    def __init__(self, parent, colours=["#ffffff", "#92cddf", "#006dc0"], size=wx.DefaultSize):
+        wx.Panel.__init__(self, parent, size=size, style=wx.NO_BORDER)
+        self.pens = [wx.Pen(c) for c in colours]
+        self.brushes = [wx.Brush(c) for c in colours]
+
+        for i in xrange(len(self.pens)):
+            if self.pens[i].GetColour() == wx.WHITE:
+                self.pens[i] = None
+        self.reset()
+
+        self.SetMaxSize((-1, 6))
+        self.SetMinSize((1, 6))
+        self.SetBackgroundColour(wx.WHITE)
+
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+
+        self.completed = False
+
+    def OnEraseBackground(self, event):
+        pass  # Or None
+
+    def OnPaint(self, evt):
+        dc = wx.BufferedPaintDC(self)
+        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
+        dc.Clear()
+
+        x, y, maxw, maxh = self.GetClientRect()
+
+        if len(self.blocks) > 0 and not self.completed:
+            numrect = float(len(self.blocks))
+            w = max(1, maxw / numrect)
+
+            lines = [(x + i, y, x + i, maxh) for i in xrange(maxw) if self.blocks[int(i / w)]]
+            pens = [self.pens[self.blocks[int(i / w)]] for i in xrange(maxw) if self.blocks[int(i / w)]]
+            dc.DrawLineList(lines, pens)
+
+        if self.completed:
+            dc.SetBrush(self.brushes[2])
+        else:
+            dc.SetBrush(wx.TRANSPARENT_BRUSH)
+
+        dc.SetPen(wx.BLACK_PEN)
+        dc.DrawRoundedRectangle(x, y, maxw, maxh, 2)
+
+    def set_pieces(self, blocks):
+        maxBlocks = max(self.GetClientRect().width, 100)
+        haveBlocks = len(blocks)
+
+        if haveBlocks > maxBlocks:  # we need to group the blocks
+            sblocks = [0] * maxBlocks
+            nrBlocksPerPixel = haveBlocks / maxBlocks
+            for i in xrange(maxBlocks):
+                any = False
+                all = True
+
+                for j in xrange(nrBlocksPerPixel * i, nrBlocksPerPixel * (i + 1)):
+                    if blocks[j]:
+                        any = True
+                    else:
+                        all = False
+                        if any:
+                            break
+                if all:
+                    sblocks[i] = 2
+                elif any:
+                    sblocks[i] = 1
+        else:
+            sblocks = []
+            for i in xrange(haveBlocks):
+                remainingPixels = maxBlocks - len(sblocks)
+                remainingBlocks = haveBlocks - i
+                nrPixelsToColour = int(remainingPixels / remainingBlocks)
+
+                if blocks[i]:
+                    state = 2
+                else:
+                    state = 0
+
+                sblocks.extend([state] * nrPixelsToColour)
+        self.set_blocks(sblocks)
+
+    def set_blocks(self, blocks):
+        self.completed = all([x == 2 for x in blocks])
+        self.blocks = blocks
+
+    def setNormalPercentage(self, perc):
+        maxBlocks = max(self.GetClientRect().width, 100)
+
+        sblocks = [2] * int(perc * maxBlocks)
+        sblocks += [0] * (maxBlocks - len(sblocks))
+        self.set_blocks(sblocks)
+
+    def reset(self, colour=0):
+        sblocks = [colour] * 100
+        self.set_blocks(sblocks)
+
+
 def _set_font(control, size_increment=0, fontweight=wx.FONTWEIGHT_NORMAL, fontcolour=None):
     font = control.GetFont()
     font.SetPointSize(font.GetPointSize() + size_increment)
