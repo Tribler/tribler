@@ -645,11 +645,6 @@ class ABCApp():
 
             self.seedingmanager.apply_seeding_policy(no_collected_list)
 
-            # The VideoPlayer instance manages both pausing and
-            # restarting of torrents before and after VOD playback
-            # occurs.
-            self.videoplayer.restart_other_downloads(no_collected_list)
-
             # Adjust speeds once every 4 seconds
             adjustspeeds = False
             if self.ratestatecallbackcount % 4 == 0:

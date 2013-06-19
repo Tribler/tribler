@@ -192,7 +192,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.prebuffsize = 5 * 1024 * 1024
         self.vod_seekpos = 0
         self.vod_status = ""
-        self.videoinfo = None
+        self.videoinfo = {'status' : None}
 
         self.lm_network_vod_event_callback = None
         self.pstate_for_restart = None
@@ -297,7 +297,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if self.handle:
             self.set_selected_files()
             if self.get_mode() == DLMODE_VOD:
-                self.set_vod_mode()
+                self.set_vod_mode(True)
 
             # If we lost resume_data always resume download in order to force checking
             if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
@@ -315,52 +315,64 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if lm_network_engine_wrapper_created_callback is not None:
             lm_network_engine_wrapper_created_callback(self, pstate)
 
-    def set_vod_mode(self):
+    def set_vod_mode(self, enable=True):
+        if DEBUG:
+            print >> sys.stderr, "LibtorrentDownloadImpl: set_vod_mode for", self.handle.name(), '( enable =', enable, ')'
+
         self.vod_status = ""
         self.vod_seekpos = 0
 
-        # Define which file to DL in VOD mode
-        self.videoinfo = {'live': self.get_def().get_live()}
+        if enable:
+            # Define which file to DL in VOD mode
+            self.videoinfo = {'live': self.get_def().get_live()}
 
-        if self.tdef.is_multifile_torrent():
-            if len(self.dlconfig['selected_files']) == 0:
-                raise VODNoFileSelectedInMultifileTorrentException()
-            filename = self.dlconfig['selected_files'][0]
-            self.videoinfo['index'] = self.get_def().get_index_of_file_in_files(filename)
-            self.videoinfo['inpath'] = filename
-            self.videoinfo['bitrate'] = self.get_def().get_bitrate(filename)
+            if self.tdef.is_multifile_torrent():
+                if len(self.dlconfig['selected_files']) == 0:
+                    raise VODNoFileSelectedInMultifileTorrentException()
+                filename = self.dlconfig['selected_files'][0]
+                self.videoinfo['index'] = self.get_def().get_index_of_file_in_files(filename)
+                self.videoinfo['inpath'] = filename
+                self.videoinfo['bitrate'] = self.get_def().get_bitrate(filename)
 
+            else:
+                filename = self.get_def().get_name()
+                self.videoinfo['index'] = 0
+                self.videoinfo['inpath'] = filename
+                self.videoinfo['bitrate'] = self.get_def().get_bitrate()
+
+            self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
+            self.videoinfo['mimetype'] = self.get_mimetype(filename)
+            self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
+            self.videoinfo['userevents'] = self.dlconfig['vod_userevents'][:]
+            # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
+            self.videoinfo['status'] = None
+
+            self.handle.set_sequential_download(True)
+            self.handle.set_priority(255)
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+
+            self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
+
+            if self.progress == 1.0:
+                if DEBUG:
+                    print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
+                self.start_vod(complete=True)
+            else:
+                if DEBUG:
+                    print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
+                self.set_state_callback(self.monitor_vod, delay=1.0)
         else:
-            filename = self.get_def().get_name()
-            self.videoinfo['index'] = 0
-            self.videoinfo['inpath'] = filename
-            self.videoinfo['bitrate'] = self.get_def().get_bitrate()
-
-        self.videoinfo['outpath'] = self.files[self.videoinfo['index']]
-        self.videoinfo['mimetype'] = self.get_mimetype(filename)
-        self.videoinfo['usercallback'] = lambda event, params: self.session.uch.perform_vod_usercallback(self, self.dlconfig['vod_usercallback'], event, params)
-        self.videoinfo['userevents'] = self.dlconfig['vod_userevents'][:]
-        # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
-        self.videoinfo['status'] = None
-
-        self.handle.set_sequential_download(True)
-
-        self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
-        self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-
-        if self.progress == 1.0:
-            if DEBUG:
-                print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
-            self.start_vod(complete=True)
-        else:
-            if DEBUG:
-                print >> sys.stderr, "LibtorrentDownloadImpl: going into VOD mode", self.videoinfo
-            self.set_state_callback(self.monitor_vod, delay=5.0)
+            self.handle.set_sequential_download(False)
+            self.handle.set_priority(0)
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
 
     def monitor_vod(self, ds):
+        if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
+            return (0, False)
+
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        if DEBUG:
+        if True or DEBUG:
             print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
 
         if bufferprogress >= 1:
@@ -380,8 +392,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.videoinfo['bitrate'] = bitrate
             self.videoinfo['duration'] = duration
 
-        delay = 1.0 if self.handle and not self.handle.is_paused() else 0.0
-        return (delay, False)
+        return (1.0, False)
 
     def get_vod_duration(self):
         return self.videoinfo.get('duration', None)
@@ -473,11 +484,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     pieces = list(set(pieces))
                     self.set_piece_priority(pieces, priority)
 
-    def set_mode(self, mode):
-        if self.get_mode() == DLMODE_VOD and mode != DLMODE_VOD:
-            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-        DownloadRuntimeConfig.set_mode(self, mode)
-
     def start_vod(self, complete=False):
         if not self.vod_status:
             self.vod_status = "started"
@@ -525,6 +531,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.on_file_renamed_alert(alert)
                 elif alert_type == 'performance_alert':
                     self.on_performance_alert(alert)
+                elif alert_type == 'state_changed_alert':
+                    self.on_state_changed_alert(alert)
                 elif alert_type == 'torrent_checked_alert':
                     self.on_torrent_checked_alert(alert)
                 elif alert_type == "torrent_finished_alert":
@@ -573,6 +581,12 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 settings.max_queued_disk_bytes = 2 * settings.max_queued_disk_bytes
                 self.ltmgr.ltsession.set_settings(settings)
 
+    def on_state_changed_alert(self, alert):
+        self.update_lt_stats()
+        # If we are in VOD mode and still need to download pieces and but libtorrent says we are finished, reset the piece priorities to 1
+        if self.get_mode() == DLMODE_VOD and self.progress < 1.0 and alert.state == 4:
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+
     def on_torrent_checked_alert(self, alert):
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
@@ -582,12 +596,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.checkpoint()
 
     def on_torrent_finished_alert(self, alert):
-        if self.get_mode() == DLMODE_VOD and self.progress == 1.0:
-            # Reset priority for entire vod file to 1
-            file_priorities = self.handle.file_priorities()
-            file_priorities[self.get_vod_fileindex()] = 1
-            self.handle.prioritize_files(file_priorities)
         self.update_lt_stats()
+        if self.get_mode() == DLMODE_VOD and self.progress == 1.0:
+            self.set_vod_mode(False)
 
     def update_lt_stats(self):
         status = self.handle.status()
@@ -888,6 +899,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
+                    self.set_vod_mode(False)
                     self.handle.pause()
                     pstate['engineresumedata'] = self.handle.write_resume_data() if isinstance(self.tdef, TorrentDef) else None
                 self.pstate_for_restart = pstate
@@ -941,8 +953,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.create_engine_wrapper(self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, self.session.lm.network_vod_event_callback, initialdlstatus=initialdlstatus)
             else:
                 self.handle.resume()
-                if self.get_mode() == DLMODE_VOD:
-                    self.set_vod_mode()
+                self.set_vod_mode(self.get_mode() == DLMODE_VOD)
 
     def set_max_desired_speed(self, direct, speed):
         if DEBUG:

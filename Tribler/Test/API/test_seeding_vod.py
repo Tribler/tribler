@@ -4,7 +4,7 @@
 import sys
 import threading
 from Tribler.Test.API.test_seeding import TestSeeding
-from Tribler.Core.simpledefs import dlstatus_strings, VODEVENT_START
+from Tribler.Core.simpledefs import dlstatus_strings, DLMODE_VOD, VODEVENT_START
 import unittest
 
 
@@ -22,6 +22,7 @@ class TestVODSeeding(TestSeeding):
 
     def subtest_download(self):
         self.dscfg2.set_video_event_callback(self.downloader_vod_ready_callback)
+        self.dscfg2.set_mode(DLMODE_VOD)
         TestSeeding.subtest_download(self)
         assert self.vod_event.wait(60)
 
