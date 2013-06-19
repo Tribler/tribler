@@ -62,6 +62,19 @@ def pallier_multiply(cipher, times, n2):
 def pallier_add(cipher1, cipher2, n2):
     return (cipher1 * cipher2) % n2
 
+def pallier_poly(x, coefficients, n2):
+    def multi(coefficient):
+        power = len(coefficients) - coefficient - 1
+        if power:
+            return pallier_multiply(coefficients[coefficient], pow(x, power), n2)
+        return coefficients[coefficient]
+
+    result = multi(0)
+    for index in range(1, len(coefficients)):
+        result = pallier_add(result, multi(index), n2)
+
+    return result
+
 if __name__ == "__main__":
     # lets check if this pallier thing works
     key = rsa_init(1024)
@@ -72,14 +85,9 @@ if __name__ == "__main__":
     encrypted2 = pallier_encrypt(key, 2l)
     encrypted3 = pallier_encrypt(key, 3l)
 
-    def pallier_poly(x, c0, c1, c2, n2):
-        return pallier_add(pallier_add(pallier_multiply(c2, pow(x, 2), n2), pallier_multiply(c1, x, n2), n2), c0, n2)
-
-    def poly(x, c0, c1, c2):
-        return c2 * pow(x, 2) + c1 * x + c0
-
-    print poly(2, 1, 2, 3)
-    print pallier_decrypt(key, pallier_poly(2, encrypted1, encrypted2, encrypted3, key.n2))
+    import numpy
+    print numpy.polyval([1, 2, 3], 2)
+    print pallier_decrypt(key, pallier_poly(2, [encrypted1, encrypted2, encrypted3], key.n2))
 
 #     encrypted0 = pallier_encrypt(key, 0l)
 #     encrypted1 = pallier_encrypt(key, 1l)
