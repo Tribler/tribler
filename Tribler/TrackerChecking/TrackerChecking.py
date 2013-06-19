@@ -17,7 +17,7 @@ from binascii import unhexlify
 
 HTTP_TIMEOUT = 30  # seconds
 
-DEBUG = False
+DEBUG = True
 ioErrors = {}
 
 
