@@ -2635,13 +2635,12 @@ class VideoSlider(wx.Panel):
         if self.pieces:
             gc.SetBrush(wx.Brush(self.colour3))
             slider_width = self.slider_range[1] - self.slider_range[0]
-            piece_with = slider_width / float(len(self.pieces))
-            for index, piece in enumerate(self.pieces):
-                piece_position = self.slider_range[0] + (index * piece_with)
-                if piece:
-                    gc.DrawRectangle(piece_position, height / 2 - rect_height / 2, piece_with, rect_height)
-                elif self.slider_position[0] < piece_position:
-                    break
+            num_pieces = len(self.pieces)
+            piece_width = slider_width / float(num_pieces)
+            from_piece = to_piece = int(self.value * slider_width / piece_width)
+            while to_piece < num_pieces and self.pieces[to_piece]:
+                to_piece += 1
+            gc.DrawRectangle(self.slider_range[0] + from_piece * piece_width, height / 2 - rect_height / 2, (to_piece - from_piece) * piece_width, rect_height)
 
         # Draw position rectangle
         gc.SetBrush(wx.Brush(self.colour1))
@@ -2649,7 +2648,7 @@ class VideoSlider(wx.Panel):
 
         # Draw slider
         if self.IsEnabled():
-            gc.SetBrush(gc.CreateLinearGradientBrush(self.slider_position[0], 0, self.slider_position[1] + self.slider_radius * 2 , 0, self.colour1, self.colour2))
+            gc.SetBrush(gc.CreateLinearGradientBrush(self.slider_position[0] - self.slider_radius, 0, self.slider_position[0] + self.slider_radius , 0, self.colour1, self.colour2))
             path = gc.CreatePath()
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
             gc.DrawPath(path)

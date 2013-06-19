@@ -372,7 +372,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
-        if True or DEBUG:
+        if DEBUG:
             print >> sys.stderr, 'LibtorrentDownloadImpl: bufferprogress = %.2f' % bufferprogress
 
         if bufferprogress >= 1:
