@@ -57,7 +57,7 @@ def single_no_thread(torrent, multiscrapeCallback=None):
     trackers.sort(reverse=True)  # sorting reverse will prefer udp over http trackers
 
     if DEBUG:
-        print >> sys.stderr, "TrackerChecking: Checking", torrent.get_name(), trackers
+        print >> sys.stderr, "TrackerChecking: Checking", torrent["infohash"], trackers
 
     for _, announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)

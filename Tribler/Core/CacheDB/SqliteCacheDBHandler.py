@@ -541,13 +541,13 @@ class TorrentDBHandler(BasicDBHandler):
             self.existed_torrents.add(infohash)
             return True
 
-    def addExternalTorrent(self, torrentdef, source="BC", extra_info={}, commit=True):
+    def addExternalTorrent(self, torrentdef, source="BC", extra_info={}, add_all=False, commit=True):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
         if torrentdef.is_finalized():
             infohash = torrentdef.get_infohash()
             if not self.hasTorrent(infohash):
-                self._addTorrentToDB(torrentdef, source, extra_info, commit)
+                self._addTorrentToDB(torrentdef, source, extra_info, add_all, commit)
                 self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
     def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, source, extra_info={}):
@@ -698,7 +698,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         return dict
 
-    def _addTorrentToDB(self, torrentdef, source, extra_info, commit):
+    def _addTorrentToDB(self, torrentdef, source, extra_info, add_all=False, commit=False):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
 
@@ -721,7 +721,7 @@ class TorrentDBHandler(BasicDBHandler):
             swarmname, _ = os.path.splitext(swarmname)
         self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'SWIFT', 'DISP_SC'])
 
-        self._addTorrentTracker(torrent_id, torrentdef, extra_info, commit=False)
+        self._addTorrentTracker(torrent_id, torrentdef, extra_info, add_all=add_all, commit=False)
         if commit:
             self.commit()
         return torrent_id
@@ -1127,7 +1127,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         return results
 
-    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
+    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness= -1):
         """
         Returns the largest number of the sources that have seen the torrent.
         @author: Rahim
@@ -1805,7 +1805,7 @@ class TorrentDBHandler(BasicDBHandler):
             # create a view?
             sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
                      from CollectedTorrent T, TorrentTracker TT
-                     where TT.torrent_id=T.torrent_id and announce_tier=1 """
+                     where TT.torrent_id=T.torrent_id and announce_tier == 1 """
             if policy.lower() == 'random':
                 ntorrents = self.getNumberCollectedTorrents()
                 if ntorrents == 0:
@@ -1825,35 +1825,49 @@ class TorrentDBHandler(BasicDBHandler):
                 sql += """ and last_check < %d and status_id <> 2
                          order by 3*num_seeders+num_leechers desc
                          limit 1 """ % last_check_threshold
+
             res = self._db.fetchone(sql)
+            if res:
+                res = {'torrent_id': res[0],
+                       'ignored_times': res[1],
+                       'retried_times': res[2],
+                       'torrent_path': res[3],
+                       'infohash': str2bin(res[4]),
+                       'status': self.id2status[res[5]],
+                       'last_check': res[8],
+                       'trackers': [res[9]],
+                      }
         else:
             # Niels: If we specifiy a particular torrent, allow for non-collected torrents (ie torrent from channels can have trackers before the .torrent is collected)
             sql = """select T.torrent_id, ignored_times, retried_times, torrent_file_name, infohash, status_id, num_seeders, num_leechers, last_check, tracker
                      from Torrent T, TorrentTracker TT
-                     where TT.torrent_id=T.torrent_id and announce_tier=1
-                     and infohash=?
+                     where TT.torrent_id=T.torrent_id and infohash=?
+                     order by announce_tier asc
                   """
             infohash_str = bin2str(infohash)
-            res = self._db.fetchone(sql, (infohash_str,))
+            rows = self._db.fetchall(sql, (infohash_str,))
+            res = None
+            for row in rows:
+                if res == None:
+                    res = {'torrent_id': row[0],
+                           'ignored_times': row[1],
+                           'retried_times': row[2],
+                           'torrent_path': row[3],
+                           'infohash': str2bin(row[4]),
+                           'status': self.id2status[row[5]],
+                           'last_check': row[8],
+                           'trackers': [row[9]],
+                          }
+                else:
+                    res['trackers'].append(row[9])
 
         if res:
-            torrent_file_name = res[3]
+            torrent_file_name = res['torrent_path']
             if torrent_file_name:
                 torrent_dir = self.getTorrentDir()
-                torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            else:
-                torrent_path = None
+                res['torrent_path'] = os.path.join(torrent_dir, torrent_file_name)
 
-            res = {'torrent_id': res[0],
-                   'ignored_times': res[1],
-                   'retried_times': res[2],
-                   'torrent_path': torrent_path,
-                   'infohash': str2bin(res[4]),
-                   'status': self.id2status[res[5]],
-                   'last_check': res[8],
-                   'trackers': [res[9]],
-                  }
-            return res
+        return res
 
     def getTorrentsFromSource(self, source):
         """ Get all torrents from the specified Subscription source.
