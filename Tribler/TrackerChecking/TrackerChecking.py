@@ -55,6 +55,10 @@ def single_no_thread(torrent, multiscrapeCallback=None):
 
     trackers = [(-ioErrors.get(tracker, 0), tracker) for tracker in trackers if tracker.startswith('http') or tracker.startswith('udp')]
     trackers.sort(reverse=True)  # sorting reverse will prefer udp over http trackers
+
+    if DEBUG:
+        print >> sys.stderr, "TrackerChecking: Checking", torrent.get_name(), trackers
+
     for _, announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
 
@@ -71,6 +75,9 @@ def single_no_thread(torrent, multiscrapeCallback=None):
         (seeder, _) = multi_announce_dict[torrent["infohash"]]
         if seeder > 0:
             break
+
+    if DEBUG:
+        print >> sys.stderr, "TrackerChecking: Result", multi_announce_dict[torrent["infohash"]]
 
     return multi_announce_dict
 
