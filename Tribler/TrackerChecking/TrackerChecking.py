@@ -189,7 +189,7 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
         # step 1: Get a connection-id
         connection_id = 0x41727101980
         action = 0
-        transaction_id = randint(0, sys.maxsize)
+        transaction_id = randint(0, 2147483647)
         msg = pack('!qii', connection_id, action, transaction_id)
         udpSocket.sendto(msg, url)
 
@@ -199,7 +199,7 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
             if raction == action and rtransaction_id == transaction_id:
                 # step 2: Send scrape
                 action = 2
-                transaction_id = randint(0, sys.maxsize)
+                transaction_id = randint(0, 2147483647)
 
                 format = "!qii" + "20s" * len(info_hashes)
                 data = [rconnection_id, action, transaction_id]
