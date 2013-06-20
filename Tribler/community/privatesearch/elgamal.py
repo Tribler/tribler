@@ -187,7 +187,7 @@ if __name__ == "__main__":
 #
 #     nr_positive = 0
 #     for i in set1:
-         returnval = numpy.polyval(a, i)
+#         returnval = numpy.polyval(a, i)
 #         # print returnval, i, lower < returnval < upper
 #         if lower < returnval < upper:
 #             nr_positive += 1

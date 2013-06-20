@@ -4,10 +4,11 @@ from Crypto.PublicKey import RSA
 
 from gmpy import mpz
 
-from random import randint
+from random import randint, Random
 from time import time
 from Tribler.community.privatesearch.rsa import rsa_init
 from collections import namedtuple
+from Tribler.community.privatesearch.polycreate import compute_coeff
 
 PallierKey = namedtuple('PallierKey', ['n', 'n2', 'g', 'lambda_', 'd'])
 
@@ -80,14 +81,23 @@ if __name__ == "__main__":
     key = rsa_init(1024)
     key = pallier_init(key)
 
-    # poly testing
-    encrypted1 = pallier_encrypt(key, 1l)
-    encrypted2 = pallier_encrypt(key, 2l)
-    encrypted3 = pallier_encrypt(key, 3l)
 
-    import numpy
-    print numpy.polyval([1, 2, 3], 2)
+    r = Random()
+    set1 = [r.randint(0, 2 ** 32) for i in range(100)]
+    set2 = [r.randint(0, 2 ** 32) for i in range(100)]
+    set2[0] = set1[0]  # force overlap
+
+    coeff1 = compute_coeff(set1)
+    enc_coeff1 = [pallier_encrypt(key, coeff) for coeff in coeff1]
+
+    set2_results = [pallier_poly(item, enc_coeff1, key.n2) for item in set2]
+
+
     print pallier_decrypt(key, pallier_poly(2, [encrypted1, encrypted2, encrypted3], key.n2))
+
+
+
+
 
 #     encrypted0 = pallier_encrypt(key, 0l)
 #     encrypted1 = pallier_encrypt(key, 1l)
