@@ -43,8 +43,8 @@ from Tribler.community.privatesearch.payload import PoliSimilarityRequest
 if __debug__:
     from Tribler.dispersy.dprint import dprint
 
-DEBUG = True
-DEBUG_VERBOSE = True
+DEBUG = False
+DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
 FNEIGHBORS = 1
