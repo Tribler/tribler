@@ -1777,7 +1777,7 @@ class PoliSearch(HSearchCommunity):
         for message in messages:
             request = self._dispersy.request_cache.get(message.payload.identifier, HSearchCommunity.MSimilarityRequest)
             if request:
-                request.add_response(message.authentication.member.mid, (message.payload.preference_list))
+                request.add_response(message.authentication.member.mid, message.payload.preference_list)
                 if request.is_complete():
                     request.process()
 

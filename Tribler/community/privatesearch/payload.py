@@ -96,8 +96,8 @@ class BundledEncryptedResponsePayload(EncryptedResponsePayload):
 
 class BundledEncryptedPoliResponsePayload(EncryptedResponsePayload):
     class Implementation(EncryptedResponsePayload.Implementation):
-        def __init__(self, meta, identifier, preference_list, his_preference_list, bundled_responses):
-            EncryptedResponsePayload.Implementation.__init__(self, meta, identifier, preference_list, his_preference_list)
+        def __init__(self, meta, identifier, preference_list, bundled_responses):
+            EncryptedResponsePayload.Implementation.__init__(self, meta, identifier, preference_list, [])
 
             assert isinstance(bundled_responses, list), 'bundled_responses should be list not %s' % type(bundled_responses)
             assert len(bundled_responses) == len(set(mid for mid, _ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'

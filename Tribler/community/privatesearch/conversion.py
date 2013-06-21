@@ -605,15 +605,15 @@ class PoliSearchConversion(HSearchConversion):
         return offset, placeholder.meta.payload.implement(identifier, hashes, [])
 
     def _encode_simi_response(self, message):
-        def _encode_response(mid, preference_list, his_preference_list):
+        def _encode_response(mid, preference_list):
             str_mid = pack("!20s", mid) if mid else ''
             str_prefs = pack("!" + "256s"*len(preference_list), *[long_to_bytes(preference, 256) for preference in preference_list])
             return (str_mid, str_prefs)
 
         responses = []
-        responses.append(_encode_response(None, message.payload.preference_list, message.payload.his_preference_list))
-        for mid, list_tuple in message.payload.bundled_responses:
-            responses.append(_encode_response(mid, list_tuple[0], list_tuple[1]))
+        responses.append(_encode_response(None, message.payload.preference_list))
+        for mid, response in message.payload.bundled_responses:
+            responses.append(_encode_response(mid, response))
 
         packet = pack('!H', message.payload.identifier), responses
         return encode(packet),
@@ -636,10 +636,13 @@ class PoliSearchConversion(HSearchConversion):
             length = len(str_prefs)
             if length % 256 != 0:
                 raise DropPacket("Invalid number of bytes available (encr_res)")
+
             if length:
                 hashpack = '256s' * (length / 256)
                 hashes = unpack_from('!' + hashpack, str_prefs)
                 hashes = [bytes_to_long(hash) for hash in hashes]
+            else:
+                hashes = []
 
             if str_mid:
                 str_mid, = unpack_from("!20s", str_mid)
@@ -647,4 +650,4 @@ class PoliSearchConversion(HSearchConversion):
             else:
                 prefs = hashes
 
-        return offset, placeholder.meta.payload.implement(identifier, prefs, [], bundled_responses)
+        return offset, placeholder.meta.payload.implement(identifier, prefs, bundled_responses)
