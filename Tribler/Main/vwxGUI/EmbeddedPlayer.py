@@ -19,6 +19,7 @@ from Tribler.Video.VideoFrame import DelayTimer
 from Tribler.Video.VideoPlayer import VideoPlayer
 from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume, VideoSlider
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
+from Tribler.Core.simpledefs import DLMODE_VOD
 
 DEBUG = False
 
@@ -34,6 +35,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         wx.Panel.__init__(self, parent, -1)
 
         self.utility = utility
+        self.guiutility = utility.guiUtility
         self.parent = parent
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
 
@@ -123,7 +125,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.vlcwin.Show(True)
             self.logowin.Show(False)
             self.ctrlsizer.ShowItems(True)
-            self.utility.guiUtility.frame.Layout()
+            self.guiutility.frame.Layout()
 
     def OnVolumeChanged(self, volume):
         if self.mute.GetBitmapLabel() == self.bmp_muted:  # unmute
@@ -228,8 +230,12 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            self.vlcwrap.resume()
-            self.ppbtn.SetBitmapLabel(self.bmp_play if self.ppbtn.GetBitmapLabel() == self.bmp_pause else self.bmp_pause, recreate=True)
+            if self.GetState() == MEDIASTATE_STOPPED:
+                # Ensures that the related download also starts
+                self.guiutility.library_manager.startLastVODTorrent()
+            else:
+                self.vlcwrap.resume()
+                self.ppbtn.SetBitmapLabel(self.bmp_play if self.ppbtn.GetBitmapLabel() == self.bmp_pause else self.bmp_pause, recreate=True)
 
     @warnWxThread
     def Seek(self, evt=None):
@@ -356,8 +362,6 @@ class EmbeddedPlayerPanel(wx.Panel):
     def OnStop(self, event):
         if self.vlcwrap and self.sbtn.IsEnabled():
             self.Stop()
-            self.sbtn.Enable(False)
-            self.ppbtn.Enable(True)
 
     @forceWxThread
     def Stop(self):
@@ -367,13 +371,16 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.vlcwrap.stop()
-            self.ppbtn.SetLabel(self.utility.lang.get('playprompt'))
             self.timeposition.SetLabel('--:-- / --:--')
             self.slider.SetValue(0)
             self.fsbtn.Enable(False)
-            self.ppbtn.Enable(False)
+            self.sbtn.Enable(False)
+            self.ppbtn.Enable(True)
+            self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
             self.slider.Enable(False)
             self.HideLoading()
+            # Ensures that the related download also stops.
+            self.guiutility.library_manager.stopLastVODTorrent()
 
             if self.timer is not None:
                 self.timer.Stop()
