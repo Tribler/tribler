@@ -3,7 +3,6 @@ from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
 from Crypto.PublicKey import RSA
 
 from gmpy import mpz, invert
-import numpy
 
 from random import randint, Random
 from time import time
