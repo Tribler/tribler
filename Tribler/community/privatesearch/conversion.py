@@ -539,7 +539,7 @@ class HSearchConversion(SearchConversion):
             offset += length
         return offset, payload
 
-class PoliSearchConversion(SearchConversion):
+class PoliSearchConversion(HSearchConversion):
 
     def __init__(self, community):
         SearchConversion.__init__(self, community)
@@ -626,26 +626,3 @@ class PoliSearchConversion(SearchConversion):
                 prefs = hashes
 
         return offset, placeholder.meta.payload.implement(identifier, prefs, [], bundled_responses)
-
-    def _encode_introduction_request(self, message):
-        data = BinaryConversion._encode_introduction_request(self, message)
-
-        if message.payload.introduce_me_to:
-            data.append(pack('!20s', message.payload.introduce_me_to))
-        return data
-
-    def _decode_introduction_request(self, placeholder, offset, data):
-        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
-
-        # if there's still bytes in this request, treat them as taste_bloom_filter
-        has_stuff = len(data) > offset
-        if has_stuff:
-            length = len(data) - offset
-            if length != 20:
-                raise DropPacket("Invalid number of bytes available (ir)")
-
-            candidate_mid, = unpack_from('!20s', data, offset)
-            payload.set_introduce_me_to(candidate_mid)
-
-            offset += length
-        return offset, payload

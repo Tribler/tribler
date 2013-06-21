@@ -31,7 +31,7 @@ from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.community.privatesearch.conversion import PSearchConversion, \
-    HSearchConversion
+    HSearchConversion, PoliSearchConversion
 from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt, \
@@ -1639,6 +1639,9 @@ class PoliSearch(HSearchCommunity):
     def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
         HSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches, use_megacache)
         self.key = pallier_init(self.key)
+
+    def initiate_conversions(self):
+        return [DefaultConversion(self), PoliSearchConversion(self)]
 
     def initiate_meta_messages(self):
         messages = ForwardCommunity.initiate_meta_messages(self)
