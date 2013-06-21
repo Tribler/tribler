@@ -1744,7 +1744,7 @@ class PoliSearch(HSearchCommunity):
                 self._dispersy._forward([resp_message])
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "SearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
+                    print >> sys.stderr, long(time()), "PoliSearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
             else:
                 return results, []
 

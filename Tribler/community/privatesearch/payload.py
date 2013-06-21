@@ -272,6 +272,8 @@ class PoliSimilarityRequest(Payload):
             if preference_list:
                 for partition, coeffs in preference_list.iteritems():
                     assert isinstance(partition, int), type(partition)
+                    assert partition <= 255, partition
+                    assert partition >= 0, partition
                     for coeff in coeffs:
                         assert isinstance(coeff, long), type(coeff)
 

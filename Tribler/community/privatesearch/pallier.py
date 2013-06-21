@@ -108,6 +108,9 @@ if __name__ == "__main__":
 
     a_results = {}
     for partition, g in groupby(set1, lambda x: x[0]):
+        assert partition <= 255, partition
+        assert partition >= 0, partition
+
         values = [value for _, value in list(g)]
         coeffs = compute_coeff(values)
         coeffs = [pallier_encrypt(key, coeff) for coeff in coeffs]
@@ -116,6 +119,9 @@ if __name__ == "__main__":
 
     b_results = []
     for partition, g in groupby(set2, lambda x: x[0]):
+        assert partition <= 255, partition
+        assert partition >= 0, partition
+
         if partition in a_results:
             values = [value for _, value in list(g)]
             for val in values:
