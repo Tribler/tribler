@@ -225,9 +225,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 self.dlruntimeconfig['max_desired_upload_rate'] = 0
                 self.dlruntimeconfig['max_desired_download_rate'] = 0
 
-                # H4xor this so the 'name' field is safe
-                self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
-
                 if not isinstance(self.tdef, TorrentDefNoMetainfo):
                     self.set_files()
 
@@ -618,6 +615,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.finished_time = status.finished_time
 
     def set_files(self):
+        # H4xor this so the 'name' field is safe
+        self.correctedinfoname = fix_filebasename(self.tdef.get_name_as_unicode())
+
         metainfo = self.tdef.get_metainfo()
         self.set_filepieceranges(metainfo)
 
