@@ -2,17 +2,30 @@ from Crypto.Random.random import StrongRandom
 from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes, inverse
 from Crypto.PublicKey import RSA
 
-from gmpy import mpz
+from gmpy import mpz, invert
+import numpy
 
 from random import randint, Random
 from time import time
+
 from Tribler.community.privatesearch.rsa import rsa_init
 from collections import namedtuple
 from Tribler.community.privatesearch.polycreate import compute_coeff
+from itertools import groupby
 
 PallierKey = namedtuple('PallierKey', ['n', 'n2', 'g', 'lambda_', 'd'])
 
 # using same variable names as implementation by Zeki
+def improved_pow(base, exponent, modulo):
+    if exponent == 1:
+        return base
+
+    if exponent > 1:
+        return pow(base, exponent, modulo)
+
+    d = invert(base, modulo)
+    return pow(d, -exponent, modulo)
+
 def pallier_init(rsa_key):
     n = mpz(rsa_key.n)
     n2 = mpz(pow(n, 2))
@@ -39,9 +52,8 @@ def pallier_encrypt(key, element):
         if GCD(r, _n) == 1: break
     r = mpz(r)
 
-    t1 = pow(key.g, element, key.n2)
+    t1 = improved_pow(key.g, element, key.n2)
     t2 = pow(r, key.n, key.n2)
-
     cipher = (t1 * t2) % key.n2
     return long(cipher)
 
@@ -81,22 +93,39 @@ if __name__ == "__main__":
     key = rsa_init(1024)
     key = pallier_init(key)
 
-
     r = Random()
-    set1 = [r.randint(0, 2 ** 32) for i in range(100)]
-    set2 = [r.randint(0, 2 ** 32) for i in range(100)]
+    set1 = [r.randint(0, 2 ** 40) for i in range(100)]
+    set2 = [r.randint(0, 2 ** 40) for i in range(100)]
     set2[0] = set1[0]  # force overlap
 
-    coeff1 = compute_coeff(set1)
-    enc_coeff1 = [pallier_encrypt(key, coeff) for coeff in coeff1]
+    # create partitions
+    right_mask = (2 ** 33) - 1
+    set1 = [(val >> 32, val & right_mask) for val in set1]
+    set2 = [(val >> 32, val & right_mask) for val in set2]
+    print set2[0]
 
-    set2_results = [pallier_poly(item, enc_coeff1, key.n2) for item in set2]
+    set1.sort()
+    set2.sort()
 
+    a_results = {}
+    for partition, g in groupby(set1, lambda x: x[0]):
+        values = [value for _, value in list(g)]
+        coeffs = compute_coeff(values)
+        coeffs = [pallier_encrypt(key, coeff) for coeff in coeffs]
 
-    print pallier_decrypt(key, pallier_poly(2, [encrypted1, encrypted2, encrypted3], key.n2))
+        a_results[partition] = coeffs
 
+    b_results = []
+    for partition, g in groupby(set2, lambda x: x[0]):
+        if partition in a_results:
+            values = [value for _, value in list(g)]
+            for val in values:
+                py = pallier_poly(val, a_results[partition], key.n2)
+                py = pallier_multiply(py, randint(0, 2 ** 40), key.n2)
+                b_results.append((py, val))
 
-
+    for b_result, b_val in b_results:
+        print b_val, pallier_decrypt(key, b_result)
 
 
 #     encrypted0 = pallier_encrypt(key, 0l)

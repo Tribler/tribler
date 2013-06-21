@@ -10,6 +10,7 @@ from Tribler.dispersy.script import ScenarioScriptBase
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.dispersy import IntroductionRequestCache
+from Tribler.community.privatesearch.community import PoliSearch
 
 class SearchScript(ScenarioScriptBase):
     def __init__(self, **kargs):
@@ -73,6 +74,8 @@ class SearchScript(ScenarioScriptBase):
             community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         elif self.community_type == 'hsearch':
             community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+        elif self.community_type == 'polisearch':
+            community = PoliSearch.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         else:
             community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
 
