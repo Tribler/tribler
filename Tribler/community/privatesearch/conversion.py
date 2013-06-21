@@ -650,4 +650,4 @@ class PoliSearchConversion(HSearchConversion):
             else:
                 prefs = hashes
 
-        return offset, placeholder.meta.payload.implement(identifier, prefs, bundled_responses)
+        return offset, placeholder.meta.payload.implement(identifier, prefs, [], bundled_responses)
