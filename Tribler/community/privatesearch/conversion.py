@@ -594,10 +594,13 @@ class PoliSearchConversion(HSearchConversion):
         length = len(str_prefs)
         if length % 256 != 0:
             raise DropPacket("Invalid number of bytes available (encr_res)")
+
         if length:
             hashpack = '256s' * (length / 256)
             hashes = unpack_from('!' + hashpack, str_prefs)
             hashes = [bytes_to_long(hash) for hash in hashes]
+        else:
+            hashes = []
 
         return offset, placeholder.meta.payload.implement(identifier, hashes, [])
 
