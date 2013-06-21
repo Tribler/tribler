@@ -576,6 +576,31 @@ class PoliSearchConversion(HSearchConversion):
             length = len(data) - offset
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), preferences)
 
+    def _encode_encr_response(self, message):
+        str_identifer = pack("!H", message.payload.identifier)
+        str_prefs = pack("!" + "256s"*len(message.payload.preference_list), *[long_to_bytes(preference, 256) for preference in message.payload.preference_list])
+        return encode([str_identifer, str_prefs]),
+
+    def _decode_encr_response(self, placeholder, offset, data):
+        try:
+            offset, payload = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the encr-payload")
+
+        str_identifier, str_prefs = payload
+
+        identifier, = unpack_from('!H', str_identifier)
+
+        length = len(str_prefs)
+        if length % 256 != 0:
+            raise DropPacket("Invalid number of bytes available (encr_res)")
+        if length:
+            hashpack = '256s' * (length / 256)
+            hashes = unpack_from('!' + hashpack, str_prefs)
+            hashes = [bytes_to_long(hash) for hash in hashes]
+
+        return offset, placeholder.meta.payload.implement(identifier, hashes, [])
+
     def _encode_simi_response(self, message):
         def _encode_response(mid, preference_list, his_preference_list):
             str_mid = pack("!20s", mid) if mid else ''
