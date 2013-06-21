@@ -557,7 +557,7 @@ class PoliSearchConversion(HSearchConversion):
             fmt += "BB" + "256s"*len(coeffs)
             contents.append(partition)
             contents.append(len(coeffs))
-            contents.update([long_to_bytes(coeff, 256) for coeff in coeffs])
+            contents.extend([long_to_bytes(coeff, 256) for coeff in coeffs])
 
         packet = pack(fmt, message.payload.identifier, *contents)
         return packet,
