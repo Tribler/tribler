@@ -541,6 +541,12 @@ class HSearchConversion(SearchConversion):
 
 class PoliSearchConversion(HSearchConversion):
 
+    def __init__(self, community):
+        SearchConversion.__init__(self, community)
+        self.define_meta_message(chr(8), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
+
     def _encode_simi_request(self, message):
         contents = []
 
