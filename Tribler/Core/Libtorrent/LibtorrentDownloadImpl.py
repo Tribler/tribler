@@ -303,6 +303,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 # If we only needed to perform checking, pause download after it is complete
                 self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
 
+            self.handle.resolve_countries(True)
+
         else:
             print >> sys.stderr, "Could not add torrent to LibtorrentManager", self.tdef.get_name_as_unicode()
 
@@ -838,6 +840,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             peer_dict['completed'] = peer_info.progress
             peer_dict['have'] = peer_info.pieces
             peer_dict['speed'] = peer_info.remote_dl_rate
+            peer_dict['country'] = peer_info.country
             plist.append(peer_dict)
 
         return plist

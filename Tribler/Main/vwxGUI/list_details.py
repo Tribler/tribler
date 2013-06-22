@@ -15,6 +15,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Main.vwxGUI.IconsManager import IconsManager
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterListCtrl, EditText, SelectableListCtrl, _set_font, BetterText as StaticText, \
     MaxBetterText, NotebookPanel, SimpleNotebook, NativeIcon, DottedBetterText, ProgressButton, FancyPanel, TransparentText, LinkText, \
     StaticBitmaps, TransparentStaticBitmap, Graph, ProgressBar
@@ -1138,6 +1139,9 @@ class LibraryDetails(TorrentDetails):
         self.old_progress = -1
         self.refresh_counter = 0
         self.bw_history = bw_history
+
+        self.im = IconsManager.getInstance()
+
         TorrentDetails.__init__(self, parent, torrent)
 
         # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
@@ -1201,6 +1205,11 @@ class LibraryDetails(TorrentDetails):
         self.peerList.InsertColumn(3, 'ID', wx.LIST_FORMAT_RIGHT)
         self.peerList.setResizeColumn(0)
         self.peerList.SetToolTipString("States:\nO\t\toptimistic unchoked\nUI\t\tgot interested\nUC\t\tupload chocked\nUQ\t\tgot request\nUBL\tsending data\nUE\t\tupload eligable\nDI\t\tsend interested\nDC\t\tdownload chocked\nS\t\tis snubbed\nL\t\tOutgoing connection\nR\t\tIncoming connection")
+        peersPanel.il = wx.ImageList(16, 11)
+        self.country_to_index = {}
+        for code, flag in self.im.country_flags.iteritems():
+            self.country_to_index[code] = peersPanel.il.Add(flag)
+        self.peerList.SetImageList(peersPanel.il, wx.IMAGE_LIST_SMALL)
         vSizer.Add(self.peerList, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
 
         finished = self.torrent.get('progress', 0) == 100 or (ds and ds.get_progress() == 1.0)
@@ -1327,6 +1336,9 @@ class LibraryDetails(TorrentDetails):
                         state += "S,"
                     state += peer_dict.get('direction', '')
                     self.peerList.SetStringItem(index, 2, state)
+
+                    image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
+                    self.peerList.SetItemColumnImage(index, 0, image_index)
 
                     if 'extended_version' in peer_dict:
                         try:
