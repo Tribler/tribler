@@ -608,7 +608,7 @@ class VideoPlayer:
         if d != self.vod_download:
             if self.vod_download:
                 self.vod_download.set_mode(DLMODE_NORMAL)
-                self.vod_download.restart()
+                self.vod_download.set_vod_mode(False)
             self.vod_download = d
 
     def get_vod_download(self):
