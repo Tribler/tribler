@@ -1800,8 +1800,14 @@ class PoliSearch(HSearchCommunity):
     def compute_overlap(self, lists):
         overlap = 0
         for py in lists[0]:
-            if pallier_decrypt(self.key, py) == 0:
-                overlap += 1
+            if self.encryption:
+                t1 = time()
+                if pallier_decrypt(self.key, py) == 0:
+                    overlap += 1
+                self.create_time_decryption += time() - t1
+            else:
+                if py == 0:
+                    overlap += 1
         return overlap
 
 class Das4DBStub():
