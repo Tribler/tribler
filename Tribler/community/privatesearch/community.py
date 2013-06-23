@@ -112,6 +112,10 @@ class SearchCommunity(Community):
         self.create_time_encryption = 0.0
         self.create_time_decryption = 0.0
         self.receive_time_encryption = 0.0
+        
+        self.send_packet_size = 0
+        self.forward_packet_size = 0
+        self.reply_packet_size = 0
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler
@@ -1198,6 +1202,8 @@ class PSearchCommunity(ForwardCommunity):
 
         self._dispersy._forward([request])
         self._dispersy._forward([global_vector_request])
+        
+        self.send_packet_size += len(request.packet)
         return True
 
     def on_sums_request(self, messages):
@@ -1228,6 +1234,7 @@ class PSearchCommunity(ForwardCommunity):
                                 payload=(message.payload.identifier, long(message.payload.key_n), message.payload.preference_list))
 
             self._dispersy._send(candidates, [request])
+            self.forward_packet_size += len(request.packet) * len(candidates)
 
     def on_sum_request(self, messages):
         for message in messages:
@@ -1245,7 +1252,7 @@ class PSearchCommunity(ForwardCommunity):
 
             # if request is complete, process it
             if request.is_complete():
-                request.process()
+                self.reply_packet_size += request.process()
 
     def create_global_vector(self, destination, identifier):
         # 1. fetch my preferences
@@ -1356,6 +1363,7 @@ class PSearchCommunity(ForwardCommunity):
                     print >> sys.stderr, long(time()), "PSearchCommunity: processed PSimilarityRequest"
 
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.PSimilarityRequest)
+                return len(response.packet)
 
         def on_timeout(self):
             if DEBUG:
@@ -1408,6 +1416,8 @@ class PSearchCommunity(ForwardCommunity):
                     print >> sys.stderr, long(time()), "PSearchCommunity: processed RPSimilarityRequest"
 
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.RPSimilarityRequest)
+                
+                return len(response.packet)
 
         def on_timeout(self):
             if PSearchCommunity.PSimilarityRequest.is_complete(self):
@@ -1435,7 +1445,7 @@ class PSearchCommunity(ForwardCommunity):
             request.add_sum(message.authentication.member.mid, message.payload._sum)
 
             if request.is_complete():
-                request.process()
+                self.reply_packet_size += request.process()
 
     def on_encr_sums(self, messages):
         for message in messages:
@@ -1594,6 +1604,8 @@ class HSearchCommunity(ForwardCommunity):
                     print >> sys.stderr, long(time()), "HSearchCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
+                
+                return len(response.packet)
 
         def on_timeout(self):
             if not self.isProcessed:
@@ -1694,6 +1706,7 @@ class PoliSearch(HSearchCommunity):
                                     payload=(identifier, long(self.key.n), partitions))
 
             self._dispersy._forward([request])
+            self.send_packet_size += len(request.packet)
             return True
         return False
 
@@ -1742,6 +1755,7 @@ class PoliSearch(HSearchCommunity):
                                     payload=(message.payload.identifier, results, []))
 
                 self._dispersy._forward([resp_message])
+                self.reply_packet_size += len(resp_message.payload)
 
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "PoliSearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
@@ -1768,10 +1782,12 @@ class PoliSearch(HSearchCommunity):
                                     payload=(message.payload.identifier, message.payload.key_n, message.payload.preference_list))
 
                 self._dispersy._send(candidates, [request])
+                self.forward_packet_size += len(request.packet) * len(candidates)
 
             else:
+                #no candidates to forward to, reply immediately
                 request_cache.identifier = message.payload.identifier
-                request_cache.process()
+                self.reply_packet_size += request_cache.process()
 
     def on_encr_response(self, messages):
         for message in messages:
@@ -1779,7 +1795,7 @@ class PoliSearch(HSearchCommunity):
             if request:
                 request.add_response(message.authentication.member.mid, message.payload.preference_list)
                 if request.is_complete():
-                    request.process()
+                    self.reply_packet_size += request.process()
 
     def compute_overlap(self, lists):
         overlap = 0
