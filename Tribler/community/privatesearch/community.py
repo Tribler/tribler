@@ -1755,7 +1755,7 @@ class PoliSearch(HSearchCommunity):
                                     payload=(message.payload.identifier, results, []))
 
                 self._dispersy._forward([resp_message])
-                self.reply_packet_size += len(resp_message.payload)
+                self.reply_packet_size += len(resp_message.packet)
 
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "PoliSearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
