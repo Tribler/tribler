@@ -97,9 +97,9 @@ class BundledEncryptedResponsePayload(EncryptedResponsePayload):
             EncryptedResponsePayload.Implementation.__init__(self, meta, identifier, my_response[0], my_response[1])
 
             assert isinstance(response_messages, list), 'bundled_responses should be list not %s' % type(response_messages)
-            bundled_responses = [(message.authentication.member.mid, (message.payload.preference_list, message.payload.his_preference_list)) for message in response_messages]
+            assert len(response_messages) == len(set(mid for mid, _ in response_messages)), 'bundled_responses should not contain more than one entry per mid'
 
-            assert len(bundled_responses) == len(set(mid for mid, _ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
+            bundled_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in response_messages]
             for candidate_mid, response in bundled_responses:
                 assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                 assert len(candidate_mid) == 20, len(candidate_mid)
@@ -206,8 +206,9 @@ class EncryptedSumsPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, _sum, sum_messages):
             assert isinstance(sum_messages, list), type(sum_messages)
-            sums = [(message.authentication.member.mid, message.payload._sum) for message in sum_messages]
+            assert len(sum_messages) == len(set(mid for mid, _ in sum_messages)), 'bundled_responses should not contain more than one entry per mid'
 
+            sums = [(mid, payload._sum) for mid, payload in sum_messages]
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), type(_sum)
@@ -292,9 +293,9 @@ class EncryptedPoliResponsesPayload(EncryptedPoliResponsePayload):
         def __init__(self, meta, identifier, my_response, response_messages):
             EncryptedPoliResponsePayload.Implementation.__init__(self, meta, identifier, my_response)
             assert isinstance(response_messages, list)
+            assert len(response_messages) == len(set(mid for mid, _ in response_messages)), 'bundled_responses should not contain more than one entry per mid'
 
-            bundled_responses = [(message.authentication.member.mid, message.payload.my_response) for message in response_messages]
-            assert len(bundled_responses) == len(set(mid for mid, _ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
+            bundled_responses = [(mid, payload.my_response) for mid, payload in response_messages]
 
             for candidate_mid, response in bundled_responses:
                 assert isinstance(candidate_mid, str), 'candidate_mid should be str'
