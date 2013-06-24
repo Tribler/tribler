@@ -1599,8 +1599,8 @@ class PoliSearch(ForwardCommunity):
             self.my_preference_cache = [str_myPreferences, partitions]
 
         if partitions:
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity request to", destination, "containing", len(partitions), "partitions"
+            if True or DEBUG_VERBOSE:
+                print >> sys.stderr, long(time()), "PoliSearchCommunity: sending similarity request to", destination, "containing", len(partitions), "partitions and", sum(len(coeffs) for coeffs in partitions.itervalues()), "coefficients"
 
             meta_request = self.get_meta_message(u"msimilarity-request")
             request = meta_request.impl(authentication=(self.my_member,),
