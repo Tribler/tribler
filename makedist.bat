@@ -112,6 +112,7 @@ mkdir dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.main dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 copy Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap.backup dist\installdir\Tribler\Core\DecentralizedTracking\pymdht\core
 
+copy logger.conf dist\installdir
 copy ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 copy vlc.py dist\installdir\vlc.py

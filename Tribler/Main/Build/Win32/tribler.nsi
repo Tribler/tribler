@@ -101,6 +101,7 @@ Section "!Main EXE" SecMain
  File *.txt
  ; Arno: Appears to be for CRT v6?
  ; File tribler.exe.manifest
+ File logger.conf
  File tribler.exe
  File ffmpeg.exe
  File swift.exe
