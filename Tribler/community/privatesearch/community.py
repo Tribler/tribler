@@ -1327,10 +1327,10 @@ class PSearchCommunity(ForwardCommunity):
         self.forward_packet_size += len(request.packet) * len(candidates)
 
     def on_similarity_request(self, messages, send_messages=True):
-        my_vector = self.get_my_vector(self.global_vector)
         for message in messages:
             user_vector = message.payload.preference_list
             global_vector = message.payload.global_vector
+            my_vector = self.get_my_vector(global_vector)
             assert len(global_vector) == len(user_vector) and len(global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(global_vector), len(user_vector), len(my_vector))
 
             t1 = time()
@@ -1599,7 +1599,7 @@ class PoliSearch(ForwardCommunity):
         meta_request = self.get_meta_message(u"similarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                             distribution=(self.global_time,),
-                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.preference_list))
+                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.coefficients))
 
         self._dispersy._send(candidates, [request])
         self.forward_packet_size += len(request.packet) * len(candidates)
@@ -1618,7 +1618,7 @@ class PoliSearch(ForwardCommunity):
         myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
         for message in messages:
-            _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.preference_list]
+            _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.coefficients]
 
             # 3. use subset if we have to many preferences
             if len(_myPreferences) > self.max_h_prefs:
@@ -1629,12 +1629,12 @@ class PoliSearch(ForwardCommunity):
             if self.encryption:
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
-                    py = pallier_polyval(message.payload.preference_list[partition], val, user_n2)
+                    py = pallier_polyval(message.payload.coefficients[partition], val, user_n2)
                     py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
-                    results.append(polyval(message.payload.preference_list[partition], val))
+                    results.append(polyval(message.payload.coefficients[partition], val))
 
             self.receive_time_encryption += time() - t1
 
