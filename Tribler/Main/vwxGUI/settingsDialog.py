@@ -131,8 +131,12 @@ class SettingsDialog(wx.Dialog):
         self.elements['thumb'].setBitmap(self.mugshot)
 
         if self.guiUtility.frame.SRstatusbar.IsReachable():
-            self.elements['firewallStatus'].setSelected(2)
+            self.firewallStatusOK = wx.Bitmap(os.path.join(self.guiUtility.vwxGUI_path, 'images', 'firewallStatus_state3.png'), wx.BITMAP_TYPE_ANY)
+            self.elements['firewallStatus'].SetBitmap(self.firewallStatusOK)
             self.elements['firewallStatusText'].SetLabel('Port is working')
+        else:
+            self.firewallStatusWarning = wx.Bitmap(os.path.join(self.guiUtility.vwxGUI_path, 'images', 'firewallStatus_state2.png'), wx.BITMAP_TYPE_ANY)
+            self.elements['firewallStatus'].SetBitmap(self.firewallStatusWarning)
 
         self.currentPortValue = str(self.utility.session.get_listen_port())
         self.elements['firewallValue'].SetValue(self.currentPortValue)

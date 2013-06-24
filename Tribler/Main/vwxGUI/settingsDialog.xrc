@@ -541,7 +541,7 @@
 				                                    </object>
 		                                        </object>
 												<object class="sizeritem">
-		                                            <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.widgets.settingsButton">
+		                                            <object class="wxStaticBitmap" name="firewallStatus">
 		                                                <size>33,32</size>
 		                                            </object>
 		                                        </object>
