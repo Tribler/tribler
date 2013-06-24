@@ -1127,7 +1127,7 @@ class ForwardCommunity(SearchCommunity):
                     print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
-                return self.community.send_msimilarity_response()
+                return self.community.send_msimilarity_response(self.identifier, self.my_response, self.received_lists)
 
         def on_timeout(self):
             if not self.isProcessed:
