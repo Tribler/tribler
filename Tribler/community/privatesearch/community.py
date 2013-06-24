@@ -1127,7 +1127,7 @@ class ForwardCommunity(SearchCommunity):
                     print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
-                return self.community.send_msimilarity_response(self.identifier, self.my_response, self.received_lists)
+                return self.community.send_msimilarity_response(self.requesting_candidate, self.identifier, self.my_response, self.received_lists)
 
         def on_timeout(self):
             if not self.isProcessed:
@@ -1211,7 +1211,7 @@ class ForwardCommunity(SearchCommunity):
                 if request.is_complete():
                     self.reply_packet_size += request.process()
 
-    def send_msimilarity_response(self, identifier, my_response, received_responses):
+    def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         raise NotImplementedError()
 
     def on_msimilarity_response(self, messages):
@@ -1358,13 +1358,13 @@ class PSearchCommunity(ForwardCommunity):
             else:
                 return _sum
 
-    def send_msimilarity_response(self, identifier, my_sum, received_sums):
+    def send_msimilarity_response(self, requesting_candidate, identifier, my_sum, received_sums):
         received_sums = [(mid, payload._sum) for mid, payload in received_sums]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,),
-                                destination=(self.requesting_candidate,),
+                                destination=(requesting_candidate,),
                                 payload=(identifier, my_sum, received_sums))
 
         self.community._dispersy._forward([response])
@@ -1518,13 +1518,13 @@ class HSearchCommunity(ForwardCommunity):
             else:
                 return hisList, myList
 
-    def send_msimilarity_response(self, identifier, my_response, received_responses):
+    def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in received_responses]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,),
-                                destination=(self.requesting_candidate,),
+                                destination=(requesting_candidate,),
                                 payload=(identifier, my_response, received_responses))
 
         self.community._dispersy._forward([response])
@@ -1674,13 +1674,13 @@ class PoliSearch(ForwardCommunity):
             else:
                 return results
 
-    def send_msimilarity_response(self, identifier, my_response, received_responses):
+    def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         received_responses = [(mid, payload.my_response) for mid, payload in received_responses]
 
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,),
-                                destination=(self.requesting_candidate,),
+                                destination=(requesting_candidate,),
                                 payload=(identifier, my_response, received_responses))
 
         self.community._dispersy._forward([response])
