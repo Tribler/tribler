@@ -1743,7 +1743,7 @@ class PoliSearch(HSearchCommunity):
                 self.receive_time_encryption += time() - t1
             else:
                 for partition, val in _myPreferences:
-                    results.append(polyval(val, message.payload.preference_list[partition]))
+                    results.append(polyval(message.payload.preference_list[partition], val))
 
             shuffle(results)
             if send_messages:
