@@ -6,6 +6,7 @@ from gmpy import mpz, invert
 
 from random import randint, Random
 from time import time
+from hashlib import md5
 
 from Tribler.community.privatesearch.rsa import rsa_init
 from collections import namedtuple
@@ -101,9 +102,19 @@ if __name__ == "__main__":
     set2[0] = set1[0]  # force overlap
 
     # create partitions
-    right_mask = (2 ** 33) - 1
-    set1 = [(val >> 32, val & right_mask) for val in set1]
-    set2 = [(val >> 32, val & right_mask) for val in set2]
+
+    # convert our infohashes to 40 bit long
+    bitmask = (2 ** 40) - 1
+    set1 = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in set1]
+    set2 = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in set2]
+
+    assert all(val < bitmask for val in set1)
+    assert all(val < bitmask for val in set2)
+
+    # partition the infohashes
+    partitionmask = (2 ** 32) - 1
+    set1 = [(val >> 32, val & partitionmask) for val in set1]
+    set2 = [(val >> 32, val & partitionmask) for val in set2]
     print set2[0]
 
     set1.sort()

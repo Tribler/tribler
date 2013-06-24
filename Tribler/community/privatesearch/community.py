@@ -112,7 +112,7 @@ class SearchCommunity(Community):
         self.create_time_encryption = 0.0
         self.create_time_decryption = 0.0
         self.receive_time_encryption = 0.0
-        
+
         self.send_packet_size = 0
         self.forward_packet_size = 0
         self.reply_packet_size = 0
@@ -1202,7 +1202,7 @@ class PSearchCommunity(ForwardCommunity):
 
         self._dispersy._forward([request])
         self._dispersy._forward([global_vector_request])
-        
+
         self.send_packet_size += len(request.packet)
         return True
 
@@ -1416,7 +1416,7 @@ class PSearchCommunity(ForwardCommunity):
                     print >> sys.stderr, long(time()), "PSearchCommunity: processed RPSimilarityRequest"
 
                 self.community._dispersy.request_cache.pop(self.identifier, PSearchCommunity.RPSimilarityRequest)
-                
+
                 return len(response.packet)
 
         def on_timeout(self):
@@ -1604,7 +1604,7 @@ class HSearchCommunity(ForwardCommunity):
                     print >> sys.stderr, long(time()), "HSearchCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
-                
+
                 return len(response.packet)
 
         def on_timeout(self):
@@ -1675,11 +1675,11 @@ class PoliSearch(HSearchCommunity):
             shuffle(myPreferences)
 
             # convert our infohashes to 40 bit long
-            bitmask = (2 ** 41) - 1
+            bitmask = (2 ** 40) - 1
             myPreferences = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in myPreferences]
 
             # partition the infohashes
-            partitionmask = (2 ** 33) - 1
+            partitionmask = (2 ** 32) - 1
             myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
             partitions = {}
@@ -1716,11 +1716,11 @@ class PoliSearch(HSearchCommunity):
 
         # 2. partition the preferences
         # convert our infohashes to 40 bit long
-        bitmask = (2 ** 41) - 1
+        bitmask = (2 ** 40) - 1
         myPreferences = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in myPreferences]
 
         # partition the infohashes
-        partitionmask = (2 ** 33) - 1
+        partitionmask = (2 ** 32) - 1
         myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
         for message in messages:
@@ -1785,7 +1785,7 @@ class PoliSearch(HSearchCommunity):
                 self.forward_packet_size += len(request.packet) * len(candidates)
 
             else:
-                #no candidates to forward to, reply immediately
+                # no candidates to forward to, reply immediately
                 request_cache.identifier = message.payload.identifier
                 self.reply_packet_size += request_cache.process()
 
