@@ -614,7 +614,7 @@ class PoliSearchConversion(ForwardConversion):
 
             if str_mid:
                 str_mid, = unpack_from("!20s", str_mid)
-                bundled_responses.append((str_mid, (hashes, [])))
+                bundled_responses.append((str_mid, hashes))
             else:
                 prefs = hashes
 

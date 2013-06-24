@@ -93,13 +93,12 @@ class EncryptedResponsePayload(Payload):
 
 class BundledEncryptedResponsePayload(EncryptedResponsePayload):
     class Implementation(EncryptedResponsePayload.Implementation):
-        def __init__(self, meta, identifier, my_response, response_messages):
+        def __init__(self, meta, identifier, my_response, bundled_responses):
             EncryptedResponsePayload.Implementation.__init__(self, meta, identifier, my_response[0], my_response[1])
 
-            assert isinstance(response_messages, list), 'bundled_responses should be list not %s' % type(response_messages)
-            assert len(response_messages) == len(set(mid for mid, _ in response_messages)), 'bundled_responses should not contain more than one entry per mid'
+            assert isinstance(bundled_responses, list), 'bundled_responses should be list not %s' % type(bundled_responses)
+            assert len(bundled_responses) == len(set(mid for mid, _ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
 
-            bundled_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in response_messages]
             for candidate_mid, response in bundled_responses:
                 assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                 assert len(candidate_mid) == 20, len(candidate_mid)
@@ -204,17 +203,16 @@ class EncryptedSumPayload(Payload):
 
 class EncryptedSumsPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, _sum, sum_messages):
-            assert isinstance(sum_messages, list), type(sum_messages)
-            assert len(sum_messages) == len(set(mid for mid, _ in sum_messages)), 'bundled_responses should not contain more than one entry per mid'
+        def __init__(self, meta, identifier, _sum, _sums):
+            assert isinstance(_sums, list), type(_sums)
+            assert len(_sums) == len(set(mid for mid, _ in _sums)), 'bundled_responses should not contain more than one entry per mid'
 
-            sums = [(mid, payload._sum) for mid, payload in sum_messages]
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(_sum, long), type(_sum)
                 assert _sum < MAXLONG256
 
-                for candidate_mid, address_sum in sums:
+                for candidate_mid, address_sum in _sums:
                     assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                     assert len(candidate_mid) == 20, len(candidate_mid)
                     assert isinstance(address_sum, long), 'address_sum should be long'
@@ -223,7 +221,7 @@ class EncryptedSumsPayload(Payload):
             super(EncryptedSumsPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self.__sum = _sum
-            self._sums = sums
+            self._sums = _sums
 
         @property
         def identifier(self):
@@ -290,13 +288,11 @@ class EncryptedPoliResponsePayload(Payload):
 
 class EncryptedPoliResponsesPayload(EncryptedPoliResponsePayload):
     class Implementation(EncryptedPoliResponsePayload.Implementation):
-        def __init__(self, meta, identifier, my_response, response_messages):
+        def __init__(self, meta, identifier, my_response, bundled_responses):
             EncryptedPoliResponsePayload.Implementation.__init__(self, meta, identifier, my_response)
-            assert isinstance(response_messages, list)
-            assert len(response_messages) == len(set(mid for mid, _ in response_messages)), 'bundled_responses should not contain more than one entry per mid'
 
-            bundled_responses = [(mid, payload.my_response) for mid, payload in response_messages]
-
+            assert isinstance(bundled_responses, list)
+            assert len(bundled_responses) == len(set(mid for mid, _ in bundled_responses)), 'bundled_responses should not contain more than one entry per mid'
             for candidate_mid, response in bundled_responses:
                 assert isinstance(candidate_mid, str), 'candidate_mid should be str'
                 assert len(candidate_mid) == 20, len(candidate_mid)

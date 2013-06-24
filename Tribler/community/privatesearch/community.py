@@ -39,6 +39,7 @@ from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, p
 from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from Tribler.community.privatesearch.polycreate import compute_coeff, polyval
 from Tribler.community.privatesearch.payload import PoliSimilarityRequest
+from ldecoder import NotInterested
 
 if __debug__:
     from Tribler.dispersy.dprint import dprint
@@ -1121,21 +1122,12 @@ class ForwardCommunity(SearchCommunity):
 
         def process(self):
             if not self.isProcessed:
-                meta_request = self.community.get_meta_message(u"msimilarity-response")
-                response = meta_request.impl(authentication=(self.community._my_member,),
-                                        distribution=(self.community.global_time,),
-                                        destination=(self.requesting_candidate,),
-                                        payload=(self.identifier, self.my_response, self.received_lists))
-
-                self.community._dispersy._forward([response])
                 self.isProcessed = True
-
                 if DEBUG_VERBOSE:
                     print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
-
-                return len(response.packet)
+                return self.community.send_msimilarity_response()
 
         def on_timeout(self):
             if not self.isProcessed:
@@ -1218,6 +1210,9 @@ class ForwardCommunity(SearchCommunity):
                 request.add_response(message.authentication.member.mid, message.payload)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
+
+    def send_msimilarity_response(self, identifier, my_response, received_responses):
+        raise NotImplementedError()
 
     def on_msimilarity_response(self, messages):
         for message in messages:
@@ -1362,6 +1357,18 @@ class PSearchCommunity(ForwardCommunity):
                 self._dispersy._forward([response])
             else:
                 return _sum
+
+    def send_msimilarity_response(self, identifier, my_sum, received_sums):
+        received_sums = [(mid, payload._sum) for mid, payload in received_sums]
+
+        meta_request = self.community.get_meta_message(u"msimilarity-response")
+        response = meta_request.impl(authentication=(self.community._my_member,),
+                                distribution=(self.community.global_time,),
+                                destination=(self.requesting_candidate,),
+                                payload=(identifier, my_sum, received_sums))
+
+        self.community._dispersy._forward([response])
+        return len(response.packet)
 
     def on_msimilarity_response(self, messages):
         for message in messages:
@@ -1511,6 +1518,18 @@ class HSearchCommunity(ForwardCommunity):
             else:
                 return hisList, myList
 
+    def send_msimilarity_response(self, identifier, my_response, received_responses):
+        received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in received_responses]
+
+        meta_request = self.community.get_meta_message(u"msimilarity-response")
+        response = meta_request.impl(authentication=(self.community._my_member,),
+                                distribution=(self.community.global_time,),
+                                destination=(self.requesting_candidate,),
+                                payload=(identifier, my_response, received_responses))
+
+        self.community._dispersy._forward([response])
+        return len(response.packet)
+
     def on_msimilarity_response(self, messages):
         for message in messages:
             if DEBUG_VERBOSE:
@@ -1654,6 +1673,18 @@ class PoliSearch(ForwardCommunity):
                     print >> sys.stderr, long(time()), "PoliSearchCommunity: sending encrypted-response to", message.payload.identifier, message.candidate
             else:
                 return results
+
+    def send_msimilarity_response(self, identifier, my_response, received_responses):
+        received_responses = [(mid, payload.my_response) for mid, payload in received_responses]
+
+        meta_request = self.community.get_meta_message(u"msimilarity-response")
+        response = meta_request.impl(authentication=(self.community._my_member,),
+                                distribution=(self.community.global_time,),
+                                destination=(self.requesting_candidate,),
+                                payload=(identifier, my_response, received_responses))
+
+        self.community._dispersy._forward([response])
+        return len(response.packet)
 
     def on_msimilarity_response(self, messages):
         for message in messages:
