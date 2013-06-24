@@ -1359,7 +1359,7 @@ class PSearchCommunity(ForwardCommunity):
                                         destination=(message.candidate,),
                                         payload=(message.payload.identifier, _sum))
 
-                self.community._dispersy._forward([response])
+                self._dispersy._forward([response])
             else:
                 return _sum
 
