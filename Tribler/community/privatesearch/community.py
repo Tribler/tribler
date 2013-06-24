@@ -1581,8 +1581,8 @@ class PoliSearch(ForwardCommunity):
             myPreferences = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in myPreferences]
 
             # partition the infohashes
-            partitionmask = (2 ** 34) - 1
-            myPreferences = [(val >> 34, val & partitionmask) for val in myPreferences]
+            partitionmask = (2 ** 32) - 1
+            myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
             partitions = {}
             t1 = time()
@@ -1633,8 +1633,8 @@ class PoliSearch(ForwardCommunity):
         myPreferences = [long(md5(str(infohash)).hexdigest(), 16) & bitmask for infohash in myPreferences]
 
         # partition the infohashes
-        partitionmask = (2 ** 34) - 1
-        myPreferences = [(val >> 34, val & partitionmask) for val in myPreferences]
+        partitionmask = (2 ** 32) - 1
+        myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
         for message in messages:
             _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.coefficients]
