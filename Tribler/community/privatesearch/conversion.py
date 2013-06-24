@@ -305,18 +305,44 @@ class SearchConversion(BinaryConversion):
             pass
         return result
 
-class PSearchConversion(SearchConversion):
+class ForwardConversion(SearchConversion):
+
+    def _encode_introduction_request(self, message):
+        data = BinaryConversion._encode_introduction_request(self, message)
+
+        if message.payload.introduce_me_to:
+            data.append(pack('!20s', message.payload.introduce_me_to))
+        return data
+
+    def _decode_introduction_request(self, placeholder, offset, data):
+        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
+
+        # if there's still bytes in this request, treat them as taste_bloom_filter
+        has_stuff = len(data) > offset
+        if has_stuff:
+            length = len(data) - offset
+            if length != 20:
+                raise DropPacket("Invalid number of bytes available (ir)")
+
+            candidate_mid, = unpack_from('!20s', data, offset)
+            payload.set_introduce_me_to(candidate_mid)
+
+            offset += length
+        return offset, payload
+
+class PSearchConversion(ForwardConversion):
+
     def __init__(self, community):
-        SearchConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"sum-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
-        self.define_meta_message(chr(9), community.get_meta_message(u"sums-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
-        self.define_meta_message(chr(10), community.get_meta_message(u"global-vector"), lambda message: self._encode_decode(self._encode_global_vector, self._decode_global_vector, message), self._decode_global_vector)
-        self.define_meta_message(chr(11), community.get_meta_message(u"encrypted-sum"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
-        self.define_meta_message(chr(12), community.get_meta_message(u"encrypted-sums"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
+        ForwardConversion.__init__(self, community)
+        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
+        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
+        self.define_meta_message(chr(11), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
 
     def _encode_sum_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)
         str_prefs = [long_to_bytes(preference, 256) for preference in message.payload.preference_list]
+        str_prefs = str_prefs + [long_to_bytes(preference, 256) for preference in message.payload.global_vector]
 
         fmt = "!H128s" + "256s"*len(str_prefs)
         packet = pack(fmt, message.payload.identifier, str_n, *str_prefs)
@@ -333,33 +359,13 @@ class PSearchConversion(SearchConversion):
         if length:
             hashpack = '256s' * (length / 256)
             str_prefs = unpack_from('!' + hashpack, data, offset)
+
             prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
+            global_vector = prefs[len(prefs) / 2:]
+            prefs = prefs[:len(prefs) / 2]
             offset += length
 
-        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs)
-
-    def _encode_global_vector(self, message):
-        str_prefs = [long_to_bytes(preference, 256) for preference in message.payload.preference_list]
-
-        fmt = "!H" + "256s"*len(str_prefs)
-        packet = pack(fmt, message.payload.identifier, *str_prefs)
-        return packet,
-
-    def _decode_global_vector(self, placeholder, offset, data):
-        identifier, = unpack_from('!H', data, offset)
-        offset += 2
-
-        length = len(data) - offset
-        if length % 256 != 0:
-            raise DropPacket("Invalid number of bytes available (global_vector)")
-
-        if length:
-            hashpack = '256s' * (length / 256)
-            str_prefs = unpack_from('!' + hashpack, data, offset)
-            prefs = [bytes_to_long(str_pref) for str_pref in str_prefs]
-            offset += length
-
-        return offset, placeholder.meta.payload.implement(identifier, prefs)
+        return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs, global_vector)
 
     def _encode_sum(self, message):
         str_sum = long_to_bytes(message.payload._sum, 256)
@@ -403,36 +409,14 @@ class PSearchConversion(SearchConversion):
 
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(_sum), _sums)
 
-    def _encode_introduction_request(self, message):
-        data = BinaryConversion._encode_introduction_request(self, message)
-
-        if message.payload.introduce_me_to:
-            data.append(pack('!20s', message.payload.introduce_me_to))
-        return data
-
-    def _decode_introduction_request(self, placeholder, offset, data):
-        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
-
-        # if there's still bytes in this request, treat them as taste_bloom_filter
-        has_stuff = len(data) > offset
-        if has_stuff:
-            length = len(data) - offset
-            if length != 20:
-                raise DropPacket("Invalid number of bytes available (ir)")
-
-            candidate_mid, = unpack_from('!20s', data, offset)
-            payload.set_introduce_me_to(candidate_mid)
-
-            offset += length
-        return offset, payload
-
-class HSearchConversion(SearchConversion):
+class HSearchConversion(ForwardConversion):
 
     def __init__(self, community):
-        SearchConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(9), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
+        ForwardConversion.__init__(self, community)
+        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
+        self.define_meta_message(chr(11), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
 
     def _encode_simi_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)
@@ -460,7 +444,7 @@ class HSearchConversion(SearchConversion):
 
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs)
 
-    def _encode_simi_response(self, message):
+    def _encode_simi_responses(self, message):
         def _encode_response(mid, preference_list, his_preference_list):
             str_mid = pack("!20s", mid) if mid else ''
             str_prefs = pack("!" + "128s"*len(preference_list), *[long_to_bytes(preference, 128) for preference in preference_list])
@@ -475,7 +459,7 @@ class HSearchConversion(SearchConversion):
         packet = pack('!H', message.payload.identifier), responses
         return encode(packet),
 
-    def _decode_simi_response(self, placeholder, offset, data):
+    def _decode_simi_responses(self, placeholder, offset, data):
         try:
             offset, payload = decode(data, offset)
         except ValueError:
@@ -516,30 +500,14 @@ class HSearchConversion(SearchConversion):
 
         return offset, placeholder.meta.payload.implement(identifier, prefs, hprefs, bundled_responses)
 
-    def _encode_introduction_request(self, message):
-        data = BinaryConversion._encode_introduction_request(self, message)
+class PoliSearchConversion(ForwardConversion):
 
-        if message.payload.introduce_me_to:
-            data.append(pack('!20s', message.payload.introduce_me_to))
-        return data
-
-    def _decode_introduction_request(self, placeholder, offset, data):
-        offset, payload = BinaryConversion._decode_introduction_request(self, placeholder, offset, data)
-
-        # if there's still bytes in this request, treat them as taste_bloom_filter
-        has_stuff = len(data) > offset
-        if has_stuff:
-            length = len(data) - offset
-            if length != 20:
-                raise DropPacket("Invalid number of bytes available (ir)")
-
-            candidate_mid, = unpack_from('!20s', data, offset)
-            payload.set_introduce_me_to(candidate_mid)
-
-            offset += length
-        return offset, payload
-
-class PoliSearchConversion(HSearchConversion):
+    def __init__(self, community):
+        ForwardConversion.__init__(self, community)
+        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
+        self.define_meta_message(chr(11), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
 
     def _encode_simi_request(self, message):
         contents = []
@@ -549,12 +517,6 @@ class PoliSearchConversion(HSearchConversion):
 
         for partition, coeffs in message.payload.preference_list.iteritems():
             fmt += "BB" + "256s"*len(coeffs)
-
-            if not (0 <= partition <= 255):
-                raise Exception("incorrect partition %d" % partition)
-            if not (0 <= len(coeffs) <= 255):
-                raise Exception("incorrect len(coeffs) %d" % len(coeffs))
-
             contents.append(partition)
             contents.append(len(coeffs))
             contents.extend([long_to_bytes(coeff, 256) for coeff in coeffs])
@@ -582,12 +544,12 @@ class PoliSearchConversion(HSearchConversion):
             length = len(data) - offset
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), preferences)
 
-    def _encode_encr_response(self, message):
+    def _encode_simi_response(self, message):
         str_identifer = pack("!H", message.payload.identifier)
-        str_prefs = pack("!" + "256s"*len(message.payload.preference_list), *[long_to_bytes(preference, 256) for preference in message.payload.preference_list])
+        str_prefs = pack("!" + "256s"*len(message.payload.my_response), *[long_to_bytes(preference, 256) for preference in message.payload.my_response])
         return encode([str_identifer, str_prefs]),
 
-    def _decode_encr_response(self, placeholder, offset, data):
+    def _decode_simi_response(self, placeholder, offset, data):
         try:
             offset, payload = decode(data, offset)
         except ValueError:
@@ -608,23 +570,23 @@ class PoliSearchConversion(HSearchConversion):
         else:
             hashes = []
 
-        return offset, placeholder.meta.payload.implement(identifier, hashes, [])
+        return offset, placeholder.meta.payload.implement(identifier, hashes)
 
-    def _encode_simi_response(self, message):
+    def _encode_simi_responses(self, message):
         def _encode_response(mid, preference_list):
             str_mid = pack("!20s", mid) if mid else ''
             str_prefs = pack("!" + "256s"*len(preference_list), *[long_to_bytes(preference, 256) for preference in preference_list])
             return (str_mid, str_prefs)
 
         responses = []
-        responses.append(_encode_response(None, message.payload.preference_list))
+        responses.append(_encode_response(None, message.payload.my_response))
         for mid, response in message.payload.bundled_responses:
             responses.append(_encode_response(mid, response))
 
         packet = pack('!H', message.payload.identifier), responses
         return encode(packet),
 
-    def _decode_simi_response(self, placeholder, offset, data):
+    def _decode_simi_responses(self, placeholder, offset, data):
         try:
             offset, payload = decode(data, offset)
         except ValueError:
@@ -656,4 +618,4 @@ class PoliSearchConversion(HSearchConversion):
             else:
                 prefs = hashes
 
-        return offset, placeholder.meta.payload.implement(identifier, prefs, [], bundled_responses)
+        return offset, placeholder.meta.payload.implement(identifier, prefs, bundled_responses)
