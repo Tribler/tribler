@@ -159,7 +159,7 @@ class SearchScript(ScenarioScriptBase):
                     log(self._logfile, "new taste buddy %s:%d" % (ip, port))
 
                     if int(self._my_name) > self.late_join:
-                        self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=1.0)
+                        self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=float(len(self.taste_buddies)))
 
                 # connect to a random peer
                 if self.random_connect and len(self.taste_buddies) <= 10:
@@ -168,7 +168,7 @@ class SearchScript(ScenarioScriptBase):
                         peer_id = randint(1, self._nr_peers)
 
                     ip, port = self.get_peer_ip_port(peer_id)
-                    self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=1.0)
+                    self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=float(len(self.taste_buddies)))
 
 
     def log_statistics(self):
