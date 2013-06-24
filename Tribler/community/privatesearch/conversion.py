@@ -16,10 +16,13 @@ def long_to_bytes(val, nrbytes):
     return result
 
 def bytes_to_long(val):
-    _val = long(hexlify(val[::-1]), 16)
-    if val[0] == "-":
-        return -_val
-    return _val
+    if val[0] == "-" or val[0] == "+":
+        _val = long(hexlify(val[1:][::-1]), 16)
+        if val[0] == "-":
+            return -_val
+        return _val
+    else:
+        return long(hexlify(val[::-1]), 16)
 
 class SearchConversion(BinaryConversion):
     def __init__(self, community):
