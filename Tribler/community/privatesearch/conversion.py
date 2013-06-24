@@ -4,7 +4,16 @@ from Tribler.dispersy.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
-from Crypto.Util.number import long_to_bytes, bytes_to_long
+
+from binascii import hexlify, unhexlify
+def long_to_bytes(val, nrbytes):
+    hex_val = '%x' % val
+    padding = '0' * ((nrbytes * 2) - len(hex_val))
+    result = unhexlify(padding + hex_val)[::-1]
+    return result
+
+def bytes_to_long(val):
+    return long(hexlify(val[::-1]), 16)
 
 class SearchConversion(BinaryConversion):
     def __init__(self, community):

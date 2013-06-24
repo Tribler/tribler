@@ -123,6 +123,40 @@ if __name__ == "__main__":
 
     print len(a_results), max(a_results.keys()), sum(len(coeffs) for coeffs in a_results.itervalues())
 
+    from binascii import unhexlify, hexlify
+    def new_long_to_bytes(val, bytes):
+        hex = '%x' % val
+        padding = '0' * ((bytes * 2) - len(hex))
+        result = unhexlify(padding + hex)[::-1]
+        return result
+
+    def new_bytes_to_long(val):
+        return long(hexlify(val[::-1]), 16)
+
+    t1 = time()
+    for _ in xrange(10000):
+        a = [long_to_bytes(val[1], 256) for val in set1]
+        b = [bytes_to_long(val) for val in a]
+        c = [new_bytes_to_long for val in a]
+
+        for i, b_val in enumerate(b):
+            assert b_val == set1[i][1]
+
+        for i, c_val in enumerate(c):
+            assert c_val == set1[i][1]
+
+    print time() - t1
+
+    t1 = time()
+    for _ in xrange(10000):
+        a = [new_long_to_bytes(val[1], 256) for val in set1]
+        b = [new_bytes_to_long(val) for val in a]
+        for i, b_val in enumerate(b):
+            assert b_val == set1[i][1]
+
+    print time() - t1
+
+
 #     b_results = []
 #     t1 = time()
 #     for partition, g in groupby(set2, lambda x: x[0]):
