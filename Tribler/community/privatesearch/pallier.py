@@ -103,9 +103,9 @@ if __name__ == "__main__":
     assert all(val < bitmask for val in set2)
 
     # partition the infohashes
-    partitionmask = (2 ** 32) - 1
-    set1 = [(val >> 32, val & partitionmask) for val in set1]
-    set2 = [(val >> 32, val & partitionmask) for val in set2]
+    partitionmask = (2 ** 34) - 1
+    set1 = [(val >> 34, val & partitionmask) for val in set1]
+    set2 = [(val >> 34, val & partitionmask) for val in set2]
     print set2[0]
 
     set1.sort()
@@ -121,24 +121,26 @@ if __name__ == "__main__":
 
         a_results[partition] = coeffs
 
-    b_results = []
-    t1 = time()
-    for partition, g in groupby(set2, lambda x: x[0]):
-        assert partition <= 255, partition
-        assert partition >= 0, partition
+    print len(a_results), max(a_results.keys()), sum(len(coeffs) for coeffs in a_results.itervalues())
 
-        if partition in a_results:
-            values = [value for _, value in list(g)]
-            for val in values:
-                py = pallier_polyval(a_results[partition], val, key.n2)
-                py = pallier_multiply(py, randint(0, 2 ** 40), key.n2)
-
-                b_results.append((py, val))
-
-    print time() - t1
-
-    for b_result, b_val in b_results:
-        print b_val, pallier_decrypt(key, b_result)
+#     b_results = []
+#     t1 = time()
+#     for partition, g in groupby(set2, lambda x: x[0]):
+#         assert partition <= 255, partition
+#         assert partition >= 0, partition
+#
+#         if partition in a_results:
+#             values = [value for _, value in list(g)]
+#             for val in values:
+#                 py = pallier_polyval(a_results[partition], val, key.n2)
+#                 py = pallier_multiply(py, randint(0, 2 ** 40), key.n2)
+#
+#                 b_results.append((py, val))
+#
+#     print time() - t1
+#
+#     for b_result, b_val in b_results:
+#         print b_val, pallier_decrypt(key, b_result)
 
 
 #     encrypted0 = pallier_encrypt(key, 0l)
