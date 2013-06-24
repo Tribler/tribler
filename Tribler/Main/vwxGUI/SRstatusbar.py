@@ -34,10 +34,12 @@ class SRstatusbar(wx.StatusBar):
 
         self.speed_down_icon = NativeIcon.getInstance().getBitmap(self, 'arrow', self.GetBackgroundColour(), state=0)
         self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon)
+        self.speed_down_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
         self.speed_down = StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)
         self.speed_down.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
         self.speed_up_icon = self.speed_down_icon.ConvertToImage().Rotate90().Rotate90().ConvertToBitmap()
         self.speed_up_sbmp = wx.StaticBitmap(self, -1, self.speed_up_icon)
+        self.speed_up_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
         self.speed_up = StaticText(self, -1, '', style=wx.ST_NO_AUTORESIZE)
         self.speed_up.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
 
