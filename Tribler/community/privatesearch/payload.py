@@ -285,7 +285,7 @@ class EncryptedPoliResponsePayload(Payload):
             return self._my_response
 
 class EncryptedPoliResponsesPayload(EncryptedPoliResponsePayload):
-    class Implementation(Payload.Implementation):
+    class Implementation(EncryptedPoliResponsePayload.Implementation):
         def __init__(self, meta, identifier, my_response, bundled_responses):
             EncryptedPoliResponsePayload.Implementation.__init__(self, meta, identifier, my_response)
 
