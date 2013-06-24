@@ -5,17 +5,21 @@ from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.bloomfilter import BloomFilter
 
-#from binascii import hexlify, unhexlify
-#def long_to_bytes(val, nrbytes):
-#    hex_val = '%x' % val
-#    padding = '0' * ((nrbytes * 2) - len(hex_val))
-#    result = unhexlify(padding + hex_val)[::-1]
-#    return result
-#
-#def bytes_to_long(val):
-#    return long(hexlify(val[::-1]), 16)
+from binascii import hexlify, unhexlify
+def long_to_bytes(val, nrbytes):
+    hex_val = '%x' % abs(val)
+    padding = '0' * ((abs(nrbytes) * 2) - len(hex_val))
+    result = unhexlify(padding + hex_val)[::-1]
 
-from Crypto.Util.number import bytes_to_long, long_to_bytes
+    if nrbytes < 0:
+        return ("-" if val < 0 else "+") + result
+    return result
+
+def bytes_to_long(val):
+    _val = long(hexlify(val[::-1]), 16)
+    if val[0] == "-":
+        return -_val
+    return _val
 
 class SearchConversion(BinaryConversion):
     def __init__(self, community):
@@ -527,13 +531,14 @@ class PoliSearchConversion(ForwardConversion):
         contents.append(long_to_bytes(message.payload.key_n, 128))
         
         if len(message.payload.coefficients) > 0:
-            fmt += "256s"
-            contents.append(long_to_bytes(message.payload.coefficients.values()[0][0]))
+            fmt += "257s"
+            contents.append(long_to_bytes(message.payload.coefficients.values()[0][0], -256))
+            
         for partition, coeffs in message.payload.coefficients.iteritems():
-            fmt += "BB" + "256s"*(len(coeffs) - 1)
+            fmt += "BB" + "257s"*(len(coeffs) - 1)
             contents.append(partition)
             contents.append(len(coeffs) - 1)
-            contents.extend([long_to_bytes(coeff, 256) for coeff in coeffs[1:]])
+            contents.extend([long_to_bytes(coeff, -256) for coeff in coeffs[1:]])
 
         packet = pack(fmt, message.payload.identifier, *contents)
         return packet,
@@ -545,19 +550,19 @@ class PoliSearchConversion(ForwardConversion):
         preferences = {}
         length = len(data) - offset
         if length:
-            one_coeff, = unpack_from("!256s", data, offset)
+            one_coeff, = unpack_from("!257s", data, offset)
             one_coeff = bytes_to_long(one_coeff)
             
-            offset += 256
+            offset += 257
             length = len(data) - offset
             
         while length:
             partition, nr_coeffs = unpack_from("!BB", data, offset)
             offset += 2
 
-            hashpack = '256s' * nr_coeffs
+            hashpack = '257s' * nr_coeffs
             str_coeffs = unpack_from('!' + hashpack, data, offset)
-            offset += 256 * nr_coeffs
+            offset += 257 * nr_coeffs
             preferences[partition] = [one_coeff] + [bytes_to_long(str_coeff) for str_coeff in str_coeffs]
 
             length = len(data) - offset
