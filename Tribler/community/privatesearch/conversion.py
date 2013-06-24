@@ -515,7 +515,7 @@ class PoliSearchConversion(ForwardConversion):
         fmt = "!H128s"
         contents.append(long_to_bytes(message.payload.key_n, 128))
 
-        for partition, coeffs in message.payload.preference_list.iteritems():
+        for partition, coeffs in message.payload.coefficients.iteritems():
             fmt += "BB" + "256s"*len(coeffs)
             contents.append(partition)
             contents.append(len(coeffs))

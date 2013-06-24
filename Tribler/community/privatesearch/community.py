@@ -1164,11 +1164,10 @@ class ForwardCommunity(SearchCommunity):
 
             # create a register similarity request
             request = ForwardCommunity.MSimilarityRequest(self, message, candidates)
-            self._dispersy.request_cache.set(message.payload.identifier, request)
-
-            # process locally
+            # add local response
             request.add_response(None, self.on_similarity_request([message], False))
 
+            self._dispersy.request_cache.set(message.payload.identifier, request)
             if candidates:
                 # forward it to others
                 self.send_similarity_request(message, candidates)
@@ -1328,7 +1327,7 @@ class PSearchCommunity(ForwardCommunity):
         self.forward_packet_size += len(request.packet) * len(candidates)
 
     def on_similarity_request(self, messages, send_messages=True):
-        my_vector = self.community.get_my_vector(self.global_vector)
+        my_vector = self.get_my_vector(self.global_vector)
         for message in messages:
             user_vector = message.payload.preference_list
             global_vector = message.payload.global_vector
@@ -1354,7 +1353,7 @@ class PSearchCommunity(ForwardCommunity):
                 print >> sys.stderr, long(time()), "PSearchCommunity: calculated sum", _sum
 
             if send_messages:
-                meta_request = self.community.get_meta_message(u"similarity-response")
+                meta_request = self.get_meta_message(u"similarity-response")
                 response = meta_request.impl(authentication=(self.my_member,),
                                         distribution=(self.global_time,),
                                         destination=(message.candidate,),

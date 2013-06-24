@@ -61,7 +61,7 @@ def polyval(coefficients, x):
 
 if __name__ == "__main__":
     r = Random()
-    set1 = [r.randint(0, 2 ** 25) for i in range(100)]
+    set1 = [r.randint(0, 2 ** 32) for i in range(100)]
     print set1
 
     t1 = time()
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     t1 = time()
     nr_false_positive = 0
     for _ in range(100000):
-        i = r.randint(0, 2 ** 25)
+        i = r.randint(0, 2 ** 32)
         if i not in set1:
             returnval = polyval(coeff, i)
             if returnval == 0:
