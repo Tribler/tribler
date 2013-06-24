@@ -1706,6 +1706,9 @@ class PoliSearch(ForwardCommunity):
 
     def compute_overlap(self, evaluated_polynomial):
         overlap = 0
+        
+        print >> sys.stderr, evaluated_polynomial
+        
         t1 = time()
         for py in evaluated_polynomial:
             if self.encryption:
