@@ -1367,7 +1367,7 @@ class PSearchCommunity(ForwardCommunity):
                                 destination=(requesting_candidate,),
                                 payload=(identifier, my_sum, received_sums))
 
-        self.community._dispersy._forward([response])
+        self._dispersy._forward([response])
         return len(response.packet)
 
     def on_msimilarity_response(self, messages):
@@ -1527,7 +1527,7 @@ class HSearchCommunity(ForwardCommunity):
                                 destination=(requesting_candidate,),
                                 payload=(identifier, my_response, received_responses))
 
-        self.community._dispersy._forward([response])
+        self._dispersy._forward([response])
         return len(response.packet)
 
     def on_msimilarity_response(self, messages):
@@ -1683,7 +1683,7 @@ class PoliSearch(ForwardCommunity):
                                 destination=(requesting_candidate,),
                                 payload=(identifier, my_response, received_responses))
 
-        self.community._dispersy._forward([response])
+        self._dispersy._forward([response])
         return len(response.packet)
 
     def on_msimilarity_response(self, messages):
