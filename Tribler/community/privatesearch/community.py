@@ -1215,7 +1215,7 @@ class ForwardCommunity(SearchCommunity):
         for message in messages:
             request = self._dispersy.request_cache.get(message.payload.identifier, ForwardCommunity.MSimilarityRequest)
             if request:
-                request.add_response(message.authentication.member.mid, message.payload)
+                request.add_response(message.authentication.member.mid, message)
                 if request.is_complete():
                     self.reply_packet_size += request.process()
 
