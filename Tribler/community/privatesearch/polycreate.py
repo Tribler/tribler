@@ -2,6 +2,8 @@ from itertools import product, groupby
 from random import Random
 from time import time
 
+from gmpy import mpz
+
 class X:
     def __init__(self, val, power):
         self.val = val
@@ -52,11 +54,14 @@ def compute_coeff(roots):
     return [coeff.val for coeff in coeffs]
 
 def polyval(coefficients, x):
+    _coefficients = [mpz(coeff) for coeff in coefficients]
+    _x = mpz(x)
+
     def multi(coefficient):
         power = len(coefficients) - coefficient - 1
         if power:
-            return coefficients[coefficient] * pow(x, power)
-        return coefficients[coefficient]
+            return _coefficients[coefficient] * pow(_x, power)
+        return _coefficients[coefficient]
 
     result = multi(0)
     for index in range(1, len(coefficients)):
@@ -65,8 +70,6 @@ def polyval(coefficients, x):
     return result
 
 if __name__ == "__main__":
-
-
     r = Random()
     set1 = [r.randint(0, 2 ** 25) for i in range(100)]
     print set1
@@ -78,12 +81,13 @@ if __name__ == "__main__":
     coeff = compute_coeff(set1)
     for val in set1:
         print val, polyval(coeff, val)
-#
-#     nr_false_positive = 0
-#     for _ in range(10000):
-#         i = r.randint(0, 2 ** 25)
-#         if i not in set1:
-#             returnval = polyval(coeff, i)
-#             if returnval == 0:
-#                 nr_false_positive += 1
-#     print nr_false_positive / 10000.0
+
+    t1 = time()
+    nr_false_positive = 0
+    for _ in range(10000):
+        i = r.randint(0, 2 ** 25)
+        if i not in set1:
+            returnval = polyval(coeff, i)
+            if returnval == 0:
+                nr_false_positive += 1
+    print time() - t1, nr_false_positive / 10000.0
