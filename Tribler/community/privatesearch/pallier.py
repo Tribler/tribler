@@ -75,11 +75,14 @@ def pallier_add(cipher1, cipher2, n2):
     return (cipher1 * cipher2) % n2
 
 def pallier_poly(x, coefficients, n2):
+    _x = mpz(x)
+    _coefficients = [mpz(coeff) for coeff in coefficients]
+
     def multi(coefficient):
         power = len(coefficients) - coefficient - 1
         if power:
-            return pallier_multiply(coefficients[coefficient], pow(x, power), n2)
-        return coefficients[coefficient]
+            return pallier_multiply(_coefficients[coefficient], pow(_x, power), n2)
+        return _coefficients[coefficient]
 
     result = multi(0)
     for index in range(1, len(coefficients)):
@@ -108,8 +111,7 @@ if __name__ == "__main__":
 
     a_results = {}
     for partition, g in groupby(set1, lambda x: x[0]):
-        assert partition <= 255, partition
-        assert partition >= 0, partition
+        assert 0 <= partition <= 255, partition
 
         values = [value for _, value in list(g)]
         coeffs = compute_coeff(values)

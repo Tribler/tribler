@@ -549,6 +549,12 @@ class PoliSearchConversion(HSearchConversion):
 
         for partition, coeffs in message.payload.preference_list.iteritems():
             fmt += "BB" + "256s"*len(coeffs)
+
+            if not (0 <= partition <= 255):
+                raise Exception("incorrect partition %d" % partition)
+            if not (0 <= len(coeffs) <= 255):
+                raise Exception("incorrect len(coeffs) %d" % len(coeffs))
+
             contents.append(partition)
             contents.append(len(coeffs))
             contents.extend([long_to_bytes(coeff, 256) for coeff in coeffs])
