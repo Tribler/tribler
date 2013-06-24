@@ -11,6 +11,7 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 from Tribler.community.privatesearch.community import PoliSearch
+from threading import Thread
 
 class SearchScript(ScenarioScriptBase):
     def __init__(self, **kargs):
@@ -91,6 +92,9 @@ class SearchScript(ScenarioScriptBase):
             community.create_introduction_request = lambda *args: None
 
         self._dispersy.callback.register(self.monitor_taste_buddy, delay=1.0)
+        def stop_dispersy():
+            Thread(target=self._dispersy.stop, args=(10.0,)).start()
+        self._dispersy.callback.register(stop_dispersy, delay=300.0)
 
         # my_name is only available after _run method is called
         self.search_offset = 200 + (int(self._my_name) % int(self.search_spacing))
@@ -196,7 +200,7 @@ class SearchScript(ScenarioScriptBase):
             sources_found /= float(self.do_search)
 
             log("dispersy.log", "scenario-statistics", bootstrapped=taste_ratio, latejoin=latejoin, recall=recall, nr_search_=self.nr_search, paths_found=paths_found, sources_found=sources_found)
-            log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward=self._community.search_forward, search_forward_success=self._community.search_forward_success, search_forward_timeout=self._community.search_forward_timeout, search_endpoint=self._community.search_endpoint, search_cycle_detected=self._community.search_cycle_detected, search_no_candidates_remain=self._community.search_no_candidates_remain, search_megacachesize=self._community.search_megacachesize, create_time_encryption=self._community.create_time_encryption, create_time_decryption=self._community.create_time_decryption, receive_time_encryption=self._community.receive_time_encryption, search_timeout=self._community.search_timeout, send_packet_size = self._community.send_packet_size, reply_packet_size=self._community.reply_packet_size, forward_packet_size=self._community.forward_packet_size)
+            log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward=self._community.search_forward, search_forward_success=self._community.search_forward_success, search_forward_timeout=self._community.search_forward_timeout, search_endpoint=self._community.search_endpoint, search_cycle_detected=self._community.search_cycle_detected, search_no_candidates_remain=self._community.search_no_candidates_remain, search_megacachesize=self._community.search_megacachesize, create_time_encryption=self._community.create_time_encryption, create_time_decryption=self._community.create_time_decryption, receive_time_encryption=self._community.receive_time_encryption, search_timeout=self._community.search_timeout, send_packet_size=self._community.send_packet_size, reply_packet_size=self._community.reply_packet_size, forward_packet_size=self._community.forward_packet_size)
             yield 5.0
 
     def log_taste_buddies(self, new_taste_buddies):

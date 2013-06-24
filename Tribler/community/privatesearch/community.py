@@ -1653,7 +1653,8 @@ class PoliSearch(ForwardCommunity):
                     results.append(py)
             else:
                 for partition, val in _myPreferences:
-                    results.append(polyval(message.payload.coefficients[partition], val))
+                    py = polyval(message.payload.coefficients[partition], val)
+                    results.append(py)
 
             self.receive_time_encryption += time() - t1
 
