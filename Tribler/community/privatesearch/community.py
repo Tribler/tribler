@@ -1334,22 +1334,21 @@ class PSearchCommunity(ForwardCommunity):
             global_vector = message.payload.global_vector
             assert len(global_vector) == len(user_vector) and len(global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(global_vector), len(user_vector), len(my_vector))
 
+            t1 = time()
             if self.encryption:
                 _sum = 1l
 
-                t1 = time()
                 user_n2 = pow(message.payload.key_n, 2)
 
                 for i, element in enumerate(user_vector):
                     if my_vector[i]:
                         _sum = pallier_add(_sum, element, user_n2)
-
-                self.receive_time_encryption += time() - t1
             else:
                 _sum = 0l
                 for i, element in enumerate(user_vector):
                     if my_vector[i] and element:
                         _sum += 1
+            self.receive_time_encryption += time() - t1
 
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "PSearchCommunity: calculated sum", _sum
@@ -1370,16 +1369,15 @@ class PSearchCommunity(ForwardCommunity):
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "PSearchCommunity: received sums", message.payload._sum
 
+            t1 = time()
             if self.encryption:
-                t1 = time()
-
                 _sums = [[pallier_decrypt(self.key, _sum), time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = pallier_decrypt(self.key, message.payload._sum)
-
-                self.create_time_decryption += time() - t1
             else:
                 _sums = [[_sum, time(), candidate_mid, message.candidate] for candidate_mid, _sum in message.payload.sums]
                 _sum = message.payload._sum
+
+            self.create_time_decryption += time() - t1
 
             self.add_taste_buddies([[_sum, time(), message.candidate]])
 
@@ -1607,9 +1605,6 @@ class PoliSearch(ForwardCommunity):
         self._dispersy._send(candidates, [request])
         self.forward_packet_size += len(request.packet) * len(candidates)
 
-        self._dispersy._send(candidates, [request])
-        self.forward_packet_size += len(request.packet) * len(candidates)
-
     def on_similarity_request(self, messages, send_messages=True):
         # 1. fetch my preferences
         myPreferences = [preference for preference in self._mypref_db.getMyPrefListInfohash(local=False) if preference]
@@ -1638,13 +1633,11 @@ class PoliSearch(ForwardCommunity):
                     py = pallier_polyval(message.payload.preference_list[partition], val, user_n2)
                     py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
                     results.append(py)
-
-                self.receive_time_encryption += time() - t1
             else:
                 for partition, val in _myPreferences:
                     results.append(polyval(message.payload.preference_list[partition], val))
 
-                self.receive_time_encryption += time() - t1
+            self.receive_time_encryption += time() - t1
 
             shuffle(results)
             if send_messages:
