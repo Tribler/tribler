@@ -381,8 +381,8 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnFilesSelected)
 
             self.il = wx.ImageList(16, 16)
-            play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'library_play.png'), wx.BITMAP_TYPE_ANY))
-            file_img = self.il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, size=(16, 16)))
+            play_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'file_video.png'), wx.BITMAP_TYPE_ANY))
+            file_img = self.il.Add(wx.Bitmap(os.path.join(self.guiutility.vwxGUI_path, 'images', 'file_default.png'), wx.BITMAP_TYPE_ANY))
             self.listCtrl.SetImageList(self.il, wx.IMAGE_LIST_SMALL)
 
             # Add files
@@ -444,16 +444,16 @@ class TorrentDetails(AbstractDetails):
 
             vSizer = wx.BoxSizer(wx.VERTICAL)
             if isinstance(self, LibraryDetails) and not self.torrent.swift_hash:
-                vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT)
+                vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
                 vSizer.Add(wx.StaticLine(parent, -1, style=wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.ALL, 3)
                 ulfont = self.GetFont()
                 ulfont.SetUnderlined(True)
                 self.filesFooter = LinkText(parent, 'Click here to modify which files should be downloaded.', fonts=[self.GetFont(), ulfont], colours=[self.GetForegroundColour(), wx.RED])
                 self.filesFooter.SetBackgroundColour(parent.GetBackgroundColour())
                 self.filesFooter.Bind(wx.EVT_LEFT_UP, self.OnChangeSelection)
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND | wx.ALL, 3)
+                vSizer.Add(self.filesFooter, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
             else:
-                vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT)
+                vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
             parent.SetSizer(vSizer)
             self.notebook.AddPage(parent, "Files")
 
@@ -1224,7 +1224,7 @@ class LibraryDetails(TorrentDetails):
             self._add_row(peersPanel, hSizer, 'Pieces', self.pieces, spacer=3)
 
             vSizer.Add(wx.StaticLine(peersPanel, -1, style=wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.ALL, 3)
-            vSizer.Add(hSizer, 0, wx.EXPAND)
+            vSizer.Add(hSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
         else:
             self.availability = None
             self.pieces = None

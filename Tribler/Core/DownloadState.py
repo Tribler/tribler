@@ -323,6 +323,9 @@ class DownloadState(Serializable):
                         completion.append((f, completed / (total_pieces * 1.0)))
                     elif f in files:
                         completion.append((f, 0.0))
+        else:
+            # Single file
+            completion.append((files[0], self.get_progress()))
         return completion
 
     def get_selected_files(self):
