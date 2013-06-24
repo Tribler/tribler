@@ -1361,9 +1361,9 @@ class PSearchCommunity(ForwardCommunity):
     def send_msimilarity_response(self, identifier, my_sum, received_sums):
         received_sums = [(mid, payload._sum) for mid, payload in received_sums]
 
-        meta_request = self.community.get_meta_message(u"msimilarity-response")
-        response = meta_request.impl(authentication=(self.community._my_member,),
-                                distribution=(self.community.global_time,),
+        meta_request = self.get_meta_message(u"msimilarity-response")
+        response = meta_request.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,),
                                 destination=(self.requesting_candidate,),
                                 payload=(identifier, my_sum, received_sums))
 
@@ -1521,9 +1521,9 @@ class HSearchCommunity(ForwardCommunity):
     def send_msimilarity_response(self, identifier, my_response, received_responses):
         received_responses = [(mid, (payload.preference_list, payload.his_preference_list)) for mid, payload in received_responses]
 
-        meta_request = self.community.get_meta_message(u"msimilarity-response")
-        response = meta_request.impl(authentication=(self.community._my_member,),
-                                distribution=(self.community.global_time,),
+        meta_request = self.get_meta_message(u"msimilarity-response")
+        response = meta_request.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,),
                                 destination=(self.requesting_candidate,),
                                 payload=(identifier, my_response, received_responses))
 
@@ -1677,9 +1677,9 @@ class PoliSearch(ForwardCommunity):
     def send_msimilarity_response(self, identifier, my_response, received_responses):
         received_responses = [(mid, payload.my_response) for mid, payload in received_responses]
 
-        meta_request = self.community.get_meta_message(u"msimilarity-response")
-        response = meta_request.impl(authentication=(self.community._my_member,),
-                                distribution=(self.community.global_time,),
+        meta_request = self.get_meta_message(u"msimilarity-response")
+        response = meta_request.impl(authentication=(self._my_member,),
+                                distribution=(self.global_time,),
                                 destination=(self.requesting_candidate,),
                                 payload=(identifier, my_response, received_responses))
 
