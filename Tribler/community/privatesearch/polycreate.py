@@ -70,24 +70,14 @@ if __name__ == "__main__":
 
     coeff = compute_coeff(set1)
     for val in set1:
-        print val, polyval(coeff, val), horner(coeff, val)
+        print val, polyval(coeff, val)
 
     t1 = time()
     nr_false_positive = 0
-    for _ in range(10000):
+    for _ in range(100000):
         i = r.randint(0, 2 ** 25)
         if i not in set1:
             returnval = polyval(coeff, i)
             if returnval == 0:
                 nr_false_positive += 1
-    print time() - t1, nr_false_positive / 10000.0
-
-    t1 = time()
-    nr_false_positive = 0
-    for _ in range(10000):
-        i = r.randint(0, 2 ** 25)
-        if i not in set1:
-            returnval = horner(coeff, i)
-            if returnval == 0:
-                nr_false_positive += 1
-    print time() - t1, nr_false_positive / 10000.0
+    print time() - t1, nr_false_positive / 100000.0

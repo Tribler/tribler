@@ -35,7 +35,7 @@ from Tribler.community.privatesearch.conversion import PSearchConversion, \
 from Tribler.dispersy.script import assert_
 
 from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt, \
-    pallier_poly, pallier_multiply
+    pallier_polyval, pallier_multiply
 from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 from Tribler.community.privatesearch.polycreate import compute_coeff, polyval
 from Tribler.community.privatesearch.payload import PoliSimilarityRequest
@@ -1683,16 +1683,17 @@ class PoliSearch(HSearchCommunity):
             myPreferences = [(val >> 32, val & partitionmask) for val in myPreferences]
 
             partitions = {}
+            t1 = time()
             for partition, g in groupby(myPreferences, lambda x: x[0]):
                 values = [value for _, value in list(g)]
                 coeffs = compute_coeff(values)
 
                 if self.encryption:
-                    t1 = time()
                     coeffs = [pallier_encrypt(self.key, coeff) for coeff in coeffs]
-                    self.create_time_encryption += time() - t1
 
                 partitions[partition] = coeffs
+
+            self.create_time_encryption += time() - t1
             self.my_preference_cache = [str_myPreferences, partitions]
 
         if partitions:
@@ -1731,12 +1732,11 @@ class PoliSearch(HSearchCommunity):
                 _myPreferences = sample(_myPreferences, self.max_h_prefs)
 
             results = []
+            t1 = time()
             if self.encryption:
-                t1 = time()
-
                 user_n2 = pow(message.payload.key_n, 2)
                 for partition, val in _myPreferences:
-                    py = pallier_poly(val, message.payload.preference_list[partition], user_n2)
+                    py = pallier_polyval(message.payload.preference_list[partition], val, user_n2)
                     py = pallier_multiply(py, randint(0, 2 ** 40), user_n2)
                     results.append(py)
 
@@ -1744,6 +1744,8 @@ class PoliSearch(HSearchCommunity):
             else:
                 for partition, val in _myPreferences:
                     results.append(polyval(message.payload.preference_list[partition], val))
+
+                self.receive_time_encryption += time() - t1
 
             shuffle(results)
             if send_messages:
@@ -1799,15 +1801,15 @@ class PoliSearch(HSearchCommunity):
 
     def compute_overlap(self, lists):
         overlap = 0
+        t1 = time()
         for py in lists[0]:
             if self.encryption:
-                t1 = time()
                 if pallier_decrypt(self.key, py) == 0:
                     overlap += 1
-                self.create_time_decryption += time() - t1
             else:
                 if py == 0:
                     overlap += 1
+        self.create_time_decryption += time() - t1
         return overlap
 
 class Das4DBStub():

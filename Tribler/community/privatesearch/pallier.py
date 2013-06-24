@@ -75,19 +75,10 @@ def pallier_multiply(cipher, times, n2):
 def pallier_add(cipher1, cipher2, n2):
     return (cipher1 * cipher2) % n2
 
-def pallier_poly(x, coefficients, n2):
-    _x = mpz(x)
-    _coefficients = [mpz(coeff) for coeff in coefficients]
-
-    def multi(coefficient):
-        power = len(coefficients) - coefficient - 1
-        if power:
-            return pallier_multiply(_coefficients[coefficient], pow(_x, power), n2)
-        return _coefficients[coefficient]
-
-    result = multi(0)
-    for index in range(1, len(coefficients)):
-        result = pallier_add(result, multi(index), n2)
+def pallier_polyval(coefficients, x, n2):
+    result = coefficients[0]
+    for coefficient in coefficients[1:]:
+        result = pallier_add(pallier_multiply(result, x, n2), coefficient, n2)
 
     return result
 
@@ -131,6 +122,7 @@ if __name__ == "__main__":
         a_results[partition] = coeffs
 
     b_results = []
+    t1 = time()
     for partition, g in groupby(set2, lambda x: x[0]):
         assert partition <= 255, partition
         assert partition >= 0, partition
@@ -138,9 +130,12 @@ if __name__ == "__main__":
         if partition in a_results:
             values = [value for _, value in list(g)]
             for val in values:
-                py = pallier_poly(val, a_results[partition], key.n2)
+                py = pallier_polyval(a_results[partition], val, key.n2)
                 py = pallier_multiply(py, randint(0, 2 ** 40), key.n2)
+
                 b_results.append((py, val))
+
+    print time() - t1
 
     for b_result, b_val in b_results:
         print b_val, pallier_decrypt(key, b_result)
