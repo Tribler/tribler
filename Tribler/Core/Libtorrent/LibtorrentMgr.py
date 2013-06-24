@@ -40,7 +40,8 @@ class LibtorrentMgr:
                                       lt.alert.category_t.error_notification |
                                       lt.alert.category_t.status_notification |
                                       lt.alert.category_t.storage_notification |
-                                      lt.alert.category_t.performance_warning)
+                                      lt.alert.category_t.performance_warning |
+                                      lt.alert.category_t.debug_notification)
         self.ltsession.listen_on(self.trsession.get_listen_port(), self.trsession.get_listen_port() + 10)
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
@@ -226,7 +227,7 @@ class LibtorrentMgr:
 
     def reachability_check(self):
         if self.ltsession and self.ltsession.status().has_incoming_connections:
-            self.trsession.lm.dialback_reachable_callback()
+            self.trsession.lm.rawserver.add_task(self.trsession.lm.dialback_reachable_callback, 3)
         else:
             self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
 

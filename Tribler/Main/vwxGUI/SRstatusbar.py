@@ -45,22 +45,22 @@ class SRstatusbar(wx.StatusBar):
         self.searchConnectionImages = [os.path.join(self.guiutility.vwxGUI_path, 'images', image) for image in self.searchConnectionImages]
         self.searchConnectionImages = [wx.Bitmap(image, wx.BITMAP_TYPE_ANY) for image in self.searchConnectionImages]
 
-        self.activityImages = ['activity.png', 'no_activity.png']
+        self.activityImages = ['statusbar_activity.png', 'statusbar_noactivity.png']
         self.activityImages = [os.path.join(self.guiutility.vwxGUI_path, 'images', image) for image in self.activityImages]
         self.activityImages = [wx.Bitmap(image, wx.BITMAP_TYPE_ANY) for image in self.activityImages]
 
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
+        self.activity_timer = None
 
-        self.bmp_firewall_state1 = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "firewallStatus14_state1.png"))
-        self.bmp_firewall_state2 = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "firewallStatus14_state2.png"))
-        self.bmp_firewall_state3 = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "firewallStatus14_state3.png"))
-        self.firewallStatus = ActionButton(self, -1, self.bmp_firewall_state2)
-        self.firewallStatus.SetSize((14, 14))
+        self.bmp_firewall_warning = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "statusbar_warning.png"))
+        self.bmp_firewall_ok = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "statusbar_ok.png"))
+        self.firewallStatus = ActionButton(self, -1, self.bmp_firewall_warning)
+        self.firewallStatus.SetSize((16, 16))
         self.firewallStatus.SetCursor(wx.StockCursor(wx.CURSOR_DEFAULT))
         self.firewallStatus.SetToolTipString('Port status unknown')
         self.firewallStatus.Enable(False)
-        self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_state2)
+        self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_warning)
 
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
@@ -156,16 +156,19 @@ class SRstatusbar(wx.StatusBar):
 
     def onReachable(self, event=None):
         if not self.guiutility.firewall_restart:
-            self.firewallStatus.SetBitmapLabel(self.bmp_firewall_state3)
-            self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_state3)
+            self.firewallStatus.SetBitmapLabel(self.bmp_firewall_ok)
+            self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_ok)
             self.firewallStatus.SetToolTipString('Port is working')
 
     def IsReachable(self):
         if not self.guiutility.firewall_restart:
-            return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_state3
+            return self.firewallStatus.GetBitmapLabel() == self.bmp_firewall_ok
         return False
 
     def onActivity(self, msg):
+        if self.activity_timer:
+            self.activity_timer.Stop()
+
         def revert():
             self.activity.SetBitmap(self.activityImages[1])
             self.activity.Refresh()
@@ -173,7 +176,7 @@ class SRstatusbar(wx.StatusBar):
         self.activity.SetBitmap(self.activityImages[0])
         self.activity.Refresh()
         self.activity.SetToolTipString(msg)
-        wx.CallLater(200, revert)
+        self.activity_timer = wx.CallLater(300, revert)
 
     def format_bytes(self, bytes):
         if bytes < 1000:

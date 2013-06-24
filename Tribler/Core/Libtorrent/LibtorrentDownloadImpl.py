@@ -19,6 +19,7 @@ from Tribler.Core.APIImplementation.maketorrent import torrentfilerec2savefilena
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.exceptions import VODNoFileSelectedInMultifileTorrentException
 from Tribler.Core.Utilities.Crypto import sha
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 from Tribler.Video.VideoUtility import get_videoinfo
 
@@ -164,6 +165,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.session = session
         self.tdef = tdef
         self.handle = None
+
+        self.notifier = Notifier.getInstance()
 
         # Just enough so error saving and get_state() works
         self.error = None
@@ -524,7 +527,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
             with self.dllock:
 
-                if alert_type == 'metadata_received_alert':
+                if alert.category() == lt.alert.category_t.debug_notification:
+                    if alert_type == 'peer_connect_alert':
+                        self.on_peer_connect_alert(alert)
+                elif alert_type == 'metadata_received_alert':
                     self.on_metadata_received_alert(alert)
                 elif alert_type == 'file_renamed_alert':
                     self.on_file_renamed_alert(alert)
@@ -538,6 +544,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.on_torrent_finished_alert(alert)
                 else:
                     self.update_lt_stats()
+
+    def on_peer_connect_alert(self, alert):
+        self.notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % (alert.ip[0], alert.ip[1]))
 
     def on_metadata_received_alert(self, alert):
         self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
