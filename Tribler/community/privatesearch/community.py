@@ -1321,7 +1321,7 @@ class PSearchCommunity(ForwardCommunity):
         meta_request = self.get_meta_message(u"similarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                             distribution=(self.global_time,),
-                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.encrypted_vector, msimilarity_request.payload.global_vector))
+                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.preference_list, msimilarity_request.payload.global_vector))
 
         self._dispersy._send(candidates, [request])
         self.forward_packet_size += len(request.packet) * len(candidates)
