@@ -1077,11 +1077,11 @@ class ForwardCommunity(SearchCommunity):
     def create_introduction_request(self, destination, allow_sync):
         send = False
         if not isinstance(destination, BootstrapCandidate) and not self.is_taste_buddy(destination) and not self.has_possible_taste_buddies(destination) and allow_sync:
-            identifier = self._dispersy.request_cache.claim(ForwardCommunity.ForwardAttempt(self, destination))
+            identifier = self._dispersy.request_cache.claim(ForwardCommunity.SimilarityAttempt(self, destination))
             send = self.send_msimilarity_request(destination, identifier)
 
             if not send:
-                self._dispersy.request_cache.pop(identifier, ForwardCommunity.ForwardAttempt)
+                self._dispersy.request_cache.pop(identifier, ForwardCommunity.SimilarityAttempt)
 
         if not send:
             self.send_introduction_request(destination)
@@ -1131,7 +1131,7 @@ class ForwardCommunity(SearchCommunity):
                 self.isProcessed = True
 
                 if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "HSearchCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
+                    print >> sys.stderr, long(time()), "ForwardCommunity: processed MSimilarityRequest send msimilarity-response to", self.requesting_candidate
 
                 self.community._dispersy.request_cache.pop(self.identifier, HSearchCommunity.MSimilarityRequest)
 
@@ -1140,7 +1140,7 @@ class ForwardCommunity(SearchCommunity):
         def on_timeout(self):
             if not self.isProcessed:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "HSearchCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates)
+                    print >> sys.stderr, long(time()), "ForwardCommunity: timeout MSimilarityRequest", self.identifier, len(self.received_lists), len(self.requested_candidates)
 
                 self.process()
 
@@ -1221,7 +1221,14 @@ class ForwardCommunity(SearchCommunity):
                     self.reply_packet_size += request.process()
 
     def on_msimilarity_response(self, messages):
-        raise NotImplementedError()
+        for message in messages:
+            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.SimilarityAttempt)
+            if request:
+                destination, introduce_me_to = self.get_most_similar(message.candidate)
+                self.send_introduction_request(destination, introduce_me_to)
+
+                if DEBUG and introduce_me_to:
+                    print >> sys.stderr, long(time()), "ForwardCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
 
     def send_introduction_request(self, destination, introduce_me_to=None):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
@@ -1379,13 +1386,7 @@ class PSearchCommunity(ForwardCommunity):
             if _sums:
                 self.add_possible_taste_buddies(_sums)
 
-            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.ForwardAttempt)
-            if request:
-                destination, introduce_me_to = self.get_most_similar(message.candidate)
-                self.send_introduction_request(destination, introduce_me_to)
-
-                if DEBUG and introduce_me_to:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+        ForwardCommunity.on_msimilarity_response(self, messages)
 
     def create_global_vector(self, destination, identifier):
         # 1. fetch my preferences
@@ -1527,13 +1528,7 @@ class HSearchCommunity(ForwardCommunity):
 
             self.add_possible_taste_buddies(possibles)
 
-            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.ForwardAttempt)
-            if request:
-                destination, introduce_me_to = self.get_most_similar(message.candidate)
-                self.send_introduction_request(destination, introduce_me_to)
-
-                if DEBUG and introduce_me_to:
-                    print >> sys.stderr, long(time()), "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+        ForwardCommunity.on_msimilarity_response(self, messages)
 
 class PoliSearch(ForwardCommunity):
 
@@ -1682,13 +1677,7 @@ class PoliSearch(ForwardCommunity):
 
             self.add_possible_taste_buddies(possibles)
 
-            request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.ForwardAttempt)
-            if request:
-                destination, introduce_me_to = self.get_most_similar(message.candidate)
-                self.send_introduction_request(destination, introduce_me_to)
-
-                if DEBUG and introduce_me_to:
-                    print >> sys.stderr, long(time()), "PoliSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+        ForwardCommunity.on_msimilarity_response(self, messages)
 
     def compute_overlap(self, evaluated_polynomial):
         overlap = 0
