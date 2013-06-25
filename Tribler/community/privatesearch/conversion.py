@@ -621,12 +621,12 @@ class PoliSearchConversion(ForwardConversion):
             nr_to_reduce = ((len(packet) - max_len) / 256.0) + 1
 
             for _ in range(nr_to_reduce):
-                mid = choice(message.payload.bundled_responses.keys())
-                nr_polynomials = len(message.payload.bundled_responses[mid])
+                index = choice(range(len(message.payload.bundled_responses)))
+                nr_polynomials = len(message.payload.bundled_responses[index][1])
                 if nr_polynomials <= 1:
-                    del message.payload.bundled_responses[mid]
+                    message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[mid] = sample(message.payload.bundled_responses[mid], nr_polynomials - 1)
+                    message.payload.bundled_responses[index][1] = sample(message.payload.bundled_responses[index][1], nr_polynomials - 1)
             packet = create_msg()
 
         return packet,
