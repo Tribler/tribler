@@ -282,7 +282,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             atp["ti"] = torrentinfo
             if resume_data:
                 atp["resume_data"] = lt.bencode(resume_data)
-            print >> sys.stderr, self.tdef.get_name_as_unicode(), dict((k, v) for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers'])
+            print >> sys.stderr, self.tdef.get_name_as_unicode(), \
+                                 dict((k, v) for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if resume_data else None
         else:
             if self.tdef.get_url():
                 # We prefer to use an url, since it may contain trackers
