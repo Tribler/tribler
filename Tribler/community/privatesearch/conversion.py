@@ -626,7 +626,7 @@ class PoliSearchConversion(ForwardConversion):
                 if nr_polynomials <= 1:
                     message.payload.bundled_responses.pop(index)
                 else:
-                    message.payload.bundled_responses[index][1] = sample(message.payload.bundled_responses[index][1], nr_polynomials - 1)
+                    message.payload.bundled_responses[index] = (message.payload.bundled_responses[index][0], sample(message.payload.bundled_responses[index][1], nr_polynomials - 1))
             packet = create_msg()
 
         return packet,
