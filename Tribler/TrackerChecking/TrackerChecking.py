@@ -190,12 +190,10 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
     assert all(len(infohash) == 20 for infohash in info_hashes)
 
     udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udpSocket.settimeout(15.0)
-
     try:
         # step 1: Get a connection-id
-        connection_id = 0x41727101980
         action = 0
+        connection_id = 0x41727101980
         transaction_id = randint(0, 2147483647)
         msg = pack('!qii', connection_id, action, transaction_id)
         udpSocket.sendto(msg, url)
@@ -266,4 +264,4 @@ if __name__ == '__main__':
     print >> sys.stderr, len(infohash)
     tracker = 'udp://tracker.openbittorrent.com:80/announce'
     url = getUrl(tracker, [])
-    print >> sys.stderr, getStatusUDP(url, infohash, [])
+    print >> sys.stderr, getStatusUDP(tracker, url, infohash, [])
