@@ -618,7 +618,7 @@ class PoliSearchConversion(ForwardConversion):
 
         packet = create_msg()
         while len(packet) > max_len:
-            nr_to_reduce = ((len(packet) - max_len) / 256.0) + 1
+            nr_to_reduce = int((len(packet) - max_len) / 256.0) + 1
 
             for _ in range(nr_to_reduce):
                 index = choice(range(len(message.payload.bundled_responses)))
