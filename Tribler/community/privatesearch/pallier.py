@@ -134,23 +134,20 @@ if __name__ == "__main__":
         return long(hexlify(val[::-1]), 16)
 
     t1 = time()
-    for _ in xrange(10000):
+    for _ in xrange(1000):
         a = [long_to_bytes(val[1], 256) for val in set1]
         b = [bytes_to_long(val) for val in a]
-        c = [new_bytes_to_long for val in a]
 
         for i, b_val in enumerate(b):
             assert b_val == set1[i][1]
 
-        for i, c_val in enumerate(c):
-            assert c_val == set1[i][1]
-
     print time() - t1
 
     t1 = time()
-    for _ in xrange(10000):
+    for _ in xrange(1000):
         a = [new_long_to_bytes(val[1], 256) for val in set1]
         b = [new_bytes_to_long(val) for val in a]
+
         for i, b_val in enumerate(b):
             assert b_val == set1[i][1]
 

@@ -532,11 +532,11 @@ class PoliSearchConversion(ForwardConversion):
 
         fmt = "!H128s"
         contents.append(long_to_bytes(message.payload.key_n, 128))
-        
+
         if len(message.payload.coefficients) > 0:
             fmt += "257s"
             contents.append(long_to_bytes(message.payload.coefficients.values()[0][0], -256))
-            
+
         for partition, coeffs in message.payload.coefficients.iteritems():
             fmt += "BB" + "257s"*(len(coeffs) - 1)
             contents.append(partition)
@@ -555,10 +555,10 @@ class PoliSearchConversion(ForwardConversion):
         if length:
             one_coeff, = unpack_from("!257s", data, offset)
             one_coeff = bytes_to_long(one_coeff)
-            
+
             offset += 257
             length = len(data) - offset
-            
+
         while length:
             partition, nr_coeffs = unpack_from("!BB", data, offset)
             offset += 2
@@ -600,18 +600,36 @@ class PoliSearchConversion(ForwardConversion):
         return offset, placeholder.meta.payload.implement(identifier, hashes)
 
     def _encode_simi_responses(self, message):
-        def _encode_response(mid, preference_list):
-            str_mid = pack("!20s", mid) if mid else ''
-            str_prefs = pack("!" + "256s"*len(preference_list), *[long_to_bytes(preference, 256) for preference in preference_list])
-            return (str_mid, str_prefs)
+        max_len = 65000 - (1500 - (self._community.dispersy_sync_bloom_filter_bits / 8))
 
-        responses = []
-        responses.append(_encode_response(None, message.payload.my_response))
-        for mid, response in message.payload.bundled_responses:
-            responses.append(_encode_response(mid, response))
+        def create_msg():
+            def _encode_response(mid, evaluated_polinomials):
+                str_mid = pack("!20s", mid) if mid else ''
+                str_polynomials = pack("!" + "256s"*len(evaluated_polinomials), *[long_to_bytes(py, 256) for py in evaluated_polinomials])
+                return (str_mid, str_polynomials)
 
-        packet = pack('!H', message.payload.identifier), responses
-        return encode(packet),
+            responses = []
+            responses.append(_encode_response(None, message.payload.my_response))
+            for mid, response in message.payload.bundled_responses:
+                responses.append(_encode_response(mid, response))
+
+            packet = pack('!H', message.payload.identifier), responses
+            return encode(packet)
+
+        packet = create_msg()
+        while len(packet) > max_len:
+            nr_to_reduce = ((len(packet) - max_len) / 256.0) + 1
+
+            for _ in range(nr_to_reduce):
+                mid = choice(message.payload.bundled_responses.keys())
+                nr_polynomials = len(message.payload.bundled_responses[mid])
+                if nr_polynomials <= 1:
+                    del message.payload.bundled_responses[mid]
+                else:
+                    message.payload.bundled_responses[mid] = sample(message.payload.bundled_responses[mid], nr_polynomials - 1)
+            packet = create_msg()
+
+        return packet,
 
     def _decode_simi_responses(self, placeholder, offset, data):
         try:

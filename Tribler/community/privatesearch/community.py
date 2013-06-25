@@ -1678,15 +1678,6 @@ class PoliSearch(ForwardCommunity):
     def send_msimilarity_response(self, requesting_candidate, identifier, my_response, received_responses):
         received_responses = [(mid, payload.my_response) for mid, payload in received_responses]
 
-        # 65k max, limiting at 64k
-        nr_responses = sum(len(responses) for _, responses in received_responses)
-        if nr_responses > 250:
-            new_responses = []
-            for mid, response in received_responses:
-                response = response[:25]
-                new_responses.append((mid, response))
-            received_responses = new_responses
-
         meta_request = self.get_meta_message(u"msimilarity-response")
         response = meta_request.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,),
