@@ -322,10 +322,10 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         if DEBUG:
             print >> sys.stderr, "LibtorrentDownloadImpl: set_vod_mode for", self.handle.name(), '( enable =', enable, ')'
 
-        self.vod_status = ""
-        self.vod_seekpos = 0
-
         if enable:
+            self.vod_status = ""
+            self.vod_seekpos = 0
+
             # Define which file to DL in VOD mode
             self.videoinfo = {'live': self.get_def().get_live()}
 
@@ -615,7 +615,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
         if self.get_mode() == DLMODE_VOD:
             self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
-            self.dlstate = DLSTATUS_SEEDING if self.progress == 1.0 else self.dlstate
+            self.dlstate = (DLSTATUS_SEEDING if self.progress == 1.0 else self.dlstate) if not status.paused else DLSTATUS_STOPPED
         else:
             self.progress = status.progress
         self.error = unicode(status.error) if status.error else None
