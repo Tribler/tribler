@@ -443,7 +443,8 @@ class TorrentDetails(AbstractDetails):
             self.listCtrl.SetMinSize((1, -1))
 
             vSizer = wx.BoxSizer(wx.VERTICAL)
-            if isinstance(self, LibraryDetails) and not self.torrent.swift_hash:
+            download = self.torrent.ds.download if self.torrent and self.torrent.ds and self.torrent.ds.download else None
+            if isinstance(self, LibraryDetails) and not self.torrent.swift_hash and download and download.get_mode() == DLMODE_NORMAL:
                 self.listCtrl.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightUp)
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
                 vSizer.Add(wx.StaticLine(parent, -1, style=wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.ALL, 3)
@@ -772,8 +773,8 @@ class TorrentDetails(AbstractDetails):
         selection = set([self.listCtrl.GetItem(index, 0).GetText() for index in selection])
         selected_files = set(download.get_selected_files()) or set(download.get_def().get_files())
 
-        selected_files_include = selected_files | selection
-        selected_files_exclude = selected_files - selection
+        selected_files_include = list(selected_files | selection)
+        selected_files_exclude = list(selected_files - selection)
 
         menu = wx.Menu()
         menuitems = [("Include", selected_files_include)]
