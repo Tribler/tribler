@@ -45,6 +45,10 @@ class DownloadState(Serializable):
         self.stats = None
         self.length = None
 
+        # For get_files_completion()
+        if stats and stats.get('stats', None) and self.filepieceranges:
+            self.haveslice_total = stats['stats'].have
+
         if stats is None:
             # No info available yet from download engine
             if DEBUG:
@@ -100,7 +104,6 @@ class DownloadState(Serializable):
                 if self.filepieceranges is None or len(self.filepieceranges) == 0:
                     self.haveslice = statsobj.have  # is copy of network engine list
                 else:
-                    self.haveslice_total = statsobj.have
                     selected_files = self.download.get_selected_files()
                     # Show only pieces complete for the selected ranges of files
                     totalpieces = 0
