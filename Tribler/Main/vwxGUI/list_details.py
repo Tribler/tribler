@@ -444,14 +444,14 @@ class TorrentDetails(AbstractDetails):
 
             vSizer = wx.BoxSizer(wx.VERTICAL)
             if isinstance(self, LibraryDetails) and not self.torrent.swift_hash:
+                self.listCtrl.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.OnRightUp)
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
                 vSizer.Add(wx.StaticLine(parent, -1, style=wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.ALL, 3)
                 ulfont = self.GetFont()
                 ulfont.SetUnderlined(True)
-                self.filesFooter = LinkText(parent, 'Click here to modify which files should be downloaded.', fonts=[self.GetFont(), ulfont], colours=[self.GetForegroundColour(), wx.RED])
-                self.filesFooter.SetBackgroundColour(parent.GetBackgroundColour())
-                self.filesFooter.Bind(wx.EVT_LEFT_UP, self.OnChangeSelection)
-                vSizer.Add(self.filesFooter, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 3)
+                self.filesFooter = wx.StaticText(parent, -1, 'Right click to include/exclude selected file(s). Use ctrl+a to select all/deselect all.')
+                vSizer.Add(self.filesFooter, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 6)
+                vSizer.AddSpacer((-1, 3))
             else:
                 vSizer.Add(self.listCtrl, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.BOTTOM, 10)
             parent.SetSizer(vSizer)
@@ -755,6 +755,38 @@ class TorrentDetails(AbstractDetails):
                 file = self._GetPath(selected_file)
                 if os.path.isfile(file):
                     startfile(file)
+
+    @warnWxThread
+    def OnRightUp(self, event):
+        if not self.torrent or not self.torrent.ds or not self.torrent.ds.download:
+            return
+        download = self.torrent.ds.download
+
+        selection = []
+        index = self.listCtrl.GetFirstSelected()
+        selection.append(index)
+        while len(selection) != self.listCtrl.GetSelectedItemCount():
+            index = self.listCtrl.GetNextSelected(index)
+            selection.append(index)
+
+        selection = set([self.listCtrl.GetItem(index, 0).GetText() for index in selection])
+        selected_files = set(download.get_selected_files()) or set(download.get_def().get_files())
+
+        selected_files_include = selected_files | selection
+        selected_files_exclude = selected_files - selection
+
+        menu = wx.Menu()
+        menuitems = [("Include", selected_files_include)]
+        if selected_files_exclude:
+            menuitems += [("Exclude", selected_files_exclude)]
+        for label, files in menuitems:
+            itemid = wx.NewId()
+            menu.Append(itemid, label)
+            menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: self.guiutility.frame.modifySelection(d, f), id=itemid)
+        self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
+        menu.Destroy()
+
+        self.old_progress = None
 
     @warnWxThread
     def _GetPath(self, file=None):
@@ -1246,33 +1278,6 @@ class LibraryDetails(TorrentDetails):
                     break
         else:
             self.notebook.SetSelection(0)
-
-    def OnChangeSelection(self, event):
-        files = []
-        for i in range(self.listCtrl.GetItemCount()):
-            files.append(self.listCtrl.GetItem(i, 0).GetText())
-
-        dlg = wx.MultiChoiceDialog(self, "Select which files you would like to download", "File selection", files)
-
-        selected = []
-        for i in range(self.listCtrl.GetItemCount()):
-            if self.listCtrl.GetItem(i, 2).GetText() != "Excluded":
-                selected.append(i)
-        dlg.SetSelections(selected)
-
-        if (dlg.ShowModal() == wx.ID_OK):
-            newselections = dlg.GetSelections()
-            selectedFiles = []
-            for index in newselections:
-                selectedFiles.append(files[index])
-
-            self.guiutility.frame.modifySelection(self.torrent.ds.download, selectedFiles)
-
-            def reset_selection():
-                self.old_progress = -1
-            wx.CallLater(1000, reset_selection())
-
-        dlg.Destroy()
 
     @warnWxThread
     def ShowPanel(self, newState=None):

@@ -2540,7 +2540,7 @@ class VideoSlider(wx.Panel):
 
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
-        self.slider_range = [0, 0]
+        self.slider_range = [10, 0]
         self.slider_radius = 9
         self.slider_position = [10, 0]
         # Colours for enabled slider
