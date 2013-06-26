@@ -17,7 +17,7 @@ from binascii import unhexlify
 
 HTTP_TIMEOUT = 30  # seconds
 
-DEBUG = False
+DEBUG = True
 ioErrors = {}
 
 
@@ -55,6 +55,10 @@ def single_no_thread(torrent, multiscrapeCallback=None):
 
     trackers = [(-ioErrors.get(tracker, 0), tracker) for tracker in trackers if tracker.startswith('http') or tracker.startswith('udp')]
     trackers.sort(reverse=True)  # sorting reverse will prefer udp over http trackers
+
+    if DEBUG:
+        print >> sys.stderr, "TrackerChecking: Checking", torrent["infohash"], trackers
+
     for _, announce in trackers:
         announce_dict = singleTrackerStatus(torrent, announce, multiscrapeCallback)
 
@@ -71,6 +75,9 @@ def single_no_thread(torrent, multiscrapeCallback=None):
         (seeder, _) = multi_announce_dict[torrent["infohash"]]
         if seeder > 0:
             break
+
+    if DEBUG:
+        print >> sys.stderr, "TrackerChecking: Result", multi_announce_dict[torrent["infohash"]]
 
     return multi_announce_dict
 
@@ -183,13 +190,11 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
     assert all(len(infohash) == 20 for infohash in info_hashes)
 
     udpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udpSocket.settimeout(15.0)
-
     try:
         # step 1: Get a connection-id
-        connection_id = 0x41727101980
         action = 0
-        transaction_id = randint(0, sys.maxsize)
+        connection_id = 0x41727101980
+        transaction_id = randint(0, 2147483647)
         msg = pack('!qii', connection_id, action, transaction_id)
         udpSocket.sendto(msg, url)
 
@@ -199,7 +204,7 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
             if raction == action and rtransaction_id == transaction_id:
                 # step 2: Send scrape
                 action = 2
-                transaction_id = randint(0, sys.maxsize)
+                transaction_id = randint(0, 2147483647)
 
                 format = "!qii" + "20s" * len(info_hashes)
                 data = [rconnection_id, action, transaction_id]
@@ -259,4 +264,4 @@ if __name__ == '__main__':
     print >> sys.stderr, len(infohash)
     tracker = 'udp://tracker.openbittorrent.com:80/announce'
     url = getUrl(tracker, [])
-    print >> sys.stderr, getStatusUDP(url, infohash, [])
+    print >> sys.stderr, getStatusUDP(tracker, url, infohash, [])

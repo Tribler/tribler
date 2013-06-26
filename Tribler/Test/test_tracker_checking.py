@@ -5,7 +5,7 @@ import os
 from time import sleep
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.test_as_server import BASE_DIR, AbstractServer
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler,\
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, \
     MyPreferenceDBHandler, NetworkBuzzDBHandler
 from Tribler.Test.bak_tribler_sdb import FILES_DIR
 
@@ -29,8 +29,8 @@ class TestTorrentChecking(AbstractServer):
         sleep(5)
 
     def test_torrent_checking(self):
-        tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
-        self.tdb.addExternalTorrent(tdef)
+        tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "big.buck.bunny.720p.torrent"))
+        self.tdb.addExternalTorrent(tdef, add_all=True)
         self.torrentChecking.addToQueue(tdef.get_infohash())
         sleep(30)
 
