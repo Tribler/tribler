@@ -81,7 +81,7 @@
 		                                        	<object class="wxBoxSizer">
 		                                                <orient>wxVERTICAL</orient>
 		                                                <object class="sizeritem">
-				                                            <object class="wxPanel" name="thumb" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
+				                                            <object class="wxStaticBitmap" name="thumb">
 				                                                <size>80,80</size>
 				                                            </object>
 															<flag>wxLEFT</flag>

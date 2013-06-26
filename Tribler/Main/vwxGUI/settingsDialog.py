@@ -128,7 +128,7 @@ class SettingsDialog(wx.Dialog):
             self.mugshot = data2wxBitmap(mime, data)
 
         self.elements['myNameField'].SetValue(self.myname)
-        self.elements['thumb'].setBitmap(self.mugshot)
+        self.elements['thumb'].SetBitmap(self.mugshot)
 
         if self.guiUtility.frame.SRstatusbar.IsReachable():
             self.firewallStatusOK = wx.Bitmap(os.path.join(self.guiUtility.vwxGUI_path, 'images', 'firewallStatus_state3.png'), wx.BITMAP_TYPE_ANY)
@@ -516,7 +516,7 @@ class SettingsDialog(wx.Dialog):
                 if sys.platform != 'darwin':
                     bm = wx.BitmapFromImage(im.Scale(ICON_MAX_DIM, ICON_MAX_DIM), -1)
                     thumbpanel = self.elements['thumb']
-                    thumbpanel.setBitmap(bm)
+                    thumbpanel.SetBitmap(bm)
 
                 # Arno, 2008-10-21: scale image!
                 sim = im.Scale(ICON_MAX_DIM, ICON_MAX_DIM)
