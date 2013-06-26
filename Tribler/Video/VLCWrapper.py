@@ -359,6 +359,8 @@ class VLCWrapper:
                 return MEDIASTATE_PLAYING
             elif status == self.vlc.State.Paused:
                 return MEDIASTATE_PAUSED
+            elif status == self.vlc.State.Ended:
+                return MEDIASTATE_ENDED
             else:
                 return MEDIASTATE_STOPPED
         else:
@@ -366,6 +368,8 @@ class VLCWrapper:
                 return MEDIASTATE_PLAYING
             elif status == self.vlc.PauseStatus:
                 return MEDIASTATE_PAUSED
+            elif status == self.vlc.State.EndStatus:
+                return MEDIASTATE_ENDED
             else:
                 return MEDIASTATE_STOPPED
 

@@ -2568,6 +2568,8 @@ class VideoSlider(wx.Panel):
         if not self.dragging:
             slider_width = self.slider_range[1] - self.slider_range[0]
             self.slider_position[0] = (slider_width * self.value) + self.slider_range[0] if slider_width else self.slider_range[0]
+            self.slider_position[0] = max(self.slider_range[0], self.slider_position[0])
+            self.slider_position[0] = min(self.slider_range[1], self.slider_position[0])
             self.Refresh()
 
     def SetPieces(self, pieces):

@@ -607,7 +607,8 @@ class ABCApp():
                     else:
                         progress = playds.get_vod_prebuffering_progress()
                         progress_consec = playds.get_vod_prebuffering_progress_consec()
-                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, playds.get_pieces_complete())
+                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
+                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True])
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished

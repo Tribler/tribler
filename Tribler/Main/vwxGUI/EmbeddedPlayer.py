@@ -100,7 +100,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ctrlsizer.AddSpacer((10, -1))
             self.ctrlsizer.Add(self.sbtn, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 1)
             self.ctrlsizer.AddSpacer((10, -1))
-            self.ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL)
+            self.ctrlsizer.Add(self.slider, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
             self.ctrlsizer.Add(self.timeposition, 0, wx.ALIGN_CENTER_VERTICAL)
             self.ctrlsizer.AddSpacer((10, -1))
 
@@ -232,7 +232,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
-            if self.GetState() == MEDIASTATE_STOPPED:
+            if self.GetState() in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED]:
                 # Ensures that the related download also starts
                 self.guiutility.library_manager.startLastVODTorrent()
             else:
@@ -248,7 +248,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
             self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
-            self.ppbtn.Enable(False)
+            self.ppbtn.Enable(not bool(self.download))
             position = self.slider.GetValue()
             self.update = False
 
@@ -257,7 +257,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                     self.download.pause_vod()
                     self.download.vod_seekpos = None
                     self.ShowLoading()
-                self.vlcwrap.set_media_position_relative(position, self.GetState() == MEDIASTATE_STOPPED)
+                self.vlcwrap.set_media_position_relative(position, self.GetState() in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED])
 
                 length = self.vlcwrap.get_stream_information_length()
                 length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
@@ -363,7 +363,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap:
             self.vlcwrap.sound_set_volume(volume)
 
-    def OnStop(self, event):
+    def OnStop(self, event=None):
         if self.vlcwrap and self.sbtn.IsEnabled():
             self.Stop()
             self.ppbtn.Enable(True)
@@ -391,7 +391,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def GetState(self):
         """ Returns the state of VLC as summarized by Fabian:
-        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_STOPPED """
+        MEDIASTATE_PLAYING, MEDIASTATE_PAUSED, MEDIASTATE_ENDED, MEDIASTATE_STOPPED """
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
@@ -418,7 +418,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     def UpdateSlider(self, evt):
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap and self.update:
-            if self.GetState() != MEDIASTATE_STOPPED:
+            if self.GetState() not in [MEDIASTATE_ENDED, MEDIASTATE_STOPPED]:
 
                 length = self.vlcwrap.get_stream_information_length()
                 length = length / 1000 if length > 0 else (self.estduration or (self.download and self.download.get_vod_duration()))
@@ -433,6 +433,8 @@ class EmbeddedPlayerPanel(wx.Panel):
                 length_str = self.FormatTime(length) if length else '--:--'
                 self.timeposition.SetLabel('%s / %s' % (cur_str, length_str))
                 self.ctrlsizer.Layout()
+            elif self.GetState() == MEDIASTATE_ENDED:
+                self.OnStop(None)
 
     def FormatTime(self, s):
         longformat = time.strftime('%d:%H:%M:%S', time.gmtime(s))
