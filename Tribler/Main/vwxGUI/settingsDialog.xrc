@@ -541,12 +541,6 @@
 				                                    </object>
 		                                        </object>
 												<object class="sizeritem">
-		                                            <object class="wxStaticBitmap" name="firewallStatus">
-		                                                <size>33,32</size>
-		                                            </object>
-		                                        </object>
-												<object class="spacer"/>
-												<object class="sizeritem">
                                                     <object class="wxStaticText" name="firewallStatusText">
                                                         <label></label>
                                                     </object>
