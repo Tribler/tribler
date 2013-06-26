@@ -78,7 +78,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
             self.bmp_pause = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_pause.png"))
             self.bmp_play = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "video_play.png"))
-            self.ppbtn = ActionButton(self.ctrlpanel, -1, self.bmp_pause)
+            self.ppbtn = ActionButton(self.ctrlpanel, -1, self.bmp_play)
             self.ppbtn.Bind(wx.EVT_LEFT_UP, self.PlayPause)
             self.ppbtn.Enable(False)
 
@@ -171,6 +171,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.timer.Start(500)
 
         self.fsbtn.Enable(True)
+        self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
         self.ppbtn.Enable(True)
         self.sbtn.Enable(True)
 
@@ -192,6 +193,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.HideLoading()
                 self.vlcwrap.start()
                 self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
+                self.ppbtn.Enable(True)
             elif DEBUG:
                 print >> sys.stderr, "embedplay: Play pressed, already playing"
 
@@ -218,10 +220,10 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         if self.vlcwrap:
             if self.GetState() != MEDIASTATE_PLAYING:
+                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
                 self.ppbtn.Enable(True)
                 self.HideLoading()
                 self.vlcwrap.resume()
-                self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
 
     @warnWxThread
     def PlayPause(self, evt=None):
@@ -236,6 +238,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             else:
                 self.vlcwrap.resume()
                 self.ppbtn.SetBitmapLabel(self.bmp_play if self.ppbtn.GetBitmapLabel() == self.bmp_pause else self.bmp_pause, recreate=True)
+                self.ppbtn.Enable(True)
 
     @warnWxThread
     def Seek(self, evt=None):
@@ -244,6 +247,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         # Boudewijn, 26/05/09: when using the external player we do not have a vlcwrap
         if self.vlcwrap:
+            self.ppbtn.SetBitmapLabel(self.bmp_pause, recreate=True)
             self.ppbtn.Enable(False)
             position = self.slider.GetValue()
             self.update = False
@@ -362,6 +366,7 @@ class EmbeddedPlayerPanel(wx.Panel):
     def OnStop(self, event):
         if self.vlcwrap and self.sbtn.IsEnabled():
             self.Stop()
+            self.ppbtn.Enable(True)
 
     @forceWxThread
     def Stop(self):
@@ -375,7 +380,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.slider.SetValue(0)
             self.fsbtn.Enable(False)
             self.sbtn.Enable(False)
-            self.ppbtn.Enable(True)
             self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
             self.slider.Enable(False)
             self.HideLoading()
