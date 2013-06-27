@@ -240,7 +240,7 @@ class TestGuiAsServer(TestAsServer):
         def wait_for_init():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
             self.guiUtility = GUIUtility.getInstance()
-            self.CallConditional(30, lambda: self.guiUtility.frame, wait_for_frame)
+            self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
 
         def wait_for_guiutility():
             print >> sys.stderr, "tgs: waiting for guiutility instance"
