@@ -256,7 +256,7 @@ class TestGuiAsServer(TestAsServer):
                     else:
                         self.Call(0.5, DoCheck)
                 else:
-                    print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds" % timeout
+                    print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
                     self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
         self.Call(0, DoCheck)
 
