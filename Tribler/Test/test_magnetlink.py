@@ -139,7 +139,6 @@ class MagnetHelpers:
                 break
             assert not (response[0] == EXTEND and response[1] == 3)
 
-
 class TestMagnet(TestAsServer):
 
     def setUpPreSession(self):
@@ -147,15 +146,20 @@ class TestMagnet(TestAsServer):
         self.config.set_libtorrent(True)
 
     def test_good_transfer(self):
+        def do_transfer():
+            def torrentdef_retrieved(tdef):
+                print tdef.get_metainfo()
+                event.set()
 
-        def torrentdef_retrieved(tdef):
-            print tdef.get_metainfo()
-            event.set()
+            event = threading.Event()
+            assert TorrentDef.retrieve_from_magnet('magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout=60)
+            assert event.wait(60)
 
-        event = threading.Event()
-        assert TorrentDef.retrieve_from_magnet('magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout = 60)
-        assert event.wait(60)
+        def wait_for_libtorrent():
+            ltmgr = LibtorrentMgr.getInstance()
+            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, do_transfer)
 
+        self.startTest(wait_for_libtorrent)
 
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
@@ -208,7 +212,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
         tags = {"retrieved": threading.Event()}
 
-        assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved, timeout = 60)
+        assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved, timeout=60)
 
         def do_supply():
             # supply fake addresses (regular dht obviously wont work here)
@@ -331,7 +335,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
     def test_bad_request(self):
         self.bad_request_and_disconnect({"msg_type": 0, "piece": len(self.metadata_list)})
-        self.bad_request_and_disconnect({"msg_type": 0, "piece": -1})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece":-1})
         self.bad_request_and_disconnect({"msg_type": 0, "piece": "1"})
         self.bad_request_and_disconnect({"msg_type": 0, "piece": [1, 2]})
         self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})

@@ -94,6 +94,8 @@ class TestAsServer(AbstractServer):
         self.setUpCleanup()
         self.setUpPreSession()
 
+        self.quitting = False
+
         self.session = Session(self.config)
         self.session.start()
 
@@ -155,6 +157,39 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
+    def assert_(self, boolean, reason=None, doassert=True):
+        if not boolean:
+            self.quit()
+            assert boolean, reason
+
+    def startTest(self, callback):
+        self.quitting = False
+        callback()
+
+    def Call(self, seconds, callback):
+        if not self.quitting:
+            if seconds:
+                time.sleep(seconds)
+            callback()
+
+    def CallConditional(self, timeout, condition, callback, assertMsg=None):
+        t = time.time()
+
+        def DoCheck():
+            if not self.quitting:
+                if time.time() - t < timeout:
+                    if condition():
+                        print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
+                        callback()
+                    else:
+                        self.Call(0.5, DoCheck)
+                else:
+                    print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
+                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
+        self.Call(0, DoCheck)
+
+    def quit(self):
+        self.quitting = True
 
 class TestGuiAsServer(TestAsServer):
 
@@ -174,11 +209,10 @@ class TestGuiAsServer(TestAsServer):
         self.lm = None
         self.session = None
 
-        self.quitting = False
         self.hadSession = False
+        self.quitting = False
 
         self.asserts = []
-
         self.annotate(self._testMethodName, start=True)
 
     def assert_(self, boolean, reason, doassert=True):
@@ -195,20 +229,17 @@ class TestGuiAsServer(TestAsServer):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main.tribler import run
 
-        self.quitting = False
         self.hadSession = False
 
         def wait_for_frame():
-            print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
+            print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
             self.CallConditional(30, lambda: self.frame.ready, callback)
 
         def wait_for_init():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
-
             self.guiUtility = GUIUtility.getInstance()
-
             self.CallConditional(30, lambda: self.guiUtility.frame, wait_for_frame)
 
         def wait_for_guiutility():
@@ -233,6 +264,8 @@ class TestGuiAsServer(TestAsServer):
         sys.argv = [os.path.abspath('./.exe')]
         run()
 
+        TestAsServer.startTest(self, wait_for_session)
+
         assert self.hadSession, 'Did not even create a session'
 
     def Call(self, seconds, callback):
@@ -243,22 +276,6 @@ class TestGuiAsServer(TestAsServer):
                 wx.CallAfter(callback)
             else:
                 callback()
-
-    def CallConditional(self, timeout, condition, callback, assertMsg=None):
-        t = time.time()
-
-        def DoCheck():
-            if not self.quitting:
-                if time.time() - t < timeout:
-                    if condition():
-                        print >> sys.stderr, "tgs: condition satisfied after %d seconds, calling callback" % (time.time() - t)
-                        callback()
-                    else:
-                        self.Call(0.5, DoCheck)
-                else:
-                    print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
-        self.Call(0, DoCheck)
 
     def quit(self):
         if self.frame:
