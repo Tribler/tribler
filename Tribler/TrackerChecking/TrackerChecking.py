@@ -146,7 +146,7 @@ def getUrl(announce, info_hashes):
 
 
 def getStatus(announce, url, info_hash, info_hashes):
-    returndict = {}
+    returndict = {info_hash: (0, 0)}
     try:
         resp = timeouturlopen.urlOpenTimeout(url, timeout=HTTP_TIMEOUT)
         response = resp.read()
