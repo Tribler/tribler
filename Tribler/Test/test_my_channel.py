@@ -84,7 +84,7 @@ class TestMyChannel(TestGuiAsServer):
                     if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
                         videoinfo_valid = True
 
-            self.CallConditional(1, lambda: videoinfo_valid and swiftthumbnails_valid, do_overview, 'No valid channel modifications received')            
+            self.CallConditional(1, lambda: videoinfo_valid and swiftthumbnails_valid, do_overview, 'No valid channel modifications received')
 
         def do_thumbnails():
             thumb_dir = os.path.join(self.guiUtility.utility.session.get_torrent_collecting_dir(), 'thumbs-45a647b1120ed9fe7f793e17585efb4b0efdf1a5')
@@ -93,7 +93,7 @@ class TestMyChannel(TestGuiAsServer):
 
         def do_download_torrent():
             torrentfilename = os.path.join(BASE_DIR, "data", 'Prebloc.2010.Xvid-VODO.torrent')
-            download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())            
+            download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
 
             self.CallConditional(300, lambda: download.get_progress() == 1.0, do_thumbnails, 'Failed to download torrent in time')
 
@@ -144,9 +144,9 @@ class TestMyChannel(TestGuiAsServer):
             self.guiUtility.ShowPage('mychannel')
             self.Call(1, do_create)
 
-        self.startTest(do_page)
+        self.startTest(do_page, True)
 
-    def startTest(self, callback):
+    def startTest(self, callback, waitforpeers=False):
 
         def get_and_modify_dispersy():
             from Tribler.dispersy.endpoint import NullEndpoint
@@ -156,6 +156,12 @@ class TestMyChannel(TestGuiAsServer):
             dispersy._endpoint = NullEndpoint()
             dispersy._endpoint.open(dispersy)
 
-            callback()
+
+            if waitforpeers:
+                from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
+                ltmgr = LibtorrentMgr.getInstance()
+                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
+            else:
+                callback()
 
         TestGuiAsServer.startTest(self, get_and_modify_dispersy)
