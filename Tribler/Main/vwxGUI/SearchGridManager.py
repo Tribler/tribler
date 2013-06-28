@@ -821,7 +821,6 @@ class LibraryManager:
         """
         Returns the VideoPlayer instance.
         """
-        self.guiUtility.ShowPlayer()
         return VideoPlayer.getInstance()
 
     def download_state_callback(self, dslist):
@@ -939,6 +938,8 @@ class LibraryManager:
         ds = torrent.get('ds')
 
         # videoplayer calls should be on gui thread, hence forceWxThread
+        self.guiUtility.ShowPlayer()
+
         videoplayer = self._get_videoplayer()
         videoplayer.recreate_videopanel()
         videoplayer.stop_playback()
