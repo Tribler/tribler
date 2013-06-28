@@ -885,10 +885,11 @@ class LibraryListItem(TorrentListItem):
 
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)
-
         menu.Enable(menu.FindItem('Show download button on hover'), False)
-
         return menu
+
+    def OnDClick(self, event):
+        pass
 
 
 class ActivityListItem(ListItem):
