@@ -550,8 +550,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                     self.on_file_renamed_alert(alert)
                 elif alert_type == 'performance_alert':
                     self.on_performance_alert(alert)
-                elif alert_type == 'state_changed_alert':
-                    self.on_state_changed_alert(alert)
                 elif alert_type == 'torrent_checked_alert':
                     self.on_torrent_checked_alert(alert)
                 elif alert_type == "torrent_finished_alert":
@@ -603,12 +601,6 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 settings.max_queued_disk_bytes = 2 * settings.max_queued_disk_bytes
                 self.ltmgr.ltsession.set_settings(settings)
 
-    def on_state_changed_alert(self, alert):
-        self.update_lt_stats()
-        # If we are in VOD mode and still need to download pieces and but libtorrent says we are finished, reset the piece priorities to 1
-        if self.get_mode() == DLMODE_VOD and self.progress < 1.0 and alert.state == 4:
-            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-
     def on_torrent_checked_alert(self, alert):
         if self.pause_after_next_hashcheck:
             self.pause_after_next_hashcheck = False
@@ -619,8 +611,15 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
 
     def on_torrent_finished_alert(self, alert):
         self.update_lt_stats()
-        if self.get_mode() == DLMODE_VOD and self.progress == 1.0:
-            self.set_vod_mode(False)
+        if self.get_mode() == DLMODE_VOD:
+            if self.progress == 1.0:
+                self.set_vod_mode(False)
+            elif self.progress < 1.0:
+                # If we are in VOD mode and still need to download pieces and but libtorrent says we are finished, reset the piece priorities to 1.
+                def reset_priorities():
+                    if self.handle.status().progress == 1.0:
+                        self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+                self.session.lm.rawserver.add_task(reset_priorities, 5)
 
     def update_lt_stats(self):
         status = self.handle.status()
