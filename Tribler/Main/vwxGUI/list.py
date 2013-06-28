@@ -1868,7 +1868,7 @@ class LibraryList(SizeList):
             ds = item.original_data.ds
             id = ds.get_download().get_def().get_id() if ds else None
             if newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
-                if hasattr(item, 'progressPanel'):
+                if ds and hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
                     item.data[1] = progress
                 else:
@@ -1953,7 +1953,7 @@ class LibraryList(SizeList):
         if newFilter:
             self.newfilter = False
 
-        self.oldDS = newDS
+        self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
 
     @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):

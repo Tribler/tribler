@@ -157,7 +157,12 @@ class DoubleLineListItem(ListItem):
             fileconfig.Write("column_sizes", json.dumps(column_sizes))
             fileconfig.Flush()
 
-            wx.CallAfter(self.parent_list.Rebuild)
+            def rebuild():
+                if hasattr(self.parent_list.parent_list, 'oldDS'):
+                    self.parent_list.parent_list.oldDS = {}
+                self.parent_list.Rebuild()
+
+            wx.CallAfter(rebuild)
 
         sline.Bind(wx.EVT_LEFT_DOWN, OnLeftDown)
         sline.Bind(wx.EVT_LEFT_UP, OnLeftUp)
