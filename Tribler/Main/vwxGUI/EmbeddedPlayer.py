@@ -367,6 +367,8 @@ class EmbeddedPlayerPanel(wx.Panel):
         if self.vlcwrap and self.sbtn.IsEnabled():
             self.Stop()
             self.ppbtn.Enable(True)
+            # Ensures that the related download also stops.
+            self.guiutility.library_manager.stopLastVODTorrent()
 
     @forceWxThread
     def Stop(self):
@@ -383,8 +385,6 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.ppbtn.SetBitmapLabel(self.bmp_play, recreate=True)
             self.slider.Enable(False)
             self.HideLoading()
-            # Ensures that the related download also stops.
-            self.guiutility.library_manager.stopLastVODTorrent()
 
             if self.timer is not None:
                 self.timer.Stop()

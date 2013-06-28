@@ -193,6 +193,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.queue_position = -1
 
         self.prebuffsize = 5 * 1024 * 1024
+        self.vod_fileindex = -1
         self.vod_seekpos = 0
         self.vod_status = ""
         self.videoinfo = {'status' : None}
@@ -350,6 +351,8 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
             self.videoinfo['status'] = None
 
+            self.vod_fileindex = self.handle.file_priorities().index(1)
+
             self.handle.set_sequential_download(True)
             self.handle.set_priority(255)
             self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
@@ -367,7 +370,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         else:
             self.handle.set_sequential_download(False)
             self.handle.set_priority(0)
-            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+            if self.get_vod_fileindex() >= 0:
+                self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+                self.vod_fileindex = -1
 
     def monitor_vod(self, ds):
         if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
@@ -401,12 +406,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return self.videoinfo.get('duration', None)
 
     def get_vod_fileindex(self):
-        return self.handle.file_priorities().index(1)
+        return self.vod_fileindex
 
     def get_vod_filesize(self):
         fileindex = self.get_vod_fileindex()
-        file_entry = self.handle.get_torrent_info().file_at(fileindex)
-        return file_entry.size
+        if fileindex >= 0:
+            file_entry = self.handle.get_torrent_info().file_at(fileindex)
+            return file_entry.size
+        return 0
 
     def get_piece_progress(self, pieces, consecutive=False):
         if not pieces:
@@ -434,17 +441,20 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle:
                 pieces = []
                 for fileindex, bytes_begin, bytes_end in byteranges:
-                    # Ensure the we remain within the file's boundaries
-                    file_entry = self.handle.get_torrent_info().file_at(fileindex)
-                    bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
-                    bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+                    if fileindex >= 0:
+                        # Ensure the we remain within the file's boundaries
+                        file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                        bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                        bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                    startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                    endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
-                    startpiece = max(startpiece, 0)
-                    endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+                        startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                        endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                        startpiece = max(startpiece, 0)
+                        endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
 
-                    pieces += range(startpiece, endpiece)
+                        pieces += range(startpiece, endpiece)
+                    else:
+                        print >> sys.stderr, "LibtorrentDownloadImpl: could not get progress for incorrect fileindex"
 
                 pieces = list(set(pieces))
                 return self.get_piece_progress(pieces, consecutive)
@@ -465,23 +475,26 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             if self.handle:
                 pieces = []
                 for fileindex, bytes_begin, bytes_end in byteranges:
-                    if bytes_begin == 0 and bytes_end == -1:
-                        # Set priority for entire file
-                        filepriorities = self.handle.file_priorities()
-                        filepriorities[fileindex] = priority
-                        self.handle.prioritize_files(filepriorities)
+                    if fileindex >= 0:
+                        if bytes_begin == 0 and bytes_end == -1:
+                            # Set priority for entire file
+                            filepriorities = self.handle.file_priorities()
+                            filepriorities[fileindex] = priority
+                            self.handle.prioritize_files(filepriorities)
+                        else:
+                            # Ensure the we remain within the file's boundaries
+                            file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                            bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
+                            bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
+
+                            startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
+                            endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                            startpiece = max(startpiece, 0)
+                            endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+
+                            pieces += range(startpiece, endpiece)
                     else:
-                        # Ensure the we remain within the file's boundaries
-                        file_entry = self.handle.get_torrent_info().file_at(fileindex)
-                        bytes_begin = min(file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
-                        bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
-
-                        startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                        endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
-                        startpiece = max(startpiece, 0)
-                        endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
-
-                        pieces += range(startpiece, endpiece)
+                        print >> sys.stderr, "LibtorrentDownloadImpl: could not set priority for incorrect fileindex"
 
                 if pieces:
                     pieces = list(set(pieces))

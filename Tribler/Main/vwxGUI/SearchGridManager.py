@@ -1003,6 +1003,9 @@ class LibraryManager:
         downloads = self._getDownloads(torrent)
         for download in downloads:
             if download:
+                if download == self._get_videoplayer().get_vod_download():
+                    self._get_videoplayer().stop_playback()
+
                 download.stop()
 
                 id = download.get_def().get_id()
