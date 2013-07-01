@@ -61,9 +61,35 @@ class DispersyTunnelProxy(Observable):
         community.subscribe("on_extend", self.on_extend)
         community.subscribe("on_extended", self.on_extended)
         community.subscribe("on_data", self.on_data)
+        community.subscribe("on_break", self.on_break)
         community.subscribe("on_member_heartbeat", self.on_member_heartbeat)
 
         self.community = community
+
+    def on_break(self, event):
+        address = event.message.candidate.sock_addr
+        msg = event.message.payload
+        assert isinstance(msg, DataPayload.Implementation)
+
+        relay_key = (address, msg.circuit_id)
+        community = self.community
+        assert isinstance(community, ProxyCommunity)
+
+        # If we can forward it along the chain, do so!
+        if self.relay_from_to.has_key(relay_key):
+            relay = self.relay_from_to[relay_key]
+
+            community.send_data(relay.to_address, msg.circuit_id, msg.destination, msg.data)
+            logger.info("Forwarding BREAK packet from %s to %s", address, relay.to_address)
+
+            del self.relay_from_to[relay_key]
+            logger.info("BREAK circuit %d", msg.circuit_id)
+
+        # We build this circuit but now its dead
+        elif msg.circuit_id in self.circuits:
+            del self.circuits[msg.circuit_id]
+            logger.info("BREAK circuit %d", msg.circuit_id)
+
 
     def on_create(self, event):
         """ Handle incoming CREATE message, acknowledge the CREATE request with a CREATED reply """

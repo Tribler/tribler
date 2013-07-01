@@ -1,4 +1,6 @@
 import logging
+from Tribler.AnonTunnel.ProxyConversion import BreakPayload
+
 logger = logging.getLogger(__name__)
 
 from Tribler.dispersy.candidate import BootstrapCandidate, Candidate
@@ -87,6 +89,16 @@ class ProxyCommunity(Community, Observable):
                         DataPayload(),
                         yield_all,
                         functools.partial(trigger_event, event_name="on_data")),
+
+                Message(self,
+                        u"break",
+                        MemberAuthentication(encoding="sha1"),
+                        PublicResolution(),
+                        DirectDistribution(),
+                        CandidateDestination(),
+                        BreakPayload(),
+                        yield_all,
+                        functools.partial(trigger_event, event_name="on_break")),
                 ]
         
     def _initialize_meta_messages(self):
@@ -103,6 +115,26 @@ class ProxyCommunity(Community, Observable):
         self._original_on_introduction_response = meta.handle_callback
         self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
+
+    def send_break(self, destination, circuit_id):
+        """
+        Send a BREAK message over a circuit
+
+        :param destination: Destination address (the first hop) tuple (host, port), must be a Dispersy Candidate!
+        :param circuit_id: The Circuit Id to use in communication
+        :return: None
+        """
+
+        candidate = self.dispersy.get_candidate(destination)
+
+        meta = self.get_meta_message(u"break")
+        """ :type : Message """
+
+        message = meta.impl(authentication=(self.my_member,),
+                              distribution=(self.claim_global_time(),),
+                              payload=(circuit_id,))
+
+        self.dispersy.endpoint.send([candidate], [message.packet])
 
     def send_create(self, destination, circuit_id):
         """

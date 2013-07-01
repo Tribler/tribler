@@ -12,6 +12,15 @@ class CreatePayload(Payload):
             
             self.circuit_id = circuit_id
 
+
+class BreakPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, circuit_id):
+            super(BreakPayload.Implementation, self).__init__(meta)
+
+            self.circuit_id = circuit_id
+
+
 class ExtendPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, circuit_id, extend_with):
@@ -20,6 +29,7 @@ class ExtendPayload(Payload):
             self.circuit_id = circuit_id
             self.extend_with = extend_with
 
+
 class ExtendedPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, circuit_id, extended_with):
@@ -27,7 +37,8 @@ class ExtendedPayload(Payload):
              
             self.circuit_id = circuit_id
             self.extended_with = extended_with
-            
+
+
 class DataPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, circuit_id, destination, data, origin = None):
@@ -37,7 +48,8 @@ class DataPayload(Payload):
             self.destination = destination
             self.data = data
             self.origin = origin
-            
+
+
 class ProxyConversion(BinaryConversion):
     def __init__(self, community):
         super(ProxyConversion, self).__init__(community, "\x01")
@@ -72,7 +84,26 @@ class ProxyConversion(BinaryConversion):
              , community.get_meta_message(u"data")
              , self._encode_data
              , self._decode_data)
-         
+
+        self.define_meta_message(
+            chr(6),
+            community.get_meta_message(u"break")
+            , self._encode_break
+            , self._decode_break
+        )
+
+    def _encode_break(self, message):
+        return struct.pack("!L", message.payload.circuit_id);
+
+    def _decode_break(self, placeholder, offset, data):
+        if len(data) < offset + 4:
+            raise DropPacket("Cannot unpack circuit_id, insufficient packet size")
+
+        circuit_id ,= struct.unpack_from("!L", data, offset)
+        offset += 4
+
+        return offset, placeholder.meta.payload.implement(circuit_id)
+
     def _encode_createOrCreated(self, message):
         return struct.pack("!L", message.payload.circuit_id),
 
