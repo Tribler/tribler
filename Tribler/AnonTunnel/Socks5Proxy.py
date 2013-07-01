@@ -4,13 +4,13 @@ logging.config.fileConfig(os.path.dirname(os.path.realpath(__file__)) + "/logger
 logger = logging.getLogger(__name__)
 
 import time
-from TunnelProxy import TunnelProxy
+from DispersyTunnelProxy import DispersyTunnelProxy
 
 
 
 from Socks5AnonTunnel import Socks5AnonTunnel
 
-tunnel = TunnelProxy()
+tunnel = DispersyTunnelProxy()
 Socks5AnonTunnel(tunnel,1080).run()
 
 while 1:

@@ -9,6 +9,9 @@ __author__ = 'Chris'
 
 
 class UdpRelayTunnelHandler(object):
+    """
+    Unwraps incoming SOCKS5 UDP packets and sends them over the DispersyTunnel
+    """
     def __init__(self, single_socket, server):
         logger.info("UDP relay handler created")
         self.single_socket = single_socket

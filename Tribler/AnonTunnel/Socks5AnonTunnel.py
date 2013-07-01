@@ -121,6 +121,14 @@ class Socks5AnonTunnel(Thread):
         return self.udp_relay_socket
 
     def start_listening_udp(self, udp_socket, handler):
+        """
+        Start listening on an UDP socket by attaching an event handler
+
+        :param udp_socket: the socket to listen on
+        :param handler: the handler to call when new packets are received on the UDP socket
+        :return: None
+        """
+
         self.raw_server.start_listening_udp(udp_socket, handler)
 
     def on_tunnel_data(self, event):

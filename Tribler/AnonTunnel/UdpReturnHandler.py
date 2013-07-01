@@ -7,6 +7,9 @@ logger = logging.getLogger(__name__)
 
 
 class UdpReturnHandler(object):
+    """
+    Returns Dispersy Data Messages to the SOCKS5 client, wrapping the packet into a SOCKS5 packet
+    """
     def __init__(self, server, socket, destination_address):
         self.socket = socket
         self.destination_address = destination_address
