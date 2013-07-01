@@ -138,6 +138,10 @@ class Socks5Connection(object):
 
             response = Socks5.structs.encode_reply(0x05, 0x00, 0x00, Socks5.structs.ADDRESS_TYPE_IPV4, ip, port)
             self.write(response)
+        else:
+            # We will deny all other requests (BIND, and INVALID requests);
+
+            response = Socks5.structs.encode_reply(0x05, Socks5.structs.REP_COMMAND_NOT_SUPPORTED, 0x00, Socks5.structs.ADDRESS_TYPE_IPV4,"0.0.0.0",0)
 
         self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
