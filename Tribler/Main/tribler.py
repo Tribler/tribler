@@ -401,6 +401,9 @@ class ABCApp():
 
         self.sconfig.set_install_dir(self.installdir)
 
+        # Boudewijn, 2013-06-17: Enable Dispersy tunnel (hard-coded)
+        self.sconfig.set_dispersy_tunnel_over_swift(True)
+
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
 
