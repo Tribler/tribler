@@ -193,7 +193,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         self.queue_position = -1
 
         self.prebuffsize = 5 * 1024 * 1024
-        self.vod_fileindex = -1
+        self.endbuffsize = 0
         self.vod_seekpos = 0
         self.vod_status = ""
         self.videoinfo = {'status' : None}
@@ -351,13 +351,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             # TODO: Niels 06-05-2013 we need a status object reporting buffering etc. should be linked to test_vod
             self.videoinfo['status'] = None
 
-            self.vod_fileindex = self.handle.file_priorities().index(1)
+            self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
+            self.endbuffsize = 1 * 1024 * 1024
 
             self.handle.set_sequential_download(True)
             self.handle.set_priority(255)
-            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-
-            self.prebuffsize = max(int(self.videoinfo['outpath'][1] * 0.05), 5 * 1024 * 1024)
+            self.set_byte_priority([(self.get_vod_fileindex(), self.prebuffsize, -self.endbuffsize)], 0)
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, self.prebuffsize)], 1)
+            self.set_byte_priority([(self.get_vod_fileindex(), -self.endbuffsize, -1)], 1)
 
             if self.progress == 1.0:
                 if DEBUG:
@@ -372,11 +373,14 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.handle.set_priority(0)
             if self.get_vod_fileindex() >= 0:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-                self.vod_fileindex = -1
 
     def monitor_vod(self, ds):
         if not self.handle or self.handle.is_paused() or self.get_mode() != DLMODE_VOD:
             return (0, False)
+
+        if self.endbuffsize and self.get_byte_progress([(self.get_vod_fileindex(), -self.endbuffsize - 1, -1)]) >= 1:
+            self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
+            self.endbuffsize = 0
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
@@ -406,7 +410,9 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return self.videoinfo.get('duration', None)
 
     def get_vod_fileindex(self):
-        return self.vod_fileindex
+        if self.videoinfo and self.videoinfo.has_key('index'):
+            return self.videoinfo['index']
+        return -1
 
     def get_vod_filesize(self):
         fileindex = self.get_vod_fileindex()
@@ -808,14 +814,22 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         return bytestogof / dlspeed
 
     def network_calc_prebuf_frac(self):
-        if self.get_mode() == DLMODE_VOD and self.vod_seekpos != None:
-            return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
+        if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos != None:
+            if self.endbuffsize:
+                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize), \
+                                               (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)])
+            else:
+                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
         else:
             return 0.0
 
     def network_calc_prebuf_frac_consec(self):
-        if self.get_mode() == DLMODE_VOD and self.vod_seekpos != None:
-            return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)], consecutive=True)
+        if self.get_mode() == DLMODE_VOD and self.get_vod_fileindex() >= 0 and self.vod_seekpos != None:
+            if self.endbuffsize:
+                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize), \
+                                               (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)], consecutive=True)
+            else:
+                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
         else:
             return 0.0
 
