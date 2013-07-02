@@ -208,6 +208,7 @@ class GUIUtility:
                 else:
                     items = self.frame.librarylist.GetExpandedItems()
                     if items:
+                        items[0][1].expanded = False
                         self.frame.librarylist.Select(items[0][0])
                     else:
                         self.frame.librarylist.ResetBottomWindow()
