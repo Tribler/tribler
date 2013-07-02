@@ -7,6 +7,7 @@ Created on 3 jun. 2013
 from traceback import print_exc
 from threading import Thread, Event
 import logging
+from Tribler.AnonTunnel.CommandHandler import CommandHandler
 
 from Tribler.Core.RawServer.RawServer import RawServer
 from TcpConnectionHandler import TcpConnectionHandler
@@ -50,6 +51,9 @@ class Socks5AnonTunnel(Thread):
         self.tunnel = tunnel
         self.tunnel.subscribe("on_data", self.on_tunnel_data)
         tunnel.socket_server = self
+
+        cmd_socket = self.raw_server.create_udpsocket(1081, "127.0.0.1")
+        self.start_listening_udp(cmd_socket, CommandHandler(cmd_socket, self.tunnel))
 
     def shutdown(self):
         self.connection_handler.shutdown()

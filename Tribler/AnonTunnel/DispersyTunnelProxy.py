@@ -294,25 +294,3 @@ class DispersyTunnelProxy(Observable):
 
         self.community.send_data(address, circuit_id, ultimate_destination, payload, origin)
         logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s", origin, address, circuit_id, ultimate_destination)
-
-
-if __name__ == "__main__":
-    parser = OptionParser()
-    parser.add_option('-o', '--output',
-                      default=None,
-                      type=str,
-                      help='An address in format host:port to send data to',
-                      dest='destination')
-
-    (options, args) = parser.parse_args()
-
-    proxy = DispersyTunnelProxy()
-
-    if options.destination is not None:
-        host, port = options.destination.split(':')
-        proxy.send_stdin_to_destination((host, int(port)))
-
-    while 1:
-        time.sleep(1)
-
-    proxy.stop()
