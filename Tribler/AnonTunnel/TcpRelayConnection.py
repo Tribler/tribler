@@ -31,5 +31,5 @@ class TcpRelayConnection(object):
         if self.source_socket is not None:
             self.source_socket.close()
             self.connection_handler.connection_lost(self.source_socket)
-            self.destination_socket.close();
+            self.destination_socket.close()
             self.source_socket = None

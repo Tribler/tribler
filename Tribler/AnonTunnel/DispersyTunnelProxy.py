@@ -8,9 +8,7 @@ from CircuitReturnHandler import CircuitReturnHandler
 from Observable import Observable
 
 from collections import defaultdict, deque
-from optparse import OptionParser
 import random
-import time
 from Circuit import Circuit
 from ProxyCommunity import ProxyCommunity
 from ProxyConversion import DataPayload, ExtendPayload
@@ -285,7 +283,7 @@ class DispersyTunnelProxy(Observable):
     def stop(self):
         self.dispersy.stop()
 
-    def send_data(self, payload, circuit_id = None, address = None,ultimate_destination = None, origin = None):
+    def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
         if circuit_id is None:
             circuit_id = self.circuits.values()[0].id
 

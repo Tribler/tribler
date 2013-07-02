@@ -93,7 +93,7 @@ class ProxyConversion(BinaryConversion):
         )
 
     def _encode_break(self, message):
-        return struct.pack("!L", message.payload.circuit_id);
+        return struct.pack("!L", message.payload.circuit_id)
 
     def _decode_break(self, placeholder, offset, data):
         if len(data) < offset + 4:

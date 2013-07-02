@@ -4,19 +4,21 @@ Created on 3 jun. 2013
 @author: Chris
 """
 
+import logging
+import socket
+
+logger = logging.getLogger(__name__)
+
 from traceback import print_exc
 from threading import Thread, Event
-import logging
 from Tribler.AnonTunnel.CommandHandler import CommandHandler
 
 from Tribler.Core.RawServer.RawServer import RawServer
 from TcpConnectionHandler import TcpConnectionHandler
 from UdpRelayTunnelHandler import UdpRelayTunnelHandler
 
-
-logger = logging.getLogger(__name__)
-
 import Socks5.structs
+
 
 class Socks5AnonTunnel(Thread):
     def __init__(self, tunnel, Socks5_port=1080, timeout=300.0):
@@ -44,16 +46,20 @@ class Socks5AnonTunnel(Thread):
         try:
             port = self.raw_server.find_and_bind(self.Socks5_port,self.Socks5_port,self.Socks5_port+10, ['0.0.0.0'], reuse=True)
             logger.info("Socks5Proxy binding to %s:%s", "0.0.0.0", port)
-        except:
-            print_exc()
-
+        except socket.error:
+            logger.error("Cannot listen on SOCK5 port 1080, perhaps another instance is running?")
 
         self.tunnel = tunnel
         self.tunnel.subscribe("on_data", self.on_tunnel_data)
         tunnel.socket_server = self
 
-        cmd_socket = self.raw_server.create_udpsocket(1081, "127.0.0.1")
-        self.start_listening_udp(cmd_socket, CommandHandler(cmd_socket, self.tunnel))
+        try:
+            cmd_socket = self.raw_server.create_udpsocket(1081, "127.0.0.1")
+            self.start_listening_udp(cmd_socket, CommandHandler(cmd_socket, self.tunnel))
+
+            logger.info("Listening on CMD socket on port 1081")
+        except socket.error:
+            logger.error("Cannot listen on CMD socket on port 1081, perhaps another instance is running?")
 
     def shutdown(self):
         self.connection_handler.shutdown()
@@ -145,6 +151,3 @@ class Socks5AnonTunnel(Thread):
         encapsulated = Socks5.structs.encode_udp_packet(0, 0, Socks5.structs.ADDRESS_TYPE_IPV4, source_address[0],source_address[1], packet.data)
         self.udp_relay_socket.sendto(encapsulated, destination_address)
         logger.info("Returning UDP packets from %s to %s using proxy port %d",source_address, destination_address, self.udp_relay_socket.getsockname()[1])
-
-
-

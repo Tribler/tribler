@@ -55,9 +55,9 @@ class TcpConnectionHandler(object):
 
         tcp_connection = self.socket2connection[s]
         try:
-            tcp_connection.close();
+            tcp_connection.close()
         except:
-            None
+            pass
 
         del self.socket2connection[s]
 

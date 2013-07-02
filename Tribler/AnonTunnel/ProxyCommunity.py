@@ -128,8 +128,6 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
 
         meta = self.get_meta_message(u"break")
-        """ :type : Message """
-
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
                               payload=(circuit_id,))
@@ -147,8 +145,6 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
         
         meta = self.get_meta_message(u"create")
-        """ :type : Message """
-
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
                               payload=(circuit_id,))
@@ -165,8 +161,6 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
             
         meta = self.get_meta_message(u"created")
-        ''' :type : Message'''
-
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
                               payload=(circuit_id,))
@@ -187,8 +181,6 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)
             
         meta = self.get_meta_message(u"data")
-        """ :type : Message """
-
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
                               payload=(circuit_id, ultimate_destination, data,origin))
@@ -211,8 +203,6 @@ class ProxyCommunity(Community, Observable):
             return     
             
         meta = self.get_meta_message(u"extend")
-        """ :type : Message """
-
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
                               payload=(circuit_id, extend_with,))
@@ -232,8 +222,6 @@ class ProxyCommunity(Community, Observable):
         candidate = self.dispersy.get_candidate(destination)      
             
         meta = self.get_meta_message(u"extended")
-        """ :type : Message """
-
         message = meta.impl(authentication=(self.my_member,),
                               distribution=(self.claim_global_time(),),
                               payload=(circuit_id, extended_with,))

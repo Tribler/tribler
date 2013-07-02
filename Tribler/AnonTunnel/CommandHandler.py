@@ -1,25 +1,23 @@
 __author__ = 'Chris'
 
 import pickle
-import DispersyTunnelProxy
-import socket
 
 
 class ListCircuitsRequest:
-    def __init__(self):
-        None;
+    pass
+
 
 class IsOnlineRequest:
-    def __init__(self):
-        None
+    pass
+
 
 class ListCircuitsResponse:
-    def __init__(self, circuits):
-        self.circuits = circuits;
+    pass
+
 
 class IsOnlineResponse:
-    def __init__(self, is_online):
-        self.is_online = is_online
+    pass
+
 
 class CommandHandler(object):
     def __init__(self, socket, dispersyTunnel):
