@@ -829,7 +829,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
                 return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize), \
                                                (self.get_vod_fileindex(), -self.endbuffsize - 1, -1)], consecutive=True)
             else:
-                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)])
+                return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)], consecutive=True)
         else:
             return 0.0
 
