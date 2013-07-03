@@ -12,24 +12,36 @@ class IsOnlineRequest:
 
 
 class ListCircuitsResponse:
-    pass
+    def __init__(self, circuits):
+        self.circuits = circuits
 
 
 class IsOnlineResponse:
-    pass
+    def __init__(self, is_online):
+        self.is_online = is_online
+
+
+class CreateCircuitRequest:
+    def __init__(self, first_hop):
+        self.first_hop = first_hop
+
+
+class CreateCircuitResponse:
+    def __init__(self, circuit_id):
+        self.circuit_id = circuit_id
 
 
 class CommandHandler(object):
-    def __init__(self, socket, dispersyTunnel):
+    def __init__(self, socket, dispersy_tunnel):
         """
 
         :param socket: the socket we will use to sent responses over
-        :param dispersyTunnel: the dispersy tunnel we want to control
+        :param dispersy_tunnel: the dispersy tunnel we want to control
         :type socket : socket
-        :type dispersyTunnel : DispersyTunnelProxy
+        :type dispersy_tunnel : DispersyTunnelProxy
         :return:
         """
-        self.dispersyTunnel = dispersyTunnel
+        self.dispersy_tunnel = dispersy_tunnel
         self.socket = socket
 
     def data_came_in(self, packets):
@@ -45,10 +57,18 @@ class CommandHandler(object):
             self.on_ready_request(source_address, request)
 
     def on_ready_request(self, source_address, request):
-        is_online = len(self.dispersyTunnel.circuits) > 0
+        is_online = len(self.dispersy_tunnel.circuits) > 0
         response = IsOnlineResponse(is_online)
-        self.socket.sendto(source_address, pickle.dumps(response))
+
+        self.socket.sendto(pickle.dumps(response),source_address)
 
     def on_list_circuits_request(self, source_address, request):
-        response = ListCircuitsResponse(self.dispersyTunnel.circuits)
-        self.socket.sendto(source_address, pickle.dumps(response))
+        response = ListCircuitsResponse(self.dispersy_tunnel.circuits)
+
+        self.socket.sendto(pickle.dumps(response), source_address)
+
+    def on_create_circuit_request(self, source_address, request):
+        circuit_id = self.dispersy_tunnel.create_circuit(request.first_hop)
+        response = CreateCircuitResponse(circuit_id)
+
+        self.socket.sendto(pickle.dumps(response), source_address)
