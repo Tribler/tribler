@@ -36,6 +36,8 @@ class SearchScript(ScenarioScriptBase):
             self.community_kargs['fneighbors'] = parse_tuplestr(kargs['fneighbors'])
         if 'max_prefs' in kargs:
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
+        if 'max_f_prefs' in kargs:
+            self.community_kargs['max_f_prefs'] = int(kargs['max_f_prefs'])
 
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1")
@@ -94,7 +96,7 @@ class SearchScript(ScenarioScriptBase):
         self._dispersy.callback.register(self.monitor_taste_buddy, delay=1.0)
         def stop_dispersy():
             Thread(target=self._dispersy.stop, args=(10.0,)).start()
-        #self._dispersy.callback.register(stop_dispersy, delay=300.0)
+        # self._dispersy.callback.register(stop_dispersy, delay=300.0)
 
         # my_name is only available after _run method is called
         self.search_offset = 200 + (int(self._my_name) % int(self.search_spacing))

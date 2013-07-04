@@ -2,7 +2,7 @@
 import sys
 from os import path
 from time import time
-from random import sample, randint, shuffle, random
+from random import sample, randint, shuffle, random, choice
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 from math import ceil
 from hashlib import md5
@@ -63,16 +63,16 @@ class SearchCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
+    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, log_searches=False, use_megacache=True):
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches, use_megacache=use_megacache)
+            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_searches=log_searches, use_megacache=use_megacache)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches, use_megacache=use_megacache)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, max_fprefs=max_fprefs, log_searches=log_searches, use_megacache=use_megacache)
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, log_searches=False, use_megacache=True):
         super(SearchCommunity, self).__init__(master)
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
@@ -98,8 +98,12 @@ class SearchCommunity(Community):
         else:
             max_hprefs = max_prefs
 
+        if not max_fprefs:
+            max_fprefs = max_prefs
+
         self.max_prefs = max_prefs
         self.max_h_prefs = max_hprefs
+        self.max_f_prefs = max_fprefs
 
         self.search_timeout = 0
         self.search_forward = 0
@@ -978,8 +982,8 @@ class SearchCommunity(Community):
 
 class ForwardCommunity(SearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, log_searches=False, use_megacache=True):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, max_fprefs, log_searches, use_megacache)
 
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -1261,8 +1265,8 @@ class ForwardCommunity(SearchCommunity):
 
 class PSearchCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, log_searches=False, use_megacache=True):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, max_fprefs, log_searches, use_megacache)
 
         self.key = pallier_init(self.key)
 
@@ -1466,7 +1470,7 @@ class HSearchCommunity(ForwardCommunity):
         meta_request = self.get_meta_message(u"similarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                             distribution=(self.global_time,),
-                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.preference_list[:20]))
+                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.preference_list[:self.max_fprefs]))
 
         self._dispersy._send(candidates, [request])
         self.forward_packet_size += len(request.packet) * len(candidates)
@@ -1549,8 +1553,8 @@ class HSearchCommunity(ForwardCommunity):
 
 class PoliSearch(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False, use_megacache=True):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, max_fprefs=None, log_searches=False, use_megacache=True):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, max_fprefs, log_searches, use_megacache)
         self.key = pallier_init(self.key)
 
     def initiate_conversions(self):
@@ -1614,11 +1618,22 @@ class PoliSearch(ForwardCommunity):
         return False
 
     def send_similarity_request(self, msimilarity_request, candidates):
+        coefficients = msimilarity_request.payload.coefficients.copy()
+        if self.max_f_prefs != self.max_prefs:
+            # modify the coefficients to at most forward max_f_prefs coefficients
+            new_coefficients = {}
+            while len(coefficients.keys()) > 0 and sum(len(coeffs) for coeffs in new_coefficients.itervalues()) < self.max_f_prefs:
+                partition = choice(coefficients.keys())
+                new_coefficients[partition] = coefficients[partition]
+                del coefficients[partition]
+
+            coefficients = new_coefficients
+
         # forward it to others
         meta_request = self.get_meta_message(u"similarity-request")
         request = meta_request.impl(authentication=(self.my_member,),
                             distribution=(self.global_time,),
-                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, msimilarity_request.payload.coefficients))
+                            payload=(msimilarity_request.payload.identifier, msimilarity_request.payload.key_n, coefficients))
 
         self._dispersy._send(candidates, [request])
         self.forward_packet_size += len(request.packet) * len(candidates)
@@ -1638,10 +1653,6 @@ class PoliSearch(ForwardCommunity):
 
         for message in messages:
             _myPreferences = [(partition, val) for partition, val in myPreferences if partition in message.payload.coefficients]
-
-            # 3. use subset if we have to many preferences
-            if len(_myPreferences) > self.max_h_prefs:
-                _myPreferences = sample(_myPreferences, self.max_h_prefs)
 
             results = []
             t1 = time()
