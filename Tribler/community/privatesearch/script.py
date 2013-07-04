@@ -37,7 +37,7 @@ class SearchScript(ScenarioScriptBase):
         if 'max_prefs' in kargs:
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
         if 'max_f_prefs' in kargs:
-            self.community_kargs['max_f_prefs'] = int(kargs['max_f_prefs'])
+            self.community_kargs['max_fprefs'] = int(kargs['max_f_prefs'])
 
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1")
