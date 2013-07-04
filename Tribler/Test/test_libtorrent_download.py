@@ -26,13 +26,13 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def download_object_ready():
             self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
 
-        def do_downloadfromurl():
+        def do_downloadfromfile():
             self.guiUtility.showLibrary()
             self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
-        self.startTest(do_downloadfromurl)
+        self.startTest(do_downloadfromfile)
 
     def test_downloadfromurl(self):
         infohash = binascii.unhexlify('24ad1d85206db5f85491a690e6723e27f4551e01')

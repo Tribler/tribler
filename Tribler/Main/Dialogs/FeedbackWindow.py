@@ -98,7 +98,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.text.AppendText(st)
 
     def CreateOutputWindow(self, st):
-        self.frame = wx.Dialog(self.parent, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self.frame = wx.Dialog(self.parent, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, name="FeedbackWindow")
 
         self.frame.CenterOnParent()
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -113,7 +113,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.text.SetMinSize((600, 150))
         vSizer.Add(self.text, 0, wx.EXPAND)
 
-        self.sysInfo = AutoWidthListCtrl(self.frame, style= wx.LC_REPORT | wx.NO_BORDER)
+        self.sysInfo = AutoWidthListCtrl(self.frame, style=wx.LC_REPORT | wx.NO_BORDER)
         self.sysInfo.SetMinSize((-1, 200))
         vSizer.Add(self.sysInfo, 1, wx.EXPAND)
 
