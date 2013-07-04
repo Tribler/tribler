@@ -1622,7 +1622,7 @@ class PoliSearch(ForwardCommunity):
         if self.max_f_prefs != self.max_prefs:
             # modify the coefficients to at most forward max_f_prefs coefficients
             new_coefficients = {}
-            while len(coefficients.keys()) > 0 and sum(len(coeffs) for coeffs in new_coefficients.itervalues()) < self.max_f_prefs:
+            while len(coefficients.keys()) > 0 and sum(len(coeffs) - 1 for coeffs in new_coefficients.itervalues()) < self.max_f_prefs:
                 partition = choice(coefficients.keys())
                 new_coefficients[partition] = coefficients[partition]
                 del coefficients[partition]
