@@ -14,9 +14,25 @@ from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
+from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
 
 
 class TestGuiDialogs(TestGuiAsServer):
+
+    def test_settings_dialog(self):
+        def do_assert():
+            dialog = wx.FindWindowByName('settingsDialog')
+            self.assert_(isinstance(dialog, SettingsDialog), 'could not find SettingsDialog')
+
+            # self.screenshot('Screenshot of SettingsDialog', window=dialog)
+            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.Call(2, self.quit)
+
+        def do_settings():
+            self.Call(1, do_assert)
+            self.frame.top_bg.OnSettings(None)
+
+        self.startTest(do_settings)
 
     def test_remove_dialog(self):
         infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
