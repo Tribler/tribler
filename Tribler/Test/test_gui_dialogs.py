@@ -15,18 +15,31 @@ from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
+from threading import Event
 
 
 class TestGuiDialogs(TestGuiAsServer):
 
     def test_settings_dialog(self):
+        def do_close(event):
+            assert event.wait(10)
+            self.quit()
+
         def do_assert():
             dialog = wx.FindWindowByName('settingsDialog')
             self.assert_(isinstance(dialog, SettingsDialog), 'could not find SettingsDialog')
 
             # self.screenshot('Screenshot of SettingsDialog', window=dialog)
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, self.quit)
+            saved_event = Event()
+            self.Call(1, lambda: do_close(saved_event))
+
+            class FakeEvent():
+                def __init__(self, event):
+                    self.event = event
+
+                def Skip(self):
+                    self.event.set()
+            dialog.saveAll(FakeEvent(saved_event))
 
         def do_settings():
             self.Call(1, do_assert)
