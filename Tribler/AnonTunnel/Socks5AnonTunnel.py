@@ -80,8 +80,9 @@ class Socks5AnonTunnel(Thread):
         try:
             try:
                 self.raw_server.listen_forever(self)
-            except:
-                print_exc()
+            except Exception, e:
+                if not isinstance(e, SystemExit):
+                    print_exc()
         finally:
             self.raw_server.shutdown()
 

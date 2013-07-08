@@ -3,7 +3,6 @@ from Tribler.AnonTunnel.Socks5AnonTunnel import Socks5AnonTunnel
 
 logger = logging.getLogger(__name__)
 
-
 from CircuitReturnHandler import CircuitReturnHandler
 from Observable import Observable
 
@@ -18,6 +17,7 @@ from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import StandaloneEndpoint
 
 __author__ = 'Chris'
+
 
 class DispersyTunnelProxy(Observable):
     @property
@@ -47,6 +47,9 @@ class DispersyTunnelProxy(Observable):
 
         self.callback = Callback()
         self.endpoint = StandaloneEndpoint(10000)
+        self.dispersy = None
+
+    def start(self):
         self.dispersy = Dispersy(self.callback, self.endpoint, u".", u":memory:")
         self.dispersy.start()
         logger.info("Dispersy is listening on port %d" % self.dispersy.lan_address[1])
@@ -142,8 +145,8 @@ class DispersyTunnelProxy(Observable):
             logger.info("Forwarding DATA packet from %s to %s", address, relay.to_address)
 
         # If message is meant for us, write it to output
-        elif msg.destination in self.local_addresses or msg.destination == ("0.0.0.0",0):
-            self.fire("on_data", data = msg)
+        elif msg.destination in self.local_addresses or msg.destination == ("0.0.0.0", 0):
+            self.fire("on_data", data=msg)
 
         # If it is not ours and we have nowhere to forward to then act as exit node
         else:
@@ -159,7 +162,6 @@ class DispersyTunnelProxy(Observable):
             return_handler = CircuitReturnHandler(self._exit_sockets[circuit_id], self, circuit_id, address)
 
             self.socket_server.start_listening_udp(self._exit_sockets[circuit_id], return_handler)
-
 
         return self._exit_sockets[circuit_id]
 
@@ -281,7 +283,8 @@ class DispersyTunnelProxy(Observable):
             self.extend_circuit(self.circuits[circuit_id], candidate.sock_addr)
 
     def stop(self):
-        self.dispersy.stop()
+        if self.dispersy is not None:
+            self.dispersy.stop()
 
     def send_data(self, payload, circuit_id=None, address=None, ultimate_destination=None, origin=None):
         if circuit_id is None:
@@ -291,4 +294,27 @@ class DispersyTunnelProxy(Observable):
             address = self.circuits[circuit_id].address
 
         self.community.send_data(address, circuit_id, ultimate_destination, payload, origin)
-        logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s", origin, address, circuit_id, ultimate_destination)
+        logger.info("Sending data with origin %s to %s over circuit %d with ultimate destination %s", origin, address,
+                    circuit_id, ultimate_destination)
+
+    def break_circuit(self, circuit_id):
+        # Give other members possibility to clean up
+
+        # TODO: investigate if this is a good idea, since it may help malicious nodes determine which nodes are part of the downstream part of the circuit.
+        self.community.send_break(self.circuits[circuit_id].address, circuit_id)
+
+        # Delete from data structures
+        if circuit_id in self.circuits:
+            del self.circuits[circuit_id]
+
+        # Delete any memberships
+        for candidate in self.circuit_membership.iterkeys():
+            self.circuit_membership[candidate].remove(circuit_id)
+
+    def on_candidate_exit(self, event):
+        candidate = event.candidate
+
+        # We must invalidate all circuits that have this candidate in its hop list
+        circuit_ids = self.circuit_membership[candidate.sock_addr]
+
+        [self.break_circuit(circuit_id) for circuit_id in circuit_ids]

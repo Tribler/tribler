@@ -31,6 +31,24 @@ class CreateCircuitResponse:
         self.circuit_id = circuit_id
 
 
+class StopRequest:
+    pass
+
+
+class StopResponse:
+    def __init__(self, stopped):
+        self.stopped = stopped
+
+
+class StartRequest:
+    pass
+
+
+class StartResponse:
+    def __init__(self, started):
+        self.started = started
+
+
 class CommandHandler(object):
     def __init__(self, socket, dispersy_tunnel):
         """
@@ -55,6 +73,12 @@ class CommandHandler(object):
             self.on_list_circuits_request(source_address, request)
         elif isinstance(request, IsOnlineRequest):
             self.on_ready_request(source_address, request)
+        elif isinstance(request, StartRequest):
+            self.on_start_request(source_address, request)
+        elif isinstance(request, StopRequest):
+            self.on_stop_request(source_address, request)
+        elif isinstance(request, CreateCircuitRequest):
+            self.on_create_circuit_request(source_address, request)
 
     def on_ready_request(self, source_address, request):
         is_online = len(self.dispersy_tunnel.circuits) > 0
@@ -72,3 +96,11 @@ class CommandHandler(object):
         response = CreateCircuitResponse(circuit_id)
 
         self.socket.sendto(pickle.dumps(response), source_address)
+
+    def on_start_request(self, source_address, request):
+        self.dispersy_tunnel.start()
+
+    def on_stop_request(self, source_address, request):
+        self.dispersy_tunnel.stop()
+        # Ugly but it gets the job done
+        exit(1)

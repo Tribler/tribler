@@ -243,3 +243,8 @@ class ProxyCommunity(Community, Observable):
             for message in messages:
                 if not isinstance(message.candidate, BootstrapCandidate):
                     self.fire("on_member_heartbeat", candidate = message.candidate)
+
+    def on_candidate_exit(self, message):
+        # TODO implement this
+        candidate = ("0.0.0.0",0)
+        self.fire("on_candidate_exit", candidate = candidate)

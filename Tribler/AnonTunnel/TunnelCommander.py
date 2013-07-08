@@ -1,8 +1,9 @@
 import pickle
-from Tribler.AnonTunnel import Observable
-from Tribler.AnonTunnel.CommandHandler import CreateCircuitResponse, ListCircuitsResponse, IsOnlineResponse, IsOnlineRequest, ListCircuitsRequest, CreateCircuitRequest
+from Tribler.AnonTunnel.CommandHandler import CreateCircuitResponse, ListCircuitsResponse, IsOnlineResponse, IsOnlineRequest, ListCircuitsRequest, CreateCircuitRequest, StartRequest, StartResponse, StopRequest
+from Tribler.AnonTunnel.Observable import Observable
 
 __author__ = 'Chris'
+
 
 class TunnelCommander(Observable):
     def __init__(self, tunnel_address, raw_server):
@@ -13,6 +14,9 @@ class TunnelCommander(Observable):
         :type raw_server: RawServer
         :return:
         """
+
+        Observable.__init__(self)
+
         self.address = tunnel_address
         self.raw_server = raw_server
         self.udp_socket = raw_server.create_udpsocket(0,"0.0.0.0");
@@ -36,6 +40,14 @@ class TunnelCommander(Observable):
         request = CreateCircuitRequest(first_hop)
         self.udp_socket.sendto(pickle.dumps(request), self.address)
 
+    def requestStart(self):
+        request = StartRequest()
+        self.udp_socket.sendto(pickle.dumps(request), self.address)
+
+    def requestStop(self):
+        request = StopRequest()
+        self.udp_socket.sendto(pickle.dumps(request), self.address)
+
     def dispatch_response(self, source_address, response):
         if isinstance(response, CreateCircuitResponse):
             self.fire("on_create_circuit_response", circuit_id = response.circuit_id)
@@ -43,3 +55,7 @@ class TunnelCommander(Observable):
             self.fire("on_list_circuits_response", circuits = response.circuits)
         elif isinstance(response, IsOnlineResponse):
             self.fire("on_is_online_response", is_online = response.is_online)
+        elif isinstance(response, StartResponse):
+            self.fire("on_start_response", started = response.started)
+        elif isinstance(response, StartResponse):
+            self.fire("on_stop_response", started = response.started)
