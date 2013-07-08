@@ -1266,9 +1266,9 @@ class ActionButton(wx.Panel):
                 self.bitmaps = [bitmap]
                 self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if self.hover else bitmap)
                 self.bitmaps.append(wx.BitmapFromImage(image.ConvertToGreyscale().AdjustChannels(1.0, 1.0, 1.0, 0.3)))
-                self.Refresh()
             else:
                 self.bitmaps[0] = bitmap
+            self.Refresh()
 
     def GetBitmapHover(self):
         return self.bitmaps[1]
