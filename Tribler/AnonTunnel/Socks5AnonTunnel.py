@@ -21,7 +21,7 @@ import Socks5.structs
 
 
 class Socks5AnonTunnel(Thread):
-    def __init__(self, tunnel, Socks5_port=1080, timeout=300.0):
+    def __init__(self, tunnel, Socks5_port=1080, timeout=10.0):
         Thread.__init__(self)
         self.setDaemon(True)
         self.setName('Socks5Server' + self.getName())
