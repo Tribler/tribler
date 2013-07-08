@@ -14,5 +14,5 @@ then
 	exit 1
 fi
 
-python Tribler/AnonTunnel/Main.py
+python Tribler/AnonTunnel/Main.py --start
 
