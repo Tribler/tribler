@@ -17,7 +17,7 @@ class RemoveTorrent(wx.Dialog):
             state = torrents[0].channel.getState()
             canEdit = state >= ChannelCommunity.CHANNEL_OPEN
 
-        wx.Dialog.__init__(self, parent, -1, 'Are you sure you want to remove the selected torrent%s?' % ('' if single else 's'), size=(600, -1))
+        wx.Dialog.__init__(self, parent, -1, 'Are you sure you want to remove the selected torrent%s?' % ('' if single else 's'), size=(600, -1), name="RemoveTorrent")
         bitmap = wx.ArtProvider.GetBitmap(wx.ART_QUESTION, wx.ART_MESSAGE_BOX)
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(wx.StaticBitmap(self, -1, bitmap), 0, wx.RIGHT, 10)

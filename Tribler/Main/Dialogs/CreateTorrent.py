@@ -18,7 +18,7 @@ from traceback import print_exc
 class CreateTorrent(wx.Dialog):
 
     def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel=False):
-        wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600, 200))
+        wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600, 200), name="CreateTorrentDialog")
         self.guiutility = GUIUtility.getInstance()
         self.toChannel = toChannel
 
@@ -46,7 +46,7 @@ class CreateTorrent(wx.Dialog):
         # self.recursive.Bind(wx.EVT_CHECKBOX, self.OnRecursive)
         # vSizer.Add(self.recursive, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
 
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.LEFT |wx.RIGHT|wx.BOTTOM, 10)
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
         header = wx.StaticText(self, -1, '.Torrent details')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
@@ -78,7 +78,7 @@ class CreateTorrent(wx.Dialog):
         self.trackerList.SetMinSize((500, -1))
 
         self.trackerHistory = wx.FileHistory(10)
-        self.config = wx.FileConfig(appName="Tribler", localFilename= configfile)
+        self.config = wx.FileConfig(appName="Tribler", localFilename=configfile)
         self.trackerHistory.Load(self.config)
 
         if self.trackerHistory.GetCount() > 0:
@@ -97,11 +97,11 @@ class CreateTorrent(wx.Dialog):
         self.commentList = wx.TextCtrl(self, -1, '', style=wx.TE_MULTILINE)
         vSizer.Add(self.commentList, 0, wx.EXPAND, 3)
 
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.LEFT |wx.RIGHT|wx.TOP, 10)
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 10)
 
         header = wx.StaticText(self, -1, 'Advanced options')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
-        vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM |wx.TOP, 3)
+        vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 3)
 
         abbrev_mb = " " + self.guiutility.utility.lang.get('MB')
         abbrev_kb = " " + self.guiutility.utility.lang.get('KB')
@@ -147,7 +147,7 @@ class CreateTorrent(wx.Dialog):
         self.cancelEvent = Event()
 
         self.filehistory = wx.FileHistory(1)
-        self.fileconfig = wx.FileConfig(appName="Tribler", localFilename= fileconfigfile)
+        self.fileconfig = wx.FileConfig(appName="Tribler", localFilename=fileconfigfile)
         self.filehistory.Load(self.fileconfig)
 
         if self.filehistory.GetCount() > 0:
@@ -157,7 +157,7 @@ class CreateTorrent(wx.Dialog):
         self.paths = None
 
     def OnBrowse(self, event):
-        dlg = wx.FileDialog(self, "Please select the file(s).", style= wx.FD_OPEN | wx.FD_MULTIPLE, defaultDir = self.latestFile)
+        dlg = wx.FileDialog(self, "Please select the file(s).", style=wx.FD_OPEN | wx.FD_MULTIPLE, defaultDir=self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             dlg.Destroy()
@@ -167,7 +167,7 @@ class CreateTorrent(wx.Dialog):
             dlg.Destroy()
 
     def OnBrowseDir(self, event):
-        dlg = wx.DirDialog(self, "Please a directory.", style=wx.DD_DIR_MUST_EXIST, defaultPath= self.latestFile)
+        dlg = wx.DirDialog(self, "Please a directory.", style=wx.DD_DIR_MUST_EXIST, defaultPath=self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = [dlg.GetPath()]
             dlg.Destroy()
@@ -239,9 +239,9 @@ class CreateTorrent(wx.Dialog):
 
         max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
         if self.toChannel:
-            dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" % max, "Are you sure?", style = wx.YES_NO |wx.ICON_QUESTION)
+            dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" % max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
         else:
-            dlg = wx.MessageDialog(self, "This will create %d new .torrents.\nDo you want to continue?" % max, "Are you sure?", style = wx.YES_NO |wx.ICON_QUESTION)
+            dlg = wx.MessageDialog(self, "This will create %d new .torrents.\nDo you want to continue?" % max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
 
         if dlg.ShowModal() == wx.ID_YES:
             dlg.Destroy()
@@ -281,7 +281,7 @@ class CreateTorrent(wx.Dialog):
             params['torrentsigkeypairfilename'] = False
             params['thumb'] = False
 
-            piece_length_list = [0, 2 ** 22, 2 **21, 2**20, 2**19, 2**18, 2**17, 2**16, 2**15]
+            piece_length_list = [0, 2 ** 22, 2 ** 21, 2 ** 20, 2 ** 19, 2 ** 18, 2 ** 17, 2 ** 16, 2 ** 15]
             if self.pieceChoice.GetSelection() != wx.NOT_FOUND:
                 params['piece length'] = piece_length_list[self.pieceChoice.GetSelection()]
             else:
@@ -329,7 +329,7 @@ class CreateTorrent(wx.Dialog):
 
                 nrPieces = total_size / params['piece length']
                 if nrPieces > 2500:
-                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\nThis is more than the recommended max 2500 pieces.\nDo you want to continue?" % nrPieces, "Are you sure?", style = wx.YES_NO |wx.ICON_QUESTION)
+                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\nThis is more than the recommended max 2500 pieces.\nDo you want to continue?" % nrPieces, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
                     if dlg2.ShowModal() == wx.ID_YES:
                         start()
                     dlg2.Destroy()
@@ -456,13 +456,13 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
     if params['makehash_md5']:
-        print >>sys.stderr, "TorrentMaker: make MD5"
+        print >> sys.stderr, "TorrentMaker: make MD5"
         tdef.set_add_md5hash(params['makehash_md5'])
     if params['makehash_crc32']:
-        print >>sys.stderr, "TorrentMaker: make CRC32"
+        print >> sys.stderr, "TorrentMaker: make CRC32"
         tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
-        print >>sys.stderr, "TorrentMaker: make SHA1"
+        print >> sys.stderr, "TorrentMaker: make SHA1"
         tdef.set_add_sha1hash(params['makehash_sha1'])
     if params['createmerkletorrent']:
         tdef.set_create_merkle_torrent(params['createmerkletorrent'])

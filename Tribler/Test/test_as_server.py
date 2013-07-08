@@ -321,9 +321,11 @@ class TestGuiAsServer(TestAsServer):
         for boolean, reason in self.asserts:
             assert boolean, reason
 
-    def screenshot(self, title=None, destdir="output"):
-        app = wx.GetApp()
-        window = app.GetTopWindow()
+    def screenshot(self, title=None, destdir="output", window=None):
+        if window == None:
+            app = wx.GetApp()
+            window = app.GetTopWindow()
+
         rect = window.GetRect()
 
         screen = wx.WindowDC(window)
