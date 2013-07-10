@@ -326,7 +326,9 @@ class TestGuiAsServer(TestAsServer):
             app = wx.GetApp()
             window = app.GetTopWindow()
 
-        rect = window.GetRect()
+        rect = window.GetClientRect()
+        size = window.GetSize()
+        rect = wx.Rect(rect.x, rect.y, size.x, size.y)
 
         screen = wx.WindowDC(window)
         bmp = wx.EmptyBitmap(rect.GetWidth(), rect.GetHeight() + 30)
