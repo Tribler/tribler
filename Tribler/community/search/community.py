@@ -112,7 +112,7 @@ class SearchCommunity(Community):
             active_canidates = [candidate
                                 for candidate
                                 in self._candidates.itervalues()
-                                if candidate.get_category(now) in (u"walk", u"stumble")]
+                                if candidate.dispersy_yield_verified_candidates()]
             if len(active_canidates) > 20:
                 logger.debug("there are %d active non-bootstrap candidates available, prematurely quitting fast walker", len(active_canidates))
                 break
