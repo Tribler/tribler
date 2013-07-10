@@ -45,10 +45,6 @@ class DownloadState(Serializable):
         self.stats = None
         self.length = None
 
-        # For get_files_completion()
-        if stats and stats.get('stats', None) and self.filepieceranges:
-            self.haveslice_total = stats['stats'].have
-
         if stats is None:
             # No info available yet from download engine
             if DEBUG:
@@ -98,40 +94,39 @@ class DownloadState(Serializable):
             #
             self.stats = stats
 
+        if stats and stats.get('stats', None):
             # for pieces complete
-            statsobj = self.stats['stats']
-            if statsobj is not None:
-                if self.filepieceranges is None or len(self.filepieceranges) == 0:
-                    self.haveslice = statsobj.have  # is copy of network engine list
-                else:
-                    selected_files = self.download.get_selected_files()
-                    # Show only pieces complete for the selected ranges of files
-                    totalpieces = 0
-                    for t, tl, o, f in self.filepieceranges:
-                        if f in selected_files or not selected_files:
-                            diff = tl - t
-                            totalpieces += diff
+            if not self.filepieceranges:
+                self.haveslice = stats['stats'].have  # is copy of network engine list
+            else:
+                # For get_files_completion()
+                self.haveslice_total = stats['stats'].have
 
-                    # print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
-                    haveslice = [False] * totalpieces
-                    have = 0
-                    index = 0
-                    for t, tl, o, f in self.filepieceranges:
-                        if f in selected_files or not selected_files:
-                            for piece in range(t, tl):
-                                haveslice[index] = statsobj.have[piece]
-                                if haveslice[index]:
-                                    have += 1
+                selected_files = self.download.get_selected_files()
+                # Show only pieces complete for the selected ranges of files
+                totalpieces = 0
+                for t, tl, o, f in self.filepieceranges:
+                    if f in selected_files or not selected_files:
+                        diff = tl - t
+                        totalpieces += diff
 
-                                index += 1
-                    self.haveslice = haveslice
-                    if have == len(haveslice):
-                        # we have all pieces of the selected files
-                        self.status = DLSTATUS_SEEDING
-                        self.progress = 1.0
+                # print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
+                haveslice = [False] * totalpieces
+                have = 0
+                index = 0
+                for t, tl, o, f in self.filepieceranges:
+                    if f in selected_files or not selected_files:
+                        for piece in range(t, tl):
+                            haveslice[index] = stats['stats'].have[piece]
+                            if haveslice[index]:
+                                have += 1
 
-                    else:
-                        self.progress = have / float(len(haveslice))
+                            index += 1
+                self.haveslice = haveslice
+                if have == len(haveslice):
+                    # we have all pieces of the selected files
+                    self.status = DLSTATUS_SEEDING
+                    self.progress = 1.0
 
     def get_download(self):
         """ Returns the Download object of which this is the state """

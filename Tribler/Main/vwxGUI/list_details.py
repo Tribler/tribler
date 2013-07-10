@@ -1971,7 +1971,7 @@ class ProgressPanel(wx.BoxSizer):
             self.status.Refresh()
 
         if self.show_bar:
-            if not status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+            if not status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]:
                 havedigest = ds.get_pieces_complete()
             else:
                 havedigest = None
