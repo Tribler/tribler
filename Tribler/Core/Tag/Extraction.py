@@ -11,6 +11,7 @@ from Tribler.Core.Tag.StopwordsFilter import StopwordsFilter
 import re
 import threading
 
+
 class TermExtraction:
     __single = None
     lock = threading.Lock()
@@ -26,7 +27,7 @@ class TermExtraction:
                 TermExtraction.lock.release()
         return TermExtraction.__single
     getInstance = staticmethod(getInstance)
-    
+
     def delInstance(*args, **kw):
         # Singleton pattern with double-checking
         if TermExtraction.__single:
@@ -37,7 +38,7 @@ class TermExtraction:
 
     def __init__(self, install_dir='.'):
         if TermExtraction.__single is not None:
-            raise RuntimeError, "TermExtraction is singleton"
+            raise RuntimeError("TermExtraction is singleton")
         TermExtraction.__single = self
 
         filterfn = os.path.join(install_dir, LIBRARYNAME, 'Core', 'Tag', 'stop_snowball.filter')
@@ -52,7 +53,7 @@ class TermExtraction:
     def extractTerms(self, name_or_keywords):
         """
         Extracts the terms from a torrent name.
-        
+
         @param name_or_keywords The name of the torrent. Alternatively, you may
         pass a list of keywords (i.e., the name split into words using split_into_keywords).
         @return A list of extracted terms in order of occurence. The list may contain duplicates
@@ -69,7 +70,7 @@ class TermExtraction:
         """
         Extracts a bi-term phrase from a torrent name. Currently, this phrase consists
         of the first two terms extracted from it.
-        
+
         @param name_or_keywords The name of the torrent. Alternatively, you may
         pass a list of keywords (i.e., the name split into words using split_into_keywords).
         @return A tuple containing the two terms of the bi-term phrase. If there is no bi-term,
@@ -91,7 +92,7 @@ class TermExtraction:
                describe a year from the 20th or 21st century.
             4. Does not describe an episode (s##e##).
             5. Term is not equal to www, net, com, or org.
-        
+
         @return True iff a term is suitable.
         """
         if len(term) < 3:

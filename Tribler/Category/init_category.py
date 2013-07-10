@@ -5,6 +5,7 @@
 
 import ConfigParser
 
+
 def splitList(string):
     l = []
     for word in string.split(","):
@@ -24,14 +25,16 @@ init_fun["strength"] = float
 init_fun["displayname"] = str
 init_fun["rank"] = int
 
+
 def getDefault():
     category = {}
     category["name"] = ""
-    category["keywords"] ={}
+    category["keywords"] = {}
     category["suffix"] = []
     category["minfilesize"] = 0
     category["maxfilesize"] = -1
     return category
+
 
 def getCategoryInfo(filename):
     config = ConfigParser.ConfigParser()

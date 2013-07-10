@@ -12,6 +12,7 @@ except:
     True = 1
     False = 0
 
+
 def toint(s):
     return long(b2a_hex(s), 16)
 
@@ -19,12 +20,15 @@ default_task_id = []
 
 DEBUG = False
 
+
 def show(s):
-    for i in xrange(len(s)): 
+    for i in xrange(len(s)):
         print ord(s[i]),
     print
 
+
 class SingleRawServer:
+
     def __init__(self, info_hash, multihandler, doneflag, protocol):
         self.info_hash = info_hash
         self.doneflag = doneflag
@@ -42,7 +46,7 @@ class SingleRawServer:
 
     def _shutdown(self):
         if DEBUG:
-            print >>sys.stderr,"SingleRawServer: _shutdown"
+            print >>sys.stderr, "SingleRawServer: _shutdown"
         if not self.finished:
             self.finished = True
             self.running = False
@@ -52,32 +56,32 @@ class SingleRawServer:
 
     def _external_connection_made(self, c, options, msg_remainder):
         if DEBUG:
-            print >> sys.stderr,"SingleRawServer: _external_conn_made, running?",self.running
+            print >> sys.stderr, "SingleRawServer: _external_conn_made, running?", self.running
         if self.running:
             c.set_handler(self.handler)
             self.handler.externally_handshaked_connection_made(
                 c, options, msg_remainder)
 
-    ### RawServer functions ###
+    # RawServer functions ###
 
-    def add_task(self, func, delay=0, id = default_task_id):
+    def add_task(self, func, delay=0, id=default_task_id):
         if id is default_task_id:
             id = self.info_hash
         if not self.finished:
             self.rawserver.add_task(func, delay, id)
 
 #    def bind(self, port, bind = '', reuse = False):
-#        pass    # not handled here
-        
-    def start_connection(self, dns, handler = None):
+# pass    # not handled here
+
+    def start_connection(self, dns, handler=None):
         if not handler:
             handler = self.handler
         c = self.rawserver.start_connection(dns, handler)
         return c
 
 #    def listen_forever(self, handler):
-#        pass    # don't call with this
-    
+# pass    # don't call with this
+
     def start_listening(self, handler):
         self.handler = handler    # Encoder
         self.running = True
@@ -89,7 +93,9 @@ class SingleRawServer:
     def get_exception_flag(self):
         return self.rawserver.get_exception_flag()
 
+
 class NewSocketHandler:     # hand a new socket off where it belongs
+
     def __init__(self, multihandler, connection):    # connection: SingleSocket
         self.multihandler = multihandler
         self.connection = connection
@@ -103,20 +109,20 @@ class NewSocketHandler:     # hand a new socket off where it belongs
     def _auto_close(self):
         if not self.complete:
             self.close()
-        
+
     def close(self):
         if not self.closed:
             self.connection.close()
             self.closed = True
 
     # copied from Encrypter and modified
-    
+
     def read_header_len(self, s):
         if s == 'G':
             self.protocol = 'HTTP'
             self.firstbyte = s
             if DEBUG:
-                print >>sys.stderr,"NewSocketHandler: Got HTTP connection"
+                print >>sys.stderr, "NewSocketHandler: Got HTTP connection"
             return True
         else:
             l = ord(s)
@@ -132,14 +138,14 @@ class NewSocketHandler:     # hand a new socket off where it belongs
 
     def read_download_id(self, s):
         if DEBUG:
-            print >>sys.stderr,"NewSocketHandler: Swarm id is",`s`,self.connection.socket.getpeername()
-        if self.multihandler.singlerawservers.has_key(s):
+            print >>sys.stderr, "NewSocketHandler: Swarm id is", repr(s), self.connection.socket.getpeername()
+        if s in self.multihandler.singlerawservers:
             if self.multihandler.singlerawservers[s].protocol == self.protocol:
                 if DEBUG:
-                    print >>sys.stderr,"NewSocketHandler: Found rawserver for swarm id"
+                    print >>sys.stderr, "NewSocketHandler: Found rawserver for swarm id"
                 return True
         if DEBUG:
-            print >>sys.stderr,"NewSocketHandler: No rawserver found for swarm id",`s`
+            print >>sys.stderr, "NewSocketHandler: No rawserver found for swarm id", repr(s)
         return None
 
     def read_dead(self, s):
@@ -148,7 +154,7 @@ class NewSocketHandler:     # hand a new socket off where it belongs
     def data_came_in(self, garbage, s):
 #        if DEBUG:
 #            print "NewSocketHandler data came in", sha(s).hexdigest()
-        while 1:
+        while True:
             if self.closed:
                 return
             i = self.next_len - self.buffer.tell()
@@ -167,19 +173,19 @@ class NewSocketHandler:     # hand a new socket off where it belongs
                 raise
             if x is None:
                 if DEBUG:
-                    print >> sys.stderr,"NewSocketHandler:",self.next_func,"returned None"
+                    print >> sys.stderr, "NewSocketHandler:", self.next_func, "returned None"
                 self.close()
                 return
             if x == True:       # ready to process
                 if self.protocol == 'HTTP' and self.multihandler.httphandler:
                     if DEBUG:
-                        print >> sys.stderr,"NewSocketHandler: Reporting HTTP connection"
+                        print >> sys.stderr, "NewSocketHandler: Reporting HTTP connection"
                     self.multihandler.httphandler.external_connection_made(self.connection)
-                    self.multihandler.httphandler.data_came_in(self.connection,self.firstbyte)
-                    self.multihandler.httphandler.data_came_in(self.connection,s)
+                    self.multihandler.httphandler.data_came_in(self.connection, self.firstbyte)
+                    self.multihandler.httphandler.data_came_in(self.connection, s)
                 else:
                     if DEBUG:
-                        print >> sys.stderr,"NewSocketHandler: Reporting connection via",self.multihandler.singlerawservers[m]._external_connection_made
+                        print >> sys.stderr, "NewSocketHandler: Reporting connection via", self.multihandler.singlerawservers[m]._external_connection_made
                     self.multihandler.singlerawservers[m]._external_connection_made(self.connection, self.options, s)
                 self.complete = True
                 return
@@ -191,7 +197,9 @@ class NewSocketHandler:     # hand a new socket off where it belongs
     def connection_lost(self, ss):
         self.closed = True
 
+
 class MultiHandler:
+
     def __init__(self, rawserver, doneflag):
         self.rawserver = rawserver
         self.masterdoneflag = doneflag
@@ -207,23 +215,23 @@ class MultiHandler:
 
     def shutdown_torrent(self, info_hash):
         if DEBUG:
-            print >>sys.stderr,"MultiHandler: shutdown_torrent",`info_hash`
+            print >>sys.stderr, "MultiHandler: shutdown_torrent", repr(info_hash)
         self.singlerawservers[info_hash]._shutdown()
         del self.singlerawservers[info_hash]
 
     def listen_forever(self):
         if DEBUG:
-            print >>sys.stderr,"MultiHandler: listen_forever()"
+            print >>sys.stderr, "MultiHandler: listen_forever()"
         self.rawserver.listen_forever(self)
         for srs in self.singlerawservers.values():
             srs.finished = True
             srs.running = False
             srs.doneflag.set()
 
-    def set_httphandler(self,httphandler):
+    def set_httphandler(self, httphandler):
         self.httphandler = httphandler
-        
-    ### RawServer handler functions ###
+
+    # RawServer handler functions ###
     # be wary of name collisions
 
     def external_connection_made(self, ss):

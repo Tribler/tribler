@@ -4,10 +4,12 @@
 import sys
 import threading
 from Tribler.Test.API.test_seeding import TestSeeding
-from Tribler.Core.simpledefs import dlstatus_strings, VODEVENT_START
+from Tribler.Core.simpledefs import dlstatus_strings, DLMODE_VOD, VODEVENT_START
 import unittest
 
+
 class TestVODSeeding(TestSeeding):
+
     """
     Testing seeding via new tribler API:
     """
@@ -20,12 +22,13 @@ class TestVODSeeding(TestSeeding):
 
     def subtest_download(self):
         self.dscfg2.set_video_event_callback(self.downloader_vod_ready_callback)
+        self.dscfg2.set_mode(DLMODE_VOD)
         TestSeeding.subtest_download(self)
         assert self.vod_event.wait(60)
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
+        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
 
         if ds.get_progress() > 0:
             self.downloading_event.set()

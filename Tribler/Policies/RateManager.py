@@ -8,11 +8,13 @@ from traceback import print_exc
 
 
 from Tribler.Core.simpledefs import *
+from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 DEBUG = False
 
 
 class RateManager:
+
     def __init__(self):
         self.lock = RLock()
         self.statusmap = {}
@@ -23,7 +25,7 @@ class RateManager:
     def add_downloadstate(self, ds):
         """ Returns the number of unique states currently stored """
         if DEBUG:
-            print >> sys.stderr, "RateManager: add_downloadstate", `ds.get_download().get_def().get_infohash()`
+            print >> sys.stderr, "RateManager: add_downloadstate", repr(ds.get_download().get_def().get_infohash())
 
         self.lock.acquire()
         try:
@@ -76,6 +78,7 @@ class RateManager:
 
 
 class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
+
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
@@ -91,6 +94,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         self.global_max_speed[UPLOAD] = 0.0
         self.global_max_speed[DOWNLOAD] = 0.0
         self.global_max_seedupload_speed = 0.0
+        self.ltmgr = LibtorrentMgr.getInstance()
 
     def set_global_max_speed(self, direct, speed):
         self.lock.acquire()
@@ -135,41 +139,39 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
             for ds in workingset:
                 d = ds.get_download()
                 d.set_max_speed(dir, d.get_max_desired_speed(dir))
-            return
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: globalmaxspeed is", globalmaxspeed, dir
-
-        # User set priority is always granted, ignoring global limit
-        todoset = []
-        for ds in workingset:
-            d = ds.get_download()
-            maxdesiredspeed = d.get_max_desired_speed(dir)
-            if maxdesiredspeed > 0.0:
-                d.set_max_speed(dir, maxdesiredspeed)
-            else:
-                todoset.append(ds)
-
-        if len(todoset) > 0:
-            # Rest divides globalmaxspeed equally
-            localmaxspeed = globalmaxspeed / float(len(todoset))
-            # if too small than user's problem
-
-            if DEBUG:
-                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: localmaxspeed is", localmaxspeed, dir
-
-            for ds in todoset:
-                d = ds.get_download()
-                d.set_max_speed(dir, localmaxspeed)
-
-
-        ltmgr = LibtorrentMgr.getInstance()
-        rate = self.global_max_speed[direct]  # unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = -1 if rate == 0 else (0.0001 if rate == -1 else rate * 1024)
-        if dir == upload:
-            ltmgr.set_upload_rate_limit(libtorrent_rate)
         else:
-            ltmgr.set_download_rate_limit(libtorrent_rate)
+            if DEBUG:
+                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: globalmaxspeed is", globalmaxspeed, dir
+
+            # User set priority is always granted, ignoring global limit
+            todoset = []
+            for ds in workingset:
+                d = ds.get_download()
+                maxdesiredspeed = d.get_max_desired_speed(dir)
+                if maxdesiredspeed > 0.0:
+                    d.set_max_speed(dir, maxdesiredspeed)
+                else:
+                    todoset.append(ds)
+
+            if len(todoset) > 0:
+                # Rest divides globalmaxspeed equally
+                localmaxspeed = globalmaxspeed / float(len(todoset))
+                # if too small than user's problem
+
+                if DEBUG:
+                    print >> sys.stderr, "RateManager: calc_and_set_speed_limits: localmaxspeed is", localmaxspeed, dir
+
+                for ds in todoset:
+                    d = ds.get_download()
+                    d.set_max_speed(dir, localmaxspeed)
+
+        rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
+        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+        if dir == UPLOAD:
+            self.ltmgr.set_upload_rate_limit(libtorrent_rate)
+        else:
+            self.ltmgr.set_download_rate_limit(libtorrent_rate)
 
     def get_global_max_speed(self, dir=UPLOAD):
         if dir == UPLOAD and len(self.statusmap[DLSTATUS_DOWNLOADING]) == 0 and len(self.statusmap[DLSTATUS_SEEDING]) > 0:
@@ -178,7 +180,9 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
         else:
             return self.global_max_speed[dir]
 
+
 class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager):
+
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
@@ -232,79 +236,88 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
             for ds in workingset:
                 d = ds.get_download()
                 d.set_max_speed(dir, d.get_max_desired_speed(dir))
-            return
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: globalmaxspeed is", globalmaxspeed, dir
-
-        # User set priority is always granted, ignoring global limit
-        todoset = []
-        for ds in workingset:
-            d = ds.get_download()
-            maxdesiredspeed = d.get_max_desired_speed(dir)
-            if maxdesiredspeed > 0.0:
-                d.set_max_speed(dir, maxdesiredspeed)
-            else:
-                todoset.append(ds)
-
-        if len(todoset) > 0:
-            # Rest divides globalmaxspeed based on their demand
-            localmaxspeed = globalmaxspeed / float(len(todoset))
-            # if too small than user's problem
-
+        else:
             if DEBUG:
-                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: localmaxspeed is", localmaxspeed, dir
+                print >> sys.stderr, "RateManager: calc_and_set_speed_limits: globalmaxspeed is", globalmaxspeed, dir
 
-            # See if underutilizers and overutilizers. If not, just divide equally
-            downloadsatmax = False
-            downloadsunderutil = False
-            for ds in todoset:
+            # User set priority is always granted, ignoring global limit
+            todoset = []
+            for ds in workingset:
                 d = ds.get_download()
-                currspeed = ds.get_current_speed(dir)
-                currmaxspeed = d.get_max_speed(dir)
+                maxdesiredspeed = d.get_max_desired_speed(dir)
+                if maxdesiredspeed > 0.0:
+                    d.set_max_speed(dir, maxdesiredspeed)
+                else:
+                    todoset.append(ds)
 
-                newmaxspeed = currspeed + self.ROOM
-                if currspeed >= (currmaxspeed - 3.0):  # dl needs more
-                    downloadsatmax = True
-                elif newmaxspeed < localmaxspeed:  # dl got quota to spare
-                    downloadsunderutil = True
+            if len(todoset) > 0:
+                # Rest divides globalmaxspeed based on their demand
+                localmaxspeed = globalmaxspeed / float(len(todoset))
+                # if too small than user's problem
 
-            if downloadsatmax and downloadsunderutil:
-                totalunused = 0.0
-                todoset2 = []
+                if DEBUG:
+                    print >> sys.stderr, "RateManager: calc_and_set_speed_limits: localmaxspeed is", localmaxspeed, dir
+
+                # See if underutilizers and overutilizers. If not, just divide equally
+                downloadsatmax = False
+                downloadsunderutil = False
                 for ds in todoset:
                     d = ds.get_download()
                     currspeed = ds.get_current_speed(dir)
+                    currmaxspeed = d.get_max_speed(dir)
 
                     newmaxspeed = currspeed + self.ROOM
-                    if newmaxspeed < localmaxspeed:
-                        # If unterutilizing:
-                        totalunused += (localmaxspeed - newmaxspeed)
-                        # Give current speed + 5.0 KB/s extra so it can grow
-                        print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Underutil set to", newmaxspeed
-                        d.set_max_speed(dir, newmaxspeed)
-                    else:
-                        todoset2.append(ds)
+                    if currspeed >= (currmaxspeed - 3.0):  # dl needs more
+                        downloadsatmax = True
+                    elif newmaxspeed < localmaxspeed:  # dl got quota to spare
+                        downloadsunderutil = True
 
-                # Divide the unused bandwidth equally amongst others
-                if len(todoset2) > 0:
-                    pie = float(len(todoset2)) * localmaxspeed + totalunused
-                    piece = pie / float(len(todoset2))
+                if downloadsatmax and downloadsunderutil:
+                    totalunused = 0.0
+                    todoset2 = []
                     for ds in todoset:
                         d = ds.get_download()
-                        print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Overutil set to", piece
-                        d.set_max_speed(dir, piece)
+                        currspeed = ds.get_current_speed(dir)
+
+                        newmaxspeed = currspeed + self.ROOM
+                        if newmaxspeed < localmaxspeed:
+                            # If unterutilizing:
+                            totalunused += (localmaxspeed - newmaxspeed)
+                            # Give current speed + 5.0 KB/s extra so it can grow
+                            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Underutil set to", newmaxspeed
+                            d.set_max_speed(dir, newmaxspeed)
+                        else:
+                            todoset2.append(ds)
+
+                    # Divide the unused bandwidth equally amongst others
+                    if len(todoset2) > 0:
+                        pie = float(len(todoset2)) * localmaxspeed + totalunused
+                        piece = pie / float(len(todoset2))
+                        for ds in todoset:
+                            d = ds.get_download()
+                            print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Overutil set to", piece
+                            d.set_max_speed(dir, piece)
+                    else:
+                        # what the f? No overutilizers now?
+                        print >> sys.stderr, "UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager: Internal error: No overutilizers anymore?"
                 else:
-                    # what the f? No overutilizers now?
-                    print >> sys.stderr, "UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager: Internal error: No overutilizers anymore?"
-            else:
-                # No over and under utilizers, just divide equally
-                for ds in todoset:
-                    d = ds.get_download()
-                    print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Normal set to", piece
-                    d.set_max_speed(dir, localmaxspeed)
+                    # No over and under utilizers, just divide equally
+                    for ds in todoset:
+                        d = ds.get_download()
+                        print >> sys.stderr, "RateManager: calc_and_set_speed_limits: Normal set to", piece
+                        d.set_max_speed(dir, localmaxspeed)
+
+        rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
+        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+        if dir == UPLOAD:
+            self.ltmgr.set_upload_rate_limit(libtorrent_rate)
+        else:
+            self.ltmgr.set_download_rate_limit(libtorrent_rate)
+
 
 class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager):
+
     """ This class implements a simple rate management policy that:
     1. If the API user set a desired speed for a particular download,
        the speed limit for this download is set to the desired value.
@@ -359,7 +372,6 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
         if DEBUG:
             print >> sys.stderr, "RateManager: set_lim: globalmaxspeed is", globalmaxspeed, dir
 
-
         # See if global speed settings are set to unlimited
         if globalmaxspeed == 0:
             # Unlimited speed
@@ -369,47 +381,54 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
             for ds in inactiveset:
                 d = ds.get_download()
                 d.set_max_speed(dir, d.get_max_desired_speed(dir))  # 0 is default
-            return
 
-        if DEBUG:
-            print >> sys.stderr, "RateManager: set_lim: globalmaxspeed is", globalmaxspeed, dir
-
-        # User set priority is always granted, ignoring global limit
-        todoset = []
-        for ds in workingset:
-            d = ds.get_download()
-            maxdesiredspeed = d.get_max_desired_speed(dir)
-            if maxdesiredspeed > 0.0:
-                d.set_max_speed(dir, maxdesiredspeed)
-            else:
-                todoset.append(ds)
-
-        if len(todoset) > 0:
-            # Rest divides globalmaxspeed based on their demand
-            localmaxspeed = globalmaxspeed / float(len(todoset))
-            # if too small than user's problem
-
+        else:
             if DEBUG:
-                print >> sys.stderr, "RateManager: set_lim: localmaxspeed is", localmaxspeed, dir
+                print >> sys.stderr, "RateManager: set_lim: globalmaxspeed is", globalmaxspeed, dir
 
-            for ds in todoset:
+            # User set priority is always granted, ignoring global limit
+            todoset = []
+            for ds in workingset:
                 d = ds.get_download()
-                if DEBUG:
-                    print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "WorkQ", localmaxspeed
-                d.set_max_speed(dir, localmaxspeed)
+                maxdesiredspeed = d.get_max_desired_speed(dir)
+                if maxdesiredspeed > 0.0:
+                    d.set_max_speed(dir, maxdesiredspeed)
+                else:
+                    todoset.append(ds)
 
-        # For inactives set limit to user desired, with max of globalmaxspeed
-        # or to globalmaxspeed. This way the peers have a limit already set
-        # when the first peers arrive. The height of the limit will be corrected
-        # here a few seconds later (see BaseApp ratelimiter).
-        #
-        for ds in inactiveset:
-            d = ds.get_download()
-            desspeed = d.get_max_desired_speed(dir)
-            if desspeed == 0:
-                setspeed = globalmaxspeed
-            else:
-                setspeed = min(desspeed, globalmaxspeed)
-            if DEBUG:
-                print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "InactQ", setspeed
-            d.set_max_speed(dir, setspeed)
+            if len(todoset) > 0:
+                # Rest divides globalmaxspeed based on their demand
+                localmaxspeed = globalmaxspeed / float(len(todoset))
+                # if too small than user's problem
+
+                if DEBUG:
+                    print >> sys.stderr, "RateManager: set_lim: localmaxspeed is", localmaxspeed, dir
+
+                for ds in todoset:
+                    d = ds.get_download()
+                    if DEBUG:
+                        print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "WorkQ", localmaxspeed
+                    d.set_max_speed(dir, localmaxspeed)
+
+            # For inactives set limit to user desired, with max of globalmaxspeed
+            # or to globalmaxspeed. This way the peers have a limit already set
+            # when the first peers arrive. The height of the limit will be corrected
+            # here a few seconds later (see BaseApp ratelimiter).
+            #
+            for ds in inactiveset:
+                d = ds.get_download()
+                desspeed = d.get_max_desired_speed(dir)
+                if desspeed == 0:
+                    setspeed = globalmaxspeed
+                else:
+                    setspeed = min(desspeed, globalmaxspeed)
+                if DEBUG:
+                    print >> sys.stderr, "RateManager: set_lim:", d.get_def().get_name(), "InactQ", setspeed
+                d.set_max_speed(dir, setspeed)
+
+        rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
+        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+        if dir == UPLOAD:
+            self.ltmgr.set_upload_rate_limit(libtorrent_rate)
+        else:
+            self.ltmgr.set_download_rate_limit(libtorrent_rate)

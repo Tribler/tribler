@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#########################################################################
+#
 #
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 #
@@ -10,10 +10,9 @@
 #               need Python, WxPython in order to run from source code.
 #
 # see LICENSE.txt for license information
-#########################################################################
+#
 
 import logging.config
-logging.config.fileConfig("logger.conf")  # , disable_existing_loggers = False)
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -36,10 +35,10 @@ urllib.URLopener.open_https = original_open_https
 # modify the sys.stderr and sys.stdout for safe output
 import Tribler.Debug.console
 
-import os, sys
+import os
+import sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.decorator import attach_profiler
 from Tribler.dispersy.community import HardKilledCommunity
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
@@ -50,7 +49,7 @@ from threading import current_thread, currentThread
 try:
     prctlimported = True
     import prctl
-except ImportError, e:
+except ImportError as e:
     prctlimported = False
 
 # Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
@@ -81,7 +80,7 @@ import thread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame, VideoMacFrame
-# # from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
+# from Tribler.Main.vwxGUI.FriendsItemPanel import fs2text
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.notification import init as notification_init
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
@@ -130,14 +129,17 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = False
 
-##############################################################
+#
 #
 # Class : ABCApp
 #
 # Main ABC application class that contains ABCFrame Object
 #
-##############################################################
+#
+
+
 class ABCApp():
+
     def __init__(self, params, single_instance_checker, installdir):
         self.params = params
         self.single_instance_checker = single_instance_checker
@@ -169,7 +171,7 @@ class ABCApp():
         self.videoplayer = None
 
         try:
-            bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Images', 'splash.png'), wx.BITMAP_TYPE_ANY)
+            bm = wx.Bitmap(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'splash.png'), wx.BITMAP_TYPE_ANY)
             self.splash = GaugeSplash(bm)
             self.splash.setTicks(10)
             self.splash.Show()
@@ -180,12 +182,15 @@ class ABCApp():
             self.splash.tick('Starting API')
             s = self.startAPI(self.splash.tick)
 
+            print >> sys.stderr, "Tribler is expecting swift in", self.sconfig.get_swift_path()
+
             self.dispersy = s.lm.dispersy
 
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
             self.utility.session = s
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
+            GUIDBProducer.getInstance(self.dispersy.callback)
 
             print >> sys.stderr, 'Tribler Version:', self.utility.lang.get('version'), ' Build:', self.utility.lang.get('build')
 
@@ -238,7 +243,7 @@ class ABCApp():
             # crashes.
             self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
 
-            self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Images', 'tribler.ico'))
+            self.utility.postAppInit(os.path.join(self.installdir, 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'))
 
             # Put it here so an error is shown in the startup-error popup
             # Start server for instance2instance communication
@@ -324,8 +329,8 @@ class ABCApp():
 
             status = get_status_holder("LivingLab")
             status.add_reporter(NullReporter("Periodically remove all events", 0))
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-#            status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
+# status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
 
             # report client version
             status.create_and_add_event("client-startup-version", [self.utility.lang.get("version")])
@@ -334,7 +339,7 @@ class ABCApp():
 
             self.ready = True
 
-        except Exception, e:
+        except Exception as e:
             self.onError(e)
             return False
 
@@ -365,6 +370,7 @@ class ABCApp():
 
         # initialize the torrent feed thread
         channelcast = ChannelCastDBHandler.getInstance()
+
         def db_thread():
             return channelcast.getMyChannelId()
 
@@ -393,16 +399,10 @@ class ABCApp():
             self.sconfig = SessionStartupConfig()
             self.sconfig.set_state_dir(state_dir)
 
+        self.sconfig.set_install_dir(self.installdir)
+
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
-
-        # Arno, 2012-05-04: swift
-        if not self.sconfig.get_swift_tunnel_listen_port():
-            self.sconfig.set_swift_tunnel_listen_port(7758)
-        if not self.sconfig.get_swift_tunnel_httpgw_listen_port():
-            self.sconfig.set_swift_tunnel_httpgw_listen_port(17758)
-        if not self.sconfig.get_swift_tunnel_cmdgw_listen_port():
-            self.sconfig.set_swift_tunnel_cmdgw_listen_port(27758)
 
         # Arno, 2012-05-21: Swift part II
         swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
@@ -410,10 +410,9 @@ class ABCApp():
             if not os.path.exists(swiftbinpath):
                 swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
         self.sconfig.set_swift_path(swiftbinpath)
-        print >> sys.stderr, "Tribler is expecting swift in", swiftbinpath
 
-        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         progress('Loading downloadconfig')
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         if DEBUG:
             print >> sys.stderr, "main: Download config", dlcfgfilename
         try:
@@ -423,19 +422,17 @@ class ABCApp():
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
-
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
             os.makedirs(defaultDLConfig.get_dest_dir())
 
-        # 15/05/12 niels: fixing swift port
-        defaultDLConfig.set_swift_listen_port(7758)
-
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
-            torrcolldir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR)
-            self.sconfig.set_torrent_collecting_dir(torrcolldir)
+            self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
+        if not self.sconfig.get_swift_meta_dir():
+            self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
-        self.sconfig.set_install_dir(self.installdir)
+        # 15/05/12 niels: fixing swift port
+        defaultDLConfig.set_swift_listen_port(7758)
 
         progress('Creating session/Checking database (may take a minute)')
         s = Session(self.sconfig)
@@ -450,16 +447,17 @@ class ABCApp():
 
             # must be called on the Dispersy thread
             dispersy.define_auto_load(SearchCommunity,
-                                           (s.dispersy_member,),
-                                           load=True)
+                                     (s.dispersy_member,),
+                                     load=True)
             dispersy.define_auto_load(AllChannelCommunity,
                                            (s.dispersy_member,),
-                                           {"auto_join_channel":True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
+                                           {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
             if swift_process:
                 dispersy.define_auto_load(BarterCommunity,
                                           (swift_process,),
                                           load=True)
+
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
 
@@ -556,12 +554,12 @@ class ABCApp():
             if DEBUG:
                 if self.ratestatecallbackcount % 5 == 0:
                     for ds in dslist:
-                        safename = `ds.get_download().get_def().get_name()`
+                        safename = repr(ds.get_download().get_def().get_name())
                         if DEBUG:
                             print >> sys.stderr, "%s %s %.1f%% dl %.1f ul %.1f n %d" % (safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
                         # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
                         if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            print >> sys.stderr, "main: Error:", `ds.get_error()`
+                            print >> sys.stderr, "main: Error:", repr(ds.get_error())
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
@@ -604,38 +602,13 @@ class ABCApp():
             # Apply status displaying from SwarmPlayer
             if playds:
                 def do_video():
-                    videoplayer_mediastate = self.videoplayer.get_state()
-
-                    totalhelping = 0
-                    totalspeed = {UPLOAD:0.0, DOWNLOAD:0.0}
-                    for ds in dslist:
-                        totalspeed[UPLOAD] += ds.get_current_speed(UPLOAD)
-                        totalspeed[DOWNLOAD] += ds.get_current_speed(DOWNLOAD)
-                        totalhelping += ds.get_num_peers()
-
-                    [topmsg, msg, self.said_start_playback, self.decodeprogress] = get_status_msgs(playds, videoplayer_mediastate, "Tribler", self.said_start_playback, self.decodeprogress, totalhelping, totalspeed)
-                    # Update status msg and progress bar
-                    if topmsg != '':
-
-                        if videoplayer_mediastate == MEDIASTATE_PLAYING or (videoplayer_mediastate == MEDIASTATE_STOPPED and self.said_start_playback):
-                            # In SwarmPlayer we would display "Decoding: N secs"
-                            # when VLC was playing but the video was not yet
-                            # being displayed (because VLC was looking for an
-                            # I-frame). We would display it in the area where
-                            # VLC would paint if it was ready to display.
-                            # Hence, our text would be overwritten when the
-                            # video was ready. We write the status text to
-                            # its own area here, so trick doesn't work.
-                            # For now: just hide.
-                            text = msg
-                        else:
-                            text = topmsg
+                    if playds.get_status() == DLSTATUS_HASHCHECKING:
+                        progress = progress_consec = playds.get_progress()
                     else:
-                        text = msg
-
-                    # print >>sys.stderr,"main: Messages",topmsg,msg,`playds.get_download().get_def().get_name()`
-                    playds.vod_status_msg = text
-                    self.videoplayer.set_player_status_and_progress(text, playds.get_pieces_complete())
+                        progress = playds.get_vod_prebuffering_progress()
+                        progress_consec = playds.get_vod_prebuffering_progress_consec()
+                    self.videoplayer.set_player_status_and_progress(progress, progress_consec, \
+                                                                    playds.get_pieces_complete() if playds.get_progress() < 1.0 else [True])
                 wx.CallAfter(do_video)
 
             # Check to see if a download has finished
@@ -672,11 +645,6 @@ class ABCApp():
                 self.utility.session.checkpoint()
 
             self.seedingmanager.apply_seeding_policy(no_collected_list)
-
-            # The VideoPlayer instance manages both pausing and
-            # restarting of torrents before and after VOD playback
-            # occurs.
-            self.videoplayer.restart_other_downloads(no_collected_list)
 
             # Adjust speeds once every 4 seconds
             adjustspeeds = False
@@ -896,6 +864,7 @@ class ABCApp():
             self.i2is.shutdown()
         if self.torrentfeed:
             self.torrentfeed.shutdown()
+            self.torrentfeed.delInstance()
         if self.webUI:
             self.webUI.stop()
         if self.guiserver:
@@ -943,6 +912,7 @@ class ABCApp():
         Session.del_instance()
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
+        DefaultDownloadStartupConfig.delInstance()
 
         if SQLiteCacheDB.hasInstance():
             SQLiteCacheDB.getInstance().close_all()
@@ -1041,7 +1011,7 @@ class ABCApp():
             # 2. Convert to swift def
             sdef = SwiftDef()
             # RESEEDTODO: set to swift inf of pymDHT
-            sdef.set_tracker("127.0.0.1:9999")
+            sdef.set_tracker("127.0.0.1:%d" % self.sconfig.get_swift_dht_listen_port())
             iotuples = td.get_dest_files()
             for i, o in iotuples:
                 # print >>sys.stderr,"python: add_content",i,o
@@ -1057,11 +1027,7 @@ class ABCApp():
             specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
 
             # 3. Save swift files to metadata dir
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            metadir = os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR)
-            if not os.path.exists(metadir):
-                os.makedirs(metadir)
-
+            metadir = self.sconfig.get_swift_meta_dir()
             if len(iotuples) == 1:
                 storagepath = iotuples[0][1]  # Point to file on disk
                 metapath = os.path.join(metadir, os.path.split(storagepath)[1])
@@ -1094,148 +1060,16 @@ class ABCApp():
             print_exc()
             raise
 
-def get_status_msgs(ds, videoplayer_mediastate, appname, said_start_playback, decodeprogress, totalhelping, totalspeed):
 
-    intime = "Not playing for quite some time."
-    ETA = ((60 * 15, "Playing in less than 15 minutes."),
-           (60 * 10, "Playing in less than 10 minutes."),
-           (60 * 5, "Playing in less than 5 minutes."),
-           (60, "Playing in less than a minute."))
-
-    topmsg = ''
-    msg = ''
-
-    logmsgs = ds.get_log_messages()
-    logmsg = None
-    if DEBUG and len(logmsgs) > 0:
-        print >> sys.stderr, "main: Log", logmsgs[0]
-        logmsg = logmsgs[-1][1]
-
-    preprogress = ds.get_vod_prebuffering_progress()
-    playable = ds.get_vod_playable()
-    t = ds.get_vod_playable_after()
-
-    intime = ETA[0][1]
-    for eta_time, eta_msg in ETA:
-        if t > eta_time:
-            break
-        intime = eta_msg
-
-    # print >>sys.stderr,"main: playble",playable,"preprog",preprogress
-    # print >>sys.stderr,"main: ETA is",t,"secs"
-    # if t > float(2 ** 30):
-    #     intime = "inf"
-    # elif t == 0.0:
-    #     intime = "now"
-    # else:
-    #     h, t = divmod(t, 60.0*60.0)
-    #     m, s = divmod(t, 60.0)
-    #     if h == 0.0:
-    #         if m == 0.0:
-    #             intime = "%ds" % (s)
-    #         else:
-    #             intime = "%dm:%02ds" % (m,s)
-    #     else:
-    #         intime = "%dh:%02dm:%02ds" % (h,m,s)
-
-    # print >>sys.stderr,"main: VODStats",preprogress,playable,"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-
-    if ds.get_status() == DLSTATUS_HASHCHECKING:
-        genprogress = ds.get_progress()
-        pstr = str(int(genprogress * 100))
-        msg = "Checking already downloaded parts " + pstr + "% done"
-    elif ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-        msg = 'Error playing: ' + str(ds.get_error())
-    elif ds.get_status() == DLSTATUS_ALLOCATING_DISKSPACE:
-        msg = 'Allocating disk space'
-    elif ds.get_progress() == 1.0:
-        msg = ''
-    elif playable:
-        if not said_start_playback:
-            msg = "Starting playback..."
-
-        if videoplayer_mediastate == MEDIASTATE_STOPPED and said_start_playback:
-            if totalhelping == 0:
-                topmsg = u"Please leave the " + appname + " running, this will help other " + appname + " users to download faster."
-            else:
-                topmsg = u"Helping " + str(totalhelping) + " " + appname + " users to download. Please leave it running in the background."
-
-            # Display this on status line
-            # TODO: Show balloon in systray when closing window to indicate things continue there
-            msg = ''
-
-        elif videoplayer_mediastate == MEDIASTATE_PLAYING:
-            said_start_playback = True
-            # It may take a while for VLC to actually start displaying
-            # video, as it is trying to tune in to the stream (finding
-            # I-Frame). Display some info to show that:
-            #
-            cdef = ds.get_download().get_def()
-            if cdef.get_def_type() == 'torrent':
-                cname = cdef.get_name_as_unicode()
-            else:
-                cname = cdef.get_def_type()
-            topmsg = u'Decoding: ' + cname + ' ' + str(decodeprogress) + ' s'
-            decodeprogress += 1
-            msg = ''
-        elif videoplayer_mediastate == MEDIASTATE_PAUSED:
-            # msg = "Buffering... " + str(int(100.0*preprogress))+"%"
-            msg = "Buffering... " + str(int(100.0 * preprogress)) + "%. " + intime
-        else:
-            msg = ''
-
-    elif preprogress != 1.0:
-        pstr = str(int(preprogress * 100))
-        npeers = ds.get_num_peers()
-        npeerstr = str(npeers)
-        if npeers == 0 and logmsg is not None:
-            msg = logmsg
-        elif npeers == 1:
-            msg = "Prebuffering " + pstr + "% done (connected to 1 peer). " + intime
-        else:
-            msg = "Prebuffering " + pstr + "% done (connected to " + npeerstr + " peers). " + intime
-
-        try:
-            d = ds.get_download()
-            tdef = d.get_def()
-            videofiles = d.get_selected_files()
-            if len(videofiles) >= 1:
-                videofile = videofiles[0]
-            else:
-                videofile = None
-
-            bitrate = None
-            if tdef.get_def_type() == "torrent":
-                try:
-                    bitrate = tdef.get_bitrate(videofile)
-                except:
-                    print_exc()
-
-            if bitrate is None:
-                msg += ' This video may not play properly because its bitrate is unknown.'
-        except:
-            print_exc()
-    else:
-        # msg = "Waiting for sufficient download speed... "+intime
-        msg = 'Waiting for sufficient download speed... ' + intime
-
-    """
-    npeers = ds.get_num_peers()
-    if npeers == 1:
-        msg = "One person found, receiving %.1f KB/s" % totalspeed[DOWNLOAD]
-    else:
-        msg = "%d people found, receiving %.1f KB/s" % (npeers, totalspeed[DOWNLOAD])
-    """
-    return [topmsg, msg, said_start_playback, decodeprogress]
-
-
-##############################################################
+#
 #
 # Main Program Start Here
 #
-##############################################################
+#
 @attach_profiler
 def run(params=None):
+    logging.config.fileConfig("logger.conf")
+
     if params is None:
         params = [""]
 

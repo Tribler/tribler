@@ -43,7 +43,9 @@ NEIGHBORS = 5
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
+
 class SearchCommunity(Community):
+
     """
     A single community that all Tribler members join and use to disseminate .torrent files.
     """
@@ -179,7 +181,7 @@ class SearchCommunity(Community):
         # disable sync bloom filter
         return lambda: None
 
-#    #used by dispersy to choose a peer to introduce
+# used by dispersy to choose a peer to introduce
 #    def dispersy_yield_introduce_candidates(self, candidate = None):
 #        for random_candidate in Community.dispersy_yield_introduce_candidates(self, candidate):
 #            if not self.is_taste_buddy(random_candidate):
@@ -288,8 +290,8 @@ class SearchCommunity(Community):
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
-                                distribution=(self.global_time,),
-                                destination=(destination,),
+                                    distribution=(self.global_time,),
+                                   destination=(destination,),
                                 payload=payload)
 
         self._dispersy._forward([request])
@@ -684,7 +686,7 @@ class SearchCommunity(Community):
 #        max_len = self.dispersy_sync_bloom_filter_bits/8
 #        limit = int(max_len/44)
 #
-#        #we want roughly 1/3 random, 2/3 recent
+# we want roughly 1/3 random, 2/3 recent
 #        limitRecent = int(limit * 0.66)
 #        limitRandom = limit - limitRecent
 #
@@ -695,7 +697,7 @@ class SearchCommunity(Community):
 #        else:
 #            randomTorrents = []
 #
-#        #combine random and recent + shuffle to obscure categories
+# combine random and recent + shuffle to obscure categories
 #        torrents += randomTorrents
 #        torrents = [tor[:5] for tor in torrents]
 #        shuffle(torrents)
@@ -752,7 +754,7 @@ class SearchCommunity(Community):
 
     def on_torrent(self, messages):
         for message in messages:
-            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id':message.packet_id})
+            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id': message.packet_id})
 
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)
@@ -860,6 +862,7 @@ class SearchCommunity(Community):
 
         return random_peers, taste_buddies
 
+
 class ForwardCommunity(SearchCommunity):
 
     def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
@@ -938,15 +941,14 @@ class ForwardCommunity(SearchCommunity):
 
         return candidate, None
 
-    def dispersy_yield_introduce_candidates(self, exclude_candidate=None, exclude_tunnel=False):
-        if candidate:
-            if candidate in self.requested_introductions:
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        if exclude_candidate:
+            if exclude_candidate in self.requested_introductions:
                 intro_me_candidate = self.requested_introductions[exclude_candidate]
                 del self.requested_introductions[exclude_candidate]
-                yield intro_me_candidate
+                return intro_me_candidate
 
-        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, exclude_candidate, exclude_tunnel):
-            yield random_candidate
+        return SearchCommunity.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class ForwardAttempt(Cache):
         timeout_delay = 10.5
@@ -1005,6 +1007,7 @@ class ForwardCommunity(SearchCommunity):
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
+
 
 class PSearchCommunity(ForwardCommunity):
 
@@ -1114,7 +1117,7 @@ class PSearchCommunity(ForwardCommunity):
             global_vector = sample(global_vector, self.max_prefs)
 
         elif len(global_vector) < self.max_prefs:
-            global_vector += [0l] * (self.max_prefs - len(global_vector))
+            global_vector += [0] * (self.max_prefs - len(global_vector))
 
         assert_(len(global_vector) == self.max_prefs, 'vector sizes not equal')
 
@@ -1148,10 +1151,10 @@ class PSearchCommunity(ForwardCommunity):
 
     def get_my_vector(self, global_vector, local=False):
         my_preferences = set([long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local=local) if preference])
-        my_vector = [0l] * len(global_vector)
+        my_vector = [0] * len(global_vector)
         for i, element in enumerate(global_vector):
             if element in my_preferences:
-                my_vector[i] = 1l
+                my_vector[i] = 1
         return my_vector
 
     class PSimilarityRequest(Cache):
@@ -1176,7 +1179,7 @@ class PSearchCommunity(ForwardCommunity):
                 assert_(len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(self.global_vector), len(self.user_vector), len(my_vector)))
 
                 if self.community.encryption:
-                    _sum = 1l
+                    _sum = 1
 
                     t1 = time()
                     user_n2 = pow(self.user_n, 2)
@@ -1187,7 +1190,7 @@ class PSearchCommunity(ForwardCommunity):
 
                     self.community.receive_time_encryption += time() - t1
                 else:
-                    _sum = 0l
+                    _sum = 0
                     for i, element in enumerate(self.user_vector):
                         if my_vector[i] and element:
                             _sum += 1
@@ -1324,6 +1327,7 @@ class PSearchCommunity(ForwardCommunity):
 
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+
 
 class HSearchCommunity(ForwardCommunity):
 
@@ -1494,7 +1498,9 @@ class HSearchCommunity(ForwardCommunity):
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
 
+
 class Das4DBStub():
+
     def __init__(self, dispersy):
         self._dispersy = dispersy
 
@@ -1503,7 +1509,7 @@ class Das4DBStub():
 
         self.myMegaCache = []
         self.myMegaSet = set()
-        self.id2category = {1:u''}
+        self.id2category = {1: u''}
 
     def addMyPreference(self, torrent_id, data):
         infohash = str(torrent_id)
@@ -1530,7 +1536,7 @@ class Das4DBStub():
         for keyword in keywords:
             infohash = str(keyword)
             if infohash in my_preferences:
-                results.append((infohash, unicode(self._dispersy._lan_address), 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
+                results.append((infohash, unicode(self._dispersy._lan_address), 1, 1, 1, 0, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
         return results
 
     def on_search_response(self, results):

@@ -5,7 +5,7 @@
 import time
 
 import sys
-from traceback import print_exc,print_stack
+from traceback import print_exc, print_stack
 
 from Tribler.Core.simpledefs import *
 from Tribler.Core.defaults import *
@@ -14,7 +14,9 @@ from Tribler.Core.Base import *
 
 DEBUG = False
 
+
 class DownloadState(Serializable):
+
     """
     Contains a snapshot of the state of the Download at a specific
     point in time. Using a snapshot instead of providing live data and
@@ -22,7 +24,7 @@ class DownloadState(Serializable):
 
     cf. libtorrent torrent_status
     """
-    def __init__(self,download,status,error,progress,stats=None,seeding_stats=None,filepieceranges=None,logmsgs=None,peerid=None,videoinfo=None):
+    def __init__(self, download, status, error, progress, stats=None, seeding_stats=None, filepieceranges=None, logmsgs=None, peerid=None, videoinfo=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
         @param status The status of the Download (DLSTATUS_*)
@@ -34,7 +36,7 @@ class DownloadState(Serializable):
         @param logmsgs A list of messages from the BT engine which may be of
         """
         self.download = download
-        self.filepieceranges = filepieceranges # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
+        self.filepieceranges = filepieceranges  # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.vod_status_msg = None
         self.seedingstats = seeding_stats
@@ -43,10 +45,15 @@ class DownloadState(Serializable):
         self.stats = None
         self.length = None
 
+        # For get_files_completion()
+        if stats and stats.get('stats', None) and self.filepieceranges:
+            self.haveslice_total = stats['stats'].have
+
         if stats is None:
             # No info available yet from download engine
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: stats is None"
-            self.error = error # readonly access
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: stats is None"
+            self.error = error  # readonly access
             self.progress = progress
             if self.error is not None:
                 self.status = DLSTATUS_STOPPED_ON_ERROR
@@ -54,14 +61,16 @@ class DownloadState(Serializable):
                 self.status = status
 
         elif error is not None:
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: error is not None"
-            self.error = error # readonly access
-            self.progress = 0.0 # really want old progress
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: error is not None"
+            self.error = error  # readonly access
+            self.progress = 0.0  # really want old progress
             self.status = DLSTATUS_STOPPED_ON_ERROR
 
-        elif status is not None and not status in [DLSTATUS_DOWNLOADING,DLSTATUS_SEEDING]:
+        elif status is not None and not status in [DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING]:
             # For HASHCHECKING and WAITING4HASHCHECK
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: we have status and it is not downloading or seeding"
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: we have status and it is not downloading or seeding"
             self.error = error
             self.status = status
             if self.status == DLSTATUS_WAITING4HASHCHECK:
@@ -73,14 +82,15 @@ class DownloadState(Serializable):
 
         else:
             # Copy info from stats
-            if DEBUG: print >> sys.stderr, "DownloadState.__init__: copy from stats"
+            if DEBUG:
+                print >> sys.stderr, "DownloadState.__init__: copy from stats"
             self.error = None
             self.progress = stats['frac']
             if stats['frac'] == 1.0:
                 self.status = DLSTATUS_SEEDING
             else:
                 self.status = DLSTATUS_DOWNLOADING
-            #print >>sys.stderr,"STATS IS",stats
+            # print >>sys.stderr,"STATS IS",stats
 
             # Safe to store the stats dict. The stats dict is created per
             # invocation of the BT1Download returned statsfunc and contains no
@@ -92,24 +102,23 @@ class DownloadState(Serializable):
             statsobj = self.stats['stats']
             if statsobj is not None:
                 if self.filepieceranges is None or len(self.filepieceranges) == 0:
-                    self.haveslice = statsobj.have # is copy of network engine list
+                    self.haveslice = statsobj.have  # is copy of network engine list
                 else:
-                    self.haveslice_total = statsobj.have
                     selected_files = self.download.get_selected_files()
                     # Show only pieces complete for the selected ranges of files
-                    totalpieces =0
-                    for t,tl,f in self.filepieceranges:
+                    totalpieces = 0
+                    for t, tl, o, f in self.filepieceranges:
                         if f in selected_files or not selected_files:
-                            diff = tl-t
+                            diff = tl - t
                             totalpieces += diff
 
-                    #print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
+                    # print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
                     haveslice = [False] * totalpieces
                     have = 0
                     index = 0
-                    for t,tl,f in self.filepieceranges:
+                    for t, tl, o, f in self.filepieceranges:
                         if f in selected_files or not selected_files:
-                            for piece in range(t,tl):
+                            for piece in range(t, tl):
                                 haveslice[index] = statsobj.have[piece]
                                 if haveslice[index]:
                                     have += 1
@@ -122,7 +131,7 @@ class DownloadState(Serializable):
                         self.progress = 1.0
 
                     else:
-                        self.progress = have/float(len(haveslice))
+                        self.progress = have / float(len(haveslice))
 
     def get_download(self):
         """ Returns the Download object of which this is the state """
@@ -152,7 +161,7 @@ class DownloadState(Serializable):
     #
     # Details
     #
-    def get_current_speed(self,direct):
+    def get_current_speed(self, direct):
         """
         Returns the current up or download speed.
         @return The speed in KB/s, as float.
@@ -160,17 +169,17 @@ class DownloadState(Serializable):
         if self.stats is None:
             return 0.0
         if direct == UPLOAD:
-            return self.stats['up']/1024.0
+            return self.stats['up'] / 1024.0
         else:
-            return self.stats['down']/1024.0
+            return self.stats['down'] / 1024.0
 
-    def get_total_transferred(self,direct):
+    def get_total_transferred(self, direct):
         """
         Returns the total amount of up or downloaded bytes.
         @return The amount in bytes.
         """
         if self.stats is None:
-            return 0L
+            return 0
         if direct == UPLOAD:
             return self.stats['stats'].upTotal
         else:
@@ -238,7 +247,7 @@ class DownloadState(Serializable):
 
         # Determine if we need statsobj to be requested, same as for spew
         statsobj = self.stats['stats']
-        return statsobj.numSeeds+statsobj.numPeers
+        return statsobj.numSeeds + statsobj.numPeers
 
     def get_num_nonseeds(self):
         """
@@ -263,11 +272,11 @@ class DownloadState(Serializable):
         if self.stats is None or self.stats.get('spew', None) is None:
             total = self.get_num_peers()
             non_seeds = self.get_num_nonseeds()
-            return (total- non_seeds, non_seeds)
+            return (total - non_seeds, non_seeds)
 
         total = len(self.stats['spew'])
         seeds = len([i for i in self.stats['spew'] if i.get('completed', 0) == 1.0])
-        return seeds, total-seeds
+        return seeds, total - seeds
 
     def get_pieces_complete(self):
         """ Returns a list of booleans indicating whether we have completely
@@ -286,7 +295,7 @@ class DownloadState(Serializable):
         @return A tuple containing two integers, total and completed nr of pieces
         """
         if self.haveslice is None:
-            return (0,0)
+            return (0, 0)
         else:
             return (len(self.haveslice), sum(self.haveslice))
 
@@ -302,11 +311,11 @@ class DownloadState(Serializable):
 
         completion = []
         if self.filepieceranges:
-            for t,tl,f in self.filepieceranges:
+            for t, tl, o, f in self.filepieceranges:
                 if f in files and self.progress == 1.0:
                     completion.append((f, 1.0))
                 else:
-                    #niels: ranges are from-to (inclusive ie if a file consists one piece t and tl will be the same)
+                    # niels: ranges are from-to (inclusive ie if a file consists one piece t and tl will be the same)
                     total_pieces = tl - t
                     if total_pieces and getattr(self, 'haveslice_total', False):
                         completed = 0
@@ -314,9 +323,12 @@ class DownloadState(Serializable):
                             if self.haveslice_total[index]:
                                 completed += 1
 
-                        completion.append((f, completed/(total_pieces*1.0)))
+                        completion.append((f, completed / (total_pieces * 1.0)))
                     elif f in files:
                         completion.append((f, 0.0))
+        elif files:
+            # Single file
+            completion.append((files[0], self.get_progress()))
         return completion
 
     def get_selected_files(self):
@@ -325,7 +337,7 @@ class DownloadState(Serializable):
             return selected_files
 
     def get_length(self):
-        #Niels: 28/08/2012 for larger .torrent this methods gets quite expensive, cache the result to prevent us calculating this unnecessarily.
+        # Niels: 28/08/2012 for larger .torrent this methods gets quite expensive, cache the result to prevent us calculating this unnecessarily.
         if not self.length:
             files = self.get_selected_files()
 
@@ -355,17 +367,17 @@ class DownloadState(Serializable):
                 nr_seeders_complete += 1
             else:
                 if merged_bitfields == None:
-                    merged_bitfields = [0]*len(have)
+                    merged_bitfields = [0] * len(have)
 
                 for i in range(len(have)):
                     if have[i]:
                         merged_bitfields[i] += 1
 
         if merged_bitfields:
-            #count the number of complete copies due to overlapping leecher bitfields
+            # count the number of complete copies due to overlapping leecher bitfields
             nr_leechers_complete = min(merged_bitfields)
 
-            #detect remainder of bitfields which are > 0
+            # detect remainder of bitfields which are > 0
             nr_more_than_min = len([x for x in merged_bitfields if x > nr_leechers_complete])
             fraction_additonal = float(nr_more_than_min) / len(merged_bitfields)
 
@@ -383,6 +395,18 @@ class DownloadState(Serializable):
                 return 0.0
         else:
             return self.stats['vod_prebuf_frac']
+
+    def get_vod_prebuffering_progress_consec(self):
+        """ Returns the percentage of consecutive prebuffering for Video-On-Demand already
+        completed.
+        @return A float (0..1) """
+        if self.stats is None:
+            if self.status == DLSTATUS_STOPPED and self.progress == 1.0:
+                return 1.0
+            else:
+                return 0.0
+        else:
+            return self.stats.get('vod_prebuf_frac_consec', -1)
 
     def is_vod(self):
         """ Returns if this download is currently in vod mode
@@ -433,8 +457,6 @@ class DownloadState(Serializable):
             return {}
         else:
             return self.stats['vod_stats']
-
-
 
     def get_log_messages(self):
         """ Returns the last 10 logged non-fatal error messages.

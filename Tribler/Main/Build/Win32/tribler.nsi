@@ -37,7 +37,7 @@ BrandingText "${PRODUCT}"
 ;--------------------------------
 ;Modern UI Configuration
 
-!define MUI_ICON "Tribler\Images\tribler.ico"
+!define MUI_ICON "Tribler\Main\vwxGUI\images\tribler.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_ABORTWARNING
 
@@ -101,6 +101,7 @@ Section "!Main EXE" SecMain
  File *.txt
  ; Arno: Appears to be for CRT v6?
  ; File tribler.exe.manifest
+ File logger.conf
  File tribler.exe
  File ffmpeg.exe
  File swift.exe
@@ -122,13 +123,6 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler\Core\Tag"
  SetOutPath "$INSTDIR\Tribler\Core\Tag"
  File Tribler\Core\Tag\*.filter
- CreateDirectory "$INSTDIR\Tribler\Images"
- SetOutPath "$INSTDIR\Tribler\Images"
- File Tribler\Images\*.*
- CreateDirectory "$INSTDIR\Tribler\Video"
- CreateDirectory "$INSTDIR\Tribler\Video\Images"
- SetOutPath "$INSTDIR\Tribler\Video\Images"
- File Tribler\Video\Images\*.*
  CreateDirectory "$INSTDIR\Tribler\Lang"
  SetOutPath "$INSTDIR\Tribler\Lang"
  IfFileExists user.lang userlang
@@ -139,10 +133,13 @@ Section "!Main EXE" SecMain
  CreateDirectory "$INSTDIR\Tribler"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI"
  CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images"
+ CreateDirectory "$INSTDIR\Tribler\Main\vwxGUI\images\flags"
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI"
  File Tribler\Main\vwxGUI\*.*
  SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images"
  File Tribler\Main\vwxGUI\images\*.*
+ SetOutPath "$INSTDIR\Tribler\Main\vwxGUI\images\flags"
+ File Tribler\Main\vwxGUI\images\flags\*.*
 
  CreateDirectory "$INSTDIR\Tribler\Main\webUI"
  CreateDirectory "$INSTDIR\Tribler\Main\webUI\static"
@@ -223,7 +220,7 @@ Section "Make Default For .torrent" SecDefaultTorrent
    WriteRegBin HKCR bittorrent EditFlags 00000100
    WriteRegStr HKCR "bittorrent\shell" "" open
    WriteRegStr HKCR "bittorrent\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
+   WriteRegStr HKCR "bittorrent\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
 SectionEnd
 
 
@@ -246,13 +243,13 @@ Section "Make Default For .tstream" SecDefaultTStream
    WriteRegBin HKCR tstream EditFlags 00000100
    WriteRegStr HKCR "tstream\shell" "" open
    WriteRegStr HKCR "tstream\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Images\SwarmPlayerIcon.ico"
+   WriteRegStr HKCR "tstream\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
 SectionEnd
 
 Section "Make Default For magnet://" SecDefaultMagnet
    WriteRegStr HKCR "magnet" "" "URL: Magnet Link Protocol"
    WriteRegStr HKCR "magnet" "URL Protocol" ""
-   WriteRegStr HKCR "magnet\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
+   WriteRegStr HKCR "magnet\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
    WriteRegStr HKCR "magnet\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKLM "SOFTWARE\Classes\magnet\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
 SectionEnd
@@ -260,7 +257,7 @@ SectionEnd
 Section "Make Default For ppsp://" SecDefaultPpsp
    WriteRegStr HKCR "ppsp" "" "URL: Ppsp Link Protocol"
    WriteRegStr HKCR "ppsp" "URL Protocol" ""
-   WriteRegStr HKCR "ppsp\DefaultIcon" "" "$INSTDIR\Tribler\Images\torrenticon.ico"
+   WriteRegStr HKCR "ppsp\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
    WriteRegStr HKCR "ppsp\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKLM "SOFTWARE\Classes\ppsp\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
 SectionEnd

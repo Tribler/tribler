@@ -1,4 +1,5 @@
 # Written by Arno Bakker, Jie Yang
+# Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
 import unittest
@@ -20,6 +21,7 @@ from Tribler.Core.Session import *
 from Tribler.Core.SessionConfig import *
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 import re
+from Tribler.Utilities import LinuxSingleInstanceChecker
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
@@ -32,7 +34,12 @@ defaults.dldefaults["saveas"] = DEST_DIR
 
 DEBUG = False
 
+
 class AbstractServer(unittest.TestCase):
+
+    def setup(self):
+        self.setUpCleanup()
+
     def setUpCleanup(self):
         # Elric: If the files are still there it means that either the last run segfaulted or
         # that there was some kind of lock on those and the tearDown wasn't able to delete them.
@@ -41,6 +48,9 @@ class AbstractServer(unittest.TestCase):
             path = os.path.join(BASE_DIR, path)
             if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
                 shutil.rmtree(path)
+
+    def tearDown(self):
+        self.tearDownCleanup()
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -73,7 +83,9 @@ class AbstractServer(unittest.TestCase):
         print >> f, time.time(), annotation, '1' if start else '0'
         f.close()
 
+
 class TestAsServer(AbstractServer):
+
     """
     Parent class for testing the server-side of Tribler
     """
@@ -81,6 +93,8 @@ class TestAsServer(AbstractServer):
     def setUp(self):
         self.setUpCleanup()
         self.setUpPreSession()
+
+        self.quitting = False
 
         self.session = Session(self.config)
         self.session.start()
@@ -105,6 +119,7 @@ class TestAsServer(AbstractServer):
         self.config.set_mainline_dht(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
+        self.config.set_dht_torrent_collecting(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
@@ -142,7 +157,42 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
+    def assert_(self, boolean, reason=None, doassert=True):
+        if not boolean:
+            self.quit()
+            assert boolean, reason
+
+    def startTest(self, callback):
+        self.quitting = False
+        callback()
+
+    def Call(self, seconds, callback):
+        if not self.quitting:
+            if seconds:
+                time.sleep(seconds)
+            callback()
+
+    def CallConditional(self, timeout, condition, callback, assertMsg=None):
+        t = time.time()
+
+        def DoCheck():
+            if not self.quitting:
+                if time.time() - t < timeout:
+                    if condition():
+                        print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback" % (time.time() - t)
+                        callback()
+                    else:
+                        self.Call(0.5, DoCheck)
+                else:
+                    print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
+                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
+        self.Call(0, DoCheck)
+
+    def quit(self):
+        self.quitting = True
+
 class TestGuiAsServer(TestAsServer):
+
     """
     Parent class for testing the gui-side of Tribler
     """
@@ -158,10 +208,11 @@ class TestGuiAsServer(TestAsServer):
         self.frame = None
         self.lm = None
         self.session = None
+
+        self.hadSession = False
         self.quitting = False
 
         self.asserts = []
-
         self.annotate(self._testMethodName, start=True)
 
     def assert_(self, boolean, reason, doassert=True):
@@ -178,18 +229,18 @@ class TestGuiAsServer(TestAsServer):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main.tribler import run
 
-        self.quitting = False
+        self.hadSession = False
+
         def wait_for_frame():
-            print >> sys.stderr, "tgs: lm initcomplete, staring to wait for frame to be ready"
+            print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
-            self.CallConditional(30, lambda : self.frame.ready, callback)
+            self.frame.Maximize()
+            self.CallConditional(30, lambda: self.frame.ready, callback)
 
         def wait_for_init():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
-
             self.guiUtility = GUIUtility.getInstance()
-
-            self.CallConditional(30, lambda : self.guiUtility.frame, wait_for_frame)
+            self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
 
         def wait_for_guiutility():
             print >> sys.stderr, "tgs: waiting for guiutility instance"
@@ -200,17 +251,20 @@ class TestGuiAsServer(TestAsServer):
             self.session = Session.get_instance()
             self.lm = self.session.lm
 
-            self.CallConditional(30, lambda : self.lm.initComplete, wait_for_guiutility)
+            self.CallConditional(30, lambda: self.lm.initComplete, wait_for_guiutility)
 
         def wait_for_session():
+            self.hadSession = True
             print >> sys.stderr, "tgs: waiting for session instance"
             self.CallConditional(30, lambda: Session.has_instance(), wait_for_instance)
 
-        self.CallConditional(30, Session.has_instance, wait_for_session)
+        self.CallConditional(30, lambda: Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_session))
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
         run()
+
+        assert self.hadSession, 'Did not even create a session'
 
     def Call(self, seconds, callback):
         if not self.quitting:
@@ -220,22 +274,6 @@ class TestGuiAsServer(TestAsServer):
                 wx.CallAfter(callback)
             else:
                 callback()
-
-    def CallConditional(self, timeout, condition, callback, assertMsg=None):
-        t = time.time()
-
-        def DoCheck():
-            if not self.quitting:
-                if time.time() - t < timeout:
-                    if condition():
-                        print >> sys.stderr, "tgs: condition satisfied after %d seconds, calling callback" % (time.time() - t)
-                        callback()
-                    else:
-                        self.Call(0.5, DoCheck)
-                else:
-                    print >> sys.stderr, "tgs: quitting, condition was not satisfied in %d seconds" % timeout
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
-        self.Call(0, DoCheck)
 
     def quit(self):
         if self.frame:
@@ -283,10 +321,14 @@ class TestGuiAsServer(TestAsServer):
         for boolean, reason in self.asserts:
             assert boolean, reason
 
-    def screenshot(self, title=None, destdir="output"):
-        app = wx.GetApp()
-        window = app.GetTopWindow()
-        rect = window.GetRect()
+    def screenshot(self, title=None, destdir="output", window=None):
+        if window == None:
+            app = wx.GetApp()
+            window = app.GetTopWindow()
+
+        rect = window.GetClientRect()
+        size = window.GetSize()
+        rect = wx.Rect(rect.x, rect.y, size.x, size.y)
 
         screen = wx.WindowDC(window)
         bmp = wx.EmptyBitmap(rect.GetWidth(), rect.GetHeight() + 30)

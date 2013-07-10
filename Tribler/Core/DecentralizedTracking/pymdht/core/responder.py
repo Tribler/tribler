@@ -3,7 +3,8 @@ This is the server part of the node, where queries are parsed and responses
 created.
 
 """
-import logging, logging_conf
+import logging
+import logging_conf
 
 import message
 import tracker
@@ -12,6 +13,7 @@ import token_manager
 logger = logging.getLogger('dht')
 
 NUM_NODES = 8
+
 
 class Responder(object):
 
@@ -33,8 +35,8 @@ class Responder(object):
             log_distance = msg.target.distance(self._my_id).log
             rnodes = self._routing_m.get_closest_rnodes(log_distance,
                                                         NUM_NODES, False)
-            #TODO: return the closest rnodes to the target instead of the 8
-            #first in the bucket.
+            # TODO: return the closest rnodes to the target instead of the 8
+            # first in the bucket.
             return self.msg_f.outgoing_find_node_response(
                 msg.src_node, rnodes)
         elif msg.query == message.GET_PEERS:
@@ -42,8 +44,8 @@ class Responder(object):
             log_distance = msg.info_hash.distance(self._my_id).log
             rnodes = self._routing_m.get_closest_rnodes(log_distance,
                                                         NUM_NODES, False)
-            #TODO: return the closest rnodes to the target instead of the 8
-            #first in the bucket.
+            # TODO: return the closest rnodes to the target instead of the 8
+            # first in the bucket.
             peers = self._tracker.get(msg.info_hash)
             if peers:
                 logger.debug('RESPONDING with PEERS:\n%r' % peers)
@@ -59,4 +61,4 @@ class Responder(object):
                 return
         else:
             logger.debug('Invalid QUERY: %r' % (msg.query))
-            #TODO: maybe send an error back?
+            # TODO: maybe send an error back?

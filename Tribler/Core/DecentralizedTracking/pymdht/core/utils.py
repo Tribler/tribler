@@ -8,12 +8,13 @@ import socket
 class AddrError(Exception):
     pass
 
+
 class IP6Addr(AddrError):
     pass
-#TODO2: IPv6 support
+# TODO2: IPv6 support
 
 
-#TODO2: move binary functions from identifier
+# TODO2: move binary functions from identifier
 
 def compact_port(port):
     return ''.join(
@@ -23,6 +24,7 @@ def compact_port(port):
 def uncompact_port(c_port_net):
     return ord(bin_str[0]) * 256 + ord(bin_str[1])
 '''
+
 
 def compact_addr(addr):
     return socket.inet_aton(addr[0]) + compact_port(addr[1])

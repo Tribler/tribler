@@ -20,11 +20,14 @@ HTTP_TIMEOUT = 30  # seconds
 DEBUG = False
 ioErrors = {}
 
+
 def trackerChecking(torrent):
     single_no_thread(torrent)
 
+
 def multiTrackerChecking(torrent, multiscrapeCallback):
     return single_no_thread(torrent, multiscrapeCallback)
+
 
 def single_no_thread(torrent, multiscrapeCallback=None):
     multi_announce_dict = {}
@@ -50,7 +53,6 @@ def single_no_thread(torrent, multiscrapeCallback=None):
                 # Arno: protect against DoS torrents with many trackers in announce list.
                 trackers.extend(announces[:10])
 
-
     trackers = [(-ioErrors.get(tracker, 0), tracker) for tracker in trackers if tracker.startswith('http') or tracker.startswith('udp')]
     trackers.sort(reverse=True)  # sorting reverse will prefer udp over http trackers
     for _, announce in trackers:
@@ -71,6 +73,7 @@ def single_no_thread(torrent, multiscrapeCallback=None):
             break
 
     return multi_announce_dict
+
 
 def singleTrackerStatus(torrent, announce, multiscrapeCallback):
     # return (-1, -1) means the status of torrent is unknown
@@ -106,6 +109,8 @@ def singleTrackerStatus(torrent, announce, multiscrapeCallback):
     return defaultdict
 
 # generate the query URL
+
+
 def getUrl(announce, info_hashes):
     if announce.startswith('http'):
         announce_index = announce.rfind("announce")
@@ -139,8 +144,9 @@ def getUrl(announce, info_hashes):
 
     return None  # return None
 
+
 def getStatus(announce, url, info_hash, info_hashes):
-    returndict = {}
+    returndict = {info_hash: (0, 0)}
     try:
         resp = timeouturlopen.urlOpenTimeout(url, timeout=HTTP_TIMEOUT)
         response = resp.read()
@@ -161,14 +167,15 @@ def getStatus(announce, url, info_hash, info_hashes):
 
     except KeyError:
         try:
-            if response_dict.has_key("flags"):  # may be interval problem
-                if response_dict["flags"].has_key("min_request_interval"):
-                    return {info_hash: (-3 , -3)}
+            if "flags" in response_dict:  # may be interval problem
+                if "min_request_interval" in response_dict["flags"]:
+                    return {info_hash: (-3, -3)}
         except:
             pass
     except:
         pass
     return None
+
 
 def getStatusUDP(announce, url, info_hash, info_hashes):
     # restrict to 74 max
@@ -182,7 +189,7 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
         # step 1: Get a connection-id
         connection_id = 0x41727101980
         action = 0
-        transaction_id = randint(0, sys.maxint)
+        transaction_id = randint(0, sys.maxsize)
         msg = pack('!qii', connection_id, action, transaction_id)
         udpSocket.sendto(msg, url)
 
@@ -192,9 +199,9 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
             if raction == action and rtransaction_id == transaction_id:
                 # step 2: Send scrape
                 action = 2
-                transaction_id = randint(0, sys.maxint)
+                transaction_id = randint(0, sys.maxsize)
 
-                format = "!qii" + "20s"*len(info_hashes)
+                format = "!qii" + "20s" * len(info_hashes)
                 data = [rconnection_id, action, transaction_id]
                 data.extend(info_hashes)
                 msg = pack(format, *data)
@@ -231,6 +238,7 @@ def getStatusUDP(announce, url, info_hash, info_hashes):
 
     return {info_hash: (-1, -1)}
 
+
 def registerIOError(announce):
     if DEBUG:
         print >> sys.stderr, "TrackerChecking: No repsonse for", announce
@@ -239,6 +247,7 @@ def registerIOError(announce):
     if len(ioErrors) > 100:
         key = choice(ioErrors.keys())
         del ioErrors[key]
+
 
 def registerSuccess(announce):
     if announce in ioErrors:

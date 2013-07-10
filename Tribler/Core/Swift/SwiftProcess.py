@@ -28,10 +28,11 @@ DONE_STATE_WORKING = 0
 DONE_STATE_EARLY_SHUTDOWN = 1
 DONE_STATE_SHUTDOWN = 2
 
+
 class SwiftProcess:
+
     """ Representation of an operating-system process running the C++ swift engine.
     A swift engine can participate in one or more swarms."""
-
 
     def __init__(self, binpath, workdir, zerostatedir, listenport, httpgwport, cmdgwport, spmgr):
         # Called by any thread, assume sessionlock is held
@@ -89,7 +90,7 @@ class SwiftProcess:
         # args.append("-B")  # Enable debugging on swift
 
         if DEBUG:
-            print >>sys.stderr,"SwiftProcess: __init__: Running",args,"workdir",workdir
+            print >> sys.stderr, "SwiftProcess: __init__: Running", args, "workdir", workdir
 
         if sys.platform == "win32":
             creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -97,7 +98,22 @@ class SwiftProcess:
             creationflags = 0
 
         # See also SwiftDef::finalize popen
-        self.popen = subprocess.Popen(args, close_fds=True, cwd=workdir, creationflags=creationflags)
+        # We would really like to get the stdout and stderr without creating a new thread for them.
+        # However, windows does not support non-files in the select command, hence we cannot integrate
+        # these streams into the FastI2I thread
+        # A proper solution would be to switch to twisted for the communication with the swift binary
+        self.popen = subprocess.Popen(args, cwd=workdir, creationflags=creationflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        def read_and_print(socket):
+            prefix = currentThread().getName() + ":"
+            while True:
+                line = socket.readline()
+                if not line:
+                    print >> sys.stderr, prefix, "readline returned nothing quitting"
+                    break
+                print >> sys.stderr, prefix, line.rstrip()
+        self.popen_outputthreads = [Thread(target=read_and_print, args=(self.popen.stdout,), name="SwiftProcess_%d_stdout" % self.listenport), Thread(target=read_and_print, args=(self.popen.stderr,), name="SwiftProcess_%d_stderr" % self.listenport)]
+        [thread.start() for thread in self.popen_outputthreads]
 
         self.roothash2dl = {}
         self.donestate = DONE_STATE_WORKING  # shutting down
@@ -121,10 +137,9 @@ class SwiftProcess:
         else:
             print >> sys.stderr, "sp: start_cmd_connection: Process dead? returncode", self.popen.returncode, "pid", self.popen.pid
 
-
     def i2ithread_readlinecallback(self, ic, cmd):
         # if DEBUG:
-        #    print >>sys.stderr,"sp: Got command #"+cmd+"#"
+        # print >>sys.stderr,"sp: Got command #"+cmd+"#"
 
         if self.donestate != DONE_STATE_WORKING:
             return
@@ -297,22 +312,19 @@ class SwiftProcess:
         finally:
             self.splock.release()
 
-
     def get_pid(self):
         if self.popen is not None:
             return self.popen.pid
         else:
             return -1
 
-
     def get_listen_port(self):
         return self.listenport
-
 
     def set_max_speed(self, d, direct, speed):
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+            if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
 
             roothash_hex = d.get_def().get_roothash_as_hex()
@@ -326,7 +338,6 @@ class SwiftProcess:
         finally:
             self.splock.release()
 
-
     def checkpoint_download(self, d):
         self.splock.acquire()
         try:
@@ -339,11 +350,10 @@ class SwiftProcess:
         finally:
             self.splock.release()
 
-
     def set_moreinfo_stats(self, d, enable):
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+            if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
 
             roothash_hex = d.get_def().get_roothash_as_hex()
@@ -355,7 +365,7 @@ class SwiftProcess:
         # Note that CALLBACK is called on the i2ithread, and hence should not lock
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+            if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
 
             roothash_hex = download.get_def().get_roothash_as_hex() if (download is None or download != "ALL") else "ALL"
@@ -374,7 +384,7 @@ class SwiftProcess:
     def add_peer(self, d, addr):
         self.splock.acquire()
         try:
-            if self.donestate != DONE_STATE_WORKING  or not self.is_alive():
+            if self.donestate != DONE_STATE_WORKING or not self.is_alive():
                 return
 
             addrstr = addr[0] + ':' + str(addr[1])
@@ -382,7 +392,6 @@ class SwiftProcess:
             self.send_peer_addr(roothash_hex, addrstr)
         finally:
             self.splock.release()
-
 
     def early_shutdown(self):
         # Called by any thread, assume sessionlock is held
@@ -396,7 +405,6 @@ class SwiftProcess:
             # Tell engine to shutdown so it can deregister dls from tracker
             print >> sys.stderr, "sp: Telling process to shutdown"
             self.send_shutdown()
-
 
     def network_shutdown(self):
         # Called by network thread, assume sessionlock is held
@@ -426,7 +434,8 @@ class SwiftProcess:
     #
     def send_start(self, url, roothash_hex=None, maxdlspeed=None, maxulspeed=None, destdir=None, metadir=None):
         # assume splock is held to avoid concurrency on socket
-        if DEBUG: print >> sys.stderr, "sp: send_start:", url, "destdir", destdir, "metadir", metadir
+        if DEBUG:
+            print >> sys.stderr, "sp: send_start:", url, "destdir", destdir, "metadir", metadir
 
         cmd = 'START ' + url
         if destdir is not None:
@@ -448,7 +457,6 @@ class SwiftProcess:
     def send_checkpoint(self, roothash_hex):
         # assume splock is held to avoid concurrency on socket
         self.write('CHECKPOINT ' + roothash_hex + '\r\n')
-
 
     def send_shutdown(self):
         # assume splock is held to avoid concurrency on socket
