@@ -4,9 +4,6 @@ import unittest
 
 from Tribler.Test.test_as_server import TestGuiAsServer
 
-DEBUG = True
-
-
 class TestGuiGeneral(TestGuiAsServer):
 
     def test_debugpanel(self):
