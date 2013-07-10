@@ -302,7 +302,7 @@ class SearchCommunity(Community):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "SearchCommunity: got %d introduction requests" % len(orig_messages)
 
-        messages = [message for message in orig_messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
+        messages = [message for message in orig_messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
         self.process_rsa_simirequest(messages)
 
         self._disp_intro_handler(orig_messages)

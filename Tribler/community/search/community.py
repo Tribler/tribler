@@ -264,7 +264,7 @@ class SearchCommunity(Community):
 
     def on_taste_intro(self, messages):
         self._disp_intro_handler(messages)
-        messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+        messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):
             myPreferences = self._mypref_db.getMyPrefListInfohash(limit=500)
