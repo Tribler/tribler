@@ -1856,7 +1856,7 @@ class ProgressPanel(wx.BoxSizer):
             self.Add(self.status, 0, wx.EXPAND)
 
         # self.AddStretchSpacer()
-        wx.CallAfter(self.Update)
+        wx.CallLater(100, self.Update)
 
     def Update(self, ds=None, torrent=None):
         # return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
