@@ -305,7 +305,7 @@ class TestGuiAsServer(TestAsServer):
         del self.lm
         del self.session
 
-        time.sleep(10)
+        time.sleep(1)
         gc.collect()
 
         ts = enumerate_threads()
