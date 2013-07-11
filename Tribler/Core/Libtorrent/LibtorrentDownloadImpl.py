@@ -848,6 +848,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         d['prebuf'] = None
         d['firstpiece'] = 0
         d['npieces'] = ((self.length + 1023) / 1024)
+        d['status'] = self.vod_status
         return d
 
     def network_create_spew_from_peerlist(self):
