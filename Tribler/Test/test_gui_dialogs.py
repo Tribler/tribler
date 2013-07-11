@@ -1,3 +1,4 @@
+# written by Niels Zeilemaker
 # see LICENSE.txt for license information
 
 import unittest
@@ -29,7 +30,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('settingsDialog')
             self.assert_(isinstance(dialog, SettingsDialog), 'could not find SettingsDialog')
 
-            # self.screenshot('Screenshot of SettingsDialog', window=dialog)
+            self.screenshot('Screenshot of SettingsDialog', window=dialog)
             saved_event = Event()
             self.Call(1, lambda: do_close(saved_event))
 
@@ -54,7 +55,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('RemoveTorrent')
             self.assert_(isinstance(dialog, RemoveTorrent), 'could not find RemoveTorrent')
 
-            # self.screenshot('Screenshot of RemoveTorrent', window=dialog)
+            self.screenshot('Screenshot of RemoveTorrent', window=dialog)
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
             self.Call(2, self.quit)
 
@@ -79,7 +80,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('SaveAsDialog')
             self.assert_(isinstance(dialog, SaveAs), 'could not find SaveAs')
 
-            # self.screenshot('Screenshot of SaveAs', window=dialog)
+            self.screenshot('Screenshot of SaveAs', window=dialog)
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
             self.Call(2, lambda: add_dialog.EndModal(wx.ID_CANCEL))
             self.Call(3, self.quit)
@@ -106,7 +107,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('FeedbackWindow')
             self.assert_(isinstance(dialog, wx.Dialog), 'could not find FeedbackWindow')
 
-            # self.screenshot('Screenshot of FeedbackWindow', window=dialog)
+            self.screenshot('Screenshot of FeedbackWindow', window=dialog)
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
             self.Call(2, self.quit)
 
@@ -125,7 +126,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('CreateTorrentDialog')
             self.assert_(isinstance(dialog, CreateTorrent), 'could not find CreateTorrent')
 
-            # self.screenshot('Screenshot of CreateTorrent', window=dialog)
+            self.screenshot('Screenshot of CreateTorrent', window=dialog)
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
             self.Call(2, lambda: add_dialog.EndModal(wx.ID_CANCEL))
             self.Call(3, self.quit)
@@ -136,7 +137,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('AddTorrentDialog')
             self.assert_(isinstance(dialog, AddTorrent), 'could not find AddTorrent')
 
-            # self.screenshot('Screenshot of AddTorrent', window=dialog)
+            self.screenshot('Screenshot of AddTorrent', window=dialog)
             dialog.OnCreate(None)
 
         def do_add_dialog():
@@ -172,7 +173,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog = wx.FindWindowByName('MFdialog')
             self.assert_(isinstance(dialog, ConfirmationDialog), 'could not find ConfirmationDialog')
 
-            # self.screenshot('Screenshot of ConfirmationDialog', window=dialog)
+            self.screenshot('Screenshot of ConfirmationDialog', window=dialog)
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
             self.Call(2, self.quit)
 

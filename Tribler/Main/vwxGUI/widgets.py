@@ -1153,6 +1153,7 @@ class ProgressBar(wx.Panel):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
 
         self.completed = False
+        self.prev_blocks = None
 
     def OnEraseBackground(self, event):
         pass  # Or None
@@ -1181,6 +1182,11 @@ class ProgressBar(wx.Panel):
         dc.DrawRoundedRectangle(x, y, maxw, maxh, 2)
 
     def set_pieces(self, blocks):
+        if self.prev_blocks == blocks:
+            return
+        else:
+            self.prev_blocks = blocks
+
         maxBlocks = max(self.GetClientRect().width, 100)
         haveBlocks = len(blocks)
 
@@ -1222,6 +1228,7 @@ class ProgressBar(wx.Panel):
         self.blocks = blocks
 
     def setNormalPercentage(self, perc):
+        self.prev_blocks = None
         maxBlocks = max(self.GetClientRect().width, 100)
 
         sblocks = [2] * int(perc * maxBlocks)
@@ -1229,6 +1236,7 @@ class ProgressBar(wx.Panel):
         self.set_blocks(sblocks)
 
     def reset(self, colour=0):
+        self.prev_blocks = None
         sblocks = [colour] * 100
         self.set_blocks(sblocks)
 
