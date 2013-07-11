@@ -3,7 +3,7 @@
 
 import sys
 
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLMODE_VOD
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 DEBUG = False
@@ -78,14 +78,14 @@ class SeedingManager:
         self.download_state = download_state
         download = self.download_state.get_download()
         if download.get_def().get_def_type() == 'torrent':
-            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed':
+            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
                 if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
                     if DEBUG:
                         print >> sys.stderr, "Stop seeding with libtorrent: ", self.download_state.get_download().get_dest_files()
                     self.udc.set_download_state(download.get_def().get_id(), 'stop')
                     self.download_state.get_download().stop()
         else:
-            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed':
+            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
                 if not self.policy.apply(None, self.download_state, self.download_state.get_seeding_statistics()):
                     if DEBUG:
                         print >> sys.stderr, "Stop seeding with libswift: ", self.download_state.get_download().get_dest_files()

@@ -1856,7 +1856,7 @@ class ProgressPanel(wx.BoxSizer):
             self.Add(self.status, 0, wx.EXPAND)
 
         # self.AddStretchSpacer()
-        wx.CallAfter(self.Update)
+        wx.CallLater(100, self.Update)
 
     def Update(self, ds=None, torrent=None):
         # return_val, 0 == inactive, 1 == incomplete, 2 == complete/seeding
@@ -1971,7 +1971,7 @@ class ProgressPanel(wx.BoxSizer):
             self.status.Refresh()
 
         if self.show_bar:
-            if not status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED]:
+            if not status in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]:
                 havedigest = ds.get_pieces_complete()
             else:
                 havedigest = None
