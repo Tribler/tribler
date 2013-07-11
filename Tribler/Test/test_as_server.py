@@ -225,17 +225,25 @@ class TestGuiAsServer(TestAsServer):
             if doassert:
                 assert boolean, reason
 
-    def startTest(self, callback):
+    def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main.tribler import run
 
         self.hadSession = False
+        starttime = time.time()
+
+        def call_callback():
+            took = time.time() - starttime
+            if took > min_timeout:
+                callback()
+            else:
+                self.Call(min_timeout - took, callback)
 
         def wait_for_frame():
             print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
-            self.CallConditional(30, lambda: self.frame.ready, callback)
+            self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
             print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
