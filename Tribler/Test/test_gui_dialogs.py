@@ -23,7 +23,7 @@ class TestGuiDialogs(TestGuiAsServer):
 
     def test_settings_dialog(self):
         def do_close(event):
-            assert event.wait(10)
+            self.assert_(event.wait(10), 'did not save settings')
             self.quit()
 
         def do_assert():
