@@ -164,9 +164,10 @@ class SearchCommunity(Community):
         return False
 
     @property
-    def dispersy_sync_bloom_filter_strategy(self):
-        # disable sync bloom filter
-        return lambda: None
+    def dispersy_enable_bloom_filter_sync(self):
+        # 1. disable bloom filter sync in walker
+        # 2. accept messages in any global time range
+        return False
 
     def add_taste_buddies(self, new_taste_buddies):
         for new_tb_tuple in new_taste_buddies[:]:
