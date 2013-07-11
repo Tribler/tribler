@@ -124,13 +124,13 @@ class SearchCommunity(Community):
                                    if candidate.is_eligible_for_walk(self, now)]
             for candidate in eligible_candidates:
                 logger.debug("extra walk to %s", candidate)
-                self.create_introduction_request(candidate, allow_sync=False)
+                self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
 
             # poke bootstrap peers
             if cycle < 2:
                 for candidate in self._dispersy.bootstrap_candidates:
                     logger.debug("extra walk to %s", candidate)
-                    self.create_introduction_request(candidate, allow_sync=False)
+                    self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
 
             # wait for NAT hole punching
             yield 1.0
@@ -213,7 +213,7 @@ class SearchCommunity(Community):
 
         return [0, time(), candidate]
 
-    def create_introduction_request(self, destination, allow_sync):
+    def create_introduction_request(self, destination, allow_sync, is_fast_walker=False):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         if DEBUG:
@@ -222,7 +222,7 @@ class SearchCommunity(Community):
         destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
 
         advice = True
-        if not isinstance(destination, BootstrapCandidate) and allow_sync:
+        if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
             myPreferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
             num_preferences = len(myPreferences)
 
