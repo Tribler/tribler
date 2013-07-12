@@ -1073,7 +1073,10 @@ class ABCApp():
 #
 @attach_profiler
 def run(params=None):
-    logging.config.fileConfig("logger.conf")
+    try:
+        logging.config.fileConfig("logger.conf")
+    except:
+        logger.warning("Unable to load logging config from 'logger.conf' file.")
 
     if params is None:
         params = [""]
