@@ -14,7 +14,6 @@ from Tribler.Core.Search.Reranking import getTorrentReranker, DefaultTorrentRera
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, NULL, forceAndReturnDBThread
 from Tribler.Core.simpledefs import *
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
@@ -76,8 +75,6 @@ class TorrentManager:
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
-        self.guiserver = GUITaskQueue.getInstance()
-
         self.searchkeywords = []
         self.rerankingStrategy = DefaultTorrentReranker()
         self.oldsearchkeywords = None
@@ -404,7 +401,7 @@ class TorrentManager:
 
                 # boudewijn: now that we have sorted the search results we
                 # want to prefetch the top N torrents.
-                self.guiserver.add_task(self.prefetch_hits, t=1, id="PREFETCH_RESULTS")
+                startWorker(None, self.prefetch_hits, delay=1, uId=u"PREFETCH_RESULTS", workerType="guiTaskQueue")
 
             if DEBUG:
                 beginbundle = time()
@@ -784,7 +781,6 @@ class LibraryManager:
         if LibraryManager.__single:
             raise RuntimeError("LibraryManager is singleton")
         self.guiUtility = guiUtility
-        self.guiserver = GUITaskQueue.getInstance()
         self.connected = False
 
         # Contains all matches for keywords in DB, not filtered by category
@@ -828,7 +824,7 @@ class LibraryManager:
         Called by any thread
         """
         self.dslist = dslist
-        self.guiserver.add_task(self._do_gui_callback, id="LibraryManager_refresh_callbacks")
+        startWorker(None, self._do_gui_callback, uId=u"LibraryManager_refresh_callbacks", workerType="guiTaskQueue")
 
         if time() - self.last_progress_update > 10:
             self.last_progress_update = time()
@@ -1952,48 +1948,6 @@ class ChannelManager:
 
                 if refreshGrid:
                     self.refreshGrid()
-
-    def gotRemoteHits(self, permid, kws, answers):
-        """ Called by GUIUtil when hits come in. """
-        if self.searchkeywords == kws:
-            startWorker(None, self._gotRemoteHits, wargs=(permid, kws, answers), retryOnBusy=True, workerType="guiTaskQueue")
-
-    def _gotRemoteHits(self, permid, kws, answers):
-        # @param permid: the peer who returned the answer to the query
-        # @param kws: the keywords of the query that originated the answer
-        # @param answers: the filtered answers returned by the peer (channel_id, publisher_name, infohash, name, time_stamp)
-
-        t1 = time()
-        try:
-            self.remoteLock.acquire()
-
-            if DEBUG:
-                print >> sys.stderr, "ChannelManager: gotRemoteHist: got", len(answers), "for", kws
-
-            if self.searchkeywords == kws:
-                for hit in answers.itervalues():
-                    self.remoteHits.append((hit, permid))
-
-                    if DEBUG:
-                        print >> sys.stderr, 'ChannelManager: gotRemoteHits: Refresh grid after new remote channel hits came in', "Took", time() - t1
-
-            elif DEBUG:
-                print >> sys.stderr, "ChannelManager: gotRemoteHits: got hits for", kws, "but current search is for", self.searchkeywords
-
-        finally:
-            refreshGrid = len(self.remoteHits) > 0
-
-            if refreshGrid:
-                # if already scheduled, dont schedule another
-                if self.remoteRefresh:
-                    refreshGrid = False
-                else:
-                    self.remoteRefresh = True
-
-            self.remoteLock.release()
-
-            if refreshGrid:
-                self.refreshGrid()
 
     def refreshGrid(self):
         if self.gridmgr is not None:
