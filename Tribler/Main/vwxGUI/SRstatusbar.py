@@ -54,6 +54,7 @@ class SRstatusbar(wx.StatusBar):
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
         self.activity_timer = None
+        self.channelconnections = 0
 
         self.bmp_firewall_warning = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "statusbar_warning.png"))
         self.bmp_firewall_ok = wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "statusbar_ok.png"))
@@ -149,12 +150,15 @@ class SRstatusbar(wx.StatusBar):
                 self.uelog.addEvent(message="SRstatusbar: user toggled family filter", type=2)
             startWorker(None, db_callback, retryOnBusy=True)
 
-    def SetConnections(self, connectionPercentage, totalConnections):
+    def SetConnections(self, connectionPercentage, totalConnections, channelConnections):
         self.connection.SetPercentage(connectionPercentage)
         self.connection.SetToolTipString('Connected to %d peers' % totalConnections)
+        self.channelconnections = channelConnections
 
     def GetConnections(self):
         return self.connection.GetPercentage()
+    def GetChannelConnections(self):
+        return self.channelconnections
 
     def onReachable(self, event=None):
         if not self.guiutility.firewall_restart:
