@@ -49,9 +49,9 @@ class TestRemoteQuery(TestGuiAsServer):
             self.quit()
 
         def do_doubleclick():
-            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching vodo')
+            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching mp3')
 
-            self.screenshot('After doing vodo search, got %d results' % self.frame.searchlist.GetNrResults())
+            self.screenshot('After doing avi search, got %d results' % self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
             for _, item in items.iteritems():
                 if isinstance(item, ChannelListItem):
@@ -63,8 +63,8 @@ class TestRemoteQuery(TestGuiAsServer):
             self.Call(10, do_assert)
 
         def do_search():
-            self.guiUtility.dosearch(u'vodo')
-            self.Call(10, do_doubleclick)
+            self.guiUtility.dosearch(u'mp3')
+            self.Call(15, do_doubleclick)
 
         self.startTest(do_search)
 
@@ -107,7 +107,7 @@ class TestRemoteQuery(TestGuiAsServer):
     def startTest(self, callback):
         def wait_for_search():
             print >> sys.stderr, "tgs: frame ready, staring to wait for search to be ready"
-            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, callback)
+            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, callback, 'did not connect to 50% of expected peers within 300s')
 
         TestGuiAsServer.startTest(self, wait_for_search)
 
