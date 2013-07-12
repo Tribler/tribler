@@ -119,7 +119,7 @@ class TestGuiDialogs(TestGuiAsServer):
             except Exception, e:
                 self.guiUtility.utility.app.onError(e)
 
-        self.startTest(do_error)
+        self.startTest(do_error, min_timeout=10)
 
     def test_add_save_create_dialog(self):
         def do_assert_create(add_dialog):
