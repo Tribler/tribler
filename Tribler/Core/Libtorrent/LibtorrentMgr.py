@@ -50,6 +50,7 @@ class LibtorrentMgr:
         print >> sys.stderr, "LibtorrentMgr: listening on %d" % self.ltsession.listen_port()
 
         # Start DHT
+        self.dht_ready = False
         try:
             dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
             self.ltsession.start_dht(lt.bdecode(dht_state))
@@ -111,6 +112,9 @@ class LibtorrentMgr:
 
     def get_dht_nodes(self):
         return self.ltsession.status().dht_nodes
+
+    def is_dht_ready(self):
+        return self.dht_ready
 
     def queue_position_up(self, infohash):
         with self.torlock:
@@ -240,6 +244,7 @@ class LibtorrentMgr:
 
             else:
                 print >> sys.stderr, "LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes
+                self.dht_ready = True
                 return
 
         self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
