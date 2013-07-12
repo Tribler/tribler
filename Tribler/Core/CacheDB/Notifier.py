@@ -13,12 +13,12 @@ class Notifier:
 
     SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PROXYDOWNLOADER, NTFY_PROXYDISCOVERY, NTFY_DISPERSY]
 
-    #. . .
+    # . . .
     # todo: add all datahandler types+other observables
     __single = None
 
-    def __init__(self, pool=None):
-        if Notifier.__single:
+    def __init__(self, pool=None, ignore_signleton=False):
+        if Notifier.__single and not ignore_signleton:
             raise RuntimeError("Notifier is singleton")
         self.pool = pool
 
@@ -40,7 +40,7 @@ class Notifier:
         Notifier.__single = None
     delInstance = staticmethod(delInstance)
 
-    def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id= None, cache = 0):
+    def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id=None, cache=0):
         """
         Add observer function which will be called upon certain event
         Example:
@@ -113,14 +113,14 @@ class Notifier:
                                         ofunc(events)
 
                             self.observerscache[ofunc] = []
-                            t = Timer(cache, doQueue, (ofunc, ))
+                            t = Timer(cache, doQueue, (ofunc,))
                             t.setName("Notifier-timer")
                             t.start()
 
                         self.observerscache[ofunc].append(args)
             except:
                 print_exc()
-                print >>sys.stderr, "notify: OIDs were", repr(oid), repr(obj_id)
+                print >> sys.stderr, "notify: OIDs were", repr(oid), repr(obj_id)
 
         self.observerLock.release()
         for task in tasks:
