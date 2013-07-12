@@ -25,7 +25,7 @@ class UserCallbackHandler:
         # Notifier for callbacks to API user
         self.threadpool = ThreadNoPool()
 
-        self.notifier = Notifier.getInstance(self.threadpool)
+        self.notifier = Notifier(self.threadpool)
 
     def shutdown(self):
         # stop threadpool
