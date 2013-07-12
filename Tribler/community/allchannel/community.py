@@ -15,14 +15,14 @@ from Tribler.dispersy.database import IgnoreCommits
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
-from Tribler.dispersy.message import Message, DropMessage,\
+from Tribler.dispersy.message import Message, DropMessage, \
     BatchConfiguration
 from Tribler.dispersy.resolution import PublicResolution
 
 from Tribler.community.channel.message import DelayMessageReqChannelMessage
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
-from Tribler.community.allchannel.payload import ChannelCastRequestPayload,\
+from Tribler.community.allchannel.payload import ChannelCastRequestPayload, \
     ChannelCastPayload, VoteCastPayload, ChannelSearchPayload, ChannelSearchResponsePayload
 from traceback import print_exc
 import sys
@@ -70,19 +70,19 @@ class AllChannelCommunity(Community):
         return [master]
 
     @classmethod
-    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, auto_join_channel= False):
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, auto_join_channel=False):
         try:
             dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, auto_join_channel= auto_join_channel)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, auto_join_channel=auto_join_channel)
         else:
-            return super(AllChannelCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, auto_join_channel= auto_join_channel)
+            return super(AllChannelCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, auto_join_channel=auto_join_channel)
 
     @property
     def dispersy_sync_bloom_filter_strategy(self):
         return self._dispersy_claim_sync_bloom_filter_modulo
 
-    def __init__(self, dispersy, master, integrate_with_tribler=True, auto_join_channel= False):
+    def __init__(self, dispersy, master, integrate_with_tribler=True, auto_join_channel=False):
         super(AllChannelCommunity, self).__init__(dispersy, master)
 
         self.integrate_with_tribler = integrate_with_tribler
@@ -105,11 +105,11 @@ class AllChannelCommunity(Community):
         self._register_task(self.create_channelcast, delay=CHANNELCAST_FIRST_MESSAGE)
         # 15/02/12 Boudewijn: add the callback id to _pending_callbacks to allow the task to be
         # unregistered when the community is unloaded
-        self._pending_callbacks.append(self._register_task(self.unload_preview, priority=-128))
+        self._pending_callbacks.append(self._register_task(self.unload_preview, priority= -128))
 
         self._blocklist = {}
         self._searchCallbacks = {}
-        
+
         from Tribler.community.channel.community import register_callback
         register_callback(dispersy.callback)
 
@@ -217,6 +217,9 @@ class AllChannelCommunity(Community):
 
             yield CHANNELCAST_INTERVAL
 
+    def get_nr_connections(self):
+        return len(list(self.dispersy_yield_candidates()))
+
     def check_channelcast(self, messages):
         # no timeline check because PublicResolution policy is used
         return messages
@@ -277,7 +280,7 @@ class AllChannelCommunity(Community):
         meta = self.get_meta_message(u"channelsearch")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,),
-                            payload=(keywords, ))
+                            payload=(keywords,))
 
         if DEBUG:
             print >> sys.stderr, "AllChannelCommunity: searching for", query
@@ -671,7 +674,7 @@ class VoteCastDBStub():
 
         sql = u"SELECT sync.id FROM sync JOIN member ON sync.member = member.id JOIN community ON community.id = sync.community JOIN meta_message ON sync.meta_message = meta_message.id WHERE community.classification = 'AllChannelCommunity' AND meta_message.name = 'votecast' AND member.public_key = ? ORDER BY global_time DESC LIMIT 1"
         try:
-            id, = self._dispersy.database.execute(sql, (buffer(public_key), )).next()
+            id, = self._dispersy.database.execute(sql, (buffer(public_key),)).next()
             self._votecache[public_key] = int(id)
             return self._votecache[public_key]
         except StopIteration:
