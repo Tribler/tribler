@@ -360,6 +360,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
             self.set_byte_priority([(self.get_vod_fileindex(), 0, self.prebuffsize)], 1)
             self.set_byte_priority([(self.get_vod_fileindex(), -self.endbuffsize, -1)], 1)
 
+            self.progress = self.get_byte_progress([(self.get_vod_fileindex(), 0, -1)])
             if self.progress == 1.0:
                 if DEBUG:
                     print >> sys.stderr, "LibtorrentDownloadImpl: VOD requested, but file complete on disk", self.videoinfo
