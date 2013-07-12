@@ -510,22 +510,27 @@ class ABCApp():
     def set_reputation(self):
         def do_db():
             nr_connections = 0
+            nr_channel_connections = 0
             if self.dispersy:
                 for community in self.dispersy.get_communities():
                     from Tribler.community.search.community import SearchCommunity
+                    from Tribler.community.allchannel.community import AllChannelCommunity
+
                     if isinstance(community, SearchCommunity):
                         nr_connections = community.get_nr_connections()
+                    elif isinstance(community, AllChannelCommunity):
+                        nr_channel_connections = community.get_nr_connections()
 
-            return nr_connections
+            return nr_connections, nr_channel_connections
 
         def do_wx(delayedResult):
-            nr_connections = delayedResult.get()
+            nr_connections, nr_channel_connections = delayedResult.get()
 
             # self.frame.SRstatusbar.set_reputation(myRep, total_down, total_up)
 
             # bitmap is 16px wide, -> but first and last pixel do not add anything.
             percentage = min(1.0, (nr_connections + 1) / 16.0)
-            self.frame.SRstatusbar.SetConnections(percentage, nr_connections)
+            self.frame.SRstatusbar.SetConnections(percentage, nr_connections, nr_channel_connections)
 
         """ set the reputation in the GUI"""
         if self.ready and self.frame.ready:
