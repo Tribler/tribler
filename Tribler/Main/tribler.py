@@ -882,6 +882,7 @@ class ABCApp():
         delete_status_holders()
 
         if self.frame:
+            self.frame.Destroy()
             del self.frame
 
         # Don't checkpoint, interferes with current way of saving Preferences,

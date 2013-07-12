@@ -122,14 +122,10 @@ class ChannelCommunity(Community):
 
         if self.integrate_with_tribler:
             from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
-            from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
             self._peer_db = PeerDBHandler.getInstance()
             self._channelcast_db = ChannelCastDBHandler.getInstance()
-
-            # notifier
-            self._notifier = Notifier.getInstance().notify
 
             # tribler channel_id
             self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)", (buffer(self._master_member.mid),))
