@@ -157,7 +157,7 @@ class TestMagnet(TestAsServer):
 
         def wait_for_libtorrent():
             ltmgr = LibtorrentMgr.getInstance()
-            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, do_transfer)
+            self.CallConditional(120, lambda: ltmgr.is_dht_ready(), do_transfer)
 
         self.startTest(wait_for_libtorrent)
 
