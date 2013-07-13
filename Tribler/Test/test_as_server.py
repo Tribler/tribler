@@ -157,7 +157,7 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
-    def assert_(self, boolean, reason=None, doassert=True):
+    def assert_(self, boolean, reason=None):
         if not boolean:
             self.quit()
             assert boolean, reason
@@ -185,7 +185,7 @@ class TestAsServer(AbstractServer):
                         self.Call(0.5, DoCheck)
                 else:
                     print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
+                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout)
         self.Call(0, DoCheck)
 
     def quit(self):
@@ -215,15 +215,12 @@ class TestGuiAsServer(TestAsServer):
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, doassert=True):
+    def assert_(self, boolean, reason):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
             self.asserts.append((boolean, reason))
-
-            if doassert:
-                assert boolean, reason
 
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
