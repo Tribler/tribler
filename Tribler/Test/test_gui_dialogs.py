@@ -195,7 +195,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.Call(10, do_favorite)
 
         def wait_for_search():
-            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, do_search)
+            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 5, do_search, 'did not connect to more than 5 peers within 300s')
 
         self.startTest(wait_for_search)
 
