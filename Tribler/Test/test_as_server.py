@@ -285,7 +285,7 @@ class TestGuiAsServer(TestAsServer):
             self.frame.OnCloseWindow()
         else:
             def do_quit():
-                self.app.ExitMainLoop
+                self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
             self.Call(1, do_quit)
