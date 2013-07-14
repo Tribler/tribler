@@ -69,7 +69,6 @@ class TestMyChannel(TestGuiAsServer):
         def do_modifications(torrentfilename):
             infohash = TorrentDef.load(torrentfilename).get_infohash()
 
-            self.guiUtility.ShowPage('my_files')
             time.sleep(1)
             self.frame.librarylist.Select(infohash)
             torrent = self.frame.top_bg.GetSelectedTorrents()[0]
@@ -90,12 +89,13 @@ class TestMyChannel(TestGuiAsServer):
 
         def do_thumbnails(torrentfilename):
             thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-8bb88a02da691636a7ed929b87d467f24700e490')
-
             self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
 
         def do_download_torrent(torrentfilename):
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
             download.add_peer(("127.0.0.1", self.session2.get_listen_port()))
+            
+            self.guiUtility.ShowPage('my_files')
             self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda: do_thumbnails(torrentfilename), 'Failed to download torrent in time')
 
         def do_create_playlist(torrentfilename):
