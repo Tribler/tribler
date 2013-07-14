@@ -22,8 +22,10 @@ from threading import Event
 class TestGuiDialogs(TestGuiAsServer):
 
     def test_settings_dialog(self):
-        def do_close(event):
-            self.assert_(event.wait(10), 'did not save settings')
+        def do_close(dialog, event):
+            if not event.wait(10):
+                self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+                self.assert_(False, 'did not save settings')
             self.quit()
 
         def do_assert():
@@ -32,7 +34,7 @@ class TestGuiDialogs(TestGuiAsServer):
 
             self.screenshot('Screenshot of SettingsDialog', window=dialog)
             saved_event = Event()
-            self.Call(1, lambda: do_close(saved_event))
+            self.Call(1, lambda: do_close(dialog, saved_event))
 
             class FakeEvent():
                 def __init__(self, event):
