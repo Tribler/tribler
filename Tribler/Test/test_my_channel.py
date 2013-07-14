@@ -109,7 +109,8 @@ class TestMyChannel(TestGuiAsServer):
 
             # switch to playlist tab
             mp_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage playlists")
-            self.managechannel.notebook.SetSelection(mp_index)
+            if mp_index:
+                self.managechannel.notebook.SetSelection(mp_index)
 
             self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, lambda: do_download_torrent(torrentfilename), 'Channel did not have a playlist')
 
@@ -124,7 +125,8 @@ class TestMyChannel(TestGuiAsServer):
 
             # switch to files tab
             mt_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage torrents")
-            self.managechannel.notebook.SetSelection(mt_index)
+            if mt_index:
+                self.managechannel.notebook.SetSelection(mt_index)
 
             self.CallConditional(60, lambda: len(managefiles.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
 
