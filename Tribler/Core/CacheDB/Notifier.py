@@ -17,8 +17,8 @@ class Notifier:
     # todo: add all datahandler types+other observables
     __single = None
 
-    def __init__(self, pool=None, ignore_signleton=False):
-        if Notifier.__single and not ignore_signleton:
+    def __init__(self, pool=None):
+        if Notifier.__single:
             raise RuntimeError("Notifier is singleton")
         self.pool = pool
 
