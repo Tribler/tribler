@@ -23,10 +23,8 @@ class TestGuiDialogs(TestGuiAsServer):
 
     def test_settings_dialog(self):
         def do_close(dialog, event):
-            if not event.wait(10):
-                self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-                self.assert_(False, 'did not save settings')
-            self.quit()
+            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.Call(2, self.quit)
 
         def do_assert():
             dialog = wx.FindWindowByName('settingsDialog')
@@ -34,7 +32,7 @@ class TestGuiDialogs(TestGuiAsServer):
 
             self.screenshot('Screenshot of SettingsDialog', window=dialog)
             saved_event = Event()
-            self.Call(1, lambda: do_close(dialog, saved_event))
+            self.CallConditional(10, lambda: saved_event.is_set(), lambda: do_close(dialog), 'did not save dialog within 10s')
 
             class FakeEvent():
                 def __init__(self, event):

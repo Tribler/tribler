@@ -167,7 +167,7 @@ class TestMyChannel(TestGuiAsServer):
             if waitforpeers:
                 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
                 ltmgr = LibtorrentMgr.getInstance()
-                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
+                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback, 'did not get more than 25 nodes within 120 seconds')
             else:
                 callback()
 
