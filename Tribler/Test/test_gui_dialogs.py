@@ -48,7 +48,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.Call(1, do_assert)
             self.frame.top_bg.OnSettings(None)
 
-        self.startTest(do_settings)
+        self.startTest(do_settings, min_timeout=10)
 
     def test_remove_dialog(self):
         infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
