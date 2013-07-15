@@ -47,7 +47,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.Call(1, self.quit)
 
         def do_settings():
-            self.Call(1, do_assert)
+            self.Call(5, do_assert)
             self.frame.top_bg.OnSettings(None)
 
         self.startTest(do_settings, min_timeout=10)
