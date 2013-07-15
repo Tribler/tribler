@@ -17,6 +17,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
 from threading import Event
+from traceback import print_exc
 
 
 class TestGuiDialogs(TestGuiAsServer):
@@ -36,7 +37,10 @@ class TestGuiDialogs(TestGuiAsServer):
 
                 def Skip(self):
                     self.event.set()
-            dialog.saveAll(FakeEvent(saved_event))
+            try:
+                dialog.saveAll(FakeEvent(saved_event))
+            except:
+                print_exc()
             dialog.EndModal(wx.ID_CANCEL)
             
             self.assert_(saved_event.is_set(), 'did not save dialog within 10s')
