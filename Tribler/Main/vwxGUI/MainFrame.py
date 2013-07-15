@@ -1057,7 +1057,6 @@ class MainFrame(wx.Frame):
 
         print >> sys.stderr, "mainframe: Calling quit"
         self.quit(event != None or force)
-        self.Destroy()
 
         if DEBUG:
             print >> sys.stderr, "mainframe: OnCloseWindow END"
@@ -1188,12 +1187,22 @@ class MainFrame(wx.Frame):
         else:
             print >> sys.stderr, "mainframe: got app from wx"
             app = wx.GetApp()
+            
+        print >> sys.stderr, "mainframe: looping through toplevelwindows"
+        for item in wx.GetTopLevelWindows():
+            if item != self: 
+                if isinstance(item, wx.Dialog):
+                    print >> sys.stderr, "mainframe: destroying", item 
+                    item.Destroy() 
+                item.Close()
+        print >> sys.stderr, "mainframe: destroying", self 
+        self.Destroy()
 
         if app:
-            def do_exit():
+            def doexit():
                 app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
-            wx.CallLater(1000, do_exit)  # cannot be called immediately, window will still be visible
+            wx.CallLater(1000, doexit)
             if force:
                 wx.CallLater(2500, app.Exit)
