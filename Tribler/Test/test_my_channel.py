@@ -56,46 +56,44 @@ class TestMyChannel(TestGuiAsServer):
         self.startTest(do_page)
 
     def test_add_torrents_playlists(self):
-        def do_quit():
-            self.screenshot('Resulting channel')
-            self.quit()
 
         def do_overview():
-            self.screenshot('Playlist has been created')
             self.guiUtility.showChannel(self.managechannel.channel)
-
-            do_quit()
+            self.screenshot('Resulting channel')
+            self.quit()
 
         def do_modifications(torrentfilename):
             infohash = TorrentDef.load(torrentfilename).get_infohash()
 
-            self.guiUtility.ShowPage('my_files')
-            time.sleep(1)
             self.frame.librarylist.Select(infohash)
-            torrent = self.frame.top_bg.GetSelectedTorrents()[0]
-            time.sleep(10)
-            modifications = self.guiUtility.channelsearch_manager.getTorrentModifications(torrent)
+            torrent = self.guiUtility.channelsearch_manager.getTorrentFromChannel(self.frame.managechannel.channel, infohash)
 
-            videoinfo_valid = False
-            swiftthumbnails_valid = False
-            for modification in modifications:
-                if modification.name == 'swift-thumbnails' and modification.value:
-                    swiftthumbnails_valid = True
-                if modification.name == 'video-info' and modification.value:
-                    videoinfo_dict = json.loads(modification.value)
-                    if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
-                        videoinfo_valid = True
+            def check_for_modifications():
+                modifications = self.guiUtility.channelsearch_manager.getTorrentModifications(torrent)
+                videoinfo_valid = False
+                swiftthumbnails_valid = False
+                for modification in modifications:
+                    if modification.name == 'swift-thumbnails' and modification.value:
+                        swiftthumbnails_valid = True
+                    if modification.name == 'video-info' and modification.value:
+                        videoinfo_dict = json.loads(modification.value)
+                        if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
+                            videoinfo_valid = True
 
-            self.CallConditional(1, lambda: videoinfo_valid and swiftthumbnails_valid, do_overview, 'No valid channel modifications received')
+                return videoinfo_valid and swiftthumbnails_valid
+            self.CallConditional(10, check_for_modifications, do_overview, 'No valid channel modifications received')
 
         def do_thumbnails(torrentfilename):
             thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-8bb88a02da691636a7ed929b87d467f24700e490')
-
             self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
 
         def do_download_torrent(torrentfilename):
+            self.screenshot('Playlist has been created')
+
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
             download.add_peer(("127.0.0.1", self.session2.get_listen_port()))
+
+            self.guiUtility.ShowPage('my_files')
             self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda: do_thumbnails(torrentfilename), 'Failed to download torrent in time')
 
         def do_create_playlist(torrentfilename):
@@ -109,7 +107,8 @@ class TestMyChannel(TestGuiAsServer):
 
             # switch to playlist tab
             mp_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage playlists")
-            self.managechannel.notebook.SetSelection(mp_index)
+            if mp_index:
+                self.managechannel.notebook.SetSelection(mp_index)
 
             self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, lambda: do_download_torrent(torrentfilename), 'Channel did not have a playlist')
 
@@ -124,7 +123,8 @@ class TestMyChannel(TestGuiAsServer):
 
             # switch to files tab
             mt_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage torrents")
-            self.managechannel.notebook.SetSelection(mt_index)
+            if mt_index:
+                self.managechannel.notebook.SetSelection(mt_index)
 
             self.CallConditional(60, lambda: len(managefiles.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
 
