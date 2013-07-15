@@ -157,7 +157,7 @@ class TestAsServer(AbstractServer):
 
         print >> sys.stderr, "test_as_server: Session is shutdown"
 
-    def assert_(self, boolean, reason=None, doassert=True):
+    def assert_(self, boolean, reason=None, do_assert = True):
         if not boolean:
             self.quit()
             assert boolean, reason
@@ -185,7 +185,7 @@ class TestAsServer(AbstractServer):
                         self.Call(0.5, DoCheck)
                 else:
                     print >> sys.stderr, "test_as_server: quitting, condition was not satisfied in %d seconds (%s)" % (timeout, assertMsg or "no-assert-msg")
-                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, doassert=False)
+                    self.assert_(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
         self.Call(0, DoCheck)
 
     def quit(self):
@@ -215,14 +215,14 @@ class TestGuiAsServer(TestAsServer):
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, doassert=True):
+    def assert_(self, boolean, reason, do_assert = True):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
             self.asserts.append((boolean, reason))
-
-            if doassert:
+            
+            if do_assert:
                 assert boolean, reason
 
     def startTest(self, callback, min_timeout=5):
@@ -288,7 +288,7 @@ class TestGuiAsServer(TestAsServer):
             self.frame.OnCloseWindow()
         else:
             def do_quit():
-                self.app.ExitMainLoop
+                self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
             self.Call(1, do_quit)
