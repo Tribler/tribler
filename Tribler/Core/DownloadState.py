@@ -123,7 +123,7 @@ class DownloadState(Serializable):
 
                             index += 1
                 self.haveslice = haveslice
-                if have == len(haveslice):
+                if have == len(haveslice) and self.status == DLSTATUS_DOWNLOADING:
                     # we have all pieces of the selected files
                     self.status = DLSTATUS_SEEDING
                     self.progress = 1.0

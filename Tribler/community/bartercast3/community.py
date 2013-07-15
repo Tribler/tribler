@@ -63,7 +63,7 @@ class PingCache(Cache):
     def on_timeout(self):
         self.community.remove_from_slope(self.member)
         if isinstance(self.candidate, WalkCandidate):
-            self.candidate.obsolete(self.community, time())
+            self.candidate.obsolete(time())
 
 
 class MemberRequestCache(Cache):

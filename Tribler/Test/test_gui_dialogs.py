@@ -17,36 +17,40 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
 from threading import Event
+from traceback import print_exc
 
 
 class TestGuiDialogs(TestGuiAsServer):
 
     def test_settings_dialog(self):
-        def do_close(event):
-            assert event.wait(10)
-            self.quit()
 
         def do_assert():
             dialog = wx.FindWindowByName('settingsDialog')
             self.assert_(isinstance(dialog, SettingsDialog), 'could not find SettingsDialog')
 
             self.screenshot('Screenshot of SettingsDialog', window=dialog)
-            saved_event = Event()
-            self.Call(1, lambda: do_close(saved_event))
 
+            saved_event = Event()
             class FakeEvent():
                 def __init__(self, event):
                     self.event = event
 
                 def Skip(self):
                     self.event.set()
-            dialog.saveAll(FakeEvent(saved_event))
+            try:
+                dialog.saveAll(FakeEvent(saved_event))
+            except:
+                print_exc()
+            dialog.EndModal(wx.ID_CANCEL)
+            
+            self.assert_(saved_event.is_set(), 'did not save dialog')
+            self.Call(1, self.quit)
 
         def do_settings():
-            self.Call(1, do_assert)
+            self.Call(5, do_assert)
             self.frame.top_bg.OnSettings(None)
 
-        self.startTest(do_settings)
+        self.startTest(do_settings, min_timeout=10)
 
     def test_remove_dialog(self):
         infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
@@ -119,7 +123,7 @@ class TestGuiDialogs(TestGuiAsServer):
             except Exception, e:
                 self.guiUtility.utility.app.onError(e)
 
-        self.startTest(do_error)
+        self.startTest(do_error, min_timeout=10)
 
     def test_add_save_create_dialog(self):
         def do_assert_create(add_dialog):
@@ -195,7 +199,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.Call(10, do_favorite)
 
         def wait_for_search():
-            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.5, do_search)
+            self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 5, do_search, 'did not connect to more than 5 peers within 300s')
 
         self.startTest(wait_for_search)
 

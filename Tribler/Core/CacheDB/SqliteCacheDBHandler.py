@@ -1127,7 +1127,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         return results
 
-    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness=-1):
+    def getLargestSourcesSeen(self, torrent_id, timeNow, freshness= -1):
         """
         Returns the largest number of the sources that have seen the torrent.
         @author: Rahim
@@ -2207,7 +2207,7 @@ class VoteCastDBHandler(BasicDBHandler):
         self._db.execute_write(insert_vote, (channel_id, voter_id, dispersy_id, vote, timestamp))
 
         self._updateChannelVotes(channel_id)
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
+        self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id)
 
     def on_votes_from_dispersy(self, votes):
         removeVotes = [(channel_id, voter_id) for channel_id, voter_id, _, _, _ in votes if not voter_id]
@@ -2230,7 +2230,7 @@ class VoteCastDBHandler(BasicDBHandler):
         self._db.commit()
 
         for channel_id, voter_id in channel_voter_ids:
-            self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id, voter_id == None)
+            self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id == None)
 
     def on_remove_vote_from_dispersy(self, channel_id, dispersy_id, redo):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
@@ -2249,8 +2249,6 @@ class VoteCastDBHandler(BasicDBHandler):
 
         select_vote = "SELECT dispersy_id FROM ChannelVotes WHERE channel_id = ? AND voter_id ISNULL AND dispersy_id != -1 ORDER BY time_stamp DESC Limit 1"
         return self._db.fetchone(select_vote, (channel_id,))
-
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
     def getPosNegVotes(self, channel_id):
         sql = 'select nr_favorite, nr_spam from Channels where id = ?'
@@ -2335,25 +2333,6 @@ class VoteCastDBHandler(BasicDBHandler):
 
         updates = [(positive_votes.get(channel_id, 0), negative_votes.get(channel_id, 0), channel_id) for channel_id in channel_ids]
         self._db.executemany("UPDATE _Channels SET nr_favorite = ?, nr_spam = ? WHERE id = ?", updates, commit=commit)
-
-    # ONLY CALLED FOR NON-DISPERSY CHANNELS
-    def subscribe(self, channel_id):
-        """insert/change the vote status to 2"""
-
-        self.addVote((channel_id, None, 2, now()))
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
-
-    # ONLY CALLED FOR NON-DISPERSY CHANNELS
-    def unsubscribe(self, channel_id):  # ##
-        """ change the vote status to 0"""
-        self.removeVote(channel_id, None)
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
-
-    # ONLY CALLED FOR NON-DISPERSY CHANNELS
-    def spam(self, channel_id):
-        """ insert/change the vote status to -1"""
-        self.addVote((channel_id, None, -1, now()))
-        self.notifier.notify(NTFY_CHANNELCAST, NTFY_UPDATE, channel_id)
 
     def getVote(self, channel_id, voter_id):
         """ return the vote status if such record exists, otherwise None  """

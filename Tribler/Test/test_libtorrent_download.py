@@ -127,7 +127,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
     def test_playdownload(self):
         t = time()
 
-        def do_assert():
+        def take_screenshot():
             self.screenshot("After streaming a libtorrent download (buffering took %.2f s)" % (time() - t))
             self.quit()
 
@@ -137,7 +137,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.assert_(bool(d), "No VOD download found")
 
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: d.network_calc_prebuf_frac() == 1.0, do_assert)
+            self.CallConditional(60, lambda: d.network_get_vod_stats()['status'] == "started", take_screenshot, "streaming did not start")
 
         def do_vod():
             self.frame.startDownloadFromUrl(r'http://www.clearbits.net/get/8-blue---a-short-film.torrent', self.getDestDir(), selectedFiles=[os.path.join('Content', 'blue-a-short-film-divx.avi')], vodmode=True)
