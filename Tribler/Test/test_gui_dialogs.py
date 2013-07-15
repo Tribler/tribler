@@ -43,7 +43,7 @@ class TestGuiDialogs(TestGuiAsServer):
                 print_exc()
             dialog.EndModal(wx.ID_CANCEL)
             
-            self.assert_(saved_event.is_set(), 'did not save dialog within 10s')
+            self.assert_(saved_event.is_set(), 'did not save dialog')
             self.Call(1, self.quit)
 
         def do_settings():
