@@ -484,8 +484,6 @@ class DispersyPanel(HomePanel):
             ("Packets delayed", 'Packets being delayed vs Packets reveived', lambda stats: ratio(stats.delay_count, stats.received_count)),
             ("Sync-Messages created", 'Total number of messages created by us in this session which should be synced', lambda stats: str(stats.created_count)),
 
-            ("Candidates reuse", 'Candidates discovered (intro or stumbled) vs Candidates active in more than one community', lambda stats: ratio(stats.total_candidates_overlapped, stats.total_candidates_discovered)),
-
             ("Packets delayed send", 'Total number of delaymessages or delaypacket messages being sent', lambda stats: ratio(stats.delay_send, stats.delay_count)),
             ("Packets delayed success", 'Total number of packets which were delayed, and did not timeout', lambda stats: ratio(stats.delay_success, stats.delay_count)),
             ("Packets delayed timeout", 'Total number of packets which were delayed, but got a timeout', lambda stats: ratio(stats.delay_timeout, stats.delay_count)),
@@ -710,10 +708,6 @@ class DispersyPanel(HomePanel):
                 raw_info['endpoint_send'] = stats.endpoint_send
             if stats.bootstrap_candidates:
                 raw_info['bootstrap_candidates'] = stats.bootstrap_candidates
-            if stats.overlapping_stumble_candidates:
-                raw_info['overlapping_stumble_candidates'] = stats.overlapping_stumble_candidates
-            if stats.overlapping_intro_candidates:
-                raw_info['overlapping_intro_candidates'] = stats.overlapping_intro_candidates
             addValue(parentNode, raw_info)
 
         self.panel.Layout()

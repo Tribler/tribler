@@ -162,7 +162,7 @@ class AllChannelCommunity(Community):
                     # only check if we actually have a channel
                     if mychannel_id:
                         peer_ids = set()
-                        for member in candidate.get_members(self):
+                        for member in candidate.get_members():
                             key = member.public_key
                             peer_ids.add(self._peer_db.addOrGetPeerID(key))
 

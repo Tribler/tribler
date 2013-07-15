@@ -241,14 +241,15 @@ class SearchCommunity(Community):
 
     def is_taste_buddy_mid(self, mid):
         for tb in self.yield_taste_buddies():
-            if mid in [member.mid for member in tb.get_members(self)]:
+            if mid in [member.mid for member in tb.get_members()]:
                 return True
 
     def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         self._dispersy.statistics.walk_attempt += 1
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
+        self.add_candidate(destination)
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
 
         advice = True
@@ -301,7 +302,7 @@ class SearchCommunity(Community):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "SearchCommunity: got %d introduction requests" % len(orig_messages)
 
-        messages = [message for message in orig_messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
+        messages = [message for message in orig_messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
         self.process_rsa_simirequest(messages)
 
         self._disp_intro_handler(orig_messages)
@@ -978,7 +979,8 @@ class ForwardCommunity(SearchCommunity):
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
         self._dispersy.statistics.walk_attempt += 1
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
+        self.add_candidate(destination)
 
         advice = True
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
@@ -1231,7 +1233,7 @@ class PSearchCommunity(ForwardCommunity):
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
+                for member in candidate.get_members():
                     self.requested_mids.add(member.mid)
 
             self.received_candidates = []
@@ -1425,7 +1427,7 @@ class HSearchCommunity(ForwardCommunity):
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
+                for member in candidate.get_members():
                     self.requested_mids.add(member.mid)
 
             self.received_candidates = set()
@@ -1479,7 +1481,7 @@ class HSearchCommunity(ForwardCommunity):
         # process possible taste buddies
         for message in messages:
 #            candidate = self._dispersy.get_walkcandidate(message, self)
-#            candidate.walk_response(self)
+#            candidate.walk_response()
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
 
