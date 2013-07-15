@@ -22,18 +22,14 @@ from threading import Event
 class TestGuiDialogs(TestGuiAsServer):
 
     def test_settings_dialog(self):
-        def do_close(dialog, event):
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, self.quit)
 
         def do_assert():
             dialog = wx.FindWindowByName('settingsDialog')
             self.assert_(isinstance(dialog, SettingsDialog), 'could not find SettingsDialog')
 
             self.screenshot('Screenshot of SettingsDialog', window=dialog)
-            saved_event = Event()
-            self.CallConditional(10, lambda: saved_event.is_set(), lambda: do_close(dialog), 'did not save dialog within 10s')
 
+            saved_event = Event()
             class FakeEvent():
                 def __init__(self, event):
                     self.event = event
@@ -41,6 +37,10 @@ class TestGuiDialogs(TestGuiAsServer):
                 def Skip(self):
                     self.event.set()
             dialog.saveAll(FakeEvent(saved_event))
+            dialog.EndModal(wx.ID_CANCEL)
+            
+            self.assert_(saved_event.is_set(), 'did not save dialog within 10s')
+            self.Call(1, self.quit)
 
         def do_settings():
             self.Call(1, do_assert)
