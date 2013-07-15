@@ -69,10 +69,9 @@ class TestMyChannel(TestGuiAsServer):
         def do_modifications(torrentfilename):
             infohash = TorrentDef.load(torrentfilename).get_infohash()
 
-            time.sleep(1)
             self.frame.librarylist.Select(infohash)
-            torrent = self.frame.top_bg.GetSelectedTorrents()[0]
-            time.sleep(10)
+
+            torrent = self.guiUtility.channelsearch_manager.getTorrentFromChannel(self.frame.managechannel.channel, infohash)
             modifications = self.guiUtility.channelsearch_manager.getTorrentModifications(torrent)
 
             videoinfo_valid = False
