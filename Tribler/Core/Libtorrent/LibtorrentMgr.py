@@ -238,7 +238,7 @@ class LibtorrentMgr:
     def monitor_dht(self):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
         if self.ltsession:
-            if self.get_dht_nodes() <= 10:
+            if self.get_dht_nodes() <= 25:
                 print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
                 self.ltsession.start_dht(None)
 
@@ -255,6 +255,11 @@ class LibtorrentMgr:
         self.get_metainfo(infohash, on_metainfo_retrieved, timeout)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30):
+        if not self.is_dht_ready() and timeout > 5:
+            print >> sys.stderr, "LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo"
+            self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5: self.get_metainfo(i, c, t), 5)
+            return
+
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)

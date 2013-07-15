@@ -149,9 +149,9 @@ class TestMyChannel(TestGuiAsServer):
             self.guiUtility.ShowPage('mychannel')
             self.Call(1, do_create)
 
-        self.startTest(do_page, True)
+        self.startTest(do_page)
 
-    def startTest(self, callback, waitforpeers=False):
+    def startTest(self, callback):
 
         def get_and_modify_dispersy():
             from Tribler.dispersy.endpoint import NullEndpoint
@@ -161,13 +161,7 @@ class TestMyChannel(TestGuiAsServer):
             dispersy._endpoint = NullEndpoint()
             dispersy._endpoint.open(dispersy)
 
-
-            if waitforpeers:
-                from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-                ltmgr = LibtorrentMgr.getInstance()
-                self.CallConditional(120, lambda: ltmgr.is_dht_ready(), callback)
-            else:
-                callback()
+            callback()
 
         TestGuiAsServer.startTest(self, get_and_modify_dispersy)
 
