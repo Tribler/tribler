@@ -671,6 +671,9 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
 
     @classmethod
     def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        import sys
+        print >> sys.stderr, type(cls)
+
         dispersy_database = DispersyDatabase.get_instance()
         try:
             dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
