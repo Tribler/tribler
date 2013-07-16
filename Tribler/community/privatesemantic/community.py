@@ -42,22 +42,6 @@ PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
 class ForwardCommunity(Community):
 
-    @classmethod
-    def get_master_members(cls):
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404a041c3a8415021f193ef0614360b4d99ac8f985eff2259f88f1f64070ae2bcc21c473c9c0b958b39da9ae58d6d0aec316341f65bd7daa42ffd73f5eeee53aa6199793f98afc47f008a601cd659479f801157e7dd69525649d8eec7885bd0d832746c46d067c60341a6d84b12a6e5d3ce25e20352ed8e0ff311e74b801c06286a852976bdba67dfe62dfb75a5b9c0d2".decode("HEX")
-        master = Member(master_key)
-        return [master]
-
-    @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        dispersy_database = DispersyDatabase.get_instance()
-        try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
-        except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, encryption=encryption, forward_to=forward_to, max_prefs=max_prefs, max_fprefs=max_fprefs)
-        else:
-            return super(Community, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, forward_to=forward_to, max_prefs=max_prefs, max_fprefs=max_fprefs)
-
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
         super(ForwardCommunity, self).__init__(master)
 
