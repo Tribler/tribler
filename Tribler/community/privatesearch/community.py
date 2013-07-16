@@ -57,7 +57,7 @@ class TTLSearchCommunity(Community):
         return [master]
 
     def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True):
-        super(SearchCommunity).__init__(self, master, integrate_with_tribler)
+        super(TTLSearchCommunity).__init__(self, master, integrate_with_tribler)
 
         self.ttl = ttl
         self.neighbors = neighbors
@@ -632,8 +632,8 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
             return Community.load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        HForwardCommunity.__init__(master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
-        TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
 class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
 
@@ -648,8 +648,8 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
             return Community.load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        PForwardCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
-        TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        PForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
 class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
 
@@ -664,8 +664,8 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
             return Community.load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        HForwardCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
-        TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
 class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
 
@@ -683,8 +683,8 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
             return Community.load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        PoliForwardCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
-        TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
 class Das4DBStub():
     def __init__(self, dispersy):
