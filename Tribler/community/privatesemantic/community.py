@@ -167,7 +167,7 @@ class ForwardCommunity(Community):
         candidate_mids = set(candidate.get_members(self))
 
         for tb in self.taste_buddies:
-            tb_mids = set(tb.get_members(self))
+            tb_mids = set(tb[-1].get_members(self))
             if tb_mids & candidate_mids:
                 tb[1] = time()
 
