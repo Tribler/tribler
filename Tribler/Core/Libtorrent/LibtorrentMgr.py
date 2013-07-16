@@ -50,6 +50,7 @@ class LibtorrentMgr:
         print >> sys.stderr, "LibtorrentMgr: listening on %d" % self.ltsession.listen_port()
 
         # Start DHT
+        self.dht_ready = False
         try:
             dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
             self.ltsession.start_dht(lt.bdecode(dht_state))
@@ -111,6 +112,9 @@ class LibtorrentMgr:
 
     def get_dht_nodes(self):
         return self.ltsession.status().dht_nodes
+
+    def is_dht_ready(self):
+        return self.dht_ready
 
     def queue_position_up(self, infohash):
         with self.torlock:
@@ -234,12 +238,13 @@ class LibtorrentMgr:
     def monitor_dht(self):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
         if self.ltsession:
-            if self.get_dht_nodes() <= 10:
+            if self.get_dht_nodes() <= 25:
                 print >> sys.stderr, "LibtorrentMgr: restarting dht because not enough nodes are found (%d)" % self.ltsession.status().dht_nodes
                 self.ltsession.start_dht(None)
 
             else:
                 print >> sys.stderr, "LibtorrentMgr: dht is working enough nodes are found (%d)" % self.ltsession.status().dht_nodes
+                self.dht_ready = True
                 return
 
         self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
@@ -250,6 +255,11 @@ class LibtorrentMgr:
         self.get_metainfo(infohash, on_metainfo_retrieved, timeout)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30):
+        if not self.is_dht_ready() and timeout > 5:
+            print >> sys.stderr, "LibtorrentDownloadImpl: DHT not ready, rescheduling get_metainfo"
+            self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5: self.get_metainfo(i, c, t), 5)
+            return
+
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)
