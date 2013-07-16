@@ -152,14 +152,11 @@ class TestMagnet(TestAsServer):
                 event.set()
 
             event = threading.Event()
-            assert TorrentDef.retrieve_from_magnet('magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout=60)
-            assert event.wait(60)
+            assert TorrentDef.retrieve_from_magnet('magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout=120)
+            assert event.wait(120)
 
-        def wait_for_libtorrent():
-            ltmgr = LibtorrentMgr.getInstance()
-            self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, do_transfer)
 
-        self.startTest(wait_for_libtorrent)
+        self.startTest(do_transfer)
 
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 

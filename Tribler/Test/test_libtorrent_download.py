@@ -146,15 +146,6 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         self.startTest(do_vod)
 
-    def startTest(self, callback, waitforpeers=False):
-        if waitforpeers:
-            def wait_for_libtorrent():
-                ltmgr = LibtorrentMgr.getInstance()
-                self.CallConditional(120, lambda: ltmgr.get_dht_nodes() > 25, callback)
-
-            TestGuiAsServer.startTest(self, wait_for_libtorrent)
-        else:
-            TestGuiAsServer.startTest(self, callback)
 
 if __name__ == "__main__":
     unittest.main()
