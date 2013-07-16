@@ -12,6 +12,7 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
 
 from threading import Thread
+from Tribler.dispersy.script import ScenarioScriptBase
 
 class SearchScript(SemanticScript):
     def __init__(self, **kargs):
@@ -174,3 +175,38 @@ class SearchScript(SemanticScript):
                 self.log_search_response([unicode(infohash)], local_results, None)
 
             yield self.search_spacing
+
+
+def start_script():
+    if not os.path.isdir('data'):
+        os.mkdir('data')
+
+    f = open('data/peers', 'w')
+    print >> f, '127.0.0.1', '1234'
+    f.close()
+
+    if not os.path.isdir('data/data'):
+        os.mkdir('data/data')
+    f = open('data/data/peer.conf', 'w')
+    print >> f, '1', '127.0.0.1', '1234', 'xyz'
+    f.close()
+
+
+    kargs = {}
+    kargs['type'] = 'polisearch'
+
+    script = SearchScript(**kargs)
+    script.next_testcase()
+
+    os.chdir('data')
+
+if __name__ == "__main__":
+    from Tribler.dispersy.callback import Callback
+    from Tribler.dispersy.dispersy import Dispersy
+
+    callback = Callback()
+    dispersy = Dispersy.get_instance(callback, u".", u":memory:")
+    dispersy.statistics.enable_debug_statistics(True)
+
+    callback.register(start_script)
+    callback.loop()

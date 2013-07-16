@@ -43,10 +43,11 @@ PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 class ForwardCommunity(Community):
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        super(ForwardCommunity, self).__init__(master)
+        Community.__init__(self, master)
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
+        self.key = rsa_init()
 
         if not max_prefs:
             max_len = self.dispersy_sync_bloom_filter_bits
@@ -69,7 +70,6 @@ class ForwardCommunity(Community):
         self.requested_introductions = {}
 
         self.my_preference_cache = [None, None]
-        self.key = rsa_init()
 
         self.create_time_encryption = 0.0
         self.create_time_decryption = 0.0
