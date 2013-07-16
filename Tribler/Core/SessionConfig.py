@@ -339,6 +339,19 @@ class SessionConfigInterface:
         """
         return self.sessconfig['dispersy']
 
+    def set_dispersy_tunnel_over_swift(self, value):
+        """ Enable or disable Dispersy tunnelling over libswift.
+        @param value Boolean.
+        """
+        assert isinstance(value, bool)
+        self.sessconfig['dispersy-tunnel-over-swift'] = value
+
+    def get_dispersy_tunnel_over_swift(self):
+        """ Returns whether Dispersy is tunnelling over libswift.
+        @return Boolean.
+        """
+        return self.sessconfig['dispersy-tunnel-over-swift']
+
     def set_dispersy_port(self, value):
         """ Sets the port that Dispersy uses to receive and send UDP
         datagrams.
