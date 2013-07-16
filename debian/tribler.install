@@ -2,7 +2,4 @@ Tribler usr/share/tribler
 Tribler/Main/Build/Ubuntu/tribler.desktop usr/share/applications
 Tribler/Main/Build/Ubuntu/tribler.xpm usr/share/pixmaps
 Tribler/Main/Build/Ubuntu/tribler_big.xpm usr/share/pixmaps
-Tribler/Player/Build/Ubuntu/swarmplayer.desktop usr/share/applications
-Tribler/Player/Build/Ubuntu/swarmplayer.xpm usr/share/pixmaps
-Tribler/Player/Build/Ubuntu/swarmplayer_big.xpm usr/share/pixmaps
 debian/bin/* usr/bin
