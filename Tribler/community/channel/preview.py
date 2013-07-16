@@ -15,9 +15,10 @@ class PreviewChannelCommunity(ChannelCommunity):
         self.init_timestamp = time()
 
     @property
-    def dispersy_acceptable_global_time_range(self):
-        # we will accept the full 64 bit global time range
-        return 2 ** 64 - self._global_time
+    def dispersy_enable_bloom_filter_sync(self):
+        # 1. disable bloom filter sync in walker
+        # 2. accept messages in any global time range
+        return False
 
     @property
     def dispersy_enable_candidate_walker(self):
