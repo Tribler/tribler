@@ -635,19 +635,19 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
         HForwardCommunity.__init__(master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
-class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
+class PSearchCommunity(PForwardCommunity, SearchCommunity):
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
         PForwardCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
-class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
+class HSearchCommunity(HForwardCommunity, SearchCommunity):
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
         HForwardCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
-class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
+class PoliSearchCommunity(PoliForwardCommunity, SearchCommunity):
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        PoliSearchCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+        PoliForwardCommunity.__init__(master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
 class Das4DBStub():
