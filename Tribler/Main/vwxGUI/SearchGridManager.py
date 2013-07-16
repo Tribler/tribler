@@ -351,10 +351,16 @@ class TorrentManager:
             for community in self.dispersy.get_communities():
                 if isinstance(community, SearchCommunity):
                     nr_requests_made = community.create_search(self.searchkeywords, self.gotDispersyRemoteHits)
+                    if not nr_requests_made:
+                        print >> sys.stderr, "Could not send search in SearchCommunity, no verified candidates found"
                     break
 
-        if not nr_requests_made:
-            print >> sys.stderr, "Could not send search, SearchCommunity not found?"
+            else:
+                print >> sys.stderr, "Could not send search in SearchCommunity, community not found"
+
+        else:
+            print >> sys.stderr, "Could not send search in SearchCommunity, Dispersy not found"
+
         return nr_requests_made
 
     def getHitsInCategory(self, categorykey='all', sort='fulltextmetric'):
@@ -1889,15 +1895,22 @@ class ChannelManager:
 
     @forceDispersyThread
     def searchDispersy(self):
-        sendSearch = False
+        nr_requests_made = 0
         if self.dispersy:
             for community in self.dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
-                    sendSearch = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    nr_requests_made = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    if not nr_requests_made:
+                        print >> sys.stderr, "Could not send search in AllChannelCommunity, no verified candidates found"
                     break
 
-        if not sendSearch:
-            print >> sys.stderr, "Could not send search, AllChannelCommunity not found?"
+            else:
+                print >> sys.stderr, "Could not send search in AllChannelCommunity, community not found"
+
+        else:
+            print >> sys.stderr, "Could not send search in AllChannelCommunity, Dispersy not found"
+
+        return nr_requests_made
 
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
