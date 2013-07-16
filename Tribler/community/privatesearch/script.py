@@ -167,7 +167,7 @@ class SearchScript(ScenarioScriptBase):
             yield 5.0
 
     def connect_to_taste_buddy(self, sock_addr):
-        candidate = self._dispersy.get_candidate(sock_addr, replace=False)
+        candidate = self._community.get_candidate(sock_addr, replace=False)
         if not candidate:
             candidate = self._community.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
 

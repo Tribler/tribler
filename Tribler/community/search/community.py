@@ -112,7 +112,7 @@ class SearchCommunity(Community):
             active_canidates = [candidate
                                 for candidate
                                 in self._candidates.itervalues()
-                                if candidate.is_active(self, now)]
+                                if candidate.dispersy_yield_verified_candidates()]
             if len(active_canidates) > 20:
                 logger.debug("there are %d active non-bootstrap candidates available, prematurely quitting fast walker", len(active_canidates))
                 break
@@ -121,7 +121,7 @@ class SearchCommunity(Community):
             eligible_candidates = [candidate
                                    for candidate
                                    in self._candidates.itervalues()
-                                   if candidate.is_eligible_for_walk(self, now)]
+                                   if candidate.is_eligible_for_walk(now)]
             for candidate in eligible_candidates:
                 logger.debug("extra walk to %s", candidate)
                 self.create_introduction_request(candidate, allow_sync=False, is_fast_walker=True)
@@ -219,7 +219,8 @@ class SearchCommunity(Community):
         if DEBUG:
             print >> sys.stderr, "SearchCommunity: sending introduction request to", destination
 
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
+        self.add_candidate(destination)
 
         advice = True
         if not (isinstance(destination, BootstrapCandidate) or is_fast_walker):
@@ -264,7 +265,7 @@ class SearchCommunity(Community):
 
     def on_taste_intro(self, messages):
         self._disp_intro_handler(messages)
-        messages = [message for message in messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
+        messages = [message for message in messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate)]
 
         if any(message.payload.taste_bloom_filter for message in messages):
             myPreferences = self._mypref_db.getMyPrefListInfohash(limit=500)

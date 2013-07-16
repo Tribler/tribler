@@ -63,7 +63,7 @@ class PingCache(Cache):
     def on_timeout(self):
         self.community.remove_from_slope(self.member)
         if isinstance(self.candidate, WalkCandidate):
-            self.candidate.obsolete(self.community, time())
+            self.candidate.obsolete(time())
 
 
 class MemberRequestCache(Cache):
@@ -453,7 +453,7 @@ class BarterCommunity(Community):
 
                     self.try_adding_to_slope(message.candidate, book.member)
 
-    def create_barter_record(self, second_member):
+    def create_barter_record(self, second_candidate, second_member):
         """
         Create a dispersy-signature-request that encapsulates a barter-record.
         """
@@ -474,7 +474,7 @@ class BarterCommunity(Community):
                                     time(), book.download, book.upload, self._total_up, self._total_down, self._associated_up, self._associated_down,
                                     time(), 0, 0, 0, 0, 0, 0),
                            sign=False)
-        return self.create_dispersy_signature_request(record, self.on_signature_response)
+        return self.create_dispersy_signature_request(second_candidate, record, self.on_signature_response)
 
     def allow_signature_request(self, message):
         """
@@ -616,7 +616,7 @@ class BarterCommunity(Community):
                     # record_candidate.history.set(now)
 
                     self._dispersy.callback.unregister(record_candidate.callback_id)
-                    self.create_barter_record(winner)
+                    self.create_barter_record(record_candidate.candidate, winner)
 
                 else:
                     logger.debug("cycle %d.  no peers available for record creation (%d peers on slope)",
