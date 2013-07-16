@@ -125,6 +125,11 @@ class TTLSearchCommunity(Community):
         # there is no dispersy-identity for the master member, so don't try to download
         return False
 
+    @property
+    def dispersy_sync_bloom_filter_strategy(self):
+        # disable sync bloom filter
+        return lambda: None
+
     class SearchRequest(Cache):
         timeout_delay = 30.0
         cleanup_delay = 0.0

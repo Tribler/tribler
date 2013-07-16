@@ -109,16 +109,6 @@ class ForwardCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), SemanticConversion(self)]
 
-    @property
-    def dispersy_auto_download_master_member(self):
-        # there is no dispersy-identity for the master member, so don't try to download
-        return False
-
-    @property
-    def dispersy_sync_bloom_filter_strategy(self):
-        # disable sync bloom filter
-        return lambda: None
-
     def add_taste_buddies(self, new_taste_buddies):
         for new_tb_tuple in new_taste_buddies[:]:
             for tb_tuple in self.taste_buddies:
@@ -161,6 +151,11 @@ class ForwardCommunity(Community):
     def is_taste_buddy_mid(self, mid):
         for tb in self.yield_taste_buddies():
             if mid in [member.mid for member in tb.get_members(self)]:
+                return True
+
+    def is_taste_buddy_sock(self, sock_addr):
+        for tb in self.yield_taste_buddies():
+            if tb.sock_addr == sock_addr:
                 return True
 
     def resetTastebuddy(self, candidate):
