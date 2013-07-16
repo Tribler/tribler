@@ -5,17 +5,17 @@ from collections import defaultdict
 from traceback import print_exc
 from time import sleep
 
-from community import SearchCommunity, PSearchCommunity, HSearchCommunity
-from Tribler.dispersy.script import ScenarioScriptBase
+from community import SearchCommunity, PSearchCommunity, HSearchCommunity, PoliSearchCommunity
+from Tribler.community.privatesemantic.script import SemanticScript
+
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
-from Tribler.dispersy.dispersy import IntroductionRequestCache
-from Tribler.community.privatesearch.community import PoliSearch
+
 from threading import Thread
 
-class SearchScript(ScenarioScriptBase):
+class SearchScript(SemanticScript):
     def __init__(self, **kargs):
-        ScenarioScriptBase.__init__(self, 'barter.log', **kargs)
+        SemanticScript.__init__(self, **kargs)
 
         def parse_tuplestr(v):
             if len(v) > 1 and v[1] == "t":
@@ -24,45 +24,22 @@ class SearchScript(ScenarioScriptBase):
                 return float(v)
             return int(v)
 
-        self.late_join = int(kargs.get('latejoin', 1000))
-        self.do_search = int(kargs.get('dosearch', 1000))
-        self.community_type = kargs.get('type', 'search')
-        self.community_kargs = {}
+        def str2bool(v):
+            return v.lower() in ("yes", "true", "t", "1")
+
         if 'ttl' in kargs:
             self.community_kargs['ttl'] = parse_tuplestr(kargs['ttl'])
         if 'neighbors' in kargs:
             self.community_kargs['neighbors'] = parse_tuplestr(kargs['neighbors'])
         if 'fneighbors' in kargs:
             self.community_kargs['fneighbors'] = parse_tuplestr(kargs['fneighbors'])
-        if 'max_prefs' in kargs:
-            self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
-        if 'max_f_prefs' in kargs:
-            self.community_kargs['max_fprefs'] = int(kargs['max_f_prefs'])
+        self.community_kargs['use_megacache'] = str2bool(kargs.get('use_megacache', 'true'))
 
-        def str2bool(v):
-            return v.lower() in ("yes", "true", "t", "1")
-
-        self.manual_connect = str2bool(kargs.get('manual_only', 'false'))
-        self.random_connect = str2bool(kargs.get('random_connect', 'false'))
-
-        self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0))
+        self.do_search = int(kargs.get('dosearch', 1000))
         self.search_limit = int(kargs.get('search_limit', sys.maxint))
         self.search_spacing = float(kargs.get('search_spacing', 15.0))
 
-        self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
-        self.community_kargs['use_megacache'] = str2bool(kargs.get('use_megacache', 'true'))
-
-        if self.random_connect:
-            self.manual_connect = True
-            self.bootstrap_percentage = 0
-
-        self.taste_buddies = set()
-        self.not_connected_taste_buddies = set()
         self.nr_search = 0
-
-        self.did_reply = set()
-        self.test_set = set()
-        self.test_reply = defaultdict(list)
         self.file_availability = defaultdict(list)
 
     def join_community(self, my_member):
@@ -78,7 +55,7 @@ class SearchScript(ScenarioScriptBase):
         elif self.community_type == 'hsearch':
             community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         elif self.community_type == 'polisearch':
-            community = PoliSearch.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+            community = PoliSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         else:
             community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
 
@@ -113,16 +90,8 @@ class SearchScript(ScenarioScriptBase):
 
         return community
 
-    def do_steps(self):
-        self._dispersy.callback.register(self.log_statistics, delay=1.0)
-        return ScenarioScriptBase.do_steps(self)
-
     def get_commands_from_fp(self, fp, step):
-        if step == 100 and int(self._my_name) <= self.late_join:
-            self._community.create_introduction_request = self._create_introduction_request
-
         search_step = step + self.search_offset
-
         perform_search = search_step % 300 == 0 and (self._community.ttl or self._community.forwarding_prob)
         if perform_search:
             nr_search = search_step / 300
@@ -130,48 +99,7 @@ class SearchScript(ScenarioScriptBase):
                 self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
 
-        return ScenarioScriptBase.get_commands_from_fp(self, fp, step)
-
-    def execute_scenario_cmds(self, commands):
-        for command in commands:
-            cur_command = command.split()
-            if cur_command[0] == 'download':
-                infohash = cur_command[1]
-                infohash = infohash + " "* (20 - len(infohash))
-
-                log(self._logfile, "registering download %s" % infohash)
-                self._community._mypref_db.addMyPreference(infohash, {})
-
-            elif cur_command[0] == 'testset':
-                infohash = cur_command[1]
-                infohash = infohash + " "* (20 - len(infohash))
-
-                self.test_set.add(infohash)
-                self._community._mypref_db.addTestPreference(infohash)
-
-            elif cur_command[0] == 'taste_buddy':
-                peer_id = int(cur_command[1])
-                ip, port = self.get_peer_ip_port(peer_id)
-
-                self.taste_buddies.add((ip, port))
-                self.not_connected_taste_buddies.add((ip, port))
-
-                # connect to first 10
-                if len(self.taste_buddies) <= (10 * self.bootstrap_percentage):
-                    log(self._logfile, "new taste buddy %s:%d" % (ip, port))
-
-                    if int(self._my_name) > self.late_join:
-                        self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=float(len(self.taste_buddies)))
-
-                # connect to a random peer
-                if self.random_connect and len(self.taste_buddies) <= 10:
-                    peer_id = int(self._my_name)
-                    while peer_id == int(self._my_name):
-                        peer_id = randint(1, self._nr_peers)
-
-                    ip, port = self.get_peer_ip_port(peer_id)
-                    self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=float(len(self.taste_buddies)))
-
+        return SemanticScript.get_commands_from_fp(self, fp, step)
 
     def log_statistics(self):
         while True:
@@ -205,17 +133,6 @@ class SearchScript(ScenarioScriptBase):
             log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward=self._community.search_forward, search_forward_success=self._community.search_forward_success, search_forward_timeout=self._community.search_forward_timeout, search_endpoint=self._community.search_endpoint, search_cycle_detected=self._community.search_cycle_detected, search_no_candidates_remain=self._community.search_no_candidates_remain, search_megacachesize=self._community.search_megacachesize, create_time_encryption=self._community.create_time_encryption, create_time_decryption=self._community.create_time_decryption, receive_time_encryption=self._community.receive_time_encryption, search_timeout=self._community.search_timeout, send_packet_size=self._community.send_packet_size, reply_packet_size=self._community.reply_packet_size, forward_packet_size=self._community.forward_packet_size)
             yield 5.0
 
-    def log_taste_buddies(self, new_taste_buddies):
-        self._add_taste_buddies(new_taste_buddies)
-
-        for taste_buddy in new_taste_buddies:
-            log(self._logfile, "new taste buddy", sim=taste_buddy[0], sock=str(taste_buddy[-1]), is_tb=self._community.is_taste_buddy(taste_buddy[-1]))
-
-            if taste_buddy[-1].sock_addr in self.not_connected_taste_buddies and not self._community.is_taste_buddy(taste_buddy[-1]):
-                log(self._logfile, "currentlist", list=[map(str, tup) for tup in self._community.taste_buddies])
-
-            self.did_reply.add(taste_buddy[-1].sock_addr)
-
     def log_search_response(self, keywords, results, candidate):
         for result in results:
             if result[0] in self.test_set:
@@ -241,27 +158,6 @@ class SearchScript(ScenarioScriptBase):
             log(self._logfile, "results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), results=results, unique_sources=unique_sources)
         else:
             log(self._logfile, "no results", recall=recall, paths_found=paths_found, sources_found=sources_found, keywords=keywords, candidate=str(candidate), unique_sources=unique_sources)
-
-    def monitor_taste_buddy(self):
-        while True:
-            for sock_addr in self.taste_buddies:
-                if self._community.is_taste_buddy_sock(sock_addr):
-                    if sock_addr in self.not_connected_taste_buddies:
-                        self.not_connected_taste_buddies.remove(sock_addr)
-                else:
-                    self.not_connected_taste_buddies.add(sock_addr)
-            yield 5.0
-
-    def connect_to_taste_buddy(self, sock_addr):
-        candidate = self._dispersy.get_candidate(sock_addr, replace=False)
-        if not candidate:
-            candidate = self._community.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
-
-        while not self._community.is_taste_buddy(candidate):
-            log(self._logfile, "sending introduction request to %s" % str(candidate))
-            self._manual_create_introduction_request(candidate, True)
-
-            yield IntroductionRequestCache.timeout_delay + IntroductionRequestCache.cleanup_delay
 
     def perform_searches(self):
         # clear local test_reply dict + force remove test_set from megacache
