@@ -8,9 +8,9 @@ from random import randint, Random
 from time import time
 from hashlib import md5
 
-from Tribler.community.privatesearch.rsa import rsa_init
+from rsa import rsa_init
 from collections import namedtuple
-from Tribler.community.privatesearch.polycreate import compute_coeff
+from polycreate import compute_coeff
 from itertools import groupby
 
 PallierKey = namedtuple('PallierKey', ['n', 'n2', 'g', 'lambda_', 'd'])
