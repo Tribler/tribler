@@ -13,6 +13,7 @@ from Tribler.dispersy.tool.lencoder import log
 
 from threading import Thread
 from Tribler.dispersy.script import ScenarioScriptBase
+from Tribler.community.privatesearch.oneswarm.community import PoliOneSwarmCommunity
 
 class SearchScript(SemanticScript):
     def __init__(self, **kargs):
@@ -59,7 +60,7 @@ class SearchScript(SemanticScript):
         elif self.community_type == 'polisearch':
             community = PoliSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         elif self.community_type == 'oneswarm':
-            community = PoliSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+            community = PoliOneSwarmCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         else:
             community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
 
@@ -196,7 +197,7 @@ def start_script():
 
 
     kargs = {}
-    kargs['type'] = 'polisearch'
+    kargs['type'] = 'oneswarm'
 
     script = SearchScript(**kargs)
     script.next_testcase()

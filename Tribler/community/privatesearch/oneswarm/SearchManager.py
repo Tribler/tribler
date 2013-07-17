@@ -1,6 +1,5 @@
 # Written by Niels Zeilemaker
 # conversion of SearchManager.java from OneSwarm
-import Queue
 import sys
 
 from math import floor
@@ -9,6 +8,7 @@ from time import time, sleep
 from threading import Thread
 from traceback import print_exc
 from collections import namedtuple
+from Queue import Queue
 
 DEBUG = True
 
@@ -341,7 +341,7 @@ class DelayedSearchQueue:
         self.queuedSearches = set()
         self.searchedPerFriend = {}
 
-        self.t = DelayedSearchQueueThread(self.queue, self.queuedSearches, self.searchedPerFriend)
+        self.t = DelayedSearchQueueThread(searchManager, self.queue, self.queuedSearches, self.searchedPerFriend)
         self.t.start()
 
 
@@ -415,6 +415,7 @@ class DelayedSearchQueue:
 
 class DelayedSearchQueueThread(Thread):
     def __init__(self, searchManager, queue, queuedSearches, searchedPerFriend):
+        Thread.__init__(self)
         self.searchManager = searchManager
         self.queue = queue
         self.queuedSearches = queuedSearches

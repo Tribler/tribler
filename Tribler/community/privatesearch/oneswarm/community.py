@@ -1,10 +1,10 @@
 from lencoder import log
 
 from Tribler.community.privatesearch.community import TTLSearchCommunity
-from Tribler.community.privatesemantic.community import HForwardCommunity
-from Tribler.community.privatesearch.conversion import SearchConversion
-from Tribler.community.privatesearch.oneswarm import SearchManager, \
-    OverlayManager
+from Tribler.community.privatesemantic.community import PoliForwardCommunity
+from Tribler.community.privatesearch.oneswarm.SearchManager import SearchManager
+from Tribler.community.privatesearch.oneswarm.OverlayManager import OverlayManager
+
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -12,6 +12,7 @@ from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.community.privatesearch.oneswarm.payload import SearchCancelPayload
+from Tribler.community.privatesearch.oneswarm.conversion import OneSwarmConversion
 
 ENCRYPTION = True
 
@@ -125,7 +126,7 @@ class SourceWrapper:
         return self.dispersy_source.get_members(self.community)[0].mid
 
 
-class HOneSwarmCommunity(HForwardCommunity, OneSwarmCommunity):
+class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 
     @classmethod
     def load_community(cls, master, my_member, integrate_with_tribler=True, encryption=ENCRYPTION, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
@@ -135,14 +136,14 @@ class HOneSwarmCommunity(HForwardCommunity, OneSwarmCommunity):
         except StopIteration:
             return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(HOneSwarmCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PoliOneSwarmCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
-        OneSwarmCommunity.__init__(self, master, integrate_with_tribler, log_searches, use_megacache)
+        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
+        OneSwarmCommunity.__init__(self, master, integrate_with_tribler)
 
     def initiate_conversions(self):
-        return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
+        return PoliForwardCommunity.initiate_conversions(self) + [OneSwarmConversion(self)]
 
     def initiate_meta_messages(self):
-        return HForwardCommunity.initiate_meta_messages(self) + OneSwarmCommunity.initiate_meta_messages(self)
+        return PoliForwardCommunity.initiate_meta_messages(self) + OneSwarmCommunity.initiate_meta_messages(self)

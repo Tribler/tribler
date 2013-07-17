@@ -105,10 +105,10 @@ class PSearchConversion(ForwardConversion):
 
     def __init__(self, community):
         ForwardConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
-        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
-        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
-        self.define_meta_message(chr(11), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
+        self.define_meta_message(chr(6), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
+        self.define_meta_message(chr(7), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_sum_request, self._decode_sum_request, message), self._decode_sum_request)
+        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_sums, self._decode_sums, message), self._decode_sums)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_sum, self._decode_sum, message), self._decode_sum)
 
     def _encode_sum_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)
@@ -184,10 +184,10 @@ class HSearchConversion(ForwardConversion):
 
     def __init__(self, community):
         ForwardConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
-        self.define_meta_message(chr(11), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
+        self.define_meta_message(chr(6), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(7), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
 
     def _encode_simi_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)
@@ -275,10 +275,10 @@ class PoliSearchConversion(ForwardConversion):
 
     def __init__(self, community):
         ForwardConversion.__init__(self, community)
-        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
-        self.define_meta_message(chr(10), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
-        self.define_meta_message(chr(11), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
+        self.define_meta_message(chr(6), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(7), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
+        self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
 
     def _encode_simi_request(self, message):
         contents = []
