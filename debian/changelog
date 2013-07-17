@@ -3,7 +3,7 @@ tribler (6.1.1) unstable; urgency=high
   * KeyError bugfix in swift-tribler communitcation.
   * Infinite loop bugfix in swift-tribler communication.
 
- -- Boudewijn <tribler@frayja.com> Wed Jul 17 14:26:00 CEST 2013
+ -- Boudewijn <tribler@frayja.com>  Wed, 17 Jul 2013 14:31:56 +0200
 
 tribler (6.1) unstable; urgency=low
 
