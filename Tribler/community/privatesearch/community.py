@@ -640,6 +640,12 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
         HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
+    def initiate_conversions(self):
+        return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
+
+    def initiate_meta_messages(self):
+        return HForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+
 class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
 
     @classmethod
@@ -656,6 +662,12 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
         PForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
 
+    def initiate_conversions(self):
+        return PForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
+
+    def initiate_meta_messages(self):
+        return PForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
+
 class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
 
     @classmethod
@@ -671,6 +683,12 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
         HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+
+    def initiate_conversions(self):
+        return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
+
+    def initiate_meta_messages(self):
+        return HForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
 
 class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
 
@@ -690,6 +708,12 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
         PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+
+    def initiate_conversions(self):
+        return PoliForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
+
+    def initiate_meta_messages(self):
+        return PoliForwardCommunity.initiate_meta_messages(self) + TTLSearchCommunity.initiate_meta_messages(self)
 
 class Das4DBStub():
     def __init__(self, dispersy):

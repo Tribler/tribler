@@ -27,8 +27,9 @@ def bytes_to_long(val):
 class SemanticConversion(BinaryConversion):
     def __init__(self, community):
         super(SemanticConversion, self).__init__(community, "\x01")
-        self.define_meta_message(chr(1), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
-        self.define_meta_message(chr(2), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
+        # we need to use 4 and 5 as we are combining this overlay with the searchcommunity which has 1,2,and 3 defined.
+        self.define_meta_message(chr(4), community.get_meta_message(u"ping"), lambda message: self._encode_decode(self._encode_ping, self._decode_ping, message), self._decode_ping)
+        self.define_meta_message(chr(5), community.get_meta_message(u"pong"), lambda message: self._encode_decode(self._encode_pong, self._decode_pong, message), self._decode_pong)
 
     def _encode_ping(self, message):
         hashpack = '20s20sHHH' * len(message.payload.torrents)
