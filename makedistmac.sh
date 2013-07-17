@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh -xe
 #
 # Written by Riccardo Petrocco, Arno Bakker
 # see LICENSE.txt for license information
