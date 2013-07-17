@@ -45,10 +45,10 @@ ln -s /Applications dist/installdir/Applications
 touch dist/installdir
 
 # Swift
-rm swift
+rm -f swift
 cd Tribler/SwiftEngine
 make -f Makefile.mac clean
-make -f Makefile.mac
+make -f Makefile.mac -j2
 cp swift ../..
 cd ../..
 cp swift dist/installdir/Tribler.app/Contents/MacOS/
