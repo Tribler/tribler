@@ -47,7 +47,7 @@ touch dist/installdir
 # Swift
 rm -f swift
 cd Tribler/SwiftEngine
-make -f Makefile.mac clean
+make -f Makefile.mac clean ||: # TODO: This should be fixed on the Makefile, not here
 make -f Makefile.mac -j2
 cp swift ../..
 cd ../..
