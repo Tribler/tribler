@@ -139,8 +139,8 @@ class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
             return super(PoliOneSwarmCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         OneSwarmCommunity.__init__(self, master, integrate_with_tribler)
+        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [OneSwarmConversion(self)]

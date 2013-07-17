@@ -59,6 +59,7 @@ class TTLSearchCommunity(Community):
     def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True):
         Community.__init__(self, master)
 
+        self.integrate_with_tribler = integrate_with_tribler
         self.ttl = ttl
         self.neighbors = neighbors
         self.fneighbors = fneighbors
