@@ -125,7 +125,6 @@ setup(
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
            ]
            # add images
-           + includedir(LIBRARYNAME + "/Video/Images")
            + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
            + includedir(LIBRARYNAME + "/Main/webUI/static")
 
