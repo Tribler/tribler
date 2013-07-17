@@ -28,12 +28,13 @@ class SearchScript(SemanticScript):
         def str2bool(v):
             return v.lower() in ("yes", "true", "t", "1")
 
-        if 'ttl' in kargs:
-            self.community_kargs['ttl'] = parse_tuplestr(kargs['ttl'])
-        if 'neighbors' in kargs:
-            self.community_kargs['neighbors'] = parse_tuplestr(kargs['neighbors'])
-        if 'fneighbors' in kargs:
-            self.community_kargs['fneighbors'] = parse_tuplestr(kargs['fneighbors'])
+        if self.community_type != "oneswarm":
+            if 'ttl' in kargs:
+                self.community_kargs['ttl'] = parse_tuplestr(kargs['ttl'])
+            if 'neighbors' in kargs:
+                self.community_kargs['neighbors'] = parse_tuplestr(kargs['neighbors'])
+            if 'fneighbors' in kargs:
+                self.community_kargs['fneighbors'] = parse_tuplestr(kargs['fneighbors'])
         self.community_kargs['use_megacache'] = str2bool(kargs.get('use_megacache', 'true'))
 
         self.do_search = int(kargs.get('dosearch', 1000))
@@ -56,6 +57,8 @@ class SearchScript(SemanticScript):
         elif self.community_type == 'hsearch':
             community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         elif self.community_type == 'polisearch':
+            community = PoliSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+        elif self.community_type == 'oneswarm':
             community = PoliSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
         else:
             community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)

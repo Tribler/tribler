@@ -184,7 +184,7 @@ class TTLSearchCommunity(Community):
                     self.community.search_forward_timeout += 1
 
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
+                        print >> sys.stderr, long(time()), "TTLSearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
                 else:
                     self.community.search_timeout += (len(self.requested_candidates) - len(self.received_candidates))
 
@@ -262,7 +262,7 @@ class TTLSearchCommunity(Community):
             results = self._get_results(keywords, bloomfilter, True)
 
         # fetch requested candidates from previous forward
-        prev_request = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest)
+        prev_request = self._dispersy.request_cache.get(identifier, TTLSearchCommunity.MSearchRequest)
         if prev_request:
             ignore_candidates = prev_request.get_requested_candidates()
         else:
@@ -304,10 +304,10 @@ class TTLSearchCommunity(Community):
                 assert prev_request.keywords == keywords
                 prev_request.add_request(this_request)
             else:
-                self._dispersy.request_cache.set(identifier, SearchCommunity.MSearchRequest(this_request))
+                self._dispersy.request_cache.set(identifier, TTLSearchCommunity.MSearchRequest(this_request))
 
             if DEBUG:
-                print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
+                print >> sys.stderr, long(time()), "TTLSearchCommunity: sending search request for", keywords, "to", map(str, candidates)
         else:
             self.search_no_candidates_remain += 1
 
@@ -323,7 +323,7 @@ class TTLSearchCommunity(Community):
             bloomfilter = message.payload.bloom_filter
 
             if DEBUG:
-                print >> sys.stderr, long(time()), "SearchCommunity: got search request for", keywords
+                print >> sys.stderr, long(time()), "TTLSearchCommunity: got search request for", keywords
 
             # compute new ttl
             if isinstance(self.ttl, int):
@@ -342,20 +342,20 @@ class TTLSearchCommunity(Community):
 
             # detect cycle
             results = []
-            if not self._dispersy.request_cache.has(identifier, SearchCommunity.MSearchRequest):
+            if not self._dispersy.request_cache.has(identifier, TTLSearchCommunity.MSearchRequest):
                 results = self._get_results(keywords, bloomfilter, False)
                 if not results and DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: no results"
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: no results"
             else:
                 self.search_cycle_detected += 1
 
-                cache = self._dispersy.request_cache.get(identifier, SearchCommunity.MSearchRequest)
+                cache = self._dispersy.request_cache.get(identifier, TTLSearchCommunity.MSearchRequest)
                 if cache.keywords != keywords:  # abort, return
                     forward_message = False
 
             if forward_message:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl == %d forwarding" % ttl
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
                 candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
@@ -367,7 +367,7 @@ class TTLSearchCommunity(Community):
 
             if not forward_message:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: returning"
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: returning"
                 self._create_search_response(identifier, results, message.candidate)
                 self.search_endpoint += 1
 
@@ -422,7 +422,7 @@ class TTLSearchCommunity(Community):
                 yield DelayMessageByProof(message)
                 continue
 
-            if not self._dispersy.request_cache.has(message.payload.identifier, SearchCommunity.MSearchRequest):
+            if not self._dispersy.request_cache.has(message.payload.identifier, TTLSearchCommunity.MSearchRequest):
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: got search response identifier not found", message.payload.identifier
 
@@ -434,7 +434,7 @@ class TTLSearchCommunity(Community):
     def on_search_response(self, messages):
         for message in messages:
             # fetch callback using identifier
-            search_request = self._dispersy.request_cache.get(message.payload.identifier, SearchCommunity.MSearchRequest)
+            search_request = self._dispersy.request_cache.get(message.payload.identifier, TTLSearchCommunity.MSearchRequest)
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
 
@@ -443,7 +443,7 @@ class TTLSearchCommunity(Community):
 
             removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
             if removeCache:
-                self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
+                self._dispersy.request_cache.pop(message.payload.identifier, TTLSearchCommunity.SearchRequest)
 
             # see if we need to join some channels
             channels = set([result[10] for result in message.payload.results if result[10]])
