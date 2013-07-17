@@ -638,8 +638,8 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
             return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -660,8 +660,8 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
             return super(PSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        PForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        PForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return PForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -682,8 +682,8 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
             return super(HSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return HForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
@@ -707,8 +707,8 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
             return super(PoliSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+        PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
         return PoliForwardCommunity.initiate_conversions(self) + [SearchConversion(self)]
