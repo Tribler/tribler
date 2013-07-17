@@ -40,11 +40,9 @@ DEBUG_VERBOSE = False
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
-class ForwardCommunity(Community):
+class ForwardCommunity():
 
     def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, forward_to=10, max_prefs=None, max_fprefs=None):
-        Community.__init__(self, master)
-
         self.integrate_with_tribler = bool(integrate_with_tribler)
         self.encryption = bool(encryption)
         self.key = rsa_init()
@@ -92,19 +90,15 @@ class ForwardCommunity(Community):
             self._mypref_db = self._torrent_db = Das4DBStub(self._dispersy)
             self._notifier = None
 
-
     def initiate_meta_messages(self):
-        return [Message(self, u"ping", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
-                Message(self, u"pong", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
-
-    def _initialize_meta_messages(self):
-        Community._initialize_meta_messages(self)
-
         ori = self._meta_messages[u"dispersy-introduction-request"]
         self._disp_intro_handler = ori.handle_callback
 
         new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, self.on_intro_request)
         self._meta_messages[u"dispersy-introduction-request"] = new
+        
+        return [Message(self, u"ping", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
+                Message(self, u"pong", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), SemanticConversion(self)]
