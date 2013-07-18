@@ -379,7 +379,7 @@ class DelayedSearchQueue:
         # If the search queue is more than half full, start dropping searches
         # proportional to how much of the total queue each person is consuming
         if len(self.queuedSearches) > 0.25 * MAX_SEARCH_QUEUE_LENGTH:
-            if source.getRemoteFriend() in self.searchedPerFriend:
+            if source.getRemoteFriend() in self.searchesPerFriend:
                 outstanding = self.searchesPerFriend[source.getRemoteFriend()].v
 
                 # We add a hard limit on the number of searches from any one person.
@@ -410,7 +410,7 @@ class DelayedSearchQueue:
 
             entry = DelayedSearchQueueEntry(search, source, time() + self.mDelay)
 
-            if source.getRemoteFriend() not in self.searchedPerFriend:
+            if source.getRemoteFriend() not in self.searchesPerFriend:
                 self.searchesPerFriend[source.getRemoteFriend()] = MutableInteger(0)
             self.searchesPerFriend[source.getRemoteFriend()].v += 1
 
