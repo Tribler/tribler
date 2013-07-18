@@ -354,7 +354,7 @@ class DelayedSearchQueue:
         self.queuedSearches = set()
         self.searchesPerFriend = {}
 
-        self.t = DelayedSearchQueueThread(searchManager, self.queue, self.queuedSearches, self.searchedPerFriend)
+        self.t = DelayedSearchQueueThread(searchManager, self.queue, self.queuedSearches, self.searchesPerFriend)
         self.t.start()
 
 
