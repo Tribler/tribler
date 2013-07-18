@@ -107,9 +107,9 @@ class MessageWrapper:
         self.dispersy_msg = dispersy_msg
 
     def getDescription(self):
-        return self.dispersy_msg.payload.keywords
+        return " ".join(self.dispersy_msg.payload.keywords)
     def getSearchString(self):
-        return self.dispersy_msg.payload.keywords
+        return " ".join(self.dispersy_msg.payload.keywords)
 
     def getSearchID(self):
         return self.dispersy_msg.payload.identifier
