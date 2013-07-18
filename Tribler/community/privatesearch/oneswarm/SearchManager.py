@@ -411,7 +411,7 @@ class DelayedSearchQueue:
             entry = DelayedSearchQueueEntry(search, source, time() + self.mDelay)
 
             if source.getRemoteFriend() not in self.searchesPerFriend:
-                self.searchesPerFriend[source.getRemoteFriend()] = MutableInteger(0)
+                self.searchesPerFriend[source.getRemoteFriend()] = MutableInteger()
             self.searchesPerFriend[source.getRemoteFriend()].v += 1
 
             if DEBUG:
@@ -479,4 +479,6 @@ class DelayedSearchQueueEntry:
         self.source = source
         self.dontSendBefore = dontSendBefore
 
-MutableInteger = namedtuple('MutableInteger', ['v'])
+class MutableInteger:
+    def __init__(self):
+        self.v = 0
