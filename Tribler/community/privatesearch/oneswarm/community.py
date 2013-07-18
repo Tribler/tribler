@@ -53,7 +53,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         for message in messages:
             # making datastructures compatible
             message = MessageWrapper(message)
-            connection = SourceWrapper(self.community, message.candidate)
+            connection = SourceWrapper(self, message.candidate)
 
             self.overlay_manager.handleSearch(message, connection, self.search_manager.handleIncomingSearch)
 
@@ -78,7 +78,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
             # making datastructures compatible
             message = MessageWrapper(message)
-            connection = SourceWrapper(self.community, message.candidate)
+            connection = SourceWrapper(self, message.candidate)
 
             self.search_manager.handleIncomingSearchResponse(connection, message)
 
@@ -93,7 +93,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         for message in messages:
             # making datastructures compatible
             message = MessageWrapper(message)
-            connection = SourceWrapper(self.community, message.candidate)
+            connection = SourceWrapper(self, message.candidate)
 
             self.search_manager.handleIncomingSearchCancel(connection, message)
 
