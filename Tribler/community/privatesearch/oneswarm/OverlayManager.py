@@ -24,7 +24,7 @@ class OverlayManager:
     def sendSearchOrCancel(self, search, skipQueue, forceSend):
         connections = self.community.get_connections(10)
         if DEBUG:
-            print >> sys.stderr, long(time()), "OverlayManager sending search/cancel to " + len(connections)
+            print >> sys.stderr, long(time()), "OverlayManager sending search/cancel to ", len(connections)
 
         numSent = 0;
         for conn in connections:

@@ -393,7 +393,7 @@ class DelayedSearchQueue:
 
         if search.getSearchID() not in self.queuedSearches:
             if DEBUG:
-                print >> sys.stderr, long(time()), "DelayedSearchQueue adding search to forward queue, will forward in " + self.mDelay, "ms"
+                print >> sys.stderr, long(time()), "DelayedSearchQueue adding search to forward queue, will forward in " , self.mDelay, "ms"
 
             entry = DelayedSearchQueueEntry(search, source, time() + self.mDelay)
 
