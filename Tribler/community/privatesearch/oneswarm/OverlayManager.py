@@ -90,7 +90,7 @@ class OverlayManager:
         self.sendMessage(connection, search, skipQueue);
 
     def sendMessage(self, connection, message, skipQueue):
-        self.community.dispersy._send([connection], [message])
+        self.community.send_wrapped(connection, message)
 
     def handleSearch(self, message, connection, callback):
         # possibleprune is always false for all incoming search messages

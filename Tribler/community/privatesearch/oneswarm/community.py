@@ -46,7 +46,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         def callback_converter(msg):
             callback(keywords, msg.payload.results, msg.candidate)
 
-        wrapped_candidates = self.search_manager.sendTextSearch(identifier, message, callback_converter)
+        wrapped_candidates = self.search_manager.sendTextSearch(identifier, MessageWrapper(message), callback_converter)
         return [wrapped_candidate.dispersy_source for wrapped_candidate in wrapped_candidates], [], identifier
 
     def on_search(self, messages):
@@ -87,7 +87,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(identifier))
 
-        return message
+        return MessageWrapper(message)
 
     def on_search_cancel(self, messages):
         for message in messages:
@@ -99,6 +99,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
     def get_wrapped_connections(self, nr=10, ignore_candidate=None):
         return [SourceWrapper(self, connection) for connection in self.get_connections(nr, ignore_candidate)]
+
+    def send_wrapped(self, connection, message):
+        self.dispersy._send([connection.dispersy_source], [message.dispersy_msg])
 
 class MessageWrapper:
     def __init__(self, dispersy_msg):
