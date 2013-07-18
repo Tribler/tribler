@@ -124,6 +124,9 @@ class MessageWrapper:
 
     def getSize(self):
         return len(self.dispersy_msg.packet)
+    
+    def __str__(self):
+        return str(self.dispersy_msg)
 
 class SourceWrapper:
     def __init__(self, community, dispersy_source):
@@ -144,6 +147,9 @@ class SourceWrapper:
         if members:
             return members[0].mid
         return str(self.dispersy_source.sock_addr[1])
+    
+    def __str__(self):
+        return str(self.dispersy_source)
 
 class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 
