@@ -60,7 +60,7 @@ class OverlayManager:
         if conn.getRemoteFriend().isCanSeeFileList():
             return True
 
-        all = id + conn.getRemotePublicKeyHash()
+        all = str(id) + conn.getRemotePublicKeyHash()
         randomVal = self.randomnessManager.getDeterministicRandomInt(all)
         if randomVal < 0:
             randomVal = -randomVal
@@ -125,12 +125,12 @@ class RandomnessManager:
 
         return minValue + (randomInt % (maxValue - minValue))
 
-    def getDeterministicRandomInt(self, seedlong):
+    def getDeterministicRandomInt(self, seed):
         if self.secretBytes:
             # the implementation is slightly different to oneswarm, but basically does the same thing
             # first hash, then return the first 32 bits
             bitmask = (2 ** 32) - 1
-            return long(md5(str(seedlong) + str(self.secretBytes)).hexdigest(), 16) & bitmask
+            return long(md5(str(seed) + str(self.secretBytes)).hexdigest(), 16) & bitmask
 
     def getSecretBytes(self):
         return self.secretBytes
