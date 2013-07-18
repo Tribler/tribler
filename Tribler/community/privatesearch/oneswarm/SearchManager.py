@@ -258,6 +258,18 @@ class SearchManager:
             print >> sys.stderr, long(time()), "SearchManager not responding to search (overloaded, util=", transUtil, ")"
         return False
 
+    def fracUpload(self):
+        # TODO: fill some sane numbers here
+        return -1
+
+    def fracTransportUpload(self):
+        # TODO: fill some sane numbers here
+        return -1
+
+    def getAverageUploadPerRunningTorrent(self):
+        # TODO: fill some sane numbers here
+        return -1
+
     def getSearchDelayForInfohash(self, destination):
         if destination.isCanSeeFileList():
             return 0
