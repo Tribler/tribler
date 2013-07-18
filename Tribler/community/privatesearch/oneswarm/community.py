@@ -21,7 +21,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
     def __init__(self, master, integrate_with_tribler=True):
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler)
         self.overlay_manager = OverlayManager(self)
-        self.search_mananger = SearchManager(self, self.overlay_manager)
+        self.search_manager = SearchManager(self, self.overlay_manager)
 
     def initiate_meta_messages(self):
         messages = TTLSearchCommunity.initiate_meta_messages(self)
@@ -49,7 +49,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
             message = MessageWrapper(message)
             connection = SourceWrapper(self.community, message.candidate)
 
-            self.overlay_manager.handleSearch(message, connection, self.search_mananger.handleIncomingSearch)
+            self.overlay_manager.handleSearch(message, connection, self.search_manager.handleIncomingSearch)
 
     def send_response(self, original_request, single_result):
         original_request = original_request.dispersy_msg
@@ -74,7 +74,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
             message = MessageWrapper(message)
             connection = SourceWrapper(self.community, message.candidate)
 
-            self.search_mananger.handleIncomingSearchResponse(connection, message)
+            self.search_manager.handleIncomingSearchResponse(connection, message)
 
     def _create_cancel(self, identifier):
         meta = self.get_meta_message(u"search-cancel")
@@ -89,7 +89,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
             message = MessageWrapper(message)
             connection = SourceWrapper(self.community, message.candidate)
 
-            self.search_mananger.handleIncomingSearchCancel(connection, message)
+            self.search_manager.handleIncomingSearchCancel(connection, message)
 
 class MessageWrapper:
     def __init__(self, dispersy_msg):
