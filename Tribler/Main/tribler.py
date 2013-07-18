@@ -12,11 +12,12 @@
 # see LICENSE.txt for license information
 #
 
+import sys
 import logging.config
 try:
     logging.config.fileConfig("logger.conf")
 except:
-    logger.warning("Unable to load logging config from 'logger.conf' file.")
+    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -40,7 +41,6 @@ urllib.URLopener.open_https = original_open_https
 import Tribler.Debug.console
 
 import os
-import sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
