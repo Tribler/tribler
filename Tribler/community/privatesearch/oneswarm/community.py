@@ -96,6 +96,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
             self.search_manager.handleIncomingSearchCancel(connection, message)
 
+    def get_wrapped_connections(self, nr=10, ignore_candidate=None):
+        return [SourceWrapper(self, connection) for connection in self.get_connections(nr, ignore_candidate)]
+
 class MessageWrapper:
     def __init__(self, dispersy_msg):
         self.dispersy_msg = dispersy_msg

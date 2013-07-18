@@ -22,7 +22,7 @@ class OverlayManager:
         self.outgoingSearchRate = defaultdict(lambda: Average(1000, 10))
 
     def sendSearchOrCancel(self, search, skipQueue, forceSend):
-        connections = self.community.get_connections(10)
+        connections = self.community.get_wrapped_connections(10)
         if DEBUG:
             print >> sys.stderr, long(time()), "OverlayManager sending search/cancel to ", len(connections)
 
@@ -48,7 +48,7 @@ class OverlayManager:
         return connections
 
     def forwardSearchOrCancel(self, ignoreConn, msg):
-        for connection in self.community.get_connections(10, ignoreConn.dispersy_source):
+        for connection in self.community.get_wrapped_connections(10, ignoreConn.dispersy_source):
             if DEBUG:
                 print >> sys.stderr, long(time()), "OverlayManager forwarding search/cancel to:", connection
 
