@@ -96,7 +96,7 @@ class ForwardCommunity():
 
         new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, ExtendedIntroPayload(), ori.check_callback, self.on_intro_request)
         self._meta_messages[u"dispersy-introduction-request"] = new
-        
+
         return [Message(self, u"ping", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PingPayload(), self._dispersy._generic_timeline_check, self.on_ping),
                 Message(self, u"pong", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), PongPayload(), self.check_pong, self.on_pong)]
 
@@ -179,7 +179,7 @@ class ForwardCommunity():
                 assert isinstance(possible[0], (float, int, long)), type(possible[0])
                 assert isinstance(possible[1], (float, long)), type(possible[1])
                 assert isinstance(possible[2], str), type(possible[2])
-                assert isinstance(possible[3], Candidate), type(possible[3])
+                assert isinstance(possible[3], WalkCandidate), type(possible[3])
 
         low_sim = self.get_low_sim()
         for new_pos_tuple in possibles:
@@ -216,6 +216,8 @@ class ForwardCommunity():
         return 0
 
     def get_most_similar(self, candidate):
+        assert isinstance(candidate, WalkCandidate), [type(candidate), candidate]
+
         # clean possible taste buddies, remove all entries older than 60s
         to_be_removed = time() - 60
         low_sim = self.get_low_sim()
@@ -420,6 +422,10 @@ class ForwardCommunity():
         for message in messages:
             request = self._dispersy.request_cache.pop(message.payload.identifier, ForwardCommunity.SimilarityAttempt)
             if request:
+                # replace message.candidate with WalkCandidate
+                # TODO: this seems to be a bit dodgy
+                message._candidate = request.requested_candidate
+
                 destination, introduce_me_to = self.get_most_similar(message.candidate)
                 self.send_introduction_request(destination, introduce_me_to)
 
