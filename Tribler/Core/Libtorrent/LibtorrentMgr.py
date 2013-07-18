@@ -32,7 +32,8 @@ class LibtorrentMgr:
         self.trsession = trsession
         settings = lt.session_settings()
         settings.user_agent = 'Tribler/' + version_id
-        fingerprint = ['TL'] + map(int, version_id.split('.')) + [0]
+        # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
+        fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
         # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
         self.ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
         self.ltsession.set_settings(settings)
