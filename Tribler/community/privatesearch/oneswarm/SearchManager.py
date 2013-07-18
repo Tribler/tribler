@@ -427,12 +427,12 @@ class DelayedSearchQueue:
         return search.getSearchID() in self.queuedSearches
 
 class DelayedSearchQueueThread(Thread):
-    def __init__(self, searchManager, queue, queuedSearches, searchedPerFriend):
+    def __init__(self, searchManager, queue, queuedSearches, searchesPerFriend):
         Thread.__init__(self)
         self.searchManager = searchManager
         self.queue = queue
         self.queuedSearches = queuedSearches
-        self.searchedPerFriend = searchedPerFriend
+        self.searchesPerFriend = searchesPerFriend
 
     def run(self):
         while True:
@@ -453,7 +453,7 @@ class DelayedSearchQueueThread(Thread):
                 # searchesPerFriend could have been  flushed while this
                 # search was in the queue
                 if e.source.getRemoteFriend() in self.searchesPerFriend:
-                    self.searchedPerFriend[e.source.getRemoteFriend()].v -= 1
+                    self.searchesPerFriend[e.source.getRemoteFriend()].v -= 1
 
                 # if we didn't sleep at all, sleep the min time between searches
                 if timeUntilSend < 1:
