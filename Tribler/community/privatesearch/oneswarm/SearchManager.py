@@ -418,7 +418,7 @@ class DelayedSearchQueue:
                 print >> sys.stderr, long(time()), "DelayedSearchQueue search for friend:", source.getRemoteFriend().getNick(),
                 self.searchesPerFriend[source.getRemoteFriend()].v
 
-            self.queuedSearches.put(search.getSearchID(), entry);
+            self.queuedSearches[search.getSearchID()] =  entry
             self.queue.add(entry);
         elif DEBUG:
             print >> sys.stderr, long(time()), "DelayedSearchQueue search already in queue, not adding"
