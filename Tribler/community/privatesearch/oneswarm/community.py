@@ -28,6 +28,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
         messages.append(Message(self, u"search-cancel", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchCancelPayload(), self._dispersy._generic_timeline_check, self.on_search_cancel))
         return messages
 
+    def initiate_conversions(self):
+        return [OneSwarmConversion(self)]
+
     def create_search(self, keywords, callback):
         identifier = self._dispersy.request_cache.generate_identifier()
         if self.log_searches:
@@ -125,7 +128,6 @@ class SourceWrapper:
     def getRemotePublicKeyHash(self):
         return self.dispersy_source.get_members(self.community)[0].mid
 
-
 class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 
     @classmethod
@@ -143,7 +145,7 @@ class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
         PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
-        return PoliForwardCommunity.initiate_conversions(self) + [OneSwarmConversion(self)]
+        return PoliForwardCommunity.initiate_conversions(self) + OneSwarmCommunity.initiate_conversions(self)
 
     def initiate_meta_messages(self):
         return PoliForwardCommunity.initiate_meta_messages(self) + OneSwarmCommunity.initiate_meta_messages(self)

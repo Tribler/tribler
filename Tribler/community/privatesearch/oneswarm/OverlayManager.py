@@ -141,12 +141,12 @@ class Average:
         self.period = period
 
         self.nbElements = self.period / self.refreshRate + 2
-        self.lastUpdate = time() / self.refreshRate
+        self.lastUpdate = int(time() / self.refreshRate)
         self.values = [0] * self.nbElements
 
     def addValue(self, value):
         # we get the current time factor
-        timeFactor = time() / self.refreshRate
+        timeFactor = int(time() / self.refreshRate)
 
         # we first update the buffer
         self.update(timeFactor)
@@ -174,11 +174,11 @@ class Average:
         self.lastUpdate = timeFactor
 
     def getAverage(self):
-        return self.getSum() / self.period
+        return self.getSum() / float(self.period)
 
     def getSum(self):
         # We get the current timeFactor
-        timeFactor = time() / self.refreshRate
+        timeFactor = int(time() / self.refreshRate)
 
         # We first update the buffer
         self.update(timeFactor)
@@ -188,7 +188,7 @@ class Average:
 
         # Starting on oldest one (the one after the next one)
         # Ending on last one fully updated (the one previous current one)
-        for i in range(timeFactor + 2, timeFactor + self.nbElements):
+        for i in range(timeFactor + 2, timeFactor + self.nbElements + 1):
             # Simple addition
             sum += self.values[i % self.nbElements]
 
