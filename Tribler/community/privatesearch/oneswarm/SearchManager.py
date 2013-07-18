@@ -351,7 +351,7 @@ class DelayedSearchQueue:
         self.lastBytesPerSecondCount = 0;
 
         self.queue = Queue()
-        self.queuedSearches = set()
+        self.queuedSearches = {}
         self.searchesPerFriend = {}
 
         self.t = DelayedSearchQueueThread(searchManager, self.queue, self.queuedSearches, self.searchesPerFriend)
@@ -448,7 +448,7 @@ class DelayedSearchQueueThread(Thread):
                 self.searchManager.forwardSearch(e.source, e.search)
 
                 # remove the search from the queuedSearchesMap
-                self.queuedSearches.remove(e.search.getSearchID())
+                del self.queuedSearches[e.search.getSearchID()]
 
                 # searchesPerFriend could have been  flushed while this
                 # search was in the queue
