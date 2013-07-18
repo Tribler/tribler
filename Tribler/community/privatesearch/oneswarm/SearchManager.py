@@ -368,7 +368,7 @@ class DelayedSearchQueue:
             self.lastBytesPerSecondCount = 0
 
         self.searchCount += 1
-        self.lastBytesPerSecondCount += len(search)
+        self.lastBytesPerSecondCount += search.getSize()
 
         # Flush the accounting info every 60 seconds
         if self.searchManager.lastSearchAccountingFlush + 60 < time():

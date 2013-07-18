@@ -122,6 +122,9 @@ class MessageWrapper:
             h = (31 * h + ord(c)) & 0xFFFFFFFF
             return ((h + 0x80000000) & 0xFFFFFFFF) - 0x80000000
 
+    def getSize(self):
+        return len(self.dispersy_msg.packet)
+
 class SourceWrapper:
     def __init__(self, community, dispersy_source):
         self.community = community
