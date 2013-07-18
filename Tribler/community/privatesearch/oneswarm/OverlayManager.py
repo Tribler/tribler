@@ -30,7 +30,8 @@ class OverlayManager:
         for conn in connections:
             shouldSend = True
             if not forceSend:
-                shouldSend = self.shouldForwardSearch(search, conn)
+                # Niels: not sure if this should be getSearchID() or using the keywords
+                shouldSend = self.shouldForwardSearch(search.getSearchID(), conn)
 
             if shouldSend:
                 if DEBUG:
