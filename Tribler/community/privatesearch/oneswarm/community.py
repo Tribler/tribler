@@ -52,8 +52,8 @@ class OneSwarmCommunity(TTLSearchCommunity):
     def on_search(self, messages):
         for message in messages:
             # making datastructures compatible
-            message = MessageWrapper(message)
             connection = SourceWrapper(self, message.candidate)
+            message = MessageWrapper(message)
 
             self.overlay_manager.handleSearch(message, connection, self.search_manager.handleIncomingSearch)
 
@@ -75,10 +75,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
     def on_search_response(self, messages):
         for message in messages:
-
             # making datastructures compatible
-            message = MessageWrapper(message)
             connection = SourceWrapper(self, message.candidate)
+            message = MessageWrapper(message)
 
             self.search_manager.handleIncomingSearchResponse(connection, message)
 
@@ -92,8 +91,8 @@ class OneSwarmCommunity(TTLSearchCommunity):
     def on_search_cancel(self, messages):
         for message in messages:
             # making datastructures compatible
-            message = MessageWrapper(message)
             connection = SourceWrapper(self, message.candidate)
+            message = MessageWrapper(message)
 
             self.search_manager.handleIncomingSearchCancel(connection, message)
 
