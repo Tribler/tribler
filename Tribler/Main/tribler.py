@@ -13,6 +13,10 @@
 #
 
 import logging.config
+try:
+    logging.config.fileConfig("logger.conf")
+except:
+    logger.warning("Unable to load logging config from 'logger.conf' file.")
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -1077,11 +1081,6 @@ class ABCApp():
 #
 @attach_profiler
 def run(params=None):
-    try:
-        logging.config.fileConfig("logger.conf")
-    except:
-        logger.warning("Unable to load logging config from 'logger.conf' file.")
-
     if params is None:
         params = [""]
 
