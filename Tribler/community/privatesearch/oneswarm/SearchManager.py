@@ -47,6 +47,7 @@ class SearchManager:
         self.bloomSearchesBlockedCurr = 0
         self.bloomSearchesSentCurr = 0
         self.forwardedSearchNum = 0
+        self.lastSearchAccountingFlush = time()
 
     def sendTextSearch(self, newSearchId, msg, callback):
         return self.sendSearch(newSearchId, msg, callback, True, False)
