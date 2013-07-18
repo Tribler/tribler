@@ -143,7 +143,7 @@ class SourceWrapper:
         members = list(self.dispersy_source.get_members(self.community))
         if members:
             return members[0].mid
-        return self.dispersy_source.sock_addr[1]
+        return str(self.dispersy_source.sock_addr[1])
 
 class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 
