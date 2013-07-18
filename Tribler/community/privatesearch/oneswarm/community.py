@@ -13,6 +13,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.community.privatesearch.oneswarm.payload import SearchCancelPayload
 from Tribler.community.privatesearch.oneswarm.conversion import OneSwarmConversion
+from Tribler.dispersy.conversion import DefaultConversion
 
 ENCRYPTION = True
 
@@ -29,7 +30,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         return messages
 
     def initiate_conversions(self):
-        return [OneSwarmConversion(self)]
+        return [DefaultConversion(self), OneSwarmConversion(self)]
 
     def create_search(self, keywords, callback):
         identifier = self._dispersy.request_cache.generate_identifier()
@@ -41,7 +42,11 @@ class OneSwarmCommunity(TTLSearchCommunity):
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(identifier, 0, keywords, None))
 
-        return self.search_manager.sendTextSearch(identifier, message, callback)
+        # create a callback converter
+        def callback_converter(msg):
+            callback(keywords, msg.payload.results, msg.candidate)
+
+        return self.search_manager.sendTextSearch(identifier, message, callback_converter)
 
     def on_search(self, messages):
         for message in messages:

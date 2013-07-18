@@ -49,7 +49,7 @@ class SearchManager:
         self.forwardedSearchNum = 0
 
     def sendTextSearch(self, newSearchId, msg, callback):
-        return self.sendSearch(newSearchId, msg, True, False)
+        return self.sendSearch(newSearchId, msg, callback, True, False)
 
     def sendSearch(self, newSearchId, search, callback, skipQueue, forceSend):
         self.sentSearches[newSearchId] = SentSearch(search, callback)
