@@ -135,7 +135,7 @@ class SourceWrapper:
         return self.community.is_taste_buddy(self.dispersy_source)
 
     def getRemotePublicKeyHash(self):
-        return self.dispersy_source.get_members(self.community)[0].mid
+        return list(self.dispersy_source.get_members(self.community))[0].mid
 
 class PoliOneSwarmCommunity(PoliForwardCommunity, OneSwarmCommunity):
 
