@@ -4,6 +4,8 @@
 
     Development of the Tribler library was supported by numerous research 
     grants:
+     - European Institute of Innovation and Technology (EIT) in the project for
+       Seamless P2P Video Streaming under grant TFMC 12199.
      - European Community's Seventh Framework Programme in the QLECTIVES project
        under contract no 231200.
      - European Community's Seventh Framework Programme in the P2P-NEXT project
@@ -15,11 +17,11 @@
      - European Community's Sixth Framework Programme in the P2P-FUSION project
        under contract no 035249.
  
-    The following library modules are Copyright (c) 2005-2011,
-    Delft University of Technology and Vrije Universiteit Amsterdam; 
-    All rights reserved.
+    The following library modules are Copyright (c) 2005-2013,
+    Delft University of Technology;
+    All rights reserved:
 
-      Tribler/*
+       Tribler/*
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -35,14 +37,10 @@
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-    Delft University of Technology
-    Postbus 5
-    2600 AA Delft
-    The Netherlands
-    
-    Vrije Universiteit
-    De Boelelaan 1105
-    1081 HV Amsterdam
+    Delft University of Technology, 
+    Faculty of Electrical Engineering, Mathematics and Computer Science, 
+    Mekelweg 4, 
+    2628 CD Delft, 
     The Netherlands
 
 
@@ -54,6 +52,16 @@
     Community's Seventh Framework Programme in the P2P-Next project under grant
     agreement no 216217.
 
+    The following library modules are Copyright (c) 2008-2013,
+    Delft University of Technology;
+    All rights reserved:
+
+      Tribler/SwiftEngine/*
+
+    The following library modules are Copyright (c) 2008-2012, Kungliga Tekniska Högskolan (The Royal Institute of Technology); All rights reserved:
+
+      Tribler/Core/DecentralizedTracking/pymdht/*
+
     All library modules are free software, unless stated otherwise; you can 
     redistribute them and/or modify them under the terms of the GNU Lesser 
     General Public License as published by the Free Software Foundation; in 
@@ -64,183 +72,16 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     Lesser General Public License for more details.
 
-    The following library modules are Copyright (c) 2008-2012, VTT Technical Research Centre of Finland; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Norut AS; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, DACC Systems AB; All rights reserved:
- 
-    The following library modules are Copyright (c) 2008-2012, Lancaster University; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Jožef Stefan Institute; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, First Oversi Ltd.; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, TECHNISCHE UNIVERSITEIT DELFT; All rights reserved:
-
-      Tribler/Core/NATFirewall/NatCheck.py
-      Tribler/Core/NATFirewall/TimeoutCheck.py
-      Tribler/Core/NATFirewall/NatCheckMsgHandler.py
-      Tribler/Policies/SeedingManager.py
-      Tribler/Core/Statistics/SeedingStatsCrawler.py
-      Tribler/Core/CacheDB/SqliteSeedingStatsCacheDB.py
-      Tribler/Core/BuddyCast/moderationcast.py
-      Tribler/Core/BuddyCast/moderationcast_util.py
-      Tribler/Core/BuddyCast/votecast.py
-      Tribler/Core/CacheDB/maxflow.py
-      Tribler/Core/CacheDB/SqliteVideoPlaybackStatsCacheDB.py
-      Tribler/Core/NATFirewall/ConnectionCheck.py
-      Tribler/Core/NATFirewall/NatTraversal.py
-      Tribler/Core/Search/Reranking.py
-      Tribler/Core/Statistics/tribler_videoplayback_stats.sql
-      Tribler/Core/Statistics/VideoPlaybackCrawler.py
-      Tribler/Core/Utilities/Crypto.py
-      Tribler/Images/
-      Tribler/Player/BaseApp.py
-      Tribler/Player/EmbeddedPlayer4Frame.py
-      Tribler/Player/PlayerVideoFrame.py
-      Tribler/Plugin
-      Tribler/Test/test_multicast.py
-      Tribler/Test/test_na_extend_hs.py
-      Tribler/Test/test_na_extend_hs.sh
-      Tribler/Test/test_sqlitecachedbhandler.sh
-      Tribler/Tools/dirtrackerseeder.py
-      Tribler/Tools/pipe-babscam-h264-nosound-mencoder.sh
-      Tribler/Tools/superpeer.py
-      Tribler/Utilities/LinuxSingleInstanceChecker.py
-      Tribler/Video/Images
-      Tribler/Video/VideoFrame.py
-      reset.bat
-      reset-keepid.bat
-      Tribler/Core/Video/PiecePickerSVC.py
-      Tribler/Core/Video/SVCTransporter.py
-      Tribler/Core/Video/SVCVideoStatus.py
-      Tribler/schema_sdb_v5.sql
-      Tribler/Core/APIImplementation/makeurl.py
-      Tribler/Core/BuddyCast/channelcast.py
-      Tribler/Core/DecentralizedTracking/repex.py
-      Tribler/Core/NATFirewall/TimeoutFinder.py
-      Tribler/Core/NATFirewall/UDPPuncture.py
-      Tribler/Core/Statistics/RepexCrawler.py
-      Tribler/Debug/*
-      Tribler/Tools/createtorrent.py
-      Tribler/Tools/pingbackserver.py
-      Tribler/Tools/seeking.py
-      Tribler/Tools/stunserver.py
-      lucid-xpicreate.sh
-      patentfreevlc.bat
-      Tribler/Core/BitTornado/BT1/GetRightHTTPDownloader.py
-      Tribler/Core/BitTornado/BT1/HoffmanHTTPDownloader.py
-      Tribler/Core/CacheDB/MetadataDBHandler.py
-      Tribler/Core/DecentralizedTracking/MagnetLink/*
-      Tribler/Core/Subtitles/*
-      Tribler/Images/SwarmServerIcon.ico
-      Tribler/Main/Build/Ubuntu/tribler.gconf-defaults
-      Tribler/Main/Utility/logging_util.py
-      Tribler/Main/vwxGUI/ChannelsPanel.py
-      Tribler/Main/vwxGUI/images/iconSaved_state4.png
-      Tribler/schema_sdb_v5.sql
-      Tribler/Test/Core/*
-      Tribler/Test/extend_hs_dir/proxyservice.test.torrent
-      Tribler/Test/subtitles_test_res
-      Tribler/Test/test_channelcast_plus_subtitles.py
-      Tribler/Test/test_magnetlink.py
-      Tribler/Test/test_miscutils.py
-      Tribler/Test/test_subtitles.bat
-      Tribler/Test/test_subtitles_isolation.py
-      Tribler/Test/test_subtitles_msgs.py
-      Tribler/Test/test_subtitles.sh
-      Tribler/Test/test_threadpool.py
-      Tribler/Tools/dirtracker.py
-      Tribler/Tools/duration2torrent.py
-      Tribler/Tools/httpseeder.py
-      Tribler/Transport/*
-      Tribler/Video/Ogg.py
-      Tribler/WebUI/*
-      xpitransmakedeb.sh
-      xpitransmakedist.bat
-      xpitransmakedist.sh
-      xpitransmakedistmac.sh
-      xie8transmakedist.bat
-      TUD/swift-spbackend-r1598/*
-      vlc-1.0.5-swarmplugin-switch-kcc-src-aug2010-r16968.patch (except bindings/python)
-
-    The following library modules are Copyright (c) 2008-2012, STMicroelectronics S.r.l.; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Kungliga Tekniska Högskolan (The Royal Institute of Technology); All rights reserved:
-
-      Tribler/Core/DecentralizedTracking/pymdht/*
-
-    The following library modules are Copyright (c) 2008-2012, Markenfilm GmbH & Co. KG; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Radiotelevizija Slovenija Javni Zavvod Ljubljana; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Kendra Foundation; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Universitaet Klagenfurt; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, AG Projects; All rights reserved:
-      
-    The following library modules are Copyright (c) 2008-2012, The British Broadcasting Corporation; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Pioneer Digital Design Centre Limited; All rights reserved:
-  
-    The following library modules are Copyright (c) 2008-2012, INSTITUT FUER RUNDFUNKTECHNIK GMBH; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Fabchannel BV; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, University Politehnica Bucharest; All rights reserved:
-    
-    The following library modules are Copyright (c) 2008-2012, EBU-UER; All rights reserved:
-
-    The following library modules are Copyright (c) 2008-2012, Università di Roma Sapienza; All rights reserved:
-
-
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-    VTT Technical Research Centre of Finland, 
-    Tekniikankatu 1, 
-    FIN-33710 Tampere, 
-    Finland
 
-    Norut AS,
-    Postboks 6434 
-    Forskningsparken, 
-    9294 Tromsø,
-    Norway
-
-    DACC Systems AB
-    Glimmervägen 4, 
-    SE18734, Täby,
-    Sweden
-
-    Lancaster University, 
-    University House, 
-    Bailrigg, Lancaster, LA1 4YW
-    United Kingdom
-
-    Jožef Stefan Institute, 
-    Jamova cesta 39, 
-    1000 Ljubljana, 
-    Slovenia
-
-    First Oversi Ltd.,
-    Rishon Lezion 1,
-    Petah Tikva 49723, 
-    Israel
-
-    TECHNISCHE UNIVERSITEIT DELFT, 
+    Delft University of Technology, 
     Faculty of Electrical Engineering, Mathematics and Computer Science, 
     Mekelweg 4, 
     2628 CD Delft, 
     The Netherlands
-
-    STMicroelectronics S.r.l., 
-    via C.Olivetti 2, 
-    I-20041 Agrate Brianza,
-    Italy
 
     Kungliga Tekniska Högskolan (The Royal Institute of Technology), 
     KTH/ICT/ECS/TSLab
@@ -248,124 +89,20 @@
     164 40 Kista
     Sweden
 
-    Markenfilm GmbH & Co. KG, 
-    Schulauer Moorweg 25, 
-    22880 Wedel, 
-    Germany
-
-    Radiotelevizija Slovenija Javni Zavvod Ljubljana, 
-    Kolodvorska 2, 
-    SI-1000 Ljubljana,
-    Slovenia
-
-
-    Kendra Foundation, 
-    Meadow Barn, Holne, 
-    Newton Abbot, Devon, TQ13 7SP,
-    United Kingdom
-
-
-    Universitaet Klagenfurt, 
-    Universitaetstrasse 65-67, 
-    9020 Klagenfurt, 
-    Austria
-
-    AG Projects, 
-    Dr. Leijdsstraat 92,
-    2021RK Haarlem, 
-    The Netherlands
-
-    The British Broadcasting Corporation,
-    Broadcasting House, Portland Place, 
-    London, W1A 1AA 
-    United Kingdom
-
-    Pioneer Digital Design Centre Limited, 
-    Pioneer House, Hollybush Hill, Stoke Poges, 
-    Slough, SL2 4QP
-    United Kingdom
-
-    INSTITUT FUER RUNDFUNKTECHNIK GMBH
-    Floriansmuehlstrasse 60,
-    80939 München, 
-    Germany
-
-    Fabchannel BV, 
-    Kleine-Gartmanplantsoen 21, 
-    1017 RP Amsterdam, 
-    The Netherlands
-
-    University Politehnica Bucharest, 
-    313 Splaiul Independentei, 
-    District 6, cod 060042, Bucharest,
-    Romania
-
-    EBU-UER, 
-    L'Ancienne Route 17A, 1218
-    Grand Saconnex - Geneva, 
-    Switzerland
-
-    Università di Roma Sapienza
-    Dipartimento di Informatica e Sistemistica (DIS),
-    Via Ariosto 25, 
-    00185 Rome, 
-    Italy
-
-
--------------------------------------------------------------------------------
-
-    BuddyCast4 content-recommendation library.
-
-    The research leading to this library has received funding from the
-    European Community's Seventh Framework Programme [FP7/2007-2011] 
-    in the Petamedia project under grant agreement no. 216444
-
-    The following library modules are Copyright (c) 2008-2010,
-    Delft University of Technology and Technische Universität Berlin; 
-    All rights reserved.
-
-      Tribler/Core/BuddyCast/buddycast.py
-
-    The following library modules are Copyright (c) 2008-2010,
-    Technische Universität Berlin; 
-    All rights reserved.
-
-      Tribler/Core/Search/Reranking.py
-      Tribler/Test/test_buddycast4.py
-      Tribler/Test/test_buddycast4_stresstest.py
-      
-    All library modules are free software, unless stated otherwise; you can 
-    redistribute them and/or modify them under the terms of the GNU Lesser 
-    General Public License as published by the Free Software Foundation; in 
-    particular, version 2.1 of the License.
-
-    This library is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
-
-    You should have received a copy of the GNU Lesser General Public
-    License along with this library; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-    Delft University of Technology
-    Postbus 5
-    2600 AA Delft
-    The Netherlands
-    
-    Technische Universität Berlin
-    Strasse des 17. Juni 135
-    10623 Berlin
-    Germany
-
-
 ------------------------------------------------------------------------------
 
-    SwarmTransport/SwarmPlayer Firefox library.
+    QLectives Dispersy and quality communities library contribution.
 
     The research leading to this library has received funding from the European
-    Community's Seventh Framework Programme in the P2P-Next project under grant
-    agreement no 216217.
+    Community's Seventh Framework Programme in the QLectives project under grant
+    agreement no 231200.
+
+    The following library modules are Copyright (c) 2008-2013,
+    Delft University of Technology;
+    All rights reserved:
+
+       Tribler/dispersy/*
+       Tribler/community/*
 
     All library modules are free software, unless stated otherwise; you can 
     redistribute them and/or modify them under the terms of the GNU Lesser 
@@ -377,29 +114,15 @@
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
     Lesser General Public License for more details.
 
-
-    The following library modules are Copyright (c) 2008-2012, TECHNISCHE UNIVERSITEIT DELFT; 
-    and Jan Gerber; All rights reserved:
-      Tribler/Transport/tribeIChannel.idl
-      Tribler/Transport/tribeISwarmTransport.idl
-      Tribler/Transport/components/TribeChannel.js
-      Tribler/Transport/components/TribeProtocolHandler.js
-      Tribler/Transport/components/SwarmTransport.js
-      Tribler/Transport/install.rdf
-      Tribler/Transport/chrome.manifest
-
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-    TECHNISCHE UNIVERSITEIT DELFT, 
+    Delft University of Technology, 
     Faculty of Electrical Engineering, Mathematics and Computer Science, 
     Mekelweg 4, 
     2628 CD Delft, 
     The Netherlands
-    
-    Jan Gerber
-    j@thing.net
 
 -------------------------------------------------------------------------------
 
@@ -411,6 +134,19 @@ N. Goldmann ("Pir4nhaX,www.clanyakuza.com"), and Michel Hartmann is released
 under the MIT license, exceptions contain licensing information in them.
 
 Copyright (C) 2001-2002 Bram Cohen
+All rights reserved:
+
+     Tribler/Core/Utilities/btformats.py
+     Tribler/Core/Utilities/parseargs.py
+     Tribler/Core/Utilities/bencode.py
+     Tribler/Core/Utilities/convert.py
+     Tribler/Core/Utilities/bitfield.py
+     Tribler/Core/APIImplementation/maketorrent.py
+     Tribler/Core/DecentralizedTracking/ut_pex.py
+     Tribler/Core/RawServer/SocketHandler.py
+     Tribler/Core/RawServer/selectpoll.py
+     Tribler/Core/RawServer/RawServer.py
+     Tribler/Core/defaults.py
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
