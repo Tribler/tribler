@@ -107,9 +107,9 @@ class MessageWrapper:
         self.dispersy_msg = dispersy_msg
 
     def getDescription(self):
-        return " ".join(self.dispersy_msg.payload.keywords)
+        return " ".join(self.dispersy_msg.payload.keywords).strip()
     def getSearchString(self):
-        return " ".join(self.dispersy_msg.payload.keywords)
+        return " ".join(self.dispersy_msg.payload.keywords).strip()
 
     def getSearchID(self):
         return self.dispersy_msg.payload.identifier
@@ -124,7 +124,7 @@ class MessageWrapper:
 
     def getSize(self):
         return len(self.dispersy_msg.packet)
-    
+
     def __str__(self):
         return str(self.dispersy_msg)
 
@@ -147,7 +147,7 @@ class SourceWrapper:
         if members:
             return members[0].mid
         return str(self.dispersy_source.sock_addr[1])
-    
+
     def __str__(self):
         return str(self.dispersy_source)
 
