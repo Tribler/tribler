@@ -71,7 +71,7 @@ class OverlayManager:
             return False
 
     def sendSearch(self, connection, search, skipQueue):
-        if search.getSearchID() in self.receivedSearches:
+        if (search.getSearchID(), connection.getRemotePublicKeyHash()) in self.receivedSearches:
             if DEBUG:
                 print >> sys.stderr, long(time()), "OverlayManager not sending search, this search id is already received from this friend"
             return
@@ -107,7 +107,7 @@ class OverlayManager:
         if DEBUG:
             print >> sys.stderr, long(time()), "OverlayManager incoming search. desc: ", connection.getNick(), ", rate=", average
 
-        self.receivedSearches[message.getSearchID()] = time()
+        self.receivedSearches[(message.getSearchID(), connection.getRemotePublicKeyHash())] = time()
         callback(connection, message)
 
 class RandomnessManager:
