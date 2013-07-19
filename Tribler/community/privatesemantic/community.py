@@ -1070,6 +1070,8 @@ class Das4DBStub():
             if infohash not in my_preferences:
                 my_preferences[infohash] = results[1]
 
+        print >> sys.stderr, "searchNames", my_preferences.keys(), keywords
+
         results = []
         for keyword in keywords:
             infohash = str(keyword)

@@ -87,7 +87,6 @@ class TTLSearchCommunity(Community):
 
             # fast connecting
             self.dispersy.callback.register(self.fast_walker)
-
         else:
             self._mypref_db = self._torrent_db = self._channelcast_db = Das4DBStub(self._dispersy)
             self._notifier = None
