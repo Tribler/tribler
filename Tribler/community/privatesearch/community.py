@@ -373,6 +373,8 @@ class TTLSearchCommunity(Community):
                 self.search_endpoint += 1
 
     def _get_results(self, keywords, bloomfilter, local):
+        print >> sys.stderr, long(time()), "TTLSearchCommunity: searching for", keywords, "local:", local
+
         results = []
         dbresults = self._torrent_db.searchNames(keywords, local=local, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
         if len(dbresults) > 0:

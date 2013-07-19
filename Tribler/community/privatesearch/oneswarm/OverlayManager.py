@@ -85,7 +85,7 @@ class OverlayManager:
         self.outgoingSearchRate[connection.getRemotePublicKeyHash()].addValue(1);
 
         if DEBUG:
-            print >> sys.stderr, long(time()), "OverlayManager forwarding text search:", search.getSearchString()
+            print >> sys.stderr, long(time()), "OverlayManager forwarding text search:", search.getDescription()
 
         self.sendMessage(connection, search, skipQueue);
 

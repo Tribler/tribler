@@ -113,12 +113,12 @@ class MessageWrapper:
     def getDescription(self):
         return " ".join(self.dispersy_msg.payload.keywords).strip()
     def getSearchString(self):
-        return " ".join(self.dispersy_msg.payload.keywords).strip()
+        return self.dispersy_msg.payload.keywords
 
     def getSearchID(self):
         return self.dispersy_msg.payload.identifier
     def getValueID(self):
-        return self.__java_hashcode(self.getSearchString())
+        return self.__java_hashcode(self.getDescription())
 
     def __java_hashcode(self, s):
         h = 0

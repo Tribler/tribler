@@ -88,7 +88,7 @@ class SearchManager:
     def handleTextSearch(self, source, msg):
         shouldForward = True
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchManager handleTextSearch:", msg.getSearchString(), "from", source.getRemoteFriend().getNick()
+            print >> sys.stderr, long(time()), "SearchManager handleTextSearch:", msg.getDescription(), "from", source.getRemoteFriend().getNick()
 
         searchString = msg.getSearchString()
 
