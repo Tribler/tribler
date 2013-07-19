@@ -19,10 +19,10 @@ ENCRYPTION = True
 
 class OneSwarmCommunity(TTLSearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, log_searches=False):
+    def __init__(self, master, integrate_with_tribler=True, log_searches=False, cancel_after=None):
         TTLSearchCommunity.__init__(self, master, integrate_with_tribler, log_searches=log_searches)
         self.overlay_manager = OverlayManager(self)
-        self.search_manager = SearchManager(self, self.overlay_manager)
+        self.search_manager = SearchManager(self, self.overlay_manager, cancel_after)
 
     def initiate_meta_messages(self):
         messages = TTLSearchCommunity.initiate_meta_messages(self)

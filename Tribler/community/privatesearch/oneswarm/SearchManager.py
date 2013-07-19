@@ -29,12 +29,9 @@ mMAX_RESPONSE_DELAY = 2
 mMIN_DELAY_LINK_LATENCY = 1
 mMAX_DELAY_LINK_LATENCY = 2
 
-mMaxSearchResponsesBeforeCancel = 40
-
-
 class SearchManager:
 
-    def __init__(self, community, overlayManager):
+    def __init__(self, community, overlayManager, cancel_after=None):
         self.community = community
         self.overlayManager = overlayManager
 
@@ -48,6 +45,11 @@ class SearchManager:
         self.bloomSearchesSentCurr = 0
         self.forwardedSearchNum = 0
         self.lastSearchAccountingFlush = time()
+
+        if cancel_after:
+            self.mMaxSearchResponsesBeforeCancel = cancel_after
+        else:
+            self.mMaxSearchResponsesBeforeCancel = 40
 
     def sendTextSearch(self, newSearchId, msg, callback):
         return self.sendSearch(newSearchId, msg, callback, True, False)
