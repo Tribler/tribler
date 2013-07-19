@@ -43,7 +43,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
                             distribution=(self.global_time,), payload=(identifier, 0, keywords, None))
 
         # create a callback converter
-        def callback_converter(msg):
+        def callback_converter(wrapped_msg):
+            msg = wrapped_msg.dispersy_msg
+
             callback(keywords, msg.payload.results, msg.candidate)
 
         wrapped_candidates = self.search_manager.sendTextSearch(identifier, MessageWrapper(message, mine=True), callback_converter)

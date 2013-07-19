@@ -175,6 +175,9 @@ class SearchManager:
                 self.overlayManager.forwardSearchOrCancel(source, self.community._create_cancel(msg.getSearchID()))
 
             else:
+                if DEBUG:
+                    print >> sys.stderr, long(time()), "SearchManager forwarding response to", searcher.getRemoteFriend(), " responder=", responder.getRemoteFriend()
+
                 # assuming honest connections during this experiment, not implementing overlay registering
                 search.gotResponse()
 
