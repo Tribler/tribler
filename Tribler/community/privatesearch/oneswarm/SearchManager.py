@@ -10,7 +10,7 @@ from traceback import print_exc
 from collections import namedtuple
 from Queue import Queue
 
-DEBUG = True
+DEBUG = False
 
 # OneSwarm defaults
 f2f_search_forward_delay = 0.150
@@ -63,15 +63,15 @@ class SearchManager:
         if msg.getSearchID() in self.forwardedSearches:
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchManager message already forwarded"
-            return
+            return True
         if msg.getSearchID() in self.sentSearches:
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchManager message is mine"
-            return
+            return True
         if self.delayedSearchQueue.isQueued(msg):
             if DEBUG:
                 print >> sys.stderr, long(time()), "SearchManager message is scheduled to be forwarded"
-            return
+            return True
 
         # only implementing textsearch
         shouldForward = self.handleTextSearch(source, msg)
@@ -84,6 +84,8 @@ class SearchManager:
             # ok, seems like we should attempt to forward this, put it in
             # the queue
             self.delayedSearchQueue.add(source, msg)
+
+        return False
 
     def handleTextSearch(self, source, msg):
         shouldForward = True

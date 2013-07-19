@@ -108,7 +108,7 @@ class OverlayManager:
             print >> sys.stderr, long(time()), "OverlayManager incoming search. desc: ", connection.getNick(), ", rate=", average
 
         self.receivedSearches[(message.getSearchID(), connection.getRemotePublicKeyHash())] = time()
-        callback(connection, message)
+        return callback(connection, message)
 
 class RandomnessManager:
     def __init__(self, secretBytes=None):
