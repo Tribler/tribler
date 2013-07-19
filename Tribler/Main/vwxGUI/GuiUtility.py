@@ -645,6 +645,60 @@ class GUIUtility:
             elif event:
                 button.Enable(True)
 
+    @forceWxThread
+    def MarkAsSpam(self, event, channel):
+        if channel:
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
+
+            dlgname = 'MSdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about to report channel \'%s\' as spam." % channel.name, "")
+                response = dlg.ShowModal()
+
+            if response == wx.ID_OK:
+                @forcePrioDBThread
+                def remove_vote():
+                    self.channelsearch_manager.spam(channel.id)
+                    wx.CallAfter(self.Notify, "Channel marked as spam", "Channel '%s' marked as spam" % channel.name)
+                    if event: button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            elif event:
+                button.Enable(True)
+
+    @forceWxThread
+    def RemoveSpam(self, event, channel):
+        if channel:
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
+
+            dlgname = 'RSdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about unmark channel \'%s\' as spam." % channel.name, "")
+                response = dlg.ShowModal()
+
+            if response == wx.ID_OK:
+                @forcePrioDBThread
+                def remove_vote():
+                    self.channelsearch_manager.remove_vote(channel.id)
+                    wx.CallAfter(self.Notify, "Channel unmarked as spam", "Channel '%s' unmarked as spam" % channel.name)
+                    if event: button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            elif event:
+                button.Enable(True)
+
     def RefreshChannel(self, channelid):
         if self.guiPage in ['search_results', 'selectedchannel', 'channels']:
 

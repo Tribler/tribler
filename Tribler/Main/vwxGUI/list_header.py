@@ -68,7 +68,7 @@ class ListHeaderIcon:
 
 class ListHeader(wx.Panel):
 
-    def __init__(self, parent, parent_list, columns, radius=0, spacers = [3, 3]):
+    def __init__(self, parent, parent_list, columns, radius=0, spacers=[3, 3]):
         wx.Panel.__init__(self, parent)
         self.parent_list = parent_list
         self.columnHeaders = []
@@ -112,16 +112,16 @@ class ListHeader(wx.Panel):
             down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
             for i in xrange(len(columns)):
                 if columns[i].get('name', '') != '':
-                    label = LinkText(parent, columns[i]['name'], fonts= [None, selectedfont], style = columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE, parentsizer = sizer)
+                    label = LinkText(parent, columns[i]['name'], fonts=[None, selectedfont], style=columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE, parentsizer=sizer)
                     label.SetToolTipString('Click to sort table by %s.' % columns[i]['name'])
                     label.SetBackgroundColour(self.GetBackgroundColour())
                     label.column = i
                     label.Bind(wx.EVT_LEFT_UP, self.OnClick)
 
                     if i == 0:
-                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP |wx.BOTTOM, 3)
+                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.BOTTOM, 3)
                     else:
-                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT |wx.TOP|wx.BOTTOM, 3)
+                        sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.TOP | wx.BOTTOM, 3)
 
                     if columns[i].get('defaultSorted', False):
                         if columns[i].get('sortAsc', False):
@@ -270,11 +270,11 @@ class ListHeader(wx.Panel):
 
 class TitleHeader(ListHeader):
 
-    def __init__(self, parent, parent_list, columns, font_increment=2, fontweight = wx.FONTWEIGHT_BOLD, radius=0, spacers = [3, 3]):
+    def __init__(self, parent, parent_list, columns, font_increment=2, fontweight=wx.FONTWEIGHT_BOLD, radius=0, spacers=[3, 3]):
         self.font_increment = font_increment
         self.fontweight = fontweight
 
-        ListHeader.__init__(self, parent, parent_list, columns, radius=radius, spacers= spacers)
+        ListHeader.__init__(self, parent, parent_list, columns, radius=radius, spacers=spacers)
 
     @warnWxThread
     def AddComponents(self, columns, spacers):
@@ -312,7 +312,7 @@ class TitleHeader(ListHeader):
             subSizer.Add(righttitlePanel, 1, wx.LEFT, 3)
         righttitlePanel = subSizer
 
-        vSizer.Add(righttitlePanel, 0, wx.EXPAND | wx.LEFT |wx.RIGHT, self.radius+spacers[0])
+        vSizer.Add(righttitlePanel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, self.radius + spacers[0])
         if belowPanel:
             vSizer.Add(belowPanel, 1, wx.EXPAND | wx.TOP, 3)
 
@@ -321,7 +321,7 @@ class TitleHeader(ListHeader):
         if len(columns) > 0:
             hSizer = wx.BoxSizer(wx.HORIZONTAL)
             self.AddColumns(hSizer, self, columns)
-            vSizer.Add(hSizer, 0, wx.EXPAND | wx.LEFT |wx.RIGHT, self.radius+spacers[0])
+            vSizer.Add(hSizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, self.radius + spacers[0])
         self.SetSizer(vSizer)
 
     def GetTitlePanel(self, parent):
@@ -449,7 +449,7 @@ class ManageChannelHeader(SubTitleHeader):
             elif nr_favorites == 1:
                 subtitle += ' and 1 Tribler user marked it as one of its favorites.'
             else:
-                subtitle += ' and ' + str(nr_favorites) +' Tribler users marked it as one of their favorites.'
+                subtitle += ' and ' + str(nr_favorites) + ' Tribler users marked it as one of their favorites.'
         self.SetSubTitle(subtitle)
 
     def AddColumns(self, sizer, parent, columns):
@@ -596,7 +596,7 @@ class BaseFilter(wx.Panel):
 
 class TorrentFilter(BaseFilter):
 
-    def __init__(self, parent, parent_list, spacers=[10, 3], show_bundle = False):
+    def __init__(self, parent, parent_list, spacers=[10, 3], show_bundle=False):
         self.guiutility = GUIUtility.getInstance()
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
 
@@ -760,7 +760,7 @@ class TorrentFilter(BaseFilter):
         if min_val <= max_val:
             if search:
                 search += " "
-            search += "size=%d:%d" % (min_val / self.conversion_factor, max_val /self.conversion_factor)
+            search += "size=%d:%d" % (min_val / self.conversion_factor, max_val / self.conversion_factor)
         self.search.SetValue(search)
 
     def OnKey(self, event=None):
@@ -782,7 +782,7 @@ class TorrentFilter(BaseFilter):
                         max_val = int(sizes[1])
                 else:
                     min_val = max_val = int(sizeStr)
-                self.slider_positions = (min_val * self.conversion_factor, max_val *self.conversion_factor)
+                self.slider_positions = (min_val * self.conversion_factor, max_val * self.conversion_factor)
                 self.filesize.SetCurrentValues(*self.slider_positions)
             except:
                 pass
@@ -887,7 +887,7 @@ class TorrentFilter(BaseFilter):
                 btn = wx.Button(self.filter_panel, -1, btn_label)
                 btn.Bind(wx.EVT_BUTTON, btn_handler)
                 btn.SetMinSize((-1, 23))
-                self.filter_sizer.Insert(num_children - 2, btn, 0, wx.CENTER |wx.RIGHT, 3)
+                self.filter_sizer.Insert(num_children - 2, btn, 0, wx.CENTER | wx.RIGHT, 3)
                 self.filter_sizer.Layout()
                 self.Layout()
         else:
@@ -1055,7 +1055,7 @@ class ChannelFilter(BaseFilter):
                 btn = wx.Button(self.filter_panel, -1, btn_label)
                 btn.Bind(wx.EVT_BUTTON, btn_handler)
                 btn.SetMinSize((-1, 23))
-                self.filter_sizer.Insert(num_children - 2, btn, 0, wx.CENTER |wx.RIGHT, 3)
+                self.filter_sizer.Insert(num_children - 2, btn, 0, wx.CENTER | wx.RIGHT, 3)
                 self.filter_sizer.Layout()
                 self.Layout()
         else:
@@ -1196,7 +1196,7 @@ class DownloadFilter(BaseFilter):
         if min_val <= max_val:
             if search:
                 search += " "
-            search += "size=%d:%d" % (min_val / self.conversion_factor, max_val /self.conversion_factor)
+            search += "size=%d:%d" % (min_val / self.conversion_factor, max_val / self.conversion_factor)
         self.search.SetValue(search)
 
     def OnState(self, state):
@@ -1238,7 +1238,7 @@ class DownloadFilter(BaseFilter):
                         max_val = int(sizes[1])
                 else:
                     min_val = max_val = int(sizeStr)
-                self.slider_positions = (min_val * self.conversion_factor, max_val *self.conversion_factor)
+                self.slider_positions = (min_val * self.conversion_factor, max_val * self.conversion_factor)
                 self.filesize.SetCurrentValues(*self.slider_positions)
             except:
                 pass
@@ -1270,7 +1270,7 @@ class DownloadFilter(BaseFilter):
                 btn = wx.Button(self.filter_panel, -1, btn_label)
                 btn.Bind(wx.EVT_BUTTON, btn_handler)
                 btn.SetMinSize((-1, 23))
-                self.filter_sizer.Insert(num_children - 2, btn, 0, wx.CENTER |wx.RIGHT, 3)
+                self.filter_sizer.Insert(num_children - 2, btn, 0, wx.CENTER | wx.RIGHT, 3)
                 self.filter_sizer.Layout()
                 self.Layout()
         else:
@@ -1362,9 +1362,9 @@ class ChannelHeader(ListItemHeader):
             if open2edit or allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
             if channel.my_vote == -1:
-                item.AddButton("This is not Spam", self.parent_list.OnRemoveVote, 4)
+                item.AddButton("This is not Spam", self.parent_list.OnRemoveSpam, 4)
             elif channel.my_vote == 2:
-                item.AddButton("Remove Favorite", self.parent_list.OnRemoveVote, 4)
+                item.AddButton("Remove Favorite", self.parent_list.OnRemoveFavorite, 4)
             elif not open2edit and not allow2edit:
                 item.AddButton("Edit this Channel", self.parent_list.OnManage, 4)
 
@@ -1434,12 +1434,12 @@ class DetailHeader(wx.Panel):
         if hasattr(parent, 'OnLeaveWindow'):
             panel.Bind(wx.EVT_ENTER_WINDOW, lambda event: parent.OnLeaveWindow())
         self.title = wx.StaticText(panel, label=title)
-        _set_font(self.title, fontweight=wx.FONTWEIGHT_BOLD, fontcolour= wx.BLACK)
+        _set_font(self.title, fontweight=wx.FONTWEIGHT_BOLD, fontcolour=wx.BLACK)
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.title, 0, wx.CENTER | wx.LEFT, 7)
         panel.SetSizer(sizer)
 
-        vSizer.Add(panel, 0, wx.EXPAND | wx.TOP |wx.BOTTOM, 1)
+        vSizer.Add(panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 1)
         self.SetSizer(vSizer)
 
     def SetTitle(self, title):

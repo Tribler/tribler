@@ -12,7 +12,12 @@
 # see LICENSE.txt for license information
 #
 
+import sys
 import logging.config
+try:
+    logging.config.fileConfig("logger.conf")
+except:
+    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
@@ -36,7 +41,6 @@ urllib.URLopener.open_https = original_open_https
 import Tribler.Debug.console
 
 import os
-import sys
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.decorator import attach_profiler
@@ -402,7 +406,9 @@ class ABCApp():
         self.sconfig.set_install_dir(self.installdir)
 
         # Boudewijn, 2013-06-17: Enable Dispersy tunnel (hard-coded)
-        self.sconfig.set_dispersy_tunnel_over_swift(True)
+        # self.sconfig.set_dispersy_tunnel_over_swift(True)
+        # Boudewijn, 2013-07-17: Disabling Dispersy tunnel (hard-coded)
+        self.sconfig.set_dispersy_tunnel_over_swift(False)
 
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
@@ -456,10 +462,14 @@ class ABCApp():
                                            (s.dispersy_member,),
                                            {"auto_join_channel": True} if sys.argv[0].endswith("dispersy-channel-booster.py") else {},
                                            load=True)
-            if swift_process:
-                dispersy.define_auto_load(BarterCommunity,
-                                          (swift_process,),
-                                          load=True)
+
+            # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
+            # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
+            # their version before enabling it again.
+            # if swift_process:
+            #     dispersy.define_auto_load(BarterCommunity,
+            #                               (swift_process,),
+            #                               load=True)
 
             dispersy.define_auto_load(ChannelCommunity, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity)
@@ -1077,11 +1087,6 @@ class ABCApp():
 #
 @attach_profiler
 def run(params=None):
-    try:
-        logging.config.fileConfig("logger.conf")
-    except:
-        logger.warning("Unable to load logging config from 'logger.conf' file.")
-
     if params is None:
         params = [""]
 
