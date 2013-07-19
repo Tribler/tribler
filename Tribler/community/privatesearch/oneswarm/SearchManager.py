@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Written by Niels Zeilemaker
 # conversion of SearchManager.java from OneSwarm
 import sys
@@ -78,8 +79,7 @@ class SearchManager:
     def handleTextSearch(self, source, msg):
         shouldForward = True
         if DEBUG:
-            print >> sys.stderr, long(time()), "SearchManager handleTextSearch:", msg.getSearchString(), "from",
-            source.getRemoteFriend().getNick();
+            print >> sys.stderr, long(time()), "SearchManager handleTextSearch:", msg.getSearchString(), "from", source.getRemoteFriend().getNick()
 
         searchString = msg.getSearchString()
 
@@ -163,9 +163,7 @@ class SearchManager:
                 self.canceledSearches[msg.getSearchID()] = time()
 
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchManager sending cancel for someone elses search!, searcher=",
-                    searcher.getRemoteFriend(), " responder=", responder.getRemoteFriend(),
-                    ":\t", search
+                    print >> sys.stderr, long(time()), "SearchManager sending cancel for someone elses search!, searcher=", searcher.getRemoteFriend(), " responder=", responder.getRemoteFriend(), ":\t", search
 
                 self.overlayManager.forwardSearchOrCancel(source, self.community._create_cancel(msg.getSearchID()))
 
@@ -361,8 +359,7 @@ class DelayedSearchQueue:
     def add(self, source, search):
         if self.lastSearchesPerSecondLogTime + 1 < time():
             if DEBUG:
-                print >> sys.stderr, long(time()), "DelayedSearchQueue searches/sec:", self.searchCount, "bytes:",
-                self.lastBytesPerSecondCount, "searchQueueSize:", len(self.queuedSearches)
+                print >> sys.stderr, long(time()), "DelayedSearchQueue searches/sec:", self.searchCount, "bytes:", self.lastBytesPerSecondCount, "searchQueueSize:", len(self.queuedSearches)
 
             self.lastSearchesPerSecondLogTime = time()
             self.searchCount = 0
@@ -385,23 +382,20 @@ class DelayedSearchQueue:
                 # We add a hard limit on the number of searches from any one person.
                 if outstanding > 0.15 * MAX_SEARCH_QUEUE_LENGTH:
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "DelayedSearchQueue dropping due to 25% of total queue consumption",
-                        source.getRemoteFriend().getNick(), outstanding, "/", MAX_SEARCH_QUEUE_LENGTH
+                        print >> sys.stderr, long(time()), "DelayedSearchQueue dropping due to 25% of total queue consumption", source.getRemoteFriend().getNick(), outstanding, "/", MAX_SEARCH_QUEUE_LENGTH
                     return
 
                 # In other cases, we drop proportional to the consumption of the overall queue.
                 acceptProb = float(outstanding) / float(len(self.queuedSearches))
                 if random() < acceptProb:
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "DelayedSearchQueue *** RED for search from", source, "outstanding:",
-                        outstanding, "total:", len(self.queuedSearches)
+                        print >> sys.stderr, long(time()), "DelayedSearchQueue *** RED for search from", source, "outstanding:", outstanding, "total:", len(self.queuedSearches)
                     return
 
 
         if len(self.queuedSearches) > MAX_SEARCH_QUEUE_LENGTH:
             if DEBUG:
-                print >> sys.stderr, long(time()), "DelayedSearchQueue not forwarding search, queue length too large. id:",
-                search.getSearchID()
+                print >> sys.stderr, long(time()), "DelayedSearchQueue not forwarding search, queue length too large. id:", search.getSearchID()
             return
 
         if search.getSearchID() not in self.queuedSearches:
@@ -415,8 +409,7 @@ class DelayedSearchQueue:
             self.searchesPerFriend[source.getRemoteFriend()].v += 1
 
             if DEBUG:
-                print >> sys.stderr, long(time()), "DelayedSearchQueue search for friend:", source.getRemoteFriend().getNick(),
-                self.searchesPerFriend[source.getRemoteFriend()].v
+                print >> sys.stderr, long(time()), "DelayedSearchQueue search for friend:", source.getRemoteFriend().getNick(), self.searchesPerFriend[source.getRemoteFriend()].v
 
             self.queuedSearches[search.getSearchID()] =  entry
             self.queue.put(entry);
@@ -441,9 +434,8 @@ class DelayedSearchQueueThread(Thread):
                 timeUntilSend = e.dontSendBefore - time()
                 if timeUntilSend > 0:
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "DelayedSearchQueueThread: got search (", e.search.getDescription(),
-                        ") to forward, waiting ", timeUntilSend, "ms until sending"
-                        sleep(timeUntilSend)
+                        print >> sys.stderr, long(time()), "DelayedSearchQueueThread: got search (", e.search.getDescription(), ") to forward, waiting ", timeUntilSend, "ms until sending"
+                    sleep(timeUntilSend)
 
                 self.searchManager.forwardSearch(e.source, e.search)
 
@@ -465,8 +457,7 @@ class DelayedSearchQueueThread(Thread):
                     sleepSeconds = (msFloor / 1000.0) + (nanosLeft / 1000000000.0)
 
                     if DEBUG:
-                        print >> sys.stderr, long(time()), "DelayedSearchQueueThread sleeping", msFloor, "ms",
-                        nanosLeft, "ns or", sleepSeconds, "seconds in python-speak"
+                        print >> sys.stderr, long(time()), "DelayedSearchQueueThread sleeping", msFloor, "ms", nanosLeft, "ns or", sleepSeconds, "seconds in python-speak"
 
                     sleep(sleepSeconds);
             except:
