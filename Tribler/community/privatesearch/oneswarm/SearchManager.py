@@ -142,8 +142,7 @@ class SearchManager:
                 if sendCancel:
                     self.overlayManager.sendSearchOrCancel(self.community._create_cancel(msg.getSearchID(), mine=True), True, False)
 
-            search = sentSearch.getSearch()
-            search.callback(msg)
+            sentSearch.callback(msg)
 
         # sentsearch == null
         else:
