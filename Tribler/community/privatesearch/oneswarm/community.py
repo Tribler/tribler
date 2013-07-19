@@ -88,7 +88,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
     def _create_cancel(self, identifier, mine=False):
         meta = self.get_meta_message(u"search-cancel")
         message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.global_time,), payload=(identifier))
+                            distribution=(self.global_time,), payload=(identifier,))
 
         return MessageWrapper(message, mine=mine)
 
