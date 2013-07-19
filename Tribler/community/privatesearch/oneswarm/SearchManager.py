@@ -29,6 +29,8 @@ mMAX_RESPONSE_DELAY = 2
 mMIN_DELAY_LINK_LATENCY = 1
 mMAX_DELAY_LINK_LATENCY = 2
 
+mMaxSearchResponsesBeforeCancel = 40
+
 class SearchManager:
 
     def __init__(self, community, overlayManager, cancel_after=None):
@@ -49,7 +51,7 @@ class SearchManager:
         if cancel_after:
             self.mMaxSearchResponsesBeforeCancel = cancel_after
         else:
-            self.mMaxSearchResponsesBeforeCancel = 40
+            self.mMaxSearchResponsesBeforeCancel = mMaxSearchResponsesBeforeCancel
 
     def sendTextSearch(self, newSearchId, msg, callback):
         return self.sendSearch(newSearchId, msg, callback, True, False)
@@ -168,7 +170,7 @@ class SearchManager:
 
             searcher = search.getSource()
             responder = source
-            if search.getResponseNum() > self.mMaxSearchResponsesBeforeCancel:
+            if search.getResponseNum() > mMaxSearchResponsesBeforeCancel:
                 # we really shouldn't cancel other peoples searches, but if
                 # they don't do it we have to
                 self.canceledSearches[msg.getSearchID()] = time()
