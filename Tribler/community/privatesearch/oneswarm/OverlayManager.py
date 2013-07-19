@@ -4,7 +4,7 @@ from time import time
 from random import getrandbits
 from collections import defaultdict
 
-DEBUG = True
+DEBUG = False
 
 # OneSwarm defaults
 mForwardSearchProbability = 0.5
