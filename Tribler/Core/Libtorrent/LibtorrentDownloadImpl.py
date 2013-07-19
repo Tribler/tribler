@@ -403,7 +403,7 @@ class LibtorrentDownloadImpl(DownloadRuntimeConfig):
         elif bufferprogress <= 0.1 and self.vod_status:
             self.pause_vod()
 
-        if not self.videoinfo.get('bitrate', None):
+        if bufferprogress >= 1 and not self.videoinfo.get('bitrate', None):
             # Attempt to estimate the bitrate of the videofile with ffmpeg
             videofile = self.videoinfo["outpath"][0]
             videoanalyser = self.session.get_video_analyser_path()
