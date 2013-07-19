@@ -85,7 +85,7 @@ class SaveAs(wx.Dialog):
             url = tdef.get_url()
             if url and url.startswith("magnet:"):
                 retrieve_from_magnet = lambda: TorrentDef.retrieve_from_magnet(url, lambda tdef: wx.CallAfter(self.SetCollected, tdef))
-                startWorker(None, retrieve_from_magnet, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+                startWorker(None, retrieve_from_magnet, retryOnBusy=True, workerType="guiTaskQueue")
             else:
                 torrentsearch_manager = self.guiutility.torrentsearch_manager
 
