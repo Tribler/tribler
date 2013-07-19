@@ -59,7 +59,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
             cycle = self.overlay_manager.handleSearch(message, connection, self.search_manager.handleIncomingSearch)
             if self.log_searches:
-                log("dispersy.log", "search-statistics", identifier=message.payload.identifier, cycle=cycle)
+                log("dispersy.log", "search-statistics", identifier=message.dispersy_msg.payload.identifier, cycle=cycle)
 
     def send_response(self, original_request, single_result):
         original_request = original_request.dispersy_msg
