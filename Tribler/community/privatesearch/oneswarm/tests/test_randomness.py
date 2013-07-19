@@ -1,4 +1,7 @@
 import unittest
+import sys
+
+from random import randint
 
 from Tribler.community.privatesearch.oneswarm.OverlayManager import RandomnessManager
 
@@ -31,6 +34,28 @@ class TestRandomness(unittest.TestCase):
     def test_secretbytes(self):
         randomness2 = RandomnessManager()
         assert self.randomness.getSecretBytes() != randomness2.getSecretBytes()
+
+    def test_usecase(self):
+        mForwardSearchProbability = 0.5
+        yes = 0
+        maxval = 0
+
+        for _ in xrange(100000):
+            id = randint(0, sys.maxint)
+            all = str(id)
+
+            randomVal = self.randomness.getDeterministicRandomInt(all)
+            assert randomVal < sys.maxint, randomVal
+
+            if randomVal < 0:
+                randomVal = -randomVal
+
+            if randomVal < sys.maxint * mForwardSearchProbability:
+                yes += 1
+
+            maxval = max(maxval, randomVal)
+
+        assert 45000 < yes < 55000, yes
 
 if __name__ == "__main__":
     unittest.main()

@@ -129,7 +129,7 @@ class RandomnessManager:
         if self.secretBytes:
             # the implementation is slightly different to oneswarm, but basically does the same thing
             # first hash, then return the first 32 bits
-            bitmask = (2 ** 32) - 1
+            bitmask = (2 ** 31) - 1
             return long(md5(str(seed) + str(self.secretBytes)).hexdigest(), 16) & bitmask
 
     def getSecretBytes(self):
