@@ -105,7 +105,7 @@ class SearchManager:
                     task = DelayedSearchResponse(msg, result, self, self.community)
                     delay = self.getSearchDelayForInfohash(source.getRemoteFriend())
 
-                    self.community.dispersy.callback.register(task.run, delay=delay)
+                    self.community.dispersy.callback.register(task.run, delay=(delay / 1000.0))
             else:
                 shouldForward = False
         return shouldForward
@@ -288,8 +288,8 @@ class SearchManager:
         if destination.isCanSeeFileList():
             return 0.0
         else:
-            searchDelay = randint(mMIN_RESPONSE_DELAY, mMAX_RESPONSE_DELAY) / 1000.0
-            latencyDelay = randint(mMIN_DELAY_LINK_LATENCY, mMAX_DELAY_LINK_LATENCY) / 1000.0
+            searchDelay = randint(mMIN_RESPONSE_DELAY, mMAX_RESPONSE_DELAY)
+            latencyDelay = randint(mMIN_DELAY_LINK_LATENCY, mMAX_DELAY_LINK_LATENCY)
             return float(searchDelay + latencyDelay)
 
 class DelayedSearchResponse:
