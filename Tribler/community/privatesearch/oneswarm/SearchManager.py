@@ -94,12 +94,11 @@ class SearchManager:
 
         # removed filtering, modified call to get results
         results = self.community._get_results(searchString, None, False)
+        if DEBUG:
+            print >> sys.stderr, long(time()), "SearchManager found matches", len(results)
 
         if len(results) > 0:
             if self.canRespondToSearch():
-                if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchManager found matches", len(results)
-
                 for result in results:
                     task = DelayedSearchResponse(msg, result, self, self.community)
                     delay = self.getSearchDelayForInfohash(source.getRemoteFriend())
