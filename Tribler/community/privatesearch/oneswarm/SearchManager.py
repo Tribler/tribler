@@ -13,7 +13,7 @@ from Queue import Queue
 DEBUG = False
 
 # OneSwarm defaults
-f2f_search_forward_delay = 0.150
+f2f_search_forward_delay = 150
 NO_FORWARD_FRAC_OF_MAX_UPLOAD = 0.9
 NO_RESPONSE_TOTAL_FRAC_OF_MAX_UPLOAD = 0.9
 NO_RESPONSE_TRANSPORT_FRAC_OF_MAX_UPLOAD = 0.75
@@ -421,7 +421,7 @@ class DelayedSearchQueue:
             if DEBUG:
                 print >> sys.stderr, long(time()), "DelayedSearchQueue adding search to forward queue, will forward in " , self.mDelay, "ms"
 
-            entry = DelayedSearchQueueEntry(search, source, time() + self.mDelay)
+            entry = DelayedSearchQueueEntry(search, source, time() + (self.mDelay / 1000.0))
 
             if source.getRemoteFriend() not in self.searchesPerFriend:
                 self.searchesPerFriend[source.getRemoteFriend()] = MutableInteger()
@@ -451,10 +451,11 @@ class DelayedSearchQueueThread(Thread):
             try:
                 e = self.queue.get()
                 timeUntilSend = e.dontSendBefore - time()
+                timeUntilSend *= 1000  # convert back to ms
                 if timeUntilSend > 0:
-                    if DEBUG:
+                    if DEBUG or True:
                         print >> sys.stderr, long(time()), "DelayedSearchQueueThread: got search (", e.search.getDescription(), ") to forward, waiting ", timeUntilSend, "ms until sending"
-                    sleep(timeUntilSend)
+                    sleep(timeUntilSend / 1000.0)  # convert back to s
 
                 self.searchManager.forwardSearch(e.source, e.search)
 
@@ -475,10 +476,11 @@ class DelayedSearchQueueThread(Thread):
                     # we need to convert to seconds, as python accepts floats in sleep
                     sleepSeconds = (msFloor / 1000.0) + (nanosLeft / 1000000000.0)
 
-                    if DEBUG:
+                    if DEBUG or True:
                         print >> sys.stderr, long(time()), "DelayedSearchQueueThread sleeping", msFloor, "ms", nanosLeft, "ns or", sleepSeconds, "seconds in python-speak"
 
-                    sleep(sleepSeconds);
+                    sleep(sleepSeconds)
+
             except:
                 print_exc()
 
