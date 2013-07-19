@@ -133,7 +133,7 @@ class SearchManager:
             # we will still use the data, even if the search is canceled. I
             # mean, since it already made it here why not use it...
 
-            if sentSearch.getResponseNum() > mMaxSearchResponsesBeforeCancel:
+            if sentSearch.getResponseNum() > self.mMaxSearchResponsesBeforeCancel:
                 # only send a cancel message once
                 sendCancel = False
                 if msg.getSearchID() not in self.canceledSearches:
@@ -168,7 +168,7 @@ class SearchManager:
 
             searcher = search.getSource()
             responder = source
-            if search.getResponseNum() > mMaxSearchResponsesBeforeCancel:
+            if search.getResponseNum() > self.mMaxSearchResponsesBeforeCancel:
                 # we really shouldn't cancel other peoples searches, but if
                 # they don't do it we have to
                 self.canceledSearches[msg.getSearchID()] = time()
