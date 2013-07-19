@@ -282,11 +282,11 @@ class SearchManager:
 
     def getSearchDelayForInfohash(self, destination):
         if destination.isCanSeeFileList():
-            return 0
+            return 0.0
         else:
             searchDelay = randint(mMIN_RESPONSE_DELAY, mMAX_RESPONSE_DELAY) / 1000.0
             latencyDelay = randint(mMIN_DELAY_LINK_LATENCY, mMAX_DELAY_LINK_LATENCY) / 1000.0
-            return searchDelay + latencyDelay
+            return float(searchDelay + latencyDelay)
 
 class DelayedSearchResponse:
     def __init__(self, msg, result, search_manager, community):
