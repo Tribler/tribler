@@ -457,7 +457,7 @@ class DelayedSearchQueueThread(Thread):
                 timeUntilSend = e.dontSendBefore - time()
                 timeUntilSend *= 1000  # convert back to ms
                 if timeUntilSend > 0:
-                    if DEBUG or True:
+                    if DEBUG:
                         print >> sys.stderr, long(time()), "DelayedSearchQueueThread: got search (", e.search.getDescription(), ") to forward, waiting ", timeUntilSend, "ms until sending"
                     sleep(timeUntilSend / 1000.0)  # convert back to s
 
@@ -480,7 +480,7 @@ class DelayedSearchQueueThread(Thread):
                     # we need to convert to seconds, as python accepts floats in sleep
                     sleepSeconds = (msFloor / 1000.0) + (nanosLeft / 1000000000.0)
 
-                    if DEBUG or True:
+                    if DEBUG:
                         print >> sys.stderr, long(time()), "DelayedSearchQueueThread sleeping", msFloor, "ms", nanosLeft, "ns or", sleepSeconds, "seconds in python-speak"
 
                     sleep(sleepSeconds)
