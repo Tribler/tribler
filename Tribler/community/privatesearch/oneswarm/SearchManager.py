@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Written by Niels Zeilemaker
 # conversion of SearchManager.java from OneSwarm
 import sys
@@ -411,7 +410,7 @@ class DelayedSearchQueue:
             if DEBUG:
                 print >> sys.stderr, long(time()), "DelayedSearchQueue search for friend:", source.getRemoteFriend().getNick(), self.searchesPerFriend[source.getRemoteFriend()].v
 
-            self.queuedSearches[search.getSearchID()] =  entry
+            self.queuedSearches[search.getSearchID()] = entry
             self.queue.put(entry);
         elif DEBUG:
             print >> sys.stderr, long(time()), "DelayedSearchQueue search already in queue, not adding"
