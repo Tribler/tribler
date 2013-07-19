@@ -265,6 +265,9 @@ class SearchManager:
             print >> sys.stderr, long(time()), "SearchManager not responding to search (overloaded, util=", transUtil, ")"
         return False
 
+    def isSearchCanceled(self, searchID):
+        return searchID in self.canceledSearches
+
     def fracUpload(self):
         # TODO: fill some sane numbers here
         return -1
@@ -293,7 +296,12 @@ class DelayedSearchResponse:
         self.community = community
 
     def run(self):
+        if DEBUG:
+            print >> sys.stderr, "DelayedSearchResponse, attempting to send search response", self.msg.getSearchID(), self.result
+
         if not self.search_manager.isSearchCanceled(self.msg.getSearchID()):
+            if DEBUG:
+                print >> sys.stderr, "DelayedSearchResponse, sending search response", self.msg.getSearchID(), self.result
             self.community.send_response(self.msg, self.result)
 
 class ForwardedSearch:
@@ -362,7 +370,6 @@ class DelayedSearchQueue:
 
         self.t = DelayedSearchQueueThread(searchManager, self.queue, self.queuedSearches, self.searchesPerFriend)
         self.t.start()
-
 
     def add(self, source, search):
         if self.lastSearchesPerSecondLogTime + 1 < time():
