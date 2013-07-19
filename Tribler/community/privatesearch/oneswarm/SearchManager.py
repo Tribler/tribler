@@ -60,11 +60,21 @@ class SearchManager:
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchManager got search:", msg.getDescription()
 
-        if (msg.getSearchID() in self.forwardedSearches) or (msg.getSearchID() in self.sentSearches) or self.delayedSearchQueue.isQueued(msg):
+        if msg.getSearchID() in self.forwardedSearches:
+            if DEBUG:
+                print >> sys.stderr, long(time()), "SearchManager message already forwarded"
+            return
+        if msg.getSearchID() in self.sentSearches:
+            if DEBUG:
+                print >> sys.stderr, long(time()), "SearchManager message is mine"
+            return
+        if self.delayedSearchQueue.isQueued(msg):
+            if DEBUG:
+                print >> sys.stderr, long(time()), "SearchManager message is scheduled to be forwarded"
             return
 
         # only implementing textsearch
-        shouldForward = self.handleTextSearch(source, msg);
+        shouldForward = self.handleTextSearch(source, msg)
 
         # check if we are at full capacity
         if not self.canForwardSearch():
@@ -131,7 +141,7 @@ class SearchManager:
                     sendCancel = True;
 
                 if sendCancel:
-                    self.overlayManager.sendSearchOrCancel(self.community._create_cancel(msg.getSearchID()), True, False)
+                    self.overlayManager.sendSearchOrCancel(self.community._create_cancel(msg.getSearchID(), mine=True), True, False)
 
             search = sentSearch.getSearch()
             search.callback(msg)

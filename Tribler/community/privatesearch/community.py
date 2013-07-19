@@ -362,7 +362,7 @@ class TTLSearchCommunity(Community):
                 candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                 if len(candidates):
-                    self.search_forward += 1
+                    self.search_forward += len(candidates)
                 else:
                     forward_message = False
 

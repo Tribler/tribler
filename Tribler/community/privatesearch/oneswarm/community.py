@@ -46,7 +46,7 @@ class OneSwarmCommunity(TTLSearchCommunity):
         def callback_converter(msg):
             callback(keywords, msg.payload.results, msg.candidate)
 
-        wrapped_candidates = self.search_manager.sendTextSearch(identifier, MessageWrapper(message), callback_converter)
+        wrapped_candidates = self.search_manager.sendTextSearch(identifier, MessageWrapper(message, mine=True), callback_converter)
         return [wrapped_candidate.dispersy_source for wrapped_candidate in wrapped_candidates], [], identifier
 
     def on_search(self, messages):
@@ -81,12 +81,12 @@ class OneSwarmCommunity(TTLSearchCommunity):
 
             self.search_manager.handleIncomingSearchResponse(connection, message)
 
-    def _create_cancel(self, identifier):
+    def _create_cancel(self, identifier, mine=False):
         meta = self.get_meta_message(u"search-cancel")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), payload=(identifier))
 
-        return MessageWrapper(message)
+        return MessageWrapper(message, mine=mine)
 
     def on_search_cancel(self, messages):
         for message in messages:
@@ -100,11 +100,15 @@ class OneSwarmCommunity(TTLSearchCommunity):
         return [SourceWrapper(self, connection) for connection in self.get_connections(nr, ignore_candidate)]
 
     def send_wrapped(self, connection, message):
+        if not message.mine:
+            self.search_forward += 1
+
         self.dispersy._send([connection.dispersy_source], [message.dispersy_msg])
 
 class MessageWrapper:
-    def __init__(self, dispersy_msg):
+    def __init__(self, dispersy_msg, mine=False):
         self.dispersy_msg = dispersy_msg
+        self.mine = mine
 
     def getDescription(self):
         return " ".join(self.dispersy_msg.payload.keywords).strip()
