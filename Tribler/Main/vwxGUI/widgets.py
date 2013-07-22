@@ -2747,10 +2747,13 @@ class VideoVolume(wx.Panel):
         dc = wx.BufferedPaintDC(self)
         dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
-        if getattr(self.GetParent(), 'bitmap', None):
-            rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-            sub = self.GetParent().bitmap.GetSubBitmap(rect)
-            dc.DrawBitmap(sub, 0, 0)
+        if hasattr(self.GetParent(), 'bitmap'):
+            if not self.GetParent().bitmap:
+                wx.CallLater(100, self.Refresh)
+            else:
+                rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
+                sub = self.GetParent().bitmap.GetSubBitmap(rect)
+                dc.DrawBitmap(sub, 0, 0)
 
         w, h = self.GetClientSize()
 
