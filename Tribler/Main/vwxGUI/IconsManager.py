@@ -36,9 +36,11 @@ class IconsManager:
 
         # Load country flags used by list_details
         self.country_flags = {}
-        flags_path = os.path.join(self.guiImagePath, 'flags')
-        if os.path.isdir(flags_path):
-            self.country_flags = dict([(flag.split(".")[0].lower(), wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)) for flag in os.listdir(flags_path)])
+        # For OS X, we do not use the country flags due to a wx bug
+        if sys.platform != "darwin":
+            flags_path = os.path.join(self.guiImagePath, 'flags')
+            if os.path.isdir(flags_path):
+                self.country_flags = dict([(flag.split(".")[0].lower(), wx.Bitmap(os.path.join(flags_path, flag), wx.BITMAP_TYPE_ANY)) for flag in os.listdir(flags_path)])
 
         self.peer_db = self.guiUtility.utility.session.open_dbhandler(NTFY_PEERS)
         IconsManager.__single = self
