@@ -1721,6 +1721,7 @@ class SimpleNotebook(wx.Panel):
     def __init__(self, *args, **kwargs):
         self.show_single_tab = kwargs.pop('show_single_tab', True)
         wx.Panel.__init__(self, *args, **kwargs)
+        self.SetBackgroundColour(FILTER_GREY)
         self.labels = []
         self.panels = []
         self.pshown = 0
