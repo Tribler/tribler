@@ -926,7 +926,7 @@ class ManageChannelFilesManager(BaseManager):
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
-            return TorrentDef.retrieve_from_magnet(url, self.AddTDef)
+            return TorrentDef.retrieve_from_magnet(url, self.AddTDef, timeout=60)
         except:
             return False
 
