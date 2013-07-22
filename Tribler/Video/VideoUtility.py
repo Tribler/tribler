@@ -2,22 +2,30 @@ import os
 import wx
 import sys
 import tempfile
+import subprocess
 
 from re import search
 from math import sqrt
-from subprocess import Popen, PIPE
 import colorsys
 from Tribler.Main.vwxGUI import forceAndReturnWxThread
 
 
 def get_thumbnail(videofile, thumbfile, resolution, ffmpeg, timecode):
-    ffmpeg = Popen((ffmpeg, "-ss", str(int(timecode)), "-i", videofile, "-s", "%dx%d" % resolution, thumbfile), stderr=PIPE)
+    startupinfo = None
+    if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    ffmpeg = subprocess.Popen((ffmpeg, "-ss", str(int(timecode)), "-i", videofile, "-s", "%dx%d" % resolution, thumbfile), stderr=subprocess.PIPE, startupinfo=startupinfo)
     ffmpeg.communicate()
     ffmpeg.stderr.close()
 
 
 def get_videoinfo(videofile, ffmpeg):
-    ffmpeg = Popen((ffmpeg, "-i", videofile), stderr=PIPE)
+    startupinfo = None
+    if sys.platform == "win32":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    ffmpeg = subprocess.Popen((ffmpeg, "-i", videofile), stderr=subprocess.PIPE, startupinfo=startupinfo)
     out, err = ffmpeg.communicate()
     info = out or err
     ffmpeg.stderr.close()
