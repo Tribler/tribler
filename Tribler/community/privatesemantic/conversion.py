@@ -305,7 +305,7 @@ class HSearchConversion(ForwardConversion):
                 prefs = hashes
                 hprefs = his_hashes
 
-        return offset, placeholder.meta.payload.implement(identifier, prefs, hprefs, bundled_responses)
+        return offset, placeholder.meta.payload.implement(identifier, [prefs, hprefs], bundled_responses)
 
 class PoliSearchConversion(ForwardConversion):
 
