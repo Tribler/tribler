@@ -126,7 +126,7 @@ class TestMyChannel(TestGuiAsServer):
             if mt_index:
                 self.managechannel.notebook.SetSelection(mt_index)
 
-            self.CallConditional(60, lambda: len(managefiles.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
+            self.CallConditional(120, lambda: len(managefiles.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
