@@ -187,7 +187,7 @@ class HSearchConversion(ForwardConversion):
         self.define_meta_message(chr(6), community.get_meta_message(u"msimilarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
         self.define_meta_message(chr(7), community.get_meta_message(u"similarity-request"), lambda message: self._encode_decode(self._encode_simi_request, self._decode_simi_request, message), self._decode_simi_request)
         self.define_meta_message(chr(8), community.get_meta_message(u"msimilarity-response"), lambda message: self._encode_decode(self._encode_simi_responses, self._decode_simi_responses, message), self._decode_simi_responses)
-        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_encr_response, self._decode_encr_response, message), self._decode_encr_response)
+        self.define_meta_message(chr(9), community.get_meta_message(u"similarity-response"), lambda message: self._encode_decode(self._encode_simi_response, self._decode_simi_response, message), self._decode_simi_response)
 
     def _encode_simi_request(self, message):
         str_n = long_to_bytes(message.payload.key_n, 128)
@@ -214,6 +214,42 @@ class HSearchConversion(ForwardConversion):
             prefs = []
 
         return offset, placeholder.meta.payload.implement(identifier, bytes_to_long(str_n), prefs)
+
+    def _encode_simi_response(self, message):
+        str_identifer = pack("!H", message.payload.identifier)
+        str_prefs = pack("!" + "128s"*len(message.payload.preference_list), *[long_to_bytes(preference, 128) for preference in message.payload.preference_list])
+        str_his_prefs = pack("!" + "20s"*len(message.payload.his_preference_list), *message.payload.his_preference_list)
+        return encode([str_identifer, str_prefs, str_his_prefs]),
+
+    def _decode_simi_response(self, placeholder, offset, data):
+        try:
+            offset, payload = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the simi_res-payload")
+
+        str_identifier, str_prefs, str_his_prefs = payload
+
+        identifier, = unpack_from('!H', str_identifier)
+
+        length = len(str_prefs)
+        if length % 128 != 0:
+            raise DropPacket("Invalid number of bytes available (simi_res)")
+        if length:
+            hashpack = '128s' * (length / 128)
+            hashes = unpack_from('!' + hashpack, str_prefs)
+            hashes = [bytes_to_long(hash) for hash in hashes]
+        else:
+            hashes = []
+
+        length = len(str_his_prefs)
+        if length % 20 != 0:
+            raise DropPacket("Invalid number of bytes available (simi_res)")
+        if length:
+            hashpack = '20s' * (length / 20)
+            his_hashes = unpack_from('!' + hashpack, str_his_prefs)
+        else:
+            his_hashes = []
+        return offset, placeholder.meta.payload.implement(identifier, hashes, his_hashes)
 
     def _encode_simi_responses(self, message):
         def _encode_response(mid, preference_list, his_preference_list):
