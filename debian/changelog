@@ -1,3 +1,10 @@
+tribler (6.2.0-rc2) unstable; urgency=low
+
+  [ Elric Milon ]
+  * New release candidate
+
+ -- whirm <whirm@screw>  Tue, 23 Jul 2013 18:20:41 +0200
+
 tribler (6.2.0-rc1) unstable; urgency=low
 
   [ Elric Milon ]
