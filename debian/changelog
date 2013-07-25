@@ -1,3 +1,9 @@
+tribler (6.2.0-rc3) unstable; urgency=low
+
+  * New release candidate
+
+ -- Elric Milon <e.milon@tudelft.nl>  Thu, 25 Jul 2013 12:26:13 +0200
+
 tribler (6.2.0-rc2) unstable; urgency=low
 
   [ Elric Milon ]
