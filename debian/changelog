@@ -1,22 +1,8 @@
-tribler (6.2.0-rc3) unstable; urgency=low
+tribler (6.2.0) unstable; urgency=low
 
-  * New release candidate
+  * New release.
 
- -- Elric Milon <e.milon@tudelft.nl>  Thu, 25 Jul 2013 12:26:13 +0200
-
-tribler (6.2.0-rc2) unstable; urgency=low
-
-  [ Elric Milon ]
-  * New release candidate
-
- -- whirm <whirm@screw>  Tue, 23 Jul 2013 18:20:41 +0200
-
-tribler (6.2.0-rc1) unstable; urgency=low
-
-  [ Elric Milon ]
-  * New upstream release. 
-
- -- Elric Milon <e.milon@tudelft.nl>  Tue, 16 Jul 2013 13:49:25 +0200
+ -- Elric Milon <e.milon@tudelft.nl>  Wed, 31 Jul 2013 12:31:24 +0200
 
 tribler (6.0.0+svn20121015.r28821-1) unstable; urgency=low
 
