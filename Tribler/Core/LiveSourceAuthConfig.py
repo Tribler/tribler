@@ -8,10 +8,11 @@ from M2Crypto import RSA
 
 
 class LiveSourceAuthConfig:
+
     """ Base class for configuring authentication methods for data from the
     source in live streaming.
     """
-    def __init__(self,authmethod):
+    def __init__(self, authmethod):
         self.authmethod = authmethod
 
     def get_method(self):
@@ -19,17 +20,18 @@ class LiveSourceAuthConfig:
 
 
 class ECDSALiveSourceAuthConfig(LiveSourceAuthConfig):
+
     """ Class for configuring the ECDSA authentication method for data from the
     source in live streaming. The ECDSA method adds a ECDSA signature to each
     piece that is generated.
     """
-    def __init__(self,keypair=None):
+    def __init__(self, keypair=None):
         """ Constructor for LIVE_AUTHMETHOD_ECDSA authentication of the
         live source. If no keypair is specified, one is generated.
 
         @param keypair  (Optional) An M2Crypto.EC keypair.
         """
-        LiveSourceAuthConfig.__init__(self,LIVE_AUTHMETHOD_ECDSA)
+        LiveSourceAuthConfig.__init__(self, LIVE_AUTHMETHOD_ECDSA)
         if keypair is None:
             self.keypair = permidmod.generate_keypair()
         else:
@@ -55,25 +57,26 @@ class ECDSALiveSourceAuthConfig(LiveSourceAuthConfig):
         return ECDSALiveSourceAuthConfig(keypair)
     load = staticmethod(load)
 
-    def save(self,filename):
+    def save(self, filename):
         """ Save the ECDSALiveSourceAuthConfig to disk.
         @param filename  An absolute Unicode filename
         """
-        permidmod.save_keypair(self.keypair,filename)
+        permidmod.save_keypair(self.keypair, filename)
 
 
 class RSALiveSourceAuthConfig(LiveSourceAuthConfig):
+
     """ Class for configuring the RSA authentication method for data from the
     source in live streaming. The RSA method adds a RSA signature to each
     piece that is generated.
     """
-    def __init__(self,keypair=None):
+    def __init__(self, keypair=None):
         """ Constructor for LIVE_AUTHMETHOD_RSA authentication of the
         live source. If no keypair is specified, one is generated.
 
         @param keypair  (Optional) An M2Crypto.RSA keypair.
         """
-        LiveSourceAuthConfig.__init__(self,LIVE_AUTHMETHOD_RSA)
+        LiveSourceAuthConfig.__init__(self, LIVE_AUTHMETHOD_RSA)
         if keypair is None:
             self.keypair = rsa_generate_keypair()
         else:
@@ -99,12 +102,11 @@ class RSALiveSourceAuthConfig(LiveSourceAuthConfig):
         return RSALiveSourceAuthConfig(keypair)
     load = staticmethod(load)
 
-    def save(self,filename):
+    def save(self, filename):
         """ Save the RSALiveSourceAuthConfig to disk.
         @param filename  An absolute Unicode filename
         """
-        rsa_write_keypair(self.keypair,filename)
-
+        rsa_write_keypair(self.keypair, filename)
 
 
 def rsa_generate_keypair():
@@ -116,10 +118,12 @@ def rsa_generate_keypair():
     # engineer key.
     e = 3
     keysize = 768
-    return RSA.gen_key(keysize,e)
+    return RSA.gen_key(keysize, e)
+
 
 def rsa_read_keypair(filename):
     return RSA.load_key(filename)
 
-def rsa_write_keypair(keypair,filename):
-    keypair.save_key(filename,cipher=None)
+
+def rsa_write_keypair(keypair, filename):
+    keypair.save_key(filename, cipher=None)

@@ -1,10 +1,12 @@
-#Written by Niels Zeilemaker
+# Written by Niels Zeilemaker
 from struct import pack, unpack_from
 
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
+
 class DemersConversion(BinaryConversion):
+
     def __init__(self, community):
         super(DemersConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"text"), self._encode_text, self._decode_text)
@@ -22,7 +24,7 @@ class DemersConversion(BinaryConversion):
         offset += 1
 
         try:
-            text = data[offset:offset+text_length].decode("UTF-8")
+            text = data[offset:offset + text_length].decode("UTF-8")
             offset += text_length
         except UnicodeError:
             raise DropPacket("Unable to decode UTF-8")

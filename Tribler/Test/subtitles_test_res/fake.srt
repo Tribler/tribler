@@ -1,6 +1,0 @@
-this is a fake srt
-
-only needed for testing
-
-cheers :)
-

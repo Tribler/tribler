@@ -10,19 +10,20 @@ from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 DEBUG = True
 
-RATE=32768
+RATE = 32768
 
-def vod_event_callback(d,event,params):
+
+def vod_event_callback(d, event, params):
     if event == VODEVENT_START:
         stream = params["stream"]
 
         # SWIFTPROC
         if stream is None:
             # Access swift HTTP interface directly
-            stream = urlOpenTimeout(params["url"],timeout=30)
+            stream = urlOpenTimeout(params["url"], timeout=30)
             # ARNOSMPTODO: available()
 
-        grandtotal = 0L
+        grandtotal = 0
         st = time.time()
         while True:
             global RATE
@@ -33,37 +34,37 @@ def vod_event_callback(d,event,params):
 
             grandtotal += total
             et = time.time()
-            diff = max(et - st,0.00001)
+            diff = max(et - st, 0.00001)
             grandrate = float(grandtotal) / diff
-            print >>sys.stderr,"bitbucket: grandrate",grandrate,"~",RATE #,"avail",stream.available()
+            print >>sys.stderr, "bitbucket: grandrate", grandrate, "~", RATE  # ,"avail",stream.available()
             time.sleep(1.0)
+
 
 def state_callback(ds):
     try:
         d = ds.get_download()
-        p = "%.0f %%" % (100.0*ds.get_progress())
+        p = "%.0f %%" % (100.0 * ds.get_progress())
         dl = "dl %.0f" % (ds.get_current_speed(DOWNLOAD))
         ul = "ul %.0f" % (ds.get_current_speed(UPLOAD))
-        print >>sys.stderr,dlstatus_strings[ds.get_status() ],p,dl,ul,"====="
+        print >>sys.stderr, dlstatus_strings[ds.get_status()], p, dl, ul, "====="
     except:
         print_exc()
 
-    return (1.0,False)
+    return (1.0, False)
 
 
-print "Loading",sys.argv
+print "Loading", sys.argv
 statedir = tempfile.mkdtemp()
-port = random.randint(10000,20000)
+port = random.randint(10000, 20000)
 
 scfg = SessionStartupConfig()
 scfg.set_state_dir(statedir)
 scfg.set_listen_port(port)
-scfg.set_megacache( False )
-scfg.set_overlay( False )
+scfg.set_megacache(False)
+scfg.set_overlay(False)
 
 
-
-s = Session( scfg )
+s = Session(scfg)
 
 url = sys.argv[1]
 
@@ -75,7 +76,7 @@ else:
     cdef = SwiftDef.load_from_url(url)
 
 dscfg = DownloadStartupConfig()
-dscfg.set_video_event_callback( vod_event_callback )
+dscfg.set_video_event_callback(vod_event_callback)
 
 # A Closed swarm - load the POA. Will throw an exception if no POA is available
 if cdef.get_def_type() == "torrent" and cdef.get_cs_keys():
@@ -84,13 +85,13 @@ if cdef.get_def_type() == "torrent" and cdef.get_cs_keys():
         poa = ClosedSwarm.trivial_get_poa(s.get_default_state_dir(),
                                           s.get_permid(),
                                           cdef.get_infohash())
-    except Exception,e:
-        print >>sys.stderr, "Failed to load POA for swarm",encodestring(cdef.get_infohash()).replace("\n",""),"from",s.get_default_state_dir(),"(my permid is %s)"%encodestring(s.get_permid()).replace("\n",""),"Error was:",e
+    except Exception as e:
+        print >>sys.stderr, "Failed to load POA for swarm", encodestring(cdef.get_infohash()).replace("\n", ""), "from", s.get_default_state_dir(), "(my permid is %s)" % encodestring(s.get_permid()).replace("\n", ""), "Error was:", e
         raise SystemExit("Failed to load POA, aborting")
 
-d = s.start_download( cdef, dscfg )
+d = s.start_download(cdef, dscfg)
 
-d.set_state_callback(state_callback,getpeerlist=False)
+d.set_state_callback(state_callback)
 
 while True:
     time.sleep(60)

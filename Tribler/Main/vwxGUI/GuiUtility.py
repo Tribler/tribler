@@ -14,7 +14,7 @@ from Tribler.__init__ import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords,\
+from Tribler.Core.Search.SearchManager import split_into_keywords, \
     fts3_preprocess
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
@@ -28,12 +28,13 @@ from Tribler.Core.CacheDB.sqlitecachedb import forcePrioDBThread
 
 DEBUG = False
 
+
 class GUIUtility:
     __single = None
 
-    def __init__(self, utility = None, params = None, app = None):
+    def __init__(self, utility=None, params=None, app=None):
         if GUIUtility.__single:
-            raise RuntimeError, "GUIUtility is singleton"
+            raise RuntimeError("GUIUtility is singleton")
         GUIUtility.__single = self
         self.registered = False
 
@@ -53,14 +54,11 @@ class GUIUtility:
         # previous pages
         self.oldpage = []
 
-        # port number
-        self.port_number = None
-
         # firewall
-        self.firewall_restart = False # ie Tribler needs to restart for the port number to be updated
+        self.firewall_restart = False  # ie Tribler needs to restart for the port number to be updated
 
         # Recall improves by 20-25% by increasing the number of peers to query to 20 from 10 !
-        self.max_remote_queries = 20    # max number of remote peers to query
+        self.max_remote_queries = 20  # max number of remote peers to query
 
         self.current_search_query = ''
 
@@ -111,7 +109,7 @@ class GUIUtility:
             xrcResource = os.path.join(self.vwxGUI_path, 'settingsDialog.xrc')
             res = xrc.XmlResource(xrcResource)
             dialog = res.LoadDialog(None, 'settingsDialog')
-            if not dialog: #failed to load dialog
+            if not dialog:  # failed to load dialog
                 return
 
             dialog.Centre()
@@ -133,7 +131,7 @@ class GUIUtility:
                 self.frame.splitter.Show(False)
 
             if page == 'search_results':
-                #Show list
+                # Show list
                 self.SetTopSplitterWindow(self.frame.searchlist)
                 items = self.frame.searchlist.GetExpandedItems()
                 if items:
@@ -141,7 +139,7 @@ class GUIUtility:
                 else:
                     self.frame.searchlist.ResetBottomWindow()
             elif self.guiPage == 'search_results':
-                #Hide list
+                # Hide list
                 self.frame.searchlist.Show(False)
 
             if page == 'channels':
@@ -156,7 +154,7 @@ class GUIUtility:
                 self.frame.channellist.Show(False)
 
             if page == 'mychannel':
-                #Show list
+                # Show list
                 self.frame.managechannel.SetChannelId(self.channelsearch_manager.channelcast_db._channel_id)
                 self.frame.managechannel.Show()
 
@@ -201,25 +199,26 @@ class GUIUtility:
                 self.frame.playlist.Show(False)
 
             if page == 'my_files':
-                #Show list
+                # Show list
                 self.SetTopSplitterWindow(self.frame.librarylist)
 
-                #Open infohash
+                # Open infohash
                 if args:
                     self.frame.librarylist.GetManager().refresh_or_expand(args[0])
                 else:
                     items = self.frame.librarylist.GetExpandedItems()
                     if items:
+                        items[0][1].expanded = False
                         self.frame.librarylist.Select(items[0][0])
                     else:
                         self.frame.librarylist.ResetBottomWindow()
 
-                #Open infohash
+                # Open infohash
                 if args:
                     self.frame.librarylist.GetManager().refresh_or_expand(args[0])
 
             elif self.guiPage == 'my_files':
-                #Hide list
+                # Hide list
                 self.frame.librarylist.Show(False)
 
             if page == 'home':
@@ -243,7 +242,7 @@ class GUIUtility:
             self.frame.Layout()
             self.frame.Thaw()
 
-        #Set focus to page
+        # Set focus to page
         if page == 'search_results':
             self.frame.searchlist.Focus()
 
@@ -255,7 +254,7 @@ class GUIUtility:
             self.frame.channellist.Focus()
         elif page == 'selectedchannel':
             self.frame.selectedchannellist.Focus()
-        elif page =='my_files':
+        elif page == 'my_files':
             self.frame.librarylist.Focus()
 
     def GetSelectedPage(self):
@@ -280,10 +279,10 @@ class GUIUtility:
         if self.guiPage == 'playlist':
             return self.frame.playlist
 
-        if self.guiPage =='my_files':
+        if self.guiPage == 'my_files':
             return self.frame.librarylist
 
-    def SetTopSplitterWindow(self, window = None, show = True):
+    def SetTopSplitterWindow(self, window=None, show=True):
         while self.frame.splitter_top.GetChildren():
             self.frame.splitter_top.Detach(0)
 
@@ -295,10 +294,10 @@ class GUIUtility:
         self.frame.splitter_top.Layout()
         self.frame.splitter_top_window.Refresh()
 
-    def SetBottomSplitterWindow(self, window = None, show = True):
+    def SetBottomSplitterWindow(self, window=None, show=True):
         self.frame.splitter_bottom.Clear(True)
         if window:
-            self.frame.splitter_bottom.Add(window, 1, wx.EXPAND|wx.ALIGN_TOP|wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
+            self.frame.splitter_bottom.Add(window, 1, wx.EXPAND | wx.ALIGN_TOP | wx.RESERVE_SPACE_EVEN_IF_HIDDEN)
             self.frame.splitter_bottom_window.SetBackgroundColour(window.GetBackgroundColour())
         else:
             from __init__ import GRADIENT_LGREY
@@ -308,14 +307,14 @@ class GUIUtility:
         self.frame.splitter_bottom.Layout()
         self.frame.splitter_bottom_window.Refresh()
 
-    def SetColumnInfo(self, itemtype, columns, hide_defaults = []):
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+    def SetColumnInfo(self, itemtype, columns, hide_defaults=[]):
+        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
         # Load hidden column info
         hide_columns = fileconfig.Read("hide_columns")
         hide_columns = json.loads(hide_columns) if hide_columns else {}
         hide_columns = hide_columns.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
-            if hide_columns.has_key(column['name']):
+            if column['name'] in hide_columns:
                 column['show'] = hide_columns[column['name']]
             else:
                 column['show'] = not (index in hide_defaults)
@@ -325,13 +324,13 @@ class GUIUtility:
         column_sizes = json.loads(column_sizes) if column_sizes else {}
         column_sizes = column_sizes.get(itemtype.__name__, {})
         for index, column in enumerate(columns):
-            if column_sizes.has_key(column['name']):
+            if column['name'] in column_sizes:
                 column['width'] = column_sizes[column['name']]
 
         return columns
 
-    def ReadGuiSetting(self, setting_name, default = None, do_json = True):
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+    def ReadGuiSetting(self, setting_name, default=None, do_json=True):
+        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
         setting_value = fileconfig.Read(setting_name)
         if do_json and setting_value:
             setting_value = json.loads(setting_value)
@@ -339,13 +338,13 @@ class GUIUtility:
             setting_value = default
         return setting_value
 
-    def WriteGuiSetting(self, setting_name, setting_value, do_json = True):
-        fileconfig = wx.FileConfig(appName = "Tribler", localFilename = os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
+    def WriteGuiSetting(self, setting_name, setting_value, do_json=True):
+        fileconfig = wx.FileConfig(appName="Tribler", localFilename=os.path.join(self.frame.utility.session.get_state_dir(), "gui_settings"))
         fileconfig.Write(setting_name, json.dumps(setting_value) if do_json else setting_value)
         fileconfig.Flush()
 
     @forceWxThread
-    def GoBack(self, scrollTo = None, topage = None):
+    def GoBack(self, scrollTo=None, topage=None):
         if topage:
             self.oldpage.pop()
         else:
@@ -362,12 +361,12 @@ class GUIUtility:
             self.frame.actlist.selectTab(topage)
 
         self.ShowPage(topage)
-        self.oldpage.pop() #remove curpage from history
+        self.oldpage.pop()  # remove curpage from history
 
         if scrollTo:
             self.ScrollTo(scrollTo)
 
-    def dosearch(self, input = None):
+    def dosearch(self, input=None):
         if input == None:
             sf = self.frame.top_bg.searchField
             if sf is None:
@@ -402,14 +401,14 @@ class GUIUtility:
             keywords = split_into_keywords(input)
             keywords = [keyword for keyword in keywords if len(keyword) > 1]
 
-            if len(keywords)  == 0:
-                self.Notify('Please enter a search term', "Your search term '%s' was either to small or to general." % input , icon = wx.ART_INFORMATION)
+            if len(keywords) == 0:
+                self.Notify('Please enter a search term', "Your search term '%s' was either to small or to general." % input, icon=wx.ART_INFORMATION)
 
             else:
                 self.frame.top_bg.StartSearch()
                 self.current_search_query = keywords
                 if DEBUG:
-                    print >>sys.stderr,"GUIUtil: searchFiles:", keywords, time()
+                    print >> sys.stderr, "GUIUtil: searchFiles:", keywords, time()
 
                 self.frame.searchlist.Freeze()
 
@@ -422,10 +421,10 @@ class GUIUtility:
                 self.frame.searchlist.Reset()
                 self.ShowPage('search_results', keywords)
 
-                #We now have to call thaw, otherwise loading message will not be shown.
+                # We now have to call thaw, otherwise loading message will not be shown.
                 self.frame.searchlist.Thaw()
 
-                #Peform local search
+                # Peform local search
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
                 self.channelsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())
 
@@ -439,17 +438,17 @@ class GUIUtility:
                 def wx_thread(delayedResult):
                     nr_peers_connected = delayedResult.get()
 
-                    self.frame.searchlist.SetMaxResults(nr_peers_connected+1, keywords)
+                    self.frame.searchlist.SetMaxResults(nr_peers_connected + 1, keywords)
                     self.frame.searchlist.NewResult()
 
-                startWorker(wx_thread, db_thread, priority = 1024)
+                startWorker(wx_thread, db_thread, priority=1024)
 
     @forceWxThread
     def NewResult(self):
         self.frame.searchlist.NewResult()
 
     @forceWxThread
-    def showChannelCategory(self, category, show = True):
+    def showChannelCategory(self, category, show=True):
 
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category, True)
@@ -458,7 +457,7 @@ class GUIUtility:
             self.ShowPage('channels')
 
     @forceWxThread
-    def showLibrary(self, show = True):
+    def showLibrary(self, show=True):
         manager = self.frame.librarylist.GetManager()
         manager.do_or_schedule_refresh(True)
 
@@ -470,21 +469,21 @@ class GUIUtility:
             channel = self.channelsearch_manager.getChannel(channel_id)
             self.showChannel(channel)
 
-        startWorker(None, db_callback,priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
 
     def showChannelFromDispCid(self, channel_cid):
         def db_callback():
             channel = self.channelsearch_manager.getChannelByCid(channel_cid)
             self.showChannel(channel)
 
-        startWorker(None, db_callback,priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
 
     def showChannelFromPermid(self, channel_permid):
         def db_callback():
             channel = self.channelsearch_manager.getChannelByPermid(channel_permid)
             self.showChannel(channel)
 
-        startWorker(None, db_callback,priority=GUI_PRI_DISPERSY)
+        startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def showChannel(self, channel):
@@ -512,7 +511,7 @@ class GUIUtility:
             return val
 
         data = data_channel.values()
-        data.sort(subscribe_latestupdate_sort, reverse = True)
+        data.sort(subscribe_latestupdate_sort, reverse=True)
 
         manager = self.frame.channellist.GetManager()
         manager.SetCategory('searchresults')
@@ -530,25 +529,25 @@ class GUIUtility:
         self.frame.playlist.Set(data)
         self.ShowPage('playlist')
 
-    def OnList(self, goto_end, event = None):
-        lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+    def OnList(self, goto_end, event=None):
+        lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
             lists[self.guiPage].ScrollToEnd(goto_end)
         elif event:
             event.Skip()
 
     def ScrollTo(self, id):
-        lists = {'channels': self.frame.channellist,'selectedchannel': self.frame.selectedchannellist ,'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+        lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
-    def Notify(self, title, msg = '', icon = wx.ART_INFORMATION):
+    def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
         else:
             if isinstance(icon, basestring):
                 icon = wx.ArtProvider.GetBitmap(icon, wx.ART_FRAME_ICON) or \
-                       wx.Bitmap(os.path.join(self.utility.getPath(),LIBRARYNAME,"Main","vwxGUI","images","notify_%s.png" % icon), wx.BITMAP_TYPE_ANY)
+                    wx.Bitmap(os.path.join(self.utility.getPath(), LIBRARYNAME, "Main", "vwxGUI", "images", "notify_%s.png" % icon), wx.BITMAP_TYPE_ANY)
             self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):
@@ -556,17 +555,11 @@ class GUIUtility:
             return self.frame.GUIupdate
         return True
 
-    #TODO: should be somewhere else
-    def set_port_number(self, port_number):
-        self.port_number = port_number
-    def get_port_number(self):
-        return self.port_number
-
     def addList(self, l):
         if l not in self.lists:
             self.lists.append(l)
 
-    def toggleFamilyFilter(self, newState = None, setCheck = False):
+    def toggleFamilyFilter(self, newState=None, setCheck=False):
         if newState == None:
             newState = not self.getFamilyFilter()
 
@@ -578,11 +571,17 @@ class GUIUtility:
         if setCheck:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
 
+        if newState:
+            self.utility.config.Write('family_filter', '1')
+        else:
+            self.utility.config.Write('family_filter', '0')
+        self.utility.config.Flush()
+
     def getFamilyFilter(self):
         catobj = Category.getInstance()
         return catobj.family_filter_enabled()
 
-    def set_firewall_restart(self,b):
+    def set_firewall_restart(self, b):
         self.firewall_restart = b
 
     @forceWxThread
@@ -591,10 +590,11 @@ class GUIUtility:
             if event:
                 button = event.GetEventObject()
                 button.Enable(False)
-                if hasattr(button, 'selected'): button.selected = False
+                if hasattr(button, 'selected'):
+                    button.selected = False
 
             dlgname = 'MFdialog'
-            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+            if not self.ReadGuiSetting('show_%s' % dlgname, default=True):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
@@ -606,9 +606,10 @@ class GUIUtility:
                 @forcePrioDBThread
                 def add_vote():
                     self.channelsearch_manager.favorite(channel.id)
-                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon = 'favourite')
-                    if event: button.Enable(True)
-                    UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type = 2)
+                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon='favourite')
+                    if event:
+                        button.Enable(True)
+                    UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type=2)
                     self.RefreshChannel(channel.id)
                 add_vote()
             elif event:
@@ -620,10 +621,11 @@ class GUIUtility:
             if event:
                 button = event.GetEventObject()
                 button.Enable(False)
-                if hasattr(button, 'selected'): button.selected = False
+                if hasattr(button, 'selected'):
+                    button.selected = False
 
             dlgname = 'RFdialog'
-            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+            if not self.ReadGuiSetting('show_%s' % dlgname, default=True):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
@@ -635,7 +637,62 @@ class GUIUtility:
                 @forcePrioDBThread
                 def remove_vote():
                     self.channelsearch_manager.remove_vote(channel.id)
-                    wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon = 'favourite')
+                    wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon='favourite')
+                    if event:
+                        button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            elif event:
+                button.Enable(True)
+
+    @forceWxThread
+    def MarkAsSpam(self, event, channel):
+        if channel:
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
+
+            dlgname = 'MSdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about to report channel \'%s\' as spam." % channel.name, "")
+                response = dlg.ShowModal()
+
+            if response == wx.ID_OK:
+                @forcePrioDBThread
+                def remove_vote():
+                    self.channelsearch_manager.spam(channel.id)
+                    wx.CallAfter(self.Notify, "Channel marked as spam", "Channel '%s' marked as spam" % channel.name)
+                    if event: button.Enable(True)
+                    self.RefreshChannel(channel.id)
+                remove_vote()
+            elif event:
+                button.Enable(True)
+
+    @forceWxThread
+    def RemoveSpam(self, event, channel):
+        if channel:
+            if event:
+                button = event.GetEventObject()
+                button.Enable(False)
+                if hasattr(button, 'selected'): button.selected = False
+
+            dlgname = 'RSdialog'
+            if not self.ReadGuiSetting('show_%s' % dlgname, default = True):
+                response = wx.ID_OK
+            else:
+                from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
+                dlg = ConfirmationDialog(None, dlgname, "You are about unmark channel \'%s\' as spam." % channel.name, "")
+                response = dlg.ShowModal()
+
+            if response == wx.ID_OK:
+                @forcePrioDBThread
+                def remove_vote():
+                    self.channelsearch_manager.remove_vote(channel.id)
+                    wx.CallAfter(self.Notify, "Channel unmarked as spam", "Channel '%s' unmarked as spam" % channel.name)
                     if event: button.Enable(True)
                     self.RefreshChannel(channel.id)
                 remove_vote()
@@ -647,7 +704,7 @@ class GUIUtility:
 
             list = self.GetSelectedPage()
             if self.guiPage == 'search_results':
-                list.GetManager().refresh_partial(channelids = [channelid])
+                list.GetManager().refresh_partial(channelids=[channelid])
             else:
                 list.GetManager().refresh_partial((channelid,))
 

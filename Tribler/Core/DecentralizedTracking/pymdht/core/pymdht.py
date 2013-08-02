@@ -18,7 +18,8 @@ import ptime as time
 
 import minitwisted
 import controller
-import logging, logging_conf
+import logging
+import logging_conf
 import swift_tracker
 
 logger = logging.getLogger('dht')
@@ -32,6 +33,7 @@ VERSION_LABEL = ''.join(
 
 
 class Pymdht:
+
     """Pymdht is the interface for the whole package.
 
     Setting up the DHT node is as simple as creating this object.
@@ -77,11 +79,12 @@ class Pymdht:
 
     def stop(self):
         """Stop the DHT node."""
-        #TODO: notify controller so it can do cleanup?
+        # TODO: notify controller so it can do cleanup?
         self.reactor.stop()
         # No need to call_asap because the minitwisted thread is dead by now
         self.controller.on_stop()
         self.swift_tracker_thread.stop()
+        logging_conf.close()
 
     def get_peers(self, lookup_id, info_hash, callback_f,
                   bt_port=0, use_cache=False):
@@ -101,7 +104,7 @@ class Pymdht:
         callback needs to be ready to get peers BEFORE calling this fuction.
 
         """
-        #logger.critical("pymdht.get_peers: callback: %r" % (callback_f))
+        # logger.critical("pymdht.get_peers: callback: %r" % (callback_f))
         current_time = time.time()
         self.timestamps.append(current_time)
         num_sec = 0
@@ -119,13 +122,14 @@ class Pymdht:
         self.max_num_10min = max(self.max_num_10min, num_10min)
         self.timestamps = self.timestamps[-num_10min:]
         logger.info("%d(%d) %d(%d) %d(%d) --- %r callback: %r" % (
-                num_sec, self.max_num_sec,
-                num_min, self.max_num_min,
-                num_10min, self.max_num_10min,
-                info_hash, callback_f))
+            num_sec, self.max_num_sec,
+            num_min, self.max_num_min,
+            num_10min, self.max_num_10min,
+            info_hash, callback_f))
 
-        use_cache = True
-        print 'pymdht: use_cache ON!!'
+        if not use_cache:
+            use_cache = True
+            print 'pymdht: use_cache ON!!'
         self.reactor.call_asap(self.controller.get_peers,
                                lookup_id, info_hash,
                                callback_f, bt_port,

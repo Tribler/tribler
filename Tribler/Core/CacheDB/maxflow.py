@@ -5,14 +5,16 @@
 # Adapted for Tribler
 from copy import deepcopy
 
+
 class Network(object):
+
     """This class can be used to calculate the maximal flow between two points in a network/graph.
     A network consists of nodes and arcs (egdes) that link them. Each arc has a capacity (the maximum flow down that arc).
 The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glossary/notes/maxflow-FF.pdf"""
 
     __slots__ = ['arcs', 'backarcs', 'nodes', 'labels']
 
-    def __init__ (self, arcs):
+    def __init__(self, arcs):
 
         self.nodes = []
         self.labels = {}
@@ -36,20 +38,19 @@ The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glo
                 if not dest in self.backarcs:
                     self.backarcs[dest] = {}
 
-                self.backarcs[dest][source] = {'cap' : arcs[source][dest]['cap'], 'flow' : 0}
+                self.backarcs[dest][source] = {'cap': arcs[source][dest]['cap'], 'flow': 0}
 
-
-    def min (a, b):
+    def min(a, b):
         """private function"""
         if (a == -1):
             return b
         if (b == -1):
             return a
-        return min (a, b)
+        return min(a, b)
 
-    min = staticmethod (min)
+    min = staticmethod(min)
 
-    def maxflow (self, source, sink, max_distance = 10000):
+    def maxflow(self, source, sink, max_distance=10000):
         """Return the maximum flow from the source to the sink"""
 
         if not source in self.nodes or not sink in self.nodes:
@@ -60,14 +61,14 @@ The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glo
 
         DEBUG = False
 
-        while 1:
+        while True:
             labels = {}
             labels[source] = ((0, 0), -1)
 
-            unscanned = {source: 0} # sets.Set ([source])
+            unscanned = {source: 0}  # sets.Set ([source])
             scanned = set()
 
-            while 1:
+            while True:
                 # Select any node, x, that is labeled and unscanned
 
                 for node in unscanned:
@@ -93,7 +94,7 @@ The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glo
                             print labels[outnode]
 
                         unscanned[outnode] = unscanned[node] + 1
-                        #unscanned.add(outnode)
+                        # unscanned.add(outnode)
 
                     # To all predecessor nodes
                     for innode in backarcscopy[node]:
@@ -112,15 +113,15 @@ The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glo
                             print labels[innode]
 
                         unscanned[innode] = unscanned[node] + 1
-                        #unscanned.add(innode)
+                        # unscanned.add(innode)
 
                     del unscanned[node]
-                    #unscanned.remove(node)
+                    # unscanned.remove(node)
 
                     scanned.add(node)
 
                     # print labels
-                    break;
+                    break
 
                 else:
                     # no labels could be assigned
@@ -138,7 +139,7 @@ The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glo
             s = sink
             ((node, sense), et) = labels[s]
             # print "et: " + str (et)
-            while 1:
+            while True:
                 if (s == source):
                     break
                 ((node, sense), epi) = labels[s]
@@ -150,10 +151,10 @@ The iterative algorithm is described at http://carbon.cudenver.edu/~hgreenbe/glo
                     # print "  rm " + str(s) + " " + str(node)
                     arcscopy[s][node]['flow'] -= et
                 s = node
-            ##print self.arcs
+            # print self.arcs
 
 if (__name__ == "__main__"):
-    n = Network ({'s' : {'a': {'cap': 20, 'flow': 0}, 'x' : {'cap' : 1, 'flow' : 0}, 'y' : {'cap' : 3, 'flow' : 0}}, 'x' : {'y' : {'cap' : 1, 'flow' : 0}, 't' : {'cap' : 3, 'flow' : 0}}, 'y' : {'x' : {'cap' : 1, 'flow' : 0}, 't' : {'cap' : 1, 'flow' : 0}}, 'a': {'b': {'cap': 20, 'flow': 0}}, 'b': {'c': {'cap': 20, 'flow': 0}}, 'c': {'t': {'cap': 20, 'flow': 0}}})
+    n = Network ({'s': {'a': {'cap': 20, 'flow': 0}, 'x': {'cap': 1, 'flow': 0}, 'y' : {'cap' : 3, 'flow' : 0}}, 'x' : {'y' : {'cap' : 1, 'flow' : 0}, 't' : {'cap' : 3, 'flow' : 0}}, 'y' : {'x' : {'cap' : 1, 'flow' : 0}, 't' : {'cap' : 1, 'flow' : 0}}, 'a': {'b': {'cap': 20, 'flow': 0}}, 'b': {'c': {'cap': 20, 'flow': 0}}, 'c': {'t': {'cap': 20, 'flow': 0}}})
 
     print n.nodes
-    print n.maxflow ('s', 'q', max_distance = 2)
+    print n.maxflow('s', 'q', max_distance=2)

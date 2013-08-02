@@ -1,4 +1,4 @@
-# Written by Arno Bakker 
+# Written by Arno Bakker
 # see LICENSE.txt for license information
 #
 # Razvan Deaconescu, 2008:
@@ -23,6 +23,7 @@ from Tribler.Core.__init__ import version, report_email
 checkpointedwhenseeding = False
 sesjun = None
 
+
 def usage():
     print "Usage: python dirseeder.py [options] directory"
     print "Options:"
@@ -38,8 +39,10 @@ def usage():
     print
     print "Report bugs to <" + report_email + ">"
 
+
 def print_version():
     print version, "<" + report_email + ">"
+
 
 def states_callback(dslist):
     allseeding = True
@@ -47,40 +50,42 @@ def states_callback(dslist):
         state_callback(ds)
         if ds.get_status() != DLSTATUS_SEEDING:
             allseeding = False
-        
+
     global checkpointedwhenseeding
     global sesjun
     if len(dslist) > 0 and allseeding and not checkpointedwhenseeding:
         checkpointedwhenseeding = True
-        print >>sys.stderr,"All seeding, checkpointing Session to enable quick restart"
+        print >>sys.stderr, "All seeding, checkpointing Session to enable quick restart"
         sesjun.checkpoint()
-        
-    return (1.0, False)
+
+    return (1.0, [])
+
 
 def state_callback(ds):
     d = ds.get_download()
 #    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
     print >>sys.stderr, '%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s' % \
-            (`d.get_def().get_name()`, \
-            dlstatus_strings[ds.get_status()], \
-            ds.get_progress() * 100, \
-            ds.get_error(), \
-            ds.get_current_speed(UPLOAD), \
+        (repr(d.get_def().get_name()),
+            dlstatus_strings[ds.get_status()],
+            ds.get_progress() * 100,
+            ds.get_error(),
+            ds.get_current_speed(UPLOAD),
             ds.get_current_speed(DOWNLOAD))
 
     return (1.0, False)
 
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hvp:", ["help", "version", "port", "seeder"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         print str(err)
         usage()
         sys.exit(2)
 
     # init to default values
     port = 6969
-    tracking  = True
+    tracking = True
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -97,7 +102,6 @@ def main():
         else:
             assert False, "unhandled option"
 
-
     if len(args) > 1:
         print "Too many arguments"
         usage()
@@ -111,7 +115,7 @@ def main():
 
     # setup session
     sscfg = SessionStartupConfig()
-    statedir = os.path.join(torrentsdir,"."+LIBRARYNAME)
+    statedir = os.path.join(torrentsdir, "." + LIBRARYNAME)
     sscfg.set_state_dir(statedir)
     sscfg.set_listen_port(port)
     sscfg.set_megacache(False)
@@ -120,44 +124,44 @@ def main():
     if tracking:
         sscfg.set_internal_tracker(True)
         # M23TRIAL, log full
-        logfilename = "tracker-"+str(int(time.time()))+".log"
+        logfilename = "tracker-" + str(int(time.time())) +".log"
         sscfg.set_tracker_logfile(logfilename)
         sscfg.set_tracker_log_nat_checks(True)
-    
+
     s = Session(sscfg)
     global sesjun
     sesjun = s
-    s.set_download_states_callback(states_callback, getpeerlist=False)
-    
+    s.set_download_states_callback(states_callback, getpeerlist=[])
+
     # Restore previous Session
     s.load_checkpoint()
 
     # setup and start downloads
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(torrentsdir)
-    #dscfg.set_max_speed(UPLOAD,256) # FOR DEMO
-    
-    ##dscfg.set_max_uploads(32)
-    
+    # dscfg.set_max_speed(UPLOAD,256) # FOR DEMO
+
+    # dscfg.set_max_uploads(32)
+
     #
     # Scan dir, until exit by CTRL-C (or any other signal/interrupt)
     #
     try:
         while True:
             try:
-                print >>sys.stderr,"Rescanning",`torrentsdir`
+                print >>sys.stderr, "Rescanning", repr(torrentsdir)
                 for torrent_file in os.listdir(torrentsdir):
-                    if torrent_file.endswith(".torrent") or torrent_file.endswith(".tstream") or torrent_file.endswith(".url"): 
-                        print >>sys.stderr,"Found file",`torrent_file`
-                        tfullfilename = os.path.join(torrentsdir,torrent_file)
+                    if torrent_file.endswith(".torrent") or torrent_file.endswith(".tstream") or torrent_file.endswith(".url"):
+                        print >>sys.stderr, "Found file", repr(torrent_file)
+                        tfullfilename = os.path.join(torrentsdir, torrent_file)
                         if torrent_file.endswith(".url"):
-                            f = open(tfullfilename,"rb")
+                            f = open(tfullfilename, "rb")
                             url = f.read()
                             f.close()
                             tdef = TorrentDef.load_from_url(url)
                         else:
                             tdef = TorrentDef.load(tfullfilename)
-                        
+
                         # See if already running:
                         dlist = s.get_downloads()
                         existing = False
@@ -167,24 +171,24 @@ def main():
                                 existing = True
                                 break
                         if existing:
-                            print >>sys.stderr,"Ignoring existing Download",`tdef.get_name()`
+                            print >>sys.stderr, "Ignoring existing Download", repr(tdef.get_name())
                         else:
                             if tracking:
                                 s.add_to_internal_tracker(tdef)
 #                            d = s.start_download(tdef, dscfg)
-                            
+
                             # Checkpoint again when new are seeding
                             global checkpointedwhenseeding
                             checkpointedwhenseeding = False
-                            
-            except KeyboardInterrupt,e:
+
+            except KeyboardInterrupt as e:
                 raise e
-            except Exception, e:
+            except Exception as e:
                 print_exc()
-            
+
             time.sleep(30.0)
 
-    except Exception, e:
+    except Exception as e:
         print_exc()
 
 if __name__ == "__main__":

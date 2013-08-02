@@ -23,11 +23,12 @@ import cPickle
 try:
     prctlimported = True
     import prctl
-except ImportError,e:
+except ImportError as e:
     prctlimported = False
 from threading import currentThread
 
-import logging, logging_conf
+import logging
+import logging_conf
 
 import state
 import identifier
@@ -37,19 +38,20 @@ from querier import Querier
 from message import QUERY, RESPONSE, ERROR
 from node import Node
 import responder
-#import pkgutil
+# import pkgutil
 
-#from profilestats import profile
+# from profilestats import profile
 
 logger = logging.getLogger('dht')
 
 SAVE_STATE_DELAY = 1 * 60
 STATE_FILENAME = 'pymdht.state'
 
-#TIMEOUT_DELAY = 2
+# TIMEOUT_DELAY = 2
 
-CACHE_VALID_PERIOD = 5 * 60 # 5 minutes
+CACHE_VALID_PERIOD = 5 * 60  # 5 minutes
 PENDING_LOOKUP_TIMEOUT = 30
+
 
 class Controller:
 
@@ -63,15 +65,14 @@ class Controller:
         if size_estimation:
             self._size_estimation_file = open('size_estimation.dat', 'w')
 
-
         self.state_filename = state_filename
         saved_id, saved_bootstrap_nodes = state.load(self.state_filename)
         my_addr = my_node.addr
-        self._my_id = my_node.id # id indicated by user
+        self._my_id = my_node.id  # id indicated by user
         if not self._my_id:
-            self._my_id = saved_id # id loaded from file
+            self._my_id = saved_id  # id loaded from file
         if not self._my_id:
-            self._my_id = self._my_id = identifier.RandomId() # random id
+            self._my_id = self._my_id = identifier.RandomId()  # random id
         self._my_node = Node(my_addr, self._my_id, version=version_label)
         self.msg_f = message.MsgFactory(version_label, self._my_id,
                                         private_dht_name)
@@ -122,7 +123,7 @@ class Controller:
                                                               info_hash,
                                                               callback_f,
                                                               bt_port))
-        queries_to_send =  self._try_do_lookup()
+        queries_to_send = self._try_do_lookup()
         datagrams_to_send = self._register_queries(queries_to_send)
         return datagrams_to_send
 
@@ -164,7 +165,7 @@ class Controller:
         bootstrap_rnodes = self._routing_m.get_closest_rnodes(distance.log,
                                                               0,
                                                               True)
-        #TODO: get the full bucket
+        # TODO: get the full bucket
         if bootstrap_rnodes:
             del self._pending_lookups[0]
             # look if I'm tracking this info_hash
@@ -200,11 +201,11 @@ class Controller:
         """
 
         if prctlimported:
-            prctl.set_name("Tribler"+currentThread().getName())
+            prctl.set_name("Tribler" + currentThread().getName())
 
         queries_to_send = []
         current_ts = time.time()
-        #TODO: I think this if should be removed
+        # TODO: I think this if should be removed
         # At most, 1 second between calls to main_loop after the first call
         if current_ts >= self._next_main_loop_call_ts:
             self._next_main_loop_call_ts = current_ts + 1
@@ -281,7 +282,7 @@ class Controller:
             if msg.src_node.id == self._my_id:
                 logger.debug('Got a msg from myself:\n%r', msg)
                 return self._next_main_loop_call_ts, datagrams_to_send
-            #zinat: inform experimental_module
+            # zinat: inform experimental_module
             exp_queries_to_send = self._experimental_m.on_query_received(msg)
 
             response_msg = self._responder.get_response(msg)
@@ -297,10 +298,10 @@ class Controller:
             if not related_query:
                 # Query timed out or unrequested response
                 return self._next_main_loop_call_ts, datagrams_to_send
-            ## zinat: if related_query.experimental_obj:
+            # zinat: if related_query.experimental_obj:
             exp_queries_to_send = self._experimental_m.on_response_received(
-                                                        msg, related_query)
-            #TODO: you need to get datagrams to be able to send messages (raul)
+                msg, related_query)
+            # TODO: you need to get datagrams to be able to send messages (raul)
             # lookup related tasks
             if related_query.lookup_obj:
                 (lookup_queries_to_send,
@@ -308,7 +309,7 @@ class Controller:
                  num_parallel_queries,
                  lookup_done
                  ) = related_query.lookup_obj.on_response_received(
-                    msg, msg.src_node)
+                     msg, msg.src_node)
                 datagrams = self._register_queries(lookup_queries_to_send)
                 datagrams_to_send.extend(datagrams)
 
@@ -337,19 +338,19 @@ class Controller:
             # maintenance related tasks
             maintenance_queries_to_send = \
                 self._routing_m.on_response_received(
-                msg.src_node, related_query.rtt, msg.all_nodes)
+                    msg.src_node, related_query.rtt, msg.all_nodes)
 
         elif msg.type == message.ERROR:
             related_query = self._querier.get_related_query(msg)
             if not related_query:
                 # Query timed out or unrequested response
                 return self._next_main_loop_call_ts, datagrams_to_send
-            #TODO: zinat: same as response
+            # TODO: zinat: same as response
             exp_queries_to_send = self._experimental_m.on_error_received(
                 msg, related_query)
             # lookup related tasks
             if related_query.lookup_obj:
-                peers = None # an error msg doesn't have peers
+                peers = None  # an error msg doesn't have peers
                 (lookup_queries_to_send,
                  num_parallel_queries,
                  lookup_done
@@ -376,7 +377,7 @@ class Controller:
             maintenance_queries_to_send = \
                 self._routing_m.on_error_received(addr)
 
-        else: # unknown type
+        else:  # unknown type
             return self._next_main_loop_call_ts, datagrams_to_send
         # we are done with the plugins
         # now we have maintenance_queries_to_send, let's send them!
@@ -389,14 +390,16 @@ class Controller:
 
     def _on_query_received(self):
         return
+
     def _on_response_received(self):
         return
+
     def _on_error_received(self):
         return
 
     def _on_timeout(self, related_query):
         queries_to_send = []
-        #TODO: on_timeout should return queries (raul)
+        # TODO: on_timeout should return queries (raul)
         exp_queries_to_send = self._experimental_m.on_timeout(related_query)
         if related_query.lookup_obj:
             (lookup_queries_to_send,
