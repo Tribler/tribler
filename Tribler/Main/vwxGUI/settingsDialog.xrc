@@ -81,7 +81,7 @@
 		                                        	<object class="wxBoxSizer">
 		                                                <orient>wxVERTICAL</orient>
 		                                                <object class="sizeritem">
-				                                            <object class="wxPanel" name="thumb" subclass="Tribler.Main.vwxGUI.bgPanel.bgPanel">
+				                                            <object class="wxStaticBitmap" name="thumb">
 				                                                <size>80,80</size>
 				                                            </object>
 															<flag>wxLEFT</flag>
@@ -540,12 +540,6 @@
 				                                        <label>Status</label>
 				                                    </object>
 		                                        </object>
-												<object class="sizeritem">
-		                                            <object class="wxPanel" name="firewallStatus" subclass="Tribler.Main.vwxGUI.widgets.settingsButton">
-		                                                <size>33,32</size>
-		                                            </object>
-		                                        </object>
-												<object class="spacer"/>
 												<object class="sizeritem">
                                                     <object class="wxStaticText" name="firewallStatusText">
                                                         <label></label>

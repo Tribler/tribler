@@ -6,9 +6,9 @@ This module provides the Id object and necessary tools.
 
 """
 
-#binascii.hexlify() bin>hex
-#int(a, 16) hex>int
-#hex() int>hex
+# binascii.hexlify() bin>hex
+# int(a, 16) hex>int
+# hex() int>hex
 
 import sys
 import random
@@ -23,6 +23,7 @@ BITS_PER_BYTE = 8
 ID_SIZE_BYTES = 20
 ID_SIZE_BITS = ID_SIZE_BYTES * BITS_PER_BYTE
 MAX_ID_LONG = ALL_ONES_LONG = (1 << ID_SIZE_BITS) - 1
+
 
 class IdError(Exception):
     pass
@@ -60,20 +61,20 @@ class Id(object):
         if isinstance(hex_or_bin_id, str):
             if len(hex_or_bin_id) == ID_SIZE_BYTES:
                 self._bin_id = hex_or_bin_id
-            elif len(hex_or_bin_id) == ID_SIZE_BYTES*2:
+            elif len(hex_or_bin_id) == ID_SIZE_BYTES * 2:
                 self._hex = hex_or_bin_id
                 try:
                     self._bin_id = base64.b16decode(hex_or_bin_id, True)
                 except:
-                    raise IdError, 'input: %r' % hex_or_bin_id
+                    raise IdError('input: %r' % hex_or_bin_id)
         elif isinstance(hex_or_bin_id, long) or isinstance(hex_or_bin_id, int):
             if hex_or_bin_id < 0 or hex_or_bin_id > MAX_ID_LONG:
-                raise IdError, 'input: %r' % hex_or_bin_id
+                raise IdError('input: %r' % hex_or_bin_id)
             self._long = long(hex_or_bin_id)
             self._hex = '%040x' % self._long
             self._bin_id = base64.b16decode(self._hex, True)
         if not self._bin_id:
-            raise IdError, 'input: %r' % hex_or_bin_id
+            raise IdError('input: %r' % hex_or_bin_id)
         self._bin = self._bin_id
 
     def __hash__(self):
@@ -99,7 +100,7 @@ class Id(object):
         if not self._bin_str:
             bin_str = bin(self.long)[2:]
             # Need to pad to get 160 bits
-            self._bin_str = '0'*(ID_SIZE_BITS - len(bin_str)) + bin_str
+            self._bin_str = '0' * (ID_SIZE_BITS - len(bin_str)) + bin_str
         return self._bin_str
 
     @property
@@ -202,7 +203,6 @@ class Id(object):
         else:
             return 0
 
-
     def DD_order_closest(self, id_list):
         """Return a list with the Id objects in 'id_list' ordered
         according to the distance to self. The closest id first.
@@ -234,7 +234,7 @@ class Id(object):
         if log_distance < 0:
             return self
         byte_num, bit_num = divmod(log_distance, BITS_PER_BYTE)
-        byte_index = len(self.bin_id) - byte_num - 1 # -1 correction
+        byte_index = len(self.bin_id) - byte_num - 1  # -1 correction
         int_byte = ord(self.bin_id[byte_index])
         import sys
         # Flip bit
@@ -246,8 +246,8 @@ class Id(object):
             int_byte = int_byte + (random.randint(0, 1) << i)
         id_byte = chr(int_byte)
         # Produce random ending bytes
-        end_bytes = ''.join([chr(random.randint(0, 255)) \
-                                      for _ in xrange(byte_index + 1, ID_SIZE_BYTES)])
+        end_bytes = ''.join([chr(random.randint(0, 255))
+                             for _ in xrange(byte_index + 1, ID_SIZE_BYTES)])
         bin_id = self.bin_id[:byte_index] +\
             id_byte + end_bytes
         result = Id(bin_id)

@@ -9,14 +9,19 @@ DEBUG = False
 #
 # Tribler API base classes
 #
+
+
 class Serializable:
+
     """
     Interface to signal that the object is pickleable.
     """
     def __init__(self):
         pass
 
+
 class Copyable:
+
     """
     Interface for copying an instance (or rather signaling that it can be
     copied)
@@ -31,6 +36,7 @@ class Copyable:
 
 
 class ContentDefinition:
+
     """ Interface for content definition such as torrents and swift swarms """
 
     def get_def_type(self):

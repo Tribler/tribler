@@ -11,5 +11,6 @@ OTHERTORRENTS_CONTINUE = 2
 
 # Arno: These modes are not what vlc returns, but Fabian's summary of that
 MEDIASTATE_PLAYING = 1
-MEDIASTATE_PAUSED  = 2
+MEDIASTATE_PAUSED = 2
 MEDIASTATE_STOPPED = 3
+MEDIASTATE_ENDED = 4

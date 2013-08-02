@@ -1,4 +1,4 @@
-#Modified by Niels Zeilemaker, removed timeout did a small cleanup 
+# Modified by Niels Zeilemaker, removed timeout did a small cleanup
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND
 
 #-----------------------------------------------------------------------------
@@ -35,11 +35,13 @@ from wx.lib.statbmp import GenStaticBitmap
 
 DEBUG = False
 
+
 class GaugeSplash(wx.Frame):
+
     """Placeholder for a gauge-bar splash screen."""
     def __init__(self, bmp):
         wx.Frame.__init__(self, None, style=wx.FRAME_NO_TASKBAR)
-        
+
         self.count = 0
         self.border = 2
         self.SetBackgroundColour(DEFAULT_BACKGROUND)
@@ -50,21 +52,21 @@ class GaugeSplash(wx.Frame):
 
         self.label = wx.StaticText(self, -1, "Loading...")
         self.label.SetBackgroundColour(DEFAULT_BACKGROUND)
-        sizer.Add(self.label, 0, flag=wx.EXPAND|wx.ALL, border=self.border)
+        sizer.Add(self.label, 0, flag=wx.EXPAND | wx.ALL, border=self.border)
 
         self.progressHeight = 12
         self.gauge = wx.Gauge(self, -1,
-              range=100, size = (-1, self.progressHeight),
-              style=wx.GA_HORIZONTAL|wx.GA_SMOOTH)
+                              range=100, size=(-1, self.progressHeight),
+                             style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
         self.gauge.SetBackgroundColour(DEFAULT_BACKGROUND)
-        sizer.Add(self.gauge, 0, flag=wx.EXPAND|wx.TOP, border=self.border)
+        sizer.Add(self.gauge, 0, flag=wx.EXPAND | wx.TOP, border=self.border)
         self.SetSizer(sizer)
         sizer.Fit(self)
-        
+
         self.CenterOnScreen()
         self.Layout()
         self.Show(True)
-        
+
         try:
             wx.Yield()
         except:
@@ -85,11 +87,11 @@ class GaugeSplash(wx.Frame):
         self.gauge.Update()
         self.Refresh()
         wx.Yield()
-        
+
     def __del__(self):
         if DEBUG:
             import sys
             print >> sys.stderr, "MAX ticks == ", self.count
-        
+
         self.gauge.SetValue(self.gauge.GetRange())
         wx.Yield()

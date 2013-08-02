@@ -10,7 +10,7 @@ Files: Tribler/*
 Copyright: 2005-2011 Delft University of Technology and Vrije Universiteit Amsterdam
 License: LGPL-2.1+
 
-Files: Tribler/Core/Multicast/* Tribler/Core/Statistics/Status/* Tribler/Core/ClosedSwarm/* Tribler/Player/swarmplayer-njaal.py Tribler/Plugin/BackgroundProcess-njaal.py Tribler/Test/test_closedswarm.py Tribler/Test/test_status.py Tribler/Tools/createlivestream-njaal.py Tribler/Tools/createpoa.py Tribler/Tools/trial_poa_server.py Tribler/UPnP/* Tribler/Test/test_upnp.py
+Files: Tribler/Core/Multicast/* Tribler/Core/Statistics/Status/* Tribler/Core/ClosedSwarm/* Tribler/Plugin/BackgroundProcess-njaal.py Tribler/Test/test_closedswarm.py Tribler/Test/test_status.py Tribler/Tools/createlivestream-njaal.py Tribler/Tools/createpoa.py Tribler/Tools/trial_poa_server.py Tribler/UPnP/* Tribler/Test/test_upnp.py
 Copyright: 2008-2012 Norut AS
 License: LGPL-2.1+
 

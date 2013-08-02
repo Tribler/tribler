@@ -2,14 +2,16 @@ from struct import pack, unpack_from
 from random import sample
 import zlib
 
-from Tribler.dispersy.encoding import encode, decode
+from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.message import DropPacket, Packet,\
     DelayPacketByMissingMessage, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import BinaryConversion
 
 DEBUG = False
 
+
 class ChannelConversion(BinaryConversion):
+
     def __init__(self, community):
         super(ChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channel"), lambda message: self._encode_decode(self._encode_channel, self._decode_channel, message), self._decode_channel)
@@ -61,7 +63,7 @@ class ChannelConversion(BinaryConversion):
         return self._decode_channel(placeholder, offset, data)
 
     def _encode_torrent(self, message):
-        max_len = self._community.dispersy_sync_bloom_filter_bits/8
+        max_len = self._community.dispersy_sync_bloom_filter_bits / 8
 
         files = message.payload.files
         trackers = message.payload.trackers
@@ -74,11 +76,11 @@ class ChannelConversion(BinaryConversion):
         compressed_msg = create_msg()
         while len(compressed_msg) > max_len:
             if len(trackers) > 10:
-                #only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
+                # only use first 10 trackers, .torrents in the wild have been seen to have 1000+ trackers...
                 trackers = trackers[:10]
             else:
-                #reduce files by the amount we are currently to big
-                reduce_by = max_len / (len(compressed_msg)*1.0)
+                # reduce files by the amount we are currently to big
+                reduce_by = max_len / (len(compressed_msg) * 1.0)
                 nr_files_to_include = int(len(files) * reduce_by)
                 files = sample(files, nr_files_to_include)
 
@@ -96,7 +98,7 @@ class ChannelConversion(BinaryConversion):
 
         infohash_time, name, files, trackers = values
         if len(infohash_time) != 28:
-            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28"%(len(infohash_time)))
+            raise DropPacket("Unable to decode the torrent-payload, got %d bytes expected 28" % (len(infohash_time)))
         infohash, timestamp = unpack_from('!20sQ', infohash_time)
 
         if not isinstance(name, unicode):
@@ -114,9 +116,9 @@ class ChannelConversion(BinaryConversion):
 
             path, length = file
             if not isinstance(path, unicode):
-                raise DropPacket("Invalid 'files_path' type is %s"%type(path))
+                raise DropPacket("Invalid 'files_path' type is %s" % type(path))
             if not isinstance(length, (int, long)):
-                raise DropPacket("Invalid 'files_length' type is %s"%type(length))
+                raise DropPacket("Invalid 'files_length' type is %s" % type(length))
 
         if not isinstance(trackers, tuple):
             raise DropPacket("Invalid 'trackers' type")
@@ -127,8 +129,8 @@ class ChannelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(infohash, timestamp, name, files, trackers)
 
     def _encode_comment(self, message):
-        dict = {"text":message.payload.text,
-                "timestamp":message.payload.timestamp}
+        dict = {"text": message.payload.text,
+                "timestamp": message.payload.timestamp}
 
         playlist_packet = message.payload.playlist_packet
         infohash = message.payload.infohash
@@ -212,9 +214,9 @@ class ChannelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist, infohash)
 
     def _encode_moderation(self, message):
-        dict = {"text":message.payload.text,
-                "timestamp":message.payload.timestamp,
-                "severity":message.payload.severity}
+        dict = {"text": message.payload.text,
+                "timestamp": message.payload.timestamp,
+                "severity": message.payload.severity}
 
         dict["cause-mid"] = message.payload.cause_mid
         dict["cause-global-time"] = message.payload.cause_global_time
@@ -267,9 +269,9 @@ class ChannelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(text, timestamp, severity, cause_packet)
 
     def _encode_mark_torrent(self, message):
-        dict = {"infohash":message.payload.infohash,
-                "timestamp":message.payload.timestamp,
-                "type":message.payload.type}
+        dict = {"infohash": message.payload.infohash,
+                "timestamp": message.payload.timestamp,
+                "type": message.payload.type}
 
         return encode(dict),
 
@@ -301,11 +303,11 @@ class ChannelConversion(BinaryConversion):
 
     def _encode_modification(self, message):
         modification_on = message.payload.modification_on.load_message()
-        dict = {"modification-type":message.payload.modification_type,
-                "modification-value":message.payload.modification_value,
-                "timestamp":message.payload.timestamp,
-                "modification-on-mid":modification_on.authentication.member.mid,
-                "modification-on-global-time":modification_on.distribution.global_time}
+        dict = {"modification-type": message.payload.modification_type,
+                "modification-value": message.payload.modification_value,
+                "timestamp": message.payload.timestamp,
+                "modification-on-mid": modification_on.authentication.member.mid,
+                "modification-on-global-time": modification_on.distribution.global_time}
 
         prev_modification = message.payload.prev_modification_packet
         if prev_modification:
@@ -407,13 +409,13 @@ class ChannelConversion(BinaryConversion):
         assert len(mid) == 20
         if global_time and mid:
             try:
-                packet_id, packet, message_name = self._dispersy_database.execute(u"""
+                packet_id, packet, message_name = self._community.dispersy.database.execute(u"""
                     SELECT sync.id, sync.packet, meta_message.name
                     FROM sync
                     JOIN member ON (member.id = sync.member)
                     JOIN meta_message ON (meta_message.id = sync.meta_message)
                     WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
-                                                          (self._community.database_id, global_time, buffer(mid))).next()
+                                                                                           (self._community.database_id, global_time, buffer(mid))).next()
             except StopIteration:
                 raise DropPacket("Missing message")
 
@@ -431,4 +433,4 @@ class ChannelConversion(BinaryConversion):
             raise DropPacket("Unable to decode includeSnapshot")
         includeSnapshot = bool(includeSnapshot)
 
-        return offset+1, placeholder.meta.payload.implement(includeSnapshot)
+        return offset + 1, placeholder.meta.payload.implement(includeSnapshot)

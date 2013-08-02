@@ -1,4 +1,8 @@
 # Written by Niels Zeilemaker
+
+import logging
+logger = logging.getLogger(__name__)
+
 import sys
 from os import path
 from time import time
@@ -10,10 +14,8 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination, \
     CommunityDestination
-from Tribler.dispersy.dispersydatabase import DispersyDatabase
 from Tribler.dispersy.distribution import DirectDistribution, \
     FullSyncDistribution
-from Tribler.dispersy.member import DummyMember, Member
 from Tribler.dispersy.message import Message, DelayMessageByProof, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 
@@ -34,39 +36,36 @@ from Tribler.dispersy.script import assert_
 from Tribler.community.privatesearch.pallier import pallier_add, pallier_init, pallier_encrypt, pallier_decrypt
 from Tribler.community.privatesearch.rsa import rsa_init, rsa_encrypt, rsa_decrypt, rsa_compatible, hash_element
 
-if __debug__:
-    from Tribler.dispersy.dprint import dprint
-
 DEBUG = False
 DEBUG_VERBOSE = False
 TTL = 4
 NEIGHBORS = 5
-FNEIGHBORS = 1
 ENCRYPTION = True
 PING_INTERVAL = CANDIDATE_WALK_LIFETIME - 5.0
 
+
 class SearchCommunity(Community):
+
     """
     A single community that all Tribler members join and use to disseminate .torrent files.
     """
     @classmethod
-    def get_master_members(cls):
+    def get_master_members(cls, dispersy):
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404a041c3a8415021f193ef0614360b4d99ac8f985eff2259f88f1f64070ae2bcc21c473c9c0b958b39da9ae58d6d0aec316341f65bd7daa42ffd73f5eeee53aa6199793f98afc47f008a601cd659479f801157e7dd69525649d8eec7885bd0d832746c46d067c60341a6d84b12a6e5d3ce25e20352ed8e0ff311e74b801c06286a852976bdba67dfe62dfb75a5b9c0d2".decode("HEX")
-        master = Member(master_key)
+        master = dispersy.get_member(master_key)
         return [master]
 
     @classmethod
-    def load_community(cls, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        dispersy_database = DispersyDatabase.get_instance()
+    def load_community(cls, dispersy, master, my_member, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
         try:
-            dispersy_database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
+            dispersy.database.execute(u"SELECT 1 FROM community WHERE master = ?", (master.database_id,)).next()
         except StopIteration:
-            return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return cls.join_community(dispersy, master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
+            return super(SearchCommunity, cls).load_community(dispersy, master, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, encryption=encryption, max_prefs=max_prefs, log_searches=log_searches)
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        super(SearchCommunity, self).__init__(master)
+    def __init__(self, dispersy, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        super(SearchCommunity, self).__init__(dispersy, master)
 
         self.integrate_with_tribler = bool(integrate_with_tribler)
 
@@ -78,7 +77,6 @@ class SearchCommunity(Community):
             self.forwarding_prob = float(ttl)
 
         self.neighbors = int(neighbors)
-        self.fneighbors = int(fneighbors)
         self.encryption = bool(encryption)
         self.log_searches = bool(log_searches)
 
@@ -137,19 +135,19 @@ class SearchCommunity(Community):
             if cycle < 2:
                 # poke bootstrap peers
                 for candidate in self._dispersy._bootstrap_candidates.itervalues():
-                    if __debug__: dprint("extra walk to ", candidate)
+                    logger.debug("extra walk to %s", candidate)
                     self.create_introduction_request(candidate, allow_sync=False)
 
             # request -everyone- that is eligible
             candidates = [candidate for candidate in self._iter_categories([u'walk', u'stumble', u'intro'], once=True) if candidate]
             for candidate in candidates:
-                if __debug__: dprint("extra walk to ", candidate)
+                logger.debug("extra walk to %s", candidate)
                 self.create_introduction_request(candidate, allow_sync=False)
 
             # wait for NAT hole punching
             yield 1.0
 
-        if __debug__: dprint("finished")
+        logger.debug("finished")
 
     def initiate_meta_messages(self):
         return [Message(self, u"search-request", MemberAuthentication(encoding="sha1"), PublicResolution(), DirectDistribution(), CandidateDestination(), SearchRequestPayload(), self._dispersy._generic_timeline_check, self.on_search),
@@ -183,7 +181,7 @@ class SearchCommunity(Community):
         # disable sync bloom filter
         return lambda: None
 
-#    #used by dispersy to choose a peer to introduce
+# used by dispersy to choose a peer to introduce
 #    def dispersy_yield_introduce_candidates(self, candidate = None):
 #        for random_candidate in Community.dispersy_yield_introduce_candidates(self, candidate):
 #            if not self.is_taste_buddy(random_candidate):
@@ -243,14 +241,15 @@ class SearchCommunity(Community):
 
     def is_taste_buddy_mid(self, mid):
         for tb in self.yield_taste_buddies():
-            if mid in [member.mid for member in tb.get_members(self)]:
+            if mid in [member.mid for member in tb.get_members()]:
                 return True
 
     def create_introduction_request(self, destination, allow_sync):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         self._dispersy.statistics.walk_attempt += 1
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
+        self.add_candidate(destination)
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
 
         advice = True
@@ -292,8 +291,8 @@ class SearchCommunity(Community):
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
-                                distribution=(self.global_time,),
-                                destination=(destination,),
+                                    distribution=(self.global_time,),
+                                   destination=(destination,),
                                 payload=payload)
 
         self._dispersy._forward([request])
@@ -303,7 +302,7 @@ class SearchCommunity(Community):
         if DEBUG_VERBOSE:
             print >> sys.stderr, long(time()), "SearchCommunity: got %d introduction requests" % len(orig_messages)
 
-        messages = [message for message in orig_messages if not isinstance(self._dispersy.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
+        messages = [message for message in orig_messages if not isinstance(self.get_candidate(message.candidate.sock_addr), BootstrapCandidate) and message.payload.preference_list]
         self.process_rsa_simirequest(messages)
 
         self._disp_intro_handler(orig_messages)
@@ -394,70 +393,51 @@ class SearchCommunity(Community):
         timeout_delay = 30.0
         cleanup_delay = 0.0
 
-        def __init__(self, community, keywords, ttl, callback, results=[], return_candidate=None, requested_candidates=[]):
+        def __init__(self, community, keywords, ttl, callback, results=[], candidate=None):
             self.community = community
             self.keywords = keywords
             self.callback = callback
             self.results = results
-            self.return_candidate = return_candidate
+            self.candidate = candidate
 
-            self.requested_candidates = requested_candidates
-            self.requested_mids = set()
-            for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
-                    self.requested_mids.add(member.mid)
-            self.received_candidates = []
-
-            # setting timeout
-            if self.return_candidate:
+            if self.candidate:
                 self.timeout_delay = 5.0
 
             self.timeout_delay += (ttl * 2)
+            self.timeout_delay += 14  # testing if this is influencing recall
+
             self.processed = False
 
-        def add_sum(self, candidate_mid, _sum):
-            if DEBUG_VERBOSE:
-                print >> sys.stderr, long(time()), "PSearchCommunity: got sum in RPSimilarityRequest"
-
-            if candidate_mid in self.requested_mids:
-                if DEBUG_VERBOSE:
-                    print >> sys.stderr, long(time()), "PSearchCommunity: added sum in RPSimilarityRequest"
-
-                self.received_candidates.append(candidate_mid)
-                self.received_sums.append((candidate_mid, _sum))
-
-        def on_success(self, candidate_mid, keywords, results, candidate):
-            shouldPop = False
+        def on_success(self, keywords, results, candidate):
+            shouldPop = True
             if not self.processed:
-                if candidate_mid in self.requested_mids:
-                    self.received_candidates.append(candidate_mid)
-                    self.results.extend(results)
-                    shuffle(self.results)
+                if self.candidate:
+                    results.extend(self.results)
+                    shuffle(results)
 
-                shouldPop = len(self.received_candidates) == len(self.requested_candidates)
-                if self.return_candidate:
-                    if shouldPop:
-                        self.callback(keywords, self.results, self.return_candidate)  # send message containing all results
-                        self.community.search_forward_success += 1
-                        self.processed = True
+                    self.callback(keywords, results, self.candidate)
+                    self.community.search_forward_success += 1
+                    self.processed = True
                 else:
-                    self.callback(keywords, results, candidate)  # local query, update immediately do not pass self.results as it contains all results
+                    self.callback(keywords, results, candidate)
+                    shouldPop = False
+
             return shouldPop
 
         def on_timeout(self):
             # timeout, message was probably lost return our local results
             if not self.processed:
                 self.processed = True
-                if self.return_candidate:
-                    self.callback(self.keywords, self.results, self.return_candidate)
+                if self.candidate:
+                    self.callback(self.keywords, self.results, self.candidate)
                     self.community.search_forward_timeout += 1
 
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: timeout for searchrequest, returning my local results waited for %.1f seconds" % self.timeout_delay
 
-    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
+    def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None):
         if identifier == None:
-            identifier = self._dispersy.request_cache.generate_identifier()
+            identifier = self._dispersy.request_cache.claim(SearchCommunity.SearchRequest(self, keywords, self.ttl or 7, callback))
             if self.log_searches:
                 log("dispersy.log", "search-statistics", identifier=identifier, created_by_me=True)
 
@@ -468,8 +448,7 @@ class SearchCommunity(Community):
             bloomfilter = BloomFilter(0.01, 100)
 
         # put local results in bloomfilter
-        if results == None:
-            results = self._get_results(keywords, bloomfilter, True)
+        local_results = self._get_results(keywords, bloomfilter, True)
 
         random_peers, taste_buddies = self.get_randompeers_tastebuddies()
         shuffle(taste_buddies)
@@ -500,11 +479,10 @@ class SearchCommunity(Community):
             self._dispersy._send([candidate], [message])
             candidates.append(candidate)
 
-        self._dispersy.request_cache.set(identifier, SearchCommunity.SearchRequest(self, keywords, ttl or 7, callback, results, return_candidate, requested_candidates=candidates))
         if DEBUG:
             print >> sys.stderr, long(time()), "SearchCommunity: sending search request for", keywords, "to", map(str, candidates)
 
-        return candidates, results
+        return candidates, local_results
 
     def on_search(self, messages):
         for message in messages:
@@ -526,17 +504,20 @@ class SearchCommunity(Community):
                 if self.ttl:
                     ttl = message.payload.ttl
                     ttl -= randint(0, 1)
+
                 else:
-                    ttl = 7 if random() < self.forwarding_prob else 0
+                    if random() < self.forwarding_prob:
+                        ttl = 7
+                    else:
+                        ttl = 0
 
                 if ttl:
                     if DEBUG:
                         print >> sys.stderr, long(time()), "SearchCommunity: ttl == %d forwarding" % ttl
 
-                    nrcandidates = randint(1, self.fneighbors)
-
                     callback = lambda keywords, newresults, candidate, myidentifier = message.payload.identifier: self._create_search_response(myidentifier, newresults, candidate)
-                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, nrcandidates, bloomfilter, results, message.candidate)
+                    self._dispersy.request_cache.set(message.payload.identifier, SearchCommunity.SearchRequest(self, keywords, ttl, callback, results, message.candidate))
+                    self.create_search(message.payload.keywords, callback, message.payload.identifier, ttl, 1, bloomfilter)
 
                     self.search_forward += 1
                 else:
@@ -606,7 +587,7 @@ class SearchCommunity(Community):
                 if len(message.payload.results) > 0:
                     self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
 
-                removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
+                removeCache = search_request.on_success(search_request.keywords, message.payload.results, message.candidate)
                 if removeCache:
                     self._dispersy.request_cache.pop(message.payload.identifier, SearchCommunity.SearchRequest)
 
@@ -706,7 +687,7 @@ class SearchCommunity(Community):
 #        max_len = self.dispersy_sync_bloom_filter_bits/8
 #        limit = int(max_len/44)
 #
-#        #we want roughly 1/3 random, 2/3 recent
+# we want roughly 1/3 random, 2/3 recent
 #        limitRecent = int(limit * 0.66)
 #        limitRandom = limit - limitRecent
 #
@@ -717,7 +698,7 @@ class SearchCommunity(Community):
 #        else:
 #            randomTorrents = []
 #
-#        #combine random and recent + shuffle to obscure categories
+# combine random and recent + shuffle to obscure categories
 #        torrents += randomTorrents
 #        torrents = [tor[:5] for tor in torrents]
 #        shuffle(torrents)
@@ -774,7 +755,7 @@ class SearchCommunity(Community):
 
     def on_torrent(self, messages):
         for message in messages:
-            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id':message.packet_id})
+            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id': message.packet_id})
 
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)
@@ -798,8 +779,8 @@ class SearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except KeyError:
-            if __debug__: dprint("join preview community ", cid.encode("HEX"))
-            return PreviewChannelCommunity.join_community(DummyMember(cid), self._my_member, self.integrate_with_tribler)
+            logger.debug("join preview community %s", cid.encode("HEX"))
+            return PreviewChannelCommunity.join_community(self._dispersy, self._dispersy.get_temporary_member_from_id(cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
@@ -882,10 +863,11 @@ class SearchCommunity(Community):
 
         return random_peers, taste_buddies
 
+
 class ForwardCommunity(SearchCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        SearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
 
         self.possible_taste_buddies = []
         self.requested_introductions = {}
@@ -960,15 +942,14 @@ class ForwardCommunity(SearchCommunity):
 
         return candidate, None
 
-    def dispersy_yield_introduce_candidates(self, candidate=None):
-        if candidate:
-            if candidate in self.requested_introductions:
-                intro_me_candidate = self.requested_introductions[candidate]
-                del self.requested_introductions[candidate]
-                yield intro_me_candidate
+    def dispersy_get_introduce_candidate(self, exclude_candidate=None):
+        if exclude_candidate:
+            if exclude_candidate in self.requested_introductions:
+                intro_me_candidate = self.requested_introductions[exclude_candidate]
+                del self.requested_introductions[exclude_candidate]
+                return intro_me_candidate
 
-        for random_candidate in SearchCommunity.dispersy_yield_introduce_candidates(self, candidate):
-            yield random_candidate
+        return SearchCommunity.dispersy_get_introduce_candidate(self, exclude_candidate)
 
     class ForwardAttempt(Cache):
         timeout_delay = 10.5
@@ -998,7 +979,8 @@ class ForwardCommunity(SearchCommunity):
         assert not introduce_me_to or isinstance(introduce_me_to, str), type(introduce_me_to)
 
         self._dispersy.statistics.walk_attempt += 1
-        destination.walk(self, time(), IntroductionRequestCache.timeout_delay)
+        destination.walk(time(), IntroductionRequestCache.timeout_delay)
+        self.add_candidate(destination)
 
         advice = True
         identifier = self._dispersy.request_cache.claim(IntroductionRequestCache(self, destination))
@@ -1028,10 +1010,11 @@ class ForwardCommunity(SearchCommunity):
             for message in messages:
                 self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
 
+
 class PSearchCommunity(ForwardCommunity):
 
-    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
-        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, encryption, max_prefs, log_searches)
+    def __init__(self, master, integrate_with_tribler=True, ttl=TTL, neighbors=NEIGHBORS, encryption=ENCRYPTION, max_prefs=None, log_searches=False):
+        ForwardCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, encryption, max_prefs, log_searches)
 
         self.key = pallier_init(self.key)
         self.my_vector_cache = [None, None]
@@ -1136,7 +1119,7 @@ class PSearchCommunity(ForwardCommunity):
             global_vector = sample(global_vector, self.max_prefs)
 
         elif len(global_vector) < self.max_prefs:
-            global_vector += [0l] * (self.max_prefs - len(global_vector))
+            global_vector += [0] * (self.max_prefs - len(global_vector))
 
         assert_(len(global_vector) == self.max_prefs, 'vector sizes not equal')
 
@@ -1170,10 +1153,10 @@ class PSearchCommunity(ForwardCommunity):
 
     def get_my_vector(self, global_vector, local=False):
         my_preferences = set([long(preference) for preference in self._mypref_db.getMyPrefListInfohash(local=local) if preference])
-        my_vector = [0l] * len(global_vector)
+        my_vector = [0] * len(global_vector)
         for i, element in enumerate(global_vector):
             if element in my_preferences:
-                my_vector[i] = 1l
+                my_vector[i] = 1
         return my_vector
 
     class PSimilarityRequest(Cache):
@@ -1198,7 +1181,7 @@ class PSearchCommunity(ForwardCommunity):
                 assert_(len(self.global_vector) == len(self.user_vector) and len(self.global_vector) == len(my_vector), "vector sizes not equal %d vs %d vs %d" % (len(self.global_vector), len(self.user_vector), len(my_vector)))
 
                 if self.community.encryption:
-                    _sum = 1l
+                    _sum = 1
 
                     t1 = time()
                     user_n2 = pow(self.user_n, 2)
@@ -1209,7 +1192,7 @@ class PSearchCommunity(ForwardCommunity):
 
                     self.community.receive_time_encryption += time() - t1
                 else:
-                    _sum = 0l
+                    _sum = 0
                     for i, element in enumerate(self.user_vector):
                         if my_vector[i] and element:
                             _sum += 1
@@ -1250,7 +1233,7 @@ class PSearchCommunity(ForwardCommunity):
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
+                for member in candidate.get_members():
                     self.requested_mids.add(member.mid)
 
             self.received_candidates = []
@@ -1346,6 +1329,7 @@ class PSearchCommunity(ForwardCommunity):
 
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "PSearchCommunity: asking candidate %s to introduce me to %s after receiving sums from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
+
 
 class HSearchCommunity(ForwardCommunity):
 
@@ -1443,7 +1427,7 @@ class HSearchCommunity(ForwardCommunity):
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
             for candidate in self.requested_candidates:
-                for member in candidate.get_members(community):
+                for member in candidate.get_members():
                     self.requested_mids.add(member.mid)
 
             self.received_candidates = set()
@@ -1497,7 +1481,7 @@ class HSearchCommunity(ForwardCommunity):
         # process possible taste buddies
         for message in messages:
 #            candidate = self._dispersy.get_walkcandidate(message, self)
-#            candidate.walk_response(self)
+#            candidate.walk_response()
             if DEBUG_VERBOSE:
                 print >> sys.stderr, long(time()), "HSearchCommunity: got msimi response from", message.candidate, len(message.payload.bundled_responses)
 
@@ -1516,7 +1500,9 @@ class HSearchCommunity(ForwardCommunity):
                 if DEBUG and introduce_me_to:
                     print >> sys.stderr, long(time()), "HSearchCommunity: asking candidate %s to introduce me to %s after receiving similarities from %s" % (destination, introduce_me_to.encode("HEX"), message.candidate)
 
+
 class Das4DBStub():
+
     def __init__(self, dispersy):
         self._dispersy = dispersy
 
@@ -1525,7 +1511,7 @@ class Das4DBStub():
 
         self.myMegaCache = []
         self.myMegaSet = set()
-        self.id2category = {1:u''}
+        self.id2category = {1: u''}
 
     def addMyPreference(self, torrent_id, data):
         infohash = str(torrent_id)
@@ -1552,7 +1538,7 @@ class Das4DBStub():
         for keyword in keywords:
             infohash = str(keyword)
             if infohash in my_preferences:
-                results.append((infohash, unicode(self._dispersy._lan_address), 1L, 1, 1, 0L, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
+                results.append((infohash, unicode(self._dispersy._lan_address), 1, 1, 1, 0, 0, 0, None, None, None, None, '', '', 0, 0, 0, 0, 0, False))
         return results
 
     def on_search_response(self, results):

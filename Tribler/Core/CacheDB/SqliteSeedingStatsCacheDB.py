@@ -24,16 +24,18 @@ cost_reads = []
 
 DEBUG = False
 
-def init_seeding_stats(config, db_exception_handler = None):
+
+def init_seeding_stats(config, db_exception_handler=None):
     """ create SeedingStats database """
     global CREATE_SEEDINGSTATS_SQL_FILE
     config_dir = config['state_dir']
     install_dir = config['install_dir']
-    CREATE_SEEDINGSTATS_SQL_FILE = os.path.join(install_dir,CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX)
+    CREATE_SEEDINGSTATS_SQL_FILE = os.path.join(install_dir, CREATE_SEEDINGSTATS_SQL_FILE_POSTFIX)
     sqlitedb = SQLiteSeedingStatsCacheDB.getInstance(db_exception_handler)
     sqlite_db_path = os.path.join(config_dir, DB_DIR_NAME, DB_FILE_NAME)
     sqlitedb.initDB(sqlite_db_path, CREATE_SEEDINGSTATS_SQL_FILE)  # the first place to create db in Tribler
     return sqlitedb
+
 
 class SQLiteSeedingStatsCacheDB(SQLiteCacheDBBase):
     __single = None    # used for multithreaded singletons pattern
@@ -54,7 +56,7 @@ class SQLiteSeedingStatsCacheDB(SQLiteCacheDBBase):
     def __init__(self, *args, **kw):
         # always use getInstance() to create this object
         if self.__single != None:
-            raise RuntimeError, "SQLiteSeedingStatsCacheDB is singleton"
+            raise RuntimeError("SQLiteSeedingStatsCacheDB is singleton")
 
         SQLiteCacheDBBase.__init__(self, *args, **kw)
 
@@ -79,7 +81,7 @@ class SeedingStatsDBHandler(BasicDBHandler):
 
     def __init__(self):
         if SeedingStatsDBHandler.__single is not None:
-            raise RuntimeError, "SeedingStatDBHandler is singleton"
+            raise RuntimeError("SeedingStatDBHandler is singleton")
         SeedingStatsDBHandler.__single = self
         db = SQLiteSeedingStatsCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'SeedingStats')
@@ -102,30 +104,29 @@ class SeedingStatsDBHandler(BasicDBHandler):
             stats = ds.stats['stats']
             ul = stats.upTotal
 
-            if i == len(seedings)-1:
+            if i == len(seedings) - 1:
                 commit = True
 
             res = self.existedInfoHash(infohash)
 
             if res is not None:
                 # res is list of ONE tuple
-                #self.updateSeedingStat(infohash, reputation, res[0][0], interval, commit)
+                # self.updateSeedingStat(infohash, reputation, res[0][0], interval, commit)
 
                 # NAT/Firewall & Seeding Behavior
                 # Store upload amount instead peer reputation
                 self.updateSeedingStat(infohash, ul, res[0][0], interval, commit)
             else:
                 # Insert new record
-                #self.insertSeedingStat(infohash, permID, reputation, interval, commit)
+                # self.insertSeedingStat(infohash, permID, reputation, interval, commit)
 
                 # NAT/Firewall & Seeding Behavior
                 # Store upload amount instead peer reputation
                 self.insertSeedingStat(infohash, permID, ul, interval, commit)
 
-
     def existedInfoHash(self, infohash):
 
-        sql = "SELECT seeding_time FROM SeedingStats WHERE info_hash='%s' and crawled=0"%infohash
+        sql = "SELECT seeding_time FROM SeedingStats WHERE info_hash='%s' and crawled=0" % infohash
 
         try:
             cursor = self._db.execute_read(sql)
@@ -144,14 +145,14 @@ class SeedingStatsDBHandler(BasicDBHandler):
 
     def updateSeedingStat(self, infohash, reputation, seedingtime, interval, commit):
         try:
-            sql_update = "UPDATE SeedingStats SET seeding_time=%s, reputation=%s WHERE info_hash='%s' AND crawled=0"%(seedingtime + interval, reputation, infohash)
+            sql_update = "UPDATE SeedingStats SET seeding_time=%s, reputation=%s WHERE info_hash='%s' AND crawled=0" % (seedingtime + interval, reputation, infohash)
             self._db.execute_write(sql_update, None, commit)
         except:
             print_exc()
 
     def insertSeedingStat(self, infohash, permID, reputation, interval, commit):
         try:
-            sql_insert = "INSERT INTO SeedingStats VALUES(%s, '%s', '%s', %s, %s, %s)"%(time(), permID, infohash, interval, reputation, 0)
+            sql_insert = "INSERT INTO SeedingStats VALUES(%s, '%s', '%s', %s, %s, %s)" % (time(), permID, infohash, interval, reputation, 0)
             self._db.execute_write(sql_insert, None, commit)
         except:
             print_exc()
@@ -177,7 +178,7 @@ class SeedingStatsSettingsDBHandler(BasicDBHandler):
 
     def __init__(self):
         if SeedingStatsSettingsDBHandler.__single is not None:
-            raise RuntimeError, "SeedingStatDBHandler is singleton"
+            raise RuntimeError("SeedingStatDBHandler is singleton")
         SeedingStatsSettingsDBHandler.__single = self
         db = SQLiteSeedingStatsCacheDB.getInstance()
         BasicDBHandler.__init__(self, db, 'CrawlingSettings')
@@ -196,7 +197,7 @@ class SeedingStatsSettingsDBHandler(BasicDBHandler):
 
     def updateCrawlingSettings(self, args):
         try:
-            sql_update = "UPDATE SeedingStatsSettings SET crawling_interval=%s, crawling_enabled=%s WHERE version=1"%(args[0], args[1])
+            sql_update = "UPDATE SeedingStatsSettings SET crawling_interval=%s, crawling_enabled=%s WHERE version=1" % (args[0], args[1])
             cursor = self._db.execute_write(sql_update)
         except:
             print_exc()
