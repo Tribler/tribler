@@ -11,6 +11,7 @@ status_holders = {}
 global status_lock
 status_lock = threading.Lock()
 
+
 def get_status_holder(name):
     global status_lock
     global status_holders
@@ -23,6 +24,7 @@ def get_status_holder(name):
     finally:
         status_lock.release()
 
+
 def delete_status_holders():
     global status_lock
     global status_holders
@@ -32,27 +34,34 @@ def delete_status_holders():
     finally:
         status_lock.release()
 
+
 class StatusException(Exception):
+
     """
     Parent exception for all status based exceptions
     """
     pass
 
+
 class NoSuchElementException(StatusException):
+
     """
     No such element found
     """
     pass
 
+
 class NoSuchReporterException(StatusException):
+
     """
     Unknown reporter
     """
     pass
 
 # Policies
-#ON_CHANGE = 1
-#PERIODIC = 2
+# ON_CHANGE = 1
+# PERIODIC = 2
+
 
 class StatusHolder:
 
@@ -62,7 +71,6 @@ class StatusHolder:
     information on change or periodically.
 
     """
-
 
     def __init__(self, name):
         """
@@ -99,7 +107,7 @@ class StatusHolder:
         self.lock.acquire()
         try:
             if not name in self.reporters:
-                raise Exception("No such reporter '%s'"%name)
+                raise Exception("No such reporter '%s'" % name)
             return self.reporters[name]
         finally:
             self.lock.release()
@@ -113,7 +121,7 @@ class StatusHolder:
         self.lock.acquire()
         try:
             if reporter.name in self.reporters:
-                raise Exception("Already have reporter '%s' registered"% \
+                raise Exception("Already have reporter '%s' registered" %
                                 reporter.name)
             self.reporters[reporter.name] = reporter
 
@@ -136,7 +144,7 @@ class StatusHolder:
         self.lock.acquire()
         try:
             if not name in self.reporters:
-                raise Exception("No such reporter '%s'"%name)
+                raise Exception("No such reporter '%s'" % name)
             del self.reporters[name]
         finally:
             self.lock.release()
@@ -144,7 +152,6 @@ class StatusHolder:
     def _add_element(self, new_element):
         for reporter in self.reporters.values():
             reporter.add_element(new_element)
-
 
     def create_status_element(self, name, initial_value=None):
         assert name
@@ -234,7 +241,7 @@ class StatusHolder:
 
     def create_and_add_event(self, name, values=[]):
         if __debug__ and len(self.reporters) == 0:
-            print >> sys.stderr, "NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK"%self.name
+            print >> sys.stderr, "NO REPORTERS FOR THIS STATUSHOLDER (%s), WILL CAUSE MEMORY LEAK" % self.name
 
         self.add_event(self.create_event(name, values))
 
@@ -279,7 +286,6 @@ class StatusHolder:
             reporter.report_now()
 
 
-
 class BaseElement:
     type = "BaseElement"
 
@@ -313,7 +319,6 @@ class BaseElement:
     def get_name(self):
         return self.name
 
-
     def _updated(self):
         """
         When a status element is changed, this method must be called to
@@ -325,12 +330,13 @@ class BaseElement:
         for callback in self.callbacks:
             try:
                 callback(self)
-            except Exception, e:
+            except Exception as e:
                 print >> sys.stderr, "Exception in callback", \
-                      callback,"for parameter",self.name,":",e
+                    callback, "for parameter", self.name, ":", e
 
 
 class StatusElement(BaseElement):
+
     """
     Class to hold status information
     """
@@ -415,6 +421,7 @@ class EventElement(BaseElement):
         finally:
             self.lock.release()
 
+
 class RangeElement(BaseElement):
     type = "range"
 
@@ -448,7 +455,9 @@ class RangeElement(BaseElement):
         finally:
             self.lock.release()
 
+
 class StatusReporter:
+
     """
     This is the basic status reporter class.  It cannot be used
     directly, but provides a base for all status reporters.
@@ -490,6 +499,7 @@ class StatusReporter:
 
 
 class OnChangeStatusReporter(StatusReporter):
+
     """
     A basic status reporter which calls 'report(element)' whenever
     it is changed
@@ -512,9 +522,11 @@ class OnChangeStatusReporter(StatusReporter):
         """
         This function must be implemented by and extending class. Does nothing.
         """
-        pass # To be implemented by the actual reporter
+        pass  # To be implemented by the actual reporter
+
 
 class PeriodicStatusReporter(StatusReporter):
+
     """
     Base class for a periodic status reporter, calling report(self)
     at given times.  To ensure a nice shutdown, execute stop() when
@@ -542,7 +554,7 @@ class PeriodicStatusReporter(StatusReporter):
     def create_timer(self):
         if self.frequency and self.frequency > 0:
             self.timer = threading.Timer(self.frequency, self.on_time_event)
-            self.timer.setName("PeriodicStatusReporter_"+self.name)
+            self.timer.setName("PeriodicStatusReporter_" + self.name)
             self.timer.setDaemon(True)
             self.timer.start()
 
@@ -581,7 +593,7 @@ class PeriodicStatusReporter(StatusReporter):
             self.create_timer()
             try:
                 self.report()
-            except Exception, e:
+            except Exception as e:
                 print >> sys.stderr, "Status: error while reporting:", e
                 if self.error_handler:
                     try:
@@ -590,8 +602,8 @@ class PeriodicStatusReporter(StatusReporter):
                         pass
                 else:
                     print "Error but no error handler:", e
-                    #import traceback
-                    #traceback.print_stack()
+                    # import traceback
+                    # traceback.print_stack()
 
     def report_now(self):
         """
@@ -599,7 +611,7 @@ class PeriodicStatusReporter(StatusReporter):
         """
         try:
             self.report()
-        except Exception, e:
+        except Exception as e:
             print >> sys.stderr, "Status: error while reporting:", e
             if self.error_handler:
                 try:
@@ -608,8 +620,8 @@ class PeriodicStatusReporter(StatusReporter):
                     pass
             else:
                 print "Error but no error handler:", e
-                #import traceback
-                #traceback.print_stack()
+                # import traceback
+                # traceback.print_stack()
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ import sys
 import os
 from simpledefs import *
 
-DEFAULTPORT=7760
+DEFAULTPORT = 7760
 
 #
 # Session opts
@@ -36,95 +36,49 @@ sessdefaults['install_dir'] = u'.'
 sessdefaults['ip'] = ''
 sessdefaults['minport'] = DEFAULTPORT
 sessdefaults['maxport'] = DEFAULTPORT
-sessdefaults['random_port'] = 1
 sessdefaults['bind'] = []
-sessdefaults['ipv6_enabled'] = 0      # allow the client to connect to peers via IPv6 (currently not supported)
+sessdefaults['ipv6_enabled'] = 0  # allow the client to connect to peers via IPv6 (currently not supported)
 sessdefaults['ipv6_binds_v4'] = None  # set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
-sessdefaults['upnp_nat_access'] = UPNPMODE_UNIVERSAL_DIRECT
 sessdefaults['timeout'] = 300.0
 sessdefaults['timeout_check_interval'] = 60.0
 sessdefaults['eckeypairfilename'] = None
 sessdefaults['megacache'] = True
-sessdefaults['magnetlink'] = True
 sessdefaults['torrent_collecting'] = True
+sessdefaults['dht_torrent_collecting'] = True
 sessdefaults['torrent_collecting_max_torrents'] = 50000
 sessdefaults['torrent_collecting_dir'] = None
-sessdefaults['torrent_collecting_rate'] = 5 * 10
 sessdefaults['torrent_checking'] = 1
-sessdefaults['torrent_checking_period'] = 31 #will be changed to min(max(86400/ntorrents, 15), 300) at runtime
-#sessdefaults['rquery'] = True
+sessdefaults['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
 sessdefaults['stop_collecting_threshold'] = 200
 sessdefaults['internaltracker'] = True
-sessdefaults['nickname'] = '__default_name__' # is replaced with hostname in LaunchManyCore.py
+sessdefaults['nickname'] = '__default_name__'  # is replaced with hostname in LaunchManyCore.py
 sessdefaults['mugshot'] = None
 sessdefaults['videoanalyserpath'] = None
 sessdefaults['peer_icon_path'] = None
 sessdefaults['family_filter'] = True
-sessdefaults['nat_detect'] = True
-sessdefaults['puncturing_internal_port'] = 6700
-sessdefaults['stun_servers'] = [('stun1.tribler.org',6701),('stun2.tribler.org',6702)]
-sessdefaults['pingback_servers'] = [('pingback.tribler.org',6703),('pingback2.tribler.org',6703)]
 sessdefaults['live_aux_seeders'] = []
 sessdefaults['mainline_dht'] = True
-sessdefaults['dispersy'] = True
-sessdefaults['dispersy-tunnel-over-swift'] = False
-sessdefaults['dispersy_port'] = 7759
-
-# 18-07-2011 Niels: call callback even if remote search response is empty
-sessdefaults['remote_search_empty_call'] = True
+sessdefaults['mainline_dht_port'] = DEFAULTPORT - 3
+sessdefaults['libtorrent'] = True
 
 # SWIFTPROC config
 sessdefaults['swiftproc'] = True
 sessdefaults['swiftpath'] = None
 sessdefaults['swiftworkingdir'] = '.'
-sessdefaults['swiftcmdlistenport'] = DEFAULTPORT+481
+sessdefaults['swiftcmdlistenport'] = DEFAULTPORT + 481
 sessdefaults['swiftdlsperproc'] = 1000
+sessdefaults['swiftmetadir'] = None
+
 # config for tunneling via swift, e.g. dispersy
-sessdefaults['swifttunnellistenport'] = None
-sessdefaults['swifttunnelcmdgwlistenport'] = None
-sessdefaults['swifttunnelhttpgwlistenport'] = None
+sessdefaults['swifttunnellistenport'] = DEFAULTPORT - 2
+sessdefaults['swifttunnelhttpgwlistenport'] = sessdefaults['swifttunnellistenport'] + 10000
+sessdefaults['swifttunnelcmdgwlistenport'] = sessdefaults['swifttunnellistenport'] + 20000
+sessdefaults['swiftdhtport'] = 9999
 
-
-trackerdefaults = {}
-trackerdefaults['tracker_url'] = None
-trackerdefaults['tracker_dfile'] = None
-trackerdefaults['tracker_dfile_format'] = ITRACKDBFORMAT_PICKLE
-trackerdefaults['tracker_socket_timeout'] = 15
-trackerdefaults['tracker_save_dfile_interval'] = 300
-trackerdefaults['tracker_timeout_downloaders_interval'] = 2700
-trackerdefaults['tracker_reannounce_interval'] = 1800
-trackerdefaults['tracker_response_size'] = 50
-trackerdefaults['tracker_timeout_check_interval'] = 5
-trackerdefaults['tracker_nat_check'] = 3
-trackerdefaults['tracker_log_nat_checks'] = 0
-trackerdefaults['tracker_min_time_between_log_flushes'] = 3.0
-trackerdefaults['tracker_min_time_between_cache_refreshes'] = 600.0
-trackerdefaults['tracker_allowed_dir'] = None
-trackerdefaults['tracker_allowed_list'] = ''
-trackerdefaults['tracker_allowed_controls'] = 0
-trackerdefaults['tracker_multitracker_enabled'] = 0
-trackerdefaults['tracker_multitracker_allowed'] = ITRACKMULTI_ALLOW_AUTODETECT
-trackerdefaults['tracker_multitracker_reannounce_interval'] = 120
-trackerdefaults['tracker_multitracker_maxpeers'] = 20
-trackerdefaults['tracker_aggregate_forward'] = [None,None]
-trackerdefaults['tracker_aggregator'] = 0
-trackerdefaults['tracker_hupmonitor'] = 0
-trackerdefaults['tracker_multitracker_http_timeout'] = 60
-trackerdefaults['tracker_parse_dir_interval'] = 60
-trackerdefaults['tracker_show_infopage'] = 1
-trackerdefaults['tracker_infopage_redirect'] = None
-trackerdefaults['tracker_show_names'] = 1
-trackerdefaults['tracker_favicon'] = None
-trackerdefaults['tracker_allowed_ips'] = []
-trackerdefaults['tracker_banned_ips'] = []
-trackerdefaults['tracker_only_local_override_ip'] = ITRACK_IGNORE_ANNOUNCEIP_IFNONATCHECK
-
-trackerdefaults['tracker_logfile'] = None
-trackerdefaults['tracker_allow_get'] = 1
-trackerdefaults['tracker_keep_dead'] = 0
-trackerdefaults['tracker_scrape_allowed'] = ITRACKSCRAPE_ALLOW_FULL
-
-sessdefaults.update(trackerdefaults)
+# dispersy config
+sessdefaults['dispersy'] = True
+sessdefaults['dispersy-tunnel-over-swift'] = False
+sessdefaults['dispersy_port'] = DEFAULTPORT - 1
 
 #
 # BT per download opts
@@ -145,10 +99,10 @@ dldefaults['upload_unit_size'] = 1460
 dldefaults['request_backlog'] = 10
 dldefaults['max_message_length'] = 2 ** 23
 dldefaults['selector_enabled'] = 1  # whether to enable the file selector and fast resume function. Arno, 2009-02-9: Must be on for checkpoints to work.
-dldefaults['expire_cache_data'] = 10 # the number of days after which you wish to expire old cache data (0 = disabled)
+dldefaults['expire_cache_data'] = 10  # the number of days after which you wish to expire old cache data (0 = disabled)
 dldefaults['priority'] = []  # a list of file priorities separated by commas, must be one per file, 0 = highest, 1 = normal, 2 = lowest, -1 = download disabled'
-dldefaults['saveas'] = None # Set to get_default_destdir()
-dldefaults['showsaveas'] = True # Allow users to choose directory for every new download
+dldefaults['saveas'] = None  # Set to get_default_destdir()
+dldefaults['showsaveas'] = True  # Allow users to choose directory for every new download
 dldefaults['max_slice_length'] = 2 ** 17
 dldefaults['max_rate_period'] = 20.0
 dldefaults['upload_rate_fudge'] = 5.0
@@ -197,8 +151,8 @@ dldefaults['video_ratelimit'] = 0
 dldefaults['video_source_authconfig'] = None
 dldefaults['selected_files'] = []
 
-#Niels: in total uTorrent and Azureus clients agree not to accept more than 50 added peers
-#http://wiki.theory.org/BitTorrentPeerExchangeConventions
+# Niels: in total uTorrent and Azureus clients agree not to accept more than 50 added peers
+# http://wiki.theory.org/BitTorrentPeerExchangeConventions
 dldefaults['ut_pex_max_addrs_from_peer'] = 50
 # Version 3:
 dldefaults['same_nat_try_internal'] = 0
@@ -217,7 +171,7 @@ tdefdictdefaults['comment'] = None
 tdefdictdefaults['created by'] = None
 tdefdictdefaults['announce'] = None
 tdefdictdefaults['announce-list'] = None
-tdefdictdefaults['nodes'] = None # mainline DHT
+tdefdictdefaults['nodes'] = None  # mainline DHT
 tdefdictdefaults['httpseeds'] = None
 tdefdictdefaults['url-list'] = None
 tdefdictdefaults['encoding'] = None
@@ -230,7 +184,7 @@ tdefmetadefaults['makehash_crc32'] = 0
 tdefmetadefaults['makehash_sha1'] = 0
 tdefmetadefaults['createmerkletorrent'] = 0
 tdefmetadefaults['torrentsigkeypairfilename'] = None
-tdefmetadefaults['thumb'] = None # JPEG data
+tdefmetadefaults['thumb'] = None  # JPEG data
 
 tdefdefaults = {}
 tdefdefaults.update(tdefdictdefaults)

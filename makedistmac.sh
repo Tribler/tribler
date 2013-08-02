@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh -xe
 #
 # Written by Riccardo Petrocco, Arno Bakker
 # see LICENSE.txt for license information
@@ -45,18 +45,21 @@ ln -s /Applications dist/installdir/Applications
 touch dist/installdir
 
 # Swift
-rm swift
+rm -f swift
 cd Tribler/SwiftEngine
-make -f Makefile.mac clean
-make -f Makefile.mac
+make -f Makefile.mac clean ||: # TODO: This should be fixed on the Makefile, not here
+make -f Makefile.mac -j2
 cp swift ../..
 cd ../..
 cp swift dist/installdir/Tribler.app/Contents/MacOS/
 
-mkdir -p dist/temp 
+#Copy logger.conf
+cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
+
+mkdir -p dist/temp
 
 # create image
-hdiutil create -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg 
+hdiutil create -srcfolder dist/installdir -format UDRW -scrub -volname ${APPNAME} dist/$APPNAME.dmg
 
 # open it
 hdiutil attach -readwrite -noverify -noautoopen dist/$APPNAME.dmg -mountpoint dist/temp/mnt

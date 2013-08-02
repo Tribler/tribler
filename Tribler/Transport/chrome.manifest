@@ -1,8 +1,0 @@
-content     tribe chrome/content/
-skin        tribe wiki skin/wiki/
-
-# Firefox
-overlay	chrome://browser/content/browser.xul chrome://tribe/content/tribe_status_bar.xul
-
-
-

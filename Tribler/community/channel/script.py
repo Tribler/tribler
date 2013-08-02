@@ -3,16 +3,20 @@ from community import ChannelCommunity
 from Tribler.dispersy.crypto import ec_generate_key, ec_to_public_bin, ec_to_private_bin
 from Tribler.dispersy.member import Member
 from Tribler.dispersy.script import ScriptBase
-from Tribler.dispersy.debug import Node
+from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 
-class ChannelNode(Node):
+
+class ChannelNode(DebugNode):
+
     def create_channel(self, name, description, global_time):
         meta = self._community.get_meta_message(u"channel")
         return meta.impl(authentication=(self._my_member,),
                          distribution=(global_time,),
                          payload=(name, description))
 
+
 class ChannelScript(ScriptBase):
+
     def run(self):
         ec = ec_generate_key(u"low")
         self._my_member = Member.get_instance(ec_to_public_bin(ec), ec_to_private_bin(ec), sync_with_database=True)
@@ -28,9 +32,8 @@ class ChannelScript(ScriptBase):
         address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
-        node = ChannelNode()
+        node = ChannelNode(community)
         node.init_socket()
-        node.set_community(community)
         node.init_my_member()
         yield 0.1
 
@@ -50,9 +53,8 @@ class ChannelScript(ScriptBase):
         address = self._dispersy.socket.get_address()
 
         # create node and ensure that SELF knows the node address
-        node = ChannelNode()
+        node = ChannelNode(community)
         node.init_socket()
-        node.set_community(community)
         node.init_my_member()
         yield 0.1
 

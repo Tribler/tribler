@@ -28,6 +28,7 @@ BUFFER_SIZE = 3000
 
 DEBUG = False
 
+
 class ThreadedReactor(threading.Thread):
 
     """
@@ -40,13 +41,13 @@ class ThreadedReactor(threading.Thread):
                  port, on_datagram_received_f,
                  task_interval=0.1,
                  floodbarrier_active=True):
-        threading.Thread.__init__(self, name = "DHT")
+        threading.Thread.__init__(self, name="DHT")
         self.daemon = True
 
         self._lock = threading.RLock()
         self._running = False
         self._call_asap_queue = []
-        self._next_main_loop_call_ts = 0 # call immediately
+        self._next_main_loop_call_ts = 0  # call immediately
 
         self._capturing = False
         self._captured = []
@@ -100,12 +101,12 @@ class ThreadedReactor(threading.Thread):
 
         """
         self.running = True
-        logger.critical('run')
+        logger.info('run')
         try:
             while self.running:
                 self.run_one_step()
         except:
-            logger.critical( 'MINITWISTED CRASHED')
+            logger.critical('MINITWISTED CRASHED')
             logger.exception('MINITWISTED CRASHED')
             print 'MINITWISTED CRASHED (see logs)'
             if DEBUG:
@@ -136,7 +137,7 @@ class ThreadedReactor(threading.Thread):
         """Main loop activated by calling self.start()"""
 
         # Deal with call_asap requests
-        #TODO: retry for 5 seconds if no msgs_to_send (inside controller?)
+        # TODO: retry for 5 seconds if no msgs_to_send (inside controller?)
         call_asap_tuple = None
         self._lock.acquire()
         try:
@@ -161,14 +162,14 @@ class ThreadedReactor(threading.Thread):
         try:
             data, addr = self.s.recvfrom(BUFFER_SIZE)
         except (socket.timeout):
-            pass #timeout
-        except (socket.error), e:
+            pass  # timeout
+        except (socket.error) as e:
             logger.warning(
                 'Got socket.error when receiving data:\n%s' % e)
         else:
             self._add_capture((time.time(), addr, False, data))
             ip_is_blocked = self.floodbarrier_active and \
-                            self.floodbarrier.ip_blocked(addr[0])
+                self.floodbarrier.ip_blocked(addr[0])
             if ip_is_blocked:
                 import sys
 #                print >>sys.stderr, '>>>>>>>>>>>>>>>>>>', addr
@@ -179,22 +180,22 @@ class ThreadedReactor(threading.Thread):
             datagram_received = Datagram(data, addr)
             (self._next_main_loop_call_ts,
              datagrams_to_send) = self._on_datagram_received_f(
-             datagram_received)
+                 datagram_received)
             for datagram in datagrams_to_send:
                 self._sendto(datagram)
 
-    def stop(self):#, stop_callback):
+    def stop(self):  # , stop_callback):
         """Stop the thread. It cannot be resumed afterwards"""
 
         self.running = False
-        self.join(self.task_interval*20)
+        self.join(self.task_interval * 20)
         if self.isAlive():
             logger.info('minitwisted thread still alive. Wait a little more')
-            time.sleep(self.task_interval*20)
-            self.join(self.task_interval*20)
+            time.sleep(self.task_interval * 20)
+            self.join(self.task_interval * 20)
         if self.isAlive():
-            raise Exception, 'Minitwisted thread is still alive!'
-        #TODO: conductor.stop_callback()?
+            raise Exception('Minitwisted thread is still alive!')
+        # TODO: conductor.stop_callback()?
 
     def call_asap(self, callback_f, *args, **kwds):
         """Call the given callback with given arguments as soon as possible

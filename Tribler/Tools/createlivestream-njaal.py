@@ -18,8 +18,8 @@ import Tribler.Core.Utilities.parseargs as parseargs
 argsdef = [('name', '', 'name of the stream'),
            ('source', '-', 'source to stream (url, file or "-" to indicate stdin)'),
            ('fileloop', False, 'if source is file, loop over it endlessly'),
-           ('destdir', '.','dir to save torrent (and stream)'),
-           ('bitrate', (512*1024)/8, 'bitrate of the streams in bytes'),
+           ('destdir', '.', 'dir to save torrent (and stream)'),
+           ('bitrate', (512 * 1024) /8, 'bitrate of the streams in bytes'),
            ('piecesize', 32768, 'transport piece size'),
            ('duration', '1:00:00', 'duration of the stream in hh:mm:ss format'),
            ('nuploads', 7, 'the max number of peers to serve directly'),
@@ -34,15 +34,17 @@ argsdef = [('name', '', 'name of the stream'),
 
 def state_callback(ds):
     d = ds.get_download()
-    print >>sys.stderr,`d.get_def().get_name()`,dlstatus_strings[ds.get_status()],ds.get_progress(),"%",ds.get_error(),"up",ds.get_current_speed(UPLOAD),"down",ds.get_current_speed(DOWNLOAD)
+    print >>sys.stderr, repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), "%", ds.get_error(), "up", ds.get_current_speed(UPLOAD), "down", ds.get_current_speed(DOWNLOAD)
 
-    return (1.0,False)
+    return (1.0, False)
 
-def vod_ready_callback(d,mimetype,stream,filename):
+
+def vod_ready_callback(d, mimetype, stream, filename):
     """ Called by the Session when the content of the Download is ready
 
     Called by Session thread """
-    print >>sys.stderr,"main: VOD ready callback called ###########################################################",mimetype
+    print >>sys.stderr, "main: VOD ready callback called ###########################################################", mimetype
+
 
 def generate_key(source, config):
     """
@@ -50,33 +52,32 @@ def generate_key(source, config):
     source of the torrent
     """
 
-
     a, b = os.path.split(source)
     if b == '':
         target = a
     else:
         target = os.path.join(a, b)
     target += ".torrent"
-    print "Generating key to '%s.tkey' and '%s.pub'"%(target, target)
+    print "Generating key to '%s.tkey' and '%s.pub'" % (target, target)
 
     keypair, pubkey = ClosedSwarm.generate_cs_keypair(target + ".tkey",
                                                       target + ".pub")
 
-    return keypair,pubkey
+    return keypair, pubkey
 
 
 def get_usage(defs):
-    return parseargs.formatDefinitions(defs,80)
+    return parseargs.formatDefinitions(defs, 80)
 
 
 class FileLoopStream:
 
-    def __init__(self,stream):
+    def __init__(self, stream):
         self.stream = stream
 
-    def read(self,nbytes=None):
+    def read(self, nbytes=None):
         data = self.stream.read(nbytes)
-        if len(data) == 0: # EOF
+        if len(data) == 0:  # EOF
             self.stream.seek(0)
             data = self.stream.read(nbytes)
         return data
@@ -87,19 +88,18 @@ class FileLoopStream:
 
 if __name__ == "__main__":
 
-    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets = {})
-    print >>sys.stderr,"config is",config
-    print "fileargs is",fileargs
+    config, fileargs = parseargs.Utilities.parseargs(sys.argv, argsdef, presets={})
+    print >>sys.stderr, "config is", config
+    print "fileargs is", fileargs
 
     if config['name'] == '':
-        print "Usage:  ",get_usage(argsdef)
+        print "Usage:  ", get_usage(argsdef)
         sys.exit(0)
-
 
     print "Press Ctrl-C to stop the download"
 
     try:
-        os.remove(os.path.join(config['destdir'],config['name']))
+        os.remove(os.path.join(config['destdir'], config['name']))
     except:
         print_exc()
 
@@ -113,9 +113,8 @@ if __name__ == "__main__":
 
     s = Session(sscfg)
 
-
     # LIVESOURCEAUTH
-    authfilename = os.path.join(config['destdir'],config['name']+'.sauth')
+    authfilename = os.path.join(config['destdir'], config['name'] + '.sauth')
     if config['auth'] == 'RSA':
         try:
             authcfg = RSALiveSourceAuthConfig.load(authfilename)
@@ -131,14 +130,14 @@ if __name__ == "__main__":
             authcfg = ECDSALiveSourceAuthConfig()
             authcfg.save(authfilename)
 
-    print >>sys.stderr,"main: Source auth pubkey",`str(authcfg.get_pubkey())`
+    print >>sys.stderr, "main: Source auth pubkey", repr(str(authcfg.get_pubkey()))
 
     tdef = TorrentDef()
     # hint: to derive bitrate and duration from a file, use
     #    ffmpeg -i file.mpeg /dev/null
-    tdef.create_live(config['name'],config['bitrate'],config['duration'],authcfg)
+    tdef.create_live(config['name'], config['bitrate'], config['duration'], authcfg)
     tdef.set_tracker(s.get_internal_tracker_url())
-    tdef.set_piece_length(config['piecesize']) #TODO: auto based on bitrate?
+    tdef.set_piece_length(config['piecesize'])  # TODO: auto based on bitrate?
     if len(config['thumb']) > 0:
         tdef.set_thumbnail(config['thumb'])
 
@@ -152,17 +151,17 @@ if __name__ == "__main__":
         # TODO: Read POA if keys are already given (but generate_cs is "no")
         # Will also create POA for this node - which will seed it!
     if len(config['cs_keys']) > 0:
-        print >>sys.stderr,"Setting torrent keys to:",config['cs_keys'].split(";")
+        print >>sys.stderr, "Setting torrent keys to:", config['cs_keys'].split(";")
         tdef.set_cs_keys(config['cs_keys'].split(";"))
     else:
-        print >>sys.stderr,"No keys"
-    #tdef2 = TorrentDef.load(torrentfilename)
-    #print >>sys.stderr,"main: Source auth pubkey2",`tdef2.metainfo['info']['live']`
+        print >>sys.stderr, "No keys"
+    # tdef2 = TorrentDef.load(torrentfilename)
+    # print >>sys.stderr,"main: Source auth pubkey2",`tdef2.metainfo['info']['live']`
 
     tdef.finalize()
 
-    torrentbasename = config['name']+'.tstream'
-    torrentfilename = os.path.join(config['destdir'],torrentbasename)
+    torrentbasename = config['name'] + '.tstream'
+    torrentfilename = os.path.join(config['destdir'], torrentbasename)
     tdef.save(torrentfilename)
 
     poa = None
@@ -183,11 +182,9 @@ if __name__ == "__main__":
                                              authcfg.get_pubkey(),
                                              tdef.infohash,
                                              poa)
-                print >>sys.stderr,"POA saved"
-            except Exception,e:
-                print >>sys.stderr,"Could not save POA"
-
-
+                print >>sys.stderr, "POA saved"
+            except Exception as e:
+                print >>sys.stderr, "Could not save POA"
 
     dscfg = DownloadStartupConfig()
     dscfg.set_dest_dir(config['destdir'])
@@ -213,30 +210,30 @@ if __name__ == "__main__":
     elif config['source'].startswith('pipe:'):
         # Program as source via pipe
         cmd = config['source'][len('pipe:'):]
-        (child_out,source) = os.popen2( cmd, 'b' )
+        (child_out, source) = os.popen2(cmd, 'b')
     else:
         # File source
-        stream = open(config['source'],"rb")
+        stream = open(config['source'], "rb")
         if config['fileloop']:
             source = FileLoopStream(stream)
         else:
             source = stream
         dscfg.set_video_ratelimit(tdef.get_bitrate())
 
-    dscfg.set_video_source(source,authcfg)
+    dscfg.set_video_source(source, authcfg)
 
     dscfg.set_max_uploads(config['nuploads'])
 
-    d = s.start_download(tdef,dscfg)
-    d.set_state_callback(state_callback,getpeerlist=False)
+    d = s.start_download(tdef, dscfg)
+    d.set_state_callback(state_callback)
 
     # condition variable would be prettier, but that don't listen to
     # KeyboardInterrupt
-    #time.sleep(sys.maxint/2048)
-    #try:
+    # time.sleep(sys.maxint/2048)
+    # try:
     #    while True:
     #        x = sys.stdin.read()
-    #except:
+    # except:
     #    print_exc()
     cond = Condition()
     cond.acquire()

@@ -6,20 +6,19 @@ from Tribler.dispersy.member import Member
 from Tribler.dispersy.tool.lencoder import log
 from Tribler.dispersy.dispersy import IntroductionRequestCache
 
+
 class SearchScript(ScenarioScriptBase):
+
     def __init__(self, **kargs):
         ScenarioScriptBase.__init__(self, 'barter.log', **kargs)
 
         self.late_join = int(kargs.get('latejoin', 1000))
-        self.do_search = int(kargs.get('dosearch', 1000))
         self.community_type = kargs.get('type', 'search')
         self.community_kargs = {}
         if 'ttl' in kargs:
             self.community_kargs['ttl'] = kargs['ttl']
         if 'neighbors' in kargs:
             self.community_kargs['neighbors'] = int(kargs['neighbors'])
-        if 'fneighbors' in kargs:
-            self.community_kargs['fneighbors'] = int(kargs['fneighbors'])
         if 'max_prefs' in kargs:
             self.community_kargs['max_prefs'] = int(kargs['max_prefs'])
 
@@ -28,11 +27,8 @@ class SearchScript(ScenarioScriptBase):
 
         self.manual_connect = str2bool(kargs.get('manual_only', 'false'))
         self.bootstrap_percentage = float(kargs.get('bootstrap_percentage', 1.0))
-        self.search_limit = int(kargs.get('search_limit', sys.maxint))
+        self.search_limit = int(kargs.get('search_limit', sys.maxsize))
         self.community_kargs['encryption'] = str2bool(kargs.get('encryption', 'false'))
-
-        if self.late_join == 0:
-            self.manual_connect = True
 
         self.taste_buddies = set()
         self.not_connected_taste_buddies = set()
@@ -50,13 +46,12 @@ class SearchScript(ScenarioScriptBase):
 
         log(self._logfile, "joining community with kargs", kargs=self.community_kargs)
 
-
         if self.community_type == 'search':
-            community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+            community = SearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches= True, **self.community_kargs)
         elif self.community_type == 'hsearch':
-            community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+            community = HSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches= True, **self.community_kargs)
         else:
-            community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches=True, **self.community_kargs)
+            community = PSearchCommunity.join_community(master, self.my_member, self.my_member, integrate_with_tribler=False, log_searches= True, **self.community_kargs)
 
         self._add_taste_buddies = community.add_taste_buddies
         community.add_taste_buddies = self.log_taste_buddies
@@ -81,10 +76,9 @@ class SearchScript(ScenarioScriptBase):
         if step == 100 and int(self._my_name) <= self.late_join:
             self._community.create_introduction_request = self._create_introduction_request
 
-        perform_search = (step + 200) % 300 == 0 and (self._community.ttl or self._community.forwarding_prob)
-        if perform_search:
-            nr_search = (step + 200) / 300
-            if nr_search <= self.search_limit and int(self._my_name) <= self.do_search:
+        if (self._community.ttl or self._community.forwarding_prob) and step > 0 and step % 100 == 0:
+            nr_search = step / 100
+            if nr_search <= self.search_limit:
                 self.nr_search = nr_search
                 self._dispersy.callback.persistent_register("do_search", self.perform_searches)
 
@@ -95,14 +89,14 @@ class SearchScript(ScenarioScriptBase):
             cur_command = command.split()
             if cur_command[0] == 'download':
                 infohash = cur_command[1]
-                infohash = infohash + " "* (20 - len(infohash))
+                infohash = infohash + " " * (20 - len(infohash))
 
                 log(self._logfile, "registering download %s" % infohash)
                 self._community._mypref_db.addMyPreference(infohash, {})
 
             elif cur_command[0] == 'testset':
                 infohash = cur_command[1]
-                infohash = infohash + " "* (20 - len(infohash))
+                infohash = infohash + " " * (20 - len(infohash))
 
                 self.test_set.add(infohash)
                 self._community._mypref_db.addTestPreference(infohash)
@@ -119,7 +113,7 @@ class SearchScript(ScenarioScriptBase):
                     log(self._logfile, "new taste buddy %s:%d" % (ip, port))
 
                     if int(self._my_name) > self.late_join:
-                        self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay=1.0)
+                        self._dispersy.callback.register(self.connect_to_taste_buddy, args=((ip, port),), delay = 1.0)
 
     def log_statistics(self):
         while True:
@@ -134,10 +128,10 @@ class SearchScript(ScenarioScriptBase):
                     taste_ratio = ratio / float(self._nr_peers - self.late_join)
 
             recall = len(self.test_reply) / float(len(self.test_set))
-            recall /= float(self.do_search)
+            recall /= float(self._nr_peers)
 
-            log("dispersy.log", "scenario-statistics", bootstrapped=taste_ratio, latejoin=latejoin, recall=recall, nr_search_=self.nr_search)
-            log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward=self._community.search_forward, search_forward_success=self._community.search_forward_success, search_forward_timeout=self._community.search_forward_timeout, search_endpoint=self._community.search_endpoint, search_cycle_detected=self._community.search_cycle_detected, search_megacachesize=self._community.search_megacachesize, create_time_encryption=self._community.create_time_encryption, create_time_decryption=self._community.create_time_decryption, receive_time_encryption=self._community.receive_time_encryption)
+            log("dispersy.log", "scenario-statistics", bootstrapped=taste_ratio, latejoin= latejoin, recall = recall, nr_search_ = self.nr_search)
+            log("dispersy.log", "scenario-debug", not_connected=list(self.not_connected_taste_buddies), search_forward= self._community.search_forward, search_forward_success = self._community.search_forward_success, search_forward_timeout = self._community.search_forward_timeout, search_endpoint = self._community.search_endpoint, search_cycle_detected = self._community.search_cycle_detected, search_megacachesize = self._community.search_megacachesize, create_time_encryption = self._community.create_time_encryption, create_time_decryption = self._community.create_time_decryption, receive_time_encryption = self._community.receive_time_encryption)
             yield 5.0
 
     def log_taste_buddies(self, new_taste_buddies):
@@ -158,9 +152,9 @@ class SearchScript(ScenarioScriptBase):
 
         recall = len(self.test_reply) / float(len(self.test_set))
         if results:
-            log(self._logfile, "results", recall=recall, keywords=keywords, candidate=str(candidate), results=results)
+            log(self._logfile, "results", recall=recall, keywords= keywords, candidate = str(candidate), results = results)
         else:
-            log(self._logfile, "no results", recall=recall, keywords=keywords, candidate=str(candidate))
+            log(self._logfile, "no results", recall=recall, keywords= keywords, candidate = str(candidate))
 
     def monitor_taste_buddy(self):
         while True:
@@ -173,7 +167,7 @@ class SearchScript(ScenarioScriptBase):
             yield 5.0
 
     def connect_to_taste_buddy(self, sock_addr):
-        candidate = self._dispersy.get_candidate(sock_addr, replace=False)
+        candidate = self._community.get_candidate(sock_addr, replace=False)
         if not candidate:
             candidate = self._community.create_candidate(sock_addr, False, sock_addr, sock_addr, u"unknown")
 
@@ -187,9 +181,9 @@ class SearchScript(ScenarioScriptBase):
         for infohash in (self.test_set - self.test_reply):
             candidates, local_results = self._community.create_search([unicode(infohash)], self.log_search_response)
             candidates = map(str, candidates)
-            log(self._logfile, "send search query for '%s' to %d candidates" % (infohash, len(candidates)), candidates=candidates)
+            log(self._logfile, "send search query for '%s' to %d candidates" % (infohash, len(candidates)), candidates= candidates)
 
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
 
-            yield 15.0
+            yield 5.0

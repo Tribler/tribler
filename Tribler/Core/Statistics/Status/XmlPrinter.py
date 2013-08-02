@@ -1,6 +1,7 @@
 # Written by Njaal Borch
 # see LICENSE.txt for license information
 
+
 def to_unicode(string):
     """
     Function to change a string (unicode or not) into a unicode string
@@ -27,7 +28,6 @@ class XmlPrinter:
 
     """
 
-
     def __init__(self, doc):
         """
         doc should be a xml.dom.minidom document
@@ -35,7 +35,7 @@ class XmlPrinter:
         """
 
         self.root = doc
-        self.namespace_counter=0
+        self.namespace_counter = 0
 
     def to_xml(self, encoding="UTF8"):
         """
@@ -49,14 +49,13 @@ class XmlPrinter:
         """
         return self._toxml(self.root, indent, newl).encode(encoding, "replace")
 
-
     def _make_header(self, encoding):
 
-        return u'<?xml version="1.0" encoding="%s" ?>\n'%encoding
+        return u'<?xml version="1.0" encoding="%s" ?>\n' % encoding
 
     def _new_namespace(self, namespace):
         # Make new namespace
-        ns_short = "ns%d"%self.namespace_counter
+        ns_short = "ns%d" % self.namespace_counter
         self.namespace_counter += 1
         return ns_short
 
@@ -86,7 +85,7 @@ class XmlPrinter:
             if name.find(" ") > -1:
                 raise Exception("Refusing spaces in tag names")
 
-            if namespaces.has_key(ns):
+            if ns in namespaces:
                 ns_short = namespaces[ns]
                 define_ns = False
             else:
@@ -105,8 +104,8 @@ class XmlPrinter:
                 if child.nodeType != child.ELEMENT_NODE:
                     continue
 
-                if not namespaces.has_key(child.namespaceURI) and \
-                       child.namespaceURI not in [None, ""]:
+                if child.namespaceURI not in namespaces and \
+                    child.namespaceURI not in [None, ""]:
                     # Should define this one too!
                     new_ns = self._new_namespace(child.namespaceURI)
                     define_ns_list.append((child.namespaceURI, new_ns))
@@ -118,22 +117,22 @@ class XmlPrinter:
                 if ns != None:
                     if define_ns:
                         if ns_short:
-                            buffer += '<%s:%s xmlns:%s="%s"/>%s'%\
-                                      (ns_short, name,ns_short,ns,newl)
+                            buffer += '<%s:%s xmlns:%s="%s"/>%s' %\
+                                      (ns_short, name, ns_short, ns, newl)
                         else:
-                            buffer += '<%s xmlns="%s"/>%s'%(name,ns,newl)
+                            buffer += '<%s xmlns="%s"/>%s' % (name, ns, newl)
                     else:
                         if ns_short:
-                            buffer += '<%s:%s/>%s'%(ns_short, name, newl)
+                            buffer += '<%s:%s/>%s' % (ns_short, name, newl)
                         else:
-                            buffer += '<%s/>%s'%(name, newl)
+                            buffer += '<%s/>%s' % (name, newl)
 
                 else:
-                    buffer += '<%s/>%s'%(name, newl)
+                    buffer += '<%s/>%s' % (name, newl)
 
                 # Clean up - namespaces is passed as a reference, and is
                 # as such not cleaned up.  Let it be so to save some speed
-                for (n,short) in define_ns_list:
+                for (n, short) in define_ns_list:
                     del namespaces[n]
                 return buffer
 
@@ -141,25 +140,25 @@ class XmlPrinter:
             ns_string = ""
             if len(define_ns_list) > 0:
                 for (url, short) in define_ns_list:
-                    ns_string += ' xmlns:%s="%s"'%(short, url)
+                    ns_string += ' xmlns:%s="%s"' % (short, url)
 
             if ns != None:
                 if define_ns:
                     if ns_short:
                         # Define all namespaces of next level children too
-                        buffer += '<%s:%s xmlns:%s="%s"%s>%s'%\
+                        buffer += '<%s:%s xmlns:%s="%s"%s>%s' %\
                                   (ns_short, name, ns_short, ns, ns_string, newl)
                     else:
-                        buffer += '<%s xmlns="%s"%s>%s'%(name,ns,ns_string,newl)
+                        buffer += '<%s xmlns="%s"%s>%s' % (name, ns, ns_string, newl)
                 else:
                     if ns_short:
-                        buffer += '<%s:%s%s>%s'%(ns_short, name, ns_string, newl)
+                        buffer += '<%s:%s%s>%s' % (ns_short, name, ns_string, newl)
                     else:
-                        buffer += '<%s%s>%s'%(name, ns_string, newl)
+                        buffer += '<%s%s>%s' % (name, ns_string, newl)
             elif ns_string:
-                buffer += '<%s %s>%s'%(name, ns_string, newl)
+                buffer += '<%s %s>%s' % (name, ns_string, newl)
             else:
-                buffer += '<%s>%s'%(name, newl)
+                buffer += '<%s>%s' % (name, newl)
 
             # Recursively process
             for child in element.childNodes:
@@ -168,18 +167,18 @@ class XmlPrinter:
                     new_indent += "  "
                 buffer += self._toxml(child, new_indent, newl, encoding, namespaces)
             if ns_short:
-                buffer += "%s</%s:%s>%s"%(indent, ns_short, name, newl)
+                buffer += "%s</%s:%s>%s" % (indent, ns_short, name, newl)
             else:
-                buffer += "%s</%s>%s"%(indent, name, newl)
+                buffer += "%s</%s>%s" % (indent, name, newl)
 
             for (n, short) in define_ns_list:
                 del namespaces[n]
             try:
                 return buffer
-            except Exception,e:
+            except Exception as e:
                 print "-----------------"
-                print "Exception:",e
-                print "Buffer:",buffer
+                print "Exception:", e
+                print "Buffer:", buffer
                 print "-----------------"
                 raise e
 
