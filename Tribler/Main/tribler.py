@@ -18,6 +18,7 @@ try:
     logging.config.fileConfig("logger.conf")
 except:
     print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
+logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # Arno: M2Crypto overrides the method for https:// in the
