@@ -331,10 +331,11 @@ class TTLSearchCommunity(Community):
 
             elif isinstance(self.ttl, tuple):
                 ttl = message.payload.ttl
-                if ttl == self.ttl[0] or ttl == self.ttl[1]:
-                    ttl -= 0 if random() < 0.5 else 1
-                else:
-                    ttl -= 1
+#                 if ttl == self.ttl[0] or ttl == self.ttl[1]:
+#                     ttl -= 0 if random() < 0.5 else 1
+#                 else:
+#                     ttl -= 1
+                ttl -= 1
             else:
                 ttl = 7 if random() < self.ttl else 0
 
