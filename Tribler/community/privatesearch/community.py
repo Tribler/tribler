@@ -361,7 +361,7 @@ class TTLSearchCommunity(Community):
                 candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                 if True or DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d)" % (ttl, message.payload.ttl, len(candidates), identifier)
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d) received from" % (ttl, message.payload.ttl, len(candidates), identifier), message.candidate
 
                 if len(candidates):
                     self.search_forward += len(candidates)
@@ -369,7 +369,7 @@ class TTLSearchCommunity(Community):
                     forward_message = False
             else:
                 if True or DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: not forwarding initial ttl = %d, forwarding (identifier = %d)" % (message.payload.ttl, identifier)
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: not forwarding initial ttl = %d, replying to (identifier = %d)" % (message.payload.ttl, identifier), message.candidate
 
             if not forward_message:
                 if DEBUG:
