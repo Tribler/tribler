@@ -435,27 +435,30 @@ class TTLSearchCommunity(Community):
         for message in messages:
             # fetch callback using identifier
             search_request = self._dispersy.request_cache.get(message.payload.identifier, TTLSearchCommunity.MSearchRequest)
-            if DEBUG:
-                print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
-
-            if len(message.payload.results) > 0 and self.use_megacache:
-                self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
-
-            removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
-            if removeCache:
-                self._dispersy.request_cache.pop(message.payload.identifier, TTLSearchCommunity.SearchRequest)
-
-            # see if we need to join some channels
-            channels = set([result[10] for result in message.payload.results if result[10]])
-            if channels:
-                channels = self._get_unknown_channels(channels)
-
+            if search_request:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "SearchCommunity: joining %d preview communities" % len(channels)
+                    print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
 
-                for cid in channels:
-                    community = self._get_channel_community(cid)
-                    community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
+                if len(message.payload.results) > 0 and self.use_megacache:
+                    self.search_megacachesize = self._torrent_db.on_search_response(message.payload.results)
+
+                removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
+                if removeCache:
+                    self._dispersy.request_cache.pop(message.payload.identifier, TTLSearchCommunity.MSearchRequest)
+
+                # see if we need to join some channels
+                channels = set([result[10] for result in message.payload.results if result[10]])
+                if channels:
+                    channels = self._get_unknown_channels(channels)
+
+                    if DEBUG:
+                        print >> sys.stderr, long(time()), "SearchCommunity: joining %d preview communities" % len(channels)
+
+                    for cid in channels:
+                        community = self._get_channel_community(cid)
+                        community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
+            else:
+                print >> sys.stderr, long(time()), "SearchCommunity: got search response for somehow the request is missing from the cache? Did we just pop?", sum(1 if message.payload.identifier == curmessage.payload.identifier else 0 for curmessage in messages)
 
     def create_torrent_request(self, torrents, candidate):
         torrentdict = {}
