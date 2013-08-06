@@ -262,7 +262,7 @@ class TTLSearchCommunity(Community):
             results = self._get_results(keywords, bloomfilter, True)
 
         # fetch requested candidates from previous forward
-        prev_request = self._dispersy.request_cache.get(identifier, TTLSearchCommunity.MSearchRequest)
+        prev_request = self._dispersy.request_cache.get(identifier, TTLSearchCommunity.SearchRequest)
         if prev_request:
             ignore_candidates = prev_request.get_requested_candidates()
         else:
@@ -306,7 +306,7 @@ class TTLSearchCommunity(Community):
             else:
                 self._dispersy.request_cache.set(identifier, TTLSearchCommunity.MSearchRequest(this_request))
 
-            if DEBUG:
+            if True or DEBUG:
                 print >> sys.stderr, long(time()), "TTLSearchCommunity: sending search request for", keywords, "to", map(str, candidates)
         else:
             self.search_no_candidates_remain += 1
