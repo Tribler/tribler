@@ -355,18 +355,21 @@ class TTLSearchCommunity(Community):
 
             if forward_message:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding" % ttl
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding" % (ttl, message.payload.ttl)
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
                 candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                 if True or DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates" % (ttl, message.payload.ttl, len(candidates))
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d)" % (ttl, message.payload.ttl, len(candidates), identifier)
 
                 if len(candidates):
                     self.search_forward += len(candidates)
                 else:
                     forward_message = False
+            else:
+                if True or DEBUG:
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: not forwarding initial ttl = %d, forwarding (identifier = %d)" % (message.payload.ttl, identifier)
 
             if not forward_message:
                 if DEBUG:
