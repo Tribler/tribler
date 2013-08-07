@@ -4,12 +4,8 @@
 # Meant to be called from mac/Makefile
 # ---------------
 
-import py2app
-from distutils.util import get_platform
 import sys
 import os
-import platform
-import shutil
 from setuptools import setup
 from Tribler.__init__ import LIBRARYNAME
 
