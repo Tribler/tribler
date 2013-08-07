@@ -36,6 +36,8 @@ class SearchScript(SemanticScript):
                 self.community_kargs['neighbors'] = parse_tuplestr(kargs['neighbors'])
             if 'fneighbors' in kargs:
                 self.community_kargs['fneighbors'] = parse_tuplestr(kargs['fneighbors'])
+            if 'prob' in kargs:
+                self.community_kargs['prob'] = float(kargs['prob'])
         else:
             if 'cancel_after' in kargs:
                 self.community_kargs['cancel_after'] = parse_tuplestr(kargs['cancel_after'])
