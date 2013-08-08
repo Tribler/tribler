@@ -143,6 +143,7 @@ class TTLSearchCommunity(Community):
             self.callback = callback
             self.results = results
             self.return_candidate = return_candidate
+            self.created_by_me = not return_candidate
 
             self.requested_candidates = requested_candidates
             self.requested_mids = set()
@@ -232,6 +233,10 @@ class TTLSearchCommunity(Community):
         @property
         def keywords(self):
             return self.search_requests[0].keywords
+
+        @property
+        def created_by_me(self):
+            return self.search_requests[0].created_by_me
 
     def create_search(self, keywords, callback, identifier=None, ttl=None, nrcandidates=None, bloomfilter=None, results=None, return_candidate=None):
         if identifier == None:
@@ -365,7 +370,7 @@ class TTLSearchCommunity(Community):
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
                 candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
-                if True or DEBUG:
+                if DEBUG:
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d, %f, %f) received from" % (ttl, message.payload.ttl, len(candidates), identifier, self.prob, self.fprob), message.candidate
 
                 if len(candidates):
@@ -373,7 +378,7 @@ class TTLSearchCommunity(Community):
                 else:
                     forward_message = False
             else:
-                if True or DEBUG:
+                if DEBUG:
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: not forwarding initial ttl = %d, replying to (identifier = %d)" % (message.payload.ttl, identifier), message.candidate
 
             if not forward_message:
@@ -445,8 +450,11 @@ class TTLSearchCommunity(Community):
     def on_search_response(self, messages):
         for message in messages:
             # fetch callback using identifier
-            search_request = self._dispersy.request_cache.get(message.payload.identifier, TTLSearchCommunity.MSearchRequest)
+            search_request = self._dispersy.request_cache.get(message.payload.identifier, TTLSearchCommunity.SearchRequest)
             if search_request:
+                if search_request.created_by_me and message.payload.results:
+                    log("dispersy.log", "search-response", identifier=message.payload.identifier)
+
                 if DEBUG:
                     print >> sys.stderr, long(time()), "SearchCommunity: got search response for", search_request.keywords, len(message.payload.results), message.candidate
 
@@ -455,7 +463,7 @@ class TTLSearchCommunity(Community):
 
                 removeCache = search_request.on_success(message.authentication.member.mid, search_request.keywords, message.payload.results, message.candidate)
                 if removeCache:
-                    self._dispersy.request_cache.pop(message.payload.identifier, TTLSearchCommunity.MSearchRequest)
+                    self._dispersy.request_cache.pop(message.payload.identifier, TTLSearchCommunity.SearchRequest)
 
                 # see if we need to join some channels
                 channels = set([result[10] for result in message.payload.results if result[10]])
