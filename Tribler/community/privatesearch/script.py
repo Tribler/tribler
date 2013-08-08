@@ -15,6 +15,8 @@ from threading import Thread
 from Tribler.dispersy.script import ScenarioScriptBase
 from Tribler.community.privatesearch.oneswarm.community import PoliOneSwarmCommunity
 
+DEBUG = False
+
 class SearchScript(SemanticScript):
     def __init__(self, **kargs):
         SemanticScript.__init__(self, **kargs)
@@ -179,7 +181,8 @@ class SearchScript(SemanticScript):
         for infohash in self.test_set:
             candidates, local_results, identifier = self._community.create_search([unicode(infohash)], self.log_search_response)
             candidates = map(str, candidates)
-            log(self._logfile, "send search query for '%s' with identifier %d to %d candidates" % (infohash, identifier, len(candidates)), candidates=candidates)
+            if DEBUG:
+                log(self._logfile, "send search query for '%s' with identifier %d to %d candidates" % (infohash, identifier, len(candidates)), candidates=candidates)
 
             if local_results:
                 self.log_search_response([unicode(infohash)], local_results, None)
