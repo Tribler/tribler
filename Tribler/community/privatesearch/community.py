@@ -360,13 +360,13 @@ class TTLSearchCommunity(Community):
 
             if forward_message:
                 if DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding" % (ttl, message.payload.ttl)
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding (%f, %f)" % (ttl, message.payload.ttl, self.prob, self.fprob)
 
                 callback = lambda keywords, newresults, candidate, myidentifier = identifier: self._create_search_response(myidentifier, newresults, candidate)
                 candidates, _, _ = self.create_search(keywords, callback, identifier, ttl, self.fneighbors, bloomfilter, results, message.candidate)
 
                 if True or DEBUG:
-                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d) received from" % (ttl, message.payload.ttl, len(candidates), identifier), message.candidate
+                    print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding, sent to %d candidates (identifier = %d, %f, %f) received from" % (ttl, message.payload.ttl, len(candidates), identifier, self.prob, self.fprob), message.candidate
 
                 if len(candidates):
                     self.search_forward += len(candidates)
@@ -648,10 +648,10 @@ class SearchCommunity(HForwardCommunity, TTLSearchCommunity):
         except StopIteration:
             return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(SearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
         HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 0, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
@@ -672,8 +672,8 @@ class PSearchCommunity(PForwardCommunity, TTLSearchCommunity):
         else:
             return super(PSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
         PForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
@@ -692,10 +692,10 @@ class HSearchCommunity(HForwardCommunity, TTLSearchCommunity):
         except StopIteration:
             return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(HSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(HSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
         HForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
@@ -717,10 +717,10 @@ class PoliSearchCommunity(PoliForwardCommunity, TTLSearchCommunity):
         except StopIteration:
             return cls.join_community(master, my_member, my_member, integrate_with_tribler=integrate_with_tribler, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
         else:
-            return super(PoliSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
+            return super(PoliSearchCommunity, cls).load_community(master, integrate_with_tribler=integrate_with_tribler, encryption=encryption, ttl=ttl, neighbors=neighbors, fneighbors=fneighbors, prob=prob, log_searches=log_searches, use_megacache=use_megacache, max_prefs=max_prefs, max_fprefs=max_fprefs)
 
-    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
-        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, log_searches, use_megacache)
+    def __init__(self, master, integrate_with_tribler=True, encryption=ENCRYPTION, ttl=TTL, neighbors=NEIGHBORS, fneighbors=FNEIGHBORS, prob=FPROB, log_searches=False, use_megacache=True, max_prefs=None, max_fprefs=None):
+        TTLSearchCommunity.__init__(self, master, integrate_with_tribler, ttl, neighbors, fneighbors, prob, log_searches, use_megacache)
         PoliForwardCommunity.__init__(self, master, integrate_with_tribler, encryption, 10, max_prefs, max_fprefs)
 
     def initiate_conversions(self):
