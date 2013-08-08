@@ -46,6 +46,9 @@ class OneSwarmCommunity(TTLSearchCommunity):
         def callback_converter(wrapped_msg):
             msg = wrapped_msg.dispersy_msg
 
+            if self.log_searches and msg.payload.results:
+                log("dispersy.log", "search-response", identifier=msg.payload.identifier)
+
             callback(keywords, msg.payload.results, msg.candidate)
 
         wrapped_candidates = self.search_manager.sendTextSearch(identifier, MessageWrapper(message, mine=True), callback_converter)
