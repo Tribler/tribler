@@ -314,7 +314,7 @@ class TTLSearchCommunity(Community):
             else:
                 self._dispersy.request_cache.set(identifier, TTLSearchCommunity.MSearchRequest(this_request))
 
-            if True or DEBUG:
+            if DEBUG:
                 print >> sys.stderr, long(time()), "TTLSearchCommunity: sending search request for", keywords, "to", map(str, candidates)
         else:
             self.search_no_candidates_remain += 1
