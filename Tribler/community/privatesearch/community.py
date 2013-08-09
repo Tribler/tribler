@@ -363,6 +363,10 @@ class TTLSearchCommunity(Community):
                 if cache.keywords != keywords:  # abort, return
                     forward_message = False
 
+            # temp fake immediate response of peers
+            if results:
+                log("dispersy.log", "search-response", identifier=message.payload.identifier)
+
             if forward_message:
                 if DEBUG:
                     print >> sys.stderr, long(time()), "TTLSearchCommunity: ttl = %d, initial ttl = %d, forwarding (%f, %f)" % (ttl, message.payload.ttl, self.prob, self.fprob)
