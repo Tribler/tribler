@@ -763,7 +763,7 @@ class ThumbnailRequester(Requester):
             if not candidate.tunnel:
                 port = 7758
 
-            if True or DEBUG:
+            if DEBUG:
                 print >> sys.stderr, "rtorrent: requesting thumbnail", binascii.hexlify(roothash), ip, port
 
             download = None
