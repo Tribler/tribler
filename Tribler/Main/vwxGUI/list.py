@@ -413,6 +413,8 @@ class ChannelSearchManager(BaseManager):
                 self.do_or_schedule_refresh()
 
             else:
+                update = False
+
                 if not votecast:
                     if self.category == 'All':
                         update = True
