@@ -643,8 +643,14 @@ class TriblerLaunchMany(Thread):
             self.torrent_checking.delInstance()
 
         if self.dispersy:
-            print >> sys.stderr, "lmc: Dispersy shutdown", "[%d]" % id(self.dispersy)
-            self.dispersy.stop(666.666)
+            print >> sys.stderr, "lmc: Shutting down Dispersy..."
+            now = timemod.time()
+            success = self.dispersy.stop(666.666)
+            if success:
+                diff = timemod.time() - now
+                print >> sys.stderr, "lmc: Dispersy successfully shutdown in %.2f seconds" % diff
+            else:
+                print >> sys.stderr, "lmc: Dispersy failed to shutdown in %.2f seconds" % diff
         else:
             self.database_thread.shutdown(True)
 
