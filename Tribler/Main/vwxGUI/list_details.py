@@ -421,8 +421,9 @@ class TorrentDetails(AbstractDetails):
         self.description.Show(show_description)
 
         # Toggle status
-        self.status_title.Show(bool(self.torrent.state))
-        self.status.Show(bool(self.torrent.state))
+        show_status = bool(self.torrent.state) or bool(self.torrent.magnetstatus)
+        self.status_title.Show(show_status)
+        self.status.Show(show_status)
 
         # Toggle infohash
         if self.showInfohash:
@@ -794,7 +795,7 @@ class TorrentDetails(AbstractDetails):
 
     @forceWxThread
     def ShowHealth(self, updating, no_update_reason=''):
-        if isinstance(self.torrent, CollectedTorrent) and getattr(self, 'health', False):
+        if isinstance(self.torrent, CollectedTorrent):
             updating = ', updating now' if updating else no_update_reason
 
             diff = time() - self.torrent.last_check
@@ -812,8 +813,6 @@ class TorrentDetails(AbstractDetails):
                         self.health.SetLabel("%s seeders, %s leechers" % (self.torrent.num_seeders, self.torrent.num_leechers) + updating)
                     else:
                         self.health.SetLabel("%s seeders, %s leechers (updated %s ago%s)" % (self.torrent.num_seeders, self.torrent.num_leechers, updated, updating))
-        else:
-            print >> sys.stderr, "No status element to show torrent_status"
 
     def OnRefresh(self, dslist, magnetlist):
         found = False
@@ -842,8 +841,9 @@ class TorrentDetails(AbstractDetails):
             if state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD, TorrentDetails.FINISHED]:
                 self.updateDetailsTab()
 
-            if getattr(self, 'status', False):
-                self.UpdateStatus()
+            if self.status_title.IsShown() != (bool(self.torrent.state) or bool(self.torrent.magnetstatus)):
+                self.updateDetailsTab()
+            self.UpdateStatus()
 
     def UpdateStatus(self):
         ds = self.torrent.ds
