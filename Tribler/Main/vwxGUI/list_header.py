@@ -1371,10 +1371,10 @@ class ChannelHeader(ListItemHeader):
     def OnExpand(self, item):
         if isinstance(item, ChannelListItem):
             from Tribler.Main.vwxGUI.list_details import ChannelDetails
-            cd = ChannelDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
-            item.expandedPanel = cd
             self.parent_list.list.DeselectAll()
-            self.guiutility.SetBottomSplitterWindow(cd)
+            detailspanel = self.guiutility.SetBottomSplitterWindow(ChannelDetails)
+            detailspanel.showChannel(item.original_data)
+            item.expandedPanel = detailspanel
 
         return ListItemHeader.OnExpand(self, item)
 
@@ -1412,10 +1412,10 @@ class PlaylistHeader(ListItemHeader):
     def OnExpand(self, item):
         if isinstance(item, PlaylistItem):
             from Tribler.Main.vwxGUI.list_details import PlaylistDetails
-            pd = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
-            item.expandedPanel = pd
             self.parent_list.list.DeselectAll()
-            self.guiutility.SetBottomSplitterWindow(pd)
+            detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails)
+            detailspanel.showPlaylist(item.original_data)
+            item.expandedPanel = detailspanel
 
         return ListItemHeader.OnExpand(self, item)
 

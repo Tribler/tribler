@@ -706,7 +706,7 @@ class AbstractListBody():
 
         if item:
             panel = item.Collapse()
-            self.parent_list.OnCollapse(item, panel)
+            self.parent_list.OnCollapse(item, panel, from_expand)
             self.cur_expanded = None
 
         toBeSelected = None

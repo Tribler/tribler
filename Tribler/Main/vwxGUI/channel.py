@@ -26,6 +26,7 @@ from shutil import copyfile
 from Tribler.Main.vwxGUI.list_details import PlaylistDetails
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forcePrioDBThread
+from random import sample
 
 DEBUG = False
 
@@ -467,12 +468,10 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def OnExpand(self, item):
-        if isinstance(item, PlaylistItem):
-            details = PlaylistDetails(self.guiutility.frame.splitter_bottom_window, item.original_data)
-        else:
-            details = TorrentDetails(self.guiutility.frame.splitter_bottom_window, item.original_data, noChannel=True)
-            item.expandedPanel = details
-        self.guiutility.SetBottomSplitterWindow(details)
+        detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails if isinstance(item, PlaylistItem) else TorrentDetails)
+        detailspanel.setTorrent(item.original_data)
+        item.expandedPanel = detailspanel
+
         self.top_header.header_list.DeselectAll()
         return True
 
@@ -493,10 +492,9 @@ class SelectedChannelList(GenericSearchList):
         _channel = self.channel
 
         if _channel:
-            panel = SelectedchannelInfoPanel(self.guiutility.frame.splitter_bottom_window)
+            detailspanel = self.guiutility.SetBottomSplitterWindow(SelectedchannelInfoPanel)
             num_items = len(self.list.raw_data) if self.list.raw_data else 1
-            panel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
-            self.guiutility.SetBottomSplitterWindow(panel)
+            detailspanel.Set(num_items, _channel.my_vote, self.state, self.iamModerator)
         else:
             self.guiutility.SetBottomSplitterWindow()
 
