@@ -116,7 +116,6 @@ class TorrentDetails(AbstractDetails):
         self.parent = parent
         self.torrent = Torrent('0', '0', '0', '0', '', '', 0, 0, 0, 0, 0, None)
         self.state = -1
-        self.isReady = False
 
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -151,45 +150,59 @@ class TorrentDetails(AbstractDetails):
     def setTorrent(self, torrent):
         if torrent:
             # Intermediate update
+            self.messageText.SetLabel('Loading details, please wait.\nTribler first needs to fetch the torrent file before this information can be accessed.')
+            self.messageGauge.Show(False)
+            self.messageButton.Show(False)
+            self.messagePanel.Layout()
             self.torrent = torrent
             self.showTorrent(self.torrent)
-            # Schedule another update (but with the collected torrent)
+
             filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent, retried=True)
             if filename:
                 self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback=self.showTorrent)
             else:
-                startWorker(None, self.guiutility.torrentsearch_manager.loadTorrent, wargs=(self.torrent,), wkwargs={'callback': self.showTorrent}, priority=GUI_PRI_DISPERSY)
+                def doGui(delayedResult):
+                    requesttype = delayedResult.get()
+                    if requesttype:
+                        self.messageText.SetLabel('Loading details, please wait. The torrent file is requested %s.\nTribler first needs to fetch the torrent file before this information can be accessed.' % requesttype)
+                        self.messageGauge.Show(True)
+                        self.messageGauge.Pulse()
+                        self.messagePanel.Layout()
+                    wx.CallLater(30000, timeout) if not self.guiutility.frame.librarylist.IsShownOnScreen() else None
+
+                def timeout():
+                    self.messageText.SetLabel("Failed loading torrent.\nPlease click retry or wait to allow other peers to respond.")
+                    self.messageGauge.Show(False)
+                    self.messageButton.Show(True)
+                    self.messagePanel.Layout()
+                startWorker(doGui, self.guiutility.torrentsearch_manager.loadTorrent, wargs=(self.torrent,), wkwargs={'callback': self.showTorrent}, priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def showTorrent(self, torrent, showTab=None):
         if self.torrent.infohash != torrent.infohash:
             return
 
-        try:
-            self.state = -1
-            self.torrent = torrent
+        self.state = -1
+        self.torrent = torrent
 
-            isChannelTorrent = isinstance(self.torrent, ChannelTorrent) or (isinstance(self.torrent, CollectedTorrent) and isinstance(self.torrent.torrent, ChannelTorrent))
-            if isChannelTorrent and self.torrent.hasChannel():
-                # This is a db call
-                state, iamModerator = self.torrent.channel.getState()
+        isChannelTorrent = isinstance(self.torrent, ChannelTorrent) or (isinstance(self.torrent, CollectedTorrent) and isinstance(self.torrent.torrent, ChannelTorrent))
+        if isChannelTorrent and self.torrent.hasChannel():
+            # This is a db call
+            state, iamModerator = self.torrent.channel.getState()
 
-                if isinstance(self, LibraryDetails):
-                    self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
-                else:
-                    self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
-                    self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+            if isinstance(self, LibraryDetails):
+                self.canMark = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
             else:
-                self.canEdit = False
-                self.canComment = False
-                self.canMark = False
+                self.canEdit = state >= ChannelCommunity.CHANNEL_OPEN
+                self.canComment = state >= ChannelCommunity.CHANNEL_SEMI_OPEN
+        else:
+            self.canEdit = False
+            self.canComment = False
+            self.canMark = False
 
-            self.updateAllTabs()
+        self.updateAllTabs()
 
-            self._Refresh(self.torrent.ds)
-
-        except wx.PyDeadObjectError:
-            pass
+        self._Refresh(self.torrent.ds)
 
     def createMessagePanel(self):
         # Create messagePanel
@@ -197,6 +210,9 @@ class TorrentDetails(AbstractDetails):
         self.messagePanel.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.messageIcon = TransparentStaticBitmap(self.messagePanel, -1, wx.ArtProvider.GetBitmap(wx.ART_INFORMATION))
         self.messageText = TransparentText(self.messagePanel, -1, "Loading details, please wait.\nTribler first needs to fetch the torrent file before this information can be accessed.")
+        self.messageGauge = wx.Gauge(self.messagePanel, -1, size=(100, 15))
+        self.messageButton = wx.Button(self.messagePanel, -1, "Retry")
+        self.messageButton.Bind(wx.EVT_BUTTON, lambda evt: self.setTorrent(self.torrent))
         _set_font(self.messageText, size_increment=2, fontweight=wx.FONTWEIGHT_NORMAL)
         vSizer = wx.BoxSizer(wx.VERTICAL)
         vSizer.AddStretchSpacer()
@@ -204,30 +220,32 @@ class TorrentDetails(AbstractDetails):
         hSizer.Add(self.messageIcon, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 15)
         hSizer.Add(self.messageText, 0, wx.ALL, 3)
         vSizer.Add(hSizer, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+        vSizer.Add(self.messageGauge, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
+        vSizer.Add(self.messageButton, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.TOP, 10)
         vSizer.AddStretchSpacer()
+        self.messageGauge.Show(False)
+        self.messageButton.Show(False)
         self.messagePanel.SetSizer(vSizer)
 
     def createAllTabs(self):
-        if not self.isReady:
-            self.Freeze()
-            self.createDetailsTab()
-            self.createFilesTab()
-            self.createEditTab()
-            self.createCommentsTab()
-            self.createModificationsTab()
-            self.createTrackersTab()
-            self.Thaw()
-            self.Layout()
-            self.isReady = True
+        self.Freeze()
+        self.createDetailsTab()
+        self.createFilesTab()
+        self.createEditTab()
+        self.createCommentsTab()
+        self.createModificationsTab()
+        self.createTrackersTab()
+        self.Thaw()
+        self.Layout()
 
-            showTab = getattr(self.parent, self.__class__.__name__ + '_tab', None) if self.parent else None
-            if showTab:
-                for i in range(self.notebook.GetPageCount()):
-                    if self.notebook.GetPageText(i) == showTab:
-                        self.notebook.SetSelection(i)
-                        break
-            else:
-                self.notebook.SetSelection(0)
+        showTab = getattr(self.parent, self.__class__.__name__ + '_tab', None) if self.parent else None
+        if showTab:
+            for i in range(self.notebook.GetPageCount()):
+                if self.notebook.GetPageText(i) == showTab:
+                    self.notebook.SetSelection(i)
+                    break
+        else:
+            self.notebook.SetSelection(0)
 
     def createDetailsTab(self):
         def OnToggleInfohash(event):
@@ -296,7 +314,6 @@ class TorrentDetails(AbstractDetails):
         self.detailsSizer.Add(self.marking_vSizer, 0, wx.EXPAND)
         self.marking_vSizer.ShowItems(False)
 
-        self.UpdateHealth()
         self.detailsTab.OnChange()
         self.detailsTab.Layout()
 
@@ -574,12 +591,12 @@ class TorrentDetails(AbstractDetails):
         event.Skip()
 
     def OnCommentCreated(self, infohash):
-        if self.torrent.infohash == infohash and self.isReady and self.canComment:
+        if self.torrent.infohash == infohash and self.canComment:
             manager = self.commentList.GetManager()
             manager.new_comment()
 
     def OnModificationCreated(self, channeltorrent_id):
-        if self.isReady and self.canEdit:
+        if self.canEdit:
             manager = self.modificationList.GetManager()
             manager.new_modification()
 
@@ -726,72 +743,68 @@ class TorrentDetails(AbstractDetails):
 
     @warnWxThread
     def RefreshData(self, data):
-        if self.isReady:
-            if isinstance(self.torrent, Torrent):
-                curTorrent = self.torrent
-            else:
-                curTorrent = self.torrent.torrent
+        if isinstance(self.torrent, Torrent):
+            curTorrent = self.torrent
+        else:
+            curTorrent = self.torrent.torrent
 
-            if hasattr(data[2], "bundle"):
-                newTorrent = data[2]['bundle'][0]
-            else:
-                newTorrent = data[2]
+        if hasattr(data[2], "bundle"):
+            newTorrent = data[2]['bundle'][0]
+        else:
+            newTorrent = data[2]
 
-            if curTorrent.infohash != newTorrent.infohash:
-                return
+        if curTorrent.infohash != newTorrent.infohash:
+            return
 
-            if hasattr(self.torrent, 'swarminfo'):
-                # remove cached swarminfo
-                del self.torrent.swarminfo
-            del self.torrent.status
+        if hasattr(self.torrent, 'swarminfo'):
+            # remove cached swarminfo
+            del self.torrent.swarminfo
+        del self.torrent.status
 
-            if not curTorrent.exactCopy(newTorrent):
-                # replace current torrent
-                curTorrent.swift_hash = newTorrent.swift_hash
-                curTorrent.swift_torrent_hash = newTorrent.swift_torrent_hash
-                curTorrent.torrent_file_name = newTorrent.torrent_file_name
+        if not curTorrent.exactCopy(newTorrent):
+            # replace current torrent
+            curTorrent.swift_hash = newTorrent.swift_hash
+            curTorrent.swift_torrent_hash = newTorrent.swift_torrent_hash
+            curTorrent.torrent_file_name = newTorrent.torrent_file_name
 
-                curTorrent.name = newTorrent.name
-                curTorrent.length = newTorrent.length
-                curTorrent.category_id = newTorrent.category_id
-                curTorrent.status_id = newTorrent.status_id
-                curTorrent.num_seeders = newTorrent.num_seeders
-                curTorrent.num_leechers = newTorrent.num_leechers
+            curTorrent.name = newTorrent.name
+            curTorrent.length = newTorrent.length
+            curTorrent.category_id = newTorrent.category_id
+            curTorrent.status_id = newTorrent.status_id
+            curTorrent.num_seeders = newTorrent.num_seeders
+            curTorrent.num_leechers = newTorrent.num_leechers
 
-                self.updateDetailsTab()
-                if self.canEdit:
-                    if not self.isEditable['name'].IsChanged():
-                        self.isEditable['name'].SetValue(curTorrent.name)
+            self.updateDetailsTab()
+            if self.canEdit:
+                if not self.isEditable['name'].IsChanged():
+                    self.isEditable['name'].SetValue(curTorrent.name)
 
-                    if not self.isEditable['description'].IsChanged():
-                        self.isEditable['description'].SetValue(curTorrent.description or '')
+                if not self.isEditable['description'].IsChanged():
+                    self.isEditable['description'].SetValue(curTorrent.description or '')
 
-            elif curTorrent.num_seeders != newTorrent.num_seeders or curTorrent.num_leechers != newTorrent.num_leechers:
-                curTorrent.num_seeders = newTorrent.num_seeders
-                curTorrent.num_leechers = newTorrent.num_leechers
-                self.ShowHealth(False)
+        elif curTorrent.num_seeders != newTorrent.num_seeders or curTorrent.num_leechers != newTorrent.num_leechers:
+            curTorrent.num_seeders = newTorrent.num_seeders
+            curTorrent.num_leechers = newTorrent.num_leechers
+            self.ShowHealth(False)
 
     @forceDBThread
     def UpdateHealth(self):
-        try:
-            if getattr(self.torrent, 'trackers', None) and len(self.torrent.trackers) > 0:
-                # touch swarminfo property
-                swarmInfo = self.torrent.swarminfo
+        if getattr(self.torrent, 'trackers', None) and len(self.torrent.trackers) > 0:
+            # touch swarminfo property
+            swarmInfo = self.torrent.swarminfo
 
-                if swarmInfo:
-                    diff = time() - self.torrent.last_check
-                else:
-                    diff = 1801
-
-                if diff > 1800:
-                    TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
-                    self.ShowHealth(True)
-                else:
-                    self.ShowHealth(False)
+            if swarmInfo:
+                diff = time() - self.torrent.last_check
             else:
-                self.ShowHealth(False, ', no trackers found')
-        except wx.PyDeadObjectError:
-            pass
+                diff = 1801
+
+            if diff > 1800:
+                TorrentChecking.getInstance().addToQueue(self.torrent.infohash)
+                self.ShowHealth(True)
+            else:
+                self.ShowHealth(False)
+        else:
+            self.ShowHealth(False, ', no trackers found')
 
     @forceWxThread
     def ShowHealth(self, updating, no_update_reason=''):
@@ -832,18 +845,17 @@ class TorrentDetails(AbstractDetails):
         if ds:
             self.torrent.addDs(ds)
 
-        if self.isReady:
-            state = self._GetState()
+        state = self._GetState()
 
-            if state != self.state:
-                self.ShowPanel(state)
+        if state != self.state:
+            self.ShowPanel(state)
 
-            if state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD, TorrentDetails.FINISHED]:
-                self.updateDetailsTab()
+        if state in [TorrentDetails.INCOMPLETE, TorrentDetails.INCOMPLETE_INACTIVE, TorrentDetails.VOD, TorrentDetails.FINISHED]:
+            self.updateDetailsTab()
 
-            if self.status_title.IsShown() != (bool(self.torrent.state) or bool(self.torrent.magnetstatus)):
-                self.updateDetailsTab()
-            self.UpdateStatus()
+        if self.status_title.IsShown() != (bool(self.torrent.state) or bool(self.torrent.magnetstatus)):
+            self.updateDetailsTab()
+        self.UpdateStatus()
 
     def UpdateStatus(self):
         ds = self.torrent.ds
@@ -913,14 +925,13 @@ class TorrentDetails(AbstractDetails):
     def Layout(self):
         returnValue = wx.Panel.Layout(self)
 
-        if self.isReady:
-            # force setupscrolling for scrollpages, if constructed while not shown this is required.
-            for i in range(self.notebook.GetPageCount()):
-                page = self.notebook.GetPage(i)
-                page.Layout()
+        # force setupscrolling for scrollpages, if constructed while not shown this is required.
+        for i in range(self.notebook.GetPageCount()):
+            page = self.notebook.GetPage(i)
+            page.Layout()
 
-                if getattr(page, 'SetupScrolling', False):
-                    page.SetupScrolling(scroll_x=False)
+            if getattr(page, 'SetupScrolling', False):
+                page.SetupScrolling(scroll_x=False)
 
         return returnValue
 
@@ -967,28 +978,26 @@ class LibraryDetails(TorrentDetails):
         self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=True)
 
     def createAllTabs(self):
-        if not self.isReady:
-            self.Freeze()
-            self.createDetailsTab()
-            self.createFilesTab()
-            self.createEditTab()
-            self.createCommentsTab()
-            self.createModificationsTab()
-            self.createTrackersTab()
-            self.createPeersTab()
-            self.createSpeedTab()
-            self.Thaw()
-            self.Layout()
-            self.isReady = True
+        self.Freeze()
+        self.createDetailsTab()
+        self.createFilesTab()
+        self.createEditTab()
+        self.createCommentsTab()
+        self.createModificationsTab()
+        self.createTrackersTab()
+        self.createPeersTab()
+        self.createSpeedTab()
+        self.Thaw()
+        self.Layout()
 
-            showTab = getattr(self.parent, self.__class__.__name__ + '_tab', None) if self.parent else None
-            if showTab:
-                for i in range(self.notebook.GetPageCount()):
-                    if self.notebook.GetPageText(i) == showTab:
-                        self.notebook.SetSelection(i)
-                        break
-            else:
-                self.notebook.SetSelection(0)
+        showTab = getattr(self.parent, self.__class__.__name__ + '_tab', None) if self.parent else None
+        if showTab:
+            for i in range(self.notebook.GetPageCount()):
+                if self.notebook.GetPageText(i) == showTab:
+                    self.notebook.SetSelection(i)
+                    break
+        else:
+            self.notebook.SetSelection(0)
 
     def createFilesTab(self):
         TorrentDetails.createFilesTab(self)
@@ -1116,131 +1125,130 @@ class LibraryDetails(TorrentDetails):
     def _Refresh(self, ds=None):
         TorrentDetails._Refresh(self, ds)
 
-        if self.isReady:
-            self.refresh_counter += 1
-            if self.refresh_counter % 5 == 0:
-                self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
-                self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
+        self.refresh_counter += 1
+        if self.refresh_counter % 5 == 0:
+            self.speedPanel.AppendData(0, self.torrent.ds.get_current_speed(DOWNLOAD) if self.torrent.ds else 0)
+            self.speedPanel.AppendData(1, self.torrent.ds.get_current_speed(UPLOAD) if self.torrent.ds else 0)
 
-            # register callback for peerlist update
-            self.peerList.Freeze()
+        # register callback for peerlist update
+        self.peerList.Freeze()
 
-            ds = self.torrent.ds
-            index = 0
-            if ds:
-                peers = ds.get_peerlist()
+        ds = self.torrent.ds
+        index = 0
+        if ds:
+            peers = ds.get_peerlist()
 
-                def downsort(a, b):
-                    if a.get('downrate', 0) != b.get('downrate', 0):
-                        return a.get('downrate', 0) - b.get('downrate', 0)
-                    return a.get('uprate', 0) - b.get('uprate', 0)
-                peers.sort(downsort, reverse=True)
+            def downsort(a, b):
+                if a.get('downrate', 0) != b.get('downrate', 0):
+                    return a.get('downrate', 0) - b.get('downrate', 0)
+                return a.get('uprate', 0) - b.get('uprate', 0)
+            peers.sort(downsort, reverse=True)
 
-                for peer_dict in peers:
-                    peer_name = peer_dict['ip'] + ':%d @ %d%%' % (peer_dict['port'], peer_dict.get('completed', 0) * 100.0)
-                    if index < self.peerList.GetItemCount():
-                        self.peerList.SetStringItem(index, 0, peer_name)
-                    else:
-                        self.peerList.InsertStringItem(index, peer_name)
+            for peer_dict in peers:
+                peer_name = peer_dict['ip'] + ':%d @ %d%%' % (peer_dict['port'], peer_dict.get('completed', 0) * 100.0)
+                if index < self.peerList.GetItemCount():
+                    self.peerList.SetStringItem(index, 0, peer_name)
+                else:
+                    self.peerList.InsertStringItem(index, peer_name)
 
-                    traffic = ""
-                    traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
-                    traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
-                    self.peerList.SetStringItem(index, 1, traffic.strip())
+                traffic = ""
+                traffic += self.guiutility.utility.speed_format_new(peer_dict.get('downrate', 0)) + u"\u2193 "
+                traffic += self.guiutility.utility.speed_format_new(peer_dict.get('uprate', 0)) + u"\u2191"
+                self.peerList.SetStringItem(index, 1, traffic.strip())
 
-                    state = ""
-                    if peer_dict.get('optimistic'):
-                        state += "O,"
-                    if peer_dict.get('uinterested'):
-                        state += "UI,"
-                    if peer_dict.get('uchoked'):
-                        state += "UC,"
-                    if peer_dict.get('uhasqueries'):
-                        state += "UQ,"
-                    if not peer_dict.get('uflushed'):
-                        state += "UBL,"
-                    if peer_dict.get('ueligable'):
-                        state += "UE,"
-                    if peer_dict.get('dinterested'):
-                        state += "DI,"
-                    if peer_dict.get('dchoked'):
-                        state += "DC,"
-                    if peer_dict.get('snubbed'):
-                        state += "S,"
-                    state += peer_dict.get('direction', '')
-                    self.peerList.SetStringItem(index, 2, state)
+                state = ""
+                if peer_dict.get('optimistic'):
+                    state += "O,"
+                if peer_dict.get('uinterested'):
+                    state += "UI,"
+                if peer_dict.get('uchoked'):
+                    state += "UC,"
+                if peer_dict.get('uhasqueries'):
+                    state += "UQ,"
+                if not peer_dict.get('uflushed'):
+                    state += "UBL,"
+                if peer_dict.get('ueligable'):
+                    state += "UE,"
+                if peer_dict.get('dinterested'):
+                    state += "DI,"
+                if peer_dict.get('dchoked'):
+                    state += "DC,"
+                if peer_dict.get('snubbed'):
+                    state += "S,"
+                state += peer_dict.get('direction', '')
+                self.peerList.SetStringItem(index, 2, state)
 
-                    image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
-                    self.peerList.SetItemColumnImage(index, 0, image_index)
+                image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
+                self.peerList.SetItemColumnImage(index, 0, image_index)
 
-                    if 'extended_version' in peer_dict:
+                if 'extended_version' in peer_dict:
+                    try:
+                        self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('ascii'))
+                    except:
                         try:
-                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('ascii'))
+                            self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8', 'ignore'))
                         except:
-                            try:
-                                self.peerList.SetStringItem(index, 3, peer_dict['extended_version'].decode('utf-8', 'ignore'))
-                            except:
-                                print >> sys.stderr, "Could not format peer client version"
+                            print >> sys.stderr, "Could not format peer client version"
+                else:
+                    self.peerList.SetStringItem(index, 3, '')
+
+                index += 1
+
+            if self.availability:
+                self.availability.SetLabel("%.2f" % ds.get_availability())
+                self.pieces.SetLabel("total %d, have %d" % ds.get_pieces_total_complete())
+
+                self.availability_vSizer.Layout()
+
+            dsprogress = ds.get_progress()
+            # Niels: 28-08-2012 rounding to prevent updating too many times
+            dsprogress = long(dsprogress * 1000) / 1000.0
+            if self.old_progress != dsprogress:
+                completion = {}
+
+                useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.filesList.GetItemCount() > 100
+                selected_files = ds.get_download().get_selected_files()
+                if ds.get_download().get_def().get_def_type() == 'swift':
+                    selected_files = [file.split('/')[1] for file in selected_files]
+                if useSimple:
+                    if selected_files:
+                        for i in range(self.filesList.GetItemCount()):
+                            file = self.filesList.GetItem(i, 0).GetText()
+                            if file in selected_files:
+                                completion[file] = dsprogress
                     else:
-                        self.peerList.SetStringItem(index, 3, '')
+                        for i in range(self.filesList.GetItemCount()):
+                            completion[self.filesList.GetItem(i, 0).GetText()] = dsprogress
+                else:
+                    for file, progress in ds.get_files_completion():
+                        completion[file] = progress
 
-                    index += 1
+                for i in range(self.filesList.GetItemCount()):
+                    listfile = self.filesList.GetItem(i, 0).GetText()
 
-                if self.availability:
-                    self.availability.SetLabel("%.2f" % ds.get_availability())
-                    self.pieces.SetLabel("total %d, have %d" % ds.get_pieces_total_complete())
-
-                    self.availability_vSizer.Layout()
-
-                dsprogress = ds.get_progress()
-                # Niels: 28-08-2012 rounding to prevent updating too many times
-                dsprogress = long(dsprogress * 1000) / 1000.0
-                if self.old_progress != dsprogress:
-                    completion = {}
-
-                    useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.filesList.GetItemCount() > 100
-                    selected_files = ds.get_download().get_selected_files()
-                    if ds.get_download().get_def().get_def_type() == 'swift':
-                        selected_files = [file.split('/')[1] for file in selected_files]
-                    if useSimple:
-                        if selected_files:
-                            for i in range(self.filesList.GetItemCount()):
-                                file = self.filesList.GetItem(i, 0).GetText()
-                                if file in selected_files:
-                                    completion[file] = dsprogress
-                        else:
-                            for i in range(self.filesList.GetItemCount()):
-                                completion[self.filesList.GetItem(i, 0).GetText()] = dsprogress
+                    if listfile in selected_files or not selected_files:
+                        self.filesList.SetStringItem(i, 2, 'Included')
                     else:
-                        for file, progress in ds.get_files_completion():
-                            completion[file] = progress
+                        self.filesList.SetStringItem(i, 2, 'Excluded')
 
-                    for i in range(self.filesList.GetItemCount()):
-                        listfile = self.filesList.GetItem(i, 0).GetText()
+                    progress = completion.get(listfile, None)
+                    if isinstance(progress, float) or isinstance(progress, int):
+                        self.filesList.SetStringItem(i, 3, "%.2f%%" % (progress * 100))
 
-                        if listfile in selected_files or not selected_files:
-                            self.filesList.SetStringItem(i, 2, 'Included')
-                        else:
-                            self.filesList.SetStringItem(i, 2, 'Excluded')
+                self.old_progress = dsprogress
 
-                        progress = completion.get(listfile, None)
-                        if isinstance(progress, float) or isinstance(progress, int):
-                            self.filesList.SetStringItem(i, 3, "%.2f%%" % (progress * 100))
+        if index == 0:
+            self.peerList.DeleteAllItems()
+        else:
+            while index < self.peerList.GetItemCount():
+                self.peerList.DeleteItem(index)
+                index += 1
 
-                    self.old_progress = dsprogress
-
-            if index == 0:
-                self.peerList.DeleteAllItems()
-            else:
-                while index < self.peerList.GetItemCount():
-                    self.peerList.DeleteItem(index)
-                    index += 1
-
-            self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
-            self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
-            self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
-            self.peerList._doResize()
-            self.peerList.Thaw()
+        self.peerList.SetColumnWidth(1, wx.LIST_AUTOSIZE)
+        self.peerList.SetColumnWidth(2, wx.LIST_AUTOSIZE)
+        self.peerList.SetColumnWidth(3, wx.LIST_AUTOSIZE)
+        self.peerList._doResize()
+        self.peerList.Thaw()
 
     def __del__(self):
         TorrentDetails.__del__(self)
@@ -1258,7 +1266,6 @@ class ChannelDetails(AbstractDetails):
 
         self.parent = parent
         self.channel = None
-        self.isReady = False
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -1269,30 +1276,24 @@ class ChannelDetails(AbstractDetails):
 
     @forceWxThread
     def showChannel(self, channel):
-        try:
-            if not self.isReady:
-                self.state = -1
-                self.channel = channel
+        self.state = -1
+        self.channel = channel
 
-                self.Freeze()
+        self.Freeze()
 
-                self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
+        self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
 
-                self.detailsTab, self.overviewSizer = self._create_tab(self.notebook, 'Channel details', border=10)
-                self.detailsTab.SetBackgroundColour(wx.WHITE)
+        self.detailsTab, self.overviewSizer = self._create_tab(self.notebook, 'Channel details', border=10)
+        self.detailsTab.SetBackgroundColour(wx.WHITE)
 
-                self._addOverview(self.detailsTab, self.overviewSizer)
+        self._addOverview(self.detailsTab, self.overviewSizer)
 
-                self.vSizer.Clear(deleteWindows=True)
-                self.vSizer.Add(self.notebook, 1, wx.EXPAND)
-                self.notebook.SetSelection(0)
+        self.vSizer.Clear(deleteWindows=True)
+        self.vSizer.Add(self.notebook, 1, wx.EXPAND)
+        self.notebook.SetSelection(0)
 
-                self.Thaw()
-                self.isReady = True
-                self.Layout()
-
-        except wx.PyDeadObjectError:
-            pass
+        self.Thaw()
+        self.Layout()
 
     @forceWxThread
     def _addOverview(self, panel, sizer):
@@ -1314,15 +1315,14 @@ class ChannelDetails(AbstractDetails):
 
     @warnWxThread
     def RefreshData(self, data):
-        if self.isReady:
-            if isinstance(self.channel, Channel):
-                self.channel.name = data[2].name
-                self.channel.description = data[2].description
-                self.channel.nr_torrents = data[2].nr_torrents
-                self.channel.modified = data[2].modified
-                self.channel.nr_favorites = data[2].nr_favorites
+        if isinstance(self.channel, Channel):
+            self.channel.name = data[2].name
+            self.channel.description = data[2].description
+            self.channel.nr_torrents = data[2].nr_torrents
+            self.channel.modified = data[2].modified
+            self.channel.nr_favorites = data[2].nr_favorites
 
-            self._addOverview(self.detailsTab, self.overviewSizer)
+        self._addOverview(self.detailsTab, self.overviewSizer)
 
 
 class PlaylistDetails(AbstractDetails):
@@ -1337,7 +1337,6 @@ class PlaylistDetails(AbstractDetails):
 
         self.parent = parent
         self.playlist = None
-        self.isReady = False
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.torrents = None
 
@@ -1349,30 +1348,24 @@ class PlaylistDetails(AbstractDetails):
 
     @forceWxThread
     def showPlaylist(self, playlist):
-        try:
-            if not self.isReady:
-                self.state = -1
-                self.playlist = playlist
+        self.state = -1
+        self.playlist = playlist
 
-                self.Freeze()
+        self.Freeze()
 
-                self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
+        self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
 
-                self.detailsTab, self.overviewSizer = self._create_tab(self.notebook, 'Playlist details', border=10)
-                self.detailsTab.SetBackgroundColour(wx.WHITE)
+        self.detailsTab, self.overviewSizer = self._create_tab(self.notebook, 'Playlist details', border=10)
+        self.detailsTab.SetBackgroundColour(wx.WHITE)
 
-                self._addOverview(self.detailsTab, self.overviewSizer)
+        self._addOverview(self.detailsTab, self.overviewSizer)
 
-                self.vSizer.Clear(deleteWindows=True)
-                self.vSizer.Add(self.notebook, 1, wx.EXPAND)
-                self.notebook.SetSelection(0)
+        self.vSizer.Clear(deleteWindows=True)
+        self.vSizer.Add(self.notebook, 1, wx.EXPAND)
+        self.notebook.SetSelection(0)
 
-                self.Thaw()
-                self.isReady = True
-                self.Layout()
-
-        except wx.PyDeadObjectError:
-            pass
+        self.Thaw()
+        self.Layout()
 
     @forceWxThread
     def _addOverview(self, panel, sizer):
@@ -1456,13 +1449,12 @@ class PlaylistDetails(AbstractDetails):
 
     @warnWxThread
     def RefreshData(self, data):
-        if self.isReady:
-            if isinstance(self.playlist, Playlist):
-                self.playlist.name = data[2].name
-                self.playlist.description = data[2].description
-                self.playlist.nr_torrents = data[2].nr_torrents
+        if isinstance(self.playlist, Playlist):
+            self.playlist.name = data[2].name
+            self.playlist.description = data[2].description
+            self.playlist.nr_torrents = data[2].nr_torrents
 
-            self._addOverview(self.detailsTab, self.overviewSizer)
+        self._addOverview(self.detailsTab, self.overviewSizer)
 
 
 class AbstractInfoPanel(FancyPanel):
@@ -1476,7 +1468,6 @@ class AbstractInfoPanel(FancyPanel):
         self.uelog = UserEventLogDBHandler.getInstance()
 
         self.parent = parent
-        self.isReady = False
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
         self.topSizer = wx.BoxSizer(wx.VERTICAL)
