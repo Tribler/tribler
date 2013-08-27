@@ -116,6 +116,7 @@ class TorrentDetails(AbstractDetails):
         self.parent = parent
         self.torrent = Torrent('0', '0', '0', '0', '', '', 0, 0, 0, 0, 0, None)
         self.state = -1
+        self.timeouttimer = None
 
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -149,6 +150,10 @@ class TorrentDetails(AbstractDetails):
     @forceWxThread
     def setTorrent(self, torrent):
         if torrent:
+            if self.timeouttimer:
+                self.timeouttimer.Stop()
+                self.timeouttimer = None
+
             # Intermediate update
             self.messageText.SetLabel('Loading details, please wait.\nTribler first needs to fetch the torrent file before this information can be accessed.')
             self.messageGauge.Show(False)
@@ -168,7 +173,7 @@ class TorrentDetails(AbstractDetails):
                         self.messageGauge.Show(True)
                         self.messageGauge.Pulse()
                         self.messagePanel.Layout()
-                    wx.CallLater(30000, timeout) if not self.guiutility.frame.librarylist.IsShownOnScreen() else None
+                    self.timeouttimer = wx.CallLater(10000, timeout) if not self.guiutility.frame.librarylist.IsShownOnScreen() else None
 
                 def timeout():
                     self.messageText.SetLabel("Failed loading torrent.\nPlease click retry or wait to allow other peers to respond.")
@@ -289,7 +294,9 @@ class TorrentDetails(AbstractDetails):
         self.channel_title, self.channel = self._add_row(self.detailsTab, fgSizer, 'Channel', link, flags=0)
 
         # Add thumbnails
-        self.thumbnails = self.GetThumbnailPanel(self.detailsTab, [])
+        self.thumbnails = StaticBitmaps(self.detailsTab, -1)
+        self.thumbnails.SetBackgroundColour(self.detailsTab.GetBackgroundColour())
+        self.thumbnails.SetBitmaps([])
         tSizer = wx.BoxSizer(wx.HORIZONTAL)
         tSizer.Add(fgSizer, 1, wx.ALIGN_LEFT | wx.ALIGN_TOP | wx.EXPAND)
         tSizer.Add(self.thumbnails, 0, wx.ALIGN_RIGHT | wx.ALIGN_TOP | wx.EXPAND)
@@ -545,15 +552,6 @@ class TorrentDetails(AbstractDetails):
                         self._add_row(self.trackerTab, self.trackerSizer, None, tracker)
         else:
             self.notebook.ShowMessageOnPage(self.notebook.GetIndexFromText('Trackers'), True)
-
-    def GetThumbnailPanel(self, parent, bitmaps):
-        res = limit_resolution(bitmaps[0].GetSize(), (175, 175)) if bitmaps else None
-        bmps = [bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() for bmp in bitmaps if bmp.IsOk()] if res else []
-
-        sbmp = StaticBitmaps(parent, -1)
-        sbmp.SetBackgroundColour(parent.GetBackgroundColour())
-        sbmp.SetBitmaps(bmps)
-        return sbmp
 
     @warnWxThread
     def ShowPanel(self, newState=None):
@@ -972,6 +970,7 @@ class LibraryDetails(TorrentDetails):
         # so only do it when needed for display.
         self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=False)
 
+        self.old_progress = -1
         self.bw_history = bw_history
         TorrentDetails.setTorrent(self, torrent)
 
@@ -1203,7 +1202,7 @@ class LibraryDetails(TorrentDetails):
             dsprogress = ds.get_progress()
             # Niels: 28-08-2012 rounding to prevent updating too many times
             dsprogress = long(dsprogress * 1000) / 1000.0
-            if self.old_progress != dsprogress:
+            if self.old_progress != dsprogress and self.filesList.GetItemCount() > 0:
                 completion = {}
 
                 useSimple = ds.get_download().get_def().get_def_type() == 'swift' or self.filesList.GetItemCount() > 100
@@ -1266,52 +1265,71 @@ class ChannelDetails(AbstractDetails):
 
         self.parent = parent
         self.channel = None
-        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
+        self.vSizer.Add(self.notebook, 1, wx.EXPAND)
         self.SetSizer(self.vSizer)
         self.Layout()
+
+        self.createAllTabs()
 
         self.Show()
 
     @forceWxThread
     def showChannel(self, channel):
-        self.state = -1
         self.channel = channel
+        self.updateAllTabs()
+        self.Layout()
 
+    def createAllTabs(self):
         self.Freeze()
 
-        self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
-
-        self.detailsTab, self.overviewSizer = self._create_tab(self.notebook, 'Channel details', border=10)
+        self.detailsTab, self.detailsSizer = self._create_tab(self.notebook, 'Channel details', border=10)
         self.detailsTab.SetBackgroundColour(wx.WHITE)
 
-        self._addOverview(self.detailsTab, self.overviewSizer)
+        fgSizer = wx.FlexGridSizer(0, 2, 3, 10)
+        fgSizer.AddGrowableCol(1)
+        fgSizer.AddGrowableRow(6)
 
-        self.vSizer.Clear(deleteWindows=True)
-        self.vSizer.Add(self.notebook, 1, wx.EXPAND)
-        self.notebook.SetSelection(0)
+        titles = ['Name', 'Description', 'Torrents', 'Latest update', 'Favorite votes']
+        for title in titles:
+            control1, control2 = self._add_row(self.detailsTab, fgSizer, title, '')
+            control1_name = title.lower().replace(' ', '') + '_title'
+            control2_name = title.lower().replace(' ', '')
+            setattr(self, control1_name, control1)
+            setattr(self, control2_name, control2)
+
+        self.detailsSizer.Add(fgSizer, 1, wx.EXPAND)
+        self.detailsTab.Layout()
 
         self.Thaw()
         self.Layout()
 
-    @forceWxThread
-    def _addOverview(self, panel, sizer):
-        sizer.Clear(deleteWindows=True)
+        self.notebook.SetSelection(0)
 
-        vSizer = wx.FlexGridSizer(0, 2, 3, 10)
-        vSizer.AddGrowableCol(1)
-        vSizer.AddGrowableRow(6)
+    def updateAllTabs(self):
+        self.Freeze()
 
-        self._add_row(self.detailsTab, vSizer, "Name", self.channel.name)
+        todo = []
+        todo.append((self.name, self.channel.name))
         if self.channel.description:
-            self._add_row(self.detailsTab, vSizer, "Description", self.channel.description)
-        self._add_row(self.detailsTab, vSizer, "Torrents", str(self.channel.nr_torrents))
-        self._add_row(self.detailsTab, vSizer, "Latest update", format_time(self.channel.modified))
-        self._add_row(self.detailsTab, vSizer, "Favorite votes", str(self.channel.nr_favorites))
+            todo.append((self.description, self.channel.description))
+        todo.append((self.torrents, str(self.channel.nr_torrents)))
+        todo.append((self.latestupdate, format_time(self.channel.modified)))
+        todo.append((self.favoritevotes, str(self.channel.nr_favorites)))
 
-        sizer.Add(vSizer, 1, wx.EXPAND)
-        sizer.Layout()
+        for control, new_value in todo:
+            if control.GetLabel() != new_value:
+                control.SetLabel(new_value)
+
+        self.description.Show(bool(self.channel.description))
+        self.description_title.Show(bool(self.channel.description))
+
+        self.detailsTab.Layout()
+
+        self.Thaw()
 
     @warnWxThread
     def RefreshData(self, data):
@@ -1322,7 +1340,7 @@ class ChannelDetails(AbstractDetails):
             self.channel.modified = data[2].modified
             self.channel.nr_favorites = data[2].nr_favorites
 
-        self._addOverview(self.detailsTab, self.overviewSizer)
+        self.updateAllTabs()
 
 
 class PlaylistDetails(AbstractDetails):
@@ -1337,115 +1355,130 @@ class PlaylistDetails(AbstractDetails):
 
         self.parent = parent
         self.playlist = None
-        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
-        self.torrents = None
+        self.playlist_torrents = None
 
+        self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
+        self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="PlaylistDetailsNotebook")
+        self.vSizer.Add(self.notebook, 1, wx.EXPAND)
         self.SetSizer(self.vSizer)
         self.Layout()
+
+        self.createAllTabs()
 
         self.Show()
 
     @forceWxThread
     def showPlaylist(self, playlist):
-        self.state = -1
         self.playlist = playlist
+        self.playlist_torrents = None
+        self.updateAllTabs()
+        self.Layout()
 
+    def createAllTabs(self):
         self.Freeze()
 
-        self.notebook = SimpleNotebook(self, style=wx.NB_NOPAGETHEME, name="ChannelDetailsNotebook")
-
-        self.detailsTab, self.overviewSizer = self._create_tab(self.notebook, 'Playlist details', border=10)
+        self.detailsTab, self.detailsSizer = self._create_tab(self.notebook, 'Playlist details', border=10)
         self.detailsTab.SetBackgroundColour(wx.WHITE)
 
-        self._addOverview(self.detailsTab, self.overviewSizer)
+        fgSizer = wx.FlexGridSizer(0, 2, 3, 10)
+        fgSizer.AddGrowableCol(1)
+        fgSizer.AddGrowableRow(6)
 
-        self.vSizer.Clear(deleteWindows=True)
-        self.vSizer.Add(self.notebook, 1, wx.EXPAND)
-        self.notebook.SetSelection(0)
+        titles = ['Name', 'Description', 'Torrents']
+        for title in titles:
+            control1, control2 = self._add_row(self.detailsTab, fgSizer, title, '')
+            setattr(self, title.lower() + '_title', control1)
+            setattr(self, title.lower(), control2)
+
+        # Add thumbnails
+        self.thumbnails = wx.Panel(self.detailsTab, -1)
+        self.thumbnails.SetBackgroundColour(self.detailsTab.GetBackgroundColour())
+        fgThumbSizer = wx.FlexGridSizer(2, 2, 5, 5)
+        hThumbSizer = wx.BoxSizer(wx.HORIZONTAL)
+        hThumbSizer.Add(fgThumbSizer, 1, 0)
+        self.smallthumbs = []
+        for _ in range(4):
+            sbmp = wx.StaticBitmap(self.thumbnails, -1)
+            self.smallthumbs.append(sbmp)
+            fgThumbSizer.Add(sbmp, 0, 0)
+        self.bigthumb = StaticBitmaps(self.thumbnails, -1)
+        hThumbSizer.AddSpacer((5, -1))
+        hThumbSizer.Add(self.bigthumb, 1, 0)
+        self.thumbnails.SetSizer(hThumbSizer)
+
+        tSizer = wx.BoxSizer(wx.HORIZONTAL)
+        tSizer.Add(fgSizer, 1, wx.ALIGN_LEFT | wx.ALIGN_TOP | wx.EXPAND)
+        tSizer.Add(self.thumbnails, 0, wx.ALIGN_RIGHT | wx.ALIGN_TOP | wx.EXPAND)
+        self.detailsSizer.Add(tSizer, 1, wx.EXPAND)
+        self.thumbnails.Show(False)
+        self.detailsTab.Layout()
 
         self.Thaw()
         self.Layout()
 
-    @forceWxThread
-    def _addOverview(self, panel, sizer):
-        sizer.Clear(deleteWindows=True)
+        self.notebook.SetSelection(0)
 
-        vSizer = wx.FlexGridSizer(0, 2, 3, 10)
-        vSizer.AddGrowableCol(1)
-        vSizer.AddGrowableRow(6)
+    def updateAllTabs(self):
+        self.Freeze()
 
-        self._add_row(self.detailsTab, vSizer, "Name", self.playlist.name)
+        todo = []
+        todo.append((self.name, self.playlist.name))
         if self.playlist.description:
-            self._add_row(self.detailsTab, vSizer, "Description", self.playlist.description)
-        self._add_row(self.detailsTab, vSizer, "Torrents", str(self.playlist.nr_torrents))
+            todo.append((self.description, self.playlist.description))
+        todo.append((self.torrents, str(self.playlist.nr_torrents)))
 
+        for control, new_value in todo:
+            if control.GetLabel() != new_value:
+                control.SetLabel(new_value)
+
+        self.description.Show(bool(self.playlist.description))
+        self.description_title.Show(bool(self.playlist.description))
+
+        # Reset old thumbnails
+        self.bigthumb.SetBitmaps([])
+        for sbmp in self.smallthumbs:
+            sbmp.SetBitmap(wx.NullBitmap)
+
+        # Set new thumbnails
         if self.playlist and self.playlist.nr_torrents > 0:
-            if self.torrents == None:
+            if self.playlist_torrents == None:
                 def do_db():
                     from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
                     return ChannelManager.getInstance().getTorrentsFromPlaylist(self.playlist)[2]
 
                 def do_gui(delayedResult):
-                    self.torrents = delayedResult.get()
+                    self.playlist_torrents = delayedResult.get()
                     bmps = []
-                    for torrent in self.torrents:
+                    for torrent in self.playlist_torrents:
                         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(torrent.infohash))
                         if os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0:
-                            bmps.append(wx.Bitmap(os.path.join(thumb_dir, os.listdir(thumb_dir)[1]), wx.BITMAP_TYPE_ANY))
+                            bmps.append(wx.Bitmap(os.path.join(thumb_dir, os.listdir(thumb_dir)[0]), wx.BITMAP_TYPE_ANY))
                         if len(bmps) > 3:
                             break
-                    self.Freeze()
-                    tp = self.GetThumbnailPanel(panel, bmps)
-                    tSizer.Insert(1, tp, 0, wx.ALIGN_RIGHT | wx.ALIGN_TOP | wx.EXPAND)
-                    self.overviewSizer.Layout()
-                    self.Thaw()
+
+                    if bmps:
+                        self.thumbnails.Show(True)
+                        self.Freeze()
+                        res_large = limit_resolution(bmps[0].GetSize(), (175, 175))
+                        res_small = limit_resolution(bmps[0].GetSize(), (85, 85))
+
+                        bmps_large = [bmp.ConvertToImage().Scale(*res_large, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() for bmp in bmps if bmp.IsOk()]
+                        bmps_small = [bmp.ConvertToImage().Scale(*res_small, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() for bmp in bmps if bmp.IsOk()]
+
+                        self.bigthumb.SetBitmaps(bmps_large)
+                        for i, sbmp in enumerate(self.smallthumbs):
+                            if i < len(bmps_small):
+                                sbmp.SetBitmap(bmps_small[i])
+                        self.thumbnails.Layout()
+                        self.detailsTab.Layout()
+                        self.Thaw()
 
                 startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
-            tSizer = wx.BoxSizer(wx.HORIZONTAL)
-            tSizer.Add(vSizer, 1, wx.ALIGN_LEFT | wx.ALIGN_TOP | wx.EXPAND)
-            sizer.Add(tSizer, 1, wx.EXPAND)
-        else:
-            sizer.Add(vSizer, 1, wx.EXPAND)
+        self.detailsTab.Layout()
 
-        sizer.Layout()
-
-    def GetThumbnailPanel(self, parent, bmps):
-        panel = wx.Panel(parent, -1)
-        panel.SetBackgroundColour(parent.GetBackgroundColour())
-
-        if bmps:
-            bmps_large = []
-            bmps_small = []
-
-            res_large = limit_resolution(bmps[0].GetSize(), (175, 175))
-            res_small = limit_resolution(bmps[0].GetSize(), (85, 85))
-
-            for bmp in bmps:
-                if bmp.IsOk():
-                    bmp = bmp.ConvertToImage().Scale(*res_large, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap()
-                    bmps_large.append(bmp)
-                    bmp = bmp.ConvertToImage().Scale(*res_small, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap()
-                    bmps_small.append(bmp)
-
-            fgSizer = wx.FlexGridSizer(2, 2, 5, 5)
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            hSizer.Add(fgSizer, 1, 0)
-
-            for bmp in bmps_small:
-                sbmp = wx.StaticBitmap(panel, -1)
-                sbmp.SetBitmap(bmp)
-                fgSizer.Add(sbmp, 0, 0)
-
-            hSizer.AddSpacer((5, -1))
-
-            sbmp = StaticBitmaps(panel, -1)
-            sbmp.SetBitmaps(bmps_large)
-            hSizer.Add(sbmp, 1, 0)
-            panel.SetSizer(hSizer)
-
-        return panel
+        self.Thaw()
 
     @warnWxThread
     def RefreshData(self, data):
@@ -1454,7 +1487,7 @@ class PlaylistDetails(AbstractDetails):
             self.playlist.description = data[2].description
             self.playlist.nr_torrents = data[2].nr_torrents
 
-        self._addOverview(self.detailsTab, self.overviewSizer)
+        self.updateAllTabs()
 
 
 class AbstractInfoPanel(FancyPanel):

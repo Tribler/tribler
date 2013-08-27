@@ -468,15 +468,20 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def OnExpand(self, item):
-        detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails if isinstance(item, PlaylistItem) else TorrentDetails)
-        detailspanel.setTorrent(item.original_data)
-        item.expandedPanel = detailspanel
+        if isinstance(item, PlaylistItem):
+            detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistDetails)
+            detailspanel.showPlaylist(item.original_data)
+            item.expandedPanel = detailspanel
+        elif isinstance(item, TorrentListItem):
+            detailspanel = self.guiutility.SetBottomSplitterWindow(TorrentDetails)
+            detailspanel.setTorrent(item.original_data)
+            item.expandedPanel = detailspanel
 
         self.top_header.header_list.DeselectAll()
         return True
 
     @warnWxThread
-    def OnCollapse(self, item, panel):
+    def OnCollapse(self, item, panel, from_expand):
         if not isinstance(item, PlaylistItem) and panel:
             # detect changes
             changes = panel.GetChanged()
@@ -485,7 +490,7 @@ class SelectedChannelList(GenericSearchList):
                 if dlg.ShowModal() == wx.ID_YES:
                     self.OnSaveTorrent(self.channel, panel)
                 dlg.Destroy()
-        GenericSearchList.OnCollapse(self, item, panel)
+        GenericSearchList.OnCollapse(self, item, panel, from_expand)
 
     @warnWxThread
     def ResetBottomWindow(self):
@@ -867,12 +872,8 @@ class Playlist(SelectedChannelList):
 
     @warnWxThread
     def ResetBottomWindow(self):
-        panel = PlaylistInfoPanel(self.guiutility.frame.splitter_bottom_window)
-        num_items = len(self.list.raw_data) if self.list.raw_data else 1
-        is_favourite = self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None
-        panel.Set(num_items, is_favourite)
-        self.guiutility.SetBottomSplitterWindow(panel)
-
+        detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistInfoPanel)
+        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None)
 
 class ManageChannelFilesManager(BaseManager):
 
@@ -1698,14 +1699,14 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def OnExpand(self, item):
         return MyChannelPlaylist(item, self.OnEdit, self.canDelete, self.OnSave, self.OnRemoveSelected, item.original_data)
 
-    def OnCollapse(self, item, panel):
+    def OnCollapse(self, item, panel, from_expand):
         playlist_id = item.original_data.get('id', False)
         if playlist_id:
             if panel.IsChanged():
                 dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this playlist?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.OnSave(playlist_id, panel)
-        ManageChannelFilesList.OnCollapse(self, item, panel)
+        ManageChannelFilesList.OnCollapse(self, item, panel, from_expand)
         self.list.Layout()
 
     def OnSave(self, playlist_id, panel):
@@ -2112,8 +2113,8 @@ class CommentList(List):
             self.footer.SetReply(True)
         return True
 
-    def OnCollapse(self, item, panel):
-        List.OnCollapse(self, item, panel)
+    def OnCollapse(self, item, panel, from_expand):
+        List.OnCollapse(self, item, panel, from_expand)
         self.footer.SetReply(False)
 
     def OnNew(self, event):

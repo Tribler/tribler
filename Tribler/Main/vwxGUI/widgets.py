@@ -2283,6 +2283,7 @@ class StaticBitmaps(wx.Panel):
 
     def __init__(self, *args, **kwargs):
         wx.Panel.__init__(self, *args, **kwargs)
+        self.bitmaps_index = 0
         self.SetPositions()
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -2325,9 +2326,10 @@ class StaticBitmaps(wx.Panel):
 
     def SetBitmaps(self, bitmaps):
         if isinstance(bitmaps, list) and bitmaps:
-            self.bitmaps_index = 0
+            if self.bitmaps_index > len(self.bitmaps):
+                self.bitmaps_index = 0
             self.bitmaps = bitmaps
-            self.bitmap = bitmaps[0]
+            self.bitmap = bitmaps[self.bitmaps_index]
             self.SetSize(self.bitmap.GetSize())
             self.SetPositions()
         else:

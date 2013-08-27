@@ -165,7 +165,7 @@ class LibtorrentMgr:
 
             if infohash in self.metainfo_requests:
                 print >> sys.stderr, "LibtorrentMgr: killing get_metainfo request for", infohash
-                handle, _ = self.metainfo_requests.pop(infohash)
+                handle, _, _ = self.metainfo_requests.pop(infohash)
                 if handle:
                     self.ltsession.remove_torrent(handle, 0)
 

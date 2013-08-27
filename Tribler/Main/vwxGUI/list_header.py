@@ -1317,7 +1317,7 @@ class ListItemHeader(wx.Panel):
     def OnExpand(self, item):
         return True
 
-    def OnCollapse(self, item, panel):
+    def OnCollapse(self, item, panel, from_expand=False):
         if panel:
             panel.Destroy()
             self.parent_list.ResetBottomWindow()
